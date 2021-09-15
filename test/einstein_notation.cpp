@@ -132,7 +132,7 @@ TEST_CASE("einstein_notation_contracted_assignement",
   }
   SECTION("A(i) = B(j, j, i)") {
     auto A = vec2{};
-    auto B = tensor<real_t, 2, 2, 2>{random::uniform<real_t>{}};
+    auto B = tensor<real_t, 2, 2, 2>::randu();
     A(i)   = B(j, j, i);
     REQUIRE(A(0) == B(0, 0, 0) + B(1, 1, 0));
     REQUIRE(A(1) == B(0, 0, 1) + B(1, 1, 1));
@@ -140,7 +140,7 @@ TEST_CASE("einstein_notation_contracted_assignement",
 
   SECTION("A(i, j) = b(i) * b(j) - outer product") {
     auto A = mat2{};
-    auto b  = vec2{random::uniform<real_t>{}};
+    auto b  = vec2::randu();
     A(i, j) = b(i) * b(j);
     REQUIRE(A(0, 0) == b(0) * b(0));
     REQUIRE(A(0, 1) == b(0) * b(1));
@@ -148,7 +148,7 @@ TEST_CASE("einstein_notation_contracted_assignement",
     REQUIRE(A(1, 1) == b(1) * b(1));
   }
   SECTION("s = b(i) * b(i) - inner product") {
-    auto   b = vec2{random::uniform<real_t>{}};
+    auto   b = vec2::randu();
     real_t s = b(i) * b(i);
     REQUIRE(s == b(0) * b(0) + b(1) * b(1));
   }

@@ -211,51 +211,7 @@ struct indexed_tensor {
         },
         std::decay_t<Tensor>::dimension(FreeIndexSequence)...);
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // template <typename OtherTensor, typename... OtherIndices,
-  //          std::size_t... IndexSequence>
-  // auto assign(tensor<OtherTensor, OtherIndices...> [>unused<],
-  //            std::index_sequence<IndexSequence...>) -> auto& {
-  //  using other_index_tuple = std::tuple<OtherIndices...>;
-  //  using index_map_t       = mapping<other_index_tuple>;
-  //
-  //  // print_index_pairs<index_map_t>();
-  //  static auto constexpr index_map = index_pairs_as_array<index_map_t>;
-  //
-  //  for_loop(
-  //      [](auto const... indices) {
-  //        auto const lhs_indices = std::array{indices...};
-  //        auto const rhs_indices = [&] {
-  //          auto rhs_indices = std::array<std::size_t, OtherTensor::rank()>{};
-  //          for (auto const& [l, r] : index_map) {
-  //            rhs_indices[r] = lhs_indices[l];
-  //          }
-  //          return rhs_indices;
-  //        }();
-  //
-  //        // std::cerr << "lhs(";
-  //        // std::cerr << lhs_indices.front();
-  //        // for (std::size_t i = 1; i < lhs_indices.size(); ++i) {
-  //        //  std::cerr << ", " << lhs_indices[i];
-  //        //}
-  //        // std::cerr << ") = rhs(";
-  //        // std::cerr << rhs_indices.front();
-  //        // for (std::size_t i = 1; i < rhs_indices.size(); ++i) {
-  //        //  std::cerr << ", " << rhs_indices[i];
-  //        //}
-  //        // std::cerr << ")\n";
-  //      },
-  //      std::decay_t<Tensor>::template size<IndexSequence>()...);
-  //
-  //  return *this;
-  //}
   //----------------------------------------------------------------------------
-  // template <typename OtherTensor, typename... OtherIndices>
-  // auto operator=(tensor<OtherTensor, OtherIndices...> other) ->
-  // tensor& {
-  //  return assign(other, std::make_index_sequence<std::decay_t<Tensor>::rank()>{});
-  //}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... IndexedTensors, typename Tensor_ = Tensor,
             enable_if<!is_const<std::remove_reference_t<Tensor_>>> = true>
   auto operator+=(contracted_tensor<IndexedTensors...> other)

@@ -202,6 +202,25 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,
     return *this;
   }
 };
+template <std::size_t... Dimensions>
+using Tensor = tensor<real_t, Dimensions...>;
+
+using tensor222    = Tensor<2, 2, 2>;
+using tensor222    = Tensor<2, 2, 2>;
+using tensor333    = Tensor<3, 3, 3>;
+using tensor444    = Tensor<4, 4, 4>;
+using tensor2222   = Tensor<2, 2, 2, 2>;
+using tensor2222   = Tensor<2, 2, 2, 2>;
+using tensor3333   = Tensor<3, 3, 3, 3>;
+using tensor4444   = Tensor<4, 4, 4, 4>;
+using tensor22222  = Tensor<2, 2, 2, 2, 2>;
+using tensor22222  = Tensor<2, 2, 2, 2, 2>;
+using tensor33333  = Tensor<3, 3, 3, 3, 3>;
+using tensor44444  = Tensor<4, 4, 4, 4, 4>;
+using tensor222222 = Tensor<2, 2, 2, 2, 2, 2>;
+using tensor222222 = Tensor<2, 2, 2, 2, 2, 2>;
+using tensor333333 = Tensor<3, 3, 3, 3, 3, 3>;
+using tensor444444 = Tensor<4, 4, 4, 4, 4, 4>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

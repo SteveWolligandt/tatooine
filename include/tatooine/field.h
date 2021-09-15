@@ -18,6 +18,7 @@ struct field {
   using tensor_t = Tensor;
   using this_t   = field<real_t, NumDims, Tensor>;
   using pos_t    = vec<real_t, NumDims>;
+  static auto constexpr ood_tensor() { return tensor_t{tag::fill{0.0 / 0.0}}; }
   //============================================================================
   // static methods
   //============================================================================

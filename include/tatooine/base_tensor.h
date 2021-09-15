@@ -277,7 +277,30 @@ struct base_tensor : crtp<Tensor> {
     for_indices([&](auto const... is) { at(is...) /= other; });
     return *this;
   }
-
+  //----------------------------------------------------------------------------
+  auto isnan() const {
+    bool b = false;
+    for_indices([&](auto const... is) {
+      if (std::isnan(at(is...))) {
+        b = true;
+        return false;
+      }
+      return true;
+    });
+    return b;
+  }
+  //----------------------------------------------------------------------------
+  auto isinf() const {
+    bool b = false;
+    for_indices([&](auto const... is) {
+      if (std::isinf(at(is...))) {
+        b = true;
+        return false;
+      }
+      return true;
+    });
+    return b;
+  }
  private:
   friend class boost::serialization::access;
 };

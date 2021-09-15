@@ -857,19 +857,19 @@ if ( it == end(m_cell_properties)) {
         if (prop->type() == typeid(vec<Real, 4>)) {
           auto const& casted_prop =
               *dynamic_cast<vertex_property_t<vec<Real, 4>> const*>(prop.get());
-          writer.write_scalars(name, casted_prop.container());
+          writer.write_scalars(name, casted_prop.data());
         } else if (prop->type() == typeid(vec<Real, 3>)) {
           auto const& casted_prop =
               *dynamic_cast<vertex_property_t<vec<Real, 3>> const*>(prop.get());
-          writer.write_scalars(name, casted_prop.container());
+          writer.write_scalars(name, casted_prop.data());
         } else if (prop->type() == typeid(vec<Real, 2>)) {
           auto const& casted_prop =
               *dynamic_cast<vertex_property_t<vec<Real, 2>> const*>(prop.get());
-          writer.write_scalars(name, casted_prop.container());
+          writer.write_scalars(name, casted_prop.data());
         } else if (prop->type() == typeid(Real)) {
           auto const& casted_prop =
               *dynamic_cast<vertex_property_t<Real> const*>(prop.get());
-          writer.write_scalars(name, casted_prop.container());
+          writer.write_scalars(name, casted_prop.data());
         }
       }
 
@@ -910,11 +910,11 @@ if ( it == end(m_cell_properties)) {
         } else if (prop->type() == typeid(vec<Real, 2>)) {
           auto const& casted_prop =
               *dynamic_cast<vertex_property_t<vec<Real, 2>> const*>(prop.get());
-          writer.write_scalars(name, casted_prop.container());
+          writer.write_scalars(name, casted_prop.data());
         } else if (prop->type() == typeid(Real)) {
           auto const& casted_prop =
               *dynamic_cast<vertex_property_t<Real> const*>(prop.get());
-          writer.write_scalars(name, casted_prop.container());
+          writer.write_scalars(name, casted_prop.data());
         }
       }
 

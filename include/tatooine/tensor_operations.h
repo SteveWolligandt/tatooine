@@ -11,13 +11,14 @@ namespace tatooine {
 /// invert symmetric matrix
 /// A = [a,b]
 ///     [b,c]
-template <typename Tensor, typename Real, enable_if<is_floating_point<Real>> = true>
+template <typename Tensor, typename Real,
+          enable_if<is_floating_point<Real>> = true>
 constexpr auto inv_sym(base_tensor<Tensor, Real, 2, 2> const& A)
     -> std::optional<mat<Real, 2, 2>> {
   decltype(auto) a   = A(0, 0);
   decltype(auto) b   = A(1, 0);
   decltype(auto) c   = A(1, 1);
-  auto const  det = (a * c - b * b);
+  auto const     det = (a * c - b * b);
   if (std::abs(det) < 1e-10) {
     return {};
   }
@@ -32,7 +33,8 @@ constexpr auto inv_sym(base_tensor<Tensor, Real, 2, 2> const& A)
 #ifdef __cpp_concepts
 template <typename Tensor, floating_point Real>
 #else
-template <typename Tensor, typename Real, enable_if<is_floating_point<Real>> = true>
+template <typename Tensor, typename Real,
+          enable_if<is_floating_point<Real>> = true>
 #endif
 constexpr auto inv(base_tensor<Tensor, Real, 2, 2> const& A)
     -> std::optional<mat<Real, 2, 2>> {
@@ -41,15 +43,14 @@ constexpr auto inv(base_tensor<Tensor, Real, 2, 2> const& A)
   if (std::abs(b - c) < 1e-10) {
     return inv_sym(A);
   }
-  decltype(auto) a = A(0, 0);
-  decltype(auto) d = A(1, 1);
-  auto const det = (a * d - b * c);
+  decltype(auto) a   = A(0, 0);
+  decltype(auto) d   = A(1, 1);
+  auto const     det = (a * d - b * c);
   if (std::abs(det) < 1e-10) {
     return {};
   }
-  auto const  e = 1 / det;
-  return mat{{ d, -b},
-             {-c,  a}} * e;
+  auto const e = 1 / det;
+  return mat{{d, -b}, {-c, a}} * e;
 }
 //------------------------------------------------------------------------------
 /// invert symmetric matrix
@@ -59,7 +60,8 @@ constexpr auto inv(base_tensor<Tensor, Real, 2, 2> const& A)
 #ifdef __cpp_concepts
 template <typename Tensor, floating_point Real>
 #else
-template <typename Tensor, typename Real, enable_if<is_floating_point<Real>> = true>
+template <typename Tensor, typename Real,
+          enable_if<is_floating_point<Real>> = true>
 #endif
 constexpr auto inv_sym(base_tensor<Tensor, Real, 3, 3> const& A)
     -> std::optional<mat<Real, 3, 3>> {
@@ -69,7 +71,8 @@ constexpr auto inv_sym(base_tensor<Tensor, Real, 3, 3> const& A)
   decltype(auto) d = A(1, 1);
   decltype(auto) e = A(2, 1);
   decltype(auto) f = A(2, 2);
-  auto const det =((a * d - b * b) * f - a * e * e + 2 * b * c * e - c * c * d);
+  auto const     det =
+      ((a * d - b * b) * f - a * e * e + 2 * b * c * e - c * c * d);
   if (std::abs(det) < 1e-10) {
     return {};
   }
@@ -87,9 +90,11 @@ constexpr auto inv_sym(base_tensor<Tensor, Real, 3, 3> const& A)
 #ifdef __cpp_concepts
 template <typename Tensor, floating_point Real>
 #else
-template <typename Tensor, typename Real, enable_if<is_floating_point<Real>> = true>
+template <typename Tensor, typename Real,
+          enable_if<is_floating_point<Real>> = true>
 #endif
-constexpr auto inv(base_tensor<Tensor, Real, 3, 3> const& A) -> std::optional<mat<Real, 3, 3>> {
+constexpr auto inv(base_tensor<Tensor, Real, 3, 3> const& A)
+    -> std::optional<mat<Real, 3, 3>> {
   decltype(auto) b = A(0, 1);
   decltype(auto) c = A(0, 2);
   decltype(auto) d = A(1, 0);
@@ -103,7 +108,7 @@ constexpr auto inv(base_tensor<Tensor, Real, 3, 3> const& A) -> std::optional<ma
   decltype(auto) a = A(0, 0);
   decltype(auto) e = A(1, 1);
   decltype(auto) i = A(2, 2);
-  auto const  det =
+  auto const     det =
       ((a * e - b * d) * i + (c * d - a * f) * h + (b * f - c * e) * g);
   if (std::abs(det) < 1e-10) {
     return {};
@@ -123,7 +128,8 @@ constexpr auto inv(base_tensor<Tensor, Real, 3, 3> const& A) -> std::optional<ma
 #ifdef __cpp_concepts
 template <typename Tensor, floating_point Real>
 #else
-template <typename Tensor, typename Real, enable_if<is_floating_point<Real>> = true>
+template <typename Tensor, typename Real,
+          enable_if<is_floating_point<Real>> = true>
 #endif
 constexpr auto inv_sym(base_tensor<Tensor, Real, 4, 4> const& A) {
   decltype(auto) a = A(0, 0);
@@ -181,7 +187,8 @@ constexpr auto inv_sym(base_tensor<Tensor, Real, 4, 4> const& A) {
 #ifdef __cpp_concepts
 template <typename Tensor, floating_point Real>
 #else
-template <typename Tensor, typename Real, enable_if<is_floating_point<Real>> = true>
+template <typename Tensor, typename Real,
+          enable_if<is_floating_point<Real>> = true>
 #endif
 constexpr auto inv(base_tensor<Tensor, Real, 4, 4> const& A)
     -> std::optional<mat<Real, 4, 4>> {
@@ -444,8 +451,8 @@ constexpr auto sum(base_tensor<Tensor, T, VecDim> const& v) {
   return s;
 }
 //------------------------------------------------------------------------------
-template <typename Tensor0, typename T0, typename Tensor1,
-          typename T1, size_t N>
+template <typename Tensor0, typename T0, typename Tensor1, typename T1,
+          size_t N>
 constexpr auto dot(base_tensor<Tensor0, T0, N> const& lhs,
                    base_tensor<Tensor1, T1, N> const& rhs) {
   common_type<T0, T1> d = 0;
@@ -474,13 +481,12 @@ constexpr auto det(base_tensor<Tensor, T, 3, 3> const& m) -> T {
          m(2, 1) * m(1, 2) * m(0, 0) - m(2, 2) * m(1, 0) * m(0, 2);
 }
 //------------------------------------------------------------------------------
-template <typename Tensor0, typename T0, typename Tensor1,
-          typename T1>
+template <typename Tensor0, typename T0, typename Tensor1, typename T1>
 constexpr auto cross(base_tensor<Tensor0, T0, 3> const& lhs,
                      base_tensor<Tensor1, T1, 3> const& rhs) {
   return vec<common_type<T0, T1>, 3>{lhs(1) * rhs(2) - lhs(2) * rhs(1),
-                                   lhs(2) * rhs(0) - lhs(0) * rhs(2),
-                                   lhs(0) * rhs(1) - lhs(1) * rhs(0)};
+                                     lhs(2) * rhs(0) - lhs(0) * rhs(2),
+                                     lhs(0) * rhs(1) - lhs(1) * rhs(0)};
 }
 //------------------------------------------------------------------------------
 template <typename F, typename Tensor, typename T, size_t N>
@@ -490,12 +496,11 @@ constexpr auto unary_operation(F&& f, base_tensor<Tensor, T, N> const& t_in) {
   t_out.unary_operation(std::forward<F>(f));
   return t_out;
 }
-template <typename F, typename Tensor, typename T, size_t M,
-          size_t N>
+template <typename F, typename Tensor, typename T, size_t M, size_t N>
 constexpr auto unary_operation(F&&                                 f,
                                base_tensor<Tensor, T, M, N> const& t_in) {
-  using TOut            = typename std::result_of<decltype(f)(T)>::type;
-  mat<TOut, M, N> t_out = t_in;
+  using TOut = typename std::result_of<decltype(f)(T)>::type;
+  auto t_out = mat<TOut, M, N>{t_in};
   t_out.unary_operation(std::forward<F>(f));
   return t_out;
 }
@@ -508,8 +513,8 @@ constexpr auto unary_operation(F&&                                    f,
   return t_out;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename F, typename Tensor0, typename T0,
-          typename Tensor1, typename T1, size_t N>
+template <typename F, typename Tensor0, typename T0, typename Tensor1,
+          typename T1, size_t N>
 constexpr auto binary_operation(F&& f, base_tensor<Tensor0, T0, N> const& lhs,
                                 base_tensor<Tensor1, T1, N> const& rhs) {
   using TOut         = typename std::result_of<decltype(f)(T0, T1)>::type;
@@ -517,8 +522,8 @@ constexpr auto binary_operation(F&& f, base_tensor<Tensor0, T0, N> const& lhs,
   t_out.binary_operation(std::forward<F>(f), rhs);
   return t_out;
 }
-template <typename F, typename Tensor0, typename T0,
-          typename Tensor1, typename T1, size_t M, size_t N>
+template <typename F, typename Tensor0, typename T0, typename Tensor1,
+          typename T1, size_t M, size_t N>
 constexpr auto binary_operation(F&&                                   f,
                                 base_tensor<Tensor0, T0, M, N> const& lhs,
                                 base_tensor<Tensor1, T1, M, N> const& rhs) {
@@ -527,8 +532,8 @@ constexpr auto binary_operation(F&&                                   f,
   t_out.binary_operation(std::forward<F>(f), rhs);
   return t_out;
 }
-template <typename F, typename Tensor0, typename T0,
-          typename Tensor1, typename T1, size_t... Dims>
+template <typename F, typename Tensor0, typename T0, typename Tensor1,
+          typename T1, size_t... Dims>
 constexpr auto binary_operation(F&&                                      f,
                                 base_tensor<Tensor0, T0, Dims...> const& lhs,
                                 base_tensor<Tensor1, T1, Dims...> const& rhs) {
@@ -572,8 +577,8 @@ constexpr auto operator+(base_tensor<Tensor0, T0, Dims...> const& lhs,
 }
 //------------------------------------------------------------------------------
 /// matrix-matrix multiplication
-template <typename Tensor0, typename T0, typename Tensor1,
-          typename T1, size_t M, size_t N, size_t O>
+template <typename Tensor0, typename T0, typename Tensor1, typename T1,
+          size_t M, size_t N, size_t O>
 constexpr auto operator*(base_tensor<Tensor0, T0, M, N> const& lhs,
                          base_tensor<Tensor1, T1, N, O> const& rhs) {
   mat<common_type<T0, T1>, M, O> product;
@@ -586,23 +591,22 @@ constexpr auto operator*(base_tensor<Tensor0, T0, M, N> const& lhs,
 }
 //------------------------------------------------------------------------------
 /// component-wise multiplication
-template <typename Tensor0, typename T0, typename Tensor1,
-          typename T1, size_t... Dims,
-          enable_if<(sizeof...(Dims) != 2)> = true>
+template <typename Tensor0, typename T0, typename Tensor1, typename T1,
+          size_t... Dims, enable_if<(sizeof...(Dims) != 2)> = true>
 constexpr auto operator*(base_tensor<Tensor0, T0, Dims...> const& lhs,
                          base_tensor<Tensor1, T1, Dims...> const& rhs) {
   return binary_operation(std::multiplies<common_type<T0, T1>>{}, lhs, rhs);
 }
 //------------------------------------------------------------------------------
-template <typename Tensor0, typename T0, typename Tensor1,
-          typename T1, size_t... Dims>
+template <typename Tensor0, typename T0, typename Tensor1, typename T1,
+          size_t... Dims>
 constexpr auto operator/(base_tensor<Tensor0, T0, Dims...> const& lhs,
                          base_tensor<Tensor1, T1, Dims...> const& rhs) {
   return binary_operation(std::divides<common_type<T0, T1>>{}, lhs, rhs);
 }
 //------------------------------------------------------------------------------
-template <typename Tensor0, typename T0, typename Tensor1,
-          typename T1, size_t... Dims>
+template <typename Tensor0, typename T0, typename Tensor1, typename T1,
+          size_t... Dims>
 constexpr auto operator+(base_tensor<Tensor0, T0, Dims...> const& lhs,
                          base_tensor<Tensor1, T1, Dims...> const& rhs) {
   return binary_operation(std::plus<common_type<T0, T1>>{}, lhs, rhs);
@@ -640,16 +644,16 @@ constexpr auto operator/(Scalar const                                 scalar,
       [scalar](auto const& component) { return scalar / component; }, t);
 }
 //------------------------------------------------------------------------------
-template <typename Tensor0, typename T0, typename Tensor1,
-          typename T1, size_t... Dims>
+template <typename Tensor0, typename T0, typename Tensor1, typename T1,
+          size_t... Dims>
 constexpr auto operator-(base_tensor<Tensor0, T0, Dims...> const& lhs,
                          base_tensor<Tensor1, T1, Dims...> const& rhs) {
   return binary_operation(std::minus<common_type<T0, T1>>{}, lhs, rhs);
 }
 //------------------------------------------------------------------------------
 /// matrix-vector-multiplication
-template <typename Tensor0, typename T0, typename Tensor1,
-          typename T1, size_t M, size_t N>
+template <typename Tensor0, typename T0, typename Tensor1, typename T1,
+          size_t M, size_t N>
 constexpr auto operator*(base_tensor<Tensor0, T0, M, N> const& lhs,
                          base_tensor<Tensor1, T1, N> const&    rhs) {
   vec<common_type<T0, T1>, M> product;
@@ -660,8 +664,8 @@ constexpr auto operator*(base_tensor<Tensor0, T0, M, N> const& lhs,
 }
 //------------------------------------------------------------------------------
 /// vector-matrix-multiplication
-template <typename Tensor0, typename T0, typename Tensor1,
-          typename T1, size_t M, size_t N>
+template <typename Tensor0, typename T0, typename Tensor1, typename T1,
+          size_t M, size_t N>
 constexpr auto operator*(base_tensor<Tensor0, T0, M> const&    lhs,
                          base_tensor<Tensor1, T1, M, N> const& rhs) {
   vec<common_type<T0, T1>, N> product;
@@ -711,19 +715,17 @@ auto solve(tensor<Real, M, N> const& A, tensor<Real, N, O> const& B) {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T0, typename T1, typename Real, size_t M, size_t N, size_t O>
 auto solve(base_tensor<T0, Real, M, N> const& A,
-           base_tensor<T1, Real, N, O> const&    b) {
+           base_tensor<T1, Real, N, O> const& b) {
   return solve(mat<Real, M, N>{A}, mat<Real, N, O>{b});
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template < typename T1, typename Real, size_t M, size_t N, size_t O>
-auto solve(tensor<Real, M, N> const& A,
-           base_tensor<T1, Real, N, O> const&    b) {
+template <typename T1, typename Real, size_t M, size_t N, size_t O>
+auto solve(tensor<Real, M, N> const& A, base_tensor<T1, Real, N, O> const& b) {
   return solve(A, mat<Real, N, O>{b});
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T0, typename Real, size_t M, size_t N, size_t O>
-auto solve(base_tensor<T0, Real, M, N> const& A,
-           tensor<Real, N, O> const& b) {
+auto solve(base_tensor<T0, Real, M, N> const& A, tensor<Real, N, O> const& b) {
   return solve(mat<Real, M, N>{A}, b);
 }
 //------------------------------------------------------------------------------

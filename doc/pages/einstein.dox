@@ -1,0 +1,23 @@
+/**
+\page einstein_notation_page Einstein notation
+\tableofcontents
+\section einstein_notation_intro_sec Introduction
+Einstein notation can be used for contracting tensors. (see <a
+href="https://en.wikipedia.org/wiki/Einstein_notation"> Wikipedia</a>)
+
+\code{.cpp}
+#include <tatooine/tensor.h>
+#include <tatooine/einstein_notation.h>
+//==============================================================================
+using namespace tatooine;
+//==============================================================================
+auto main() -> int {
+  using namespace einstein_notation;
+  auto A = mat2::randu();
+  auto B = tensor222::randu();
+  auto C = vec2{};
+
+  C(k) = A(i, j) * B(i, j, k);
+}
+\endcode
+*/
