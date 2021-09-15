@@ -64,6 +64,7 @@ struct added_contracted_tensor;
 //==============================================================================
 template <typename Tensor, typename... Indices>
 struct indexed_tensor {
+  using tensor_t = std::decay_t<Tensor>;
  private:
   Tensor m_tensor;
 
@@ -412,6 +413,7 @@ struct added_contracted_tensor {
 //==============================================================================
 template <typename... IndexedTensors>
 struct contracted_tensor {
+  using real_t = common_type<typename IndexedTensors::tensor_t::value_type...>;
   using indices_per_tensor = type_list<typename IndexedTensors::indices...>;
   template <std::size_t I>
   using indices_of_tensor = type_list_at<indices_per_tensor, I>;
@@ -448,6 +450,70 @@ struct contracted_tensor {
     return std::get<I>(m_tensors);
   }
 
+  template <std::size_t... ContractedIndexSequence,
+            std::size_t... ContractedTensorsSequence,
+            bool free_indices_empty       = free_indices::empty,
+            enable_if<free_indices_empty> = true>
+  auto to_scalar(std::index_sequence<ContractedIndexSequence...>,
+                 std::index_sequence<ContractedTensorsSequence...>) const {
+    using map_t              = std::map<std::size_t, std::size_t>;
+    using contracted_tensor  = contracted_tensor<IndexedTensors...>;
+    using contracted_indices = typename contracted_tensor::contracted_indices;
+
+    auto const contracted_indices_map = map_t{map_t::value_type{
+        contracted_indices::template at<ContractedIndexSequence>::get(),
+        ContractedIndexSequence,
+    }...};
+    auto const tensor_index_maps = std::tuple{IndexedTensors::index_map()...};
+    auto       index_arrays =
+        std::tuple{make_array<std::size_t, IndexedTensors::rank()>()...};
+    real_t acc = 0;
+
+    for_loop(
+        [&](auto const... contracted_indices) {
+          // setup indices of single tensors for contracted indices
+          {
+            auto const contracted_index_array =
+                std::array{contracted_indices...};
+            (
+                [&] {
+                  auto& index_array =
+                      std::get<ContractedTensorsSequence>(index_arrays);
+                  auto const& tensor_index_map =
+                      std::get<ContractedTensorsSequence>(tensor_index_maps);
+                  auto index_arr_it        = begin(index_array);
+                  auto tensor_index_map_it = begin(tensor_index_map);
+
+                  for (; tensor_index_map_it != end(tensor_index_map);
+                       ++tensor_index_map_it, ++index_arr_it) {
+                    if (contracted_indices_map.contains(*tensor_index_map_it)) {
+                      *index_arr_it =
+                          contracted_index_array[contracted_indices_map.at(
+                              *tensor_index_map_it)];
+                    }
+                  }
+                }(),
+                ...);
+          }
+
+          acc += (at<ContractedTensorsSequence>().tensor()(
+                      std::get<ContractedTensorsSequence>(index_arrays)) *
+                  ...);
+        },
+        contracted_tensor::template size<
+            typename contracted_indices::template at<
+                ContractedIndexSequence>>()...);
+    return acc;
+  }
+  //----------------------------------------------------------------------------
+  operator real_t() const {
+    if constexpr (free_indices::empty){
+    return to_scalar(std::make_index_sequence<contracted_indices::size>{},
+                     std::make_index_sequence<sizeof...(IndexedTensors)>{});
+    } else {
+      return real_t(0) / real_t(0);
+    }
+  }
 };
 //==============================================================================
 template <typename TensorLHS, typename... IndicesLHS, typename TensorRHS,
