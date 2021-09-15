@@ -2,6 +2,7 @@
 #define TATOOINE_TYPE_TRAITS_H
 //==============================================================================
 #include <type_traits>
+#include <array>
 #include <complex>
 #include <tatooine/void_t.h>
 #include <tatooine/common_type.h>
@@ -10,6 +11,13 @@ namespace tatooine {
 //==============================================================================
 template <typename T>
 static constexpr auto is_pointer = std::is_pointer<T>::value;
+//==============================================================================
+template <typename T>
+struct is_array_impl : std::false_type {};
+template <typename T, std::size_t N>
+struct is_array_impl<std::array<T, N>> : std::true_type {};
+template <typename T>
+static auto constexpr is_array = is_array_impl<T>::value;
 //==============================================================================
 template <typename... Ts>
 struct is_same_impl;
