@@ -7,10 +7,15 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-/// \defgroup type_set Set
+/// \defgroup template_meta_programming_type_set Set
 /// \ingroup template_meta_programming
 /// A type set can be constructed with tatooine::type_set which constructs a
-/// tatooine::type_list with no redundant types.
+/// tatooine::type_set_impl with no redundant types:
+/// ```cpp
+///  using list = tatooine::type_set<int, double, int, float>;
+/// ```
+/// `list` is of type tatooine::type_set_impl and holds `int`, `double` and
+/// `float`.
 /// \{
 template <typename... Ts>
 struct type_set_impl;
@@ -51,7 +56,7 @@ struct type_list_contains_impl<type_set_impl<Ts...>, T> {
 /// \}
 //==============================================================================
 /// \defgroup type_set_insert insert
-/// \ingroup type_set
+/// \ingroup template_meta_programming_type_set
 /// \{
 //==============================================================================
 template <typename TypeList, typename NewType, typename... TypesAccumulator>
@@ -107,7 +112,7 @@ using type_set_insert = typename type_set_insert_impl<TypeList, NewType>::type;
 /// \}
 //==============================================================================
 /// \defgroup type_set_constructor constructor
-/// \ingroup type_set
+/// \ingroup template_meta_programming_type_set
 /// \{
 template <typename TypeList, typename... Ts>
 struct type_set_constructor;

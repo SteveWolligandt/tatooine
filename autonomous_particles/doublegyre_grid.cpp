@@ -48,6 +48,22 @@ auto main(int argc, char** argv) -> int {
                          linspace{0.0, 1.0, args.height + 1}}};
     auto const num_particles_after_advection = size(autonomous_disc.samplers());
     //----------------------------------------------------------------------------
+    indicator.set_text("Writing Autonomous Particles Results");
+    {
+      autonomous_disc.mesh0().write_vtk("doublegyre_grid_autonomous_mesh0.vtk");
+      autonomous_disc.mesh1().write_vtk("doublegyre_grid_autonomous_mesh1.vtk");
+      std::vector<line2> all_advected_discretizations;
+      std::vector<line2> all_initial_discretizations;
+      for (auto const& sampler : autonomous_disc.samplers()) {
+        all_initial_discretizations.push_back(
+            discretize(sampler.ellipse0(), 100));
+        all_advected_discretizations.push_back(
+            discretize(sampler.ellipse1(), 100));
+      }
+      write_vtk(all_initial_discretizations, "doublegyre_grid_ellipses0.vtk");
+      write_vtk(all_advected_discretizations, "doublegyre_grid_ellipses1.vtk");
+    }
+    //----------------------------------------------------------------------------
     indicator.set_text("Discretizing flow map naively");
     auto const regularized_height = static_cast<size_t>(
         std::ceil(std::sqrt(num_particles_after_advection / 2)));
@@ -343,24 +359,10 @@ auto main(int argc, char** argv) -> int {
                           real_t(0)) /
           size(agranovsky_errors);
     }
-
+    //----------------------------------------------------------------------------
     indicator.set_text("Writing results");
-    {
-      sampler_check_grid.write("doublegyre_grid_errors.vtk");
-      autonomous_disc.mesh0().write_vtk("doublegyre_grid_autonomous_mesh0.vtk");
-      autonomous_disc.mesh1().write_vtk("doublegyre_grid_autonomous_mesh1.vtk");
-      std::vector<line2> all_advected_discretizations;
-      std::vector<line2> all_initial_discretizations;
-      for (auto const& sampler : autonomous_disc.samplers()) {
-        all_initial_discretizations.push_back(
-            discretize(sampler.ellipse0(), 100));
-        all_advected_discretizations.push_back(
-            discretize(sampler.ellipse1(), 100));
-      }
-      write_vtk(all_initial_discretizations, "doublegyre_grid_ellipses0.vtk");
-      write_vtk(all_advected_discretizations, "doublegyre_grid_ellipses1.vtk");
-    }
-
+    { sampler_check_grid.write("doublegyre_grid_errors.vtk"); }
+    //----------------------------------------------------------------------------
     indicator.mark_as_completed();
     report << num_points_ood_forward << " / "
            << sampler_check_grid.vertices().size()

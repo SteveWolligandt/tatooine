@@ -629,8 +629,8 @@ struct pointset {
   auto nearest_neighbors_radius_raw(pos_t const& x, Real const radius,
                                     flann::SearchParams const params = {}) const
       -> std::pair<std::vector<int>, std::vector<Real>> {
-    flann::Matrix<Real>            qm{const_cast<Real*>(x.data_ptr()), 1,
-                           num_dimensions()};
+    flann::Matrix<Real> qm{const_cast<Real*>(x.data_ptr()),  // NOLINT
+                           1, num_dimensions()};
     std::vector<std::vector<int>>  indices;
     std::vector<std::vector<Real>> distances;
     kd_tree().radiusSearch(qm, indices, distances, radius, params);
@@ -780,13 +780,20 @@ struct moving_least_squares_sampler_t<Real, 2, T>
   //==========================================================================
   [[nodiscard]] auto evaluate(pos_t const& q, Real const /*t*/) const
       -> tensor_t {
-    auto const  nn      = m_pointset.nearest_neighbors_radius_raw(q, m_radius);
+    auto        nn      = m_pointset.nearest_neighbors_radius_raw(q, m_radius);
     auto const& indices = nn.first;
-    auto const& distances     = nn.second;
+    auto&       distances = nn.second;
+    for (auto& d : distances) {
+      d = m_radius - d;
+    }
     auto const  num_neighbors = size(indices);
 
     if (num_neighbors == 0) {
-      return T{Real(0) / Real(0)};
+      if constexpr (is_arithmetic<tensor_t>) {
+        return Real(0) / Real(0);
+      } else {
+        return tensor_t{tag::fill{Real(0) / Real(0)}};
+      }
     }
     if (num_neighbors == 1) {
       return m_property[vertex_handle{indices[0]}];
@@ -809,10 +816,11 @@ struct moving_least_squares_sampler_t<Real, 2, T>
 
     // build w
     for (size_t i = 0; i < num_neighbors; ++i) {
-      if (distances[i] == 0) {
-        return m_property[vertex_handle{indices[i]}];
-      }
-      w(i) = 1 / distances[i] - 1 / m_radius;
+      //if (distances[i] == 0) {
+      //  return m_property[vertex_handle{indices[i]}];
+      //}
+      //w(i) = 1 / distances[i] - 1 / m_radius;
+      w(i) = std::exp(-distances[i] * distances[i]);
     }
     // build F
     for (size_t i = 0; i < num_neighbors; ++i) {
@@ -951,10 +959,11 @@ struct moving_least_squares_sampler_t<Real, 3, T>
     }();
     // build w
     for (size_t i = 0; i < num_neighbors; ++i) {
-      if (distances[i] == 0) {
-        return m_property[vertex_handle{indices[i]}];
-      }
-      w(i) = 1 / distances[i] - 1 / m_radius;
+      //if (distances[i] == 0) {
+      //  return m_property[vertex_handle{indices[i]}];
+      //}
+      //w(i) = 1 / distances[i] - 1 / m_radius;
+      w(i) = std::exp(-(m_radius - distances[i]) * (m_radius - distances[i]));
     }
     // build f
     for (size_t i = 0; i < num_neighbors; ++i) {

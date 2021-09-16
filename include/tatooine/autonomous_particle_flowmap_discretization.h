@@ -4,6 +4,7 @@
 #include <tatooine/autonomous_particle.h>
 #include <tatooine/uniform_tree_hierarchy.h>
 #include <tatooine/unstructured_simplex_grid.h>
+#include <tatooine/staggered_flowmap_discretization.h>
 
 #include <boost/range/adaptor/transformed.hpp>
 #include <boost/range/algorithm/copy.hpp>
@@ -213,25 +214,41 @@ struct autonomous_particle_flowmap_discretization {
   template <typename Flowmap>
   autonomous_particle_flowmap_discretization(
       Flowmap&& flowmap, arithmetic auto const t0, arithmetic auto const tau,
-      arithmetic auto const                    tau_step,
+      arithmetic auto const                                tau_step,
       uniform_rectilinear_grid<Real, NumDimensions> const& g) {
     static_assert(
         std::decay_t<Flowmap>::num_dimensions() == NumDimensions,
         "Number of dimensions of flowmap does not match number of dimensions.");
     auto initial_particle_distribution = g.copy_without_properties();
+    std::deque<autonomous_particle<Real, NumDimensions>> particles;
     for (size_t i = 0; i < NumDimensions; ++i) {
       initial_particle_distribution.dimension(i).pop_front();
       auto const spacing = initial_particle_distribution.dimension(i).spacing();
       initial_particle_distribution.dimension(i).front() -= spacing / 2;
       initial_particle_distribution.dimension(i).back() -= spacing / 2;
     }
-    std::deque<autonomous_particle<Real, NumDimensions>> particles;
     initial_particle_distribution.vertices().iterate_indices(
         [&](auto const... is) {
           particles.emplace_back(
               initial_particle_distribution.vertex_at(is...), t0,
               initial_particle_distribution.dimension(0).spacing() / 2);
         });
+    //auto const small_particle_size =
+    //    std::sqrt(2.0 * initial_particle_distribution.dimension(0).spacing()) -
+    //    initial_particle_distribution.dimension(0).spacing();
+    //
+    //for (size_t i = 0; i < NumDimensions; ++i) {
+    //  initial_particle_distribution.dimension(i).pop_front();
+    //  auto const spacing = initial_particle_distribution.dimension(i).spacing();
+    //  initial_particle_distribution.dimension(i).front() -= spacing / 2;
+    //  initial_particle_distribution.dimension(i).back() -= spacing / 2;
+    //}
+    //initial_particle_distribution.vertices().iterate_indices(
+    //    [&](auto const... is) {
+    //      particles.emplace_back(
+    //          initial_particle_distribution.vertex_at(is...), t0,
+    //          small_particle_size);
+    //    });
     fill(std::forward<Flowmap>(flowmap), particles, t0 + tau, tau_step);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -248,12 +265,8 @@ struct autonomous_particle_flowmap_discretization {
   }
   //============================================================================
   auto samplers() const -> auto const& { return m_samplers; }
-
- public:
-  auto mesh0() const -> auto const& { return m_mesh0; }
-
- public:
-  auto mesh1() const -> auto const& { return m_mesh1; }
+  auto mesh0()    const -> auto const& { return m_mesh0; }
+  auto mesh1()    const -> auto const& { return m_mesh1; }
   //============================================================================
   template <typename Flowmap>
   auto fill(Flowmap&& flowmap,
@@ -385,12 +398,9 @@ struct autonomous_particle_flowmap_discretization {
       if (((barycentric_coord(VertexSeq) >= -eps) && ...) &&
           ((barycentric_coord(VertexSeq) <= 1 + eps) && ...)) {
         if constexpr (NumDimensions == 2) {
-          if (distance(mesh[std::get<0>(vs)], mesh[std::get<1>(vs)]) >
-                  0.2 ||
-              distance(mesh[std::get<1>(vs)], mesh[std::get<2>(vs)]) >
-                  0.2 ||
-              distance(mesh[std::get<0>(vs)], mesh[std::get<2>(vs)]) >
-                  0.2) {
+          if (distance(mesh[std::get<0>(vs)], mesh[std::get<1>(vs)]) > 0.2 ||
+              distance(mesh[std::get<1>(vs)], mesh[std::get<2>(vs)]) > 0.2 ||
+              distance(mesh[std::get<0>(vs)], mesh[std::get<2>(vs)]) > 0.2) {
             continue;
           }
         }
@@ -436,7 +446,8 @@ struct autonomous_particle_flowmap_discretization {
             map += samplers[i]->sample(x, tag) * inner_barycentric_coords[i];
           }
           return map;
-        } else if (size(unique_samplers) == 2) {
+        }
+        if (size(unique_samplers) == 2) {
           auto points_on_boundary = make_array<vec<Real, NumDimensions>, 2>();
           auto distances          = make_array<Real, 2>();
           auto weights            = make_array<Real, 2>();

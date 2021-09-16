@@ -189,14 +189,14 @@ constexpr auto solve(diag_tensor<TensorA, N, N> const& A, TensorB&& B)
   return ret;
 }
 //------------------------------------------------------------------------------
-template <typename TensorA, typename TensorB, typename BReal, size_t M, size_t N>
-constexpr auto operator*(diag_tensor<TensorA, M, M> const&     A,
-                         base_tensor<TensorB, BReal, M, N> const& B)
-    -> mat<
-        std::common_type_t<typename std::decay_t<TensorA>::value_type, BReal>,
-        M, N> {
-  mat<std::common_type_t<typename std::decay_t<TensorA>::value_type, BReal>, M, N>
-      ret = B;
+template <typename TensorA, typename TensorB, typename BReal, size_t M,
+          size_t N>
+constexpr auto operator*(diag_tensor<TensorA, M, M> const&        A,
+                         base_tensor<TensorB, BReal, M, N> const& B) {
+  using mat_t =
+      mat<std::common_type_t<typename std::decay_t<TensorA>::value_type, BReal>,
+          M, N>;
+  auto ret = mat_t{B};
   for (size_t i = 0; i < M; ++i) {
     ret.row(i) *= A.internal_tensor()(i);
   }

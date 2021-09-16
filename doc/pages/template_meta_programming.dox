@@ -1,1 +1,12 @@
-/// \defgroup template_meta_programming Template Meta Programming Module.
+/// \defgroup template_meta_programming Template Meta Programming
+/**
+\page template_meta_programming_page Template Meta Programming
+
+\section template_meta_programming_intro Introduction
+There are some data structures defined that help develop Template Meta Programming Code.
+For more details take a look at the \ref template_meta_programming module.
+
+\section template_meta_programming_containers Containers
+- \ref template_meta_programming_type_list
+- \ref template_meta_programming_type_set
+*/
