@@ -528,7 +528,7 @@ constexpr auto binary_operation(F&&                                   f,
                                 base_tensor<Tensor0, T0, M, N> const& lhs,
                                 base_tensor<Tensor1, T1, M, N> const& rhs) {
   using TOut            = typename std::result_of<decltype(f)(T0, T1)>::type;
-  mat<TOut, M, N> t_out = lhs;
+  auto t_out            = mat<TOut, M, N>{lhs};
   t_out.binary_operation(std::forward<F>(f), rhs);
   return t_out;
 }
@@ -689,7 +689,25 @@ namespace tatooine {
 //==============================================================================
 template <typename Real, size_t M, size_t N>
 auto solve(tensor<Real, M, N> const& A, tensor<Real, N> const& b) {
+  return solve_lu(A, b);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Real, size_t M, size_t N>
+auto solve_lu(tensor<Real, M, N> const& A, tensor<Real, N> const& b) {
   return lapack::gesv(A, b);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename TensorA, typename TensorB, typename Real, size_t M, size_t N>
+auto solve_qr(base_tensor<TensorA, Real, M, N> const& A_base,
+              base_tensor<TensorB, Real, N> const&    b_base) {
+  auto A   = mat<Real, M, N>{A_base};
+  auto b   = vec<Real, N>{b_base};
+  auto tau = vec<Real, (M < N ? M : N)>{};
+
+  lapack::geqrf(A, tau);
+  lapack::ormqr(A, b, tau, 'L', 'T');
+  lapack::trtrs(A, b, 'U');
+  return b;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T0, typename T1, typename Real, size_t M, size_t N>

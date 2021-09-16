@@ -12,7 +12,10 @@
 //==============================================================================
 namespace tatooine::lapack {
 //==============================================================================
-static constexpr auto including_mkl_lapacke() {
+/// \defgroup lapack Lapack
+/// \{
+//==============================================================================
+static auto constexpr including_mkl_lapacke() {
 #if TATOOINE_INCLUDE_MKL_LAPACKE
   return true;
 #else
@@ -20,87 +23,255 @@ static constexpr auto including_mkl_lapacke() {
 #endif
 }
 //==============================================================================
-template <typename T, size_t M, size_t N>
-auto getrf(tensor<T, M, N>&& A) {
+/// \defgroup lapack_getrf GETRF
+/// \ingroup lapack
+/// \{
+//==============================================================================
+///  DGETRF computes an LU factorization of a general M-by-N matrix A using
+///  partial pivoting with row interchanges.
+template <size_t M, size_t N>
+auto getrf(tensor<double, M, N>& A) {
   vec<int, tatooine::min(M, N)> p;
-  if constexpr (is_same<double, T>) {
-    LAPACKE_dgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
-  } else if constexpr (is_same<float, T>) {
-    LAPACKE_sgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
-  } else if constexpr (is_same<std::complex<double>, T>) {
-    LAPACKE_zgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
-  } else if constexpr (is_same<std::complex<float>, T>) {
-    LAPACKE_cgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
-  } else {
-    throw std::runtime_error{"[tatooine::lapack::getrf] - type not accepted"};
-  }
+  LAPACKE_dgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
   return A;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T, size_t M, size_t N>
-auto getrf(tensor<T, M, N>& A) {
+///  DGETRF computes an LU factorization of a general M-by-N matrix A using
+///  partial pivoting with row interchanges.
+template <size_t M, size_t N>
+auto getrf(tensor<float, M, N>& A) {
   vec<int, tatooine::min(M, N)> p;
-  if constexpr (is_same<double, T>) {
-    LAPACKE_dgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
-  } else if constexpr (is_same<float, T>) {
-    LAPACKE_sgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
-  } else if constexpr (is_same<std::complex<double>, T>) {
-    LAPACKE_zgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
-  } else if constexpr (is_same<std::complex<float>, T>) {
-    LAPACKE_cgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
-  }
+  LAPACKE_sgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
+  return A;
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+///  DGETRF computes an LU factorization of a general M-by-N matrix A using
+///  partial pivoting with row interchanges.
+template <size_t M, size_t N>
+auto getrf(tensor<std::complex<double>, M, N>& A) {
+  vec<int, tatooine::min(M, N)> p;
+  LAPACKE_zgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
+  return A;
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+///  DGETRF computes an LU factorization of a general M-by-N matrix A using
+///  partial pivoting with row interchanges.
+template <size_t M, size_t N>
+auto getrf(tensor<std::complex<float>, M, N>& A) {
+  vec<int, tatooine::min(M, N)> p;
+  LAPACKE_cgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
   return A;
 }
 //==============================================================================
-template <typename T, size_t N>
-auto gesv(tensor<T, N, N> A, tensor<T, N> b) {
-  vec<int, N> ipiv;
-  int         nrhs = 1;
-  if constexpr (is_same<double, T>) {
-    LAPACKE_dgesv(LAPACK_COL_MAJOR, N, nrhs, A.data_ptr(), N, ipiv.data_ptr(),
-                  b.data_ptr(), N);
-  } else if constexpr (is_same<float, T>) {
-    LAPACKE_sgesv(LAPACK_COL_MAJOR, N, nrhs, A.data_ptr(), N, ipiv.data(),
-                  b.data_ptr(), N);
-  } else {
-    throw std::runtime_error{"[tatooine::lapack::gesv] - type not accepted"};
-  }
+/// \}
+//==============================================================================
+/// \defgroup lapack_gesv GESV
+/// \ingroup lapack
+/// \{
+//==============================================================================
+template <size_t N>
+auto gesv(tensor<double, N, N> A, tensor<double, N> b) {
+  vec<int, N>          ipiv;
+  static constexpr int nrhs = 1;
+  LAPACKE_dgesv(LAPACK_COL_MAJOR, N, nrhs, A.data_ptr(), N, ipiv.data_ptr(),
+                b.data_ptr(), N);
   return b;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T, size_t N, size_t NRHS>
-auto gesv(tensor<T, N, N> A, tensor<T, N, NRHS> B) {
+template <size_t N>
+auto gesv(tensor<float, N, N> A, tensor<float, N> b) {
+  vec<int, N>          ipiv;
+  static constexpr int nrhs = 1;
+  LAPACKE_sgesv(LAPACK_COL_MAJOR, N, nrhs, A.data_ptr(), N, ipiv.data(),
+                b.data_ptr(), N);
+  return b;
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <size_t N, size_t NRHS>
+auto gesv(tensor<double, N, N> A, tensor<double, N, NRHS> B) {
   std::array<int, N> ipiv;
-  if constexpr (is_same<double, T>) {
-    LAPACKE_dgesv(LAPACK_COL_MAJOR, N, NRHS, A.data_ptr(), N, ipiv.data(),
-                  B.data_ptr(), N);
-  } else if constexpr (is_same<float, T>) {
-    LAPACKE_sgesv(LAPACK_COL_MAJOR, N, NRHS, A.data_ptr(), N, ipiv.data_ptr(),
-                  B.data_ptr(), N);
-  } else {
-    throw std::runtime_error{"[tatooine::lapack::gesv] - type not accepted"};
-  }
+  LAPACKE_dgesv(LAPACK_COL_MAJOR, N, NRHS, A.data_ptr(), N, ipiv.data(),
+                B.data_ptr(), N);
+  return B;
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <size_t N, size_t NRHS>
+auto gesv(tensor<float, N, N> A, tensor<float, N, NRHS> B) {
+  std::array<int, N> ipiv;
+  LAPACKE_sgesv(LAPACK_COL_MAJOR, N, NRHS, A.data_ptr(), N, ipiv.data_ptr(),
+                B.data_ptr(), N);
   return B;
 }
 //==============================================================================
-template <typename T, size_t M, size_t N>
-auto lange(const tensor<T, M, N>& A, const char norm) {
-  if constexpr (is_same<double, T>) {
-    return LAPACKE_dlange(LAPACK_COL_MAJOR, norm, M, N, A.data_ptr(), M);
-  } else if constexpr (is_same<float, T>) {
-    return LAPACKE_slange(LAPACK_COL_MAJOR, norm, M, N, A.data_ptr(), M);
-  } else if constexpr (is_same<std::complex<double>, T>) {
-    return LAPACKE_zlange(LAPACK_COL_MAJOR, norm, M, N, A.data_ptr(), M);
-  } else if constexpr (is_same<std::complex<float>, T>) {
-    return LAPACKE_clange(LAPACK_COL_MAJOR, norm, M, N, A.data_ptr(), M);
-  } else {
-    throw std::runtime_error{"[tatooine::lapack::lange] - type not accepted"};
-  }
+/// \}
+//==============================================================================
+/// \defgroup lapack_geqrf GEQRF
+/// \ingroup lapack
+///
+/// - <a
+/// href='http://www.netlib.org/lapack/explore-html/df/dc5/group__variants_g_ecomputational_ga3766ea903391b5cf9008132f7440ec7b.html'>LAPACK
+/// documentation</a>
+/// - <a
+/// href='https://www.netlib.org/lapack/explore-html/d3/dd8/lapacke__dgeqrf_8c_a60664318f275813a1ab1faf3d44fe17f.html'>LAPACKE
+/// documentation</a>
+/// \{
+//==============================================================================
+template <size_t M, size_t N>
+auto geqrf(tensor<double, M, N>& A, vec<double, (M < N) ? M : N>& tau) {
+  LAPACKE_dgeqrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, tau.data_ptr());
+  return A;
 }
 //==============================================================================
-/// Estimates the reciprocal of the condition number of a general matrix A.
-/// http://www.netlib.org/lapack/explore-html/d7/db5/lapacke__dgecon_8c_a7c007823b949b0b118acf7e0235a6fc5.html
-/// https://www.netlib.org/lapack/explore-html/dd/d9a/group__double_g_ecomputational_ga188b8d30443d14b1a3f7f8331d87ae60.html
+/// \}
+//==============================================================================
+/// \defgroup lapack_ormqr ORMQR
+/// \ingroup lapack
+///
+/// **ORMQR** overwrites the general real `M x N` matrix `C` with
+/// <table>
+/// <tr><th>              <th>side = `L` <th>side = `R` </tr>
+/// <tr><th>trans = `N`:  <td>`Q * C`    <td>`C * Q`    </tr>
+/// <tr><th>trans = `T`:  <td>`Q^T * C`  <td>`C * Q^T`  </tr>
+///
+/// </table>
+/// where `Q` is a real orthogonal matrix defined as the product of `k`
+/// elementary reflectors
+///
+/// `Q = H(1) H(2) . . . H(k)`
+///
+/// as returned by \ref lapack_geqrf. `Q` is of order `M` if side = `L` and of order `N`
+/// if side = `R`
+///
+/// - <a
+/// href='https://www.netlib.org/lapack/explore-html/da/dba/group__double_o_t_h_e_rcomputational_ga17b0765a8a0e6547bcf933979b38f0b0.html'>LAPACK
+/// documentation</a>
+/// - <a
+/// href='http://www.netlib.org/lapack/explore-html/da/d35/lapacke__dormqr_8c_a6703fd6ad7fee186c33025bd88533b30.html'>LAPACKE
+/// documentation</a>
+/// \{
+//==============================================================================
+template <size_t K, size_t M>
+auto ormqr(tensor<double, M, K>& A, tensor<double, M>& c, vec<double, K>& tau,
+           char const side, char const trans) {
+  LAPACKE_dormqr(LAPACK_COL_MAJOR, side, trans, M, 1, K, A.data_ptr(), M,
+                 tau.data_ptr(), c.data_ptr(), M);
+  return A;
+}
+//==============================================================================
+template <size_t K, size_t M, size_t N>
+auto ormqr(tensor<double, M, K>& A, tensor<double, M, N>& C, vec<double, K>& tau,
+           char const side, char const trans) {
+  LAPACKE_dormqr(LAPACK_COL_MAJOR, side, trans, M, N, K, A.data_ptr(), M,
+                 tau.data_ptr(), C.data_ptr(), M);
+  return A;
+}
+//==============================================================================
+/// \}
+//==============================================================================
+/// \defgroup lapack_trtrs TRTRS
+/// \ingroup lapack
+///
+/// **DTRTRS** solves a triangular system of the form
+///
+/// `A * X = B`  or  `A^T * X = B`
+///
+/// where `A` is a triangular matrix of order `N`, and `B` is an `N x RHS`
+/// matrix. A check is made to verify that `A` is nonsingular.
+///
+/// - <a
+/// href='http://www.netlib.org/lapack/explore-html/da/dba/group__double_o_t_h_e_rcomputational_ga7068947990361e55177155d044435a5c.html'>LAPACK
+/// documentation</a>
+/// - <a
+/// href=`http://www.netlib.org/lapack/explore-html/d9/da3/lapacke__dtrtrs_8c_a635dbba8f58ec13c74e25fe4a7c47cd6.html#a635dbba8f58ec13c74e25fe4a7c47cd6'>LAPACKE
+/// documentation</a>
+/// \{
+//==============================================================================
+/// \param uplo A is lower or upper triangular matrix:
+/// - 'U': A is upper triangular;
+/// - 'L': A is lower triangular.
+/// \param diag A is unit (1s on main diagonal) or non-unit
+/// - 'N': A is non-unit triangular
+/// - 'U': A is unit triangular
+template <size_t M, size_t N, size_t NRHS>
+auto trtrs(tensor<double, M, N>& A, tensor<double, M, NRHS>& B, char const uplo,
+           char const diag = 'N') {
+  return LAPACKE_dtrtrs(LAPACK_COL_MAJOR, uplo, 'N', diag, N, NRHS,
+                        A.data_ptr(), M, B.data_ptr(), M);
+}
+//------------------------------------------------------------------------------
+/// \param uplo A is lower or upper triangular matrix:
+/// - 'U': A is upper triangular;
+/// - 'L': A is lower triangular.
+/// \param diag A is unit (1s on main diagonal) or non-unit
+/// - 'N': A is non-unit triangular
+/// - 'U': A is unit triangular
+template <size_t M, size_t N>
+auto trtrs(tensor<double, M, N>& A, tensor<double, M>& B, char const uplo,
+           char const diag = 'N') {
+  return LAPACKE_dtrtrs(LAPACK_COL_MAJOR, uplo, 'N', diag, N, 1, A.data_ptr(),
+                        M, B.data_ptr(), M);
+}
+//==============================================================================
+/// \}
+//==============================================================================
+/// \defgroup lapack_lange LANGE
+/// \ingroup lapack
+/// \{
+//==============================================================================
+/// DLANGE returns the value of the 1-norm, Frobenius norm, infinity-norm, or
+/// the largest absolute value of any element of a general rectangular matrix.
+/// \param norm Describes which norm will be computed:
+///   - `M` / `m` for max-norm
+///   - `1` / `O` / `o` for 1-norm
+///   - `I` / `i` for infinity-norm 
+///   - `F` / `f` / `E` / `e` for frobenius-norm.
+template <size_t M, size_t N>
+auto lange(tensor<double, M, N>& A, char const norm) {
+  return LAPACKE_dlange(LAPACK_COL_MAJOR, norm, M, N, A.data_ptr(), M);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// DLANGE returns the value of the 1-norm, Frobenius norm, infinity-norm, or
+/// the largest absolute value of any element of a general rectangular matrix.
+/// \param norm Describes which norm will be computed:
+///   - `M` / `m` for max-norm
+///   - `1` / `O` / `o` for 1-norm
+///   - `I` / `i` for infinity-norm 
+///   - `F` / `f` / `E` / `e` for frobenius-norm.
+template <size_t M, size_t N>
+auto lange(tensor<float, M, N>& A, char const norm) {
+  return LAPACKE_slange(LAPACK_COL_MAJOR, norm, M, N, A.data_ptr(), M);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// DLANGE returns the value of the 1-norm, Frobenius norm, infinity-norm, or
+/// the largest absolute value of any element of a general rectangular matrix.
+/// \param norm Describes which norm will be computed:
+///   - `M` / `m` for max-norm
+///   - `1` / `O` / `o` for 1-norm
+///   - `I` / `i` for infinity-norm 
+///   - `F` / `f` / `E` / `e` for frobenius-norm.
+template <size_t M, size_t N>
+auto lange(tensor<std::complex<double>, M, N>& A, char const norm) {
+  return LAPACKE_zlange(LAPACK_COL_MAJOR, norm, M, N, A.data_ptr(), M);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// DLANGE returns the value of the 1-norm, Frobenius norm, infinity-norm, or
+/// the largest absolute value of any element of a general rectangular matrix.
+/// \param norm Describes which norm will be computed:
+///   - `M` / `m` for max-norm
+///   - `1` / `O` / `o` for 1-norm
+///   - `I` / `i` for infinity-norm 
+///   - `F` / `f` / `E` / `e` for frobenius-norm.
+template <size_t M, size_t N>
+auto lange(tensor<std::complex<float>, M, N>& A, char const norm) {
+  return LAPACKE_clange(LAPACK_COL_MAJOR, norm, M, N, A.data_ptr(), M);
+}
+//==============================================================================
+/// \}
+//==============================================================================
+/// \defgroup lapack_gecon GECON
+/// \ingroup lapack
+/// \{
+//==============================================================================
 template <typename T, size_t N>
 auto gecon(tensor<T, N, N>&& A) {
   T              rcond = 0;
@@ -127,9 +298,6 @@ auto gecon(tensor<T, N, N>&& A) {
   return rcond;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Estimates the reciprocal of the condition number of a general matrix A.
-/// http://www.netlib.org/lapack/explore-html/d7/db5/lapacke__dgecon_8c_a7c007823b949b0b118acf7e0235a6fc5.html
-/// https://www.netlib.org/lapack/explore-html/dd/d9a/group__double_g_ecomputational_ga188b8d30443d14b1a3f7f8331d87ae60.html
 template <typename T, size_t N>
 auto gecon(tensor<T, N, N>& A) {
   T              rcond = 0;
@@ -159,9 +327,25 @@ auto gecon(tensor<T, N, N>& A) {
   return rcond;
 }
 //==============================================================================
-/// Estimates the reciprocal of the condition number of a general matrix A.
-/// http://www.netlib.org/lapack/explore-html/d1/d7e/group__double_g_esing_ga84fdf22a62b12ff364621e4713ce02f2.html
-/// http://www.netlib.org/lapack/explore-html/d0/dee/lapacke__dgesvd_8c_af31b3cb47f7cc3b9f6541303a2968c9f.html
+/// \}
+//==============================================================================
+/// \defgroup lapack_gesvd GESVD
+///
+/// Computes the singular value decomposition (SVD) of a real M-by-N matrix A,
+/// optionally computing the left and/or right singular vectors.
+///
+/// - <a
+/// href='http://www.netlib.org/lapack/explore-html/d1/d7e/group__double_g_esing_ga84fdf22a62b12ff364621e4713ce02f2.html'>LAPACK
+/// documentation</a>
+/// - <a
+/// href='http://www.netlib.org/lapack/explore-html/d0/dee/lapacke__dgesvd_8c_af31b3cb47f7cc3b9f6541303a2968c9f.html'>LAPACKE
+/// documentation</a>
+///
+/// \ingroup lapack
+/// \{
+//==============================================================================
+/// Computes the singular value decomposition (SVD) of a real M-by-N matrix A,
+/// optionally computing the left and/or right singular vectors.
 template <typename T, size_t M, size_t N, typename JOBU, typename JOBVT>
 auto gesvd(tensor<T, M, N>&& A, JOBU, JOBVT) {
   static_assert(
@@ -266,7 +450,13 @@ auto gesvd(tensor<T, M, N>&& A, JOBU, JOBVT) {
     }
   }
 }
-//------------------------------------------------------------------------------
+//==============================================================================
+/// \}
+//==============================================================================
+/// \defgroup lapack_syev SYEV
+/// \ingroup lapack
+/// \{
+//==============================================================================
 /// Computes all eigenvalues and, optionally, eigenvectors of a real symmetric
 /// matrix A.
 template <typename Tensor, typename Real, size_t N, typename JOBZ,
@@ -301,6 +491,8 @@ auto syev(base_tensor<Tensor, Real, N, N> const& A, JOBZ, UPLO) {
     return out;
   }
 }
+//==============================================================================
+/// \}
 //==============================================================================
 }  // namespace tatooine::lapack
 //==============================================================================

@@ -496,8 +496,8 @@ TEST_CASE("tensor_inverse", "[tensor][inverse]") {
       INFO("inv(A) = \n" << *inv(A));
       INFO("inv_sym(A) = \n" << *inv_sym(A));
       INFO("invA = \n" << invA);
-      REQUIRE(approx_equal(*inv(A), *invA));
-      REQUIRE(approx_equal(*inv_sym(A), *invA));
+      REQUIRE(approx_equal(*inv(A), invA));
+      REQUIRE(approx_equal(*inv_sym(A), invA));
     }
     SECTION("non-symmetric") {
       mat const A{{-2.885334385073613, 1.078956733870776},
@@ -569,10 +569,10 @@ TEST_CASE("tensor_inverse", "[tensor][inverse]") {
                       -3.215960238699798e-01, 2.386123500582727e-01}};
       INFO("A = \n" << A);
       INFO("inv(A) = \n" << *inv(A));
-      INFO("inv_sym(A) = \n" << *inv_sym(A));
+      INFO("inv_sym(A) = \n" << inv_sym(A));
       INFO("invA = \n" << invA);
       REQUIRE(approx_equal(*inv(A), invA));
-      REQUIRE(approx_equal(*inv_sym(A), invA));
+      REQUIRE(approx_equal(inv_sym(A), invA));
     }
     SECTION("non-symmetric") {
       mat const A{{2.819414707372358e+00, 5.092058185719120e+00,
@@ -715,6 +715,12 @@ TEST_CASE("tensor_diag_inverse", "[tensor][diag][inverse]") {
       }
     }
   }
+}
+//==============================================================================
+TEST_CASE("tensor_solve_qr", "[tensor][solve][qr]") {
+  auto const A = mat3::randu();
+  auto const b = vec3::randu();
+  solve_qr(A, b);
 }
 //==============================================================================
 #if TATOOINE_GINAC_AVAILABLE
