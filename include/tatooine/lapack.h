@@ -252,7 +252,7 @@ auto ormqr(tensor<double, M, K>& A, tensor<double, M, N>& C, vec<double, K>& tau
 /// \defgroup lapack_trtrs TRTRS
 /// \ingroup lapack
 ///
-/// **DTRTRS** solves a triangular system of the form
+/// **TRTRS** solves a triangular system of the form
 ///
 /// \f$\mA \cdot \mX = \mB\f$
 /// or
