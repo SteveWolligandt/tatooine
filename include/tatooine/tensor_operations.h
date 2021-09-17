@@ -527,8 +527,8 @@ template <typename F, typename Tensor0, typename T0, typename Tensor1,
 constexpr auto binary_operation(F&&                                   f,
                                 base_tensor<Tensor0, T0, M, N> const& lhs,
                                 base_tensor<Tensor1, T1, M, N> const& rhs) {
-  using TOut            = typename std::result_of<decltype(f)(T0, T1)>::type;
-  auto t_out            = mat<TOut, M, N>{lhs};
+  using TOut = typename std::result_of<decltype(f)(T0, T1)>::type;
+  auto t_out = mat<TOut, M, N>{lhs};
   t_out.binary_operation(std::forward<F>(f), rhs);
   return t_out;
 }
@@ -687,64 +687,88 @@ constexpr auto reflect(vec<T0, 3> const& incidentVec,
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Real, size_t M, size_t N>
-auto solve(tensor<Real, M, N> const& A, tensor<Real, N> const& b) {
-  return solve_lu(A, b);
+template <typename TensorA, typename TensorB, typename Real, size_t M, size_t N>
+auto solve(base_tensor<TensorA, Real, M, N> const& A,
+           base_tensor<TensorB, Real, M> const&    b) {
+  if constexpr (M == N) {
+    return solve_lu(A, b);
+  } else if constexpr (M > N) {
+    return solve_qr(A, b);
+  } else {
+    throw std::runtime_error{"System is under-determined."};
+  }
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Real, size_t M, size_t N>
-auto solve_lu(tensor<Real, M, N> const& A, tensor<Real, N> const& b) {
-  return lapack::gesv(A, b);
+template <typename TensorA, typename TensorB, typename Real, size_t N>
+auto solve_lu(base_tensor<TensorA, Real, N, N> const& A_base,
+              base_tensor<TensorB, Real, N> const&    b_base) {
+  auto                  A    = mat<Real, N, N>{A_base};
+  auto                  b    = vec<Real, N>{b_base};
+  auto                  ipiv = vec<int, N>{};
+  [[maybe_unused]] auto info = lapack::gesv(A, b, ipiv);
+  return b;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename TensorA, typename TensorB, typename Real, size_t M, size_t N>
 auto solve_qr(base_tensor<TensorA, Real, M, N> const& A_base,
-              base_tensor<TensorB, Real, N> const&    b_base) {
+              base_tensor<TensorB, Real, M> const&    b_base) {
   auto A   = mat<Real, M, N>{A_base};
-  auto b   = vec<Real, N>{b_base};
+  auto b   = vec<Real, M>{b_base};
   auto tau = vec<Real, (M < N ? M : N)>{};
 
+  // Q * R = A
   lapack::geqrf(A, tau);
+  // R * x = Q^T * b
   lapack::ormqr(A, b, tau, 'L', 'T');
+  // Use back-substitution using the upper right part of A
   lapack::trtrs(A, b, 'U');
-  return b;
+  for (size_t i = 0; i < tau.dimension(0); ++i) {
+    tau(i) = b(i);
+  }
+  return tau;
+}
+//------------------------------------------------------------------------------
+template <typename TensorA, typename TensorB, typename Real, size_t M, size_t N,
+          size_t K>
+auto solve(base_tensor<TensorA, Real, M, N> const& A,
+           base_tensor<TensorB, Real, M, K> const& B) {
+  if constexpr (M == N) {
+    return solve_lu(A, B);
+  } else if constexpr (M > N) {
+    return solve_qr(A, B);
+  } else {
+    throw std::runtime_error{"System is under-determined."};
+  }
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T0, typename T1, typename Real, size_t M, size_t N>
-auto solve(base_tensor<T0, Real, M, N> const& A,
-           base_tensor<T1, Real, N> const&    b) {
-  return solve(mat<Real, M, N>{A}, vec<Real, N>{b});
+template <typename TensorA, typename TensorB, typename Real, size_t N, size_t K>
+auto solve_lu(base_tensor<TensorA, Real, N, N> const& A_base,
+              base_tensor<TensorB, Real, N, K> const& B_base) {
+  auto                  A    = mat<Real, N, N>{A_base};
+  auto                  B    = mat<Real, N, K>{B_base};
+  auto                  ipiv = vec<int, N>{};
+  [[maybe_unused]] auto info = lapack::gesv(A, B, ipiv);
+  return B;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T1, typename Real, size_t M, size_t N>
-auto solve(tensor<Real, M, N> const& A, base_tensor<T1, Real, N> const& b) {
-  return solve(A, vec<Real, N>{b});
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T0, typename Real, size_t M, size_t N>
-auto solve(base_tensor<T0, Real, M, N> const& A, tensor<Real, N> const& b) {
-  return solve(mat<Real, M, N>{A}, b);
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Real, size_t M, size_t N, size_t O>
-auto solve(tensor<Real, M, N> const& A, tensor<Real, N, O> const& B) {
-  return lapack::gesv(A, B);
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T0, typename T1, typename Real, size_t M, size_t N, size_t O>
-auto solve(base_tensor<T0, Real, M, N> const& A,
-           base_tensor<T1, Real, N, O> const& b) {
-  return solve(mat<Real, M, N>{A}, mat<Real, N, O>{b});
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T1, typename Real, size_t M, size_t N, size_t O>
-auto solve(tensor<Real, M, N> const& A, base_tensor<T1, Real, N, O> const& b) {
-  return solve(A, mat<Real, N, O>{b});
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T0, typename Real, size_t M, size_t N, size_t O>
-auto solve(base_tensor<T0, Real, M, N> const& A, tensor<Real, N, O> const& b) {
-  return solve(mat<Real, M, N>{A}, b);
+template <typename TensorA, typename TensorB, typename Real, size_t M, size_t N,
+          size_t K>
+auto solve_qr(base_tensor<TensorA, Real, M, N> const& A_base,
+              base_tensor<TensorB, Real, M, K> const& B_base) {
+  auto A   = mat<Real, M, N>{A_base};
+  auto B   = mat<Real, M, K>{B_base};
+  auto tau = vec<Real, (M < N ? M : N)>{};
+  auto X = mat<Real, N, K>{};
+
+  // Q * R = A
+  lapack::geqrf(A, tau);
+  // R * x = Q^T * B
+  lapack::ormqr(A, B, tau, 'L', 'T');
+  // Use back-substitution using the upper right part of A
+  lapack::trtrs(A, B, 'U');
+  for_loop([&, i = size_t(0)](auto const... is) mutable { X(is...) = B(is...); },
+           N, K);
+  return X;
 }
 //------------------------------------------------------------------------------
 template <typename Tensor, typename TensorT, size_t... Dims>

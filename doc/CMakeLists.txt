@@ -22,6 +22,8 @@ if (DOXYGEN_FOUND)
   set(TATOOINE_DOC_DOXYGEN_PDF_MESSAGE  "Building PDF documentation with Doxygen")
   configure_file(${TATOOINE_DOC_SOURCE_DOXYFILE}
                  ${TATOOINE_DOC_BINARY_DOXYFILE})
+  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/macros.inc
+                 ${CMAKE_CURRENT_BINARY_DIR}/macros.inc COPYONLY)
   configure_file(${TATOOINE_DOC_SOURCE_HTML_DOXYFILE}
                  ${TATOOINE_DOC_BINARY_HTML_DOXYFILE})
   configure_file(${TATOOINE_DOC_SOURCE_XML_DOXYFILE}

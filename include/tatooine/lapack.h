@@ -13,6 +13,39 @@
 namespace tatooine::lapack {
 //==============================================================================
 /// \defgroup lapack Lapack
+/// 
+/// <table>
+/// <tr><th>Name	<th>Description</tr>
+/// <tr><td>BD <td>bidiagonal matrix</tr>
+/// <tr><td>DI <td>diagonal matrix</tr>
+/// <tr><td>GB <td>general band matrix</tr>
+/// <tr><td>GE <td>general matrix (i.e., unsymmetric, in some cases rectangular)</tr>
+/// <tr><td>GG <td>general matrices, generalized problem (i.e., a pair of general matrices)</tr>
+/// <tr><td>GT <td>general tridiagonal matrix</tr>
+/// <tr><td>HB <td>(complex) Hermitian band matrix</tr>
+/// <tr><td>HE <td>(complex) Hermitian matrix</tr>
+/// <tr><td>HG <td>upper Hessenberg matrix, generalized problem (i.e. a Hessenberg and a triangular matrix)</tr>
+/// <tr><td>HP <td>(complex) Hermitian, packed storage matrix</tr>
+/// <tr><td>HS <td>upper Hessenberg matrix</tr>
+/// <tr><td>OP <td>(real) orthogonal matrix, packed storage matrix</tr>
+/// <tr><td>OR <td>(real) orthogonal matrix</tr>
+/// <tr><td>PB <td>symmetric matrix or Hermitian matrix positive definite band</tr>
+/// <tr><td>PO <td>symmetric matrix or Hermitian matrix positive definite</tr>
+/// <tr><td>PP <td>symmetric matrix or Hermitian matrix positive definite, packed storage matrix</tr>
+/// <tr><td>PT <td>symmetric matrix or Hermitian matrix positive definite tridiagonal matrix</tr>
+/// <tr><td>SB <td>(real) symmetric band matrix</tr>
+/// <tr><td>SP <td>symmetric, packed storage matrix</tr>
+/// <tr><td>ST <td>(real) symmetric matrix tridiagonal matrix</tr>
+/// <tr><td>SY <td>symmetric matrix</tr>
+/// <tr><td>TB <td>triangular band matrix</tr>
+/// <tr><td>TG <td>triangular matrices, generalized problem (i.e., a pair of triangular matrices)</tr>
+/// <tr><td>TP <td>triangular, packed storage matrix</tr>
+/// <tr><td>TR <td>triangular matrix (or in some cases quasi-triangular)</tr>
+/// <tr><td>TZ <td>trapezoidal matrix</tr>
+/// <tr><td>UN <td>(complex) unitary matrix</tr>
+/// <tr><td>UP <td>(complex) unitary, packed storage matrix</tr>
+///
+/// </table>
 /// \{
 //==============================================================================
 static auto constexpr including_mkl_lapacke() {
@@ -25,87 +58,135 @@ static auto constexpr including_mkl_lapacke() {
 //==============================================================================
 /// \defgroup lapack_getrf GETRF
 /// \ingroup lapack
+///
+/// - <a
+/// href='http://www.netlib.org/lapack/explore-html/dd/d9a/group__double_g_ecomputational_ga0019443faea08275ca60a734d0593e60.html'>LAPACK
+/// documentation</a>
+/// - <a
+/// href='http://www.netlib.org/lapack/explore-html/d2/d96/lapacke__dgetrf_8c_a285c069fa65d2b9954737240e0779889.html'>LAPACKE
+/// documentation</a>
 /// \{
 //==============================================================================
-///  DGETRF computes an LU factorization of a general M-by-N matrix A using
-///  partial pivoting with row interchanges.
+/// **GETRF** computes an LU factorization of a general M-by-N matrix A using
+/// partial pivoting with row interchanges.
+/// \param[in,out] A
+///   On entry, the `M-by-N` matrix to be factored.
+///   On exit, the factors \f$\mL\f$ and \f$\mU\f$ from the factorization
+///   \f$\mA = \mP\cdot\mL\cdot\mU\f$; the unit diagonal elements of \f$\mL\f$
+///   are not
+/// \param[out] p
+///   Diagonal of \f$\mP\f$ that represents the permutation Matrix.
+///   The pivot indices; for 1 <= i <= min(M,N), row i of the
+///   matrix was interchanged with row p(i).
 template <size_t M, size_t N>
-auto getrf(tensor<double, M, N>& A) {
-  vec<int, tatooine::min(M, N)> p;
-  LAPACKE_dgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
-  return A;
+auto getrf(tensor<double, M, N>& A, vec<int, tatooine::min(M, N)>& p) {
+  return LAPACKE_dgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-///  DGETRF computes an LU factorization of a general M-by-N matrix A using
-///  partial pivoting with row interchanges.
+/// **GETRF** computes an LU factorization of a general M-by-N matrix A using
+/// partial pivoting with row interchanges.
+/// \param[in,out] A
+///   On entry, the `M-by-N` matrix to be factored.
+///   On exit, the factors \f$\mL\f$ and \f$\mU\f$ from the factorization
+///   \f$\mA = \mP\cdot\mL\cdot\mU\f$; the unit diagonal elements of \f$\mL\f$
+///   are not
+/// \param[out] p
+///   Diagonal of \f$\mP\f$ that represents the permutation Matrix.
+///   The pivot indices; for 1 <= i <= min(M,N), row i of the
+///   matrix was interchanged with row p(i).
 template <size_t M, size_t N>
-auto getrf(tensor<float, M, N>& A) {
-  vec<int, tatooine::min(M, N)> p;
-  LAPACKE_sgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
-  return A;
+auto getrf(tensor<float, M, N>& A, vec<int, tatooine::min(M, N)>& p) {
+  return LAPACKE_sgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-///  DGETRF computes an LU factorization of a general M-by-N matrix A using
-///  partial pivoting with row interchanges.
+/// **GETRF** computes an LU factorization of a general M-by-N matrix A using
+/// partial pivoting with row interchanges.
+/// \param[in,out] A
+///   On entry, the `M-by-N` matrix to be factored.
+///   On exit, the factors \f$\mL\f$ and \f$\mU\f$ from the factorization
+///   \f$\mA = \mP\cdot\mL\cdot\mU\f$; the unit diagonal elements of \f$\mL\f$
+///   are not
+/// \param[out] p
+///   Diagonal of \f$\mP\f$ that represents the permutation Matrix.
+///   The pivot indices; for 1 <= i <= min(M,N), row i of the
+///   matrix was interchanged with row p(i).
 template <size_t M, size_t N>
-auto getrf(tensor<std::complex<double>, M, N>& A) {
-  vec<int, tatooine::min(M, N)> p;
-  LAPACKE_zgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
-  return A;
+auto getrf(tensor<std::complex<double>, M, N>& A,
+           vec<int, tatooine::min(M, N)>&      p) {
+  return LAPACKE_zgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-///  DGETRF computes an LU factorization of a general M-by-N matrix A using
-///  partial pivoting with row interchanges.
+/// **GETRF** computes an LU factorization of a general M-by-N matrix A using
+/// partial pivoting with row interchanges.
+/// \param[in,out] A
+///   On entry, the `M-by-N` matrix to be factored.
+///   On exit, the factors \f$\mL\f$ and \f$\mU\f$ from the factorization
+///   \f$\mA = \mP\cdot\mL\cdot\mU\f$; the unit diagonal elements of \f$\mL\f$
+///   are not
+/// \param[out] p
+///   Diagonal of \f$\mP\f$ that represents the permutation Matrix.
+///   The pivot indices; for 1 <= i <= min(M,N), row i of the
+///   matrix was interchanged with row p(i).
 template <size_t M, size_t N>
-auto getrf(tensor<std::complex<float>, M, N>& A) {
-  vec<int, tatooine::min(M, N)> p;
-  LAPACKE_cgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
-  return A;
+auto getrf(tensor<std::complex<float>, M, N>& A,
+           vec<int, tatooine::min(M, N)>&     p) {
+  return LAPACKE_cgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
 }
 //==============================================================================
 /// \}
 //==============================================================================
-/// \defgroup lapack_gesv GESV
+/// \defgroup lapack_gesv GESV General Solve
 /// \ingroup lapack
+///
+/// **DGESV** computes the solution to a real system of linear equations
+/// \f$\mA * \mX = \mB\f$
+/// where \f$\mA\f$ is an `N-by-N` matrix and \f$\mX\f$ and \f$\mB\f$ are
+/// N-by-NRHS matrices.
+///
+/// The LU decomposition with partial pivoting and row interchanges is
+/// used to factor \f$\mA\f$ as
+/// \f$\mA  = \mP\cdot\mL\cdot\mU\f$
+/// where \f$\mP\f$ is a permutation matrix, \f$\mL\f$ is unit lower triangular,
+/// and \f$\mU\f$ is upper triangular.  The factored form of \f$\mA\f$ is then
+/// used to solve the system of equations \f$\mA\cdot\mX=\mB\f$.
+///
+/// - <a
+/// href='http://www.netlib.org/lapack/explore-html/d7/d3b/group__double_g_esolve_ga5ee879032a8365897c3ba91e3dc8d512.html'>LAPACK
+/// documentation</a>
+/// - <a
+/// href='http://www.netlib.org/lapack/explore-html/de/ddd/lapacke_8h_a3ff136210c1293cb1b015979b9a57d96.html'>LAPACKE
+/// documentation</a>
 /// \{
 //==============================================================================
 template <size_t N>
-auto gesv(tensor<double, N, N> A, tensor<double, N> b) {
-  vec<int, N>          ipiv;
-  static constexpr int nrhs = 1;
-  LAPACKE_dgesv(LAPACK_COL_MAJOR, N, nrhs, A.data_ptr(), N, ipiv.data_ptr(),
-                b.data_ptr(), N);
-  return b;
+auto gesv(tensor<double, N, N>& A, tensor<double, N>& b, vec<int, N>& ipiv) {
+  return LAPACKE_dgesv(LAPACK_COL_MAJOR, N, 1, A.data_ptr(), N, ipiv.data_ptr(),
+                       b.data_ptr(), N);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <size_t N>
-auto gesv(tensor<float, N, N> A, tensor<float, N> b) {
-  vec<int, N>          ipiv;
-  static constexpr int nrhs = 1;
-  LAPACKE_sgesv(LAPACK_COL_MAJOR, N, nrhs, A.data_ptr(), N, ipiv.data(),
-                b.data_ptr(), N);
-  return b;
+auto gesv(tensor<float, N, N>& A, tensor<float, N>& b, vec<int, N>& ipiv) {
+  return LAPACKE_sgesv(LAPACK_COL_MAJOR, N, 1, A.data_ptr(), N, ipiv.data_ptr(),
+                       b.data_ptr(), N);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <size_t N, size_t NRHS>
-auto gesv(tensor<double, N, N> A, tensor<double, N, NRHS> B) {
-  std::array<int, N> ipiv;
-  LAPACKE_dgesv(LAPACK_COL_MAJOR, N, NRHS, A.data_ptr(), N, ipiv.data(),
-                B.data_ptr(), N);
-  return B;
+auto gesv(tensor<double, N, N>& A, tensor<double, N, NRHS>& B,
+          vec<int, N>& ipiv) {
+  return LAPACKE_dgesv(LAPACK_COL_MAJOR, N, NRHS, A.data_ptr(), N,
+                       ipiv.data_ptr(), B.data_ptr(), N);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <size_t N, size_t NRHS>
-auto gesv(tensor<float, N, N> A, tensor<float, N, NRHS> B) {
-  std::array<int, N> ipiv;
-  LAPACKE_sgesv(LAPACK_COL_MAJOR, N, NRHS, A.data_ptr(), N, ipiv.data_ptr(),
+auto gesv(tensor<float, N, N>& A, tensor<float, N, NRHS>& B,
+          vec<int, N>& ipiv) {
+  return LAPACKE_sgesv(LAPACK_COL_MAJOR, N, NRHS, A.data_ptr(), N, ipiv.data_ptr(),
                 B.data_ptr(), N);
-  return B;
 }
 //==============================================================================
 /// \}
 //==============================================================================
-/// \defgroup lapack_geqrf GEQRF
+/// \defgroup lapack_geqrf GEQRF General QR Factorization
 /// \ingroup lapack
 ///
 /// - <a
@@ -173,10 +254,13 @@ auto ormqr(tensor<double, M, K>& A, tensor<double, M, N>& C, vec<double, K>& tau
 ///
 /// **DTRTRS** solves a triangular system of the form
 ///
-/// `A * X = B`  or  `A^T * X = B`
+/// \f$\mA \cdot \mX = \mB\f$
+/// or
+/// \f$\Transpose{\mA} \cdot \mX = \mB\f$
 ///
-/// where `A` is a triangular matrix of order `N`, and `B` is an `N x RHS`
-/// matrix. A check is made to verify that `A` is nonsingular.
+/// where \f$\mathbf{A}\f$ is a triangular matrix of order `N`, and
+/// \f$\mathbf{B}\f$ is an `N x RHS` matrix. A check is made to verify that
+/// \f$\mathbf{A}\f$ is nonsingular.
 ///
 /// - <a
 /// href='http://www.netlib.org/lapack/explore-html/da/dba/group__double_o_t_h_e_rcomputational_ga7068947990361e55177155d044435a5c.html'>LAPACK
@@ -186,12 +270,15 @@ auto ormqr(tensor<double, M, K>& A, tensor<double, M, N>& C, vec<double, K>& tau
 /// documentation</a>
 /// \{
 //==============================================================================
+/// \param[in] A The triangular matrix \f$\mA\f$.
+/// \param[in,out] B On entry, the right hand side matrix \f$\mB\f$.
+///                  On exit, if INFO = 0, the solution matrix \f$\mX\f$.
 /// \param uplo A is lower or upper triangular matrix:
-/// - 'U': A is upper triangular;
-/// - 'L': A is lower triangular.
+/// - `U`: \f$\mA\f$ is upper triangular;
+/// - `L`: \f$\mA\f$ is lower triangular.
 /// \param diag A is unit (1s on main diagonal) or non-unit
-/// - 'N': A is non-unit triangular
-/// - 'U': A is unit triangular
+/// - `N`: \f$\mA\f$ is non-unit triangular
+/// - `U`: \f$\mA\f$ is unit triangular
 template <size_t M, size_t N, size_t NRHS>
 auto trtrs(tensor<double, M, N>& A, tensor<double, M, NRHS>& B, char const uplo,
            char const diag = 'N') {
@@ -199,17 +286,20 @@ auto trtrs(tensor<double, M, N>& A, tensor<double, M, NRHS>& B, char const uplo,
                         A.data_ptr(), M, B.data_ptr(), M);
 }
 //------------------------------------------------------------------------------
-/// \param uplo A is lower or upper triangular matrix:
-/// - 'U': A is upper triangular;
-/// - 'L': A is lower triangular.
+/// \param[in] A The triangular matrix \f$\mA\f$.
+/// \param[in,out] b On entry, the right hand side vector \f$\vb\f$.
+///                  On exit, the solution vector \f$\vx\f$.
+/// \param uplo \f$\mA\f$ is lower or upper triangular matrix:
+/// - `U`: \f$\mA\f$ is upper triangular;
+/// - `L`: \f$\mA\f$ is lower triangular.
 /// \param diag A is unit (1s on main diagonal) or non-unit
-/// - 'N': A is non-unit triangular
-/// - 'U': A is unit triangular
+/// - `N`: \f$\mA\f$ is non-unit triangular
+/// - `U`: \f$\mA\f$ is unit triangular
 template <size_t M, size_t N>
-auto trtrs(tensor<double, M, N>& A, tensor<double, M>& B, char const uplo,
+auto trtrs(tensor<double, M, N>& A, tensor<double, M>& b, char const uplo,
            char const diag = 'N') {
   return LAPACKE_dtrtrs(LAPACK_COL_MAJOR, uplo, 'N', diag, N, 1, A.data_ptr(),
-                        M, B.data_ptr(), M);
+                        M, b.data_ptr(), M);
 }
 //==============================================================================
 /// \}
@@ -270,6 +360,22 @@ auto lange(tensor<std::complex<float>, M, N>& A, char const norm) {
 //==============================================================================
 /// \defgroup lapack_gecon GECON
 /// \ingroup lapack
+///
+/// **GECON** estimates the reciprocal of the condition number of a general
+/// real matrix A, in either the 1-norm or the infinity-norm, using
+/// the LU factorization computed by DGETRF.
+///
+/// An estimate is obtained for norm(inv(A)), and the reciprocal of the
+/// condition number is computed as
+///    RCOND = 1 / ( norm(A) * norm(inv(A)) ).
+///
+/// - <a
+/// href='http://www.netlib.org/lapack/explore-html/dd/d9a/group__double_g_ecomputational_ga188b8d30443d14b1a3f7f8331d87ae60.html'>LAPACK
+/// documentation</a>
+/// - <a
+/// href='http://www.netlib.org/lapack/explore-html/d0/dee/lapacke__dgesvd_8c_af31b3cb47f7cc3b9f6541303a2968c9f.html'>LAPACKE
+/// documentation</a>
+///
 /// \{
 //==============================================================================
 template <typename T, size_t N>
@@ -277,7 +383,8 @@ auto gecon(tensor<T, N, N>&& A) {
   T              rcond = 0;
   constexpr char p     = '1';
   const auto     n     = lange(A, p);
-  getrf(A);
+  auto ipiv = vec<int, N>{};
+  getrf(A, ipiv);
   const auto info = [&] {
     if constexpr (is_same<double, T>) {
       return LAPACKE_dgecon(LAPACK_COL_MAJOR, p, N, A.data_ptr(), N, n, &rcond);
@@ -347,7 +454,7 @@ auto gecon(tensor<T, N, N>& A) {
 /// Computes the singular value decomposition (SVD) of a real M-by-N matrix A,
 /// optionally computing the left and/or right singular vectors.
 template <typename T, size_t M, size_t N, typename JOBU, typename JOBVT>
-auto gesvd(tensor<T, M, N>&& A, JOBU, JOBVT) {
+auto gesvd(tensor<T, M, N>& A, JOBU, JOBVT) {
   static_assert(
       !is_same<JOBU, job::O_t> || !is_same<JOBVT, job::O_t>,
       "either jobu or jobvt must not be O");

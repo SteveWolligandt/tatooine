@@ -28,3 +28,5 @@ DOT_IMAGE_FORMAT       = svg
 HTML_EXTRA_STYLESHEET  = @CMAKE_CURRENT_SOURCE_DIR@/external/doxygen-awesome-css/doxygen-awesome.css
 CITE_BIB_FILES         = @CMAKE_CURRENT_SOURCE_DIR@/bibliography.bib
 
+USE_MATHJAX            = YES
+FORMULA_MACROFILE      = macros.inc
