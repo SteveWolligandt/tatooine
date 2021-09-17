@@ -185,61 +185,16 @@ auto eigenvectors(tensor<Real, N, N> A)
   return {std::move(vecs), std::move(vals)};
 }
 //==============================================================================
-template <typename T, size_t M, size_t N>
-auto svd(tensor<T, M, N> const& A, tag::full_t /*tag*/) {
-  return lapack::gesvd(tensor{A}, lapack::job::A, lapack::job::A);
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T, size_t M, size_t N>
-auto svd(tensor<T, M, N> const& A, tag::economy_t /*tag*/) {
-  return lapack::gesvd(tensor{A}, lapack::job::S, lapack::job::S);
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T, size_t M, size_t N>
-auto svd(tensor<T, M, N> const& A) {
-  return svd(A, tag::full);
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T, size_t M, size_t N>
-auto svd_left(tensor<T, M, N> const& A, tag::full_t /*tag*/) {
-  return lapack::gesvd(tensor{A}, lapack::job::A, lapack::job::N);
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T, size_t M, size_t N>
-auto svd_left(tensor<T, M, N> const& A, tag::economy_t /*tag*/) {
-  return lapack::gesvd(tensor{A}, lapack::job::S, lapack::job::N);
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T, size_t M, size_t N>
-auto svd_left(tensor<T, M, N> const& A) {
-  return svd_left(A, tag::full);
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T, size_t M, size_t N>
-auto svd_right(tensor<T, M, N> const& A, tag::full_t /*tag*/) {
-  return lapack::gesvd(tensor{A}, lapack::job::N, lapack::job::A);
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T, size_t M, size_t N>
-auto svd_right(tensor<T, M, N> const& A, tag::economy_t /*tag*/) {
-  return lapack::gesvd(tensor{A}, lapack::job::N, lapack::job::S);
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T, size_t M, size_t N>
-auto svd_right(tensor<T, M, N> const& A) {
-  return svd_right(A, tag::full);
+template <typename Tensor, typename T, size_t M, size_t N>
+auto svd(base_tensor<Tensor, T, M, N> const& A_base, tag::full_t /*tag*/) {
+  auto A = mat<T, M, N>{A_base};
+  return lapack::gesvd(A, lapack::job::A, lapack::job::A);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
-auto svd(base_tensor<Tensor, T, M, N> const& A, tag::full_t /*tag*/) {
-  tensor copy{A};
-  return lapack::gesvd(tensor{A}, lapack::job::A, lapack::job::A);
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Tensor, typename T, size_t M, size_t N>
-auto svd(base_tensor<Tensor, T, M, N> const& A, tag::economy_t /*tag*/) {
-  tensor copy{A};
-  return lapack::gesvd(tensor{A}, lapack::job::S, lapack::job::S);
+auto svd(base_tensor<Tensor, T, M, N> const& A_base, tag::economy_t /*tag*/) {
+  auto A = mat<T, M, N>{A_base};
+  return lapack::gesvd(A, lapack::job::S, lapack::job::S);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
@@ -248,13 +203,16 @@ auto svd(base_tensor<Tensor, T, M, N> const& A) {
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
-auto svd_left(base_tensor<Tensor, T, M, N> const& A, tag::full_t /*tag*/) {
-  return lapack::gesvd(tensor{A}, lapack::job::A, lapack::job::N);
+auto svd_left(base_tensor<Tensor, T, M, N> const& A_base, tag::full_t /*tag*/) {
+  auto A = mat<T, M, N>{A_base};
+  return lapack::gesvd(A, lapack::job::A, lapack::job::N);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
-auto svd_left(base_tensor<Tensor, T, M, N> const& A, tag::economy_t /*tag*/) {
-  return lapack::gesvd(tensor{A}, lapack::job::S, lapack::job::N);
+auto svd_left(base_tensor<Tensor, T, M, N> const& A_base,
+              tag::economy_t /*tag*/) {
+  auto A = mat<T, M, N>{A_base};
+  return lapack::gesvd(A, lapack::job::S, lapack::job::N);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
@@ -263,21 +221,24 @@ auto svd_left(base_tensor<Tensor, T, M, N> const& A) {
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
-auto svd_right(base_tensor<Tensor, T, M, N> const& A, tag::full_t /*tag*/) {
-  tensor copy{A};
-  return gesvd(tensor{A}, lapack::job::N, lapack::job::A);
+auto svd_right(base_tensor<Tensor, T, M, N> const& A_base,
+               tag::full_t /*tag*/) {
+  auto A = mat<T, M, N>{A_base};
+  return lapack::gesvd(A, lapack::job::N, lapack::job::A);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
-auto svd_right(base_tensor<Tensor, T, M, N> const& A, tag::economy_t /*tag*/) {
-  tensor copy{A};
-  return gesvd(tensor{A}, lapack::job::N, lapack::job::S);
+auto svd_right(base_tensor<Tensor, T, M, N> const& A_base,
+               tag::economy_t /*tag*/) {
+  auto A = mat<T, M, N>{A_base};
+  return lapack::gesvd(A, lapack::job::N, lapack::job::S);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
 auto svd_right(base_tensor<Tensor, T, M, N> const& A) {
   return svd_right(A, tag::full);
 }
+//------------------------------------------------------------------------------
 template <typename Tensor, typename T>
 constexpr auto singular_values22(base_tensor<Tensor, T, 2, 2> const& A) {
   auto const a = A(0, 0);
@@ -306,21 +267,13 @@ constexpr auto singular_values(tensor<T, M, N>&& A) {
   }
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T, size_t M, size_t N>
-constexpr auto singular_values(tensor<T, M, N> const& A) {
-  if constexpr (M == 2 && N == 2) {
-    return singular_values22(A);
-  } else {
-    return lapack::gesvd(tensor{A}, lapack::job::N, lapack::job::N);
-  }
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
-constexpr auto singular_values(base_tensor<Tensor, T, M, N> const& A) {
+constexpr auto singular_values(base_tensor<Tensor, T, M, N> const& A_base) {
   if constexpr (M == 2 && N == 2) {
-    return singular_values22(A);
+    return singular_values22(A_base);
   } else {
-    return singular_values(tensor{A});
+    auto A = mat<T, M, N>{A_base};
+    return lapack::gesvd(A, lapack::job::N, lapack::job::N);
   }
 }
 //==============================================================================
