@@ -124,9 +124,10 @@ endif()
 #enable warnings
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  target_compile_options(tatooine PUBLIC
+  target_compile_options(tatooine PRIVATE
     -Wall -Wextra -Wpedantic -Wno-cpp)
 endif()
+
 
 try_compile(TATOOINE_STD_FILESYSTEM_AVAILABLE "${CMAKE_BINARY_DIR}/temp" 
             "${CMAKE_CURRENT_SOURCE_DIR}/src/test_has_filesystem.cpp" 
@@ -136,7 +137,20 @@ try_compile(TATOOINE_STD_FILESYSTEM_AVAILABLE "${CMAKE_BINARY_DIR}/temp"
 #===============================================================================
 # Required Packages
 #===============================================================================
+# BLAS
+#===============================================================================
 find_package(BLAS REQUIRED)
+update_git_submodule(${TATOOINE_EXTERNAL}/blaspp)
+add_subdirectory(${TATOOINE_EXTERNAL}/blaspp)
+target_compile_options(blaspp PUBLIC -Wno-unused-parameter)
+target_link_libraries(tatooine
+  PUBLIC
+    ${BLAS_LIBRARIES}
+    blaspp)
+
+#===============================================================================
+# LAPACK
+#===============================================================================
 find_package(LAPACK REQUIRED)
 find_package(LAPACKE REQUIRED)
 if(TATOOINE_STD_FILESYSTEM_AVAILABLE)
@@ -177,7 +191,6 @@ target_include_directories(tatooine
 #set libs 
 target_link_libraries(tatooine
   PUBLIC
-    ${BLAS_LIBRARIES}
     ${LAPACK_LIBRARIES}
     ${LAPACKE_LIBRARIES}
     ${Boost_PROGRAM_OPTIONS_LIBRARY}
@@ -219,7 +232,7 @@ if (OpenMP_C_FOUND)
   if (TATOOINE_COMPILE_WITH_OPENMP)
     set(TATOOINE_OPENMP_AVAILABLE 1)
     target_link_libraries(tatooine PUBLIC ${OpenMP_C_LIBRARY} ${OpenMP_C_LIBRARIES} ${OpenMP_CXX_LIBRARY} ${OpenMP_CXX_LIBRARIES})
-    target_compile_options(tatooine PUBLIC ${OpenMP_C_FLAGS} ${OpenMP_C_FLAGS} ${OpenMP_CXX_FLAGS} ${OpenMP_CXX_FLAGS})
+    target_compile_options(tatooine PRIVATE ${OpenMP_C_FLAGS} ${OpenMP_C_FLAGS} ${OpenMP_CXX_FLAGS} ${OpenMP_CXX_FLAGS})
     target_compile_definitions(tatooine PUBLIC TATOOINE_OPENMP_AVAILABLE)
     message(STATUS "Compiling with OpenMP")
   else()

@@ -37,3 +37,6 @@
 [submodule "flowexplorer/external/imgui-node-editor"]
 	path = flowexplorer/external/imgui-node-editor
 	url = https://github.com/thedmd/imgui-node-editor.git
+[submodule "external/blaspp"]
+	path = external/blaspp
+	url = https://bitbucket.org/icl/blaspp.git

@@ -5,6 +5,7 @@
 #include <tatooine/demangling.h>
 #include <tatooine/for_loop.h>
 #include <tatooine/type_traits.h>
+#include <tatooine/blas.h>
 
 #include <array>
 #include <iostream>
@@ -72,9 +73,12 @@ struct indexed_tensor {
   explicit indexed_tensor(Tensor t) : m_tensor{t} {}
 
   auto tensor() const -> auto const& { return m_tensor; }
-  auto tensor() -> auto& { return m_tensor; }
+  auto tensor()       -> auto&       { return m_tensor; }
 
   using indices = type_list<Indices...>;
+  template <size_t I>
+  using index_at = typename indices::template at<I>;
+
   static auto index_map() {
     return index_map(std::make_index_sequence<rank()>{});
   }
@@ -82,16 +86,16 @@ struct indexed_tensor {
   static auto constexpr index_map(std::index_sequence<Seq...> /*seq*/) {
     return std::array{Indices::get()...};
   };
-  static auto constexpr rank() { return std::decay_t<Tensor>::rank(); }
+  static auto constexpr rank() { return tensor_t::rank(); }
   template <std::size_t I>
   static auto constexpr size() {
-    return std::decay_t<Tensor>::template size<I>();
+    return tensor_t::template size<I>();
   }
   private:
    template <size_t I, typename E, typename HeadIndex, typename... TailIndices>
    static auto constexpr size_() {
      if constexpr (is_same<E, HeadIndex>) {
-       return std::decay_t<Tensor>::dimension(I);
+       return tensor_t::dimension(I);
      } else {
        return size_<I + 1, E, TailIndices...>();
      }
@@ -209,7 +213,7 @@ struct indexed_tensor {
                         ContractedIndexSequence>>()...);
           }
         },
-        std::decay_t<Tensor>::dimension(FreeIndexSequence)...);
+        tensor_t::dimension(FreeIndexSequence)...);
   }
   //----------------------------------------------------------------------------
   template <typename... IndexedTensors, typename Tensor_ = Tensor,
@@ -222,16 +226,22 @@ struct indexed_tensor {
         std::make_index_sequence<sizeof...(IndexedTensors)>{});
     return *this;
   }
+  //----------------------------------------------------------------------------
+  template <typename... IndexedTensors, typename Tensor_ = Tensor,
+            enable_if<!is_const<std::remove_reference_t<Tensor_>>> = true>
+  auto assign(contracted_tensor<IndexedTensors...> other) {
+    m_tensor = tensor_t{tag::fill{0}};
+    add(other, std::make_index_sequence<rank()>{},
+        std::make_index_sequence<
+            contracted_tensor<IndexedTensors...>::contracted_indices::size>{},
+        std::make_index_sequence<sizeof...(IndexedTensors)>{});
+  }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... IndexedTensors, typename Tensor_ = Tensor,
             enable_if<!is_const<std::remove_reference_t<Tensor_>>> = true>
   auto operator=(contracted_tensor<IndexedTensors...> other)
       -> indexed_tensor& {
-    m_tensor = std::decay_t<Tensor>{tag::fill{0}};
-    add(other, std::make_index_sequence<rank()>{},
-        std::make_index_sequence<
-            contracted_tensor<IndexedTensors...>::contracted_indices::size>{},
-        std::make_index_sequence<sizeof...(IndexedTensors)>{});
+    assign(other);
     return *this;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -239,7 +249,7 @@ struct indexed_tensor {
             enable_if<!is_const<std::remove_reference_t<Tensor_>>> = true>
   auto operator=(added_contracted_tensor<ContractedTensors...> other)
       -> indexed_tensor& {
-    m_tensor = std::decay_t<Tensor>{tag::fill{0}};
+    m_tensor = tensor_t{tag::fill{0}};
     assign(other, std::make_index_sequence<sizeof...(ContractedTensors)>{});
     return *this;
   }
@@ -247,8 +257,28 @@ struct indexed_tensor {
   template <typename Tensors, typename... Is, typename Tensor_ = Tensor,
             enable_if<!is_const<std::remove_reference_t<Tensor_>>> = true>
   auto operator=(indexed_tensor<Tensors, Is...> other) -> indexed_tensor& {
-    m_tensor = std::decay_t<Tensor>{tag::fill{0}};
+    m_tensor = tensor_t{tag::fill{0}};
     *this += contracted_tensor{other};
+    return *this;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /// A(i,k) = B(i,j) * C(j, k)
+  template <typename LHS, typename RHS, typename I, typename J,typename K,
+            size_t ThisRank                         = rank(),
+            enable_if<ThisRank == rank(), ThisRank> = true>
+  auto operator=(
+      contracted_tensor<indexed_tensor<LHS, I, J>,
+                        indexed_tensor<RHS, J, K>>
+          other) -> indexed_tensor& {
+    if constexpr (is_same<I, index_at<0>> && is_same<K, index_at<1>>) {
+      using comp_type = typename tensor_t::value_type;
+      static_assert(is_same<comp_type, typename std::decay_t<LHS>::value_type>);
+      static_assert(is_same<comp_type, typename std::decay_t<RHS>::value_type>);
+      blas::gemm(comp_type(1), other.template at<0>().tensor(),
+                 other.template at<1>().tensor(), comp_type(0), m_tensor);
+    } else {
+      assign(other);
+    }
     return *this;
   }
 };
@@ -400,6 +430,9 @@ struct contracted_tensor {
   template <std::size_t I>
   auto at() {
     return std::get<I>(m_tensors);
+  }
+  constexpr auto num_tensors() {
+    return sizeof...(IndexedTensors);
   }
 
   template <std::size_t... ContractedIndexSequence,
