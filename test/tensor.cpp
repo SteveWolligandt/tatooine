@@ -222,7 +222,9 @@ TEST_CASE("tensor_eigenvalue", "[tensor][eigenvalue]") {
     }
   }
   SECTION("3x3") {
-    mat const A{{1.0, 2.0, 3.0}, {4.0, 6.0, 8.0}, {9.0, 12.0, 15.0}};
+    auto const A = mat{{1.0,  2.0,  3.0},
+                       {4.0,  6.0,  8.0},
+                       {9.0, 12.0, 15.0}};
     auto const [eigvecs, eigvals] = eigenvectors(A);
     auto const eigvals2           = eigenvalues(A);
     auto const ve                 = real(eigvecs);
@@ -346,144 +348,144 @@ TEST_CASE("tensor_matrix_norm1", "[tensor][norm1][1-norm][matrix]") {
   REQUIRE(norm1(A) == Approx(14.921));
 }
 //==============================================================================
-TEST_CASE("tensor_svd", "[tensor][svd]") {
-  //----------------------------------------------------------------------------
-  SECTION("2x2") {
-    mat  A{{-1.79222, -7.94109}, {2.38520, 0.82284}};
-    auto s = singular_values(A);
-    INFO("A =\n" << A);
-    INFO("s = " << s);
-    REQUIRE(approx_equal(s, vec{8.256124221718464, 2.115566226250951}));
-  }
-  SECTION("3x3") {
-    mat A{{-1.79222, -7.94109, 3.67540},
-          {2.38520, 0.82284, 8.53506},
-          {-1.37601, -6.15705, -0.71982}};
-    auto const [U, s, VT] = svd(A);
-    auto const S          = diag(s);
-    INFO("A =\n" << A);
-    INFO("U*S*VT =\n" << U * S * VT);
-    INFO("U*S =\n" << U * S);
-    INFO("S*VT =\n" << S * VT);
-    INFO("U =\n" << U);
-    INFO("S =\n" << S);
-    INFO("V =\n" << transposed(VT));
-    REQUIRE(approx_equal(s, vec{1.073340050125074e+01, 9.148458171897648e+00,
-                                6.447152840514361e-01}));
-    REQUIRE(approx_equal(U * S * VT, A));
-  }
-  //----------------------------------------------------------------------------
-  SECTION("3x4") {
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    SECTION("full") {
-      mat A{
-          {6.405871813e+00, -4.344670595e+00, 9.471184691e+00, 5.850792157e+00},
-          {3.049605906e+00, 1.018629735e+00, 5.535464761e+00, 2.691779530e+00},
-          {9.002176872e+00, 3.332492228e-01, -2.365651229e+00,
-           9.458283935e+00}};
-      auto const [U, s, VT] = svd(A, tag::full);
-      auto const S          = diag_rect<3, 4>(s);
-      INFO("A =\n" << A);
-      INFO("U*S*VT =\n" << U * S * VT);
-      INFO("U =\n" << U);
-      INFO("S =\n" << S);
-      INFO("V =\n" << transposed(VT));
-      REQUIRE(approx_equal(s, vec{1.733194199066472e+01, 9.963856829919013e+00,
-                                  2.932957998778161e+00}));
-      REQUIRE(approx_equal(U * S * VT, A));
-    }
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    SECTION("economy") {
-      mat A{
-          {6.405871813e+00, -4.344670595e+00, 9.471184691e+00, 5.850792157e+00},
-          {3.049605906e+00, 1.018629735e+00, 5.535464761e+00, 2.691779530e+00},
-          {9.002176872e+00, 3.332492228e-01, -2.365651229e+00,
-           9.458283935e+00}};
-      auto const [U, s, VT] = svd(A, tag::economy);
-      auto const S          = diag(s);
-      INFO("A =\n" << A);
-      INFO("U*S*VT =\n" << U * S * VT);
-      INFO("U =\n" << U);
-      INFO("S =\n" << S);
-      INFO("V =\n" << transposed(VT));
-      REQUIRE(approx_equal(s, vec{1.733194199066472e+01, 9.963856829919013e+00,
-                                  2.932957998778161e+00}));
-      REQUIRE(approx_equal(U * S * VT, A));
-    }
-  }
-  //----------------------------------------------------------------------------
-  SECTION("4x3") {
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    SECTION("full") {
-      mat A{{6.405871813e+00, -4.344670595e+00, 9.471184691e+00},
-            {5.850792157e+00, 3.049605906e+00, 1.018629735e+00},
-            {5.535464761e+00, 2.691779530e+00, 9.002176872e+00},
-            {3.332492228e-01, -2.365651229e+00, 9.458283935e+00}};
-      auto const [U, s, VT] = svd(A, tag::full);
-      auto const S          = diag_rect<4, 3>(s);
-      INFO("A =\n" << A);
-      INFO("U*S*VT =\n" << U * S * VT);
-      INFO("U =\n" << U);
-      INFO("S =\n" << S);
-      INFO("V =\n" << transposed(VT));
-      REQUIRE(approx_equal(s, vec{1.814712763774386e+01, 7.766671714721034e+00,
-                                  4.317113346117844e+00}));
-      REQUIRE(approx_equal(U * S * VT, A));
-    }
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    SECTION("economy") {
-      mat A{
-          {6.405871813e+00, -4.344670595e+00, 9.471184691e+00, 5.850792157e+00},
-          {3.049605906e+00, 1.018629735e+00, 5.535464761e+00, 2.691779530e+00},
-          {9.002176872e+00, 3.332492228e-01, -2.365651229e+00,
-           9.458283935e+00}};
-      auto const [U, s, VT] = svd(A, tag::economy);
-      auto const S          = diag(s);
-      INFO("A =\n" << A);
-      INFO("U*S*VT =\n" << U * S * VT);
-      INFO("U =\n" << U);
-      INFO("S =\n" << S);
-      INFO("V =\n" << transposed(VT));
-      REQUIRE(approx_equal(s, vec{1.733194199066472e+01, 9.963856829919013e+00,
-                                  2.932957998778161e+00}));
-      REQUIRE(approx_equal(U * S * VT, A));
-    }
-  }
-  //----------------------------------------------------------------------------
-  SECTION("left") {
-    // just check if it compiles
-    mat A{{-1.79222, -7.94109, 3.67540},
-          {2.38520, 0.82284, 8.53506},
-          {2.38520, 0.82284, 8.53506},
-          {-1.37601, -6.15705, -0.71982}};
-    [[maybe_unused]] std::tuple<mat<double, 4, 4>, vec<double, 3>> LF =
-        svd_left(A, tag::full);
-    [[maybe_unused]] std::tuple<mat<double, 4, 3>, vec<double, 3>> LE =
-        svd_left(A, tag::economy);
-  }
-  //----------------------------------------------------------------------------
-  SECTION("right") {
-    // just check if it compiles
-    mat A{
-        {6.405871813e+00, -4.344670595e+00, 9.471184691e+00, 5.850792157e+00},
-        {3.049605906e+00, 1.018629735e+00, 5.535464761e+00, 2.691779530e+00},
-        {9.002176872e+00, 3.332492228e-01, -2.365651229e+00, 9.458283935e+00}};
-    [[maybe_unused]] std::tuple<vec<double, 3>, mat<double, 4, 4>> RF =
-        svd_right(A, tag::full);
-    [[maybe_unused]] std::tuple<vec<double, 3>, mat<double, 3, 4>> RE =
-        svd_right(A, tag::economy);
-  }
-}
+//TEST_CASE("tensor_svd", "[tensor][svd]") {
+//  //----------------------------------------------------------------------------
+//  SECTION("2x2") {
+//    mat  A{{-1.79222, -7.94109}, {2.38520, 0.82284}};
+//    auto s = singular_values(A);
+//    INFO("A =\n" << A);
+//    INFO("s = " << s);
+//    REQUIRE(approx_equal(s, vec{8.256124221718464, 2.115566226250951}));
+//  }
+//  SECTION("3x3") {
+//    mat A{{-1.79222, -7.94109, 3.67540},
+//          {2.38520, 0.82284, 8.53506},
+//          {-1.37601, -6.15705, -0.71982}};
+//    auto const [U, s, VT] = svd(A);
+//    auto const S          = diag(s);
+//    INFO("A =\n" << A);
+//    INFO("U*S*VT =\n" << U * S * VT);
+//    INFO("U*S =\n" << U * S);
+//    INFO("S*VT =\n" << S * VT);
+//    INFO("U =\n" << U);
+//    INFO("S =\n" << S);
+//    INFO("V =\n" << transposed(VT));
+//    REQUIRE(approx_equal(s, vec{1.073340050125074e+01, 9.148458171897648e+00,
+//                                6.447152840514361e-01}));
+//    REQUIRE(approx_equal(U * S * VT, A));
+//  }
+//  //----------------------------------------------------------------------------
+//  SECTION("3x4") {
+//    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//    SECTION("full") {
+//      mat A{
+//          {6.405871813e+00, -4.344670595e+00, 9.471184691e+00, 5.850792157e+00},
+//          {3.049605906e+00, 1.018629735e+00, 5.535464761e+00, 2.691779530e+00},
+//          {9.002176872e+00, 3.332492228e-01, -2.365651229e+00,
+//           9.458283935e+00}};
+//      auto const [U, s, VT] = svd(A, tag::full);
+//      auto const S          = diag_rect<3, 4>(s);
+//      INFO("A =\n" << A);
+//      INFO("U*S*VT =\n" << U * S * VT);
+//      INFO("U =\n" << U);
+//      INFO("S =\n" << S);
+//      INFO("V =\n" << transposed(VT));
+//      REQUIRE(approx_equal(s, vec{1.733194199066472e+01, 9.963856829919013e+00,
+//                                  2.932957998778161e+00}));
+//      REQUIRE(approx_equal(U * S * VT, A));
+//    }
+//    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//    SECTION("economy") {
+//      mat A{
+//          {6.405871813e+00, -4.344670595e+00, 9.471184691e+00, 5.850792157e+00},
+//          {3.049605906e+00, 1.018629735e+00, 5.535464761e+00, 2.691779530e+00},
+//          {9.002176872e+00, 3.332492228e-01, -2.365651229e+00,
+//           9.458283935e+00}};
+//      auto const [U, s, VT] = svd(A, tag::economy);
+//      auto const S          = diag(s);
+//      INFO("A =\n" << A);
+//      INFO("U*S*VT =\n" << U * S * VT);
+//      INFO("U =\n" << U);
+//      INFO("S =\n" << S);
+//      INFO("V =\n" << transposed(VT));
+//      REQUIRE(approx_equal(s, vec{1.733194199066472e+01, 9.963856829919013e+00,
+//                                  2.932957998778161e+00}));
+//      REQUIRE(approx_equal(U * S * VT, A));
+//    }
+//  }
+//  //----------------------------------------------------------------------------
+//  SECTION("4x3") {
+//    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//    SECTION("full") {
+//      mat A{{6.405871813e+00, -4.344670595e+00, 9.471184691e+00},
+//            {5.850792157e+00, 3.049605906e+00, 1.018629735e+00},
+//            {5.535464761e+00, 2.691779530e+00, 9.002176872e+00},
+//            {3.332492228e-01, -2.365651229e+00, 9.458283935e+00}};
+//      auto const [U, s, VT] = svd(A, tag::full);
+//      auto const S          = diag_rect<4, 3>(s);
+//      INFO("A =\n" << A);
+//      INFO("U*S*VT =\n" << U * S * VT);
+//      INFO("U =\n" << U);
+//      INFO("S =\n" << S);
+//      INFO("V =\n" << transposed(VT));
+//      REQUIRE(approx_equal(s, vec{1.814712763774386e+01, 7.766671714721034e+00,
+//                                  4.317113346117844e+00}));
+//      REQUIRE(approx_equal(U * S * VT, A));
+//    }
+//    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//    SECTION("economy") {
+//      mat A{
+//          {6.405871813e+00, -4.344670595e+00, 9.471184691e+00, 5.850792157e+00},
+//          {3.049605906e+00, 1.018629735e+00, 5.535464761e+00, 2.691779530e+00},
+//          {9.002176872e+00, 3.332492228e-01, -2.365651229e+00,
+//           9.458283935e+00}};
+//      auto const [U, s, VT] = svd(A, tag::economy);
+//      auto const S          = diag(s);
+//      INFO("A =\n" << A);
+//      INFO("U*S*VT =\n" << U * S * VT);
+//      INFO("U =\n" << U);
+//      INFO("S =\n" << S);
+//      INFO("V =\n" << transposed(VT));
+//      REQUIRE(approx_equal(s, vec{1.733194199066472e+01, 9.963856829919013e+00,
+//                                  2.932957998778161e+00}));
+//      REQUIRE(approx_equal(U * S * VT, A));
+//    }
+//  }
+//  //----------------------------------------------------------------------------
+//  SECTION("left") {
+//    // just check if it compiles
+//    mat A{{-1.79222, -7.94109, 3.67540},
+//          {2.38520, 0.82284, 8.53506},
+//          {2.38520, 0.82284, 8.53506},
+//          {-1.37601, -6.15705, -0.71982}};
+//    [[maybe_unused]] std::tuple<mat<double, 4, 4>, vec<double, 3>> LF =
+//        svd_left(A, tag::full);
+//    [[maybe_unused]] std::tuple<mat<double, 4, 3>, vec<double, 3>> LE =
+//        svd_left(A, tag::economy);
+//  }
+//  //----------------------------------------------------------------------------
+//  SECTION("right") {
+//    // just check if it compiles
+//    mat A{
+//        {6.405871813e+00, -4.344670595e+00, 9.471184691e+00, 5.850792157e+00},
+//        {3.049605906e+00, 1.018629735e+00, 5.535464761e+00, 2.691779530e+00},
+//        {9.002176872e+00, 3.332492228e-01, -2.365651229e+00, 9.458283935e+00}};
+//    [[maybe_unused]] std::tuple<vec<double, 3>, mat<double, 4, 4>> RF =
+//        svd_right(A, tag::full);
+//    [[maybe_unused]] std::tuple<vec<double, 3>, mat<double, 3, 4>> RE =
+//        svd_right(A, tag::economy);
+//  }
+//}
 //==============================================================================
-TEST_CASE("tensor_condition_number",
-          "[tensor][cond][condition][condition_number]") {
-  mat A{{-1.79222, -7.94109, 3.67540},
-        {2.38520, 0.82284, 8.53506},
-        {-1.37601, -6.15705, -0.71982}};
-  CAPTURE(A);
-  REQUIRE(condition_number(A, 2) == Approx(16.64827989465566));
-  REQUIRE(condition_number(A, 1) == Approx(26.47561499847143));
-}
+//TEST_CASE("tensor_condition_number",
+//          "[tensor][cond][condition][condition_number]") {
+//  mat A{{-1.79222, -7.94109, 3.67540},
+//        {2.38520, 0.82284, 8.53506},
+//        {-1.37601, -6.15705, -0.71982}};
+//  CAPTURE(A);
+//  REQUIRE(condition_number(A, 2) == Approx(16.64827989465566));
+//  REQUIRE(condition_number(A, 1) == Approx(26.47561499847143));
+//}
 //==============================================================================
 TEST_CASE("tensor_inverse", "[tensor][inverse]") {
   SECTION("2x2") {

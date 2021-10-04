@@ -152,7 +152,18 @@ target_link_libraries(tatooine
 # LAPACK
 #===============================================================================
 find_package(LAPACK REQUIRED)
-find_package(LAPACKE REQUIRED)
+update_git_submodule(${TATOOINE_EXTERNAL}/lapackpp)
+add_subdirectory(${TATOOINE_EXTERNAL}/lapackpp)
+target_compile_options(lapackpp PUBLIC -Wno-return-type-c-linkage)
+target_compile_definitions(tatooine PUBLIC LAPACK_COMPLEX_CPP)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+target_link_libraries(tatooine PUBLIC
+  ${LAPACK_LIBRARIES}
+  lapackpp)
+
+#===============================================================================
+# FILESYSTEM
+#===============================================================================
 if(TATOOINE_STD_FILESYSTEM_AVAILABLE)
   find_package(Boost REQUIRED COMPONENTS program_options)
 else()
@@ -160,19 +171,6 @@ else()
 endif()
 target_compile_definitions(tatooine PUBLIC BOOST_BIND_GLOBAL_PLACEHOLDERS)
 
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# check if mkl_lapacke.h can be used
-get_target_property(TATOOINE_INCLUDE_DIRS tatooine INCLUDE_DIRECTORIES)
-set(TATOOINE_INCLUDE_MKL_LAPACKE OFF)
-foreach(dir ${TATOOINE_INCLUDE_DIRS})
-  if(EXISTS "${dir}/mkl_lapacke.h")
-    set(TATOOINE_INCLUDE_MKL_LAPACKE ON)
-    break()
-  endif()
-endforeach()
-if (TATOOINE_INCLUDE_MKL_LAPACKE)
-  target_compile_definitions(tatooine PUBLIC TATOOINE_INCLUDE_MKL_LAPACKE)
-endif()
 unset(TATOOINE_INCLUDE_DIRS)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # set include dirs
@@ -182,7 +180,6 @@ target_include_directories(tatooine
     ${CMAKE_CURRENT_SOURCE_DIR}/single_include
     ${CMAKE_CURRENT_BINARY_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/external/indicators/include
-    ${LAPACKE_INCLUDE_DIRS}
     external/vcode/include
     ${Boost_INCLUDE_DIRS}
 /lrz/sys/intel/studio2019_u5/compilers_and_libraries_2019.5.281/linux/mkl/include
@@ -191,8 +188,6 @@ target_include_directories(tatooine
 #set libs 
 target_link_libraries(tatooine
   PUBLIC
-    ${LAPACK_LIBRARIES}
-    ${LAPACKE_LIBRARIES}
     ${Boost_PROGRAM_OPTIONS_LIBRARY}
 )
 

@@ -7,8 +7,7 @@ namespace tatooine {
 //==============================================================================
 template <typename Tensor, typename T, size_t... Dims>
 struct const_imag_complex_tensor
-    : base_tensor<const_imag_complex_tensor<Tensor, T, Dims...>, T,
-                  Dims...> {
+    : base_tensor<const_imag_complex_tensor<Tensor, T, Dims...>, T, Dims...> {
   static_assert(std::is_same_v<typename Tensor::value_type, std::complex<T>>);
   using this_t   = const_imag_complex_tensor<Tensor, T, Dims...>;
   using parent_t = base_tensor<this_t, T, Dims...>;
@@ -28,7 +27,7 @@ struct const_imag_complex_tensor
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
+  template <typename... Is, enable_if_integral<Is...> = true>
 #endif
   constexpr decltype(auto) operator()(Is const... is) const {
     static_assert(sizeof...(is) == rank());
@@ -38,7 +37,7 @@ struct const_imag_complex_tensor
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
+  template <typename... Is, enable_if_integral<Is...> = true>
 #endif
   constexpr decltype(auto) at(Is const... is) const {
     static_assert(sizeof...(is) == rank());
@@ -71,7 +70,8 @@ struct imag_complex_tensor
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
+  template <typename... Is, enable_if_integral<Is...>>
+  = true >
 #endif
   constexpr auto operator()(Is const... is) const -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
@@ -81,7 +81,7 @@ struct imag_complex_tensor
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
+  template <typename... Is, enable_if_integral<Is...> = true>
 #endif
   constexpr auto operator()(Is const... is) -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
@@ -91,7 +91,7 @@ struct imag_complex_tensor
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
+  template <typename... Is, enable_if_integral<Is...> = true>
 #endif
   constexpr auto at(Is const... is) const -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
@@ -101,7 +101,7 @@ struct imag_complex_tensor
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
+  template <typename... Is, enable_if_integral<Is...> = true>
 #endif
   constexpr auto at(Is const... is) -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
@@ -127,8 +127,7 @@ auto imag(base_tensor<Tensor, std::complex<T>, Dims...>& tensor) {
 //==============================================================================
 template <typename Tensor, typename T, size_t... Dims>
 struct const_real_complex_tensor
-    : base_tensor<const_real_complex_tensor<Tensor, T, Dims...>, T,
-                  Dims...> {
+    : base_tensor<const_real_complex_tensor<Tensor, T, Dims...>, T, Dims...> {
   static_assert(std::is_same_v<typename Tensor::value_type, std::complex<T>>);
   using this_t   = const_real_complex_tensor<Tensor, T, Dims...>;
   using parent_t = base_tensor<this_t, T, Dims...>;
@@ -147,7 +146,7 @@ struct const_real_complex_tensor
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
+  template <typename... Is, enable_if_integral<Is...> = true>
 #endif
   constexpr auto operator()(Is const... is) const -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
@@ -157,7 +156,7 @@ struct const_real_complex_tensor
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
+  template <typename... Is, enable_if_integral<Is...> = true>
 #endif
   constexpr auto at(Is const... is) const -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
@@ -189,7 +188,7 @@ struct real_complex_tensor
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
+  template <typename... Is, enable_if_integral<Is...> = true>
 #endif
   constexpr auto operator()(Is const... is) const -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
@@ -199,7 +198,7 @@ struct real_complex_tensor
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
+  template <typename... Is, enable_if_integral<Is...> = true>
 #endif
   constexpr auto operator()(Is const... is) -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
@@ -209,7 +208,7 @@ struct real_complex_tensor
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
+  template <typename... Is, enable_if_integral<Is...> = true>
 #endif
   constexpr auto at(Is const... is) const -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
@@ -219,7 +218,7 @@ struct real_complex_tensor
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
+  template <typename... Is, enable_if_integral<Is...> = true>
 #endif
   constexpr auto at(Is const... is) -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
