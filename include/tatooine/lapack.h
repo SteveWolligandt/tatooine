@@ -4,17 +4,6 @@
 #include <lapack.hh>
 #include <tatooine/math.h>
 //==============================================================================
-namespace tatooine {
-//==============================================================================
-template <typename Real, size_t... N>
-struct tensor;
-template <typename Real, size_t M, size_t N>
-struct mat;
-template <typename Real, size_t N>
-struct vec;
-//==============================================================================
-}  // namespace tatooine
-//==============================================================================
 namespace tatooine::lapack {
 //==============================================================================
 /// \defgroup lapack Lapack
@@ -112,6 +101,21 @@ auto gesv(tensor<T, N, N>& A,
           tensor<std::int64_t, N>& ipiv) {
   return ::lapack::gesv(N, K, A.data_ptr(), N, ipiv.data_ptr(), B.data_ptr(),
                         N);
+}
+template <typename T>
+auto gesv(tensor<T>& A, tensor<T>& B, tensor<std::int64_t>& ipiv) {
+  assert(A.rank() == 2);
+  assert(A.dimension(0) == A.dimension(1));
+
+  assert(B.rank() > 0);
+  assert(B.rank() <= 2);
+
+  assert(A.dimension(0) == B.dimension(0));
+
+  ipiv.resize(A.dimension(0));
+  return ::lapack::gesv(A.dimension(0), (B.rank() == 1 ? 1 : B.dimension(1)),
+                        A.data_ptr(), A.dimension(0), ipiv.data_ptr(),
+                        B.data_ptr(), A.dimension(0));
 }
 //==============================================================================
 /// \}

@@ -792,7 +792,7 @@ struct moving_least_squares_sampler_t<Real, 2, T>
       if constexpr (is_arithmetic<tensor_t>) {
         return Real(0) / Real(0);
       } else {
-        return tensor_t{tag::fill{Real(0) / Real(0)}};
+        return tensor_t::fill(Real(0) / Real(0));
       }
     }
     if (num_neighbors == 1) {
