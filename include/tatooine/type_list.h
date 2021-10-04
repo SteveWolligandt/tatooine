@@ -57,7 +57,8 @@ using type_list_at = typename type_list_at_impl<TypeList, I>::type;
 /// Recursive Stepping through all types of a list.
 template <typename Front, typename... Rest, std::size_t I>
 struct type_list_at_impl<type_list_impl<Front, Rest...>, I> {
-  static_assert(sizeof...(Rest) >= I, "Index exceeds range.");
+  static size_t constexpr Size = sizeof...(Rest) + 1;
+  static_assert(I < Size, "Index exceeds range.");
   using type = typename type_list_at_impl<type_list_impl<Rest...>, I - 1>::type;
 };
 //------------------------------------------------------------------------------

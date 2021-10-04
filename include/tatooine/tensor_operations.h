@@ -758,7 +758,7 @@ auto solve_qr(base_tensor<TensorA, Real, M, N> const& A_base,
   auto A   = mat<Real, M, N>{A_base};
   auto B   = mat<Real, M, K>{B_base};
   auto tau = vec<Real, (M < N ? M : N)>{};
-  auto X = mat<Real, N, K>{};
+  auto X   = mat<Real, N, K>{};
 
   // Q * R = A
   lapack::geqrf(A, tau);
@@ -766,8 +766,9 @@ auto solve_qr(base_tensor<TensorA, Real, M, N> const& A_base,
   lapack::ormqr(A, B, tau, 'L', 'T');
   // Use back-substitution using the upper right part of A
   lapack::trtrs(A, B, 'U');
-  for_loop([&, i = size_t(0)](auto const... is) mutable { X(is...) = B(is...); },
-           N, K);
+  for_loop(
+      [&, i = size_t(0)](auto const... is) mutable { X(is...) = B(is...); }, N,
+      K);
   return X;
 }
 //------------------------------------------------------------------------------

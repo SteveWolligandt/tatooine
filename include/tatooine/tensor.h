@@ -1,6 +1,7 @@
 #ifndef TATOOINE_TENSOR_H
 #define TATOOINE_TENSOR_H
 //==============================================================================
+#include <tatooine/blas.h>
 #include <tatooine/base_tensor.h>
 //==============================================================================
 #include <tatooine/math.h>
