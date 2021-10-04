@@ -4,7 +4,8 @@
 #include <tatooine/vec.h>
 #include <tatooine/mat.h>
 #include <tatooine/transposed_tensor.h>
-
+#include <tatooine/lapack.h>
+#include <tatooine/blas.h>
 #include <optional>
 //==============================================================================
 namespace tatooine {
@@ -13,7 +14,7 @@ namespace tatooine {
 /// A = [a,b]
 ///     [b,c]
 template <typename Tensor, typename Real,
-          enable_if<is_floating_point<Real>> = true>
+          enable_if_floating_point<Real> = true>
 constexpr auto inv_sym(base_tensor<Tensor, Real, 2, 2> const& A)
     -> std::optional<mat<Real, 2, 2>> {
   decltype(auto) a   = A(0, 0);
@@ -35,7 +36,7 @@ constexpr auto inv_sym(base_tensor<Tensor, Real, 2, 2> const& A)
 template <typename Tensor, floating_point Real>
 #else
 template <typename Tensor, typename Real,
-          enable_if<is_floating_point<Real>> = true>
+          enable_if_floating_point<Real> = true>
 #endif
 constexpr auto inv(base_tensor<Tensor, Real, 2, 2> const& A)
     -> std::optional<mat<Real, 2, 2>> {
@@ -62,7 +63,7 @@ constexpr auto inv(base_tensor<Tensor, Real, 2, 2> const& A)
 template <typename Tensor, floating_point Real>
 #else
 template <typename Tensor, typename Real,
-          enable_if<is_floating_point<Real>> = true>
+          enable_if_floating_point<Real> = true>
 #endif
 constexpr auto inv_sym(base_tensor<Tensor, Real, 3, 3> const& A)
     -> std::optional<mat<Real, 3, 3>> {
@@ -92,7 +93,7 @@ constexpr auto inv_sym(base_tensor<Tensor, Real, 3, 3> const& A)
 template <typename Tensor, floating_point Real>
 #else
 template <typename Tensor, typename Real,
-          enable_if<is_floating_point<Real>> = true>
+          enable_if_floating_point<Real> = true>
 #endif
 constexpr auto inv(base_tensor<Tensor, Real, 3, 3> const& A)
     -> std::optional<mat<Real, 3, 3>> {
@@ -130,7 +131,7 @@ constexpr auto inv(base_tensor<Tensor, Real, 3, 3> const& A)
 template <typename Tensor, floating_point Real>
 #else
 template <typename Tensor, typename Real,
-          enable_if<is_floating_point<Real>> = true>
+          enable_if_floating_point<Real> = true>
 #endif
 constexpr auto inv_sym(base_tensor<Tensor, Real, 4, 4> const& A) {
   decltype(auto) a = A(0, 0);
@@ -189,7 +190,7 @@ constexpr auto inv_sym(base_tensor<Tensor, Real, 4, 4> const& A) {
 template <typename Tensor, floating_point Real>
 #else
 template <typename Tensor, typename Real,
-          enable_if<is_floating_point<Real>> = true>
+          enable_if_floating_point<Real> = true>
 #endif
 constexpr auto inv(base_tensor<Tensor, Real, 4, 4> const& A)
     -> std::optional<mat<Real, 4, 4>> {
@@ -681,12 +682,6 @@ constexpr auto reflect(vec<T0, 3> const& incidentVec,
                        vec<T1, 3> const& normal) {
   return incidentVec - 2 * dot(incidentVec, normal) * normal;
 }
-//==============================================================================
-}  // namespace tatooine
-//==============================================================================
-#include <tatooine/tensor_lapack_utility.h>
-//==============================================================================
-namespace tatooine {
 //==============================================================================
 template <typename TensorA, typename TensorB, typename Real, size_t M, size_t N>
 auto solve(base_tensor<TensorA, Real, M, N> const& A,

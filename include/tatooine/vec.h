@@ -8,9 +8,15 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
+#ifdef __cpp_concepts
+template <arithmetic_or_complex T, size_t N>
+#else
 template <typename T, size_t N>
+#endif
 struct vec : tensor<T, N> {  // NOLINT
+#ifndef __cpp_concepts
   static_assert(is_arithmetic<T> || is_complex<T>);
+#endif
   using this_t = vec<T, N>;
   using parent_t = tensor<T, N>;
   using parent_t::parent_t;

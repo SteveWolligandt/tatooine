@@ -263,7 +263,7 @@ class static_multidim_array
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
+  template <typename... Is, enable_if_integral<Is...> = true>
 #endif
   [[nodiscard]] constexpr auto at(Is const... is) const -> const auto& {
     static_assert(sizeof...(is) == num_dimensions());
@@ -274,7 +274,7 @@ class static_multidim_array
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
+  template <typename... Is, enable_if_integral<Is...> = true>
 #endif
   constexpr auto at(Is const... is) -> auto& {
     static_assert(sizeof...(is) == num_dimensions());
@@ -309,7 +309,7 @@ class static_multidim_array
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
+  template <typename... Is, enable_if_integral<Is...> = true>
 #endif
   [[nodiscard]] constexpr auto operator()(Is const... is) const -> auto const& {
     static_assert(sizeof...(is) == num_dimensions());
@@ -320,7 +320,7 @@ class static_multidim_array
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
+  template <typename... Is, enable_if_integral<Is...> = true>
 #endif
   constexpr auto operator()(Is const... is) -> auto& {
     static_assert(sizeof...(is) == num_dimensions());
@@ -422,7 +422,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
 #ifdef __cpp_concepts
   template <integral... Size>
 #else
-  template <typename... Size, enable_if<is_integral<Size...>> = true>
+  template <typename... Size, enable_if_integral<Size...> = true>
 #endif
   static auto zeros(Size const... size) {
     return this_t{tag::zeros, size...};
@@ -431,7 +431,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
 #ifdef __cpp_concepts
   template <integral Int>
 #else
-  template <typename Int, enable_if<is_integral<Int>> = true>
+  template <typename Int, enable_if_integral<Int> = true>
 #endif
   static auto zeros(std::vector<Int> const& size) {
     return this_t{tag::zeros, size};
@@ -440,7 +440,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
 #ifdef __cpp_concepts
   template <size_t N, integral Int>
 #else
-  template <size_t N, typename Int, enable_if<is_integral<Int>> = true>
+  template <size_t N, typename Int, enable_if_integral<Int> = true>
 #endif
   static auto zeros(std::array<Int, N> const& size) {
     return this_t{tag::zeros, size};
@@ -449,7 +449,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
 #ifdef __cpp_concepts
   template <integral... Size>
 #else
-  template <typename... Size, enable_if<is_integral<Size...>> = true>
+  template <typename... Size, enable_if_integral<Size...> = true>
 #endif
   static auto ones(Size const... size) {
     return this_t{tag::ones, size...};
@@ -458,7 +458,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
 #ifdef __cpp_concepts
   template <integral Int>
 #else
-  template <typename Int, enable_if<is_integral<Int>> = true>
+  template <typename Int, enable_if_integral<Int> = true>
 #endif
   static auto ones(std::vector<Int> const& size) {
     return this_t{tag::ones, size};
@@ -467,7 +467,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
 #ifdef __cpp_concepts
   template <size_t N, integral Int>
 #else
-  template <size_t N, typename Int, enable_if<is_integral<Int>> = true>
+  template <size_t N, typename Int, enable_if_integral<Int> = true>
 #endif
   static auto ones(std::array<Int, N> const& size) {
     return this_t{tag::ones, size};
@@ -569,7 +569,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   template <typename RandEng, integral... Size>
 #else
   template <typename RandEng, typename... Size,
-            enable_if<is_integral<Size...>> = true>
+            enable_if_integral<Size...> = true>
 #endif
   static auto rand(random::uniform<T, RandEng> const& rand,
                    Size const... size) {
@@ -602,7 +602,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   template <typename RandEng, integral... Size>
 #else
   template <typename RandEng, typename... Size,
-            enable_if<is_integral<Size...>> = true>
+            enable_if_integral<Size...> = true>
 #endif
   static auto rand(random::uniform<T, RandEng>&& rand, Size const... size) {
     return this_t{std::move(rand), std::vector{static_cast<size_t>(size)...}};
@@ -634,7 +634,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   template <typename RandEng, integral... Size>
 #else
   template <typename RandEng, typename... Size,
-            enable_if<is_integral<Size...>> = true>
+            enable_if_integral<Size...> = true>
 #endif
   static auto rand(random::normal<T, RandEng> const& rand, Size const... size) {
     return this_t{rand, std::vector{static_cast<size_t>(size)...}};
@@ -666,7 +666,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   template <typename RandEng, integral... Size>
 #else
   template <typename RandEng, typename... Size,
-            enable_if<is_integral<Size...>> = true>
+            enable_if_integral<Size...> = true>
 #endif
   static auto rand(random::normal<T, RandEng>&& rand, Size... size) {
     return this_t{std::move(rand), std::vector{static_cast<size_t>(size)...}};
@@ -712,7 +712,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
 #ifdef __cpp_concepts
   template <integral... Size>
 #else
-  template <typename... Size, enable_if<is_integral<Size...>> = true>
+  template <typename... Size, enable_if_integral<Size...> = true>
 #endif
   explicit dynamic_multidim_array(Size const... size)
       : parent_t{size...}, m_data(num_components(), T{}) {
@@ -721,8 +721,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
 #ifdef __cpp_concepts
   template <typename S, integral... Size>
 #else
-  template <typename S, typename... Size,
-            enable_if<is_integral<Size...>> = true>
+  template <typename S, typename... Size, enable_if_integral<Size...> = true>
 #endif
   explicit dynamic_multidim_array(tag::fill<S> const& f, Size const... size)
       : parent_t{size...}, m_data(num_components(), f.value) {
@@ -731,7 +730,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
 #ifdef __cpp_concepts
   template <integral... Size>
 #else
-  template <typename... Size, enable_if<is_integral<Size...>> = true>
+  template <typename... Size, enable_if_integral<Size...> = true>
 #endif
   explicit dynamic_multidim_array(tag::zeros_t const& /*z*/, Size... size)
       : parent_t{size...}, m_data(num_components(), 0) {
@@ -740,7 +739,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
 #ifdef __cpp_concepts
   template <integral... Size>
 #else
-  template <typename... Size, enable_if<is_integral<Size...>> = true>
+  template <typename... Size, enable_if_integral<Size...> = true>
 #endif
   explicit dynamic_multidim_array(tag::ones_t const& /*o*/, Size... size)
       : parent_t{size...}, m_data(num_components(), 1) {
@@ -749,7 +748,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
 #ifdef __cpp_concepts
   template <integral... Size>
 #else
-  template <typename... Size, enable_if<is_integral<Size...>> = true>
+  template <typename... Size, enable_if_integral<Size...> = true>
 #endif
   explicit dynamic_multidim_array(std::vector<T> const& data, Size... size)
       : parent_t{size...}, m_data(data) {
@@ -758,7 +757,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
 #ifdef __cpp_concepts
   template <integral... Size>
 #else
-  template <typename... Size, enable_if<is_integral<Size...>> = true>
+  template <typename... Size, enable_if_integral<Size...> = true>
 #endif
   explicit dynamic_multidim_array(std::vector<T>&& data, Size... size)
       : parent_t{size...}, m_data(std::move(data)) {
@@ -952,7 +951,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
+  template <typename... Is, enable_if_integral<Is...> = true>
 #endif
   auto at(Is const... is) -> auto& {
     assert(sizeof...(is) == num_dimensions());
@@ -963,7 +962,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
+  template <typename... Is, enable_if_integral<Is...> = true>
 #endif
   auto at(Is const... is) const -> auto const& {
     assert(sizeof...(is) == num_dimensions());
@@ -1000,7 +999,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
+  template <typename... Is, enable_if_integral<Is...> = true>
 #endif
   auto operator()(Is const... is) -> auto& {
     assert(sizeof...(is) == num_dimensions());
@@ -1011,7 +1010,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
+  template <typename... Is, enable_if_integral<Is...> = true>
 #endif
   auto operator()(Is const... is) const -> auto const& {
     assert(sizeof...(is) == num_dimensions());
@@ -1058,7 +1057,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
+  template <typename... Is, enable_if_integral<Is...> = true>
 #endif
   void resize(Is const... size) {
     parent_t::resize(size...);
@@ -1088,7 +1087,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
 #ifdef __cpp_concepts
   template <integral Int, size_t N>
 #else
-  template <typename Int, size_t N, enable_if<is_integral<Int>> = true>
+  template <typename Int, size_t N, enable_if_integral<Int> = true>
 #endif
   void resize(std::array<Int, N> const& res, T const value = T{}) {
     parent_t::resize(res);
@@ -1202,7 +1201,7 @@ class non_owning_multidim_array : public dynamic_multidim_size<IndexOrder> {
 #ifdef __cpp_concepts
   template <integral... Size>
 #else
-  template <typename... Size, enable_if<is_integral<Size...>> = true>
+  template <typename... Size, enable_if_integral<Size...> = true>
 #endif
   explicit non_owning_multidim_array(T const* data, Size... size)
       : parent_t{size...}, m_data(std::move(data)) {
@@ -1222,7 +1221,7 @@ class non_owning_multidim_array : public dynamic_multidim_size<IndexOrder> {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
+  template <typename... Is, enable_if_integral<Is...> = true>
 #endif
   auto at(Is const... is) const -> auto const& {
     assert(sizeof...(is) == num_dimensions());
@@ -1246,7 +1245,7 @@ class non_owning_multidim_array : public dynamic_multidim_size<IndexOrder> {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
+  template <typename... Is, enable_if_integral<Is...> = true>
 #endif
   auto operator()(Is const... is) const -> auto const& {
     assert(sizeof...(is) == num_dimensions());

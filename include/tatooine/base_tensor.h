@@ -358,35 +358,24 @@ struct is_quadratic_mat_impl<
 template <typename T>
 using enable_if_quadratic_mat = enable_if<is_quadratic_mat<T>>;
 //==============================================================================
+#ifdef __cpp_concepts
+template <arithmetic_or_complex T, size_t... Dims>
+struct tensor;
+template <arithmetic_or_complex T, size_t M, size_t N>
+struct mat;
+template <arithmetic_or_complex T, size_t N>
+struct vec;
+#else
 template <typename T, size_t... Dims>
 struct tensor;
 template <typename T, size_t M, size_t N>
 struct mat;
 template <typename T, size_t N>
 struct vec;
+#endif
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
 #include <tatooine/tensor_utility.h>
-//#include <tatooine/transposed_tensor.h>
-//==============================================================================
-#include <tatooine/tensor.h>
-//==============================================================================
-#include <tatooine/mat.h>
-#include <tatooine/vec.h>
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#include <tatooine/tensor_cast.h>
-#include <tatooine/tensor_lapack_utility.h>
-#include <tatooine/tensor_operations.h>
-#include <tatooine/tensor_type_traits.h>
-#include <tatooine/tensor_unpack.h>
-//==============================================================================
-#include <tatooine/complex_tensor_views.h>
-#include <tatooine/diag_tensor.h>
-#include <tatooine/rank.h>
-#include <tatooine/tensor_io.h>
-#include <tatooine/tensor_slice.h>
-
-//#include <tatooine/tensor_symbolic.h>
 //==============================================================================
 #endif

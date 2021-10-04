@@ -1,8 +1,6 @@
 #ifndef TATOOINE_TENSOR_H
 #define TATOOINE_TENSOR_H
 //==============================================================================
-#include <tatooine/blas.h>
-#include <tatooine/lapack.h>
 #include <tatooine/base_tensor.h>
 //==============================================================================
 #include <tatooine/math.h>
@@ -13,10 +11,16 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
+#ifdef __cpp_concepts
+template <arithmetic_or_complex T, size_t... Dims>
+#else
 template <typename T, size_t... Dims>
+#endif
 struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,
                 static_multidim_array<T, x_fastest, tag::stack, Dims...> {
+#ifndef __cpp_concepts
   static_assert(is_arithmetic<T> || is_complex<T>);
+#endif
   //============================================================================
   using this_t          = tensor<T, Dims...>;
   using tensor_parent_t = base_tensor<this_t, T, Dims...>;
@@ -225,5 +229,21 @@ using tensor333333 = Tensor<3, 3, 3, 3, 3, 3>;
 using tensor444444 = Tensor<4, 4, 4, 4, 4, 4>;
 //==============================================================================
 }  // namespace tatooine
+//==============================================================================
+#include<tatooine/dynamic_tensor.h>
+//==============================================================================
+#include <tatooine/mat.h>
+#include <tatooine/vec.h>
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#include <tatooine/tensor_cast.h>
+#include <tatooine/tensor_operations.h>
+#include <tatooine/tensor_type_traits.h>
+#include <tatooine/tensor_unpack.h>
+//==============================================================================
+#include <tatooine/complex_tensor_views.h>
+#include <tatooine/diag_tensor.h>
+#include <tatooine/rank.h>
+#include <tatooine/tensor_io.h>
+#include <tatooine/tensor_slice.h>
 //==============================================================================
 #endif
