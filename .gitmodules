@@ -40,3 +40,6 @@
 [submodule "external/blaspp"]
 	path = external/blaspp
 	url = https://bitbucket.org/icl/blaspp.git
+[submodule "external/lapackpp"]
+	path = external/lapackpp
+	url = https://bitbucket.org/icl/lapackpp.git
