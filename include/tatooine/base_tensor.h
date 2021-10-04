@@ -32,6 +32,8 @@ struct base_tensor : crtp<Tensor> {
   using multidim_size_t = static_multidim_size<x_fastest, Dims...>;
   static_assert(is_arithmetic<T> || is_complex<T>,
                 "A tensor can only hold real or complex values.");
+  static_assert(sizeof...(Dims) > 0,
+                "base tensor needs to have more than one dimension defined.");
   //============================================================================
   static constexpr auto rank() { return sizeof...(Dims); }
   //------------------------------------------------------------------------------

@@ -1,8 +1,6 @@
 #ifndef TATOOINE_DYNAMIC_TENSOR_H
 #define TATOOINE_DYNAMIC_TENSOR_H
 //==============================================================================
-#include <tatooine/tensor.h>
-
 #include <tatooine/multidim_array.h>
 #include <tatooine/lapack.h>
 
