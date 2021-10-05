@@ -342,6 +342,11 @@ constexpr auto norm1(base_tensor<Tensor, T, N> const& t) {
 }
 //------------------------------------------------------------------------------
 template <typename Tensor, typename T, size_t N>
+constexpr auto squared_length(base_tensor<Tensor, T, N> const& t_in) {
+  return dot(t_in, t_in);
+}
+//------------------------------------------------------------------------------
+template <typename Tensor, typename T, size_t N>
 constexpr auto sqr_length(base_tensor<Tensor, T, N> const& t_in) {
   return dot(t_in, t_in);
 }
@@ -359,6 +364,13 @@ constexpr auto sqr_norm(base_tensor<Tensor, T, M, N> const& A,
     return eigenvalues_sym(transposed(A) * A)(N - 1);
   }
   return T(0) / T(0);
+}
+//------------------------------------------------------------------------------
+/// squared p-norm of a rank-2 tensor
+template <typename Tensor, typename T, size_t M, size_t N>
+constexpr auto squared_norm(base_tensor<Tensor, T, M, N> const& A,
+                            unsigned int const                  p) {
+  return sqr_norm(A, p);
 }
 //------------------------------------------------------------------------------
 /// p-norm of a rank-2 tensor

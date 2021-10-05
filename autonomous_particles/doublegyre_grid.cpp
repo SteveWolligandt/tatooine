@@ -43,15 +43,26 @@ auto main(int argc, char** argv) -> int {
     //----------------------------------------------------------------------------
     indicator.set_text("Discretizing flow map with autonomous particles");
     auto autonomous_disc = autonomous_particle_flowmap_discretization_2{
-        phi, args.t0, args.tau, args.tau_step,
+        phi,
+        args.t0,
+        args.tau,
+        args.tau_step,
         rectilinear_grid{linspace{0.0, 2.0, args.width + 1},
-                         linspace{0.0, 1.0, args.height + 1}}};
+                         linspace{0.0, 1.0, args.height + 1}},
+
+        //phi,
+        //args.tau,
+        //args.tau_step,
+        //rectilinear_grid{
+        //    linspace{0.0, 2.0, args.width + 1},
+        //    linspace{0.0, 1.0, args.height + 1}} autonomous_particle_2{
+        //    vec{1.0, 0.5}, args.t0, 0.01}
+
+    };
     auto const num_particles_after_advection = size(autonomous_disc.samplers());
     //----------------------------------------------------------------------------
     indicator.set_text("Writing Autonomous Particles Results");
     {
-      autonomous_disc.mesh0().write_vtk("doublegyre_grid_autonomous_mesh0.vtk");
-      autonomous_disc.mesh1().write_vtk("doublegyre_grid_autonomous_mesh1.vtk");
       std::vector<line2> all_advected_discretizations;
       std::vector<line2> all_initial_discretizations;
       for (auto const& sampler : autonomous_disc.samplers()) {
