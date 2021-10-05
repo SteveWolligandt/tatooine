@@ -6,7 +6,6 @@
 #include <boost/iterator/iterator_facade.hpp>
 #include <boost/range/algorithm/find.hpp>
 #if TATOOINE_FLANN_AVAILABLE
-#include <tatooine/dynamic_tensor.h>
 
 #include <flann/flann.hpp>
 #endif
@@ -799,19 +798,19 @@ struct moving_least_squares_sampler_t<Real, 2, T>
       return m_property[vertex_handle{indices[0]}];
     }
 
-    auto w = dynamic_tensor<Real>::zeros(num_neighbors);
-    auto F = dynamic_tensor<Real>::zeros(num_neighbors, num_components<T>);
+    auto w = tensor<Real>::zeros(num_neighbors);
+    auto F = tensor<Real>::zeros(num_neighbors, num_components<T>);
     auto B = [&] {
       if (num_neighbors >= 10) {
-        return dynamic_tensor<Real>::ones(num_neighbors, 10);
+        return tensor<Real>::ones(num_neighbors, 10);
       }
       if (num_neighbors >= 6) {
-        return dynamic_tensor<Real>::ones(num_neighbors, 6);
+        return tensor<Real>::ones(num_neighbors, 6);
       }
       if (num_neighbors >= 3) {
-        return dynamic_tensor<Real>::ones(num_neighbors, 3);
+        return tensor<Real>::ones(num_neighbors, 3);
       }
-      return dynamic_tensor<Real>::ones(1, 1);
+      return tensor<Real>::ones(1, 1);
     }();
 
     // build w
@@ -945,17 +944,17 @@ struct moving_least_squares_sampler_t<Real, 3, T>
       return m_property[vertex_handle{indices[0]}];
     }
 
-    auto w = dynamic_tensor<Real>::zeros(num_neighbors);
-    auto F = dynamic_tensor<Real>::zeros(num_neighbors, num_components<T>);
+    auto w = tensor<Real>::zeros(num_neighbors);
+    auto F = tensor<Real>::zeros(num_neighbors, num_components<T>);
     auto B = [&] {
       if (num_neighbors >= 20) {
-        return dynamic_tensor<Real>::ones(num_neighbors, 20);
+        return tensor<Real>::ones(num_neighbors, 20);
       } else if (num_neighbors >= 10) {
-        return dynamic_tensor<Real>::ones(num_neighbors, 10);
+        return tensor<Real>::ones(num_neighbors, 10);
       } else if (num_neighbors >= 4) {
-        return dynamic_tensor<Real>::ones(num_neighbors, 4);
+        return tensor<Real>::ones(num_neighbors, 4);
       }
-      return dynamic_tensor<Real>::ones(1, 1);
+      return tensor<Real>::ones(1, 1);
     }();
     // build w
     for (size_t i = 0; i < num_neighbors; ++i) {

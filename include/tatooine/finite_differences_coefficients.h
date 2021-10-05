@@ -1,7 +1,6 @@
 #ifndef TATOOINE_FINITE_DIFFERENCES_COEFFICIENTS_H
 #define TATOOINE_FINITE_DIFFERENCES_COEFFICIENTS_H
 //==============================================================================
-#include <tatooine/dynamic_tensor.h>
 #include <tatooine/mat.h>
 #include <tatooine/vec.h>
 //==============================================================================
@@ -51,9 +50,9 @@ template <typename T, enable_if_floating_point<T> = true>
 #endif
 auto finite_differences_coefficients(std::size_t const     derivative_order,
                                      std::vector<T> const& v) {
-  auto V              = dynamic_tensor<T>::vander(v, v.size());
+  auto V              = tensor<T>::vander(v, v.size());
   V                   = transposed(V);
-  auto b              = dynamic_tensor<T>::zeros(v.size());
+  auto b              = tensor<T>::zeros(v.size());
   b(derivative_order) = factorial(derivative_order);
   return solve(V, b).data();
 }

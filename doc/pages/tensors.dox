@@ -9,9 +9,9 @@ There are template classes `tatooine::vec` and `tatooine::mat` that are
 derived of `tatooine::tensor`. The latter represents a generically sized
 Tensor.
 
-These types are mostly usable in a constexpr context. There is also
-`tatooine::dynamic_tensor` for dynamically resizable vectors, matrices and
-tensors.
+These types are mostly usable in a constexpr context. If you instantiate
+`tatooine::tensor` with no dimensions you will get a dynamically resizable
+tensor.
 
 \section tensors_examples_sec Examples
 \subsection tensors_examples_construction_sec  Construction

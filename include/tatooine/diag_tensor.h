@@ -223,6 +223,239 @@ constexpr auto operator*(base_tensor<TensorB, BReal, M, N> const& B,
   return ret;
 }
 //==============================================================================
+// dynamic
+//==============================================================================
+template <typename DynamicTensor>
+#ifdef __cpp_concepts
+requires is_dynamic_tensor<DynamicTensor>
+#endif
+struct const_diag_dynamic_tensor {
+  using value_type = typename DynamicTensor::value_type;
+  DynamicTensor const&  m_tensor;
+  static constexpr auto zero = typename DynamicTensor::value_type{};
+  //============================================================================
+#ifdef __cpp_concepts
+  template <integral... Is>
+#else
+  template <typename... Is, enable_if_integral<Is...> = true>
+#endif
+  auto at(Is const... /*is*/) const -> value_type const& {
+    throw std::runtime_error{
+        "[const_diag_dynamic_tensor::at] need exactly two indices"};
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#ifdef __cpp_concepts
+  template <integral R, integral C>
+#else
+  template <typename R, typename C, enable_if_integral<R, C> = true>
+#endif
+  auto at(R const r, C const c) const -> value_type const& {
+    if (r == c) {
+      return m_tensor(r);
+    }
+    return zero;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#ifdef __cpp_concepts
+  template <range Indices>
+#else
+  template <typename Indices, enable_if<is_range<Indices>> = true>
+#endif
+  auto operator()(Indices const& indices) const -> auto const& {
+    return at(indices);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#ifdef __cpp_concepts
+  template <range Indices>
+#else
+  template <typename Indices, enable_if<is_range<Indices>> = true>
+#endif
+  auto operator()(Indices const& indices) -> auto& {
+    return at(indices);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#ifdef __cpp_concepts
+  template <range Indices>
+#else
+  template <typename Indices, enable_if<is_range<Indices>> = true>
+#endif
+  auto at(Indices indices) -> auto& {
+    assert(indices.size() == num_dimensions());
+    std::reverse(begin(indices), end(indices));
+    return m_tensor(indices);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#ifdef __cpp_concepts
+  template <range Indices>
+#else
+  template <typename Indices, enable_if<is_range<Indices>> = true>
+#endif
+  auto at(Indices indices) const -> auto const& {
+    assert(indices.size() == num_dimensions());
+    std::reverse(begin(indices), end(indices));
+    return m_tensor(indices);
+  }
+  //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
+  template <integral... Is>
+#else
+  template <typename... Is, enable_if_integral<Is...> = true>
+#endif
+  auto operator()(Is const... is) const -> value_type const& {
+    return at(is...);
+  }
+  //----------------------------------------------------------------------------
+  static constexpr auto num_dimensions() { return 2; }
+  //----------------------------------------------------------------------------
+  auto size(size_t const /*i*/) const { return m_tensor.size(0); }
+};
+//------------------------------------------------------------------------------
+template <typename DynamicTensor>
+#ifdef __cpp_concepts
+requires is_dynamic_tensor<DynamicTensor>
+#endif
+struct is_dynamic_tensor_impl<const_diag_dynamic_tensor<DynamicTensor>>
+    : std::true_type {};
+//==============================================================================
+template <typename DynamicTensor>
+struct diag_dynamic_tensor {
+  using value_type = typename DynamicTensor::value_type;
+  DynamicTensor&        m_tensor;
+  static constexpr auto zero = typename DynamicTensor::value_type{};
+  //============================================================================
+#ifdef __cpp_concepts
+  template <integral... Is>
+#else
+  template <typename... Is, enable_if_integral<Is...> = true>
+#endif
+  auto at(Is const... /*is*/) const -> value_type const& {
+    throw std::runtime_error{
+        "[diag_dynamic_tensor::at] need exactly two indices"};
+  }
+#ifdef __cpp_concepts
+  template <integral... Is>
+#else
+  template <typename... Is, enable_if_integral<Is...> = true>
+#endif
+  auto at(Is const... /*is*/) -> value_type& {
+    throw std::runtime_error{
+        "[diag_dynamic_tensor::at] need exactly two indices"};
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#ifdef __cpp_concepts
+  template <integral R, integral C>
+#else
+  template <typename R, typename C, enable_if_integral<R, C> = true>
+#endif
+  auto at(R const r, C const c) const -> value_type const& {
+    if (r == c) {
+      return m_tensor(r);
+    }
+    return zero;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#ifdef __cpp_concepts
+  template <integral R, integral C>
+#else
+  template <typename R, typename C, enable_if_integral<R, C> = true>
+#endif
+  auto at(R const r, C const c) -> value_type& {
+    static typename DynamicTensor::value_type zero;
+    zero = typename DynamicTensor::value_type{};
+    if (r == c) {
+      return m_tensor(r);
+    }
+    return zero;
+  }
+  //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
+  template <integral... Is>
+#else
+  template <typename... Is, enable_if_integral<Is...> = true>
+#endif
+  auto operator()(Is const... is) const -> value_type const& {
+    return at(is...);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#ifdef __cpp_concepts
+  template <integral... Is>
+#else
+  template <typename... Is, enable_if_integral<Is...> = true>
+#endif
+  auto operator()(Is const... is) -> value_type& {
+    return at(is...);
+  }
+  //----------------------------------------------------------------------------
+  static constexpr auto num_dimensions() { return 2; }
+  //----------------------------------------------------------------------------
+  auto size(size_t const /*i*/) const { return m_tensor.size(0); }
+};
+//------------------------------------------------------------------------------
+template <typename DynamicTensor>
+#ifdef __cpp_concepts
+requires is_dynamic_tensor<DynamicTensor>
+#endif
+struct is_dynamic_tensor_impl<diag_dynamic_tensor<DynamicTensor>>
+    : std::true_type {};
+//==============================================================================
+template <typename DynamicTensor>
+#ifdef __cpp_concepts
+requires is_dynamic_tensor<DynamicTensor>
+#endif
+auto diag(DynamicTensor const& A) {
+  assert(A.num_dimensions() == 1);
+  return const_diag_dynamic_tensor<DynamicTensor>{A};
+}
+//------------------------------------------------------------------------------
+template <typename DynamicTensor>
+#ifdef __cpp_concepts
+requires is_dynamic_tensor<DynamicTensor>
+#endif
+auto diag(DynamicTensor& A) {
+  assert(A.num_dimensions() == 1);
+  return diag_dynamic_tensor<DynamicTensor>{A};
+}
+//------------------------------------------------------------------------------
+#ifdef __cpp_concepts
+template <typename LhsTensor, typename RhsTensor>
+requires is_dynamic_tensor<LhsTensor>
+#else
+template <typename LhsTensor, typename RhsTensor,
+          enable_if<is_dynamic_tensor<LhsTensor>> = true>
+#endif
+auto operator*(LhsTensor const& lhs, diag_dynamic_tensor<RhsTensor> const& rhs)
+    -> tensor<std::common_type_t<typename LhsTensor::value_type,
+                                 typename RhsTensor::value_type>> {
+  using out_t = tensor<std::common_type_t<typename LhsTensor::value_type,
+                                          typename RhsTensor::value_type>>;
+  out_t out;
+  // matrix-matrix-multiplication
+  if (lhs.num_dimensions() == 2 && lhs.size(1) == rhs.size(0)) {
+    auto out = out_t::zeros(lhs.size(0), rhs.size(1));
+    for (size_t r = 0; r < lhs.size(0); ++r) {
+      for (size_t c = 0; c < rhs.size(1); ++c) {
+        out(r, c) = lhs(r, c) * rhs(c, c);
+      }
+    }
+    return out;
+  }
+
+  std::stringstream A;
+  A << "[ " << lhs.size(0);
+  for (size_t i = 1; i < lhs.num_dimensions(); ++i) {
+    A << " x " << lhs.size(i);
+  }
+  A << " ]";
+  std::stringstream B;
+  B << "[ " << rhs.size(0);
+  for (size_t i = 1; i < rhs.num_dimensions(); ++i) {
+    B << " x " << rhs.size(i);
+  }
+  B << " ]";
+  throw std::runtime_error{"Cannot contract given dynamic tensors. (A:" +
+                           A.str() + "; B" + B.str() + ")"};
+}
+//==============================================================================
 }  // namespace tatooine
 //==============================================================================
 #endif

@@ -4,6 +4,13 @@
 #include <lapack.hh>
 #include <tatooine/math.h>
 //==============================================================================
+namespace tatooine {
+//==============================================================================
+#ifdef __cpp_concepts
+#endif
+//==============================================================================
+}  // namespace tatooine
+//==============================================================================
 namespace tatooine::lapack {
 //==============================================================================
 /// \defgroup lapack Lapack
@@ -132,6 +139,16 @@ template <typename T, size_t M, size_t N>
 auto geqrf(tensor<T, M, N>& A, tensor<T, (M < N) ? M : N>& tau) {
   ::lapack::geqrf(M, N, A.data_ptr(), M, tau.data_ptr());
 }
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T>
+auto geqrf(tensor<T>& A, tensor<T>& tau) {
+  assert(A.rank() == 2);
+  auto const M = A.dimension(0);
+  auto const N = A.dimension(1);
+  assert(tau.rank() == 1);
+  assert(tau.dimension(0) >= tatooine::min(M, N));
+  ::lapack::geqrf(M, N, A.data_ptr(), M, tau.data_ptr());
+}
 //==============================================================================
 /// \}
 //==============================================================================
@@ -168,6 +185,21 @@ auto ormqr(tensor<T, M, K>& A, tensor<T, M>& c, tensor<T, K>& tau,
 template <typename T, size_t K, size_t M, size_t N>
 auto ormqr(tensor<T, M, K>& A, tensor<T, M, N>& C, tensor<T, K>& tau,
            ::lapack::Side side, ::lapack::Op trans) {
+  return ::lapack::ormqr(side, trans, M, N, K, A.data_ptr(), M, tau.data_ptr(),
+                         C.data_ptr(), M);
+}
+//==============================================================================
+template <typename T>
+auto ormqr(tensor<T>& A, tensor<T>& C, tensor<T>& tau,
+           ::lapack::Side side, ::lapack::Op trans) {
+  assert(A.rank() == 2);
+  assert(C.rank() == 1 || C.rank() == 2);
+  assert(tau.rank() == 1);
+  assert(A.dimension(0) == C.dimension(0));
+  assert(A.dimension(1) == tau.dimension(0));
+  auto const M = A.dimension(0);
+  auto const K = A.dimension(1);
+  auto const N = C.rank() == 2 ? C.dimension(1) : 1;
   return ::lapack::ormqr(side, trans, M, N, K, A.data_ptr(), M, tau.data_ptr(),
                          C.data_ptr(), M);
 }
@@ -222,6 +254,28 @@ auto trtrs(tensor<T, M, N>& A, tensor<T, M>& b, ::lapack::Uplo uplo,
            ::lapack::Op trans, ::lapack::Diag diag) {
   return ::lapack::trtrs(uplo, trans, diag, N, 1, A.data_ptr(), M, b.data_ptr(),
                          M);
+}
+//------------------------------------------------------------------------------
+/// \param[in] A The triangular matrix \f$\mA\f$.
+/// \param[in,out] B On entry, the right hand side matrix \f$\mB\f$.
+///                  On exit, if INFO = 0, the solution matrix \f$\mX\f$.
+/// \param uplo A is lower or upper triangular matrix:
+/// - `U`: \f$\mA\f$ is upper triangular;
+/// - `L`: \f$\mA\f$ is lower triangular.
+/// \param diag A is unit (1s on main diagonal) or non-unit
+/// - `N`: \f$\mA\f$ is non-unit triangular
+/// - `U`: \f$\mA\f$ is unit triangular
+template <typename T>
+auto trtrs(tensor<T>& A, tensor<T>& B, ::lapack::Uplo uplo,
+           ::lapack::Op trans, ::lapack::Diag diag) {
+  assert(A.rank() == 2);
+  assert(B.rank() == 1 || B.rank() == 2);
+  assert(A.dimension(0) == B.dimension(0));
+  auto const M    = A.dimension(0);
+  auto const N    = A.dimension(1);
+  auto const NRHS = B.rank() == 2 ? B.dimension(1) : 1;
+  return ::lapack::trtrs(uplo, trans, diag, N, NRHS, A.data_ptr(), M,
+                         B.data_ptr(), M);
 }
 //==============================================================================
 /// \}

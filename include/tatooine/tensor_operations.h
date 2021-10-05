@@ -682,93 +682,6 @@ constexpr auto reflect(vec<T0, 3> const& incidentVec,
                        vec<T1, 3> const& normal) {
   return incidentVec - 2 * dot(incidentVec, normal) * normal;
 }
-//==============================================================================
-template <typename TensorA, typename TensorB, typename Real, size_t M, size_t N>
-auto solve(base_tensor<TensorA, Real, M, N> const& A,
-           base_tensor<TensorB, Real, M> const&    b) {
-  if constexpr (M == N) {
-    return solve_lu(A, b);
-  } else if constexpr (M > N) {
-    return solve_qr(A, b);
-  } else {
-    throw std::runtime_error{"System is under-determined."};
-  }
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename TensorA, typename TensorB, typename Real, size_t N>
-auto solve_lu(base_tensor<TensorA, Real, N, N> const& A_base,
-              base_tensor<TensorB, Real, N> const&    b_base) {
-  auto                  A    = mat<Real, N, N>{A_base};
-  auto                  b    = vec<Real, N>{b_base};
-  auto                  ipiv = vec<int, N>{};
-  [[maybe_unused]] auto info = lapack::gesv(A, b, ipiv);
-  return b;
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename TensorA, typename TensorB, typename Real, size_t M, size_t N>
-auto solve_qr(base_tensor<TensorA, Real, M, N> const& A_base,
-              base_tensor<TensorB, Real, M> const&    b_base) {
-  auto A   = mat<Real, M, N>{A_base};
-  auto b   = vec<Real, M>{b_base};
-  auto tau = vec<Real, (M < N ? M : N)>{};
-
-  // Q * R = A
-  lapack::geqrf(A, tau);
-  // R * x = Q^T * b
-  lapack::ormqr(A, b, tau, ::lapack::Side::Left, ::lapack::Op::Trans);
-  // Use back-substitution using the upper right part of A
-  lapack::trtrs(A, b, ::lapack::Uplo::Upper, ::lapack::Op::NoTrans,
-                ::lapack::Diag::NonUnit);
-  for (size_t i = 0; i < tau.dimension(0); ++i) {
-    tau(i) = b(i);
-  }
-  return tau;
-}
-//------------------------------------------------------------------------------
-template <typename TensorA, typename TensorB, typename Real, size_t M, size_t N,
-          size_t K>
-auto solve(base_tensor<TensorA, Real, M, N> const& A,
-           base_tensor<TensorB, Real, M, K> const& B) {
-  if constexpr (M == N) {
-    return solve_lu(A, B);
-  } else if constexpr (M > N) {
-    return solve_qr(A, B);
-  } else {
-    throw std::runtime_error{"System is under-determined."};
-  }
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename TensorA, typename TensorB, typename Real, size_t N, size_t K>
-auto solve_lu(base_tensor<TensorA, Real, N, N> const& A_base,
-              base_tensor<TensorB, Real, N, K> const& B_base) {
-  auto                  A    = mat<Real, N, N>{A_base};
-  auto                  B    = mat<Real, N, K>{B_base};
-  auto                  ipiv = vec<int, N>{};
-  [[maybe_unused]] auto info = lapack::gesv(A, B, ipiv);
-  return B;
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename TensorA, typename TensorB, typename Real, size_t M, size_t N,
-          size_t K>
-auto solve_qr(base_tensor<TensorA, Real, M, N> const& A_base,
-              base_tensor<TensorB, Real, M, K> const& B_base) {
-  auto A   = mat<Real, M, N>{A_base};
-  auto B   = mat<Real, M, K>{B_base};
-  auto tau = vec<Real, (M < N ? M : N)>{};
-  auto X   = mat<Real, N, K>{};
-
-  // Q * R = A
-  lapack::geqrf(A, tau);
-  // R * x = Q^T * B
-  lapack::ormqr(A, B, tau, ::lapack::Side::Left, ::lapack::Op::Trans);
-  // Use back-substitution using the upper right part of A
-  lapack::trtrs(A, B, ::lapack::Uplo::Upper, ::lapack::Op::NoTrans,
-                ::lapack::Diag::NonUnit);
-  for_loop(
-      [&, i = size_t(0)](auto const... is) mutable { X(is...) = B(is...); }, N,
-      K);
-  return X;
-}
 //------------------------------------------------------------------------------
 template <typename Tensor, typename TensorT, size_t... Dims>
 constexpr auto sqrt(base_tensor<Tensor, TensorT, Dims...> const& t) {
@@ -1028,6 +941,63 @@ auto eigenvectors(tensor<Real, N, N> A) {
 //  }
 //}
 //==============================================================================
+#ifdef __cpp_concepts
+template <typename LhsTensor, typename RhsTensor>
+requires is_dynamic_tensor<LhsTensor> && is_dynamic_tensor<RhsTensor>
+#else
+template <typename LhsTensor, typename RhsTensor,
+          enable_if<is_dynamic_tensor<LhsTensor>,
+                    is_dynamic_tensor<RhsTensor>> = true>
+#endif
+auto operator*(LhsTensor const& lhs, RhsTensor const& rhs)
+    -> tensor<std::common_type_t<typename LhsTensor::value_type,
+                                 typename RhsTensor::value_type>> {
+  using out_t = tensor<std::common_type_t<typename LhsTensor::value_type,
+                                          typename RhsTensor::value_type>>;
+  out_t out;
+  // matrix-matrix-multiplication
+  if (lhs.num_dimensions() == 2 && rhs.num_dimensions() == 2 &&
+      lhs.size(1) == rhs.size(0)) {
+    auto out = out_t::zeros(lhs.size(0), rhs.size(1));
+    for (size_t r = 0; r < lhs.size(0); ++r) {
+      for (size_t c = 0; c < rhs.size(1); ++c) {
+        for (size_t i = 0; i < lhs.size(1); ++i) {
+          out(r, c) += lhs(r, i) * rhs(i, c);
+        }
+      }
+    }
+    return out;
+  }
+  // matrix-vector-multiplication
+  else if (lhs.num_dimensions() == 2 && rhs.num_dimensions() == 1 &&
+           lhs.size(1) == rhs.size(0)) {
+    auto out = out_t::zeros(lhs.size(0));
+    for (size_t r = 0; r < lhs.size(0); ++r) {
+      for (size_t i = 0; i < lhs.size(1); ++i) {
+        out(r) += lhs(r, i) * rhs(i);
+      }
+    }
+    return out;
+  }
+
+  std::stringstream A;
+  A << "[ " << lhs.size(0);
+  for (size_t i = 1; i < lhs.num_dimensions(); ++i) {
+    A << " x " << lhs.size(i);
+  }
+  A << " ]";
+  std::stringstream B;
+  B << "[ " << rhs.size(0);
+  for (size_t i = 1; i < rhs.num_dimensions(); ++i) {
+    B << " x " << rhs.size(i);
+  }
+  B << " ]";
+  throw std::runtime_error{"Cannot contract given dynamic tensors. (A:" +
+                           A.str() + "; B" + B.str() + ")"};
+}
+//==============================================================================
 }  // namespace tatooine
+//==============================================================================
+#include <tatooine/tensor_operations/solve.h>
 //==============================================================================
 #endif
