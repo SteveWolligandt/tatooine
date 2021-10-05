@@ -177,6 +177,8 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,
   //----------------------------------------------------------------------------
   static constexpr auto ones() { return this_t{tag::fill<T>{1}}; }
   //----------------------------------------------------------------------------
+  static constexpr auto fill(T const& t) { return this_t{tag::fill<T>{t}}; }
+  //----------------------------------------------------------------------------
   template <typename RandEng = std::mt19937_64>
   static constexpr auto randu(T min = 0, T max = 1,
                               RandEng&& eng = RandEng{std::random_device{}()}) {
