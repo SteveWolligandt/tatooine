@@ -6,7 +6,6 @@
 #include <boost/iterator/iterator_facade.hpp>
 #include <boost/range/algorithm/find.hpp>
 #if TATOOINE_FLANN_AVAILABLE
-
 #include <flann/flann.hpp>
 #endif
 #include <tatooine/field.h>
@@ -782,9 +781,9 @@ struct moving_least_squares_sampler_t<Real, 2, T>
     auto        nn      = m_pointset.nearest_neighbors_radius_raw(q, m_radius);
     auto const& indices = nn.first;
     auto&       distances = nn.second;
-    for (auto& d : distances) {
-      d = m_radius - d;
-    }
+    //for (auto& d : distances) {
+    //  d = m_radius - d;
+    //}
     auto const  num_neighbors = size(indices);
 
     if (num_neighbors == 0) {
@@ -814,12 +813,12 @@ struct moving_least_squares_sampler_t<Real, 2, T>
     }();
 
     // build w
+    auto weighting_function = [&](auto const d) {
+      // return 1 / d - 1 / m_radius;
+       return std::exp(-d * d);
+    };
     for (size_t i = 0; i < num_neighbors; ++i) {
-      //if (distances[i] == 0) {
-      //  return m_property[vertex_handle{indices[i]}];
-      //}
-      //w(i) = 1 / distances[i] - 1 / m_radius;
-      w(i) = std::exp(-distances[i] * distances[i]);
+      w(i) = weighting_function(distances[i]);
     }
     // build F
     for (size_t i = 0; i < num_neighbors; ++i) {
@@ -832,6 +831,7 @@ struct moving_least_squares_sampler_t<Real, 2, T>
       }
     }
     // build B
+    // linear terms of polynomial
     if (num_neighbors >= 3) {
       for (size_t i = 0; i < num_neighbors; ++i) {
         B(i, 1) = m_pointset.vertex_at(indices[i]).x() - q.x();
@@ -840,6 +840,7 @@ struct moving_least_squares_sampler_t<Real, 2, T>
         B(i, 2) = m_pointset.vertex_at(indices[i]).y() - q.y();
       }
     }
+    // quadratic terms of polynomial
     if (num_neighbors >= 6) {
       for (size_t i = 0; i < num_neighbors; ++i) {
         B(i, 3) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
@@ -854,6 +855,7 @@ struct moving_least_squares_sampler_t<Real, 2, T>
                   (m_pointset.vertex_at(indices[i]).y() - q.y());
       }
     }
+    // cubic terms of polynomial
     if (num_neighbors >= 10) {
       for (size_t i = 0; i < num_neighbors; ++i) {
         B(i, 6) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
@@ -975,6 +977,7 @@ struct moving_least_squares_sampler_t<Real, 3, T>
       }
     }
     // build B
+    // linear terms of polynomial
     if (num_neighbors >= 4) {
       for (size_t i = 0; i < num_neighbors; ++i) {
         B(i, 1) = m_pointset.vertex_at(indices[i]).x() - q.x();
@@ -986,6 +989,7 @@ struct moving_least_squares_sampler_t<Real, 3, T>
         B(i, 3) = m_pointset.vertex_at(indices[i]).z() - q.z();
       }
     }
+    // quadratic terms of polynomial
     if (num_neighbors >= 10) {
       for (size_t i = 0; i < num_neighbors; ++i) {
         B(i, 4) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
@@ -1012,6 +1016,7 @@ struct moving_least_squares_sampler_t<Real, 3, T>
                   (m_pointset.vertex_at(indices[i]).z() - q.z());
       }
     }
+    // cubic terms of polynomial
     if (num_neighbors >= 20) {
       for (size_t i = 0; i < num_neighbors; ++i) {
         B(i, 10) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
