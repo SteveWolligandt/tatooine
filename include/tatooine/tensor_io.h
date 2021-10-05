@@ -39,6 +39,29 @@ auto operator<<(std::ostream& out, const base_tensor<Tensor, T, M, N>& m)
   return out;
 }
 //==============================================================================
+/// printing dynamic tensors
+#ifdef __cpp_concepts
+template <typename DynamicTensor>
+requires is_dynamic_tensor<DynamicTensor>
+#else
+template <typename DynamicTensor,
+          enable_if<is_dynamic_tensor<DynamicTensor>> = true>
+#endif
+auto operator<<(std::ostream& out, DynamicTensor const& v) -> auto& {
+  if (v.num_dimensions() == 1) {
+    out << "[ ";
+    out << std::scientific;
+    for (size_t i = 0; i < v.size(0); ++i) {
+      if constexpr (!is_complex<typename DynamicTensor::value_type>) {
+      }
+      out << v(i) << ' ';
+    }
+    out << "]";
+    out << std::defaultfloat;
+  }
+  return out;
+}
+//==============================================================================
 }  // namespace tatooine
 //==============================================================================
 #endif

@@ -679,9 +679,9 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   dynamic_multidim_array(dynamic_multidim_array const& other)     = default;
   dynamic_multidim_array(dynamic_multidim_array&& other) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator                  =(dynamic_multidim_array const& other)
+  auto operator=(dynamic_multidim_array const& other)
       -> dynamic_multidim_array& = default;
-  auto operator                  =(dynamic_multidim_array&& other) noexcept
+  auto operator=(dynamic_multidim_array&& other) noexcept
       -> dynamic_multidim_array& = default;
   //----------------------------------------------------------------------------
   ~dynamic_multidim_array() = default;
@@ -709,11 +709,13 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
     return *this;
   }
   //============================================================================
-#ifdef __cpp_concepts
-  template <integral... Size>
-#else
-  template <typename... Size, enable_if_integral<Size...> = true>
-#endif
+//#ifdef __cpp_concepts
+//  template <integral... Size>
+//#else
+  template <typename... Size
+    //, enable_if_integral<Size...> = true
+    >
+//#endif
   explicit dynamic_multidim_array(Size const... size)
       : parent_t{size...}, m_data(num_components(), T{}) {
   }
