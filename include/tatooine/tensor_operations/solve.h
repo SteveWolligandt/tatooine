@@ -8,7 +8,7 @@ auto solve_lu(base_tensor<TensorA, Real, N, N> const& A_base,
               base_tensor<TensorB, Real, N> const&    b_base) {
   auto                  A    = mat<Real, N, N>{A_base};
   auto                  b    = vec<Real, N>{b_base};
-  auto                  ipiv = vec<int, N>{};
+  auto                  ipiv = vec<std::int64_t, N>{};
   [[maybe_unused]] auto info = lapack::gesv(A, b, ipiv);
   return b;
 }
