@@ -45,27 +45,13 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/lic.h.in"
                "${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/gpu/lic.h")
 
 ## Line Shader
-set(TATOOINE_LINE_SHADER_VERT_PATH
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/line.vert)
-set(TATOOINE_LINE_SHADER_GEOM_PATH
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/line.geom)
-set(TATOOINE_LINE_SHADER_FRAG_PATH
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/line.frag)
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/line_shader.h.in"
                "${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/gpu/line_shader.h")
 
  ## Texture Shader
-set(TATOOINE_TEXTURE_SHADER_VERT_PATH
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/texture.vert)
-set(TATOOINE_TEXTURE_SHADER_FRAG_PATH
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/texture.frag)
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/texture_shader.h.in"
                "${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/gpu/texture_shader.h")
 
-set(TATOOINE_GPU_REDUCE_TEX2R32F_COMP_SHADER_PATH
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/reduce_tex2r32f.comp)
-set(TATOOINE_GPU_REDUCE_SHADERSTORAGE_COMP_SHADER_PATH
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/reduce_shaderstoragebuffer.comp)
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/reduce.h.in"
                "${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/gpu/reduce.h")
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -109,10 +95,8 @@ add_library(tatooine STATIC ${TATOOINE_SRC_FILES})
 # set include dirs
 target_include_directories(tatooine
   PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/single_include
-    ${CMAKE_CURRENT_BINARY_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/external/indicators/include
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+    external/indicators/include
     external/vcode/include)
 
 if (TATOOINE_STD_FILESYSTEM_AVAILABLE)
@@ -150,9 +134,8 @@ update_git_submodule(${TATOOINE_EXTERNAL}/blaspp)
 add_subdirectory(${TATOOINE_EXTERNAL}/blaspp)
 target_compile_options(blaspp PUBLIC
   -Wno-unused-parameter -Wno-unused-private-field)
-target_link_libraries(tatooine PUBLIC blaspp)
+target_link_libraries(tatooine PRIVATE blaspp)
 list(APPEND TATOOINE_EXPORTING_TARGETS blaspp)
-
 #===============================================================================
 # LAPACK
 #===============================================================================
@@ -162,9 +145,8 @@ update_git_submodule(${TATOOINE_EXTERNAL}/lapackpp)
 add_subdirectory(${TATOOINE_EXTERNAL}/lapackpp)
 target_compile_options(lapackpp PUBLIC -Wno-return-type-c-linkage)
 target_compile_definitions(tatooine PUBLIC LAPACK_COMPLEX_CPP)
-target_link_libraries(tatooine PUBLIC lapackpp)
+target_link_libraries(tatooine PRIVATE lapackpp)
 list(APPEND TATOOINE_EXPORTING_TARGETS lapackpp)
-
 
 #===============================================================================
 # Boost
@@ -179,6 +161,22 @@ else()
     ${Boost_SYSTEM_LIBRARY} ${Boost_FILESYSTEM_LIBRARY})
 endif()
 target_compile_definitions(tatooine PUBLIC BOOST_BIND_GLOBAL_PLACEHOLDERS)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# OpenMP
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+find_package(OpenMP REQUIRED)
+if (OpenMP_CXX_FOUND)
+  option(TATOOINE_COMPILE_WITH_OPENMP "" ON)
+  if (TATOOINE_COMPILE_WITH_OPENMP)
+    set(TATOOINE_OPENMP_AVAILABLE 1)
+    target_link_libraries(tatooine PUBLIC OpenMP::OpenMP_CXX)
+    target_compile_definitions(tatooine PUBLIC TATOOINE_OPENMP_AVAILABLE)
+    message(STATUS "Compiling with OpenMP")
+  else()
+    set(TATOOINE_OPENMP_AVAILABLE 0)
+    message(STATUS "OpenMP not available")
+  endif()
+endif()
 
 #===============================================================================
 # Optional Packages
@@ -200,23 +198,6 @@ else()
   set(TATOOINE_PNG_AVAILABLE 0)
 endif()
 target_compile_definitions(tatooine PUBLIC TATOOINE_PNG_AVAILABLE=${TATOOINE_PNG_AVAILABLE})
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# OpenMP
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-find_package(OpenMP QUIET)
-if (OpenMP_C_FOUND)
-  option(TATOOINE_COMPILE_WITH_OPENMP "" ON)
-  if (TATOOINE_COMPILE_WITH_OPENMP)
-    set(TATOOINE_OPENMP_AVAILABLE 1)
-    target_link_libraries(tatooine PUBLIC ${OpenMP_C_LIBRARY} ${OpenMP_C_LIBRARIES} ${OpenMP_CXX_LIBRARY} ${OpenMP_CXX_LIBRARIES})
-    target_compile_options(tatooine PRIVATE ${OpenMP_C_FLAGS} ${OpenMP_C_FLAGS} ${OpenMP_CXX_FLAGS} ${OpenMP_CXX_FLAGS})
-    target_compile_definitions(tatooine PUBLIC TATOOINE_OPENMP_AVAILABLE)
-    message(STATUS "Compiling with OpenMP")
-  else()
-    set(TATOOINE_OPENMP_AVAILABLE 0)
-    message(STATUS "OpenMP not available")
-  endif()
-endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # MPI
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -344,7 +325,7 @@ if ((NOT TATOOINE_USE_SYSTEM_HDF5_LIBS) OR
   target_compile_definitions(tatooine PUBLIC TATOOINE_HDF5_AVAILABLE)
   list(APPEND TATOOINE_EXPORTING_TARGETS hdf5-static)
   target_compile_definitions(tatooine PUBLIC TATOOINE_USE_SYSTEM_HDF5_LIBS=0)
-  set(TATOOINE_HDF5_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/external/hdf5/src/hdf5.h)
+  set(TATOOINE_HDF5_HEADER external/hdf5/src/hdf5.h)
 endif()
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/hdf5.h.in
                ${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/hdf5.h)
@@ -470,5 +451,6 @@ endif()
 # This makes the project importable from the build directory
 #export(TARGETS ${TATOOINE_EXPORTING_TARGETS}
 #       NAMESPACE tatooine::
-#       FILE tatooineConfig.cmake)
+#       FILE tatooineConfig.cmake
+#       EXPORT_LINK_INTERFACE_LIBRARIES)
 export(PACKAGE tatooine)
