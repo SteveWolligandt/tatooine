@@ -1,5 +1,12 @@
 option(TATOOINE_BUILD_BENCHMARKS "Benchmarks shall be built?")
 if(${TATOOINE_BUILD_BENCHMARKS})
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+set(BENCHMARK_ENABLE_INSTALL OFF CACHE BOOL
+    "Enable installation of benchmark. (Projects embedding benchmark may want to turn this OFF.)")
+set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL
+    "Enable building the unit tests which depend on gtest")
+set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL
+    "Enable testing of the benchmark library.")
 update_git_submodule(external/google-benchmark)
 add_subdirectory(external/google-benchmark)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

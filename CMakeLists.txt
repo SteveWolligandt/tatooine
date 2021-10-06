@@ -3,12 +3,13 @@ project(tatooine)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-# preprocessor lib
+# filesystem check
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-set(TATOOINE_SOURCE_DIR ${CMAKE_SOURCE_DIR})
-set(TATOOINE_CURRENT_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-set(TATOOINE_BINARY_DIR ${CMAKE_BINARY_DIR})
-set(TATOOINE_CURRENT_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
+try_compile(TATOOINE_STD_FILESYSTEM_AVAILABLE "${CMAKE_BINARY_DIR}/temp" 
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/test_has_filesystem.cpp" 
+            CMAKE_FLAGS -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_STANDARD_REQUIRED=ON
+            LINK_LIBRARIES stdc++fs)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 set(TATOOINE_EXTERNAL ${CMAKE_SOURCE_DIR}/external)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # preprocessor lib
@@ -33,13 +34,6 @@ set(TATOOINE_MANDATORY_GIT_SUBMODULES indicators)
 foreach(SUBMODULE ${TATOOINE_MANDATORY_GIT_SUBMODULES})
   update_git_submodule(${TATOOINE_EXTERNAL}/${SUBMODULE})
 endforeach()
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-set(BENCHMARK_ENABLE_INSTALL OFF CACHE BOOL
-    "Enable installation of benchmark. (Projects embedding benchmark may want to turn this OFF.)")
-set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL
-    "Enable building the unit tests which depend on gtest")
-set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL
-    "Enable testing of the benchmark library.")
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # configure files
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -111,6 +105,22 @@ set(TATOOINE_SRC_FILES
 )
 # create library target
 add_library(tatooine STATIC ${TATOOINE_SRC_FILES})
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# set include dirs
+target_include_directories(tatooine
+  PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/single_include
+    ${CMAKE_CURRENT_BINARY_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/indicators/include
+    external/vcode/include)
+
+if (TATOOINE_STD_FILESYSTEM_AVAILABLE)
+  target_link_libraries(tatooine PUBLIC stdc++fs)
+  target_compile_definitions(tatooine PUBLIC TATOOINE_STD_FILESYSTEM_AVAILABLE)
+endif()
+
+set(TATOOINE_EXPORTING_TARGETS tatooine)
 target_compile_options(tatooine PUBLIC -Wno-inconsistent-missing-override)
 target_compile_features(tatooine PUBLIC cxx_std_20)
 
@@ -129,70 +139,47 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
 endif()
 
 
-try_compile(TATOOINE_STD_FILESYSTEM_AVAILABLE "${CMAKE_BINARY_DIR}/temp" 
-            "${CMAKE_CURRENT_SOURCE_DIR}/src/test_has_filesystem.cpp" 
-            CMAKE_FLAGS -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_STANDARD_REQUIRED=ON
-            LINK_LIBRARIES stdc++fs)
-
 #===============================================================================
 # Required Packages
 #===============================================================================
 # BLAS
 #===============================================================================
-#find_package(BLAS REQUIRED)
+set(use_cmake_find_blas ON CACHE BOOL
+    "Use CMake's find_package( BLAS ) rather than the search in BLAS++")
 update_git_submodule(${TATOOINE_EXTERNAL}/blaspp)
 add_subdirectory(${TATOOINE_EXTERNAL}/blaspp)
 target_compile_options(blaspp PUBLIC
   -Wno-unused-parameter -Wno-unused-private-field)
 target_link_libraries(tatooine PUBLIC blaspp)
+list(APPEND TATOOINE_EXPORTING_TARGETS blaspp)
 
 #===============================================================================
 # LAPACK
 #===============================================================================
-#find_package(LAPACK REQUIRED)
+set(use_cmake_find_lapack ON CACHE BOOL
+    "Use CMake's find_package( LAPACK ) rather than the search in LAPACK++")
 update_git_submodule(${TATOOINE_EXTERNAL}/lapackpp)
 add_subdirectory(${TATOOINE_EXTERNAL}/lapackpp)
 target_compile_options(lapackpp PUBLIC -Wno-return-type-c-linkage)
 target_compile_definitions(tatooine PUBLIC LAPACK_COMPLEX_CPP)
 target_link_libraries(tatooine PUBLIC lapackpp)
+list(APPEND TATOOINE_EXPORTING_TARGETS lapackpp)
+
 
 #===============================================================================
-# FILESYSTEM
+# Boost
 #===============================================================================
 if(TATOOINE_STD_FILESYSTEM_AVAILABLE)
   find_package(Boost REQUIRED COMPONENTS program_options)
+  target_link_libraries(tatooine PUBLIC
+    ${Boost_PROGRAM_OPTIONS_LIBRARY})
 else()
   find_package(Boost REQUIRED COMPONENTS program_options filesystem)
+  target_link_libraries(tatooine PUBLIC
+    ${Boost_SYSTEM_LIBRARY} ${Boost_FILESYSTEM_LIBRARY})
 endif()
 target_compile_definitions(tatooine PUBLIC BOOST_BIND_GLOBAL_PLACEHOLDERS)
 
-unset(TATOOINE_INCLUDE_DIRS)
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# set include dirs
-target_include_directories(tatooine
-  PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/single_include
-    ${CMAKE_CURRENT_BINARY_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/external/indicators/include
-    external/vcode/include
-    ${Boost_INCLUDE_DIRS}
-/lrz/sys/intel/studio2019_u5/compilers_and_libraries_2019.5.281/linux/mkl/include
-)
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#set libs 
-target_link_libraries(tatooine
-  PUBLIC
-    ${Boost_PROGRAM_OPTIONS_LIBRARY}
-)
-
-if (TATOOINE_STD_FILESYSTEM_AVAILABLE)
-  target_link_libraries(tatooine PUBLIC stdc++fs)
-  target_compile_definitions(tatooine PUBLIC TATOOINE_STD_FILESYSTEM_AVAILABLE)
-else()
-target_link_libraries(tatooine PUBLIC
-  ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY})
-endif()
 #===============================================================================
 # Optional Packages
 #===============================================================================
@@ -259,10 +246,10 @@ if (TATOOINE_USE_CDT)
   update_git_submodule(${TATOOINE_EXTERNAL}/CDT)
   set(CDT_USE_AS_COMPILED_LIBRARY ON CACHE BOOL "If enabled templates for float and double will be instantiated and compiled into a library")
   set(CDT_USE_BOOST ON CACHE BOOL "If enabled Boost::rtree can be used for finding the nearest point; boost::flat_set is used for better performance")
-  set(HDF5_BUILD_CPP_LIB  ON CACHE BOOL "If enabled templates for float and double will be instantiated and compiled into a library")
   add_subdirectory(${TATOOINE_EXTERNAL}/CDT/CDT)
   target_link_libraries(tatooine PUBLIC CDT)
   target_compile_definitions(tatooine PUBLIC TATOOINE_CDT_AVAILABLE=1)
+  list(APPEND TATOOINE_EXPORTING_TARGETS CDT)
 else()
   target_compile_definitions(tatooine PUBLIC TATOOINE_CDT_AVAILABLE=0)
 endif()
@@ -436,7 +423,6 @@ get_target_property(defs tatooine COMPILE_DEFINITIONS)
 list(REMOVE_ITEM defs _FORTIFY_SOURCE)
 set_property(TARGET tatooine PROPERTY COMPILE_DEFINITIONS ${defs})
 
-set(TATOOINE_EXPORTING_TARGETS tatooine)
 #-------------------------------------------------------------------------------
 # Subdirectories
 #-------------------------------------------------------------------------------
@@ -483,6 +469,6 @@ endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory
 #export(TARGETS ${TATOOINE_EXPORTING_TARGETS}
-#       FILE tatooineConfig.cmake
-#       NAMESPACE tatooine::)
+#       NAMESPACE tatooine::
+#       FILE tatooineConfig.cmake)
 export(PACKAGE tatooine)
