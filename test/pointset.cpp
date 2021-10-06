@@ -103,68 +103,6 @@ TEST_CASE_METHOD((pointset2), "pointset_inverse_distance_weighting_sampler",
   gr.sample_to_vertex_property(sampler, "interpolated_data");
   gr.write_vtk("inverse_distance_weighting_sampler.vtk");
 }
-//==============================================================================
-TEST_CASE_METHOD(pointset2, "pointset_moving_least_squares_sampler_2_scalar",
-                 "[pointset][moving_least_squares_sampler][2d][2D][scalar]") {
-  random::uniform rand{-1.0, 1.0, std::mt19937_64{1234}};
-  auto&           prop = vec3_vertex_property("prop");
-  for (size_t i = 0; i < 100; ++i) {
-    auto v     = insert_vertex(rand(), rand());
-    prop[v](0) = rand() * 10;
-    prop[v](1) = rand() * 10;
-    prop[v](2) = rand() * 10;
-  }
-
-  auto                      sampler = moving_least_squares_sampler(prop, 2);
-  uniform_rectilinear_grid2 gr{linspace{-1.0, 1.0, 500},
-                               linspace{-1.0, 1.0, 500}};
-  gr.sample_to_vertex_property(sampler, "interpolated_data");
-  gr.write_vtk("moving_least_squares_sampler_2d_scalar.vtk");
-  write_vtk("moving_least_squares_2d_scalar_pointset.vtk");
-  for (auto v : vertices()) {
-    CHECK(approx_equal(sampler(at(v)), prop[v]));
-  }
-}
-//==============================================================================
-TEST_CASE_METHOD(
-    pointset2, "pointset_moving_least_squares_sampler_2_vector",
-    "[pointset][moving_least_squares_sampler][2d][2D][vector][vec]") {
-  random::uniform rand{-1.0, 1.0, std::mt19937_64{1234}};
-  auto&           prop = insert_scalar_vertex_property("prop");
-  for (size_t i = 0; i < 100; ++i) {
-    auto v  = insert_vertex(rand(), rand());
-    prop[v] = rand() * 10;
-  }
-
-  auto             sampler = moving_least_squares_sampler(prop, 0.1);
-  rectilinear_grid gr{linspace{-1.0, 1.0, 500}, linspace{-1.0, 1.0, 500}};
-  gr.sample_to_vertex_property(sampler, "interpolated_data");
-  gr.write_vtk("moving_least_squares_sampler_2d_scalar.vtk");
-  for (auto v : vertices()) {
-    CHECK(sampler(at(v)) == Approx(prop[v]));
-  }
-}
-//==============================================================================
-TEST_CASE_METHOD(pointset3, "pointset_moving_least_squares_sampler_3",
-                 "[pointset][moving_least_squares_sampler][3d][3D]") {
-  random::uniform rand{-1.0, 1.0, std::mt19937_64{1234}};
-  SECTION("scalar property") {
-    auto& prop = scalar_vertex_property("prop");
-    for (size_t i = 0; i < 100; ++i) {
-      auto v  = insert_vertex(rand(), rand(), rand());
-      prop[v] = rand() * 10;
-    }
-
-    auto             sampler = moving_least_squares_sampler(prop, 0.1);
-    rectilinear_grid gr{linspace{-1.0, 1.0, 500}, linspace{-1.0, 1.0, 500},
-                        linspace{-1.0, 1.0, 500}};
-    gr.sample_to_vertex_property(sampler, "interpolated_data");
-    gr.write_vtk("moving_least_squares_sampler_3d.vtk");
-    for (auto v : vertices()) {
-      CHECK(sampler(at(v)) == Approx(prop[v]));
-    }
-  }
-}
-//==============================================================================
+//==================//==============================================================================
 }  // namespace tatooine::test
 //==============================================================================
