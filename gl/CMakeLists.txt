@@ -31,7 +31,7 @@ target_include_directories(glad PUBLIC external/glad)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # build imgui
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-set(TATOOINE_GL_IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui)
+set(TATOOINE_GL_IMGUI_DIR external/imgui)
 set(TATOOINE_GL_IMGUI_INCLUDE_DIRS ${TATOOINE_GL_IMGUI_DIR})
 set(TATOOINE_GL_IMGUI_FILES
   ${TATOOINE_GL_IMGUI_DIR}/imgui.cpp
@@ -48,39 +48,39 @@ target_include_directories(imgui PUBLIC ${TATOOINE_GL_IMGUI_DIR})
 # source files
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 set(TATOOINE_GL_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/atomiccounterbuffer.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/bezier_widget.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/computeshader.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/errorcheck.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/fragmentshader.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/framebuffer.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/geometryshader.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/glfunctions.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/glslvar.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/glwrapper.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/indexbuffer.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/mutexhandler.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/shader.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/shaderstage.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/shaderstageparser.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/tesselationcontrolshader.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/tesselationevaluationshader.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/texture.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/vertexarray.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/vertexshader.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/window_notifier.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/keyboard.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/mouse.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/imgui_api_backend.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/imgui_shader.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/imgui_render_backend.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/imgui.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/glfw/api.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/glfw/base.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/glfw/context.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/glfw/window.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/context.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/window.cpp
+  src/atomiccounterbuffer.cpp
+  src/bezier_widget.cpp
+  src/computeshader.cpp
+  src/errorcheck.cpp
+  src/fragmentshader.cpp
+  src/framebuffer.cpp
+  src/geometryshader.cpp
+  src/glfunctions.cpp
+  src/glslvar.cpp
+  src/glwrapper.cpp
+  src/indexbuffer.cpp
+  src/mutexhandler.cpp
+  src/shader.cpp
+  src/shaderstage.cpp
+  src/shaderstageparser.cpp
+  src/tesselationcontrolshader.cpp
+  src/tesselationevaluationshader.cpp
+  src/texture.cpp
+  src/vertexarray.cpp
+  src/vertexshader.cpp
+  src/window_notifier.cpp
+  src/keyboard.cpp
+  src/mouse.cpp
+  src/imgui_api_backend.cpp
+  src/imgui_shader.cpp
+  src/imgui_render_backend.cpp
+  src/imgui.cpp
+  src/glfw/api.cpp
+  src/glfw/base.cpp
+  src/glfw/context.cpp
+  src/glfw/window.cpp
+  src/context.cpp
+  src/window.cpp
 )
 add_library(gl STATIC ${TATOOINE_GL_SOURCES})
 set(TATOOINE_EXPORTING_TARGETS ${TATOOINE_EXPORTING_TARGETS} gl imgui glfw glad PARENT_SCOPE)
@@ -91,13 +91,10 @@ target_compile_options(gl PRIVATE
 
 target_include_directories(gl
   PUBLIC 
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/single_include
-    ${CMAKE_CURRENT_BINARY_DIR}/include
-    ${OPENGL_INCLUDE_DIR} 
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     ${TATOOINE_GL_IMGUI_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui
-    ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui-filebrowser)
+    external/imgui
+    external/imgui-filebrowser)
 
 target_link_libraries(
   gl
