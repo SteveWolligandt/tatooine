@@ -139,27 +139,22 @@ try_compile(TATOOINE_STD_FILESYSTEM_AVAILABLE "${CMAKE_BINARY_DIR}/temp"
 #===============================================================================
 # BLAS
 #===============================================================================
-find_package(BLAS REQUIRED)
+#find_package(BLAS REQUIRED)
 update_git_submodule(${TATOOINE_EXTERNAL}/blaspp)
 add_subdirectory(${TATOOINE_EXTERNAL}/blaspp)
-target_compile_options(blaspp PUBLIC -Wno-unused-parameter)
-target_link_libraries(tatooine
-  PUBLIC
-    ${BLAS_LIBRARIES}
-    blaspp)
+target_compile_options(blaspp PUBLIC
+  -Wno-unused-parameter -Wno-unused-private-field)
+target_link_libraries(tatooine PUBLIC blaspp)
 
 #===============================================================================
 # LAPACK
 #===============================================================================
-find_package(LAPACK REQUIRED)
+#find_package(LAPACK REQUIRED)
 update_git_submodule(${TATOOINE_EXTERNAL}/lapackpp)
 add_subdirectory(${TATOOINE_EXTERNAL}/lapackpp)
 target_compile_options(lapackpp PUBLIC -Wno-return-type-c-linkage)
 target_compile_definitions(tatooine PUBLIC LAPACK_COMPLEX_CPP)
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-target_link_libraries(tatooine PUBLIC
-  ${LAPACK_LIBRARIES}
-  lapackpp)
+target_link_libraries(tatooine PUBLIC lapackpp)
 
 #===============================================================================
 # FILESYSTEM

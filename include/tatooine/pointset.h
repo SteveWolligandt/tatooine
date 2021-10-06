@@ -781,9 +781,10 @@ struct moving_least_squares_sampler_t<Real, 2, T>
     auto        nn      = m_pointset.nearest_neighbors_radius_raw(q, m_radius);
     auto const& indices = nn.first;
     auto&       distances = nn.second;
-    //for (auto& d : distances) {
-    //  d = m_radius - d;
-    //}
+    for (auto& d : distances) {
+      d /= m_radius;
+      d = 1 - d;
+    }
     auto const  num_neighbors = size(indices);
 
     if (num_neighbors == 0) {
@@ -798,7 +799,9 @@ struct moving_least_squares_sampler_t<Real, 2, T>
     }
 
     auto w = tensor<Real>::zeros(num_neighbors);
-    auto F = tensor<Real>::zeros(num_neighbors, num_components<T>);
+    auto F = num_components<T> > 1
+                 ? tensor<Real>::zeros(num_neighbors, num_components<T>)
+                 : tensor<Real>::zeros(num_neighbors);
     auto B = [&] {
       if (num_neighbors >= 10) {
         return tensor<Real>::ones(num_neighbors, 10);
@@ -814,8 +817,8 @@ struct moving_least_squares_sampler_t<Real, 2, T>
 
     // build w
     auto weighting_function = [&](auto const d) {
-      // return 1 / d - 1 / m_radius;
-       return std::exp(-d * d);
+       return 1 / d - 1 / m_radius;
+       //return std::exp(-d * d);
     };
     for (size_t i = 0; i < num_neighbors; ++i) {
       w(i) = weighting_function(distances[i]);
@@ -823,7 +826,7 @@ struct moving_least_squares_sampler_t<Real, 2, T>
     // build F
     for (size_t i = 0; i < num_neighbors; ++i) {
       if constexpr (num_components<T> == 1) {
-        F(i, 0) = m_property[vertex_handle{indices[i]}];
+        F(i) = m_property[vertex_handle{indices[i]}];
       } else {
         for (size_t j = 0; j < num_components<T>; ++j) {
           F(i, j) = m_property[vertex_handle{indices[i]}](j);
@@ -947,7 +950,9 @@ struct moving_least_squares_sampler_t<Real, 3, T>
     }
 
     auto w = tensor<Real>::zeros(num_neighbors);
-    auto F = tensor<Real>::zeros(num_neighbors, num_components<T>);
+    auto F = num_components<T> > 1
+                 ? tensor<Real>::zeros(num_neighbors, num_components<T>)
+                 : tensor<Real>::zeros(num_neighbors);
     auto B = [&] {
       if (num_neighbors >= 20) {
         return tensor<Real>::ones(num_neighbors, 20);
