@@ -4,13 +4,13 @@ namespace tatooine::gl {
 //==============================================================================
 std::string to_string(button b) {
   switch (b) {
-    case button::BUTTON_LEFT: return "left";
-    case button::BUTTON_RIGHT: return "right";
-    case button::BUTTON_MIDDLE: return "middle";
-    case button::BUTTON_WHEEL_UP: return "wheel up";
-    case button::BUTTON_WHEEL_DOWN: return "wheel down";
-    case button::BUTTON_WHEEL_LEFT: return "wheel left";
-    case button::BUTTON_WHEEL_RIGHT: return "wheel right";
+    case button::left: return "left";
+    case button::right: return "right";
+    case button::middle: return "middle";
+    case button::wheel_up: return "wheel up";
+    case button::wheel_down: return "wheel down";
+    case button::wheel_left: return "wheel left";
+    case button::wheel_right: return "wheel right";
     default: return "unknown";
   }
 }

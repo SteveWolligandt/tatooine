@@ -26,7 +26,9 @@ class perspective_camera : public camera<Real> {
   using parent_t = camera<Real>;
   using this_t   = perspective_camera<Real>;
   using parent_t::eye;
+  using parent_t::far;
   using parent_t::lookat;
+  using parent_t::near;
   using parent_t::up;
   using typename parent_t::mat4;
   using typename parent_t::vec3;
@@ -37,7 +39,7 @@ class perspective_camera : public camera<Real> {
   //----------------------------------------------------------------------------
   vec3   m_bottom_left;
   vec3   m_plane_base_x, m_plane_base_y;
-  Real m_fov, m_near, m_far;
+  Real m_fov;
 
  public:
   //----------------------------------------------------------------------------
@@ -48,10 +50,8 @@ class perspective_camera : public camera<Real> {
   perspective_camera(vec3 const& eye, vec3 const& lookat, vec3 const& up,
                      Real const fov, Real const near, Real const far,
                      size_t const res_x, size_t const res_y)
-      : parent_t{eye, lookat, up, res_x, res_y},
-        m_fov{fov},
-        m_near{near},
-        m_far{far} {
+      : parent_t{eye, lookat, up, near, far, res_x, res_y},
+        m_fov{fov} {
     setup();
   }
   //----------------------------------------------------------------------------
@@ -118,23 +118,13 @@ class perspective_camera : public camera<Real> {
         1 / std::tan(m_fov / Real(2) * Real(M_PI) / Real(180) / 2);
     return mat4{{inv_tan_fov_2 / this->aspect_ratio(), z, z, z},
                 {z, inv_tan_fov_2, z, z},
-                {z, z, -(m_far + m_near) / (m_far - m_near),
-                 -2 * m_far * m_near / (m_far - m_near)},
+                {z, z, -(far() + near()) / (far() - near()),
+                 -2 * far() * near() / (far() - near())},
                 {z, z, Real(-1), z}};
   }
   //----------------------------------------------------------------------------
   void set_fov(Real const fov) {
     m_fov = fov;
-    setup();
-  }
-  //----------------------------------------------------------------------------
-  void set_near(Real const near) {
-    m_near = near;
-    setup();
-  }
-  //----------------------------------------------------------------------------
-  void set_far(Real const far) {
-    m_far = far;
     setup();
   }
 };

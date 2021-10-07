@@ -25,13 +25,16 @@ class orthographic_camera : public camera<Real> {
   using vec3     = vec<Real, 3>;
   using mat4     = mat<Real, 4, 4>;
 
+  using parent_t::near;
+  using parent_t::far;
+
  private:
   //----------------------------------------------------------------------------
   // member variables
   //----------------------------------------------------------------------------
   vec3 m_bottom_left;
   vec3 m_plane_base_x, m_plane_base_y;
-  Real m_height, m_near, m_far;
+  Real m_height;
 
  public:
   //----------------------------------------------------------------------------
@@ -39,12 +42,6 @@ class orthographic_camera : public camera<Real> {
   //----------------------------------------------------------------------------
   auto height() const {
     return m_height;
-  }
-  auto near() const {
-    return m_near;
-  }
-  auto far() const {
-    return m_far;
   }
   //----------------------------------------------------------------------------
   // constructors / destructor
@@ -54,10 +51,8 @@ class orthographic_camera : public camera<Real> {
   orthographic_camera(vec3 const& eye, vec3 const& lookat, vec3 const& up,
                       Real const height, Real const near, Real const far,
                       size_t const res_x, size_t const res_y)
-      : parent_t{eye, lookat, up, res_x, res_y},
-        m_height{height},
-        m_near{near},
-        m_far{far} {
+      : parent_t{eye, lookat, up, near, far, res_x, res_y},
+        m_height{height} {
     setup();
   }
   //----------------------------------------------------------------------------
@@ -66,8 +61,8 @@ class orthographic_camera : public camera<Real> {
   orthographic_camera(vec3 const& eye, vec3 const& lookat, Real const height,
                       Real const near, Real const far, size_t const res_x,
                       size_t const res_y)
-      : orthographic_camera(eye, lookat, vec3{0, 1, 0}, height, near, far,
-                            res_x, res_y) {}
+      : orthographic_camera(eye, lookat, vec3{0, 1, 0}, near, far, height, near,
+                            far, res_x, res_y) {}
   //----------------------------------------------------------------------------
   ~orthographic_camera() override = default;
   //----------------------------------------------------------------------------
@@ -92,7 +87,7 @@ class orthographic_camera : public camera<Real> {
     Real const plane_half_height = m_height / 2;
     Real const plane_half_width  = plane_half_height * this->aspect_ratio();
 
-    m_bottom_left = this->eye() + view_dir * m_near
+    m_bottom_left = this->eye() + view_dir * near()
                                 - u * plane_half_width
                                 - v * plane_half_height;
     m_plane_base_x = u * 2 * plane_half_width / (this->plane_width() - 1);
@@ -109,8 +104,8 @@ class orthographic_camera : public camera<Real> {
     Real const width  = m_height * this->aspect_ratio();
     return mat4{{2 / width, Real(0), Real(0), Real(0)},
                 {Real(0), 2 / m_height, Real(0), Real(0)},
-                {Real(0), Real(0), -2 / (m_far - m_near),
-                 -(m_far + m_near) / (m_far - m_near)},
+                {Real(0), Real(0), -2 / (far() - near()),
+                 -(far() + near()) / (far() - near())},
                 {Real(0), Real(0), Real(0), Real(1)}};
   }
   auto setup(vec3 const& eye, vec3 const& lookat, vec3 const& up,
@@ -121,8 +116,8 @@ class orthographic_camera : public camera<Real> {
     this->set_up(up);
     this->set_resolution(res_x, res_y);
     m_height = height;
-    m_near   = near;
-    m_far    = far;
+    this->set_near(near);
+    this->set_far(far);
     setup();
   }
 };
