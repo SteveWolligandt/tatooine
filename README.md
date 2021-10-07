@@ -34,8 +34,3 @@ void apply_some_operation() {
   v_double_length({0.1, 0.2}, 3.0);
 }
 ```
-
-# Algorithms
-#### Marching Cubes
-#### Parallel Vectors
-#### Stream Surface
