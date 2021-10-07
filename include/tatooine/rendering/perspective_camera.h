@@ -116,11 +116,11 @@ class perspective_camera : public camera<Real> {
     static constexpr auto z = Real(0);
     Real const            inv_tan_fov_2 =
         1 / std::tan(m_fov / Real(2) * Real(M_PI) / Real(180) / 2);
-    return {{inv_tan_fov_2 / this->aspect_ratio(), z, z, z},
-            {z, inv_tan_fov_2, z, z},
-            {z, z, -(m_far + m_near) / (m_far - m_near),
-             -2 * m_far * m_near / (m_far - m_near)},
-            {z, z, Real(-1), z}};
+    return mat4{{inv_tan_fov_2 / this->aspect_ratio(), z, z, z},
+                {z, inv_tan_fov_2, z, z},
+                {z, z, -(m_far + m_near) / (m_far - m_near),
+                 -2 * m_far * m_near / (m_far - m_near)},
+                {z, z, Real(-1), z}};
   }
   //----------------------------------------------------------------------------
   void set_fov(Real const fov) {
