@@ -1,0 +1,28 @@
+stages:
+  - build
+  - deploy
+
+build:
+  stage: build
+  script:
+  - cmake -Bbuild -DTATOOINE_BUILD_DOC=1
+  - cmake --build doc_build -- doc
+  artifacts:
+    paths:
+      - build/
+  only:
+  - master
+  tags:
+  except:
+  - tags
+
+deploy:
+  stage: deploy
+  script:
+    - ls output/
+    - rm -rf ~/pages.vc/tatooine/
+    - mkdir -p ~/pages.vc/tatooine
+    - cp -r build/doc/html/* ~/pages.vc/tatooine/
+  only:
+    - published
+
