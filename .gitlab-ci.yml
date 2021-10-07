@@ -5,7 +5,7 @@ stages:
 build:
   stage: build
   script:
-  - cmake -Bbuild -DTATOOINE_BUILD_DOC=1 -DTATOOINE_DOC_ONLY=1
+  - cmake -Bdoc_build -DTATOOINE_BUILD_DOC=1 -DTATOOINE_DOC_ONLY=1
   - cmake --build doc_build -- doc
   artifacts:
     paths:
