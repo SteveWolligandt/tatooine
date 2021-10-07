@@ -9,7 +9,7 @@ build:
   - cmake --build doc_build -- doc
   artifacts:
     paths:
-      - build/
+      - doc_build/
   only:
   - master
   tags:
@@ -19,10 +19,9 @@ build:
 deploy:
   stage: deploy
   script:
-    - ls output/
-    - rm -rf ~/pages.vc/tatooine/
+    - rm -r ~/pages.vc/tatooine/
     - mkdir -p ~/pages.vc/tatooine
-    - cp -r build/doc/html/* ~/pages.vc/tatooine/
+    - cp -r doc_build/doc/html/* ~/pages.vc/tatooine/
   only:
     - published
 
