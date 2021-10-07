@@ -107,11 +107,11 @@ class orthographic_camera : public camera<Real> {
   //----------------------------------------------------------------------------
   auto projection_matrix() const -> mat4 override {
     Real const width  = m_height * this->aspect_ratio();
-    return {{2 / width, Real(0), Real(0), Real(0)},
-            {Real(0), 2 / m_height, Real(0), Real(0)},
-            {Real(0), Real(0), -2 / (m_far - m_near),
-             -(m_far + m_near) / (m_far - m_near)},
-            {Real(0), Real(0), Real(0), Real(1)}};
+    return mat4{{2 / width, Real(0), Real(0), Real(0)},
+                {Real(0), 2 / m_height, Real(0), Real(0)},
+                {Real(0), Real(0), -2 / (m_far - m_near),
+                 -(m_far + m_near) / (m_far - m_near)},
+                {Real(0), Real(0), Real(0), Real(1)}};
   }
   auto setup(vec3 const& eye, vec3 const& lookat, vec3 const& up,
              Real const height, Real const near, Real const far,

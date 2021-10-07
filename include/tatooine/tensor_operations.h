@@ -7,6 +7,9 @@
 #include <tatooine/lapack.h>
 #include <tatooine/blas.h>
 #include <optional>
+
+//==============================================================================
+#include <tatooine/tensor_operations/cross.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -493,14 +496,6 @@ constexpr auto det(base_tensor<Tensor, T, 3, 3> const& m) -> T {
   return m(0, 0) * m(1, 1) * m(2, 2) + m(0, 1) * m(1, 2) * m(2, 0) +
          m(0, 2) * m(1, 0) * m(2, 1) - m(2, 0) * m(1, 1) * m(0, 2) -
          m(2, 1) * m(1, 2) * m(0, 0) - m(2, 2) * m(1, 0) * m(0, 2);
-}
-//------------------------------------------------------------------------------
-template <typename Tensor0, typename T0, typename Tensor1, typename T1>
-constexpr auto cross(base_tensor<Tensor0, T0, 3> const& lhs,
-                     base_tensor<Tensor1, T1, 3> const& rhs) {
-  return vec<common_type<T0, T1>, 3>{lhs(1) * rhs(2) - lhs(2) * rhs(1),
-                                     lhs(2) * rhs(0) - lhs(0) * rhs(2),
-                                     lhs(0) * rhs(1) - lhs(1) * rhs(0)};
 }
 //------------------------------------------------------------------------------
 template <typename F, typename Tensor, typename T, size_t N>
