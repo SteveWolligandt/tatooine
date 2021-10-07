@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(tatooine)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # filesystem check
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -17,23 +18,6 @@ set(TATOOINE_EXTERNAL ${CMAKE_SOURCE_DIR}/external)
 set(TATOOINE_PP_NUM_MAX_INDICES "100" CACHE STRING "")
 include(preprocessor_setup)
 include(target_link_libraries_system)
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-# git submodules
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-find_package(Git REQUIRED)
-function(update_git_submodule dir)
-  execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive -- ${dir}
-                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                  RESULT_VARIABLE GIT_SUBMOD_RESULT)
-  if(NOT GIT_SUBMOD_RESULT EQUAL "0")
-    message(FATAL_ERROR
-      "When updating submodule ${dir}:\n  git submodule update --init --recursive -- ${dir}\nfailed with ${GIT_SUBMOD_RESULT}, please checkout submodules.")
-  endif()
-endfunction()
-set(TATOOINE_MANDATORY_GIT_SUBMODULES external/blaspp external/lapackpp external/indicators)
-foreach(SUBMODULE ${TATOOINE_MANDATORY_GIT_SUBMODULES})
-  update_git_submodule(${SUBMODULE})
-endforeach()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # configure files
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -124,6 +108,71 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
 endif()
 
 
+
+#-------------------------------------------------------------------------------
+# force coloring
+#-------------------------------------------------------------------------------
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  target_compile_options(tatooine PUBLIC -fcolor-diagnostics)
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  target_compile_options(tatooine PUBLIC -fdiagnostics-color=always)
+endif()
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+# git submodules
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+find_package(Git REQUIRED)
+function(update_git_submodule dir)
+  execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive -- ${dir}
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                  RESULT_VARIABLE GIT_SUBMOD_RESULT)
+  if(NOT GIT_SUBMOD_RESULT EQUAL "0")
+    message(FATAL_ERROR
+      "When updating submodule ${dir}:\n  git submodule update --init --recursive -- ${dir}\nfailed with ${GIT_SUBMOD_RESULT}, please checkout submodules.")
+  endif()
+endfunction()
+#-------------------------------------------------------------------------------
+# Subdirectories
+#-------------------------------------------------------------------------------
+option(TATOOINE_BUILD_DOC "Builds the documentation" OFF)
+if (TATOOINE_BUILD_DOC) 
+  option(TATOOINE_DOC_ONLY "Only builds documentation" OFF)
+  add_subdirectory(doc)
+endif () 
+
+if (NOT TATOOINE_DOC_ONLY)
+add_subdirectory(gl)
+add_subdirectory(test)
+add_subdirectory(scivis_contest_2020 EXCLUDE_FROM_ALL)
+add_subdirectory(benchmarks)
+add_subdirectory(material_science EXCLUDE_FROM_ALL)
+if (TATOOINE_GL_AVAILABLE)
+  #add_subdirectory(steadification EXCLUDE_FROM_ALL)
+
+  option(TATOOINE_BUILD_FLOWEXPLORER "Builds Flow Explorer" OFF)
+  if (TATOOINE_BUILD_FLOWEXPLORER)
+    add_subdirectory(flowexplorer)
+  endif()
+endif()
+add_subdirectory(raytracer)
+add_subdirectory(autonomous_particles)
+add_subdirectory(smearing_scalar_field)
+
+if (TATOOINE_MPI_AVAILABLE)
+  add_subdirectory(mpi)
+  add_subdirectory(insitu)
+endif()
+
+option(TATOOINE_BUILD_CHANNELFLOW_VISUALIZATION
+       "creates targets to make visualizations for the channelflow" ON)
+if(TATOOINE_BUILD_CHANNELFLOW_VISUALIZATION)
+  add_subdirectory(channelflow)
+endif()
+
+
+set(TATOOINE_MANDATORY_GIT_SUBMODULES external/blaspp external/lapackpp external/indicators)
+foreach(SUBMODULE ${TATOOINE_MANDATORY_GIT_SUBMODULES})
+  update_git_submodule(${SUBMODULE})
+endforeach()
 #===============================================================================
 # Required Packages
 #===============================================================================
@@ -397,56 +446,11 @@ get_target_property(defs tatooine COMPILE_DEFINITIONS)
 list(REMOVE_ITEM defs _FORTIFY_SOURCE)
 set_property(TARGET tatooine PROPERTY COMPILE_DEFINITIONS ${defs})
 
-#-------------------------------------------------------------------------------
-# force coloring
-#-------------------------------------------------------------------------------
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  target_compile_options(tatooine PUBLIC -fcolor-diagnostics)
-  target_compile_options(lapackpp PUBLIC -fcolor-diagnostics)
-  target_compile_options(blaspp PUBLIC -fcolor-diagnostics)
-elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-  target_compile_options(tatooine PUBLIC -fdiagnostics-color=always)
-  target_compile_options(lapackpp PUBLIC -fdiagnostics-color=always)
-  target_compile_options(blaspp PUBLIC -fdiagnostics-color=always)
-endif()
-#-------------------------------------------------------------------------------
-# Subdirectories
-#-------------------------------------------------------------------------------
-add_subdirectory(gl)
-add_subdirectory(test)
-add_subdirectory(scivis_contest_2020 EXCLUDE_FROM_ALL)
-add_subdirectory(benchmarks)
-option(TATOOINE_BUILD_DOC "Builds the documentation" OFF)
-if (TATOOINE_BUILD_DOC) 
-  add_subdirectory(doc)
-endif () 
-add_subdirectory(material_science EXCLUDE_FROM_ALL)
-if (TATOOINE_GL_AVAILABLE)
-  #add_subdirectory(steadification EXCLUDE_FROM_ALL)
-
-  option(TATOOINE_BUILD_FLOWEXPLORER "Builds Flow Explorer" OFF)
-  if (TATOOINE_BUILD_FLOWEXPLORER)
-    add_subdirectory(flowexplorer)
-  endif()
-endif()
-add_subdirectory(raytracer)
-add_subdirectory(autonomous_particles)
-add_subdirectory(smearing_scalar_field)
-
-if (TATOOINE_MPI_AVAILABLE)
-  add_subdirectory(mpi)
-  add_subdirectory(insitu)
-endif()
-
-option(TATOOINE_BUILD_CHANNELFLOW_VISUALIZATION
-       "creates targets to make visualizations for the channelflow" ON)
-if(TATOOINE_BUILD_CHANNELFLOW_VISUALIZATION)
-  add_subdirectory(channelflow)
-endif()
 
 option(TATOOINE_BUILD_EXAMPLES "")
 if (TATOOINE_BUILD_EXAMPLES)
   add_subdirectory(examples)
+endif()
 endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory
