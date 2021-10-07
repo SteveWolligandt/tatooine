@@ -30,9 +30,9 @@ function(update_git_submodule dir)
       "When updating submodule ${dir}:\n  git submodule update --init --recursive -- ${dir}\nfailed with ${GIT_SUBMOD_RESULT}, please checkout submodules.")
   endif()
 endfunction()
-set(TATOOINE_MANDATORY_GIT_SUBMODULES indicators)
+set(TATOOINE_MANDATORY_GIT_SUBMODULES external/blaspp external/lapackpp external/indicators)
 foreach(SUBMODULE ${TATOOINE_MANDATORY_GIT_SUBMODULES})
-  update_git_submodule(${TATOOINE_EXTERNAL}/${SUBMODULE})
+  update_git_submodule(${SUBMODULE})
 endforeach()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # configure files
@@ -96,6 +96,7 @@ add_library(tatooine STATIC ${TATOOINE_SRC_FILES})
 target_include_directories(tatooine
   PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>"
     external/indicators/include
     external/vcode/include)
 
@@ -126,26 +127,34 @@ endif()
 #===============================================================================
 # Required Packages
 #===============================================================================
+# OpenMP
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+find_package(OpenMP REQUIRED)
+option(TATOOINE_COMPILE_WITH_OPENMP "" ON)
+if (TATOOINE_COMPILE_WITH_OPENMP)
+  set(TATOOINE_OPENMP_AVAILABLE 1)
+  target_link_libraries(tatooine PUBLIC OpenMP::OpenMP_CXX)
+  target_compile_definitions(tatooine PUBLIC TATOOINE_OPENMP_AVAILABLE)
+  message(STATUS "Compiling with OpenMP")
+else()
+  set(TATOOINE_OPENMP_AVAILABLE 0)
+  message(STATUS "OpenMP not available")
+endif()
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # BLAS
-#===============================================================================
-set(use_cmake_find_blas ON CACHE BOOL
-    "Use CMake's find_package( BLAS ) rather than the search in BLAS++")
-update_git_submodule(${TATOOINE_EXTERNAL}/blaspp)
-add_subdirectory(${TATOOINE_EXTERNAL}/blaspp)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+add_subdirectory(external/blaspp)
 target_compile_options(blaspp PUBLIC
   -Wno-unused-parameter -Wno-unused-private-field)
-target_link_libraries(tatooine PRIVATE blaspp)
+target_link_libraries(tatooine PUBLIC blaspp)
 list(APPEND TATOOINE_EXPORTING_TARGETS blaspp)
-#===============================================================================
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # LAPACK
-#===============================================================================
-set(use_cmake_find_lapack ON CACHE BOOL
-    "Use CMake's find_package( LAPACK ) rather than the search in LAPACK++")
-update_git_submodule(${TATOOINE_EXTERNAL}/lapackpp)
-add_subdirectory(${TATOOINE_EXTERNAL}/lapackpp)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+add_subdirectory(external/lapackpp)
 target_compile_options(lapackpp PUBLIC -Wno-return-type-c-linkage)
 target_compile_definitions(tatooine PUBLIC LAPACK_COMPLEX_CPP)
-target_link_libraries(tatooine PRIVATE lapackpp)
+target_link_libraries(tatooine PUBLIC lapackpp)
 list(APPEND TATOOINE_EXPORTING_TARGETS lapackpp)
 
 #===============================================================================
@@ -161,22 +170,6 @@ else()
     ${Boost_SYSTEM_LIBRARY} ${Boost_FILESYSTEM_LIBRARY})
 endif()
 target_compile_definitions(tatooine PUBLIC BOOST_BIND_GLOBAL_PLACEHOLDERS)
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# OpenMP
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-find_package(OpenMP REQUIRED)
-if (OpenMP_CXX_FOUND)
-  option(TATOOINE_COMPILE_WITH_OPENMP "" ON)
-  if (TATOOINE_COMPILE_WITH_OPENMP)
-    set(TATOOINE_OPENMP_AVAILABLE 1)
-    target_link_libraries(tatooine PUBLIC OpenMP::OpenMP_CXX)
-    target_compile_definitions(tatooine PUBLIC TATOOINE_OPENMP_AVAILABLE)
-    message(STATUS "Compiling with OpenMP")
-  else()
-    set(TATOOINE_OPENMP_AVAILABLE 0)
-    message(STATUS "OpenMP not available")
-  endif()
-endif()
 
 #===============================================================================
 # Optional Packages
@@ -405,13 +398,21 @@ list(REMOVE_ITEM defs _FORTIFY_SOURCE)
 set_property(TARGET tatooine PROPERTY COMPILE_DEFINITIONS ${defs})
 
 #-------------------------------------------------------------------------------
+# force coloring
+#-------------------------------------------------------------------------------
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  target_compile_options(tatooine PUBLIC -fcolor-diagnostics)
+  target_compile_options(lapackpp PUBLIC -fcolor-diagnostics)
+  target_compile_options(blaspp PUBLIC -fcolor-diagnostics)
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  target_compile_options(tatooine PUBLIC -fdiagnostics-color=always)
+  target_compile_options(lapackpp PUBLIC -fdiagnostics-color=always)
+  target_compile_options(blaspp PUBLIC -fdiagnostics-color=always)
+endif()
+#-------------------------------------------------------------------------------
 # Subdirectories
 #-------------------------------------------------------------------------------
 add_subdirectory(gl)
-target_compile_definitions(tatooine PUBLIC TATOOINE_GL_AVAILABLE=${TATOOINE_GL_AVAILABLE})
-if (TATOOINE_GL_AVAILABLE)
-  target_link_libraries(tatooine PUBLIC gl)
-endif()
 add_subdirectory(test)
 add_subdirectory(scivis_contest_2020 EXCLUDE_FROM_ALL)
 add_subdirectory(benchmarks)

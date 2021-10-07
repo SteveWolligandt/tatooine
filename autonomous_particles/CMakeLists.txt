@@ -35,3 +35,9 @@ endfunction()
 create_autonomous_particles_application(doublegyre_grid)
 create_autonomous_particles_application(tornado_grid)
 create_autonomous_particles_application(abcflow_grid)
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# explorer
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+add_executable (autonomous_particles.explorer explorer.cpp)
+target_link_libraries(autonomous_particles.explorer PUBLIC tatooine gl)

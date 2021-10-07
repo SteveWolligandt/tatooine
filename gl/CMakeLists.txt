@@ -92,6 +92,7 @@ target_compile_options(gl PRIVATE
 target_include_directories(gl
   PUBLIC 
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>"
     ${TATOOINE_GL_IMGUI_INCLUDE_DIRS}
     external/imgui
     external/imgui-filebrowser)
