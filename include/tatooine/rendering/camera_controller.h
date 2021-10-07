@@ -93,6 +93,9 @@ struct camera_controller : gl::window_listener {
     use_fps_controller();
   }
   //============================================================================
+  auto unproject(Vec4<Real> const& x) {
+    return m_active_cam->unproject(x);
+  }
   void use_perspective_camera() {
     m_active_cam = &m_pcam;
   }
@@ -315,13 +318,13 @@ struct fps_camera_controller : camera_controller_interface<Real> {
   }
   //----------------------------------------------------------------------------
   void on_button_pressed(gl::button b) override {
-    if (b == gl::BUTTON_RIGHT) {
+    if (b == gl::button::right) {
       m_right_button_down = true;
     }
   }
   //----------------------------------------------------------------------------
   void on_button_released(gl::button b) override {
-    if (b == gl::BUTTON_RIGHT) {
+    if (b == gl::button::right) {
       m_right_button_down = false;
     }
   }
@@ -442,13 +445,13 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
   // methods
   //============================================================================
   void on_button_pressed(gl::button b) override {
-    if (b == gl::BUTTON_RIGHT) {
+    if (b == gl::button::right) {
       m_right_button_down = true;
     }
   }
   //----------------------------------------------------------------------------
   void on_button_released(gl::button b) override {
-    if (b == gl::BUTTON_RIGHT) {
+    if (b == gl::button::right) {
       m_right_button_down = false;
     }
   }

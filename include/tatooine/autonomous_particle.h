@@ -97,6 +97,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
   using container_t          = std::deque<autonomous_particle<Real, N>>;
   using ellipse_t            = geometry::hyper_ellipse<Real, N>;
   using parent_t             = ellipse_t;
+  using sampler_t            = autonomous_particle_sampler<Real, N>;
   //----------------------------------------------------------------------------
   // members
   //----------------------------------------------------------------------------
@@ -540,7 +541,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
     }
   }
   auto sampler() const {
-    return autonomous_particle_sampler<Real, N>{initial_ellipse(), *this,
+    return sampler_t{initial_ellipse(), *this,
                                                 m_nabla_phi1};
   }
 };

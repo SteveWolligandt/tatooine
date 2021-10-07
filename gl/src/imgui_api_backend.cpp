@@ -90,10 +90,10 @@ void imgui_api_backend::on_key_released(key k) {
 void imgui_api_backend::on_button_pressed(button b) {
   ImGuiIO& io = ImGui::GetIO();
   switch(b){
-    case BUTTON_LEFT: io.MouseDown[0] = true; break;
-    case BUTTON_RIGHT: io.MouseDown[1] = true; break;
-    case BUTTON_MIDDLE: io.MouseDown[2] = true; break;
-    case BUTTON_UNKNOWN:
+    case button::left: io.MouseDown[0] = true; break;
+    case button::right: io.MouseDown[1] = true; break;
+    case button::middle: io.MouseDown[2] = true; break;
+    case button::unknown:
     default: break;
   }
 }
@@ -101,10 +101,10 @@ void imgui_api_backend::on_button_pressed(button b) {
 void imgui_api_backend::on_button_released(button b) {
   ImGuiIO& io = ImGui::GetIO();
   switch (b) {
-    case BUTTON_LEFT: io.MouseDown[0] = false; break;
-    case BUTTON_RIGHT: io.MouseDown[1] = false; break;
-    case BUTTON_MIDDLE: io.MouseDown[2] = false; break;
-    case BUTTON_UNKNOWN:
+    case button::left: io.MouseDown[0] = false; break;
+    case button::right: io.MouseDown[1] = false; break;
+    case button::middle: io.MouseDown[2] = false; break;
+    case button::unknown:
     default: break;
   }
 }

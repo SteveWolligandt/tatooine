@@ -5,15 +5,15 @@
 //==============================================================================
 namespace tatooine::gl {
 //==============================================================================
-enum button {
-  BUTTON_LEFT,
-  BUTTON_RIGHT,
-  BUTTON_MIDDLE,
-  BUTTON_WHEEL_UP,
-  BUTTON_WHEEL_DOWN,
-  BUTTON_WHEEL_LEFT,
-  BUTTON_WHEEL_RIGHT,
-  BUTTON_UNKNOWN
+enum class button {
+  left,
+  right,
+  middle,
+  wheel_up,
+  wheel_down,
+  wheel_left,
+  wheel_right,
+  unknown
 };
 
 auto to_string(button b) -> std::string;

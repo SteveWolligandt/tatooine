@@ -5,6 +5,7 @@
 #include <tatooine/concepts.h>
 #include <tatooine/ray.h>
 #include <tatooine/vec.h>
+#include <tatooine/rendering/matrices.h>
 
 #include <array>
 //==============================================================================
@@ -23,39 +24,44 @@ struct camera : clonable<camera<Real>> {
   //----------------------------------------------------------------------------
   // typedefs
   //----------------------------------------------------------------------------
-  using this_t            = camera<Real>;
-  using real_t            = Real;
-  using parent_clonable_t = clonable<camera<Real>>;
-  using vec3              = vec<Real, 3>;
-  using mat4              = mat<Real, 4, 4>;
+  using real_t = Real;
+  using this_t = camera<Real>;
+  using vec3   = Vec3<Real>;
+  using vec4   = Vec4<Real>;
+  using mat4   = Mat4<Real>;
 
   //----------------------------------------------------------------------------
   // member variables
   //----------------------------------------------------------------------------
  private:
-  vec3                  m_eye, m_lookat, m_up;
-  std::array<size_t, 2> m_resolution;
+  vec3         m_eye, m_lookat, m_up;
+  Real         m_near, m_far;
+  Vec4<size_t> m_viewport;
 
   //----------------------------------------------------------------------------
   // constructors / destructor
   //----------------------------------------------------------------------------
  public:
-  camera(vec3 const& eye, vec3 const& lookat, vec3 const& up, size_t res_x,
-         size_t res_y)
-      : m_eye{eye}, m_lookat{lookat}, m_up{up}, m_resolution{res_x, res_y} {}
+  camera(vec3 const& eye, vec3 const& lookat, vec3 const& up, Real near,
+         Real far, size_t res_x, size_t res_y)
+      : m_eye{eye},
+        m_lookat{lookat},
+        m_up{up},
+        m_near{near},
+        m_far{far},
+        m_viewport{0, 0, res_x, res_x} {}
   virtual ~camera() = default;
   //----------------------------------------------------------------------------
   // object methods
   //----------------------------------------------------------------------------
   /// Returns number of pixels of plane in x-direction.
-  auto plane_width() const { return m_resolution[0]; }
+  auto plane_width() const { return m_viewport(2); }
   //----------------------------------------------------------------------------
   /// Returns number of pixels of plane in y-direction.
-  auto plane_height() const { return m_resolution[1]; }
+  auto plane_height() const { return m_viewport(3); }
   //----------------------------------------------------------------------------
   auto aspect_ratio() const {
-    return static_cast<Real>(m_resolution[0]) /
-           static_cast<Real>(m_resolution[1]);
+    return static_cast<Real>(plane_width()) / static_cast<Real>(plane_height());
   }
   //----------------------------------------------------------------------------
   auto eye() const -> auto& { return m_eye; }
@@ -93,9 +99,18 @@ struct camera : clonable<camera<Real>> {
     m_up = up;
     setup();
   }
+  //----------------------------------------------------------------------------
+  auto set_viewport(size_t bottom, size_t left, size_t width, size_t height) {
+    m_viewport(0) = bottom;
+    m_viewport(1) = left;
+    m_viewport(2) = width;
+    m_viewport(3) = height;
+    setup();
+  }
+  //----------------------------------------------------------------------------
   auto set_resolution(size_t width, size_t height) {
-    m_resolution[0] = width;
-    m_resolution[1] = height;
+    m_viewport(2) = width;
+    m_viewport(3) = height;
     setup();
   }
   //----------------------------------------------------------------------------
@@ -107,20 +122,46 @@ struct camera : clonable<camera<Real>> {
     setup();
   }
   //----------------------------------------------------------------------------
+  auto near() const { return m_near; }
+  auto set_near(Real const near) {
+    m_near = near;
+    setup();
+  }
+  //----------------------------------------------------------------------------
+  auto far() const { return m_far; }
+  auto set_far(Real const far) {
+    m_far = far;
+    setup();
+  }
+  //----------------------------------------------------------------------------
   auto transform_matrix() const -> mat4 {
     return look_at_matrix(m_eye, m_lookat, m_up);
   }
   //----------------------------------------------------------------------------
-  auto view_matrix() const -> mat4 { return inv(transform_matrix()); }
+  auto view_matrix() const -> mat4 { return *inv(transform_matrix()); }
+  //----------------------------------------------------------------------------
+  auto unproject(vec4 x) const {
+    // Transformation of normalized coordinates between -1 and 1
+    x(0) = (x(0) - m_viewport(0)) / m_viewport(2) * 2 - 1;
+    x(1) = (m_viewport(3) - x(1) - m_viewport(1)) / m_viewport(3) * 2 - 1;
+    x(2) = 2 * x(2) - 1;
+    x(3) = 1;
+    x    = solve(projection_matrix() * *inv(transform_matrix()), x);
+    x(3) = 1.0 / x(3);
+    x(0) = x(0) * x(3);
+    x(1) = x(1) * x(3);
+    x(2) = x(2) * x(3);
+    return x;
+  }
   //----------------------------------------------------------------------------
   // interface methods
   //----------------------------------------------------------------------------
+  virtual auto setup() -> void = 0;
   /// \brief Gets a ray through plane at pixel with coordinate [x,y].
   ///
   /// [0,0] is bottom left.
   /// ray goes through center of pixel.
   /// This method must be overridden in camera implementations.
-  virtual auto setup() -> void                                     = 0;
   virtual auto ray(Real x, Real y) const -> tatooine::ray<Real, 3> = 0;
   virtual auto projection_matrix() const -> mat4                   = 0;
 };
