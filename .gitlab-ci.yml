@@ -19,9 +19,8 @@ build:
 deploy:
   stage: deploy
   script:
-    - rm -r ~/pages.vc/tatooine/
     - mkdir -p ~/pages.vc/tatooine
     - cp -r doc_build/doc/html/* ~/pages.vc/tatooine/
   only:
-    - published
+    - master
 
