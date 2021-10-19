@@ -160,69 +160,61 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
   // methods
   //----------------------------------------------------------------------------
   // auto advect_with_2_splits(real_t const tau_step, real_t const max_t,
-  //                          size_t const max_num_particles,
-  //                          bool const&  stop = false) const {
+  //                          size_t const max_num_particles) const {
   //  static real_t const sqrt2 = std::sqrt(real_t(2));
   //  return advect(tau_step, max_t, 2, max_num_particles,
-  //                std::array<real_t, 1>{sqrt2 / real_t(2)}, false, stop);
+  //                std::array<real_t, 1>{sqrt2 / real_t(2)}, false);
   //}
   ////----------------------------------------------------------------------------
-  // auto advect_with_2_splits(real_t const tau_step, real_t const max_t,
-  //                          bool const&  stop = false) const {
+  // auto advect_with_2_splits(real_t const tau_step, real_t const max_t) const {
   //  static real_t const sqrt2 = std::sqrt(real_t(2));
   //  return advect(tau_step, max_t, 2, 0,
-  //                std::array<real_t, 1>{sqrt2 / real_t(2)}, false, stop);
+  //                std::array<real_t, 1>{sqrt2 / real_t(2)}, false);
   //}
   ////----------------------------------------------------------------------------
   // static auto advect_with_2_splits(real_t const tau_step, real_t const max_t,
   //                                 size_t const        max_num_particles,
-  //                                 container_t particles,
-  //                                 bool const&         stop = false) {
+  //                                 container_t particles) {
   //  static real_t const sqrt2 = std::sqrt(real_t(2));
   //  return advect(tau_step, max_t, 2, max_num_particles,
   //                std::array<real_t, 1>{sqrt2 / real_t(2)}, false,
-  //                std::move(particles), stop);
+  //                std::move(particles));
   //}
   ////----------------------------------------------------------------------------
   // static auto advect_with_2_splits(real_t const tau_step, real_t const max_t,
-  //                                 container_t particles,
-  //                                 bool const&         stop = false) {
+  //                                 container_t particles) {
   //  static real_t const sqrt2 = std::sqrt(real_t(2));
   //  return advect(tau_step, max_t, 2, 0,
   //                std::array<real_t, 1>{sqrt2 / real_t(2)}, false,
-  //                std::move(particles), stop);
+  //                std::move(particles));
   //}
   //----------------------------------------------------------------------------
   template <typename Flowmap>
   auto advect_with_3_splits(Flowmap&& phi, real_t const tau_step,
-                            real_t const max_t,
-                            bool const&  stop = false) const {
+                            real_t const max_t) const {
     return advect_with_3_splits(std::forward<Flowmap>(phi), tau_step, max_t, 0,
-                                container_t{*this}, stop);
+                                container_t{*this});
   }
   //----------------------------------------------------------------------------
   template <typename Flowmap>
   auto advect_with_3_splits(Flowmap&& phi, real_t const tau_step,
-                            real_t const max_t, size_t const max_num_particles,
-                            bool const& stop = false) const {
+                            real_t const max_t, size_t const max_num_particles) const {
     return advect_with_3_splits(std::forward<Flowmap>(phi), tau_step, max_t,
-                                max_num_particles, container_t{*this}, stop);
+                                max_num_particles, container_t{*this});
   }
   //----------------------------------------------------------------------------
   template <typename Flowmap>
   static auto advect_with_3_splits(Flowmap&& phi, real_t const tau_step,
-                                   real_t const max_t, container_t particles,
-                                   bool const& stop = false) {
+                                   real_t const max_t, container_t particles) {
     return advect_with_3_splits(std::forward<Flowmap>(phi), tau_step, max_t, 0,
-                                std::move(particles), stop);
+                                std::move(particles));
   }
   //----------------------------------------------------------------------------
   template <typename Flowmap>
   static auto advect_with_3_splits(Flowmap&& phi, real_t const tau_step,
                                    real_t const max_t,
                                    size_t const max_num_particles,
-                                   container_t  particles,
-                                   bool const&  stop = false) {
+                                   container_t  particles) {
     [[maybe_unused]] static real_t const x5 = 0.4830517593887872;
     if constexpr (N == 2) {
       return advect(
@@ -240,7 +232,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
           // 2},
           //           vec_t{x5, x5 / 2}, vec_t{0, real_t(3) / 4},
           //           vec_t{0, -real_t(3) / 4}},
-          std::move(particles), stop);
+          std::move(particles));
     } else if constexpr (N == 3) {
       return advect(
           phi, tau_step, max_t, 4, max_num_particles,
@@ -259,134 +251,156 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
           // 2},
           //           vec_t{x5, x5 / 2}, vec_t{0, real_t(3) / 4},
           //           vec_t{0, -real_t(3) / 4}},
-          std::move(particles), stop);
+          std::move(particles));
     }
   }
   ////----------------------------------------------------------------------------
   // auto advect_with_5_splits(real_t const tau_step, real_t const max_t,
-  //                          size_t const max_num_particles,
-  //                          bool const&  stop = false) const {
+  //                          size_t const max_num_particles) const {
   //  static real_t const sqrt5 = std::sqrt(real_t(5));
   //  return advect(tau_step, max_t, 6 + sqrt5 * 2, max_num_particles,
   //                std::array{(sqrt5 + 3) / (sqrt5 * 2 + 2), 1 / (sqrt5 + 1)},
-  //                true, stop);
+  //                true);
   //}
   ////----------------------------------------------------------------------------
-  // auto advect_with_5_splits(real_t const tau_step, real_t const max_t,
-  //                          bool const&  stop = false) const {
+  // auto advect_with_5_splits(real_t const tau_step, real_t const max_t) const {
   //  static real_t const sqrt5 = std::sqrt(real_t(5));
   //  return advect(tau_step, max_t, 6 + sqrt5 * 2, 0,
   //                std::array{(sqrt5 + 3) / (sqrt5 * 2 + 2), 1 / (sqrt5 + 1)},
-  //                true, stop);
+  //                true);
   //}
   ////----------------------------------------------------------------------------
   // static auto advect_with_5_splits(real_t const tau_step, real_t const max_t,
   //                                 size_t const        max_num_particles,
-  //                                 container_t particles,
-  //                                 bool const&         stop = false) {
+  //                                 container_t particles) {
   //  static real_t const sqrt5 = std::sqrt(real_t(5));
   //  return advect(tau_step, max_t, 6 + sqrt5 * 2, max_num_particles,
   //                std::array{(sqrt5 + 3) / (sqrt5 * 2 + 2), 1 / (sqrt5 + 1)},
-  //                true, std::move(particles), stop);
+  //                true, std::move(particles));
   //}
   ////----------------------------------------------------------------------------
   // static auto advect_with_5_splits(real_t const tau_step, real_t const max_t,
-  //                                 container_t particles,
-  //                                 bool const&         stop = false) {
+  //                                 container_t particles) {
   //  static real_t const sqrt5 = std::sqrt(real_t(5));
   //  return advect(tau_step, max_t, 6 + sqrt5 * 2, 0,
   //                std::array{(sqrt5 + 3) / (sqrt5 * 2 + 2), 1 / (sqrt5 + 1)},
-  //                true, std::move(particles), stop);
+  //                true, std::move(particles));
   //}
   ////----------------------------------------------------------------------------
   // auto advect_with_7_splits(real_t const tau_step, real_t const max_t,
-  //                          size_t const max_num_particles,
-  //                          bool const&  stop = false) const {
+  //                          size_t const max_num_particles) const {
   //  return advect(tau_step, max_t, 4.493959210 * 4.493959210,
   //  max_num_particles,
   //                std::array{real_t(.9009688678), real_t(.6234898004),
   //                           real_t(.2225209338)},
-  //                true, stop);
+  //                true);
   //}
   ////----------------------------------------------------------------------------
-  // auto advect_with_7_splits(real_t const tau_step, real_t const max_t,
-  //                          bool const&  stop = false) const {
+  // auto advect_with_7_splits(real_t const tau_step, real_t const max_t) const {
   //  return advect(tau_step, max_t, 4.493959210 * 4.493959210, 0,
   //                std::array{real_t(.9009688678), real_t(.6234898004),
   //                           real_t(.2225209338)},
-  //                true, stop);
+  //                true);
   //}
   ////----------------------------------------------------------------------------
   // static auto advect_with_7_splits(real_t const tau_step, real_t const max_t,
   //                                 size_t const        max_num_particles,
-  //                                 container_t particles,
-  //                                 bool const&         stop = false) {
+  //                                 container_t particles) {
   //  return advect(tau_step, max_t, 4.493959210 * 4.493959210,
   //  max_num_particles,
   //                std::array{real_t(.9009688678), real_t(.6234898004),
   //                           real_t(.2225209338)},
-  //                true, std::move(particles), stop);
+  //                true, std::move(particles));
   //}
   ////----------------------------------------------------------------------------
   // static auto advect_with_7_splits(real_t const tau_step, real_t const max_t,
-  //                                 container_t particles,
-  //                                 bool const&         stop = false) {
+  //                                 container_t particles) {
   //  return advect(tau_step, max_t, 4.493959210 * 4.493959210, 0,
   //                std::array{real_t(.9009688678), real_t(.6234898004),
   //                           real_t(.2225209338)},
-  //                true, std::move(particles), stop);
+  //                true, std::move(particles));
   //}
   //----------------------------------------------------------------------------
   template <typename Flowmap>
   auto advect(Flowmap& phi, real_t const tau_step, real_t const max_t,
               real_t const objective_cond, size_t const max_num_particles,
-              range auto const radii, range auto const& offsets,
-              bool const& stop = false) const {
+              range auto const radii, range auto const& offsets) const {
     return advect(phi, tau_step, max_t, objective_cond, max_num_particles,
-                  radii, offsets, {*this}, stop);
+                  radii, offsets, {*this});
   }
   //----------------------------------------------------------------------------
   template <typename Flowmap>
   static auto advect(Flowmap& phi, real_t const tau_step, real_t const max_t,
                      real_t const objective_cond,
                      size_t const max_num_particles, range auto const radii,
-                     range auto const& offsets, container_t input_particles,
-                     bool const& stop = false) {
-    auto finished_particles_mutex = std::mutex{};
-    auto advected_particles_mutex = std::mutex{};
-    auto finished_particles       = container_t{};
-    auto particles = std::array{std::move(input_particles), container_t{}};
-    auto particles_to_be_advected = &particles[0];
-    auto advected_particles       = &particles[1];
-    while (!particles_to_be_advected->empty()) {
-      if (stop) {
-        break;
+                     range auto const& offsets, container_t particles) {
+    auto finished_particles = container_t{};
+    auto max_threads        = static_cast<size_t>(omp_get_max_threads());
+
+    while (!particles.empty()) {
+      auto particle_pools           = std::vector<container_t>(max_threads);
+      auto advected_particles       = std::vector<container_t>(max_threads);
+      auto local_finished_particles = std::vector(max_threads, container_t{});
+      std::cout << "creating particle pools...";
+#pragma omp parallel
+      {
+        // distribute particles
+        const int  ithread  = omp_get_thread_num();
+        const int  nthreads = omp_get_num_threads();
+        const int  start    = ithread * size(particles) / nthreads;
+        const int  finish   = (ithread + 1) * size(particles) / nthreads;
+        auto const beg      = begin(particles);
+        particle_pools[ithread] =
+            container_t{next(beg, start), next(beg, finish)};
       }
-      advected_particles->clear();
-      //#pragma omp parallel for
-      for (size_t i = 0; i < particles_to_be_advected->size(); ++i) {
-        if (!stop) {
-          particles_to_be_advected->at(i).advect_until_split(
+      std::cout << "creating particle pools... done!";
+      for (auto& pool : particle_pools) {
+        std::cout << pool.size() << '\n';
+      }
+      std::cout << "clearing particles\n";
+      particles.clear();
+      std::cout << "advecting particle pools...\n";
+#pragma omp parallel
+      {
+        // advect particle pools
+        auto const  thr_id        = omp_get_thread_num();
+        auto const& particle_pool = particle_pools[thr_id];
+        for (auto const& particle : particle_pool) {
+          particle.advect_until_split(
               phi, tau_step, max_t, objective_cond, radii, offsets,
-              *advected_particles, advected_particles_mutex, finished_particles,
-              finished_particles_mutex);
+              advected_particles[thr_id], local_finished_particles[thr_id]);
         }
       }
+      std::cout << "advecting particle pools... done!\n";
 
-      std::swap(particles_to_be_advected, advected_particles);
-      if (max_num_particles > 0 &&
-          particles_to_be_advected->size() > max_num_particles) {
+      // gather advected particles into combined thread pool
+      std::cout << "gathering particles from pools...\n";
+      for (size_t i = 0; i < max_threads; ++i) {
+        std::copy(begin(advected_particles[i]), end(advected_particles[i]),
+                  std::back_inserter(particles));
+        advected_particles[i].clear();
+      }
+      std::cout << "gathering particles from pools... done!\n";
+      std::cout << "gathering finished particles from pools...\n";
+      for (size_t i = 0; i < max_threads; ++i) {
+        std::copy(begin(local_finished_particles[i]),
+                  end(local_finished_particles[i]),
+                  std::back_inserter(finished_particles));
+        local_finished_particles[i].clear();
+      }
+      std::cout << "gathering finished particles from pools... done!\n";
+
+      if (max_num_particles > 0 && particles.size() > max_num_particles) {
         size_t const num_particles_to_delete =
-            particles_to_be_advected->size() - max_num_particles;
+            particles.size() - max_num_particles;
 
         for (size_t i = 0; i < num_particles_to_delete; ++i) {
-          random::uniform<size_t> rand{0, particles_to_be_advected->size() - 1};
-          particles_to_be_advected->at(rand()) =
-              std::move(particles_to_be_advected->back());
-          particles_to_be_advected->pop_back();
+          random::uniform<size_t> rand{0, particles.size() - 1};
+          particles.at(rand()) = std::move(particles.back());
+          particles.pop_back();
         }
       }
-      particles_to_be_advected->shrink_to_fit();
+      particles.shrink_to_fit();
     }
     while (max_num_particles > 0 &&
            size(finished_particles) > max_num_particles) {
@@ -398,26 +412,23 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
   }
 
   //----------------------------------------------------------------------------
-  template <typename Flowmap>
-  auto advect_until_split(Flowmap& phi, real_t const tau_step,
-                          real_t const max_t, real_t const objective_cond,
-                          range auto const  radii,
-                          range auto const& offsets) const -> container_t {
-    auto advected = container_t{};
-    auto mut      = std::mutex{};
-
-    advect_until_split(phi, tau_step, max_t, objective_cond, radii, offsets,
-                       advected, mut, advected, mut);
-
-    return advected;
-  }
+  //template <typename Flowmap>
+  //auto advect_until_split(Flowmap& phi, real_t const tau_step,
+  //                        real_t const max_t, real_t const objective_cond,
+  //                        range auto const  radii,
+  //                        range auto const& offsets) const -> container_t {
+  //  auto advected = container_t{};
+  //  advect_until_split(phi, tau_step, max_t, objective_cond, radii, offsets,
+  //                     advected, advected);
+  //
+  //  return advected;
+  //}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename Flowmap>
   auto advect_until_split(Flowmap&& phi, real_t tau_step, real_t const max_t,
                           real_t const objective_cond, range auto const radii,
                           range auto const& offsets, range auto& out,
-                          auto& out_mutex, range auto& finished_particles,
-                          auto& finished_particles_mutex) const {
+                          range auto& finished_particles) const {
     bool                    tau_should_have_changed_but_did_not = false;
     static constexpr real_t min_tau_step                        = 1e-8;
     static constexpr real_t max_cond_overshoot                  = 1e-6;
@@ -487,7 +498,6 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
       }
 
       if (t2 == max_t && cond_HHt <= objective_cond + max_cond_overshoot) {
-        auto lock = std::lock_guard{finished_particles_mutex};
         finished_particles.emplace_back(m_x0, t2, fmg2fmg1, advected_ellipse);
         return;
       }
@@ -505,14 +515,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
           auto       offset_ellipse =
               ellipse_t{advected_ellipse.center() + offset2,
                         cur_Q * diag(new_eigvals) * transposed(cur_Q)};
-          std::lock_guard lock{out_mutex};
           out.emplace_back(m_x0 + offset0, t2, fmg2fmg1, offset_ellipse);
-          // std::lock_guard lock2{finished_particles_mutex};
-          // finished_particles.push_back(out.back());
         }
-        // std::lock_guard lock{finished_particles_mutex};
-        // finished_particles.emplace_back(m_x0, advected_center, t2,
-        // fmg2fmg1, cur_S);
         return;
       }
       if (cond_HHt > objective_cond + max_cond_overshoot) {
