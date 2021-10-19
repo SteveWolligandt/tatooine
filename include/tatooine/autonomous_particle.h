@@ -341,19 +341,19 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
       auto particle_pools           = std::vector<container_t>(max_threads);
       auto advected_particles       = std::vector<container_t>(max_threads);
       auto local_finished_particles = std::vector(max_threads, container_t{});
-      std::cout << "creating particle pools...";
+      std::cout << "creating particle pools...\n";
 #pragma omp parallel
       {
         // distribute particles
-        const int  ithread  = omp_get_thread_num();
-        const int  nthreads = omp_get_num_threads();
-        const int  start    = ithread * size(particles) / nthreads;
-        const int  finish   = (ithread + 1) * size(particles) / nthreads;
-        auto const beg      = begin(particles);
-        particle_pools[ithread] =
+        auto const thr_id      = omp_get_thread_num();
+        auto const num_threads = omp_get_num_threads();
+        auto const start       = thr_id * size(particles) / num_threads;
+        auto const finish      = (thr_id + 1) * size(particles) / num_threads;
+        auto const beg         = begin(particles);
+        particle_pools[thr_id] =
             container_t{next(beg, start), next(beg, finish)};
       }
-      std::cout << "creating particle pools... done!";
+      std::cout << "creating particle pools... done!\n";
       for (auto& pool : particle_pools) {
         std::cout << pool.size() << '\n';
       }
@@ -363,9 +363,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
 #pragma omp parallel
       {
         // advect particle pools
-        auto const  thr_id        = omp_get_thread_num();
-        auto const& particle_pool = particle_pools[thr_id];
-        for (auto const& particle : particle_pool) {
+        auto const thr_id = omp_get_thread_num();
+        for (auto const& particle : particle_pools[thr_id]) {
           particle.advect_until_split(
               phi, tau_step, max_t, objective_cond, radii, offsets,
               advected_particles[thr_id], local_finished_particles[thr_id]);
