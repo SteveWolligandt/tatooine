@@ -58,6 +58,30 @@ struct autonomous_particle_sampler {
    auto operator()(pos_t const& x, tag::backward_t /*tag*/) const {
      return sample_backward(x);
    }
+   auto is_inside0(pos_t const& x) const { return m_ellipse0.is_inside(x); }
+   auto is_inside(pos_t const& x, tag::forward_t /*tag*/) const {
+     return is_inside0(x);
+   }
+   auto is_inside1(pos_t const& x) const { return m_ellipse1.is_inside(x); }
+   auto is_inside(pos_t const& x, tag::backward_t /*tag*/) const {
+     return is_inside1(x);
+   }
+   auto center(tag::forward_t /*tag*/) const -> auto const& {
+     return m_ellipse0.center();
+   }
+   auto center(tag::backward_t/*tag*/) const -> auto const& {
+     return m_ellipse1.center();
+   }
+   auto distance_sqr(pos_t const& x, tag::forward_t tag) const {
+     return tatooine::length(m_nabla_phi * (x - center(tag)));
+   }
+   auto distance_sqr(pos_t const& x, tag::backward_t tag) const {
+     return tatooine::length(solve(m_nabla_phi, (x - center(tag))));
+   }
+   template <typename Tag>
+   auto distance(pos_t const& x, Tag tag) const {
+     return distance_sqr(x, tag);
+   }
 };
 //==============================================================================
 template <typename Real, size_t N>
@@ -621,8 +645,8 @@ autonomous_particle<Real, N>::autonomous_particle(pos_t const&     x0,
 //==============================================================================
 template <size_t N>
 using AutonomousParticle   = autonomous_particle<real_t, N>;
-using autonomous_particle2 = AutonomousParticle<2>;
-using autonomous_particle3 = AutonomousParticle<3>;
+using autonomous_particle_2 = AutonomousParticle<2>;
+using autonomous_particle_3 = AutonomousParticle<3>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
