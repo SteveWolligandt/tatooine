@@ -130,6 +130,26 @@ auto solve(base_tensor<TensorA, Real, M, N> const& A,
     throw std::runtime_error{"System is under-determined."};
   }
 }
+//// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//template <typename TensorA, typename TensorB, typename Real>
+//auto solve(base_tensor<TensorA, Real, 2, 2> const& A,
+//           base_tensor<TensorB, Real, 2> const&    b) {
+//  auto A_inv_opt = inv(A);
+//  if (!A_inv_opt) {
+//    throw std::runtime_error { "System has not full rank" }
+//  };
+//  return *A_inv_opt * b;
+//}
+//// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//template <typename TensorA, typename TensorB, typename Real, size_t K>
+//auto solve(base_tensor<TensorA, Real, 2, 2> const& A,
+//           base_tensor<TensorB, Real, 2, K> const& B) {
+//  auto A_inv_opt = inv(A);
+//  if (!A_inv_opt) {
+//    throw std::runtime_error { "System has not full rank" }
+//  };
+//  return *A_inv_opt * B;
+//}
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
 auto solve(tensor<T> const& A, tensor<T> const& B) {

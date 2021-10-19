@@ -19,18 +19,21 @@ struct autonomous_particle_sampler {
 
   private:
   ellipse_t m_ellipse0, m_ellipse1;
-  mat_t     m_nabla_phi;
+  mat_t     m_nabla_phi, m_nabla_phi_inv;
 
  public:
   autonomous_particle_sampler(autonomous_particle_sampler const&)     = default;
   autonomous_particle_sampler(autonomous_particle_sampler&&) noexcept = default;
-  auto operator                       =(autonomous_particle_sampler const&)
+  auto operator=(autonomous_particle_sampler const&)
       -> autonomous_particle_sampler& = default;
-  auto operator                       =(autonomous_particle_sampler&&) noexcept
+  auto operator=(autonomous_particle_sampler&&) noexcept
       -> autonomous_particle_sampler& = default;
   autonomous_particle_sampler(ellipse_t const& e0, ellipse_t const& e1,
                               mat_t const& nabla_phi)
-      : m_ellipse0{e0}, m_ellipse1{e1}, m_nabla_phi{nabla_phi} {}
+      : m_ellipse0{e0},
+        m_ellipse1{e1},
+        m_nabla_phi{nabla_phi},
+        m_nabla_phi_inv{*inv(nabla_phi)} {}
 
   auto ellipse(tag::forward_t) const -> auto const& { return m_ellipse0; }
   auto ellipse(tag::backward_t) const -> auto const& { return m_ellipse1; }
@@ -47,37 +50,13 @@ struct autonomous_particle_sampler {
      return sample_forward(x);
    }
    auto sample_backward(pos_t const& x) const {
-     return ellipse0().center() + solve(m_nabla_phi, x - ellipse1().center());
+     return ellipse0().center() + m_nabla_phi_inv * (x - ellipse1().center());
    }
    auto sample(pos_t const& x, tag::backward_t /*tag*/) const {
      return sample_backward(x);
    }
    auto operator()(pos_t const& x, tag::backward_t /*tag*/) const {
      return sample_backward(x);
-   }
-   auto is_inside0(pos_t const& x) const { return m_ellipse0.is_inside(x); }
-   auto is_inside(pos_t const& x, tag::forward_t /*tag*/) const {
-     return is_inside0(x);
-   }
-   auto is_inside1(pos_t const& x) const { return m_ellipse1.is_inside(x); }
-   auto is_inside(pos_t const& x, tag::backward_t /*tag*/) const {
-     return is_inside1(x);
-   }
-   auto center(tag::forward_t /*tag*/) const -> auto const& {
-     return m_ellipse0.center();
-   }
-   auto center(tag::backward_t/*tag*/) const -> auto const& {
-     return m_ellipse1.center();
-   }
-   auto distance_sqr(pos_t const& x, tag::forward_t tag) const {
-     return tatooine::length(m_nabla_phi * (x - center(tag)));
-   }
-   auto distance_sqr(pos_t const& x, tag::backward_t tag) const {
-     return tatooine::length(solve(m_nabla_phi, (x - center(tag))));
-   }
-   template <typename Tag>
-   auto distance(pos_t const& x, Tag tag) const {
-     return distance_sqr(x, tag);
    }
 };
 //==============================================================================
@@ -541,8 +520,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
     }
   }
   auto sampler() const {
-    return sampler_t{initial_ellipse(), *this,
-                                                m_nabla_phi1};
+    return sampler_t{initial_ellipse(), *this, m_nabla_phi1};
   }
 };
 //==============================================================================

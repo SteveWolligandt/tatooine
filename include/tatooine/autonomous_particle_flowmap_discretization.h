@@ -34,8 +34,8 @@ struct autonomous_particle_flowmap_discretization {
     auto initial_particle_distribution = g.copy_without_properties();
     std::deque<autonomous_particle<Real, NumDimensions>> particles;
     for (size_t i = 0; i < NumDimensions; ++i) {
-      initial_particle_distribution.dimension(i).pop_front();
       auto const spacing = initial_particle_distribution.dimension(i).spacing();
+      initial_particle_distribution.dimension(i).pop_front();
       initial_particle_distribution.dimension(i).front() -= spacing / 2;
       initial_particle_distribution.dimension(i).back() -= spacing / 2;
     }
@@ -45,22 +45,25 @@ struct autonomous_particle_flowmap_discretization {
               initial_particle_distribution.vertex_at(is...), t0,
               initial_particle_distribution.dimension(0).spacing() / 2);
         });
-    //auto const small_particle_size =
-    //    std::sqrt(2.0 * initial_particle_distribution.dimension(0).spacing()) -
-    //    initial_particle_distribution.dimension(0).spacing();
-    //
-    //for (size_t i = 0; i < NumDimensions; ++i) {
-    //  initial_particle_distribution.dimension(i).pop_front();
-    //  auto const spacing = initial_particle_distribution.dimension(i).spacing();
-    //  initial_particle_distribution.dimension(i).front() -= spacing / 2;
-    //  initial_particle_distribution.dimension(i).back() -= spacing / 2;
-    //}
-    //initial_particle_distribution.vertices().iterate_indices(
-    //    [&](auto const... is) {
-    //      particles.emplace_back(
-    //          initial_particle_distribution.vertex_at(is...), t0,
-    //          small_particle_size);
-    //    });
+    auto const small_particle_size =
+        (std::sqrt(2 * initial_particle_distribution.dimension(0).spacing() *
+                   initial_particle_distribution.dimension(0).spacing()) -
+         initial_particle_distribution.dimension(0).spacing()) /
+        2;
+
+    std::cerr << small_particle_size << '\n';
+    for (size_t i = 0; i < NumDimensions; ++i) {
+      auto const spacing = initial_particle_distribution.dimension(i).spacing();
+      initial_particle_distribution.dimension(i).pop_front();
+      initial_particle_distribution.dimension(i).front() -= spacing / 2;
+      initial_particle_distribution.dimension(i).back() -= spacing / 2;
+    }
+    initial_particle_distribution.vertices().iterate_indices(
+        [&](auto const... is) {
+          particles.emplace_back(
+              initial_particle_distribution.vertex_at(is...), t0,
+              small_particle_size);
+        });
     fill(std::forward<Flowmap>(flowmap), particles, t0 + tau, tau_step);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -111,7 +114,8 @@ struct autonomous_particle_flowmap_discretization {
     auto shortest_distance = std::numeric_limits<real_t>::infinity();
     sampler_t const* nearest_sampler   = nullptr;
     for (auto const& sampler : m_samplers) {
-      if (auto const dist = sampler.distance(x, tag);
+      if (auto const dist =
+              sampler.ellipse(tag).squared_euclidean_distance_to_center(x);
           dist < shortest_distance) {
         shortest_distance = dist;
         nearest_sampler   = &sampler;
