@@ -129,7 +129,7 @@ endif()
 #===============================================================================
 # OpenMP
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-find_package(OpenMP REQUIRED)
+find_package(OpenMP REQUIRED COMPONENTS CXX)
 option(TATOOINE_COMPILE_WITH_OPENMP "" ON)
 if (TATOOINE_COMPILE_WITH_OPENMP)
   set(TATOOINE_OPENMP_AVAILABLE 1)
