@@ -63,6 +63,8 @@ auto main(int argc, char** argv) -> int {
     //----------------------------------------------------------------------------
     indicator.set_text("Writing Autonomous Particles Results");
     {
+      autonomous_disc.mesh0().write_vtk("doublegyre_grid_autonomous_mesh0.vtk");
+      autonomous_disc.mesh1().write_vtk("doublegyre_grid_autonomous_mesh1.vtk");
       std::vector<line2> all_advected_discretizations;
       std::vector<line2> all_initial_discretizations;
       for (auto const& sampler : autonomous_disc.samplers()) {
