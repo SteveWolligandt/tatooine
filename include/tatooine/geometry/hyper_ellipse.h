@@ -10,11 +10,12 @@ template <floating_point Real, size_t N>
 struct hyper_ellipse {
   using this_t = hyper_ellipse<Real, N>;
   using vec_t = vec<Real, N>;
+  using pos_t = vec_t;
   using mat_t = mat<Real, N, N>;
 
  private:
   vec_t m_center = vec_t::zeros();
-  mat_t m_S = mat_t::eye();
+  mat_t m_S      = mat_t::eye();
 
  public:
   //----------------------------------------------------------------------------
@@ -73,6 +74,44 @@ struct hyper_ellipse {
   //----------------------------------------------------------------------------
   auto center() const -> auto const& { return m_center; }
   auto center() -> auto& { return m_center; }
+  //----------------------------------------------------------------------------
+  auto local_coordinate(pos_t const& x) const {
+    return solve(S(), (x - center()));
+  }
+  //----------------------------------------------------------------------------
+  auto squared_euclidean_distance_to_center(pos_t const& x) const {
+    return squared_euclidean_distance(x, center());
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto euclidean_distance_to_center(pos_t const& x) const {
+    return distance(x, center());
+  }
+  //----------------------------------------------------------------------------
+  auto local_squared_distance_to_center(pos_t const& x) const {
+    return squared_euclidean_length(local_coordinate(x));
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto local_distance_to_center(pos_t const& x) const {
+    return euclidean_length(local_coordinate());
+  }
+  //----------------------------------------------------------------------------
+  /// Computes euclidean distance to nearest boundary point
+  constexpr auto distance_to_boundary(pos_t const& x) const {
+    auto const x_local        = local_coordinate();
+    auto const local_distance_to_point = euclidian_length(x_local);
+    auto const local_point_on_boundary = x_local / local_distance_to_point;
+    auto const local_offset_to_boundary    = x_local - local_point_on_boundary;
+    return euclidian_length(m_S * local_offset_to_boundary);
+  }
+  //----------------------------------------------------------------------------
+  auto local_nearest_point_boundary(pos_t const& x) const {
+    auto const local_point_on_boundary = normalize(local_coordinate());
+    return local_point_on_boundary;
+  }
+  //----------------------------------------------------------------------------
+  auto nearest_point_boundary(pos_t const& x) const {
+    return S() * local_nearest_point_boundary(x) + center();
+  }
   //============================================================================
   private:
   /// Fits an ellipse through specified points
@@ -119,19 +158,8 @@ struct hyper_ellipse {
   /// Checks if a point x is inside the ellipse.
   /// \param x point to check
   /// \returns true if x is inside ellipse.
-  constexpr auto is_inside(vec<Real, N> const& x) const {
-    return sqr_length(solve(m_S, x - m_center)) <= 1;
-  }
-  //----------------------------------------------------------------------------
-  /// Checks if a point x is inside the ellipse.
-  /// \param x point to check
-  /// \returns true if x is inside ellipse.
-  constexpr auto distance_to_boundary(vec<Real, N> const& x) const {
-    auto const local_coordinate        = solve(m_S, x - m_center);
-    auto const local_distance_to_point = length(local_coordinate);
-    auto const local_point_on_boundary = local_coordinate / local_distance_to_point;
-    auto const local_offset_to_boundary    = local_coordinate - local_point_on_boundary;
-    return length(m_S * local_offset_to_boundary);
+  constexpr auto is_inside(pos_t const& x) const {
+    return squared_euclidean_length(solve(m_S, x - m_center)) <= 1;
   }
 };
 //==============================================================================
