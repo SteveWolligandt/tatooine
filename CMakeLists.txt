@@ -157,9 +157,9 @@ target_compile_definitions(tatooine PUBLIC LAPACK_COMPLEX_CPP)
 target_link_libraries(tatooine PUBLIC lapackpp)
 list(APPEND TATOOINE_EXPORTING_TARGETS lapackpp)
 
-#===============================================================================
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Boost
-#===============================================================================
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 if(TATOOINE_STD_FILESYSTEM_AVAILABLE)
   find_package(Boost REQUIRED COMPONENTS program_options)
   target_link_libraries(tatooine PUBLIC
