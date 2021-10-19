@@ -224,7 +224,6 @@ struct autonomous_particle_flowmap_discretization {
     for (size_t i = 0; i < NumDimensions; ++i) {
       auto const spacing = initial_particle_distribution.dimension(i).spacing();
       initial_particle_distribution.dimension(i).pop_front();
-      auto const spacing = initial_particle_distribution.dimension(i).spacing();
       initial_particle_distribution.dimension(i).front() -= spacing / 2;
       initial_particle_distribution.dimension(i).back() -= spacing / 2;
     }
