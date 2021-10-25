@@ -220,7 +220,7 @@ struct autonomous_particle_flowmap_discretization {
         std::decay_t<Flowmap>::num_dimensions() == NumDimensions,
         "Number of dimensions of flowmap does not match number of dimensions.");
     auto initial_particle_distribution = g.copy_without_properties();
-    std::deque<autonomous_particle<Real, NumDimensions>> particles;
+    std::vector<autonomous_particle<Real, NumDimensions>> particles;
     for (size_t i = 0; i < NumDimensions; ++i) {
       auto const spacing = initial_particle_distribution.dimension(i).spacing();
       initial_particle_distribution.dimension(i).pop_front();
@@ -259,7 +259,7 @@ struct autonomous_particle_flowmap_discretization {
   autonomous_particle_flowmap_discretization(
       Flowmap&& flowmap, arithmetic auto const t1,
       arithmetic auto const tau_step,
-      std::deque<autonomous_particle<Real, NumDimensions>> const&
+      std::vector<autonomous_particle<Real, NumDimensions>> const&
           initial_particles) {
     static_assert(
         std::decay_t<Flowmap>::num_dimensions() == NumDimensions,
@@ -275,7 +275,7 @@ struct autonomous_particle_flowmap_discretization {
     static_assert(
         std::decay_t<Flowmap>::num_dimensions() == NumDimensions,
         "Number of dimensions of flowmap does not match number of dimensions.");
-    fill(std::forward<Flowmap>(flowmap), std::deque{initial_particle}, t1,
+    fill(std::forward<Flowmap>(flowmap), std::vector{initial_particle}, t1,
          tau_step);
   }
   //============================================================================

@@ -1,32 +1,33 @@
 #ifndef TATOOINE_AUTONOMOUS_PARTICLES
 #define TATOOINE_AUTONOMOUS_PARTICLES
 //==============================================================================
-#include <tatooine/tensor.h>
 #include <tatooine/concepts.h>
+#include <tatooine/cache_alignment.h>
+#include <tatooine/geometry/hyper_ellipse.h>
 #include <tatooine/numerical_flowmap.h>
 #include <tatooine/random.h>
-#include <tatooine/geometry/hyper_ellipse.h>
 #include <tatooine/tags.h>
+#include <tatooine/tensor.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
 template <typename Real, size_t N>
 struct autonomous_particle_sampler {
-  using vec_t = vec<Real, N>;
-  using pos_t = vec_t;
-  using mat_t = mat<Real, N, N>;
+  using vec_t     = vec<Real, N>;
+  using pos_t     = vec_t;
+  using mat_t     = mat<Real, N, N>;
   using ellipse_t = geometry::hyper_ellipse<Real, N>;
 
-  private:
+ private:
   ellipse_t m_ellipse0, m_ellipse1;
   mat_t     m_nabla_phi, m_nabla_phi_inv;
 
  public:
   autonomous_particle_sampler(autonomous_particle_sampler const&)     = default;
   autonomous_particle_sampler(autonomous_particle_sampler&&) noexcept = default;
-  auto operator=(autonomous_particle_sampler const&)
+  auto operator                       =(autonomous_particle_sampler const&)
       -> autonomous_particle_sampler& = default;
-  auto operator=(autonomous_particle_sampler&&) noexcept
+  auto operator                       =(autonomous_particle_sampler&&) noexcept
       -> autonomous_particle_sampler& = default;
   autonomous_particle_sampler(ellipse_t const& e0, ellipse_t const& e1,
                               mat_t const& nabla_phi)
@@ -40,48 +41,48 @@ struct autonomous_particle_sampler {
   auto ellipse0() const -> auto const& { return m_ellipse0; }
   auto ellipse1() const -> auto const& { return m_ellipse1; }
 
-   auto sample_forward(pos_t const& x) const {
-     return ellipse1().center() + m_nabla_phi * (x - ellipse0().center());
-   }
-   auto operator()(pos_t const& x, tag::forward_t /*tag*/) const {
-     return sample_forward(x);
-   }
-   auto sample(pos_t const& x, tag::forward_t /*tag*/) const {
-     return sample_forward(x);
-   }
-   auto sample_backward(pos_t const& x) const {
-     return ellipse0().center() + m_nabla_phi_inv * (x - ellipse1().center());
-   }
-   auto sample(pos_t const& x, tag::backward_t /*tag*/) const {
-     return sample_backward(x);
-   }
-   auto operator()(pos_t const& x, tag::backward_t /*tag*/) const {
-     return sample_backward(x);
-   }
-   auto is_inside0(pos_t const& x) const { return m_ellipse0.is_inside(x); }
-   auto is_inside(pos_t const& x, tag::forward_t /*tag*/) const {
-     return is_inside0(x);
-   }
-   auto is_inside1(pos_t const& x) const { return m_ellipse1.is_inside(x); }
-   auto is_inside(pos_t const& x, tag::backward_t /*tag*/) const {
-     return is_inside1(x);
-   }
-   auto center(tag::forward_t /*tag*/) const -> auto const& {
-     return m_ellipse0.center();
-   }
-   auto center(tag::backward_t/*tag*/) const -> auto const& {
-     return m_ellipse1.center();
-   }
-   auto distance_sqr(pos_t const& x, tag::forward_t tag) const {
-     return tatooine::length(m_nabla_phi * (x - center(tag)));
-   }
-   auto distance_sqr(pos_t const& x, tag::backward_t tag) const {
-     return tatooine::length(solve(m_nabla_phi, (x - center(tag))));
-   }
-   template <typename Tag>
-   auto distance(pos_t const& x, Tag tag) const {
-     return distance_sqr(x, tag);
-   }
+  auto sample_forward(pos_t const& x) const {
+    return ellipse1().center() + m_nabla_phi * (x - ellipse0().center());
+  }
+  auto operator()(pos_t const& x, tag::forward_t /*tag*/) const {
+    return sample_forward(x);
+  }
+  auto sample(pos_t const& x, tag::forward_t /*tag*/) const {
+    return sample_forward(x);
+  }
+  auto sample_backward(pos_t const& x) const {
+    return ellipse0().center() + m_nabla_phi_inv * (x - ellipse1().center());
+  }
+  auto sample(pos_t const& x, tag::backward_t /*tag*/) const {
+    return sample_backward(x);
+  }
+  auto operator()(pos_t const& x, tag::backward_t /*tag*/) const {
+    return sample_backward(x);
+  }
+  auto is_inside0(pos_t const& x) const { return m_ellipse0.is_inside(x); }
+  auto is_inside(pos_t const& x, tag::forward_t /*tag*/) const {
+    return is_inside0(x);
+  }
+  auto is_inside1(pos_t const& x) const { return m_ellipse1.is_inside(x); }
+  auto is_inside(pos_t const& x, tag::backward_t /*tag*/) const {
+    return is_inside1(x);
+  }
+  auto center(tag::forward_t /*tag*/) const -> auto const& {
+    return m_ellipse0.center();
+  }
+  auto center(tag::backward_t /*tag*/) const -> auto const& {
+    return m_ellipse1.center();
+  }
+  auto distance_sqr(pos_t const& x, tag::forward_t tag) const {
+    return tatooine::length(m_nabla_phi * (x - center(tag)));
+  }
+  auto distance_sqr(pos_t const& x, tag::backward_t tag) const {
+    return tatooine::length(solve(m_nabla_phi, (x - center(tag))));
+  }
+  template <typename Tag>
+  auto distance(pos_t const& x, Tag tag) const {
+    return distance_sqr(x, tag);
+  }
 };
 //==============================================================================
 template <typename Real, size_t N>
@@ -97,7 +98,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
   using vec_t                = vec<real_t, N>;
   using mat_t                = mat<real_t, N, N>;
   using pos_t                = vec_t;
-  using container_t          = std::deque<autonomous_particle<Real, N>>;
+  using container_t          = std::vector<autonomous_particle<Real, N>>;
   using ellipse_t            = geometry::hyper_ellipse<Real, N>;
   using parent_t             = ellipse_t;
   using sampler_t            = autonomous_particle_sampler<Real, N>;
@@ -166,7 +167,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
   //                std::array<real_t, 1>{sqrt2 / real_t(2)}, false);
   //}
   ////----------------------------------------------------------------------------
-  // auto advect_with_2_splits(real_t const tau_step, real_t const max_t) const {
+  // auto advect_with_2_splits(real_t const tau_step, real_t const max_t) const
+  // {
   //  static real_t const sqrt2 = std::sqrt(real_t(2));
   //  return advect(tau_step, max_t, 2, 0,
   //                std::array<real_t, 1>{sqrt2 / real_t(2)}, false);
@@ -198,7 +200,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
   //----------------------------------------------------------------------------
   template <typename Flowmap>
   auto advect_with_3_splits(Flowmap&& phi, real_t const tau_step,
-                            real_t const max_t, size_t const max_num_particles) const {
+                            real_t const max_t,
+                            size_t const max_num_particles) const {
     return advect_with_3_splits(std::forward<Flowmap>(phi), tau_step, max_t,
                                 max_num_particles, container_t{*this});
   }
@@ -263,7 +266,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
   //                true);
   //}
   ////----------------------------------------------------------------------------
-  // auto advect_with_5_splits(real_t const tau_step, real_t const max_t) const {
+  // auto advect_with_5_splits(real_t const tau_step, real_t const max_t) const
+  // {
   //  static real_t const sqrt5 = std::sqrt(real_t(5));
   //  return advect(tau_step, max_t, 6 + sqrt5 * 2, 0,
   //                std::array{(sqrt5 + 3) / (sqrt5 * 2 + 2), 1 / (sqrt5 + 1)},
@@ -296,7 +300,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
   //                true);
   //}
   ////----------------------------------------------------------------------------
-  // auto advect_with_7_splits(real_t const tau_step, real_t const max_t) const {
+  // auto advect_with_7_splits(real_t const tau_step, real_t const max_t) const
+  // {
   //  return advect(tau_step, max_t, 4.493959210 * 4.493959210, 0,
   //                std::array{real_t(.9009688678), real_t(.6234898004),
   //                           real_t(.2225209338)},
@@ -334,60 +339,69 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
                      real_t const objective_cond,
                      size_t const max_num_particles, range auto const radii,
                      range auto const& offsets, container_t particles) {
-    auto finished_particles = container_t{};
-    auto max_threads        = static_cast<size_t>(omp_get_max_threads());
+    auto       finished_particles = container_t{};
+    auto const num_threads =
+        static_cast<size_t>(std::thread::hardware_concurrency());
 
     while (!particles.empty()) {
-      auto particle_pools           = std::vector<container_t>(max_threads);
-      auto advected_particles       = std::vector<container_t>(max_threads);
-      auto local_finished_particles = std::vector(max_threads, container_t{});
-      std::cout << "creating particle pools...\n";
-#pragma omp parallel
+      auto particle_pools           = std::vector<aligned<container_t>>(num_threads);
+      auto advected_particles       = std::vector<aligned<container_t>>(num_threads);
+      auto local_finished_particles = std::vector(num_threads, aligned<container_t>{});
       {
         // distribute particles
-        auto const thr_id      = omp_get_thread_num();
-        auto const num_threads = omp_get_num_threads();
-        auto const start       = thr_id * size(particles) / num_threads;
-        auto const finish      = (thr_id + 1) * size(particles) / num_threads;
-        auto const beg         = begin(particles);
-        particle_pools[thr_id] =
-            container_t{next(beg, start), next(beg, finish)};
-      }
-      std::cout << "creating particle pools... done!\n";
-      for (auto& pool : particle_pools) {
-        std::cout << pool.size() << '\n';
-      }
-      std::cout << "clearing particles\n";
-      particles.clear();
-      std::cout << "advecting particle pools...\n";
-#pragma omp parallel
-      {
-        // advect particle pools
-        auto const thr_id = omp_get_thread_num();
-        for (auto const& particle : particle_pools[thr_id]) {
-          particle.advect_until_split(
-              phi, tau_step, max_t, objective_cond, radii, offsets,
-              advected_particles[thr_id], local_finished_particles[thr_id]);
+        auto thread_pool = std::vector<std::thread>{};
+        thread_pool.reserve(num_threads);
+        for (size_t i = 0; i < num_threads; ++i) {
+          thread_pool.emplace_back(
+              [&](auto const thr_id) {
+                auto const begin = thr_id * size(particles) / num_threads;
+                auto const end   = (thr_id + 1) * size(particles) / num_threads;
+
+                particle_pools[thr_id].value = container_t(
+                    std::begin(particles) + begin, std::begin(particles) + end);
+              },
+              i);
+        }
+        for (auto& thread : thread_pool) {
+          thread.join();
         }
       }
-      std::cout << "advecting particle pools... done!\n";
+      particles.clear();
+      {
+        // advect particle pools
+        auto thread_pool = std::vector<std::thread>{};
+        thread_pool.reserve(num_threads);
+        for (size_t i = 0; i < num_threads; ++i) {
+          thread_pool.emplace_back(
+              [&](auto const thr_id) {
+                auto& pool = particle_pools[thr_id].value;
+                for (auto const& particle : pool) {
+                  particle.advect_until_split(phi, tau_step, max_t,
+                                              objective_cond, radii, offsets,
+                                              advected_particles[thr_id].value,
+                                              local_finished_particles[thr_id].value);
+                }
+                pool.clear();
+              },
+              i);
+        }
+        for (auto& thread : thread_pool) {
+          thread.join();
+        }
+      }
 
       // gather advected particles into combined thread pool
-      std::cout << "gathering particles from pools...\n";
-      for (size_t i = 0; i < max_threads; ++i) {
-        std::copy(begin(advected_particles[i]), end(advected_particles[i]),
+      for (size_t i = 0; i < num_threads; ++i) {
+        std::copy(begin(advected_particles[i].value), end(advected_particles[i].value),
                   std::back_inserter(particles));
-        advected_particles[i].clear();
+        advected_particles[i].value.clear();
       }
-      std::cout << "gathering particles from pools... done!\n";
-      std::cout << "gathering finished particles from pools...\n";
-      for (size_t i = 0; i < max_threads; ++i) {
-        std::copy(begin(local_finished_particles[i]),
-                  end(local_finished_particles[i]),
+      for (size_t i = 0; i < num_threads; ++i) {
+        std::copy(begin(local_finished_particles[i].value),
+                  end(local_finished_particles[i].value),
                   std::back_inserter(finished_particles));
-        local_finished_particles[i].clear();
+        local_finished_particles[i].value.clear();
       }
-      std::cout << "gathering finished particles from pools... done!\n";
 
       if (max_num_particles > 0 && particles.size() > max_num_particles) {
         size_t const num_particles_to_delete =
@@ -411,8 +425,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
   }
 
   //----------------------------------------------------------------------------
-  //template <typename Flowmap>
-  //auto advect_until_split(Flowmap& phi, real_t const tau_step,
+  // template <typename Flowmap>
+  // auto advect_until_split(Flowmap& phi, real_t const tau_step,
   //                        real_t const max_t, real_t const objective_cond,
   //                        range auto const  radii,
   //                        range auto const& offsets) const -> container_t {
@@ -424,7 +438,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
   //}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename Flowmap>
-  auto advect_until_split(Flowmap&& phi, real_t tau_step, real_t const max_t,
+  auto advect_until_split(Flowmap phi, real_t tau_step, real_t const max_t,
                           real_t const objective_cond, range auto const radii,
                           range auto const& offsets, range auto& out,
                           range auto& finished_particles) const {
@@ -549,7 +563,23 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
   auto sampler() const {
     return sampler_t{initial_ellipse(), *this, m_nabla_phi1};
   }
+  //----------------------------------------------------------------------------
+  auto write_hdf5() -> void {}
 };
+namespace hdf5 {
+template <typename Real, std::size_t N>
+struct type<autonomous_particle<Real, N>>
+    : detail::base_type<type<autonomous_particle<Real, N>>,
+                        autonomous_particle<Real, N>> {
+  using particle_t = autonomous_particle<Real, N>;
+  type() {
+    auto offset = size_t{};
+    offset = this->template insert<typename particle_t::pos_t>("x0", offset);
+    offset = this->template insert<typename particle_t::real_t>("t1", offset);
+    this->template insert<typename particle_t::real_t>("nabla_phi1", offset);
+  }
+};
+}  // namespace hdf5
 //==============================================================================
 template <typename Real, size_t N>
 autonomous_particle<Real, N>::autonomous_particle(
@@ -647,7 +677,7 @@ autonomous_particle<Real, N>::autonomous_particle(pos_t const&     x0,
 //                           std::decay_t<decltype(flowmap(v))>>;
 //==============================================================================
 template <size_t N>
-using AutonomousParticle   = autonomous_particle<real_t, N>;
+using AutonomousParticle    = autonomous_particle<real_t, N>;
 using autonomous_particle_2 = AutonomousParticle<2>;
 using autonomous_particle_3 = AutonomousParticle<3>;
 //==============================================================================

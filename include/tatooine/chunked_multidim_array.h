@@ -1,10 +1,10 @@
 #ifndef TATOOINE_CHUNKED_MULTIDIM_ARRAY_H
 #define TATOOINE_CHUNKED_MULTIDIM_ARRAY_H
 //==============================================================================
+#include <tatooine/base_tensor.h>
 #include <tatooine/concepts.h>
+#include <tatooine/dynamic_multidim_array.h>
 #include <tatooine/functional.h>
-#include <tatooine/multidim_array.h>
-#include <tatooine/tensor.h>
 #include <tatooine/type_traits.h>
 #include <tatooine/utility.h>
 

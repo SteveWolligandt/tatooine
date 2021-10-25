@@ -1,31 +1,34 @@
-#include <iostream>
-#include <boost/program_options.hpp>
 #include "parse_args.h"
+
+#include <boost/program_options.hpp>
+#include <iostream>
 //------------------------------------------------------------------------------
 auto parse_args(int argc, char** argv) -> std::optional<args_t> {
   namespace po = boost::program_options;
 
   size_t width = 10, height = 10, depth = 10, num_splits = 3,
          max_num_particles = 500000, output_res_x = 200, output_res_y = 100;
-  double t0 = 0, tau = 2, tau_step = 0.05, min_cond = 0.01;
-  bool write_ellipses = true;
+  double t0 = 0, tau = 2, tau_step = 0.05, min_cond = 0.01,
+         agranovsky_delta_t = 0.1;
+  bool write_ellipses       = true;
   // Declare the supported options.
   po::options_description desc("Allowed options");
-  desc.add_options()("help", "produce help message")
-    ("write_ellipses", po::value<bool>(), "write ellipses")
-    ("width", po::value<size_t>(), "set width")
-    ("height", po::value<size_t>(), "set height")
-    ("output_res_x", po::value<size_t>(), "set outputresolution width")
-    ("output_res_y", po::value<size_t>(), "set outputresolution height")
-    ("depth", po::value<size_t>(), "set depth")
-    ("num_splits", po::value<size_t>(), "set number of splits")
-    ("max_num_particles", po::value<size_t>(), "set maximum number of particles")
-    ("t0", po::value<double>(), "set initial time")
-    ("tau", po::value<double>(), "set integration length tau")
-    ("tau_step", po::value<double>(), "set stepsize for integrator")
-    ("min_cond", po::value<double>(),
+  desc.add_options()("help", "produce help message")(
+      "write_ellipses", po::value<bool>(), "write ellipses")(
+      "width", po::value<size_t>(), "set width")("height", po::value<size_t>(),
+                                                 "set height")(
+      "output_res_x", po::value<size_t>(), "set outputresolution width")(
+      "output_res_y", po::value<size_t>(), "set outputresolution height")(
+      "depth", po::value<size_t>(), "set depth")(
+      "num_splits", po::value<size_t>(), "set number of splits")(
+      "max_num_particles", po::value<size_t>(),
+      "set maximum number of particles")("t0", po::value<double>(),
+                                         "set initial time")(
+      "tau", po::value<double>(), "set integration length tau")(
+      "tau_step", po::value<double>(), "set stepsize for integrator")(
+      "min_cond", po::value<double>(),
       "set minimal condition number of back calculation for advected "
-      "particles");
+      "particles")("agranovsky_delta_t", po::value<double>(), "time gaps");
 
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -67,15 +70,18 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
   }
   if (vm.count("num_splits") > 0) {
     num_splits = vm["num_splits"].as<size_t>();
-    std::cerr << "specified number of splits num_splits = " << num_splits << '\n';
+    std::cerr << "specified number of splits num_splits = " << num_splits
+              << '\n';
   } else {
     std::cerr << "default number of splits num_splits = " << num_splits << '\n';
   }
   if (vm.count("max_num_particles") > 0) {
     max_num_particles = vm["max_num_particles"].as<size_t>();
-    std::cerr << "specified maximum number of particles = " << max_num_particles << '\n';
+    std::cerr << "specified maximum number of particles = " << max_num_particles
+              << '\n';
   } else {
-    std::cerr << "default maximum number of particles = " << max_num_particles << '\n';
+    std::cerr << "default maximum number of particles = " << max_num_particles
+              << '\n';
   }
   if (vm.count("t0") > 0) {
     t0 = vm["t0"].as<double>();
@@ -86,6 +92,13 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
   if (vm.count("tau") > 0) {
     tau = vm["tau"].as<double>();
     std::cerr << "specified integration length tau = " << tau << '\n';
+  } else {
+    std::cerr << "default integration length tau = " << tau << '\n';
+  }
+  if (vm.count("agranovsky_delta_t") > 0) {
+    agranovsky_delta_t = vm["agranovsky_delta_t"].as<double>();
+    std::cerr << "specified agranovsky_delta_t = " << agranovsky_delta_t
+              << '\n';
   } else {
     std::cerr << "default integration length tau = " << tau << '\n';
   }
@@ -107,8 +120,17 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
   } else {
     std::cerr << "default write_ellipses = " << write_ellipses << '\n';
   }
-  return args_t{
-      width,        height,        depth, num_splits, max_num_particles,
-      output_res_x, output_res_y,  t0,    tau,        tau_step,
-      min_cond,     write_ellipses};
+  return args_t{width,
+                height,
+                depth,
+                num_splits,
+                max_num_particles,
+                output_res_x,
+                output_res_y,
+                t0,
+                tau,
+                tau_step,
+                min_cond,
+                agranovsky_delta_t,
+                write_ellipses};
 }
