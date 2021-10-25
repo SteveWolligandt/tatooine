@@ -185,11 +185,11 @@ struct numerical_flowmap {
   /// If tau < 0 it takes back of integral_curve as start position and time.
   /// \return true if could integrate all tau, false if hit domain border or
   /// something else went wrong.
-  auto continue_integration(integral_curve_t& integral_curve, real_t const tau) const
-      -> bool {
-    auto& tangents         = integral_curve.tangents();
-    auto& parameterization = integral_curve.parameterization();
-    auto const& y0 = [&integral_curve, tau] {
+  auto continue_integration(integral_curve_t& integral_curve,
+                            real_t const      tau) const -> bool {
+    auto&       tangents         = integral_curve.tangents();
+    auto&       parameterization = integral_curve.parameterization();
+    auto const& y0               = [&integral_curve, tau] {
       if (tau > 0) {
         return integral_curve.back_vertex();
       }

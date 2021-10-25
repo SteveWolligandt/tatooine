@@ -1,17 +1,20 @@
 #ifndef TATOOINE_GEOMETRY_HYPER_ELLIPSE_H
 #define TATOOINE_GEOMETRY_HYPER_ELLIPSE_H
 //==============================================================================
+#include <tatooine/hdf5/type.h>
+#include <tatooine/reflection.h>
 #include <tatooine/tensor.h>
 #include <tatooine/transposed_tensor.h>
 //==============================================================================
-namespace tatooine::geometry {
+namespace tatooine {
+namespace geometry {
 //==============================================================================
 template <floating_point Real, size_t N>
 struct hyper_ellipse {
   using this_t = hyper_ellipse<Real, N>;
-  using vec_t = vec<Real, N>;
-  using pos_t = vec_t;
-  using mat_t = mat<Real, N, N>;
+  using vec_t  = vec<Real, N>;
+  using pos_t  = vec_t;
+  using mat_t  = mat<Real, N, N>;
 
  private:
   vec_t m_center = vec_t::zeros();
@@ -25,8 +28,7 @@ struct hyper_ellipse {
   constexpr hyper_ellipse(hyper_ellipse const&)     = default;
   constexpr hyper_ellipse(hyper_ellipse&&) noexcept = default;
   //----------------------------------------------------------------------------
-  constexpr auto operator=(hyper_ellipse const&)
-      -> hyper_ellipse& = default;
+  constexpr auto operator=(hyper_ellipse const&) -> hyper_ellipse& = default;
   constexpr auto operator=(hyper_ellipse&&) noexcept
       -> hyper_ellipse&  = default;
   //----------------------------------------------------------------------------
@@ -55,7 +57,7 @@ struct hyper_ellipse {
                   "Number of radii does not match number of dimensions.");
   }
   //----------------------------------------------------------------------------
-  /// Fits an ellipse through specified points. 
+  /// Fits an ellipse through specified points.
   template <typename... Points, enable_if_vec<Points...> = true>
   constexpr hyper_ellipse(Points const&... points) {
     static_assert(sizeof...(Points) == N,
@@ -97,10 +99,10 @@ struct hyper_ellipse {
   //----------------------------------------------------------------------------
   /// Computes euclidean distance to nearest boundary point
   constexpr auto distance_to_boundary(pos_t const& x) const {
-    auto const x_local        = local_coordinate();
-    auto const local_distance_to_point = euclidian_length(x_local);
-    auto const local_point_on_boundary = x_local / local_distance_to_point;
-    auto const local_offset_to_boundary    = x_local - local_point_on_boundary;
+    auto const x_local                  = local_coordinate();
+    auto const local_distance_to_point  = euclidian_length(x_local);
+    auto const local_point_on_boundary  = x_local / local_distance_to_point;
+    auto const local_offset_to_boundary = x_local - local_point_on_boundary;
     return euclidian_length(m_S * local_offset_to_boundary);
   }
   //----------------------------------------------------------------------------
@@ -113,15 +115,15 @@ struct hyper_ellipse {
     return S() * local_nearest_point_boundary(x) + center();
   }
   //============================================================================
-  private:
+ private:
   /// Fits an ellipse through specified points
-   template <size_t... Is, typename... Points, enable_if_vec<Points...> = true>
-   constexpr auto fit(std::index_sequence<Is...> /*seq*/,
-                      Points const&... points) {
-     auto H = mat_t{};
-     ([&] { H.col(Is) = points; }(), ...);
-     fit(H);
-   }
+  template <size_t... Is, typename... Points, enable_if_vec<Points...> = true>
+  constexpr auto fit(std::index_sequence<Is...> /*seq*/,
+                     Points const&... points) {
+    auto H = mat_t{};
+    ([&] { H.col(Is) = points; }(), ...);
+    fit(H);
+  }
   //----------------------------------------------------------------------------
  public:
   /// Fits an ellipse through specified points
@@ -162,6 +164,56 @@ struct hyper_ellipse {
     return squared_euclidean_length(solve(m_S, x - m_center)) <= 1;
   }
 };
+
+}  // namespace geometry
+namespace hdf5 {
+template <typename Real, std::size_t N>
+struct type<geometry::hyper_ellipse<Real, N>>
+    : detail::base_type<type<geometry::hyper_ellipse<Real, N>>,
+                        geometry::hyper_ellipse<Real, N>> {
+  using ell_t = geometry::hyper_ellipse<Real, N>;
+  type() {
+    auto offset = size_t{};
+    offset = this->template insert<typename ell_t::vec_t>("center", offset);
+    this->template insert<typename ell_t::mat_t>("S", offset);
+  }
+};
+}  // namespace hdf5
+namespace reflection {
+template <floating_point Real, size_t N>
+struct reflector<geometry::hyper_ellipse<Real, N>> {
+  template <std::size_t I>
+  using index_t                     = std::integral_constant<std::size_t, I>;
+  using reflected_type              = geometry::hyper_ellipse<Real, N>;
+  static constexpr const bool value = true;
+
+  static constexpr auto num_fields() -> std::size_t { return 2; }
+  static constexpr auto name() -> std::string_view {
+    return type_name<reflected_type>();
+  }
+
+  template <typename T>
+  static constexpr auto get_value(index_t<0>, T&& t) -> decltype(auto) {
+    return t.S();
+  }
+  static constexpr auto name(index_t<0>) -> std::string_view { return "S"; }
+
+  template <typename T>
+  static constexpr auto get_value(index_t<1>, T&& t) -> decltype(auto) {
+    return t.center();
+  }
+  static constexpr auto name(index_t<1>) -> std::string_view {
+    return "center";
+  }
+
+  template <reflectable T, typename V>
+  constexpr static auto apply([[maybe_unused]] V&& v, [[maybe_unused]] T&& t)
+      -> void {
+      v(name(index_t<0>{}), get(index_t<0>{}, t));
+      v(name(index_t<1>{}), get(index_t<1>{}, t));
+  }
+};
+}  // namespace reflection
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

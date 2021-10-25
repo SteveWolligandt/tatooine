@@ -23,6 +23,13 @@ template <typename Real0, typename Real1, typename Real2>
 ellipsoid(vec<Real0, 3> const&, vec<Real1, 3> const&, vec<Real2, 3> const&)
     -> ellipsoid<common_type<Real0, Real1, Real2>>;
 //==============================================================================
-}  // namespace tatooine
+}  // namespace tatooine::geometry
+//==============================================================================
+namespace tatooine::hdf5 {
+//==============================================================================
+template <typename T>
+struct type<geometry::ellipsoid<T>> : type<hyper_ellipse<T, 3>> {};
+//==============================================================================
+}  // namespace tatooine::hdf5
 //==============================================================================
 #endif
