@@ -11,9 +11,9 @@
 #include <tatooine/multidim_size.h>
 #include <tatooine/png.h>
 #include <tatooine/random.h>
+#include <tatooine/reflection.h>
 #include <tatooine/tags.h>
 #include <tatooine/type_traits.h>
-#include <tatooine/hdf5/type.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -394,34 +394,15 @@ class static_multidim_array
       at(i) = f(at(i), other(i));
     }
   }
-  //------------------------------------------------------------------------------
-  //auto write_hdf5(filesystem::path const& path) -> void {
-  //  auto file    = hdf5::file{path};
-  //  auto dataset = file.add_dataset<this_t>(type_name<this_t>(), 1);
-  //  dataset.write(this);
-  //}
 };
 //==============================================================================
-namespace hdf5 {
-//==============================================================================
-template <typename T, typename IndexOrder, size_t... Resolution>
-struct type<static_multidim_array<T, IndexOrder, tag::stack, Resolution...>>
-    : detail::base_type<
-          type<static_multidim_array<T, IndexOrder, tag::stack, Resolution...>>,
-          static_multidim_array<T, IndexOrder, tag::stack, Resolution...>> {
-  using value_type =
-      static_multidim_array<T, IndexOrder, tag::stack, Resolution...>;
-  using this_t =
-      type<static_multidim_array<T, IndexOrder, tag::stack, Resolution...>>;
-  using parent_t = detail::base_type<this_t, value_type>;
-
-  type() {
-    auto offset =
-        this->template insert<std::array<T, (Resolution * ...)>>("data");
-  }
-};
-//==============================================================================
-}  // namespace hdf5
+namespace reflection {
+template <typename T, typename IndexOrder, typename MemLoc,
+          size_t... Resolution>
+TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
+    (static_multidim_array<T, IndexOrder, MemLoc, Resolution...>),
+    TATOOINE_REFLECTION_INSERT_METHOD(data, data()))
+}  // namespace reflection
 //==============================================================================
 template <typename MemLocOut = tag::stack, typename IndexingOut = x_fastest,
           typename T0, typename T1, typename Indexing0, typename Indexing1,

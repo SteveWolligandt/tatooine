@@ -25,11 +25,14 @@ ellipsoid(vec<Real0, 3> const&, vec<Real1, 3> const&, vec<Real2, 3> const&)
 //==============================================================================
 }  // namespace tatooine::geometry
 //==============================================================================
-namespace tatooine::hdf5 {
+namespace tatooine::reflection {
 //==============================================================================
-template <typename T>
-struct type<geometry::ellipsoid<T>> : type<hyper_ellipse<T, 3>> {};
+template <typename Real>
+TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
+    (geometry::ellipsoid<Real>),
+    TATOOINE_REFLECTION_INSERT_METHOD(center, center()),
+    TATOOINE_REFLECTION_INSERT_METHOD(S, S()))
 //==============================================================================
-}  // namespace tatooine::hdf5
+}  // namespace tatooine::reflection
 //==============================================================================
 #endif

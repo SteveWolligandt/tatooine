@@ -9,6 +9,14 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
+template <typename T, std::size_t = sizeof(T)>
+auto type_exists_impl(T*) -> std::true_type;
+auto type_exists_impl(...) -> std::false_type;
+
+template <typename T>
+static constexpr auto type_exists =
+    decltype(type_exists_impl(std::declval<T*>()))::value;
+//==============================================================================
 template <typename T>
 static constexpr auto is_pointer = std::is_pointer<T>::value;
 //==============================================================================

@@ -91,6 +91,9 @@ set(TATOOINE_SRC_FILES
 )
 # create library target
 add_library(tatooine STATIC ${TATOOINE_SRC_FILES})
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  target_compile_options(tatooine PUBLIC -Wno-gnu-zero-variadic-macro-arguments)
+endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # set include dirs
 target_include_directories(tatooine

@@ -5,11 +5,11 @@
 #include <tatooine/chunked_multidim_array.h>
 #include <tatooine/concepts.h>
 #include <tatooine/filesystem.h>
+#include <tatooine/hdf5/type.h>
 #include <tatooine/lazy_reader.h>
 #include <tatooine/multidim.h>
 #include <tatooine/multidim_array.h>
 
-#include <tatooine/hdf5/type.h>
 #include <@TATOOINE_HDF5_HEADER@>
 #include <boost/range/algorithm/reverse.hpp>
 #include <cassert>
@@ -179,8 +179,7 @@ class dataset {
   }
   //============================================================================
   auto write(T const* data) -> void {
-    H5Dwrite(*m_dataset_id, type<T>::id(), H5S_ALL, H5S_ALL,
-             H5P_DEFAULT, data);
+    H5Dwrite(*m_dataset_id, type_id<T>(), H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto write(std::vector<T> const& data) -> void {
@@ -312,9 +311,8 @@ class dataset {
     if (must_resize) {
       arr.resize(std::vector<size_t>(size.get(), size.get() + num_dims));
     }
-
-    H5Dread(*m_dataset_id, type<T>::id(), H5S_ALL, H5S_ALL,
-            H5P_DEFAULT, arr.data_ptr());
+    H5Dread(*m_dataset_id, type_id<T>(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
+            arr.data_ptr());
     H5Sclose(dataset_space);
   }
   //----------------------------------------------------------------------------
@@ -643,9 +641,8 @@ class file {
     std::reverse(dimsf, dimsf + sizeof...(size));
     auto dataset_space = H5Screate_simple(sizeof...(Size), dimsf, nullptr);
     api::get().disable_error_printing();
-    decltype(auto) type_id = type<T>::id();
     auto dataset_id =
-        H5Dcreate2(*m_file_id, dataset_name.data(), type_id, dataset_space,
+        H5Dcreate2(*m_file_id, dataset_name.data(), type_id<T>(), dataset_space,
                    H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     api::get().enable_error_printing();
     H5Sclose(dataset_space);

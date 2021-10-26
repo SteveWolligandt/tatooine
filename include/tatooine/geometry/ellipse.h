@@ -54,11 +54,14 @@ auto discretize(hyper_ellipse<Real, 2> const& e, size_t const num_vertices) {
 //==============================================================================
 }  // namespace tatooine::geometry
 //==============================================================================
-namespace tatooine::hdf5 {
+namespace tatooine::reflection {
 //==============================================================================
-template <typename T>
-struct type<geometry::ellipse<T>> : type<geometry::hyper_ellipse<T, 2>> {};
+template <typename Real>
+TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
+    (geometry::ellipse<Real>),
+    TATOOINE_REFLECTION_INSERT_METHOD(center, center()),
+    TATOOINE_REFLECTION_INSERT_METHOD(S, S()))
 //==============================================================================
-}  // namespace tatooine::hdf5
+}  // namespace tatooine::reflection
 //==============================================================================
 #endif

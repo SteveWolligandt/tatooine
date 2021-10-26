@@ -189,12 +189,11 @@ auto end(vec<T, N> const& v) {
 template <typename... Ts>
 vec(const Ts&...) -> vec<common_type<Ts...>, sizeof...(Ts)>;
 //==============================================================================
-namespace hdf5 {
-//==============================================================================
+namespace reflection {
 template <typename T, size_t N>
-struct type<vec<T, N>> : type<tensor<T, N>> {};
-//==============================================================================
-}  // namespace hdf5
+TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
+    (vec<T, N>), TATOOINE_REFLECTION_INSERT_METHOD(data, data()))
+}  // namespace reflection
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

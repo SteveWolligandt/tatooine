@@ -2,11 +2,22 @@
 #define TATOOINE_HDF5_TYPE_H
 //==============================================================================
 #include <@TATOOINE_HDF5_HEADER@>
+#include <tatooine/reflection.h>
 //==============================================================================
 namespace tatooine::hdf5 {
 //==============================================================================
 template <typename T>
 struct type;
+template <typename T>
+struct reflected_type;
+  template <typename S>
+  auto type_id() -> decltype(auto) {
+    if constexpr (!type_exists<type<S>> && reflection::is_reflectable<S>) {
+      return reflected_type<S>::id();
+    } else {
+      return type<S>::id();
+    }
+  };
 //==============================================================================
 namespace detail {
 //==============================================================================
@@ -18,7 +29,7 @@ struct base_type {
 
   template <typename S>
   auto insert(char const* name, size_t offset = 0) {
-    H5Tinsert(m_id, name, offset, type<S>::id());
+    H5Tinsert(m_id, name, offset, type_id<S>());
     return offset + sizeof(S);
   }
   template <typename S>
@@ -38,7 +49,7 @@ struct base_array_type {
 
  private:
   base_array_type()
-      : m_id{H5Tarray_create(type<T>::id(), sizeof...(Dimensions),
+      : m_id{H5Tarray_create(type_id<T>(), sizeof...(Dimensions),
                              (hsize_t[sizeof...(Dimensions)]){Dimensions...})} {
   }
 
@@ -53,24 +64,6 @@ struct base_array_type {
 //==============================================================================
 }  // namespace detail
 //==============================================================================
-#define TATOOINE_REFLECTED_HDF5_TYPE(T)                                        \
-  template <>                                                                  \
-  struct type<T> : detail::base_type<type<T>, T> {                             \
-    type() { setup(std::make_index_sequence<reflection::num_fields<T>()>{}); } \
-                                                                               \
-    template <std::size_t... Is>                                               \
-    auto setup(std::index_sequence<Is...>) -> void {                           \
-      auto offset = size_t{};                                                  \
-      (                                                                        \
-          [&]() {                                                              \
-            offset = this->template insert<                                    \
-                std::decay_t<reflection::get_type<Is, T>>>(                    \
-                std::string{reflection::name<Is, T>()}.c_str(), offset);       \
-          }(),                                                                 \
-          ...);                                                                \
-    }                                                                          \
-  };
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct type<std::uint16_t> {
   static auto memory_type() { return H5T_NATIVE_USHORT; }
@@ -168,6 +161,26 @@ struct type<std::basic_string<Char>> {
     return type<typename std::basic_string<Char>::value_type>::big_endian();
   }
   static auto id() { return little_endian(); }
+};
+
+template <typename T>
+struct reflected_type : detail::base_type<reflected_type<T>, T> {
+  static_assert(reflection::is_reflectable<T>);
+  reflected_type() {
+    setup(std::make_index_sequence<reflection::num_members<T>()>{});
+  }
+
+  template <std::size_t... Is>
+  auto setup(std::index_sequence<Is...>) -> void {
+    auto offset = size_t{};
+    (
+        [&]() {
+          offset =
+              this->template insert<std::decay_t<reflection::get_type<Is, T>>>(
+                  std::string{reflection::name<Is, T>()}.c_str(), offset);
+        }(),
+        ...);
+  }
 };
 //==============================================================================
 }  // namespace tatooine::hdf5
