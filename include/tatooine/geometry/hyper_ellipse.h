@@ -1,7 +1,6 @@
 #ifndef TATOOINE_GEOMETRY_HYPER_ELLIPSE_H
 #define TATOOINE_GEOMETRY_HYPER_ELLIPSE_H
 //==============================================================================
-#include <tatooine/hdf5/type.h>
 #include <tatooine/reflection.h>
 #include <tatooine/tensor.h>
 #include <tatooine/transposed_tensor.h>
@@ -165,54 +164,15 @@ struct hyper_ellipse {
   }
 };
 
+//==============================================================================
 }  // namespace geometry
-namespace hdf5 {
-template <typename Real, std::size_t N>
-struct type<geometry::hyper_ellipse<Real, N>>
-    : detail::base_type<type<geometry::hyper_ellipse<Real, N>>,
-                        geometry::hyper_ellipse<Real, N>> {
-  using ell_t = geometry::hyper_ellipse<Real, N>;
-  type() {
-    auto offset = size_t{};
-    offset = this->template insert<typename ell_t::vec_t>("center", offset);
-    this->template insert<typename ell_t::mat_t>("S", offset);
-  }
-};
-}  // namespace hdf5
+//==============================================================================
 namespace reflection {
-template <floating_point Real, size_t N>
-struct reflector<geometry::hyper_ellipse<Real, N>> {
-  template <std::size_t I>
-  using index_t                     = std::integral_constant<std::size_t, I>;
-  using reflected_type              = geometry::hyper_ellipse<Real, N>;
-  static constexpr const bool value = true;
-
-  static constexpr auto num_fields() -> std::size_t { return 2; }
-  static constexpr auto name() -> std::string_view {
-    return type_name<reflected_type>();
-  }
-
-  template <typename T>
-  static constexpr auto get_value(index_t<0>, T&& t) -> decltype(auto) {
-    return t.S();
-  }
-  static constexpr auto name(index_t<0>) -> std::string_view { return "S"; }
-
-  template <typename T>
-  static constexpr auto get_value(index_t<1>, T&& t) -> decltype(auto) {
-    return t.center();
-  }
-  static constexpr auto name(index_t<1>) -> std::string_view {
-    return "center";
-  }
-
-  template <reflectable T, typename V>
-  constexpr static auto apply([[maybe_unused]] V&& v, [[maybe_unused]] T&& t)
-      -> void {
-      v(name(index_t<0>{}), get(index_t<0>{}, t));
-      v(name(index_t<1>{}), get(index_t<1>{}, t));
-  }
-};
+template <typename Real, size_t N>
+TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
+    (geometry::hyper_ellipse<Real, N>),
+    TATOOINE_REFLECTION_INSERT_METHOD(center, center()),
+    TATOOINE_REFLECTION_INSERT_METHOD(S, S()))
 }  // namespace reflection
 //==============================================================================
 }  // namespace tatooine

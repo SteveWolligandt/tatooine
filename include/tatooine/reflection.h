@@ -21,25 +21,26 @@ struct reflector {
 };
 //==============================================================================
 template <typename T>
-struct is_reflectable : std::integral_constant<bool, reflector<T>::value> {};
+struct is_reflectable_impl : std::integral_constant<bool, reflector<T>::value> {
+};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
-static constexpr auto is_reflectable_v = is_reflectable<T>::value;
+static constexpr auto is_reflectable = is_reflectable_impl<T>::value;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
-concept reflectable = is_reflectable_v<std::decay_t<T>>;
+concept reflectable = is_reflectable<std::decay_t<T>>;
 //==============================================================================
 // User-interface
 //==============================================================================
 /// Return number of fields in a reflector struct
 template <typename T>
-constexpr auto num_fields() -> std::size_t {
-  return reflector<std::decay_t<T>>::num_fields();
+constexpr auto num_members() -> std::size_t {
+  return reflector<std::decay_t<T>>::num_members();
 }
 //------------------------------------------------------------------------------
 template <typename T>
-constexpr auto num_fields(T &&) -> std::size_t {
-  return num_fields<T>();
+constexpr auto num_members(T &&) -> std::size_t {
+  return num_members<T>();
 }
 //------------------------------------------------------------------------------
 /// Iterate over each registered member
@@ -80,7 +81,7 @@ constexpr auto name(T &&) {
 //------------------------------------------------------------------------------
 template <std::size_t I, typename T>
 struct get_type_impl {
-  static_assert(is_reflectable_v<T>);
+  static_assert(is_reflectable<T>);
   using type = decltype(reflector<std::decay_t<T>>::get(
       std::integral_constant<std::size_t, I>{}, std::declval<T>()));
 };
@@ -104,9 +105,9 @@ using get_type = typename get_type_impl<I, T>::type;
 #define TATOOINE_REFLECTION_MEMBER_HELPER(NAME, ACCESSOR) v(#NAME, t.ACCESSOR);
 //------------------------------------------------------------------------------
 #define TATOOINE_REFLECTION_MAKE_GETTERS(NAME, ACCESSOR)                       \
-  template <typename T>                                                        \
+  template <reflectable Reflectable>                                           \
   static constexpr auto get(                                                   \
-      index_t<static_cast<std::size_t>(field_indices::NAME)>, T &&t)           \
+      index_t<static_cast<std::size_t>(field_indices::NAME)>, Reflectable &&t) \
       ->decltype(auto) {                                                       \
     return t.ACCESSOR;                                                         \
   }                                                                            \
@@ -115,46 +116,49 @@ using get_type = typename get_type_impl<I, T>::type;
       ->std::string_view {                                                     \
     return #NAME;                                                              \
   }
-//==============================================================================
-#define TATOOINE_MAKE_REFLECTABLE(STRUCT_NAME, ...)                            \
-  TATOOINE_MAKE_ADT_REFLECTABLE(                                               \
-      STRUCT_NAME,                                                             \
-      TATOOINE_PP_MAP(TATOOINE_REFLECTION_INSERT_MEMBER, __VA_ARGS__))
 //------------------------------------------------------------------------------
-#define TATOOINE_MAKE_ADT_REFLECTABLE(STRUCT_NAME, ...)                         \
-  namespace tatooine::reflection {                                              \
-  template <>                                                                   \
-  struct reflector<STRUCT_NAME> {                                               \
+#define TATOOINE_REFLECTION_FIELD_INDICES(...)                                 \
+  enum class field_indices : std::size_t { __VA_ARGS__, count___ };            \
+//==============================================================================
+/// Takes a type and a set of public member variables.
+#define TATOOINE_MAKE_SIMPLE_TYPE_REFLECTABLE(TYPE, ...)                       \
+  TATOOINE_MAKE_ADT_REFLECTABLE(                                               \
+      TYPE, TATOOINE_PP_MAP(TATOOINE_REFLECTION_INSERT_MEMBER, __VA_ARGS__))
+//------------------------------------------------------------------------------
+#define TATOOINE_MAKE_ADT_REFLECTABLE(TYPE, ...)                               \
+  template <>                                                                  \
+  TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(TYPE, __VA_ARGS__)
+//------------------------------------------------------------------------------
+#define TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(TYPE, ...)                      \
+  struct reflector<TATOOINE_PP_PASS_ARGS(TYPE)> {                               \
     template <std::size_t I>                                                    \
     using index_t                     = std::integral_constant<std::size_t, I>; \
-    using reflected_type              = STRUCT_NAME;                            \
+    using reflected_type              = TATOOINE_PP_PASS_ARGS(TYPE);            \
     static constexpr const bool value = true;                                   \
                                                                                 \
-    enum class field_indices : std::size_t {                                    \
-      TATOOINE_PP_ODDS(__VA_ARGS__),                                            \
-      count                                                                     \
-    };                                                                          \
-    static constexpr auto num_fields() {                                        \
-      return static_cast<std::size_t>(field_indices::count);                    \
+    TATOOINE_REFLECTION_FIELD_INDICES(TATOOINE_PP_ODDS(__VA_ARGS__))            \
+    static constexpr auto num_members() {                                       \
+      return static_cast<std::size_t>(field_indices::count___);                 \
     }                                                                           \
-    static constexpr auto name() -> std::string_view { return #STRUCT_NAME; }   \
+    static constexpr auto name() -> std::string_view {                          \
+      return TATOOINE_PP_TO_STRING(TYPE);                                       \
+    }                                                                           \
                                                                                 \
     TATOOINE_PP_MAP2(TATOOINE_REFLECTION_MAKE_GETTERS, ##__VA_ARGS__)           \
                                                                                 \
-    template <reflectable T, typename V>                                        \
-    constexpr static auto for_each([[maybe_unused]] V &&v,                      \
-                                   [[maybe_unused]] T &&t) -> void {            \
-      for_each(std::forward<V>(v), std::forward<T>(t),                          \
-               std::make_index_sequence<num_fields()>{});                       \
+    template <reflectable Reflectable, typename V>                              \
+    constexpr static auto for_each([[maybe_unused]] V &&          v,            \
+                                   [[maybe_unused]] Reflectable &&t) -> void {  \
+      for_each(std::forward<V>(v), std::forward<Reflectable>(t),                \
+               std::make_index_sequence<num_members()>{});                      \
     }                                                                           \
-    template <reflectable T, typename V, std::size_t... Is>                     \
-    constexpr static auto for_each([[maybe_unused]] V &&v,                      \
-                                   [[maybe_unused]] T &&t,                      \
+    template <reflectable Reflectable, typename V, std::size_t... Is>           \
+    constexpr static auto for_each([[maybe_unused]] V &&          v,            \
+                                   [[maybe_unused]] Reflectable &&t,            \
                                    std::index_sequence<Is...>) -> void {        \
       (v(name(index_t<Is>{}), get(index_t<Is>{}, t)), ...);                     \
     }                                                                           \
-  };                                                                            \
-  }
+  };
 //==============================================================================
 }  // namespace tatooine::reflection
 //==============================================================================

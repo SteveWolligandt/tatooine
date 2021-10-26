@@ -170,12 +170,11 @@ struct mat : tensor<T, M, N> {
 template <size_t C, typename... Rows>
 mat(Rows const(&&... rows)[C]) -> mat<common_type<Rows...>, sizeof...(Rows), C>;
 //==============================================================================
-namespace hdf5 {
-//==============================================================================
+namespace reflection {
 template <typename T, size_t M, size_t N>
-struct type<mat<T, M, N>> : type<tensor<T, M, N>> {};
-//==============================================================================
-}  // namespace hdf5
+TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
+    (mat<T, M, N>), TATOOINE_REFLECTION_INSERT_METHOD(data, data()))
+}  // namespace reflection
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

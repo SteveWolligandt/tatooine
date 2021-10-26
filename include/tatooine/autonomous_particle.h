@@ -1,11 +1,12 @@
 #ifndef TATOOINE_AUTONOMOUS_PARTICLES
 #define TATOOINE_AUTONOMOUS_PARTICLES
 //==============================================================================
-#include <tatooine/concepts.h>
 #include <tatooine/cache_alignment.h>
+#include <tatooine/concepts.h>
 #include <tatooine/geometry/hyper_ellipse.h>
 #include <tatooine/numerical_flowmap.h>
 #include <tatooine/random.h>
+#include <tatooine/reflection.h>
 #include <tatooine/tags.h>
 #include <tatooine/tensor.h>
 //==============================================================================
@@ -13,34 +14,51 @@ namespace tatooine {
 //==============================================================================
 template <typename Real, size_t N>
 struct autonomous_particle_sampler {
+  //============================================================================
+  // TYPEDEFS
+  //============================================================================
   using vec_t     = vec<Real, N>;
   using pos_t     = vec_t;
   using mat_t     = mat<Real, N, N>;
   using ellipse_t = geometry::hyper_ellipse<Real, N>;
 
  private:
+  //============================================================================
+  // MEMBERS
+  //============================================================================
   ellipse_t m_ellipse0, m_ellipse1;
   mat_t     m_nabla_phi, m_nabla_phi_inv;
 
  public:
+  //============================================================================
+  // CTORS
+  //============================================================================
   autonomous_particle_sampler(autonomous_particle_sampler const&)     = default;
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   autonomous_particle_sampler(autonomous_particle_sampler&&) noexcept = default;
-  auto operator                       =(autonomous_particle_sampler const&)
+  //============================================================================
+  auto operator=(autonomous_particle_sampler const&)
       -> autonomous_particle_sampler& = default;
-  auto operator                       =(autonomous_particle_sampler&&) noexcept
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto operator=(autonomous_particle_sampler&&) noexcept
       -> autonomous_particle_sampler& = default;
+  //============================================================================
   autonomous_particle_sampler(ellipse_t const& e0, ellipse_t const& e1,
                               mat_t const& nabla_phi)
       : m_ellipse0{e0},
         m_ellipse1{e1},
         m_nabla_phi{nabla_phi},
         m_nabla_phi_inv{*inv(nabla_phi)} {}
-
+  //============================================================================
+  // GETTERS / SETTERS
+  //============================================================================
   auto ellipse(tag::forward_t) const -> auto const& { return m_ellipse0; }
   auto ellipse(tag::backward_t) const -> auto const& { return m_ellipse1; }
   auto ellipse0() const -> auto const& { return m_ellipse0; }
   auto ellipse1() const -> auto const& { return m_ellipse1; }
-
+  //============================================================================
+  // METHODS
+  //============================================================================
   auto sample_forward(pos_t const& x) const {
     return ellipse1().center() + m_nabla_phi * (x - ellipse0().center());
   }
@@ -88,9 +106,9 @@ struct autonomous_particle_sampler {
 template <typename Real, size_t N>
 struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
   static constexpr auto num_dimensions() { return N; }
-  //----------------------------------------------------------------------------
-  // typedefs
-  //----------------------------------------------------------------------------
+  //============================================================================
+  // TYPEDEFS
+  //============================================================================
  public:
   constexpr static auto half = Real(0.5);
   using this_t               = autonomous_particle;
@@ -102,17 +120,17 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
   using ellipse_t            = geometry::hyper_ellipse<Real, N>;
   using parent_t             = ellipse_t;
   using sampler_t            = autonomous_particle_sampler<Real, N>;
-  //----------------------------------------------------------------------------
+  //============================================================================
   // members
-  //----------------------------------------------------------------------------
+  //============================================================================
  private:
   pos_t  m_x0;
   real_t m_t1;
   mat_t  m_nabla_phi1;
 
-  //----------------------------------------------------------------------------
-  // ctors
-  //----------------------------------------------------------------------------
+  //============================================================================
+  // CTORS
+  //============================================================================
  public:
   autonomous_particle(autonomous_particle const& other);
   autonomous_particle(autonomous_particle&& other) noexcept;
@@ -129,18 +147,24 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   autonomous_particle(pos_t const& x0, real_t const t1, mat_t const& nabla_phi1,
                       ellipse_t const& ell);
-  //----------------------------------------------------------------------------
-  // getters / setters
-  //----------------------------------------------------------------------------
+  //============================================================================
+  // GETTERS / SETTERS
+  //============================================================================
   auto x0() -> auto& { return m_x0; }
   auto x0() const -> auto const& { return m_x0; }
   auto x0(size_t i) const { return m_x0(i); }
+  //----------------------------------------------------------------------------
   auto x1() -> auto& { return parent_t::center(); }
   auto x1() const -> auto const& { return parent_t::center(); }
   auto x1(size_t i) const { return parent_t::center()(i); }
+  //----------------------------------------------------------------------------
   auto t1() -> auto& { return m_t1; }
   auto t1() const { return m_t1; }
+  //----------------------------------------------------------------------------
   auto nabla_phi1() const -> auto const& { return m_nabla_phi1; }
+  //----------------------------------------------------------------------------
+  auto S1() -> auto& { return parent_t::S(); }
+  auto S1() const -> auto const& { return parent_t::S(); }
   //----------------------------------------------------------------------------
   auto S0() const {
     auto sqrS =
@@ -152,14 +176,10 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
     return eig_vecs * diag(eig_vals) * transposed(eig_vecs);
   }
   //----------------------------------------------------------------------------
-  auto S1() -> auto& { return parent_t::S(); }
-  auto S1() const -> auto const& { return parent_t::S(); }
-  //----------------------------------------------------------------------------
   auto initial_ellipse() const { return ellipse_t{m_x0, S0()}; }
-
-  //----------------------------------------------------------------------------
-  // methods
-  //----------------------------------------------------------------------------
+  //============================================================================
+  // METHODS
+  //============================================================================
   // auto advect_with_2_splits(real_t const tau_step, real_t const max_t,
   //                          size_t const max_num_particles) const {
   //  static real_t const sqrt2 = std::sqrt(real_t(2));
@@ -315,7 +335,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
   //  max_num_particles,
   //                std::array{real_t(.9009688678), real_t(.6234898004),
   //                           real_t(.2225209338)},
-  //                true, std::move(particles));
+ //                true, std::move(particles));
   //}
   ////----------------------------------------------------------------------------
   // static auto advect_with_7_splits(real_t const tau_step, real_t const max_t,
@@ -344,9 +364,10 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
         static_cast<size_t>(std::thread::hardware_concurrency());
 
     while (!particles.empty()) {
-      auto particle_pools           = std::vector<aligned<container_t>>(num_threads);
-      auto advected_particles       = std::vector<aligned<container_t>>(num_threads);
-      auto local_finished_particles = std::vector(num_threads, aligned<container_t>{});
+      auto particle_pools     = std::vector<aligned<container_t>>(num_threads);
+      auto advected_particles = std::vector<aligned<container_t>>(num_threads);
+      auto local_finished_particles =
+          std::vector(num_threads, aligned<container_t>{});
       {
         // distribute particles
         auto thread_pool = std::vector<std::thread>{};
@@ -357,7 +378,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
                 auto const begin = thr_id * size(particles) / num_threads;
                 auto const end   = (thr_id + 1) * size(particles) / num_threads;
 
-                particle_pools[thr_id].value = container_t(
+                *particle_pools[thr_id] = container_t(
                     std::begin(particles) + begin, std::begin(particles) + end);
               },
               i);
@@ -374,12 +395,12 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
         for (size_t i = 0; i < num_threads; ++i) {
           thread_pool.emplace_back(
               [&](auto const thr_id) {
-                auto& pool = particle_pools[thr_id].value;
+                auto& pool = *particle_pools[thr_id];
                 for (auto const& particle : pool) {
-                  particle.advect_until_split(phi, tau_step, max_t,
-                                              objective_cond, radii, offsets,
-                                              advected_particles[thr_id].value,
-                                              local_finished_particles[thr_id].value);
+                  particle.advect_until_split(
+                      phi, tau_step, max_t, objective_cond, radii, offsets,
+                      *advected_particles[thr_id],
+                      local_finished_particles[thr_id].value);
                 }
                 pool.clear();
               },
@@ -392,9 +413,9 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
 
       // gather advected particles into combined thread pool
       for (size_t i = 0; i < num_threads; ++i) {
-        std::copy(begin(advected_particles[i].value), end(advected_particles[i].value),
+        std::copy(begin(*advected_particles[i]), end(*advected_particles[i]),
                   std::back_inserter(particles));
-        advected_particles[i].value.clear();
+        advected_particles[i]->clear();
       }
       for (size_t i = 0; i < num_threads; ++i) {
         std::copy(begin(local_finished_particles[i].value),
@@ -566,20 +587,17 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
   //----------------------------------------------------------------------------
   auto write_hdf5() -> void {}
 };
-namespace hdf5 {
-template <typename Real, std::size_t N>
-struct type<autonomous_particle<Real, N>>
-    : detail::base_type<type<autonomous_particle<Real, N>>,
-                        autonomous_particle<Real, N>> {
-  using particle_t = autonomous_particle<Real, N>;
-  type() {
-    auto offset = size_t{};
-    offset = this->template insert<typename particle_t::pos_t>("x0", offset);
-    offset = this->template insert<typename particle_t::real_t>("t1", offset);
-    this->template insert<typename particle_t::real_t>("nabla_phi1", offset);
-  }
-};
-}  // namespace hdf5
+//==============================================================================
+namespace reflection {
+template <typename Real, size_t N>
+TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
+    (autonomous_particle<Real, N>),
+    TATOOINE_REFLECTION_INSERT_METHOD(center, center()),
+    TATOOINE_REFLECTION_INSERT_METHOD(S, S()),
+    TATOOINE_REFLECTION_INSERT_METHOD(x0, x0()),
+    TATOOINE_REFLECTION_INSERT_METHOD(t1, t1()),
+    TATOOINE_REFLECTION_INSERT_METHOD(nabla_phi1, nabla_phi1()))
+}  // namespace reflection
 //==============================================================================
 template <typename Real, size_t N>
 autonomous_particle<Real, N>::autonomous_particle(

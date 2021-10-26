@@ -1,6 +1,7 @@
 #include <tatooine/hdf5.h>
 #include <tatooine/tensor.h>
 #include <tatooine/geometry/ellipse.h>
+#include <tatooine/autonomous_particle.h>
 #include <tatooine/reflection.h>
 #include <tatooine/static_multidim_array.h>
 //==============================================================================
@@ -25,16 +26,12 @@ class S {
   auto set_b(float const b) { m_b = b; }
   auto set_c(double const c) { m_c = c; }
 };
+namespace tatooine::reflection {
 TATOOINE_MAKE_ADT_REFLECTABLE(S,
     TATOOINE_REFLECTION_INSERT_METHOD(a, a()),
     TATOOINE_REFLECTION_INSERT_METHOD(b, b()),
     TATOOINE_REFLECTION_INSERT_METHOD(c, c()));
-//==============================================================================
-namespace tatooine::hdf5 {
-//==============================================================================
-TATOOINE_REFLECTED_HDF5_TYPE(S);
-//==============================================================================
-}  // namespace hdf5
+}
 //==============================================================================
 auto IO_S() {
   auto path = filesystem::path{"SDScompound.h5"};
@@ -144,9 +141,43 @@ auto IO_ellipse() {
   }
 }
 //==============================================================================
+auto IO_autonomous_particles() {
+  auto path   = filesystem::path{"autonomous_particle.h5"};
+  using particle_t = autonomous_particle_2;
+  auto particle0        = particle_t{vec{0.5, 0.5}, 0.0, 0.01};
+  {
+    auto file    = hdf5::file{path};
+    auto dataset = file.add_dataset<particle_t>("data", 1);
+    dataset.write(&particle0);
+  }
+  {
+    auto file = hdf5::file{path};
+    auto data = file.dataset<particle_t>("data").read();
+
+    //auto const& particle1        = data(0);
+    //auto const  iteration_center = [&](auto const... is) {
+    //  if (particle0.center()(is...) != particle1.center()(is...)) {
+    //    std::cout << "ellipse center wrong!\n";
+    //    return false;
+    //  }
+    //  return true;
+    //};
+    //auto const  iteration_S = [&](auto const... is) {
+    //  if (particle0.S()(is...) != particle1.S()(is...)) {
+    //    std::cout << "ellipse S wrong!\n";
+    //    return false;
+    //  }
+    //  return true;
+    //};
+    //for_loop(iteration_S, 2, 2);
+    //for_loop(iteration_center, 2);
+  }
+}
+//==============================================================================
 auto main() -> int {
   IO_S();
   IO_static_multidim_array();
   IO_tensor();
   IO_ellipse();
+  IO_autonomous_particles();
 }
