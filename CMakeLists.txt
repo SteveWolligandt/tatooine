@@ -91,9 +91,6 @@ set(TATOOINE_SRC_FILES
 )
 # create library target
 add_library(tatooine STATIC ${TATOOINE_SRC_FILES})
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-  target_compile_options(tatooine PUBLIC -Wno-gnu-zero-variadic-macro-arguments)
-endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # set include dirs
 target_include_directories(tatooine
@@ -109,7 +106,6 @@ if (TATOOINE_STD_FILESYSTEM_AVAILABLE)
 endif()
 
 set(TATOOINE_EXPORTING_TARGETS tatooine)
-target_compile_options(tatooine PUBLIC -Wno-inconsistent-missing-override)
 target_compile_features(tatooine PUBLIC cxx_std_20)
 
 # force coloring
@@ -122,8 +118,11 @@ endif()
 #enable warnings
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  target_compile_options(tatooine PRIVATE
-    -Wall -Wextra -Wpedantic -Wno-cpp)
+  target_compile_options(tatooine PUBLIC
+    -Wall -Wextra -Wpedantic
+    -Wno-cpp
+    -Wno-inconsistent-missing-override
+    -Wno-c99-extensions)
 endif()
 
 
@@ -327,8 +326,8 @@ else()
 endif()
 target_compile_definitions(tatooine PUBLIC
   TATOOINE_HDF5_AVAILABLE=${TATOOINE_HDF5_AVAILABLE})
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/hdf5.h.in
-               ${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/hdf5.h)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/hdf5_include.h.in
+               ${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/hdf5_include.h)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/hdf5/type.h.in
                ${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/hdf5/type.h)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

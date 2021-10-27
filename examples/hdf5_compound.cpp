@@ -175,9 +175,14 @@ auto IO_autonomous_particles() {
 }
 //==============================================================================
 auto main() -> int {
-  IO_S();
-  IO_static_multidim_array();
-  IO_tensor();
-  IO_ellipse();
-  IO_autonomous_particles();
+  auto dimsf = std::array{hsize_t(0)};
+  auto maxdims = std::array{ H5S_UNLIMITED};
+  auto dataset_space =
+      H5Screate_simple(2, dimsf.data(), maxdims.data());
+  H5Sclose(dataset_space);
+  //IO_S();
+  //IO_static_multidim_array();
+  //IO_tensor();
+  //IO_ellipse();
+  //IO_autonomous_particles();
 }
