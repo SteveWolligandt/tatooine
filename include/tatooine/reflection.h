@@ -104,18 +104,24 @@ using get_type = typename get_type_impl<I, T>::type;
 //------------------------------------------------------------------------------
 #define TATOOINE_REFLECTION_MEMBER_HELPER(NAME, ACCESSOR) v(#NAME, t.ACCESSOR);
 //------------------------------------------------------------------------------
-#define TATOOINE_REFLECTION_MAKE_GETTERS(NAME, ACCESSOR)                       \
+#define TATOOINE_REFLECTION_MAKE_ACCESSOR(NAME, ACCESSOR)                      \
   template <reflectable Reflectable>                                           \
   static constexpr auto get(                                                   \
       index_t<static_cast<std::size_t>(field_indices::NAME)>, Reflectable &&t) \
       ->decltype(auto) {                                                       \
     return t.ACCESSOR;                                                         \
-  }                                                                            \
+  }
+//------------------------------------------------------------------------------
+#define TATOOINE_REFLECTION_MAKE_NAME_GETTER(NAME, ACCESSOR)                   \
   static constexpr auto name(                                                  \
       index_t<static_cast<std::size_t>(field_indices::NAME)>)                  \
       ->std::string_view {                                                     \
     return #NAME;                                                              \
   }
+//------------------------------------------------------------------------------
+#define TATOOINE_REFLECTION_MAKE_GETTERS(NAME, ACCESSOR)                       \
+  TATOOINE_REFLECTION_MAKE_ACCESSOR(NAME, ACCESSOR)                            \
+  TATOOINE_REFLECTION_MAKE_NAME_GETTER(NAME, ACCESSOR)
 //------------------------------------------------------------------------------
 #define TATOOINE_REFLECTION_FIELD_INDICES(...)                                 \
   enum class field_indices : std::size_t { __VA_ARGS__, count___ };            \
@@ -144,7 +150,7 @@ using get_type = typename get_type_impl<I, T>::type;
       return TATOOINE_PP_TO_STRING(TYPE);                                       \
     }                                                                           \
                                                                                 \
-    TATOOINE_PP_MAP2(TATOOINE_REFLECTION_MAKE_GETTERS, ##__VA_ARGS__)           \
+    TATOOINE_PP_MAP2(TATOOINE_REFLECTION_MAKE_GETTERS, __VA_ARGS__)             \
                                                                                 \
     template <reflectable Reflectable, typename V>                              \
     constexpr static auto for_each([[maybe_unused]] V &&          v,            \
