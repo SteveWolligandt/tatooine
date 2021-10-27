@@ -111,12 +111,12 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
   //============================================================================
  public:
   constexpr static auto half = Real(0.5);
-  using this_t               = autonomous_particle;
+  using this_t               = autonomous_particle<Real, N>;
   using real_t               = Real;
   using vec_t                = vec<real_t, N>;
   using mat_t                = mat<real_t, N, N>;
   using pos_t                = vec_t;
-  using container_t          = std::vector<autonomous_particle<Real, N>>;
+  using container_t          = std::vector<this_t>;
   using ellipse_t            = geometry::hyper_ellipse<Real, N>;
   using parent_t             = ellipse_t;
   using sampler_t            = autonomous_particle_sampler<Real, N>;
@@ -358,16 +358,30 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
   static auto advect(Flowmap& phi, real_t const tau_step, real_t const max_t,
                      real_t const objective_cond,
                      size_t const max_num_particles, range auto const radii,
-                     range auto const& offsets, container_t particles) {
-    auto       finished_particles = container_t{};
+                     range auto const& offsets, container_t const& particles) {
+    //auto       finished_particles = container_t{};
     auto const num_threads =
         static_cast<size_t>(std::thread::hardware_concurrency());
+    auto const path = filesystem::path{"temp.h5"};
+    if (filesystem::exists(path)) {
+      filesystem::remove(path);
+    }
+    auto file     = hdf5::file{path};
+    auto hdd_data =
+        std::array{file.add_dataset<typename container_t::value_type>(
+                       "ping", hdf5::unlimited),
+                   file.add_dataset<typename container_t::value_type>(
+                       "pong", hdf5::unlimited)};
+    auto finished = file.add_dataset<typename container_t::value_type>(
+        "finished", hdf5::unlimited);
+    size_t reader   = 0;
+    size_t writer   = 1;
+    hdd_data[reader].write(particles);
 
-    while (!particles.empty()) {
-      auto particle_pools     = std::vector<aligned<container_t>>(num_threads);
-      auto advected_particles = std::vector<aligned<container_t>>(num_threads);
-      auto local_finished_particles =
-          std::vector(num_threads, aligned<container_t>{});
+    while (hdd_data[reader].dataspace().current_resolution()[0] > 0) {
+      auto const num_particles =
+          hdd_data[reader].dataspace().current_resolution()[0];
+      auto thread_ranges     = std::vector<aligned<std::pair<size_t, size_t>>>(num_threads);
       {
         // distribute particles
         auto thread_pool = std::vector<std::thread>{};
@@ -375,11 +389,10 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
         for (size_t i = 0; i < num_threads; ++i) {
           thread_pool.emplace_back(
               [&](auto const thr_id) {
-                auto const begin = thr_id * size(particles) / num_threads;
-                auto const end   = (thr_id + 1) * size(particles) / num_threads;
+                size_t const begin = thr_id * num_particles / num_threads;
+                size_t const end   = (thr_id + 1) * num_particles / num_threads;
 
-                *particle_pools[thr_id] = container_t(
-                    std::begin(particles) + begin, std::begin(particles) + end);
+                *thread_ranges[thr_id] = std::pair{begin, end};
               },
               i);
         }
@@ -387,7 +400,6 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
           thread.join();
         }
       }
-      particles.clear();
       {
         // advect particle pools
         auto thread_pool = std::vector<std::thread>{};
@@ -395,14 +407,14 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
         for (size_t i = 0; i < num_threads; ++i) {
           thread_pool.emplace_back(
               [&](auto const thr_id) {
-                auto& pool = *particle_pools[thr_id];
-                for (auto const& particle : pool) {
+                auto const& range = *thread_ranges[thr_id];
+                for (size_t i = range.first; i < range.second; ++i) {
+                  auto const particle = hdd_data[reader][i];
                   particle.advect_until_split(
                       phi, tau_step, max_t, objective_cond, radii, offsets,
-                      *advected_particles[thr_id],
-                      local_finished_particles[thr_id].value);
+                      hdd_data[writer],
+                      finished);
                 }
-                pool.clear();
               },
               i);
         }
@@ -411,40 +423,12 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
         }
       }
 
-      // gather advected particles into combined thread pool
-      for (size_t i = 0; i < num_threads; ++i) {
-        std::copy(begin(*advected_particles[i]), end(*advected_particles[i]),
-                  std::back_inserter(particles));
-        advected_particles[i]->clear();
-      }
-      for (size_t i = 0; i < num_threads; ++i) {
-        std::copy(begin(local_finished_particles[i].value),
-                  end(local_finished_particles[i].value),
-                  std::back_inserter(finished_particles));
-        local_finished_particles[i].value.clear();
-      }
-
-      if (max_num_particles > 0 && particles.size() > max_num_particles) {
-        size_t const num_particles_to_delete =
-            particles.size() - max_num_particles;
-
-        for (size_t i = 0; i < num_particles_to_delete; ++i) {
-          random::uniform<size_t> rand{0, particles.size() - 1};
-          particles.at(rand()) = std::move(particles.back());
-          particles.pop_back();
-        }
-      }
-      particles.shrink_to_fit();
+      reader = 1 - reader;
+      writer = 1 - writer;
+      hdd_data[writer].clear();
     }
-    while (max_num_particles > 0 &&
-           size(finished_particles) > max_num_particles) {
-      random::uniform<size_t> rand{0, size(finished_particles) - 1};
-      finished_particles[rand()] = std::move(finished_particles.back());
-      finished_particles.pop_back();
-    }
-    return finished_particles;
+    hdd_data[reader].clear();
   }
-
   //----------------------------------------------------------------------------
   // template <typename Flowmap>
   // auto advect_until_split(Flowmap& phi, real_t const tau_step,
@@ -461,8 +445,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
   template <typename Flowmap>
   auto advect_until_split(Flowmap phi, real_t tau_step, real_t const max_t,
                           real_t const objective_cond, range auto const radii,
-                          range auto const& offsets, range auto& out,
-                          range auto& finished_particles) const {
+                          range auto const& offsets, hdf5::dataset<this_t>& out,
+                          hdf5::dataset<this_t>& finished_particles) const {
     bool                    tau_should_have_changed_but_did_not = false;
     static constexpr real_t min_tau_step                        = 1e-8;
     static constexpr real_t max_cond_overshoot                  = 1e-6;
@@ -531,8 +515,10 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
         advected_ellipse.S() = cur_B * transposed(cur_Q);
       }
 
+      static std::mutex mutex;
       if (t2 == max_t && cond_HHt <= objective_cond + max_cond_overshoot) {
-        finished_particles.emplace_back(m_x0, t2, fmg2fmg1, advected_ellipse);
+        auto lock = std::lock_guard{mutex};
+        finished_particles.push_back(this_t{m_x0, t2, fmg2fmg1, advected_ellipse});
         return;
       }
       if ((cond_HHt >= objective_cond &&
@@ -542,14 +528,17 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
         for (auto const& radius : radii) {
           acc_radii += radius(0) * radius(1);
         }
-        for (size_t i = 0; i < size(radii); ++i) {
-          auto const new_eigvals = current_radii * radii[i];
-          auto const offset2     = cur_B * offsets[i];
-          auto const offset0     = *inv(fmg2fmg1) * offset2;
-          auto       offset_ellipse =
-              ellipse_t{advected_ellipse.center() + offset2,
-                        cur_Q * diag(new_eigvals) * transposed(cur_Q)};
-          out.emplace_back(m_x0 + offset0, t2, fmg2fmg1, offset_ellipse);
+        {
+          auto lock = std::lock_guard{mutex};
+          for (size_t i = 0; i < size(radii); ++i) {
+            auto const new_eigvals = current_radii * radii[i];
+            auto const offset2     = cur_B * offsets[i];
+            auto const offset0     = *inv(fmg2fmg1) * offset2;
+            auto       offset_ellipse =
+                ellipse_t{advected_ellipse.center() + offset2,
+                          cur_Q * diag(new_eigvals) * transposed(cur_Q)};
+            out.push_back(this_t{m_x0 + offset0, t2, fmg2fmg1, offset_ellipse});
+          }
         }
         return;
       }
@@ -584,8 +573,6 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
   auto sampler() const {
     return sampler_t{initial_ellipse(), *this, m_nabla_phi1};
   }
-  //----------------------------------------------------------------------------
-  auto write_hdf5() -> void {}
 };
 //==============================================================================
 namespace reflection {

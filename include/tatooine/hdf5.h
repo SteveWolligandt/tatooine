@@ -349,6 +349,11 @@ class dataset {
     }
   }
   //============================================================================
+  auto clear() {
+    auto s = std::vector<hsize_t>(dataspace().rank(), 0);
+    resize(s);
+  }
+  //============================================================================
   auto write(T const* data) -> void {
     H5Dwrite(*m_dataset_id, type_id<T>(), H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
   }
@@ -383,14 +388,14 @@ class dataset {
              data.data());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <range Range>
-#else
-  template <typename Range, enable_if_range<Range> = true>
-#endif
-  auto write(Range&& r) -> void {
-    write(std::vector(begin(r), end(r)));
-  }
+//#ifdef __cpp_concepts
+//  template <range Range>
+//#else
+//  template <typename Range, enable_if_range<Range> = true>
+//#endif
+//  auto write(Range&& r) -> void {
+//    write(std::vector(begin(r), end(r)));
+//  }
   //----------------------------------------------------------------------------
   template <typename IndexOrder>
   auto write(dynamic_multidim_array<T, IndexOrder> const& data) -> void {
@@ -627,6 +632,8 @@ class dataset {
     return data;
   }
   //----------------------------------------------------------------------------
+  auto operator[](hsize_t const i) const { return read(i); }
+  //----------------------------------------------------------------------------
   auto num_dimensions() const {
     auto dataset_space = H5Dget_space(*m_dataset_id);
     auto ndims         = H5Sget_simple_extent_ndims(dataset_space);
@@ -663,6 +670,9 @@ class dataset {
   }
   auto dataspace() const {
     return hdf5::dataspace{H5Dget_space(*m_dataset_id)};
+  }
+  auto flush() {
+    H5Dflush(*m_dataset_id);
   }
 };
 //==============================================================================

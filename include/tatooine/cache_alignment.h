@@ -18,16 +18,16 @@ static constexpr std::size_t hardware_destructive_interference_size  = 64;
 
 template <typename T, std::size_t N = hardware_destructive_interference_size>
 class alignas(N) aligned {
-  private:
   T value;
-  public:
+
+ public:
   template <typename... Args>
   explicit aligned(Args&&... args) : value(std::forward<Args>(args)...) {}
 
   auto operator*() const -> auto const& { return value; }
   auto operator*() -> auto& { return value; }
   auto operator->() const { return &value; }
-  auto operator->() { return *value; }
+  auto operator->() { return &value; }
 };
 //==============================================================================
 }  // namespace tatooine
