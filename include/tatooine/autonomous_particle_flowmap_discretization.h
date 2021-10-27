@@ -199,16 +199,16 @@ struct autonomous_particle_flowmap_discretization {
   //============================================================================
  private:
   sampler_container_t m_samplers;
-  mesh_t              m_mesh0;
-  mesh_t              m_mesh1;
-  mesh_prop_t*        m_mesh0_samplers;
-  mesh_prop_t*        m_mesh1_samplers;
-  std::unique_ptr<
-      forward_autonomous_particle_sampler_hierarchy<Real, NumDimensions>>
-      m_hierarchy0;
-  std::unique_ptr<
-      backward_autonomous_particle_sampler_hierarchy<Real, NumDimensions>>
-      m_hierarchy1;
+  //mesh_t              m_mesh0;
+  //mesh_t              m_mesh1;
+  //mesh_prop_t*        m_mesh0_samplers;
+  //mesh_prop_t*        m_mesh1_samplers;
+  //std::unique_ptr<
+  //    forward_autonomous_particle_sampler_hierarchy<Real, NumDimensions>>
+  //    m_hierarchy0;
+  //std::unique_ptr<
+  //    backward_autonomous_particle_sampler_hierarchy<Real, NumDimensions>>
+  //    m_hierarchy1;
   //============================================================================
  public:
   template <typename Flowmap>
@@ -280,93 +280,93 @@ struct autonomous_particle_flowmap_discretization {
   }
   //============================================================================
   auto samplers() const -> auto const& { return m_samplers; }
-  auto mesh0()    const -> auto const& { return m_mesh0; }
-  auto mesh1()    const -> auto const& { return m_mesh1; }
+  //auto mesh0()    const -> auto const& { return m_mesh0; }
+  //auto mesh1()    const -> auto const& { return m_mesh1; }
   //============================================================================
  private:
   template <typename Flowmap>
   auto fill(Flowmap&& flowmap, range auto const& initial_particles,
             arithmetic auto const t1, arithmetic auto const tau_step) {
-    auto const advected_particles =
+    //auto const advected_particles =
         autonomous_particle<Real, NumDimensions>::advect_with_3_splits(
             std::forward<Flowmap>(flowmap), tau_step, t1, initial_particles);
-    m_samplers.reserve(size(advected_particles));
-    using boost::copy;
-    using boost::adaptors::transformed;
-    auto constexpr sampler = [](auto const& p) { return p.sampler(); };
-    copy(advected_particles | transformed(sampler),
-         std::back_inserter(m_samplers));
-    m_hierarchy0 = std::make_unique<
-        forward_autonomous_particle_sampler_hierarchy<Real, NumDimensions>>(
-        vec2{-10, -10}, vec2{10, 10}, m_samplers, 10);
-    m_hierarchy1 = std::make_unique<
-        backward_autonomous_particle_sampler_hierarchy<Real, NumDimensions>>(
-        vec2{-10, -10}, vec2{10, 10}, m_samplers, 10);
-
-    m_mesh0_samplers =
-        &m_mesh0.template vertex_property<sampler_t const*>("samplers");
-    m_mesh1_samplers =
-        &m_mesh1.template vertex_property<sampler_t const*>("samplers");
-
-    size_t const num_vertices = 15;
-    auto const   ts           = linspace{0.0, 2 * M_PI, num_vertices + 1};
-    std::vector<std::pair<typename mesh_t::vertex_handle,
-                          typename mesh_t::vertex_handle>>
-                                                constraints0, constraints1;
-    std::vector<typename mesh_t::vertex_handle> vertices_of_ellipse0(
-        num_vertices);
-    std::vector<typename mesh_t::vertex_handle> vertices_of_ellipse1(
-        num_vertices);
-    for (auto const& sampler : samplers()) {
-      {
-        auto const v = m_mesh0.insert_vertex(sampler.ellipse0().center());
-        m_mesh0_samplers->at(v) = &sampler;
-      }
-
-      {
-        auto const v = m_mesh1.insert_vertex(sampler.ellipse1().center());
-        m_mesh1_samplers->at(v) = &sampler;
-      }
-
-      auto vit0 = vertices_of_ellipse0.begin();
-      auto vit1 = vertices_of_ellipse1.begin();
-      for (auto t_it = begin(ts); t_it != prev(end(ts));
-           ++t_it, ++vit0, ++vit1) {
-        auto const t = *t_it;
-        auto const y = vec{std::cos(t), std::sin(t)};
-        {
-          auto const v = m_mesh0.insert_vertex(sampler.ellipse0().center() +
-                                               sampler.ellipse0().S() * y);
-          *vit0        = v;
-          m_mesh0_samplers->at(v) = &sampler;
-        }
-
-        {
-          auto const v = m_mesh1.insert_vertex(sampler.ellipse1().center() +
-                                               sampler.ellipse1().S() * y);
-          *vit1        = v;
-          m_mesh1_samplers->at(v) = &sampler;
-        }
-      }
-      for (size_t i = 0; i < num_vertices - 1; ++i) {
-        constraints0.emplace_back(vertices_of_ellipse0[i],
-                                  vertices_of_ellipse0[i + 1]);
-      }
-      constraints0.emplace_back(vertices_of_ellipse1[num_vertices - 1],
-                                vertices_of_ellipse1[0]);
-      for (size_t i = 0; i < num_vertices - 1; ++i) {
-        constraints1.emplace_back(vertices_of_ellipse1[i],
-                                  vertices_of_ellipse1[i + 1]);
-      }
-      constraints1.emplace_back(vertices_of_ellipse0[num_vertices - 1],
-                                vertices_of_ellipse0[0]);
-    }
-
-    m_mesh0.build_delaunay_mesh(constraints0);
-    m_mesh0.build_hierarchy();
-
-    m_mesh1.build_delaunay_mesh(constraints1);
-    m_mesh1.build_hierarchy();
+    //m_samplers.reserve(size(advected_particles));
+    //using boost::copy;
+    //using boost::adaptors::transformed;
+    //auto constexpr sampler = [](auto const& p) { return p.sampler(); };
+    //copy(advected_particles | transformed(sampler),
+    //     std::back_inserter(m_samplers));
+    //m_hierarchy0 = std::make_unique<
+    //    forward_autonomous_particle_sampler_hierarchy<Real, NumDimensions>>(
+    //    vec2{-10, -10}, vec2{10, 10}, m_samplers, 10);
+    //m_hierarchy1 = std::make_unique<
+    //    backward_autonomous_particle_sampler_hierarchy<Real, NumDimensions>>(
+    //    vec2{-10, -10}, vec2{10, 10}, m_samplers, 10);
+    //
+    //m_mesh0_samplers =
+    //    &m_mesh0.template vertex_property<sampler_t const*>("samplers");
+    //m_mesh1_samplers =
+    //    &m_mesh1.template vertex_property<sampler_t const*>("samplers");
+    //
+    //size_t const num_vertices = 15;
+    //auto const   ts           = linspace{0.0, 2 * M_PI, num_vertices + 1};
+    //std::vector<std::pair<typename mesh_t::vertex_handle,
+    //                      typename mesh_t::vertex_handle>>
+    //                                            constraints0, constraints1;
+    //std::vector<typename mesh_t::vertex_handle> vertices_of_ellipse0(
+    //    num_vertices);
+    //std::vector<typename mesh_t::vertex_handle> vertices_of_ellipse1(
+    //    num_vertices);
+    //for (auto const& sampler : samplers()) {
+    //  {
+    //    auto const v = m_mesh0.insert_vertex(sampler.ellipse0().center());
+    //    m_mesh0_samplers->at(v) = &sampler;
+    //  }
+    //
+    //  {
+    //    auto const v = m_mesh1.insert_vertex(sampler.ellipse1().center());
+    //    m_mesh1_samplers->at(v) = &sampler;
+    //  }
+    //
+    //  auto vit0 = vertices_of_ellipse0.begin();
+    //  auto vit1 = vertices_of_ellipse1.begin();
+    //  for (auto t_it = begin(ts); t_it != prev(end(ts));
+    //       ++t_it, ++vit0, ++vit1) {
+    //    auto const t = *t_it;
+    //    auto const y = vec{std::cos(t), std::sin(t)};
+    //    {
+    //      auto const v = m_mesh0.insert_vertex(sampler.ellipse0().center() +
+    //                                           sampler.ellipse0().S() * y);
+    //      *vit0        = v;
+    //      m_mesh0_samplers->at(v) = &sampler;
+    //    }
+    //
+    //    {
+    //      auto const v = m_mesh1.insert_vertex(sampler.ellipse1().center() +
+    //                                           sampler.ellipse1().S() * y);
+    //      *vit1        = v;
+    //      m_mesh1_samplers->at(v) = &sampler;
+    //    }
+    //  }
+    //  for (size_t i = 0; i < num_vertices - 1; ++i) {
+    //    constraints0.emplace_back(vertices_of_ellipse0[i],
+    //                              vertices_of_ellipse0[i + 1]);
+    //  }
+    //  constraints0.emplace_back(vertices_of_ellipse1[num_vertices - 1],
+    //                            vertices_of_ellipse1[0]);
+    //  for (size_t i = 0; i < num_vertices - 1; ++i) {
+    //    constraints1.emplace_back(vertices_of_ellipse1[i],
+    //                              vertices_of_ellipse1[i + 1]);
+    //  }
+    //  constraints1.emplace_back(vertices_of_ellipse0[num_vertices - 1],
+    //                            vertices_of_ellipse0[0]);
+    //}
+    //
+    //m_mesh0.build_delaunay_mesh(constraints0);
+    //m_mesh0.build_hierarchy();
+    //
+    //m_mesh1.build_delaunay_mesh(constraints1);
+    //m_mesh1.build_hierarchy();
   }
   //----------------------------------------------------------------------------
  private:

@@ -14,7 +14,7 @@
 #include <sstream>
 
 #include "parse_args.h"
-#include "write_ellipses.h"
+//#include "write_ellipses.h"
 //==============================================================================
 using namespace tatooine;
 //==============================================================================
@@ -98,14 +98,12 @@ auto main(int argc, char** argv) -> int {
     auto phi = flowmap(v);
     phi.use_caching(false);
 
-    sampler_check_grid.vertices().iterate_indices(
-        [&](auto const... is) {
-          auto const x = sampler_check_grid.vertex_at(is...);
-          numerical_flowmap_forward_prop(is...) = phi(x, args.t0, args.tau);
-          numerical_flowmap_backward_prop(is...) =
-              phi(x, args.t0 + args.tau, -args.tau);
-        },
-        tag::parallel);
+    sampler_check_grid.vertices().iterate_indices([&](auto const... is) {
+      auto const x = sampler_check_grid.vertex_at(is...);
+      numerical_flowmap_forward_prop(is...) = phi(x, args.t0, args.tau);
+      numerical_flowmap_backward_prop(is...) =
+          phi(x, args.t0 + args.tau, -args.tau);
+    } /*, tag::parallel*/);
     //----------------------------------------------------------------------------
     indicator.set_text("Discretizing flow map with autonomous particles");
     auto num_particles_after_advection = size_t{};
@@ -164,10 +162,10 @@ auto main(int argc, char** argv) -> int {
       //----------------------------------------------------------------------------
       indicator.set_text("Writing Autonomous Particles Results");
       {
-        autonomous_disc.mesh0().write_vtk(
-            "doublegyre_grid_autonomous_mesh0.vtk");
-        autonomous_disc.mesh1().write_vtk(
-            "doublegyre_grid_autonomous_mesh1.vtk");
+        //autonomous_disc.mesh0().write_vtk(
+        //    "doublegyre_grid_autonomous_mesh0.vtk");
+        //autonomous_disc.mesh1().write_vtk(
+        //    "doublegyre_grid_autonomous_mesh1.vtk");
         std::vector<line2> all_advected_discretizations;
         std::vector<line2> all_initial_discretizations;
         for (auto const& sampler : autonomous_disc.samplers()) {
