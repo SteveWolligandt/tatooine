@@ -96,13 +96,13 @@ struct dataspace {
  public:
   dataspace(dataspace const& other) : m_id{H5Scopy(other.m_id)} {}
   //----------------------------------------------------------------------------
-  dataspace(hid_t const id) : m_id{id} {}
+  explicit dataspace(hid_t const id) : m_id{id} {}
   //----------------------------------------------------------------------------
   template <typename... Size, enable_if_integral<Size...> = true>
-  dataspace(Size const... size)
+  explicit dataspace(Size const... size)
       : dataspace{std::array{static_cast<hsize_t>(size)...}} {}
   //----------------------------------------------------------------------------
-  dataspace(std::vector<hsize_t> const& cur_resolution)
+  explicit dataspace(std::vector<hsize_t> const& cur_resolution)
       : m_id{H5Screate_simple(cur_resolution.size(), cur_resolution.data(),
                               nullptr)} {}
   //----------------------------------------------------------------------------
@@ -112,7 +112,7 @@ struct dataspace {
                               max_resolution.data())} {}
   //----------------------------------------------------------------------------
   template <std::size_t N>
-  dataspace(std::array<hsize_t, N> const& cur_resolution)
+  explicit dataspace(std::array<hsize_t, N> const& cur_resolution)
       : m_id{H5Screate_simple(N, cur_resolution.data(), nullptr)} {}
   //----------------------------------------------------------------------------
   template <std::size_t N>
@@ -155,6 +155,11 @@ struct dataspace {
                         std::vector<hsize_t> const& count) {
     H5Sselect_hyperslab(m_id, H5S_SELECT_SET, offset.data(), nullptr,
                         count.data(), nullptr);
+  }
+  //------------------------------------------------------------------------------
+  auto select_hyperslab(hsize_t const offset, hsize_t const count) {
+    H5Sselect_hyperslab(m_id, H5S_SELECT_SET, &offset, nullptr, &count,
+                        nullptr);
   }
   //------------------------------------------------------------------------------
   auto is_unlimited() const {
@@ -481,6 +486,12 @@ class dataset {
     H5Dwrite(*m_dataset_id, type_id<T>(), memory_space.id(), dataset_space.id(),
              H5P_DEFAULT, data);
   }
+  //============================================================================
+  auto read(hid_t mem_space_id, hid_t file_space_id, hid_t xfer_plist_id,
+            T* buf) const -> void {
+    H5Dread(*m_dataset_id, type_id<T>(), mem_space_id, file_space_id,
+            xfer_plist_id, buf);
+  }
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest>
   auto read() const {
@@ -507,14 +518,45 @@ class dataset {
     if (must_resize) {
       arr.resize(std::vector<size_t>(begin(size), end(size)));
     }
-    H5Dread(*m_dataset_id, type_id<T>(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
-            arr.data_ptr());
+    read(H5S_ALL, H5S_ALL, H5P_DEFAULT, arr.data_ptr());
   }
   //----------------------------------------------------------------------------
   auto read_as_vector() const {
     std::vector<T> data;
     read(data);
     return data;
+  }
+  //----------------------------------------------------------------------------
+  auto read(std::vector<hsize_t> const& offset,
+            std::vector<hsize_t> const& count, std::vector<T>& data) const {
+    assert(offset.size() == count.size());
+    boost::reverse(offset);
+    boost::reverse(count);
+
+    auto dataset_space = dataspace();
+    dataset_space.select_hyperslab(offset, count);
+
+    auto memory_space = hdf5::dataspace{count};
+    read(memory_space.id(), dataset_space.id(),
+            H5P_DEFAULT, data.data());
+  }
+  //----------------------------------------------------------------------------
+  auto read(hsize_t const offset, hsize_t const count,
+            std::vector<T>& data) const {
+    assert(count == data.size());
+    auto dataset_space = dataspace();
+    dataset_space.select_hyperslab(offset, count);
+
+    auto memory_space = hdf5::dataspace{count};
+    read(memory_space.id(), dataset_space.id(),
+            H5P_DEFAULT, data.data());
+  }
+  //----------------------------------------------------------------------------
+  template <typename Int0, typename Int1, enable_if_integral<Int0, Int1> = true>
+  auto read_as_vector(std::vector<Int0> const& offset,
+                      std::vector<Int1> const& count) const {
+    return read_as_vector(std::vector<hsize_t>(begin(offset), end(offset)),
+                          std::vector<hsize_t>(begin(count), end(count)));
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest>
@@ -532,8 +574,7 @@ class dataset {
       data.resize(num_entries);
     }
 
-    H5Dread(*m_dataset_id, type_id<T>(), H5S_ALL, H5S_ALL,
-            H5P_DEFAULT, data.data());
+    read(H5S_ALL, H5S_ALL, H5P_DEFAULT, data.data());
     H5Sclose(dataset_space);
   }
   //----------------------------------------------------------------------------
@@ -601,7 +642,7 @@ class dataset {
 
     auto memory_space =
         H5Screate_simple(static_cast<int>(rank), count.data(), nullptr);
-    H5Dread(*m_dataset_id, type_id<T>(), memory_space, dataset_space,
+    read( memory_space, dataset_space,
             H5P_DEFAULT, arr.data_ptr());
     H5Sclose(dataset_space);
     H5Sclose(memory_space);
@@ -625,7 +666,7 @@ class dataset {
                         count.data(), nullptr);
     auto memory_space = H5Screate_simple(rank, count.data(), nullptr);
     T    data;
-    H5Dread(*m_dataset_id, type_id<T>(), memory_space, dataset_space,
+    Dread(memory_space, dataset_space,
             H5P_DEFAULT, &data);
     H5Sclose(dataset_space);
     H5Sclose(memory_space);
