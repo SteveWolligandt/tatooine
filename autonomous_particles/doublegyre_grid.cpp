@@ -116,8 +116,7 @@ auto main(int argc, char** argv) -> int {
           rectilinear_grid{linspace{0.0, 2.0, args.width + 1},
                            linspace{0.0, 1.0, args.height + 1}},
       };
-     num_particles_after_advection =
-          size(autonomous_disc.samplers());
+      num_particles_after_advection = autonomous_disc.num_particles();
       sampler_check_grid.vertices().iterate_indices(
           [&](auto const... is) {
             auto const x = sampler_check_grid.vertex_at(is...);
@@ -166,17 +165,17 @@ auto main(int argc, char** argv) -> int {
         //    "doublegyre_grid_autonomous_mesh0.vtk");
         //autonomous_disc.mesh1().write_vtk(
         //    "doublegyre_grid_autonomous_mesh1.vtk");
-        std::vector<line2> all_advected_discretizations;
-        std::vector<line2> all_initial_discretizations;
-        for (auto const& sampler : autonomous_disc.samplers()) {
-          all_initial_discretizations.push_back(
-              discretize(sampler.ellipse0(), 100));
-          all_advected_discretizations.push_back(
-              discretize(sampler.ellipse1(), 100));
-        }
-        write_vtk(all_initial_discretizations, "doublegyre_grid_ellipses0.vtk");
-        write_vtk(all_advected_discretizations,
-                  "doublegyre_grid_ellipses1.vtk");
+        //std::vector<line2> all_advected_discretizations;
+        //std::vector<line2> all_initial_discretizations;
+        //for (auto const& sampler : autonomous_disc.samplers()) {
+        //  all_initial_discretizations.push_back(
+        //      discretize(sampler.ellipse0(), 100));
+        //  all_advected_discretizations.push_back(
+        //      discretize(sampler.ellipse1(), 100));
+        //}
+        //write_vtk(all_initial_discretizations, "doublegyre_grid_ellipses0.vtk");
+        //write_vtk(all_advected_discretizations,
+        //          "doublegyre_grid_ellipses1.vtk");
       }
     }
     //----------------------------------------------------------------------------
@@ -235,6 +234,10 @@ auto main(int argc, char** argv) -> int {
     }
     //----------------------------------------------------------------------------
     indicator.set_text("Discretizing flow map with agranovsky sampling");
+    auto const k =
+        static_cast<size_t>(std::ceil(args.agranovsky_delta_t / args.tau));
+    auto const regularized_height_agranovksky = static_cast<size_t>(
+        std::ceil(std::sqrt((num_particles_after_advection / 2) / k)));
     auto agranovsky_disc =
         AgranovskyFlowmapDiscretization<2>{phi,
                                            args.t0,
@@ -242,8 +245,8 @@ auto main(int argc, char** argv) -> int {
                                            args.agranovsky_delta_t,
                                            vec2{0, 0},
                                            vec2{2, 1},
-                                           regularized_height * 2,
-                                           regularized_height};
+                                           regularized_height_agranovksky * 2,
+                                           regularized_height_agranovksky};
     {
       size_t i = 0;
       for (auto const& step : agranovsky_disc.steps()) {
