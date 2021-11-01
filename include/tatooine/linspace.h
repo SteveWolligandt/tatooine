@@ -4,6 +4,7 @@
 #ifdef __cpp_concepts
 #include <tatooine/concepts.h>
 #endif
+#include <tatooine/reflection.h>
 #include <tatooine/type_traits.h>
 
 #include <boost/iterator/iterator_facade.hpp>
@@ -138,7 +139,14 @@ struct linspace {
   //----------------------------------------------------------------------------
   constexpr auto resize(size_t const s) {m_size = s;}
 };
-
+namespace reflection{
+template <typename T>
+TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
+    linspace<T>,
+    TATOOINE_REFLECTION_INSERT_METHOD(front, front()),
+    TATOOINE_REFLECTION_INSERT_METHOD(back, back()),
+    TATOOINE_REFLECTION_INSERT_METHOD(size, size()))
+}
 //==============================================================================
 #ifdef __cpp_concepts
 template <arithmetic Real>

@@ -2072,7 +2072,7 @@ class rectilinear_grid {
       dataset.attribute("vsCentering")  = "nodal";
       dataset.attribute("vsType")       = "variable";
       dataset.attribute("vsIndexOrder") = "compMinorF";
-      auto data = std::vector<typename vec_t::value_type>{};
+      auto data = std::vector<T>{};
       data.reserve(vertices().size());
       vertices().iterate_indices(
           [&](auto const... is) { data.push_back(prop(is...)); });
@@ -2156,7 +2156,8 @@ class rectilinear_grid {
               "axis" + std::to_string(Is);
           auto dim = f.add_dataset<dim_type>(
               "rectilinear_grid/axis" + std::to_string(Is), size<Is>());
-          dim.write(dimension<Is>());
+          dim.write(std::vector<dim_type>(
+              begin(dimension<Is>()), end(dimension<Is>())));
         }(),
         ...);
 

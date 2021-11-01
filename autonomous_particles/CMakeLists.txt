@@ -39,5 +39,8 @@ create_autonomous_particles_application(abcflow_grid)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # explorer
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#add_executable (autonomous_particles.explorer explorer.cpp)
-#target_link_libraries(autonomous_particles.explorer PUBLIC tatooine gl)
+add_executable (autonomous_particles.explorer explorer.cpp)
+target_link_libraries(autonomous_particles.explorer PUBLIC tatooine gl)
+add_custom_target(autonomous_particles.explorer.run
+  COMMAND ./autonomous_particles.explorer
+  DEPENDS autonomous_particles.explorer)

@@ -7,7 +7,7 @@
 #include <tatooine/preprocessor/if.h>
 #include <tatooine/preprocessor/equal.h>
 //==============================================================================
-#define TATOOINE_PP_INVOKE(M, ...) TATOOINE_PP_INVOKE_I(M, ##__VA_ARGS__)
+#define TATOOINE_PP_INVOKE(M, ...) TATOOINE_PP_INVOKE_I(M, __VA_ARGS__)
 #define TATOOINE_PP_INVOKE_I(M, ...) TATOOINE_PP_EXPAND(M(__VA_ARGS__))
 //==============================================================================
 #endif

@@ -214,10 +214,10 @@ auto main(int argc, char** argv) -> int {
     //    auto const regular_sampled_advection = regular_flowmap_sampler(x);
     //    auto const numerical_advection =
     //        numerical_flowmap(x, args.t0, args.tau);
-    //    autonomous_particles_errors.push_back(distance(
+    //    autonomous_particles_errors.push_back(euclidean_distance(
     //        autonomous_particles_sampled_advection, numerical_advection));
     //    regular_errors.push_back(
-    //        distance(regular_sampled_advection, numerical_advection));
+    //        euclidean_distance(regular_sampled_advection, numerical_advection));
     //  } catch (std::exception const& e) {
     //    ++num_out_of_domain;
     //  }
