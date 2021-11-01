@@ -1,12 +1,12 @@
 #ifndef TATOOINE_UNSTRUCTURED_TRIANGULAR_GRID_H
 #define TATOOINE_UNSTRUCTURED_TRIANGULAR_GRID_H
 //==============================================================================
-#include <tatooine/unstructured_simplex_grid.h>
+#include <tatooine/unstructured_simplicial_grid.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
 template <typename Real, size_t N>
-using unstructured_triangular_grid = unstructured_simplex_grid<Real, N, 2>;
+using unstructured_triangular_grid = unstructured_simplicial_grid<Real, N, 2>;
 template <size_t N>
 using UnstructuredTriangularGird     = unstructured_triangular_grid<real_t, N>;
 using unstructured_triangular_grid_2 = UnstructuredTriangularGird<2>;

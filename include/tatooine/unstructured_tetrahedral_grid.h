@@ -15,12 +15,12 @@
 //#include <boost/range/algorithm/copy.hpp>
 //#include <boost/range/adaptor/transformed.hpp>
 //#include <vector>
-#include <tatooine/unstructured_simplex_grid.h>
+#include <tatooine/unstructured_simplicial_grid.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
 template <typename Real, size_t N>
-using unstructured_tetrahedral_grid = unstructured_simplex_grid<Real, N, 3>;
+using unstructured_tetrahedral_grid = unstructured_simplicial_grid<Real, N, 3>;
 using unstructured_tetrahedral_grid_3 =
     unstructured_tetrahedral_grid<real_t, 3>;
 using unstructured_tetrahedral_grid_4 =

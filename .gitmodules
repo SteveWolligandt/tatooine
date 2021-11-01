@@ -43,3 +43,6 @@
 [submodule "external/lapackpp"]
 	path = external/lapackpp
 	url = https://bitbucket.org/icl/lapackpp.git
+[submodule "external/rapidxml"]
+	path = external/rapidxml
+	url = https://github.com/discord/rapidxml

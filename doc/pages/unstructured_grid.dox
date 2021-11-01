@@ -2,6 +2,6 @@
 \page unstructured_grid_page Unstructured Grids
 \tableofcontents
 \section unstructured_grid_intro_sec Introduction
-tatooine::unstructured_simplex_grid, tatooine::unstructured_triangular_grid, tatooine::unstructured_tetrahedral_grid 
+tatooine::unstructured_simplicial_grid, tatooine::unstructured_triangular_grid, tatooine::unstructured_tetrahedral_grid 
 \todo Write documentation of unstructured grid!
 */
