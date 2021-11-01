@@ -46,7 +46,7 @@ struct regular_flowmap_discretization {
   using grid_vertex_property_sampler_t =
       typename grid_sampler_type_creator<N>::type;
 
-  using backward_grid_t = unstructured_simplex_grid<Real, N, N>;
+  using backward_grid_t = unstructured_simplicial_grid<Real, N, N>;
   using mesh_vertex_property_t =
       typename backward_grid_t::template vertex_property_t<pos_t>;
   using mesh_vertex_property_sampler_t =

@@ -3,7 +3,7 @@
 //==============================================================================
 #include <tatooine/autonomous_particle.h>
 #include <tatooine/uniform_tree_hierarchy.h>
-#include <tatooine/unstructured_simplex_grid.h>
+#include <tatooine/unstructured_simplicial_grid.h>
 #include <tatooine/staggered_flowmap_discretization.h>
 
 #include <boost/range/adaptor/transformed.hpp>
@@ -193,7 +193,7 @@ struct autonomous_particle_flowmap_discretization {
   using particle_t          = autonomous_particle<Real, NumDimensions>;
   using sampler_t           = autonomous_particle_sampler<Real, NumDimensions>;
   using sampler_container_t = std::vector<sampler_t>;
-  using mesh_t              = unstructured_simplex_grid<Real, NumDimensions>;
+  using mesh_t              = unstructured_simplicial_grid<Real, NumDimensions>;
   using mesh_prop_t =
       typename mesh_t::template vertex_property_t<sampler_t const*>;
   static constexpr auto num_dimensions() { return NumDimensions; }

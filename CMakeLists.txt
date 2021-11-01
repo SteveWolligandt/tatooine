@@ -82,7 +82,8 @@ target_include_directories(tatooine
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>"
     external/indicators/include
-    external/vcode/include)
+    external/vcode/include
+    external/rapidxml)
 
 if (TATOOINE_STD_FILESYSTEM_AVAILABLE)
   target_link_libraries(tatooine PUBLIC stdc++fs)
@@ -132,9 +133,6 @@ function(update_git_submodule dir)
       "When updating submodule ${dir}:\n  git submodule update --init --recursive -- ${dir}\nfailed with ${GIT_SUBMOD_RESULT}, please checkout submodules.")
   endif()
 endfunction()
-#-------------------------------------------------------------------------------
-# Subdirectories
-#-------------------------------------------------------------------------------
 option(TATOOINE_BUILD_DOC "Builds the documentation" OFF)
 if (TATOOINE_BUILD_DOC) 
   option(TATOOINE_DOC_ONLY "Only builds documentation" OFF)
@@ -142,39 +140,13 @@ if (TATOOINE_BUILD_DOC)
 endif () 
 
 if (NOT TATOOINE_DOC_ONLY)
-add_subdirectory(gl)
-add_subdirectory(test)
-add_subdirectory(scivis_contest_2020 EXCLUDE_FROM_ALL)
-add_subdirectory(benchmarks)
-add_subdirectory(material_science EXCLUDE_FROM_ALL)
-if (TATOOINE_GL_AVAILABLE)
-  #add_subdirectory(steadification EXCLUDE_FROM_ALL)
-
-  option(TATOOINE_BUILD_FLOWEXPLORER "Builds Flow Explorer" OFF)
-  if (TATOOINE_BUILD_FLOWEXPLORER)
-    add_subdirectory(flowexplorer)
-  endif()
+#===============================================================================
+# EXAMPLES
+#===============================================================================
+option(TATOOINE_BUILD_EXAMPLES "")
+if (TATOOINE_BUILD_EXAMPLES)
+  add_subdirectory(examples)
 endif()
-add_subdirectory(raytracer)
-add_subdirectory(autonomous_particles)
-add_subdirectory(smearing_scalar_field)
-
-if (TATOOINE_MPI_AVAILABLE)
-  add_subdirectory(mpi)
-  add_subdirectory(insitu)
-endif()
-
-option(TATOOINE_BUILD_CHANNELFLOW_VISUALIZATION
-       "creates targets to make visualizations for the channelflow" ON)
-if(TATOOINE_BUILD_CHANNELFLOW_VISUALIZATION)
-  add_subdirectory(channelflow)
-endif()
-
-
-set(TATOOINE_MANDATORY_GIT_SUBMODULES external/blaspp external/lapackpp external/indicators)
-foreach(SUBMODULE ${TATOOINE_MANDATORY_GIT_SUBMODULES})
-  update_git_submodule(${SUBMODULE})
-endforeach()
 #===============================================================================
 # Required Packages
 #===============================================================================
@@ -455,10 +427,46 @@ list(REMOVE_ITEM defs _FORTIFY_SOURCE)
 set_property(TARGET tatooine PROPERTY COMPILE_DEFINITIONS ${defs})
 
 
-option(TATOOINE_BUILD_EXAMPLES "")
-if (TATOOINE_BUILD_EXAMPLES)
-  add_subdirectory(examples)
+#-------------------------------------------------------------------------------
+# Subdirectories
+#-------------------------------------------------------------------------------
+add_subdirectory(gl)
+add_subdirectory(test)
+add_subdirectory(scivis_contest_2020 EXCLUDE_FROM_ALL)
+add_subdirectory(benchmarks)
+add_subdirectory(material_science EXCLUDE_FROM_ALL)
+if (TATOOINE_GL_AVAILABLE)
+  #add_subdirectory(steadification EXCLUDE_FROM_ALL)
+
+  option(TATOOINE_BUILD_FLOWEXPLORER "Builds Flow Explorer" OFF)
+  if (TATOOINE_BUILD_FLOWEXPLORER)
+    add_subdirectory(flowexplorer)
+  endif()
 endif()
+add_subdirectory(raytracer)
+add_subdirectory(autonomous_particles)
+#add_subdirectory(smearing_scalar_field)
+
+if (TATOOINE_MPI_AVAILABLE)
+  add_subdirectory(mpi)
+  add_subdirectory(insitu)
+endif()
+
+option(TATOOINE_BUILD_CHANNELFLOW_VISUALIZATION
+       "creates targets to make visualizations for the channelflow" ON)
+if(TATOOINE_BUILD_CHANNELFLOW_VISUALIZATION)
+  add_subdirectory(channelflow)
+endif()
+
+
+set(TATOOINE_MANDATORY_GIT_SUBMODULES
+  external/rapidxml
+  external/blaspp
+  external/lapackpp
+  external/indicators)
+foreach(SUBMODULE ${TATOOINE_MANDATORY_GIT_SUBMODULES})
+  update_git_submodule(${SUBMODULE})
+endforeach()
 endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory

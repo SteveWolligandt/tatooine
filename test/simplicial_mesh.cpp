@@ -1,10 +1,10 @@
 #include <catch2/catch.hpp>
-#include <tatooine/unstructured_simplex_grid.h>
+#include <tatooine/unstructured_simplicial_grid.h>
 //==============================================================================
 namespace tatooine::test{
 //==============================================================================
-TEST_CASE("unstructured_simplex_grid_triangular_2d",
-          "[unstructured_simplex_grid][unstructured_triangular_grid][2d]") {
+TEST_CASE("unstructured_simplicial_grid_triangular_2d",
+          "[unstructured_simplicial_grid][unstructured_triangular_grid][2d]") {
   auto       mesh = unstructured_triangular_grid_2{};
   auto const v1   = mesh.insert_vertex(vec2{0, 0});
   auto const v2   = mesh.insert_vertex(vec2{1, 0});
@@ -26,8 +26,8 @@ TEST_CASE("unstructured_simplex_grid_triangular_2d",
   REQUIRE(typeid(cv3_) == typeid(decltype(mesh)::vertex_handle const&));
 }
 //==============================================================================
-TEST_CASE("unstructured_simplex_grid_tetrahedral_3d",
-          "[unstructured_simplex_grid][unstructured_tetrahedral_grid][3d]") {
+TEST_CASE("unstructured_simplicial_grid_tetrahedral_3d",
+          "[unstructured_simplicial_grid][unstructured_tetrahedral_grid][3d]") {
   auto       mesh = unstructured_tetrahedral_grid_3{};
   auto const v1   = mesh.insert_vertex(vec3{0, 0, 0});
   auto const v2   = mesh.insert_vertex(vec3{1, 0, 0});

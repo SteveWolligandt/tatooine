@@ -144,14 +144,14 @@ struct uniform_tree_hierarchy;
 //==============================================================================
 template <typename Real, size_t NumDimensions,
           size_t SimplexDim>
-class unstructured_simplex_grid;
+class unstructured_simplicial_grid;
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename Real, size_t NumDims, size_t SimplexDim>
-struct uniform_tree_hierarchy<unstructured_simplex_grid<Real, NumDims, SimplexDim>>
+struct uniform_tree_hierarchy<unstructured_simplicial_grid<Real, NumDims, SimplexDim>>
     : base_uniform_tree_hierarchy<
           Real, NumDims,
-          uniform_tree_hierarchy<unstructured_simplex_grid<Real, NumDims, SimplexDim>>> {
-  using mesh_t   = unstructured_simplex_grid<Real, NumDims, SimplexDim>;
+          uniform_tree_hierarchy<unstructured_simplicial_grid<Real, NumDims, SimplexDim>>> {
+  using mesh_t   = unstructured_simplicial_grid<Real, NumDims, SimplexDim>;
   using this_t   = uniform_tree_hierarchy<mesh_t>;
   using parent_t = base_uniform_tree_hierarchy<Real, NumDims, this_t>;
   using real_t   = typename parent_t::real_t;
