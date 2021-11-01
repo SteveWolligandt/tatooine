@@ -4,6 +4,6 @@
 #define TATOOINE_PP_ARG_N(_0, @FORWARD_INDICES_UNDERSCORE_COMMA@, N, ...) N
 //------------------------------------------------------------------------------
 #define TATOOINE_PP_NUM_ARGS(...)                                              \
-  TATOOINE_PP_ARG_N(0, ##__VA_ARGS__, @BACKWARD_INDICES_WITH_ZERO_COMMA@)
+  TATOOINE_PP_ARG_N(0, __VA_ARGS__, @BACKWARD_INDICES_WITH_ZERO_COMMA@)
 //==============================================================================
 #endif

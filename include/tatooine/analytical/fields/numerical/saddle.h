@@ -24,14 +24,14 @@ struct saddle : vectorfield<saddle<Real>, Real, 2> {
   ~saddle() override = default;
   //----------------------------------------------------------------------------
   [[nodiscard]] constexpr auto evaluate(pos_t const& x, Real const /*t*/) const
-      -> tensor_t final {
+      -> tensor_t {
     return tensor_t{-x(0), x(1)};
   }
-  //----------------------------------------------------------------------------
-  [[nodiscard]] constexpr auto in_domain(pos_t const& /*x*/,
-                                         Real const /*t*/) const -> bool final {
-    return true;
-  }
+  ////----------------------------------------------------------------------------
+  //[[nodiscard]] constexpr auto in_domain(pos_t const& [>x<],
+  //                                       Real const [>t<]) const -> bool final {
+  //  return true;
+  //}
 };
 //==============================================================================
 saddle()->saddle<double>;

@@ -90,7 +90,6 @@ if (TATOOINE_STD_FILESYSTEM_AVAILABLE)
 endif()
 
 set(TATOOINE_EXPORTING_TARGETS tatooine)
-target_compile_options(tatooine PUBLIC -Wno-inconsistent-missing-override)
 target_compile_features(tatooine PUBLIC cxx_std_20)
 
 # force coloring
@@ -103,8 +102,11 @@ endif()
 #enable warnings
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  target_compile_options(tatooine PRIVATE
-    -Wall -Wextra -Wpedantic -Wno-cpp)
+  target_compile_options(tatooine PUBLIC
+    -Wall -Wextra -Wpedantic
+    -Wno-cpp
+    -Wno-inconsistent-missing-override
+    -Wno-c99-extensions)
 endif()
 
 
@@ -178,7 +180,7 @@ endforeach()
 #===============================================================================
 # OpenMP
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-find_package(OpenMP REQUIRED)
+find_package(OpenMP REQUIRED COMPONENTS CXX)
 option(TATOOINE_COMPILE_WITH_OPENMP "" ON)
 if (TATOOINE_COMPILE_WITH_OPENMP)
   set(TATOOINE_OPENMP_AVAILABLE 1)
@@ -206,9 +208,9 @@ target_compile_definitions(tatooine PUBLIC LAPACK_COMPLEX_CPP)
 target_link_libraries(tatooine PUBLIC lapackpp)
 list(APPEND TATOOINE_EXPORTING_TARGETS lapackpp)
 
-#===============================================================================
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Boost
-#===============================================================================
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 if(TATOOINE_STD_FILESYSTEM_AVAILABLE)
   find_package(Boost REQUIRED COMPONENTS program_options)
   target_link_libraries(tatooine PUBLIC
@@ -289,7 +291,8 @@ if (TATOOINE_USE_SYSTEM_HDF5_LIBS)
       message(STATUS "HDF5 available without MPI support")
     endif()
     target_compile_definitions(tatooine PUBLIC
-      TATOOINE_HDF5_AVAILABLE ${HDF5_DEFINITIONS} ${HDF5_C_DEFINITIONS})
+      ${HDF5_DEFINITIONS} ${HDF5_C_DEFINITIONS})
+    set(TATOOINE_HDF5_AVAILABLE 1) 
     target_link_libraries(tatooine PUBLIC
       ${HDF5_LIBRARIES})
     target_include_directories(tatooine PUBLIC
@@ -298,10 +301,10 @@ if (TATOOINE_USE_SYSTEM_HDF5_LIBS)
     message(STATUS "HDF5 not available")
   endif()
   set(TATOOINE_HDF5_HEADER hdf5.h)
-endif()
-if ((NOT TATOOINE_USE_SYSTEM_HDF5_LIBS) OR
+elseif ((NOT TATOOINE_USE_SYSTEM_HDF5_LIBS) OR
     (TATOOINE_USE_SYSTEM_HDF5_LIBS AND NOT HDF5_FOUND))
   update_git_submodule(${TATOOINE_EXTERNAL}/hdf5)
+  set(ALLOW_UNSUPPORTED ON)
   set(HDF5_EXTERNALLY_CONFIGURED 1)
   set(HDF5_EXTERNAL_LIB_PREFIX "tatooine" CACHE STRING "Use prefix for custom library naming.")
   set(HDF5_BUILD_CPP_LIB             OFF CACHE BOOL "Build HDF5 C++ Library")
@@ -312,11 +315,10 @@ if ((NOT TATOOINE_USE_SYSTEM_HDF5_LIBS) OR
   set(HDF5_BUILD_EXAMPLES            OFF CACHE BOOL "Build HDF5 Library Examples")
   set(HDF5_ENABLE_COVERAGE           OFF CACHE BOOL "Enable code coverage for Libraries and Programs")
   set(HDF5_ENABLE_THREADSAFE         ON  CACHE BOOL "Enable thread-safety")
-  set(HDF5_ENABLE_DEPRECATED_SYMBOLS OFF  CACHE BOOL "Enable deprecated public API symbols")
+  set(HDF5_ENABLE_DEPRECATED_SYMBOLS OFF CACHE BOOL "Enable deprecated public API symbols")
   if (("${C_COMPILER_EXECUTABLE}" STREQUAL "mpicc" OR
        "${C_COMPILER_EXECUTABLE}" STREQUAL "mpiicc") AND TATOOINE_MPI_AVAILABLE)
     message(STATUS "Building HDF5 with thread-safety and MPI support.")
-    set(ALLOW_UNSUPPORTED ON)
     set(HDF5_ENABLE_PARALLEL ON CACHE BOOL "Enable parallel build (requires MPI)")
     set(HDF5_ENABLE_PARALLEL ON)
   else()
@@ -364,13 +366,19 @@ if ((NOT TATOOINE_USE_SYSTEM_HDF5_LIBS) OR
 
 
   target_link_libraries(tatooine PUBLIC hdf5-static)
-  target_compile_definitions(tatooine PUBLIC TATOOINE_HDF5_AVAILABLE)
+  set(TATOOINE_HDF5_AVAILABLE 1) 
   list(APPEND TATOOINE_EXPORTING_TARGETS hdf5-static)
   target_compile_definitions(tatooine PUBLIC TATOOINE_USE_SYSTEM_HDF5_LIBS=0)
-  set(TATOOINE_HDF5_HEADER external/hdf5/src/hdf5.h)
+  set(TATOOINE_HDF5_HEADER ${TATOOINE_EXTERNAL}/hdf5/src/hdf5.h)
+else()
+  set(TATOOINE_HDF5_AVAILABLE 0) 
 endif()
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/hdf5.h.in
-               ${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/hdf5.h)
+target_compile_definitions(tatooine PUBLIC
+  TATOOINE_HDF5_AVAILABLE=${TATOOINE_HDF5_AVAILABLE})
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/hdf5_include.h.in
+               ${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/hdf5_include.h)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/hdf5/type.h.in
+               ${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/hdf5/type.h)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # NetCDF
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -230,6 +230,12 @@ using tensor222222 = Tensor<2, 2, 2, 2, 2, 2>;
 using tensor333333 = Tensor<3, 3, 3, 3, 3, 3>;
 using tensor444444 = Tensor<4, 4, 4, 4, 4, 4>;
 //==============================================================================
+namespace reflection {
+template <typename T, size_t... Dims>
+TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
+    (tensor<T, Dims...>), TATOOINE_REFLECTION_INSERT_METHOD(data, data()))
+}  // namespace reflection
+//==============================================================================
 }  // namespace tatooine
 //==============================================================================
 #include<tatooine/dynamic_tensor.h>

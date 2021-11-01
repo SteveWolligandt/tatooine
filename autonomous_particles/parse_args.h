@@ -6,7 +6,7 @@
 struct args_t {
   size_t width, height, depth, num_splits, max_num_particles, output_res_x,
       output_res_y;
-  double t0, tau, tau_step, min_cond;
+  double t0, tau, tau_step, min_cond, agranovsky_delta_t;
   bool write_ellipses_to_netcdf;
 };
 //------------------------------------------------------------------------------

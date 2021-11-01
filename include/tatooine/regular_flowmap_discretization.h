@@ -1,5 +1,5 @@
-#ifndef TATOOINE_NAIVE_FLOWMAP_DISCRETIZATION_H
-#define TATOOINE_NAIVE_FLOWMAP_DISCRETIZATION_H
+#ifndef TATOOINE_REGULAR_FLOWMAP_DISCRETIZATION_H
+#define TATOOINE_REGULAR_FLOWMAP_DISCRETIZATION_H
 //==============================================================================
 #include <tatooine/field.h>
 #include <tatooine/interpolation.h>
@@ -11,7 +11,7 @@ namespace tatooine {
 //==============================================================================
 /// Samples a flow map by advecting particles from a uniform rectilinear grid.
 template <typename Real, size_t N>
-struct naive_flowmap_discretization {
+struct regular_flowmap_discretization {
   using real_t = Real;
   static auto constexpr num_dimensions() { return N; }
   using vec_t = vec<Real, N>;
@@ -66,11 +66,12 @@ struct naive_flowmap_discretization {
   mesh_vertex_property_sampler_t m_backward_sampler;
   //============================================================================
  private:
-  template <typename Flowmap, size_t... Is>
-  naive_flowmap_discretization(std::index_sequence<Is...> /*seq*/,
+  template <typename Flowmap, typename Tag, size_t... Is>
+  regular_flowmap_discretization(std::index_sequence<Is...> /*seq*/,
                                Flowmap&& flowmap, arithmetic auto const t0,
                                arithmetic auto const tau, pos_t const& min,
                                pos_t const& max,
+                               Tag tag,
                                integral auto const... resolution)
       : m_t0{real_t(t0)},
         m_t1{real_t(t0 + tau)},
@@ -87,21 +88,44 @@ struct naive_flowmap_discretization {
                 "backward_discretization")},
         m_backward_sampler{
             m_backward_grid.sampler(*m_backward_discretization)} {
-    fill(std::forward<Flowmap>(flowmap));
+    fill(std::forward<Flowmap>(flowmap), tag);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
+  template <typename Flowmap, typename Tag>
+  regular_flowmap_discretization(Flowmap&& flowmap, Tag tag,
+                                 arithmetic auto const t0,
+                                 arithmetic auto const tau, pos_t const& min,
+                                 pos_t const& max,
+                                 integral auto const... resolution)
+      : regular_flowmap_discretization{std::make_index_sequence<N>{},
+                                       std::forward<Flowmap>(flowmap),
+                                       t0,
+                                       tau,
+                                       min,
+                                       max,
+                                       tag,
+                                       resolution...} {
+    static_assert(
+        sizeof...(resolution) == N,
+        "Number of resolution components does not match number of dimensions.");
+    static_assert(
+        std::decay_t<Flowmap>::num_dimensions() == N,
+        "Number of dimensions of flowmap does not match number of dimensions.");
+  }
+  //----------------------------------------------------------------------------
   template <typename Flowmap>
-  naive_flowmap_discretization(Flowmap&& flowmap, arithmetic auto const t0,
+  regular_flowmap_discretization(Flowmap&& flowmap, arithmetic auto const t0,
                                arithmetic auto const tau, pos_t const& min,
                                pos_t const& max,
                                integral auto const... resolution)
-      : naive_flowmap_discretization{std::make_index_sequence<N>{},
+      : regular_flowmap_discretization{std::make_index_sequence<N>{},
                                      std::forward<Flowmap>(flowmap),
                                      t0,
                                      tau,
                                      min,
                                      max,
+                                     tag::sequential,
                                      resolution...} {
     static_assert(
         sizeof...(resolution) == N,
@@ -113,10 +137,15 @@ struct naive_flowmap_discretization {
   //----------------------------------------------------------------------------
   template <typename Flowmap>
   auto fill(Flowmap&& flowmap) -> void {
+    fill(std::forward<Flowmap>(flowmap), tag::sequential);
+  }
+  //----------------------------------------------------------------------------
+  template <typename Flowmap, typename Tag>
+  auto fill(Flowmap flowmap, Tag tag) -> void {
     m_forward_grid.vertices().iterate_indices([&](auto const... is) {
       m_forward_discretization->at(is...) =
           flowmap(m_forward_grid.vertex_at(is...), m_t0, m_tau);
-    });
+    }, tag);
 
     for (auto v : m_forward_grid.vertices()) {
       m_backward_discretization->at(typename backward_grid_t::vertex_handle{

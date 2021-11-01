@@ -20,6 +20,10 @@ struct orthographic_camera_controller;
 //==============================================================================
 template <typename Real>
 struct camera_controller_interface : gl::window_listener {
+  using vec3 = vec<Real, 3>;
+  using vec4 = vec<Real, 4>;
+  using mat3 = mat<Real, 3, 3>;
+  using mat4 = mat<Real, 4, 4>;
  private:
   camera_controller<Real>* m_controller;
   //----------------------------------------------------------------------------
@@ -58,6 +62,10 @@ struct camera_controller_interface : gl::window_listener {
 //==============================================================================
 template <typename Real>
 struct camera_controller : gl::window_listener {
+  using vec3 = vec<Real, 3>;
+  using vec4 = vec<Real, 4>;
+  using mat3 = mat<Real, 3, 3>;
+  using mat4 = mat<Real, 4, 4>;
   friend struct camera_controller_interface<Real>;
   class perspective_camera<Real>                     m_pcam;
   class orthographic_camera<Real>                    m_ocam;
@@ -85,6 +93,9 @@ struct camera_controller : gl::window_listener {
     use_fps_controller();
   }
   //============================================================================
+  auto unproject(Vec4<Real> const& x) {
+    return m_active_cam->unproject(x);
+  }
   void use_perspective_camera() {
     m_active_cam = &m_pcam;
   }
@@ -227,6 +238,10 @@ struct camera_controller : gl::window_listener {
 //==============================================================================
 template <typename Real>
 struct fps_camera_controller : camera_controller_interface<Real> {
+  using vec3 = vec<Real, 3>;
+  using vec4 = vec<Real, 4>;
+  using mat3 = mat<Real, 3, 3>;
+  using mat4 = mat<Real, 4, 4>;
   using this_t = fps_camera_controller<Real>;
   using parent_t = camera_controller_interface<Real>;
   using parent_t::controller;
@@ -303,13 +318,13 @@ struct fps_camera_controller : camera_controller_interface<Real> {
   }
   //----------------------------------------------------------------------------
   void on_button_pressed(gl::button b) override {
-    if (b == gl::BUTTON_RIGHT) {
+    if (b == gl::button::right) {
       m_right_button_down = true;
     }
   }
   //----------------------------------------------------------------------------
   void on_button_released(gl::button b) override {
-    if (b == gl::BUTTON_RIGHT) {
+    if (b == gl::button::right) {
       m_right_button_down = false;
     }
   }
@@ -401,6 +416,10 @@ struct fps_camera_controller : camera_controller_interface<Real> {
 //==============================================================================
 template <typename Real>
 struct orthographic_camera_controller : camera_controller_interface<Real> {
+  using vec3 = vec<Real, 3>;
+  using vec4 = vec<Real, 4>;
+  using mat3 = mat<Real, 3, 3>;
+  using mat4 = mat<Real, 4, 4>;
   using this_t = orthographic_camera_controller<Real>;
   using parent_t = camera_controller_interface<Real>;
   using parent_t::controller;
@@ -426,13 +445,13 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
   // methods
   //============================================================================
   void on_button_pressed(gl::button b) override {
-    if (b == gl::BUTTON_RIGHT) {
+    if (b == gl::button::right) {
       m_right_button_down = true;
     }
   }
   //----------------------------------------------------------------------------
   void on_button_released(gl::button b) override {
-    if (b == gl::BUTTON_RIGHT) {
+    if (b == gl::button::right) {
       m_right_button_down = false;
     }
   }

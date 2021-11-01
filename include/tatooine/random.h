@@ -6,6 +6,7 @@
 
 #include <boost/range/algorithm/generate.hpp>
 #include <random>
+#include <string>
 //==============================================================================
 namespace tatooine::random {
 //==============================================================================
@@ -61,6 +62,19 @@ auto uniform_vector(size_t n, T a = T(0), T b = T(1),
   std::vector<T> rand_data(n);
   boost::generate(rand_data, [&] { return rand(); });
   return rand_data;
+}
+//==============================================================================
+inline auto alpha_numeric_string(std::size_t const size) {
+  static constexpr auto char_set = std::string_view{
+      "0123456789"
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+      "abcdefghijklmnopqrstuvwxyz"};
+  auto index = uniform<std::size_t>{0, char_set.size() - 1};
+  auto str   = std::string(size, ' ');
+  for (auto& c : str) {
+    c = char_set[index()];
+  }
+  return str;
 }
 //==============================================================================
 template <typename T, typename Engine = std::mt19937_64>

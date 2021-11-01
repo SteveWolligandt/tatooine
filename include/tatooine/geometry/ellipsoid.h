@@ -23,6 +23,16 @@ template <typename Real0, typename Real1, typename Real2>
 ellipsoid(vec<Real0, 3> const&, vec<Real1, 3> const&, vec<Real2, 3> const&)
     -> ellipsoid<common_type<Real0, Real1, Real2>>;
 //==============================================================================
-}  // namespace tatooine
+}  // namespace tatooine::geometry
+//==============================================================================
+namespace tatooine::reflection {
+//==============================================================================
+template <typename Real>
+TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
+    (geometry::ellipsoid<Real>),
+    TATOOINE_REFLECTION_INSERT_METHOD(center, center()),
+    TATOOINE_REFLECTION_INSERT_METHOD(S, S()))
+//==============================================================================
+}  // namespace tatooine::reflection
 //==============================================================================
 #endif

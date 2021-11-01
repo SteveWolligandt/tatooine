@@ -1,6 +1,5 @@
 #if TATOOINE_HDF5_AVAILABLE
 #include <tatooine/rectilinear_grid.h>
-#include <tatooine/isosurface.h>
 #include <boost/range/algorithm/generate.hpp>
 #include <boost/range/algorithm_ext/iota.hpp>
 #include <tatooine/random.h>
@@ -194,18 +193,26 @@ TEST_CASE("hdf5_reversed_memspace", "[hdf5][reversed_memspace]") {
   auto const ds = hdf5::file{filepath}.dataset<value_type>(dataset_name);
   auto const chunk =
       ds.read_chunk(std::vector<size_t>{0, 0}, std::vector<size_t>{2, 2});
-  auto const chunk_reversed =
-      ds.read_chunk(std::vector<size_t>{0, 0}, std::vector<size_t>{2, 2}, true);
 
   REQUIRE(chunk(0, 0) == data[0]);
   REQUIRE(chunk(1, 0) == data[1]);
   REQUIRE(chunk(0, 1) == data[width]);
   REQUIRE(chunk(1, 1) == data[width + 1]);
+}
+//==============================================================================
+TEST_CASE("hdf5_unlimited_1d", "[hdf5][unlimited][1d]") {
+  using value_type        = linspace<real_t>;
+  auto const dataset_name = "foo";
+  auto const filepath = filesystem::path{"hdf5_unittest_unlimited_1d.h5"};
 
-  REQUIRE(chunk_reversed(0,0) == data[0]);
-  REQUIRE(chunk_reversed(1,0) == data[1]);
-  REQUIRE(chunk_reversed(0,1) == data[2]);
-  REQUIRE(chunk_reversed(1,1) == data[3]);
+  if (filesystem::exists(filepath)) {
+    filesystem::remove(filepath);
+  }
+  auto file    = hdf5::file{filepath};
+  auto dataset = file.add_dataset<value_type>(dataset_name, hdf5::unlimited);
+  dataset.push_back(linspace{0.0, 1.0, 11});
+  dataset.push_back(linspace{0.0, 2.0, 21});
+  dataset.push_back(linspace{0.0, 3.0, 31});
 }
 //==============================================================================
 }  // namespace tatooine::test

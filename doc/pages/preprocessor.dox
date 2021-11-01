@@ -1,0 +1,19 @@
+/**
+\page preprocessor_page Preprocessor Library
+\tableofcontents
+\section pp_intro_sec Introduction
+There is some CMake magic going on in cmake/modules/preprocessor_setup.cmake.
+
+\section pp_apply_f TATOOINE_PP_APPLY_F
+
+`TATOOINE_PP_APPLY_F` is a mapping from `n` arguments to a function:
+
+```c++
+auto apply_f() {
+  auto f = [](auto const arg){
+  // do something with arg
+  };
+  TATOOINE_PP_APPLY_F(f, 1, 2, 3)
+}
+```
+*/

@@ -190,6 +190,7 @@ struct autonomous_particle_flowmap_discretization {
   using real_t              = Real;
   using vec_t               = vec<Real, NumDimensions>;
   using pos_t               = vec_t;
+  using particle_t          = autonomous_particle<Real, NumDimensions>;
   using sampler_t           = autonomous_particle_sampler<Real, NumDimensions>;
   using sampler_container_t = std::vector<sampler_t>;
   using mesh_t              = unstructured_simplex_grid<Real, NumDimensions>;
@@ -198,17 +199,17 @@ struct autonomous_particle_flowmap_discretization {
   static constexpr auto num_dimensions() { return NumDimensions; }
   //============================================================================
  private:
-  sampler_container_t m_samplers;
-  mesh_t              m_mesh0;
-  mesh_t              m_mesh1;
-  mesh_prop_t*        m_mesh0_samplers;
-  mesh_prop_t*        m_mesh1_samplers;
-  std::unique_ptr<
-      forward_autonomous_particle_sampler_hierarchy<Real, NumDimensions>>
-      m_hierarchy0;
-  std::unique_ptr<
-      backward_autonomous_particle_sampler_hierarchy<Real, NumDimensions>>
-      m_hierarchy1;
+  filesystem::path    m_path;
+  //mesh_t              m_mesh0;
+  //mesh_t              m_mesh1;
+  //mesh_prop_t*        m_mesh0_samplers;
+  //mesh_prop_t*        m_mesh1_samplers;
+  //std::unique_ptr<
+  //    forward_autonomous_particle_sampler_hierarchy<Real, NumDimensions>>
+  //    m_hierarchy0;
+  //std::unique_ptr<
+  //    backward_autonomous_particle_sampler_hierarchy<Real, NumDimensions>>
+  //    m_hierarchy1;
   //============================================================================
  public:
   template <typename Flowmap>
@@ -220,10 +221,10 @@ struct autonomous_particle_flowmap_discretization {
         std::decay_t<Flowmap>::num_dimensions() == NumDimensions,
         "Number of dimensions of flowmap does not match number of dimensions.");
     auto initial_particle_distribution = g.copy_without_properties();
-    std::deque<autonomous_particle<Real, NumDimensions>> particles;
+    std::vector<autonomous_particle<Real, NumDimensions>> particles;
     for (size_t i = 0; i < NumDimensions; ++i) {
-      initial_particle_distribution.dimension(i).pop_front();
       auto const spacing = initial_particle_distribution.dimension(i).spacing();
+      initial_particle_distribution.dimension(i).pop_front();
       initial_particle_distribution.dimension(i).front() -= spacing / 2;
       initial_particle_distribution.dimension(i).back() -= spacing / 2;
     }
@@ -233,22 +234,25 @@ struct autonomous_particle_flowmap_discretization {
               initial_particle_distribution.vertex_at(is...), t0,
               initial_particle_distribution.dimension(0).spacing() / 2);
         });
-    //auto const small_particle_size =
-    //    std::sqrt(2.0 * initial_particle_distribution.dimension(0).spacing()) -
-    //    initial_particle_distribution.dimension(0).spacing();
-    //
-    //for (size_t i = 0; i < NumDimensions; ++i) {
-    //  initial_particle_distribution.dimension(i).pop_front();
-    //  auto const spacing = initial_particle_distribution.dimension(i).spacing();
-    //  initial_particle_distribution.dimension(i).front() -= spacing / 2;
-    //  initial_particle_distribution.dimension(i).back() -= spacing / 2;
-    //}
-    //initial_particle_distribution.vertices().iterate_indices(
-    //    [&](auto const... is) {
-    //      particles.emplace_back(
-    //          initial_particle_distribution.vertex_at(is...), t0,
-    //          small_particle_size);
-    //    });
+    auto const small_particle_size =
+        (std::sqrt(2 * initial_particle_distribution.dimension(0).spacing() *
+                   initial_particle_distribution.dimension(0).spacing()) -
+         initial_particle_distribution.dimension(0).spacing()) /
+        2;
+
+    std::cerr << small_particle_size << '\n';
+    for (size_t i = 0; i < NumDimensions; ++i) {
+      auto const spacing = initial_particle_distribution.dimension(i).spacing();
+      initial_particle_distribution.dimension(i).pop_front();
+      initial_particle_distribution.dimension(i).front() -= spacing / 2;
+      initial_particle_distribution.dimension(i).back() -= spacing / 2;
+    }
+    initial_particle_distribution.vertices().iterate_indices(
+        [&](auto const... is) {
+          particles.emplace_back(
+              initial_particle_distribution.vertex_at(is...), t0,
+              small_particle_size);
+        });
     fill(std::forward<Flowmap>(flowmap), particles, t0 + tau, tau_step);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -256,239 +260,76 @@ struct autonomous_particle_flowmap_discretization {
   autonomous_particle_flowmap_discretization(
       Flowmap&& flowmap, arithmetic auto const t1,
       arithmetic auto const tau_step,
-      std::deque<autonomous_particle<Real, NumDimensions>> const&
+      std::vector<autonomous_particle<Real, NumDimensions>> const&
           initial_particles) {
     static_assert(
         std::decay_t<Flowmap>::num_dimensions() == NumDimensions,
         "Number of dimensions of flowmap does not match number of dimensions.");
     fill(std::forward<Flowmap>(flowmap), initial_particles, t1, tau_step);
   }
-  //============================================================================
-  auto samplers() const -> auto const& { return m_samplers; }
-  auto mesh0()    const -> auto const& { return m_mesh0; }
-  auto mesh1()    const -> auto const& { return m_mesh1; }
-  //============================================================================
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename Flowmap>
-  auto fill(Flowmap&& flowmap,
-            std::deque<autonomous_particle<Real, NumDimensions>> const&
-                                  initial_particles,
+  autonomous_particle_flowmap_discretization(
+      Flowmap&& flowmap, arithmetic auto const t1,
+      arithmetic auto const                           tau_step,
+      autonomous_particle<Real, NumDimensions> const& initial_particle) {
+    static_assert(
+        std::decay_t<Flowmap>::num_dimensions() == NumDimensions,
+        "Number of dimensions of flowmap does not match number of dimensions.");
+    fill(std::forward<Flowmap>(flowmap), std::vector{initial_particle}, t1,
+         tau_step);
+  }
+  //============================================================================
+  auto num_particles() const {
+    auto file              = hdf5::file{m_path};
+    auto particles_on_disk = file.dataset<particle_t>("finished");
+    return particles_on_disk.dataspace().current_resolution()[0];
+  }
+ private:
+  template <typename Flowmap>
+  auto fill(Flowmap&& flowmap, range auto const& initial_particles,
             arithmetic auto const t1, arithmetic auto const tau_step) {
-    auto const advected_particles =
-        autonomous_particle<Real, NumDimensions>::advect_with_3_splits(
-            std::forward<Flowmap>(flowmap), tau_step, t1, initial_particles);
-    m_samplers.reserve(size(advected_particles));
-    using boost::copy;
-    using boost::adaptors::transformed;
-    auto constexpr sampler = [](auto const& p) { return p.sampler(); };
-    copy(advected_particles | transformed(sampler),
-         std::back_inserter(m_samplers));
-    m_hierarchy0 = std::make_unique<
-        forward_autonomous_particle_sampler_hierarchy<Real, NumDimensions>>(
-        vec2{-10, -10}, vec2{10, 10}, m_samplers, 10);
-    m_hierarchy1 = std::make_unique<
-        backward_autonomous_particle_sampler_hierarchy<Real, NumDimensions>>(
-        vec2{-10, -10}, vec2{10, 10}, m_samplers, 10);
-
-    m_mesh0_samplers =
-        &m_mesh0.template vertex_property<sampler_t const*>("samplers");
-    m_mesh1_samplers =
-        &m_mesh1.template vertex_property<sampler_t const*>("samplers");
-
-    size_t const num_vertices = 15;
-    auto const   ts           = linspace{0.0, 2 * M_PI, num_vertices + 1};
-    std::vector<std::pair<typename mesh_t::vertex_handle,
-                          typename mesh_t::vertex_handle>>
-                                                constraints0, constraints1;
-    std::vector<typename mesh_t::vertex_handle> vertices_of_ellipse0(
-        num_vertices);
-    std::vector<typename mesh_t::vertex_handle> vertices_of_ellipse1(
-        num_vertices);
-    for (auto const& sampler : samplers()) {
-      {
-        auto const v = m_mesh0.insert_vertex(sampler.ellipse0().center());
-        m_mesh0_samplers->at(v) = &sampler;
-      }
-
-      {
-        auto const v = m_mesh1.insert_vertex(sampler.ellipse1().center());
-        m_mesh1_samplers->at(v) = &sampler;
-      }
-
-      auto vit0 = vertices_of_ellipse0.begin();
-      auto vit1 = vertices_of_ellipse1.begin();
-      for (auto t_it = begin(ts); t_it != prev(end(ts));
-           ++t_it, ++vit0, ++vit1) {
-        auto const t = *t_it;
-        auto const y = vec{std::cos(t), std::sin(t)};
-        {
-          auto const v = m_mesh0.insert_vertex(sampler.ellipse0().center() +
-                                               sampler.ellipse0().S() * y);
-          *vit0        = v;
-          m_mesh0_samplers->at(v) = &sampler;
-        }
-
-        {
-          auto const v = m_mesh1.insert_vertex(sampler.ellipse1().center() +
-                                               sampler.ellipse1().S() * y);
-          *vit1        = v;
-          m_mesh1_samplers->at(v) = &sampler;
-        }
-      }
-      for (size_t i = 0; i < num_vertices - 1; ++i) {
-        constraints0.emplace_back(vertices_of_ellipse0[i],
-                                  vertices_of_ellipse0[i + 1]);
-      }
-      constraints0.emplace_back(vertices_of_ellipse1[num_vertices - 1],
-                                vertices_of_ellipse1[0]);
-      for (size_t i = 0; i < num_vertices - 1; ++i) {
-        constraints1.emplace_back(vertices_of_ellipse1[i],
-                                  vertices_of_ellipse1[i + 1]);
-      }
-      constraints1.emplace_back(vertices_of_ellipse0[num_vertices - 1],
-                                vertices_of_ellipse0[0]);
-    }
-
-    m_mesh0.build_delaunay_mesh(constraints0);
-    m_mesh0.build_hierarchy();
-
-    m_mesh1.build_delaunay_mesh(constraints1);
-    m_mesh1.build_hierarchy();
+    m_path = autonomous_particle<Real, NumDimensions>::advect_with_3_splits(
+        std::forward<Flowmap>(flowmap), tau_step, t1, initial_particles);
   }
   //----------------------------------------------------------------------------
  private:
   template <typename Tag, size_t... VertexSeq>
-  [[nodiscard]] auto sample(pos_t const& x, mesh_t const& mesh,
-                            mesh_prop_t const& vertex_samplers, Tag const tag,
+  [[nodiscard]] auto sample(pos_t const& x, Tag const tag,
                             std::index_sequence<VertexSeq...> /*seq*/) const {
-    // try to find ellipse that includes x
-    auto const possible_cells = [&] {
-      if constexpr (is_same<Tag, tag::forward_t>) {
-        return m_hierarchy0->nearby_ellipses(x);
-      } else {
-        return m_hierarchy1->nearby_ellipses(x);
-      }
-    }();
-    for (auto const i : possible_cells) {
-      auto const& sampler = m_samplers[i];
-      if (sampler.is_inside(x, tag)) {
-        return sampler(x, tag);
-      }
-    }
+    auto         shortest_distance = std::numeric_limits<real_t>::infinity();
+    auto         file              = hdf5::file{m_path};
+    auto         particles_on_disk = file.dataset<particle_t>("finished");
+    sampler_t    nearest_sampler;
+    size_t const num_particles_at_once = 10000000;
+    size_t const total_num_particles =
+        particles_on_disk.dataspace().current_resolution()[0];
+    auto         loaded_particles      = std::vector<particle_t>{};
+    loaded_particles.reserve(num_particles_at_once);
 
-    // try to find mesh cell that includes x
-    for (auto c : mesh.hierarchy().nearby_cells(x)) {
-      auto const vs = mesh[c];
-      auto       A  = mat<Real, NumDimensions + 1, NumDimensions + 1>::ones();
-      auto       b  = vec<Real, NumDimensions + 1>::ones();
-      for (size_t r = 0; r < NumDimensions; ++r) {
-        (
-            [&]() {
-              A(r, VertexSeq) = VertexSeq > 0
-                                    ? mesh[std::get<VertexSeq>(vs)](r) -
-                                          mesh[std::get<0>(vs)](r)
-                                    : 0;
-            }(),
-            ...);
+    for (size_t i = 0; i < total_num_particles; i += num_particles_at_once) {
+      auto const cur_num_particles =
+          std::min(num_particles_at_once, total_num_particles - i);
+      loaded_particles.resize(cur_num_particles);
+      particles_on_disk.read(i, cur_num_particles, loaded_particles);
 
-        b(r) = x(r) - mesh[std::get<0>(vs)](r);
-      }
-
-      static real_t constexpr eps  = 1e-10;
-      auto const barycentric_coord = solve(A, b);
-      if (((barycentric_coord(VertexSeq) >= -eps) && ...) &&
-          ((barycentric_coord(VertexSeq) <= 1 + eps) && ...)) {
-        if constexpr (NumDimensions == 2) {
-          if (distance(mesh[std::get<0>(vs)], mesh[std::get<1>(vs)]) > 0.2 ||
-              distance(mesh[std::get<1>(vs)], mesh[std::get<2>(vs)]) > 0.2 ||
-              distance(mesh[std::get<0>(vs)], mesh[std::get<2>(vs)]) > 0.2) {
-            continue;
-          }
+      for (auto const& particle : loaded_particles) {
+        auto const sampler = particle.sampler();
+        if (auto const dist =
+                sampler.ellipse(tag).squared_euclidean_distance_to_center(x);
+            dist < shortest_distance) {
+          shortest_distance = dist;
+          nearest_sampler   = sampler;
         }
-        auto const samplers =
-            std::array{vertex_samplers[std::get<VertexSeq>(vs)]...};
-        std::unordered_set<typename decltype(samplers)::value_type>
-            unique_samplers;
-
-        using boost::copy;
-        copy(samplers, std::inserter(unique_samplers, end(unique_samplers)));
-
-        auto map = pos_t::zeros();
-        if (size(unique_samplers) == 3) {
-          auto const inner_cell =
-              std::array{vertex_samplers[std::get<VertexSeq>(vs)]
-                             ->ellipse(tag)
-                             .nearest_point_on_boundary(x)...};
-          // auto weights =
-          //    vec{distance(inner_cell[VertexSeq],
-          //                 samplers[VertexSeq]->ellipse(tag).center())...};
-
-          auto inner_A =
-              mat<Real, NumDimensions + 1, NumDimensions + 1>::ones();
-          auto inner_b = vec<Real, NumDimensions + 1>::ones();
-          for (size_t r = 0; r < NumDimensions; ++r) {
-            (
-                [&]() {
-                  inner_A(r, VertexSeq) =
-                      VertexSeq > 0
-                          ? inner_cell[VertexSeq](r) - inner_cell[0](r)
-                          : 0;
-                }(),
-                ...);
-
-            inner_b(r) = x(r) - inner_cell[0](r);
-          }
-
-          auto inner_barycentric_coords = solve(inner_A, inner_b);
-          //// weights = weights * inner_barycentric_coords;
-          //// weights = weights / sum(weights);
-          // weights  = inner_barycentric_coords;
-          for (size_t i = 0; i < NumDimensions + 1; ++i) {
-            map += samplers[i]->sample(x, tag) * inner_barycentric_coords[i];
-          }
-          return map;
-        }
-        if (size(unique_samplers) == 2) {
-          auto points_on_boundary = make_array<vec<Real, NumDimensions>, 2>();
-          auto distances          = make_array<Real, 2>();
-          auto weights            = make_array<Real, 2>();
-          auto samples            = make_array<vec<Real, NumDimensions>, 2>();
-          using boost::transform;
-          transform(unique_samplers, begin(points_on_boundary),
-                    [&](auto const sampler) {
-                      return sampler->ellipse(tag).nearest_point_on_boundary(x);
-                    });
-          transform(
-              points_on_boundary, begin(distances),
-              [&](auto const on_boundary) { return distance(x, on_boundary); });
-          auto const inv_absolute_length = 1 / (distances[0] + distances[1]);
-          transform(distances, begin(weights), [&](auto const dist) {
-            return 1 - dist * inv_absolute_length;
-          });
-          transform(unique_samplers, begin(samples), [&](auto const sampler) {
-            return sampler->sample(x, tag);
-          });
-          auto weights_it  = begin(weights);
-          auto samplers_it = begin(samples);
-          repeat(2, [&] { map += *weights_it++ * *samplers_it++; });
-
-          return map;
-        }
-
-        for (size_t i = 0; i < NumDimensions + 1; ++i) {
-          map += samplers[i]->sample(x, tag) * barycentric_coord[i];
-        }
-        return map;
       }
     }
-
-    // if point is not included by anything throw exception
-    throw std::runtime_error{"out of domain"};
+    return nearest_sampler.sample(x, tag);
   }
 
  public:
   //----------------------------------------------------------------------------
   [[nodiscard]] auto sample_forward(pos_t const& x) const {
-    return sample(x, mesh0(), *m_mesh0_samplers, tag::forward,
+    return sample(x, tag::forward,
                   std::make_index_sequence<NumDimensions + 1>{});
   }
   //----------------------------------------------------------------------------
@@ -497,7 +338,7 @@ struct autonomous_particle_flowmap_discretization {
   }
   //----------------------------------------------------------------------------
   auto sample_backward(pos_t const& x) const {
-    return sample(x, mesh1(), *m_mesh1_samplers, tag::backward,
+    return sample(x, tag::backward,
                   std::make_index_sequence<NumDimensions + 1>{});
   }
   //----------------------------------------------------------------------------

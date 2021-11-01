@@ -1,0 +1,188 @@
+#ifndef TATOOINE_HDF5_TYPE_H
+#define TATOOINE_HDF5_TYPE_H
+//==============================================================================
+#include <@TATOOINE_HDF5_HEADER@>
+#include <tatooine/reflection.h>
+//==============================================================================
+namespace tatooine::hdf5 {
+//==============================================================================
+template <typename T>
+struct type;
+template <typename T>
+struct reflected_type;
+  template <typename S>
+  auto type_id() -> decltype(auto) {
+    if constexpr (!type_exists<type<S>> && reflection::is_reflectable<S>) {
+      return reflected_type<S>::id();
+    } else {
+      return type<S>::id();
+    }
+  };
+//==============================================================================
+namespace detail {
+//==============================================================================
+template <typename Child, typename T, size_t Size = sizeof(T)>
+struct base_type {
+  hid_t m_id;
+  base_type() : m_id{H5Tcreate(H5T_COMPOUND, Size)} {}
+  ~base_type() { H5Tclose(m_id); }
+
+  template <typename S>
+  auto insert(char const* name, size_t offset = 0) {
+    H5Tinsert(m_id, name, offset, type_id<S>());
+    return offset + sizeof(S);
+  }
+  template <typename S>
+  auto insert(std::string const& name, size_t offset) {
+    insert<S>(name.c_str(), offset);
+  }
+  static auto instance() -> auto& {
+    static auto inst = Child{};
+    return inst;
+  }
+  static auto id() { return instance().m_id; }
+};
+//==============================================================================
+template <typename T, size_t... Dimensions>
+struct base_array_type {
+  hid_t m_id;
+
+ private:
+  base_array_type()
+      : m_id{H5Tarray_create(type_id<T>(), sizeof...(Dimensions),
+                             (hsize_t[sizeof...(Dimensions)]){Dimensions...})} {
+  }
+
+ public:
+  ~base_array_type() { H5Tclose(m_id); }
+  static auto instance() -> auto& {
+    static auto inst = base_array_type{};
+    return inst;
+  }
+  static auto id() { return instance().m_id; }
+};
+//==============================================================================
+}  // namespace detail
+//==============================================================================
+template <>
+struct type<std::uint16_t> {
+  static auto memory_type() { return H5T_NATIVE_USHORT; }
+  static auto little_endian() { return H5T_STD_U16LE; }
+  static auto big_endian() { return H5T_STD_U16BE; }
+  static auto id() { return little_endian(); }
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct type<std::int16_t> {
+  static auto memory_type() { return H5T_NATIVE_SHORT; }
+  static auto little_endian() { return H5T_STD_I16LE; }
+  static auto big_endian() { return H5T_STD_I16BE; }
+  static auto id() { return little_endian(); }
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct type<std::uint32_t> {
+  static auto memory_type() { return H5T_NATIVE_UINT; }
+  static auto little_endian() { return H5T_STD_U32LE; }
+  static auto big_endian() { return H5T_STD_U32BE; }
+  static auto id() { return little_endian(); }
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct type<std::int32_t> {
+  static auto memory_type() { return H5T_NATIVE_INT; }
+  static auto little_endian() { return H5T_STD_I32LE; }
+  static auto big_endian() { return H5T_STD_I32BE; }
+  static auto id() { return little_endian(); }
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct type<std::uint64_t> {
+  static auto memory_type() { return H5T_NATIVE_ULLONG; }
+  static auto little_endian() { return H5T_STD_U64LE; }
+  static auto big_endian() { return H5T_STD_U64BE; }
+  static auto id() { return little_endian(); }
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct type<std::int64_t> {
+  static auto memory_type() { return H5T_NATIVE_LLONG; }
+  static auto little_endian() { return H5T_STD_I64LE; }
+  static auto big_endian() { return H5T_STD_I64BE; }
+  static auto id() { return little_endian(); }
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct type<char> {
+  static auto memory_type() { return H5T_NATIVE_CHAR; }
+  static auto little_endian() { return type<std::int32_t>::little_endian(); }
+  static auto big_endian() { return type<std::int32_t>::big_endian(); }
+  static auto id() { return little_endian(); }
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct type<unsigned char> {
+  static auto memory_type() { return H5T_NATIVE_UCHAR; }
+  static auto little_endian() { return type<std::uint32_t>::little_endian(); }
+  static auto big_endian() { return type<std::uint32_t>::big_endian(); }
+  static auto id() { return little_endian(); }
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct type<float> {
+  static auto memory_type() { return H5T_NATIVE_FLOAT; }
+  static auto little_endian() { return H5T_IEEE_F32LE; }
+  static auto big_endian() { return H5T_IEEE_F32BE; }
+  static auto id() { return little_endian(); }
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct type<double> {
+  static auto memory_type() { return H5T_NATIVE_DOUBLE; }
+  static auto little_endian() { return H5T_IEEE_F64LE; }
+  static auto big_endian() { return H5T_IEEE_F64BE; }
+  static auto id() { return little_endian(); }
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T, size_t N>
+struct type<std::array<T, N>> : detail::base_array_type<T, N> {
+  using parent_t = detail::base_array_type<T, 1>;
+  hsize_t dim[1]{N};
+  type() : parent_t{dim} {}
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Char>
+struct type<std::basic_string<Char>> {
+  static auto memory_type() { return H5T_STRING; }
+  static auto little_endian() {
+    return type<typename std::basic_string<Char>::value_type>::little_endian();
+  }
+  static auto big_endian() {
+    return type<typename std::basic_string<Char>::value_type>::big_endian();
+  }
+  static auto id() { return little_endian(); }
+};
+
+template <typename T>
+struct reflected_type : detail::base_type<reflected_type<T>, T> {
+  static_assert(reflection::is_reflectable<T>);
+  reflected_type() {
+    setup(std::make_index_sequence<reflection::num_members<T>()>{});
+  }
+
+  template <std::size_t... Is>
+  auto setup(std::index_sequence<Is...>) -> void {
+    auto offset = size_t{};
+    (
+        [&]() {
+          offset =
+              this->template insert<std::decay_t<reflection::get_type<Is, T>>>(
+                  std::string{reflection::name<Is, T>()}.c_str(), offset);
+        }(),
+        ...);
+  }
+};
+//==============================================================================
+}  // namespace tatooine::hdf5
+//==============================================================================
+#endif

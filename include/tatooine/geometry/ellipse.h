@@ -25,7 +25,6 @@ ellipse(Real0 const, Real1 const) -> ellipse<common_type<Real0, Real1>>;
 template <typename Real0, typename Real1>
 ellipse(vec<Real0, 3> const&, vec<Real1, 3> const&)
     -> ellipse<common_type<Real0, Real1>>;
-
 //==============================================================================
 }  // namespace tatooine::geometry
 //==============================================================================
@@ -53,6 +52,16 @@ auto discretize(hyper_ellipse<Real, 2> const& e, size_t const num_vertices) {
   return discretization;
 }
 //==============================================================================
-}  // namespace tatooine
+}  // namespace tatooine::geometry
+//==============================================================================
+namespace tatooine::reflection {
+//==============================================================================
+template <typename Real>
+TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
+    (geometry::ellipse<Real>),
+    TATOOINE_REFLECTION_INSERT_METHOD(center, center()),
+    TATOOINE_REFLECTION_INSERT_METHOD(S, S()))
+//==============================================================================
+}  // namespace tatooine::reflection
 //==============================================================================
 #endif
