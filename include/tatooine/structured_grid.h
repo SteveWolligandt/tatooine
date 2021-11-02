@@ -1,12 +1,218 @@
+which: no null in (./^/dev)
+Autojump is not installed. Please install it first from https://github.com/wting/autojump#installation
 #ifndef TATOOINE_STRUCTURED_GRID_H
 #define TATOOINE_STRUCTURED_GRID_H
 //==============================================================================
 #include <tatooine/multidim_size.h>
 #include <tatooine/pointset.h>
 #include <rapidxml.hpp>
-#include <rapidxml.hpp>
+#include <tatooine/uniform_tree_hierarchy.h>
 //==============================================================================
 namespace tatooine {
+//==============================================================================
+template <typename Real, std::size_t NumDimensions,
+          typename IndexOrder>
+struct structured_grid;
+//==============================================================================
+template <typename Real, std::size_t NumDimensions, typename IndexOrder>
+struct structured_grid_cell_hierarchy
+    : base_uniform_tree_hierarchy<
+          Real, NumDimensions,
+          structured_grid_cell_hierarchy<Real, NumDimensions, IndexOrder>> {
+  //============================================================================
+  // TYPEDEFS
+  //============================================================================
+  using this_t   = structured_grid_cell_hierarchy;
+  using real_t        = Real;
+  using index_order_t = IndexOrder;
+  using grid_t =
+      structured_grid_cell_hierarchy<Real, NumDimensions, IndexOrder>;
+  using parent_t = base_uniform_tree_hierarchy<Real, NumDimensions, this_t>;
+  //============================================================================
+  // INHERITED METHODS
+  //============================================================================
+  using parent_t::center;
+  using parent_t::is_inside;
+  using parent_t::is_simplex_inside;
+  using parent_t::max;
+  using parent_t::min;
+  using parent_t::is_at_max_depth;
+  using parent_t::is_splitted;
+  using parent_t::split_and_distribute;
+  using parent_t::children;
+  //============================================================================
+  // STATIC METHODS
+  //============================================================================
+  static constexpr auto num_dimensions() { return NumDimensions; }
+  //============================================================================
+  // MEMBERS
+  //============================================================================
+  grid_t const*                                       m_grid = nullptr;
+  std::vector<std::array<std::size_t, NumDimensions>> m_vertex_handles;
+  std::vector<std::array<std::size_t, NumDimensions>> m_cell_handles;
+  //============================================================================
+  // CTORS
+  //============================================================================
+  structured_grid_cell_hierarchy(grid_t const& grid) : m_grid{&grid} {}
+  structured_grid_cell_hierarchy()                                  = default;
+  structured_grid_cell_hierarchy(structured_grid_cell_hierarchy const&)     = default;
+  structured_grid_cell_hierarchy(structured_grid_cell_hierarchy&&) noexcept = default;
+  auto operator=(structured_grid_cell_hierarchy const&)
+      -> structured_grid_cell_hierarchy&                            = default;
+  auto operator=(structured_grid_cell_hierarchy&&) noexcept
+      -> structured_grid_cell_hierarchy&                            = default;
+  virtual ~structured_grid_cell_hierarchy()                         = default;
+  explicit structured_grid_cell_hierarchy(
+      grid_t const& grid, size_t const max_depth = parent_t::default_max_depth)
+      : parent_t{vec<Real, NumDims>::zeros(), vec<Real, NumDims>::zeros(), 1,
+                 max_depth},
+        m_grid{&grid} {
+    parent_t::operator=(grid.bounding_box());
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  structured_grid_cell_hierarchy(vec_t const& min, vec_t const& max, grid_t const& grid,
+                         size_t const max_depth = parent_t::default_max_depth)
+      : parent_t{min, max, 1, max_depth}, m_grid{&grid} {}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ private:
+  structured_grid_cell_hierarchy(vec_t const& min, vec_t const& max, size_t const level,
+                         size_t const max_depth, grid_t const& grid)
+      : parent_t{min, max, level, max_depth}, m_grid{&grid} {}
+  //============================================================================
+  // METHODS
+  //============================================================================
+ public:
+  auto grid() const -> auto const& { return *m_grid; }
+  auto constexpr holds_vertices() const { return !m_vertex_handles.empty(); }
+  auto constexpr holds_cells() const { return !m_cell_handles.empty(); }
+  //----------------------------------------------------------------------------
+  auto num_vertex_handles() const { return size(m_vertex_handles); }
+  auto num_cell_handles() const { return size(m_cell_handles); }
+  //----------------------------------------------------------------------------
+  auto insert_vertex(vertex_handle const v) -> bool {
+    if (!is_inside(grid().vertex_at(v))) {
+      return false;
+    }
+    if (holds_vertices()) {
+      if (is_at_max_depth()) {
+        m_vertex_handles.push_back(v);
+      } else {
+        split_and_distribute();
+        distribute_vertex(v);
+      }
+    } else {
+      if (is_splitted()) {
+        distribute_vertex(v);
+      } else {
+        m_vertex_handles.push_back(v);
+      }
+    }
+    return true;
+  }
+  //------------------------------------------------------------------------------
+ private:
+  template <size_t... Is>
+  auto insert_cell(cell_handle const c, std::index_sequence<Is...> /*seq*/)
+      -> bool {
+    auto const vs = grid()[c];
+    if (!is_simplex_inside(grid()[std::get<Is>(vs)]...)) {
+      return false;
+    }
+    if (holds_cells()) {
+      if (is_at_max_depth()) {
+        m_cell_handles.push_back(c);
+      } else {
+        split_and_distribute();
+        distribute_cell(c);
+      }
+    } else {
+      if (is_splitted()) {
+        distribute_cell(c);
+      } else {
+        m_cell_handles.push_back(c);
+      }
+    }
+    return true;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ public:
+  auto insert_cell(cell_handle const c) -> bool {
+    return insert_cell(
+        c, std::make_index_sequence<grid_t::num_vertices_per_simplex()>{});
+  }
+  //----------------------------------------------------------------------------
+  auto distribute() {
+    if (!m_vertex_handles.empty()) {
+      distribute_vertex(m_vertex_handles.front());
+      m_vertex_handles.clear();
+    }
+    if (!m_cell_handles.empty()) {
+      distribute_cell(m_cell_handles.front());
+      m_cell_handles.clear();
+    }
+  }
+  //------------------------------------------------------------------------------
+  auto construct(vec_t const& min, vec_t const& max, size_t const level,
+                 size_t const max_depth) const {
+    return std::unique_ptr<this_t>{
+        new this_t{min, max, level, max_depth, grid()}};
+  }
+  //----------------------------------------------------------------------------
+  auto distribute_vertex(vertex_handle const v) {
+    for (auto& child : children()) {
+      child->insert_vertex(v);
+    }
+  }
+  //----------------------------------------------------------------------------
+  auto distribute_cell(cell_handle const c) {
+    for (auto& child : children()) {
+      child->insert_cell(c);
+    }
+  }
+  //============================================================================
+  auto collect_possible_intersections(
+      ray<Real, NumDims> const& r,
+      std::set<cell_handle>&               possible_collisions) const -> void {
+    if (parent_t::check_intersection(r)) {
+      if (is_splitted()) {
+        for (auto const& child : children()) {
+          child->collect_possible_intersections(r, possible_collisions);
+        }
+      } else {
+        std::copy(begin(m_cell_handles), end(m_cell_handles),
+                  std::inserter(possible_collisions, end(possible_collisions)));
+      }
+    }
+  }
+  //----------------------------------------------------------------------------
+  auto collect_possible_intersections(ray<Real, NumDims> const& r) const {
+    std::set<cell_handle> possible_collisions;
+    collect_possible_intersections(r, possible_collisions);
+    return possible_collisions;
+  }
+  //----------------------------------------------------------------------------
+  auto collect_nearby_cells(vec<Real, NumDims> const& pos,
+                            std::set<cell_handle>& cells) const -> void {
+    if (is_inside(pos)) {
+      if (is_splitted()) {
+        for (auto const& child : children()) {
+          child->collect_nearby_cells(pos, cells);
+        }
+      } else {
+        if (!m_cell_handles.empty()) {
+          std::copy(begin(m_cell_handles), end(m_cell_handles),
+                    std::inserter(cells, end(cells)));
+        }
+      }
+    }
+  }
+  //----------------------------------------------------------------------------
+  auto nearby_cells(vec<Real, NumDims> const& pos) const {
+    std::set<cell_handle> cells;
+    collect_nearby_cells(pos, cells);
+    return cells;
+  }
+};
 //==============================================================================
 template <typename Real, std::size_t NumDimensions,
           typename IndexOrder = x_fastest>
