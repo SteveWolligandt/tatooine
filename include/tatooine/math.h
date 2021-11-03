@@ -72,6 +72,17 @@ constexpr auto min(T0&& a, T1&& b, TRest&&... rest) -> decltype(auto) {
       std::forward<T0>(a), std::forward<T1>(b), std::forward<TRest>(rest)...);
 }
 //------------------------------------------------------------------------------
+template <typename T, std::size_t N, std::size_t... Is>
+constexpr auto min(std::array<T, N> const& arr,
+                   std::index_sequence<Is...> /*seq*/) {
+  return min(arr[Is]...);
+}
+//------------------------------------------------------------------------------
+template<typename T, std::size_t N>
+constexpr auto min(std::array<T, N>const& arr) {
+return min(arr, std::make_index_sequence<N>{});
+}
+//------------------------------------------------------------------------------
 #ifdef __cpp_concepts
 template <integral Base, integral Exp>
 #else
