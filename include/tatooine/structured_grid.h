@@ -392,15 +392,15 @@ auto structured_grid<Real, NumDimensions, IndexOrder>::local_cell_coordinates(
         vertex_at(cell_indices[0], cell_indices[1] + 1, cell_indices[2] + 1);
     auto const& v7 = vertex_at(cell_indices[0] + 1, cell_indices[1] + 1,
                                cell_indices[2] + 1);
-    auto const  a  = v0 ;
+    auto const  a  = v0;
     auto const  b  = v1 - v0;
     auto const  c  = v2 - v0;
-    auto const  d  = v3 - v0;
-    auto const  e  = Real{};
-    auto const  f  = Real{};
-    auto const  g  = Real{};
-    auto const  h  = Real{};
-    
+    auto const  d  = v4 - v0;
+    auto const  e  = v3 - v2 - v1 + v0;
+    auto const  f  = v5 - v4 - v1 + v0;
+    auto const  g  = v6 - v4 - v2 + v0;
+    auto const  h  = v7 - v6 - v5 + v4 - v3 + v2 + v1 - v0;
+
     auto              bary = pos_t{Real(0.5), Real(0.5), Real(0.5)};  // initial
     auto              dx   = Real(0.1) * pos_t::ones();
     auto              i    = std::size_t(0);
@@ -412,12 +412,12 @@ auto structured_grid<Real, NumDimensions, IndexOrder>::local_cell_coordinates(
       auto const ff = a + b * bary.x() + c * bary.y() + d * bary.z() +
                e * bary.x() * bary.y() + f * bary.x() * bary.z() +
                g * bary.y() * bary.z() + h * bary.x() * bary.y() * bary.z()- x;
-      Df.col(0) = {b + e * bary.y() + f * bary.z() +
-                   h * bary.y() * bary.z()};  // df/dx
-      Df.col(1) = {c + e * bary.x() + g * bary.z() +
-                   h * bary.x() * bary.z()};  // df/dy
-      Df.col(2) = {d + f * bary.x() + g * bary.y() +
-                   h * bary.x() * bary.y()};  // df/dz
+      Df.col(0) = b + e * bary.y() + f * bary.z() +
+                   h * bary.y() * bary.z();  // df/dx
+      Df.col(1) = c + e * bary.x() + g * bary.z() +
+                   h * bary.x() * bary.z();  // df/dy
+      Df.col(2) = d + f * bary.x() + g * bary.y() +
+                   h * bary.x() * bary.y();  // df/dz
       dx        = solve(Df, -ff);
       bary += dx;
       if (euclidean_length(bary) > 10) {

@@ -85,7 +85,7 @@ struct indexed_tensor {
   template <size_t... Seq>
   static auto constexpr index_map(std::index_sequence<Seq...> /*seq*/) {
     return std::array{Indices::get()...};
-  };
+  }
   static auto constexpr rank() { return tensor_t::rank(); }
   template <std::size_t I>
   static auto constexpr size() {
