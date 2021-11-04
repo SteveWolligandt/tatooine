@@ -6,12 +6,14 @@ namespace tatooine::test {
 //==============================================================================
 TEST_CASE_METHOD(structured_grid3, "structured_grid_3",
                  "[structured_grid][3d]") {
+  std::cout << "reading\n";
   read("/home/steve/firetec/valley_losAlamos/output.1000.vts");
+  std::cout << "reading done\n";
   auto const aabb  = axis_aligned_bounding_box();
   auto discretized = rectilinear_grid{linspace{aabb.min(0), aabb.max(0), 100},
                                       linspace{aabb.min(1), aabb.max(1), 100},
                                       linspace{aabb.min(2), aabb.max(2), 100}};
-  discretize(linear_vertex_property_sampler<real_t>("O2"), discretized, "prop",
+  discretize(linear_vertex_property_sampler<float>("O2"), discretized, "prop",
              tag::parallel);
   discretized.write_vtk("resampled_O2.vtk");
 }

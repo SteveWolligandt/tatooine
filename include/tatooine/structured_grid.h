@@ -150,6 +150,7 @@ struct structured_grid : pointset<Real, NumDimensions>,
   auto linear_vertex_property_sampler(vertex_property_t<T> const& name) const {
     if (m_hierarchy == nullptr) {
       update_hierarchy();
+      std::cout << "updating done!\n";
     }
     return linear_cell_sampler_t<T>{this, &vertex_property<T>(name)};
   }
