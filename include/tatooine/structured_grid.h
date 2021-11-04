@@ -396,11 +396,7 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::linear_cell_sampler_t
                        grid().plain_index(cell[0] + 1, cell[1] + 1)}];
       }
     }
-    if constexpr (tensor_rank < tensor_t >> 0) {
-      return tensor_t{tag::fill{Real(0) / Real(0)}};
-    } else {
-      return Real(0) / Real(0);
-    }
+    return this->ood_tensor();
   }
 };
 //==============================================================================

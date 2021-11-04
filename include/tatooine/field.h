@@ -18,7 +18,13 @@ struct field {
   using tensor_t = Tensor;
   using this_t   = field<real_t, NumDims, Tensor>;
   using pos_t    = vec<real_t, NumDims>;
-  static auto constexpr ood_tensor() { return tensor_t{tag::fill{0.0 / 0.0}}; }
+  static auto constexpr ood_tensor() {
+    if constexpr (is_arithmetic<tensor_t>) {
+      return Real(0) / Real(0);
+    } else {
+      return tensor_t{tag::fill{Real(0) / Real(0)}};
+    }
+  }
   //============================================================================
   // static methods
   //============================================================================
