@@ -6,7 +6,14 @@ namespace tatooine::test {
 //==============================================================================
 TEST_CASE_METHOD(structured_grid3, "structured_grid_3",
                  "[structured_grid][3d]") {
-  // read("/home/steve/firetec/valley_losAlamos/output.1000.vts");
+  read("/home/steve/firetec/valley_losAlamos/output.1000.vts");
+  auto const aabb = axis_aligned_bounding_box();
+  auto discretized = rectilinear_grid{linspace{aabb.min(0), aabb.max(0), 100},
+                                      linspace{aabb.min(1), aabb.max(1), 100},
+                                      linspace{aabb.min(2), aabb.max(2), 100}};
+  discretize(linear_vertex_property_sampler<real_t>("O2"), discretized,
+             "prop", tag::parallel);
+  discretized.write_vtk("resampled_O2.vtk");
 }
 //==============================================================================
 TEST_CASE_METHOD(structured_grid2, "structured_grid_2_cell_coordinates",
@@ -96,6 +103,32 @@ TEST_CASE_METHOD(structured_grid2, "structured_grid_2_cell_coordinates",
     REQUIRE(coords(1) == Approx(0.75));
   }
 }
+//==============================================================================
+TEST_CASE_METHOD(structured_grid2, "structured_grid_2_linear_sampler",
+                 "[structured_grid][2d][linear][sampler]") {
+  resize(3, 2);
+  vertex_at(0, 0) = {0.0, 0.0};
+  vertex_at(1, 0) = {3.0, 2.0};
+  vertex_at(0, 1) = {1.0, 4.0};
+  vertex_at(1, 1) = {4.0, 4.0};
+  vertex_at(2, 0) = {6.0, 3.0};
+  vertex_at(2, 1) = {5.0, 5.0};
+
+  auto& prop              = scalar_vertex_property("prop");
+  prop[vertex_handle{plain_index(0, 0)}] = 1;
+  prop[vertex_handle{plain_index(1, 0)}] = 2;
+  prop[vertex_handle{plain_index(1, 1)}] = 3;
+  prop[vertex_handle{plain_index(0, 1)}] = 4;
+  prop[vertex_handle{plain_index(2, 0)}] = 5;
+  prop[vertex_handle{plain_index(2, 1)}] = 6;
+  auto const aabb = axis_aligned_bounding_box();
+  auto discretized = rectilinear_grid{linspace{aabb.min(0), aabb.max(0), 1000},
+                                      linspace{aabb.min(1), aabb.max(1), 1000}};
+  discretize(linear_vertex_property_sampler<real_t>("prop"), discretized,
+             "prop");
+  discretized.write_vtk("resampled_structured_grid.vtk");
+}
+
 //==============================================================================
 TEST_CASE_METHOD(structured_grid3, "structured_grid_3_cell_coordinates",
                  "[structured_grid][3d][cell_coordinates]") {

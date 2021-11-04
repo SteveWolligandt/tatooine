@@ -371,38 +371,23 @@ auto sample_to_vector(
   data.reserve(vs.size());
   for (auto v : vs) {
     auto const x = vs[v];
-    //if (f.in_domain(x, t)) {
-      data.push_back(f(x, t));
-    //} else {
-    //  if constexpr (rank<tensor_t>() == 0) {
-    //    data.push_back(nan);
-    //  } else {
-    //    data.push_back(tensor_t{tag::fill{nan}});
-    //  }
-    //}
+    data.push_back(f(x, t));
   }
   return data;
 }
 //------------------------------------------------------------------------------
 #ifdef __cpp_concpets
 template <arithmetic VReal, arithmetic TReal, size_t NumDims, typename Tensor,
-          indexable_space... SpatialDimensions, typename Tag>
+          indexable_space... SpatialDimensions, typename ExecutionPolicy>
 #else
 template <typename VReal, typename TReal, size_t NumDims, typename Tensor,
-          typename... SpatialDimensions, typename Tag,
+          typename... SpatialDimensions, typename ExecutionPolicy,
           enable_if_arithmetic<VReal, TReal> = true>
 #endif
 auto discretize(polymorphic::field<VReal, NumDims, Tensor> const& f,
                 rectilinear_grid<SpatialDimensions...>& discretized_domain,
-                std::string const& property_name, TReal const t, Tag const tag)
+                std::string const& property_name, TReal const t, ExecutionPolicy const execution_policy)
     -> auto& {
-  auto const ood_tensor = [] {
-    if constexpr (is_arithmetic<Tensor>) {
-      return VReal(0) / VReal(0);
-    } else {
-      return Tensor{tag::fill{VReal(0) / VReal(0)}};
-    }
-  }();
   auto& discretized_field = [&]() -> decltype(auto) {
     if constexpr (is_arithmetic<Tensor>) {
       return discretized_domain.template insert_chunked_vertex_property<VReal>(
@@ -422,13 +407,9 @@ auto discretize(polymorphic::field<VReal, NumDims, Tensor> const& f,
   discretized_domain.vertices().iterate_indices(
       [&](auto const... is) {
         auto const x = discretized_domain.vertex_at(is...);
-        //if (f.in_domain(x, t)) {
-          discretized_field(is...) = f(x, t);
-        //} else {
-        //  discretized_field(is...) = ood_tensor;
-        //}
+        discretized_field(is...) = f(x, t);
       },
-      tag);
+      execution_policy);
   return discretized_field;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -459,6 +440,19 @@ auto discretize(polymorphic::field<VReal, NumDims, Tensor> const& f,
                 std::string const& property_name) -> auto& {
   return discretize(f, discretized_domain, property_name, 0, tag::sequential);
 }
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#ifdef __cpp_concpets
+template <arithmetic VReal, size_t NumDims, typename Tensor, typename ExecutionPolicy,
+          indexable_space... SpatialDimensions>
+#else
+template <typename VReal, size_t NumDims, typename Tensor, typename ExecutionPolicy,
+          typename... SpatialDimensions, enable_if_arithmetic<VReal> = true>
+#endif
+auto discretize(polymorphic::field<VReal, NumDims, Tensor> const& f,
+                rectilinear_grid<SpatialDimensions...>& discretized_domain,
+                std::string const& property_name, ExecutionPolicy const execution_policy) -> auto& {
+  return discretize(f, discretized_domain, property_name, 0, execution_policy);
+}
 //------------------------------------------------------------------------------
 /// Discretizes to a cutting plane of a field.
 /// \param basis spatial basis of cutting plane
@@ -480,13 +474,6 @@ auto discretize(field<V, VReal, NumDims, Tensor> const& f,
       linspace<VReal>{0, length(basis * vec{spatial_size(0), 0}), res0},
       linspace<VReal>{0, length(basis * vec{0, spatial_size(1)}), res1}};
 
-  auto const ood_tensor = [] {
-    if constexpr (is_scalarfield<V>()) {
-      return VReal(0) / VReal(0);
-    } else {
-      return Tensor{tag::fill{VReal(0) / VReal(0)}};
-    }
-  }();
   auto& discretized_field = [&]() -> decltype(auto) {
     if constexpr (is_scalarfield<V>()) {
       return discretized_domain.template insert_chunked_vertex_property<VReal>(
@@ -506,11 +493,7 @@ auto discretize(field<V, VReal, NumDims, Tensor> const& f,
   for (size_t i1 = 0; i1 < res1; ++i1) {
     for (size_t i0 = 0; i0 < res0; ++i0) {
       auto const x = x0 + basis * vec{cell_extent(0) * i0, cell_extent(1) * i1};
-      //if (f.in_domain(x, t)) {
-        discretized_field(i0, i1) = f(x, t);
-      //} else {
-      //  discretized_field(i0, i1) = ood_tensor;
-      //}
+      discretized_field(i0, i1) = f(x, t);
     }
   }
   return discretized_domain;

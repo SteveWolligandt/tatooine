@@ -3,9 +3,8 @@
 //==============================================================================
 #include <tatooine/multidim_size.h>
 #include <tatooine/pointset.h>
+#include <tatooine/vtk/xml.h>
 #include <tatooine/uniform_tree_hierarchy.h>
-
-#include <rapidxml.hpp>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -13,6 +12,9 @@ template <typename Real, std::size_t NumDimensions,
           typename IndexOrder = x_fastest>
 struct structured_grid : pointset<Real, NumDimensions>,
                          dynamic_multidim_size<IndexOrder> {
+  //============================================================================
+  // INTERNAL TYPES
+  //============================================================================
   template <typename T>
   struct linear_cell_sampler_t;
   struct hierarchy_t;
@@ -25,6 +27,9 @@ struct structured_grid : pointset<Real, NumDimensions>,
   using typename pointset_parent_t::pos_t;
   using typename pointset_parent_t::vec_t;
   using typename pointset_parent_t::vertex_handle;
+  template <typename T>
+  using vertex_property_t =
+      typename pointset_parent_t::template vertex_property_t<T>;
   //============================================================================
   // STATIC METHODS
   //============================================================================
@@ -129,14 +134,33 @@ struct structured_grid : pointset<Real, NumDimensions>,
   //----------------------------------------------------------------------------
   template <typename... Indices, enable_if_integral<Indices...> = true>
   auto local_cell_coordinates(pos_t const x, Indices const... is) const
+      -> pos_t {
+    static auto constexpr num_indices = sizeof...(Indices);
+    static_assert(num_indices == num_dimensions(),
+                  "Number of Indices does not match number of dimensions");
+    return local_cell_coordinates(x,
+                                  std::array{static_cast<std::size_t>(is)...});
+  }
+  //----------------------------------------------------------------------------
+  auto local_cell_coordinates(
+      pos_t const x, std::array<std::size_t, NumDimensions> const& cell) const
       -> pos_t;
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto linear_vertex_property_sampler(vertex_property_t<T> const& name) const {
+    if (m_hierarchy == nullptr) {
+      update_hierarchy();
+    }
+    return linear_cell_sampler_t<T>{this, &vertex_property<T>(name)};
+  }
   //----------------------------------------------------------------------------
   template <typename T>
   auto linear_vertex_property_sampler(std::string const& name) const {
     if (m_hierarchy == nullptr) {
       update_hierarchy();
     }
-    return linear_cell_sampler_t<T>{this, &vertex_property<T>(name)};
+    return linear_cell_sampler_t<T>{*this,
+                                    this->template vertex_property<T>(name)};
   }
 };
 //==============================================================================
@@ -154,194 +178,75 @@ auto structured_grid<Real, NumDimensions, IndexOrder>::read(
 template <typename Real, std::size_t NumDimensions, typename IndexOrder>
 auto structured_grid<Real, NumDimensions, IndexOrder>::read_vts(
     filesystem::path const& path) -> void {
-  using namespace rapidxml;
-  auto file = std::ifstream{path};
-  if (file.is_open()) {
-    auto buffer = std::stringstream{};
-    buffer << file.rdbuf();
-    file.close();
-    auto content =
-        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
-        buffer.str();
+  struct listener_t : vtk::xml::listener {
+    this_t& grid;
+    listener_t(this_t& g) : grid{g} {}
 
-    // extract appended data section if present
-    static constexpr std::string_view opening_appended_data = "<AppendedData";
-    static constexpr std::string_view closing_appended_data = "</AppendedData>";
-    auto begin_appended_data = content.find(opening_appended_data);
-    if (begin_appended_data != std::string::npos) {
-      begin_appended_data = content.find('\n', begin_appended_data);
-      begin_appended_data = content.find('_', begin_appended_data);
-      ++begin_appended_data;
+    std::array<std::pair<std::size_t, std::size_t>, 3> whole_extent;
+    std::array<std::size_t, 3>                         resolution;
+    std::array<size_t, 3>                              cur_piece_origin;
+    std::array<size_t, 3>                              cur_piece_resolution;
+
+    auto on_structured_grid(
+        std::array<std::pair<std::size_t, std::size_t>, 3> const& d)
+        -> void override {
+      whole_extent = d;
+
+      resolution =
+          std::array{whole_extent[0].second - whole_extent[0].first + 1,
+                     whole_extent[1].second - whole_extent[1].first + 1,
+                     whole_extent[2].second - whole_extent[2].first + 1};
+
+      grid.resize(resolution[0], resolution[1], resolution[2]);
     }
-    auto end_appended_data =
-        begin_appended_data == std::string::npos
-            ? std::string::npos
-            : content.find(closing_appended_data, begin_appended_data);
-    if (end_appended_data != std::string::npos) {
-      end_appended_data = content.rfind("\n", end_appended_data);
+    auto on_structured_grid_piece(
+        std::array<std::pair<std::size_t, std::size_t>, 3> const& extents)
+        -> void override {
+      cur_piece_origin = std::array{extents[0].first - whole_extent[0].first,
+                                    extents[1].first - whole_extent[1].first,
+                                    extents[2].first - whole_extent[2].first};
+      cur_piece_resolution = std::array{extents[0].second - extents[0].first,
+                                        extents[1].second - extents[1].first,
+                                    extents[2].second - extents[2].first};
     }
-    std::vector<std::uint8_t> appended_data;
-    if (begin_appended_data != std::string::npos) {
-      appended_data.resize((end_appended_data - begin_appended_data) *
-                           sizeof(std::string::value_type) /
-                           sizeof(std::uint8_t));
-      std::copy(
-          begin(content) + begin_appended_data,
-          begin(content) + end_appended_data,
-          reinterpret_cast<std::string::value_type*>(appended_data.data()));
-    }
-    content.erase(begin_appended_data, end_appended_data - begin_appended_data);
-
-    // start parsing
-    auto doc = xml_document<>{};
-    doc.parse<0>(content.data());
-    auto       root = doc.first_node();
-    auto const name = root->name();
-    if (std::strcmp(name, "VTKFile") != 0) {
-      throw std::runtime_error{"File is not a VTK file."};
-    }
-    if (std::strcmp(root->first_attribute("type")->value(), "StructuredGrid") !=
-        0) {
-      throw std::runtime_error{"VTK file is not a structured grid."};
-    }
-
-    auto structured_grid_node = root->first_node("StructuredGrid");
-    std::array<std::pair<size_t, size_t>, 3> whole_extents;
-    {
-      auto whole_extent_stream = std::stringstream{
-          structured_grid_node->first_attribute("WholeExtent")->value()};
-      whole_extent_stream >> whole_extents[0].first >>
-          whole_extents[0].second >> whole_extents[1].first >>
-          whole_extents[1].second >> whole_extents[2].first >>
-          whole_extents[2].second;
-    }
-    std::array<size_t, 3> resolution{
-        whole_extents[0].second - whole_extents[0].first + 1,
-        whole_extents[1].second - whole_extents[1].first + 1,
-        whole_extents[2].second - whole_extents[2].first + 1};
-    resize(resolution[0], resolution[1], resolution[2]);
-    for (auto piece_node                   = structured_grid_node->first_node();
-         piece_node != nullptr; piece_node = piece_node->next_sibling()) {
-      std::array<std::pair<size_t, size_t>, 3> extents;
-      {
-        auto extents_stream =
-            std::stringstream{piece_node->first_attribute("Extent")->value()};
-        extents_stream >> extents[0].first >> extents[0].second >>
-            extents[1].first >> extents[1].second >> extents[2].first >>
-            extents[2].second;
-      }
-      std::array<size_t, 3> piece_origins{
-          extents[0].first - whole_extents[0].first,
-          extents[1].first - whole_extents[1].first,
-          extents[2].first - whole_extents[2].first};
-      std::array<size_t, 3> piece_resolution{
-          extents[0].second - extents[0].first,
-          extents[1].second - extents[1].first,
-          extents[2].second - extents[2].first};
-
-      [[maybe_unused]] auto point_data_node =
-          piece_node->first_node("PointData");
-      [[maybe_unused]] auto cell_data_node = piece_node->first_node("CellData");
-      auto                  points_node    = piece_node->first_node("Points");
-      auto points_data_array_node = points_node->first_node("DataArray");
-
-      auto points_offset = std::stoul(
-          points_data_array_node->first_attribute("offset")->value());
-      auto points_type =
-          points_data_array_node->first_attribute("type")->value();
-      auto points_data_number_of_components = std::stoul(
-          points_data_array_node->first_attribute("NumberOfComponents")
-              ->value());
-
-      std::vector<std::tuple<char const*, char const*, std::size_t>>
-          appended_pointset_data;
-      for (auto data_array_node = point_data_node->first_node();
-           data_array_node != nullptr;
-           data_array_node = data_array_node->next_sibling()) {
-        auto  n         = data_array_node->name();
-        auto* type_attr = data_array_node->first_attribute("type");
-        auto* name_attr = data_array_node->first_attribute("Name");
-        auto  name      = name_attr->value();
-        auto  type      = type_attr->value();
-        auto  offset =
-            std::stoul(data_array_node->first_attribute("offset")->value());
-        appended_pointset_data.emplace_back(name, type, offset);
-      }
-
-      auto read_and_proceed = [&](auto const& type, auto& read, auto& write) {
-        using write_type = std::decay_t<decltype(write)>;
-        if (std::strcmp(type, "Int8") == 0) {
-          using type = std::int8_t;
-          write      = static_cast<write_type>(*reinterpret_cast<type*>(read));
-          read += sizeof(type);
-        } else if (std::strcmp(type, "UInt8") == 0) {
-          using type = std::uint8_t;
-          write      = static_cast<write_type>(*reinterpret_cast<type*>(read));
-          read += sizeof(type);
-        } else if (std::strcmp(type, "Int16") == 0) {
-          using type = std::int16_t;
-          write      = static_cast<write_type>(*reinterpret_cast<type*>(read));
-          read += sizeof(type);
-        } else if (std::strcmp(type, "UInt16") == 0) {
-          using type = std::uint16_t;
-          write      = static_cast<write_type>(*reinterpret_cast<type*>(read));
-          read += sizeof(type);
-        } else if (std::strcmp(type, "Int32") == 0) {
-          using type = std::int32_t;
-          write      = static_cast<write_type>(*reinterpret_cast<type*>(read));
-          read += sizeof(type);
-        } else if (std::strcmp(type, "UInt32") == 0) {
-          using type = std::uint32_t;
-          write      = static_cast<write_type>(*reinterpret_cast<type*>(read));
-          read += sizeof(type);
-        } else if (std::strcmp(type, "Float32") == 0) {
-          using type = float;
-          write      = static_cast<write_type>(*reinterpret_cast<type*>(read));
-          read += sizeof(type);
-        } else if (std::strcmp(type, "Float64") == 0) {
-          using type = double;
-          write      = static_cast<write_type>(*reinterpret_cast<type*>(read));
-          read += sizeof(type);
+    auto on_points(std::array<double, 3> const* v) -> void override {
+      auto extract_points = [&](
+                                auto const... is) mutable {
+        auto& x = grid.vertex_at(is...);
+        for (size_t i = 0; i < num_dimensions(); ++i) {
+          x(i) = v->at(i);
         }
+        ++v;
       };
-      auto iterate_piece = [&](auto&& f) {
-        for_loop(std::forward<decltype(f)>(f),
-                 std::pair{piece_origins[0], piece_resolution[0]},
-                 std::pair{piece_origins[1], piece_resolution[1]},
-                 std::pair{piece_origins[2], piece_resolution[2]});
-      };
-      {
-        auto extract_points = [&, data_ptr = &appended_data[points_offset]](
-                                  auto const... is) mutable {
-          auto& x = vertex_at(is...);
-          for (size_t i = 0; i < num_dimensions(); ++i) {
-            read_and_proceed(points_type, data_ptr, x(i));
-          }
-        };
-        iterate_piece(extract_points);
-      }
-
-      for (auto const& prop_data: appended_pointset_data) {
-        auto& prop = this->scalar_vertex_property(std::get<0>(prop_data));
-        iterate_piece([&, data_ptr = &appended_data[std::get<2>(prop_data)]](
-                          auto const... is) mutable {
-          auto& p =
-              prop[vertex_handle{multidim_size_parent_t::plain_index(is...)}];
-          read_and_proceed(std::get<1>(prop_data), data_ptr, p);
-        });
-      }
+      for_loop(extract_points,
+               std::pair{cur_piece_origin[0], cur_piece_resolution[0]},
+               std::pair{cur_piece_origin[1], cur_piece_resolution[1]},
+               std::pair{cur_piece_origin[2], cur_piece_resolution[2]});
     }
-  }
+    auto on_point_data(std::string const& name, float const* v)
+        -> void override {
+      auto& prop = grid.template vertex_property<float>(name);
+      for_loop(
+          [&](auto const... is) mutable {
+            auto& p =
+                prop[vertex_handle{grid.plain_index(is...)}];
+            p = *v++;
+          },
+          std::pair{cur_piece_origin[0], cur_piece_resolution[0]},
+          std::pair{cur_piece_origin[1], cur_piece_resolution[1]},
+          std::pair{cur_piece_origin[2], cur_piece_resolution[2]});
+    }
+  } listener{*this};
+  auto reader = vtk::xml::reader{path};
+  reader.listen(listener);
+  reader.read();
 }
 //------------------------------------------------------------------------------
+
 template <typename Real, std::size_t NumDimensions, typename IndexOrder>
-template <typename... Indices, enable_if_integral<Indices...>>
 auto structured_grid<Real, NumDimensions, IndexOrder>::local_cell_coordinates(
-    pos_t const x, Indices const... is) const -> pos_t {
-  static auto constexpr num_indices = sizeof...(Indices);
-  static_assert(num_indices == num_dimensions(),
-                "Number of Indices does not match number of dimensions");
-  auto const cell_indices = std::array{static_cast<std::size_t>(is)...};
+    pos_t const                                   x,
+    std::array<std::size_t, NumDimensions> const& cell_indices) const -> pos_t {
   if constexpr (NumDimensions == 2) {
     auto const& v0 = vertex_at(cell_indices[0], cell_indices[1]);
     auto const& v1 = vertex_at(cell_indices[0] + 1, cell_indices[1]);
@@ -366,7 +271,7 @@ auto structured_grid<Real, NumDimensions, IndexOrder>::local_cell_coordinates(
       // Newton: Df*dx=-f
       Df.col(0) = (b + d * bary.y());  // df/dx
       Df.col(1) = (c + d * bary.x());  // df/dy
-      dx   = solve(Df, -f);
+      dx        = solve(Df, -f);
       bary += dx;
       if (euclidean_length(bary) > 10) {
         i = max_num_iterations;  // non convergent: just to save time
@@ -410,15 +315,16 @@ auto structured_grid<Real, NumDimensions, IndexOrder>::local_cell_coordinates(
     for (; i < max_num_iterations && euclidean_length(dx) > tol; ++i) {
       // apply Newton-Raphson method to solve f(x,y)=0
       auto const ff = a + b * bary.x() + c * bary.y() + d * bary.z() +
-               e * bary.x() * bary.y() + f * bary.x() * bary.z() +
-               g * bary.y() * bary.z() + h * bary.x() * bary.y() * bary.z()- x;
-      Df.col(0) = b + e * bary.y() + f * bary.z() +
-                   h * bary.y() * bary.z();  // df/dx
-      Df.col(1) = c + e * bary.x() + g * bary.z() +
-                   h * bary.x() * bary.z();  // df/dy
-      Df.col(2) = d + f * bary.x() + g * bary.y() +
-                   h * bary.x() * bary.y();  // df/dz
-      dx        = solve(Df, -ff);
+                      e * bary.x() * bary.y() + f * bary.x() * bary.z() +
+                      g * bary.y() * bary.z() +
+                      h * bary.x() * bary.y() * bary.z() - x;
+      Df.col(0) =
+          b + e * bary.y() + f * bary.z() + h * bary.y() * bary.z();  // df/dx
+      Df.col(1) =
+          c + e * bary.x() + g * bary.z() + h * bary.x() * bary.z();  // df/dy
+      Df.col(2) =
+          d + f * bary.x() + g * bary.y() + h * bary.x() * bary.y();  // df/dz
+      dx = solve(Df, -ff);
       bary += dx;
       if (euclidean_length(bary) > 10) {
         i = max_num_iterations;  // non convergent: just to save time
@@ -445,32 +351,64 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::linear_cell_sampler_t
   using this_t     = linear_cell_sampler_t;
   using parent_t   = field<this_t, Real, NumDimensions, T>;
   using grid_t     = structured_grid<Real, NumDimensions, IndexOrder>;
-  using property_t = typename grid_t::template vertex_property<T>;
+  using property_t = typename grid_t::template vertex_property_t<T>;
   using vec_t      = typename grid_t::vec_t;
   using pos_t      = typename grid_t::pos_t;
   using typename parent_t::tensor_t;
 
+ private:
   grid_t const*     m_grid;
   property_t const* m_property;
+
+ public:
+  linear_cell_sampler_t(grid_t const& grid, property_t const& prop)
+      : m_grid{&grid}, m_property{&prop} {}
 
   //----------------------------------------------------------------------------
   auto grid() const -> auto const& { return *m_grid; }
   auto property() const -> auto const& { return *m_property; }
   //----------------------------------------------------------------------------
   auto evaluate(pos_t const& x, real_t const /*t*/) const -> tensor_t {
-    auto possible_cells = m_grid->m_hierarchy()->nearby_cells(x);
-    auto cell_it        = end(possible_cells);
+    auto possible_cells = grid().hierarchy()->nearby_cells(x);
 
-    for (auto it = begin(possible_cells); it != end(possible_cells); ++it) {
-      auto const coords = local_cell_coordinates(*cell_it, x);
+    for (auto const& cell : possible_cells) {
+      auto const c         = grid().local_cell_coordinates(x, cell);
+      auto       is_inside = true;
+      for (size_t i = 0; i < NumDimensions; ++i) {
+        if (c(i) < 0 || c(i) > 1) {
+          is_inside = false;
+          break;
+        }
+      }
+      if (!is_inside) {
+        continue;
+      }
+      if constexpr (NumDimensions == 2) {
+        return (1 - c(0)) * (1 - c(1)) *
+                   property()[vertex_handle{
+                       grid().plain_index(cell[0], cell[1])}] +
+               c(0) * (1 - c(1)) *
+                   property()[vertex_handle{
+                       grid().plain_index(cell[0] + 1, cell[1])}] +
+               (1 - c(0)) * c(1) *
+                   property()[vertex_handle{
+                       grid().plain_index(cell[0], cell[1] + 1)}] +
+               c(0) * c(1) *
+                   property()[vertex_handle{
+                       grid().plain_index(cell[0] + 1, cell[1] + 1)}];
+      }
+    }
+    if constexpr (tensor_rank < tensor_t >> 0) {
+      return tensor_t{tag::fill{Real(0) / Real(0)}};
+    } else {
+      return Real(0) / Real(0);
     }
   }
 };
 //==============================================================================
 template <typename Real, std::size_t NumDimensions, typename IndexOrder>
 struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_t
-    : base_uniform_tree_hierarchy<
-          Real, NumDimensions, hierarchy_t> {
+    : base_uniform_tree_hierarchy<Real, NumDimensions, hierarchy_t> {
   //============================================================================
   // TYPEDEFS
   //============================================================================
@@ -479,6 +417,7 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_t
   using index_order_t = IndexOrder;
   using grid_t        = structured_grid<Real, NumDimensions, IndexOrder>;
   using parent_t = base_uniform_tree_hierarchy<Real, NumDimensions, this_t>;
+  using cell_t   = std::array<std::size_t, NumDimensions>;
   //============================================================================
   // INHERITED TYPES
   //============================================================================
@@ -504,8 +443,8 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_t
   //============================================================================
   // MEMBERS
   //============================================================================
-  grid_t const*                                       m_grid = nullptr;
-  std::vector<std::array<std::size_t, NumDimensions>> m_cell_handles;
+  grid_t const*       m_grid = nullptr;
+  std::vector<cell_t> m_cell_handles;
   //============================================================================
   // CTORS
   //============================================================================
@@ -561,23 +500,24 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_t
 #else
   template <integral... Indices>
 #endif
-  constexpr auto is_cell_inside_2(std::size_t const ix, std::size_t const iy) const
+  constexpr auto is_cell_inside_2(std::size_t const ix,
+                                  std::size_t const iy) const
 #ifdef __cpp_concepts
       requires(NumDimensions == 2)
 #endif
   {
     auto const c  = center();
     auto const e  = extents() / 2;
-    auto const us                 = std::array{vec_t{1, 0}, vec_t{0, 1}};
+    auto const us = std::array{vec_t{1, 0}, vec_t{0, 1}};
     auto const xs = std::array{
         grid().vertex_at(ix, iy) - c, grid().vertex_at(ix + 1, iy) - c,
-        grid().vertex_at(ix, iy + 1) - c, grid().vertex_at(ix + 1, iy + 1) - c};
+        grid().vertex_at(ix + 1, iy + 1) - c, grid().vertex_at(ix, iy + 1) - c};
     auto is_separating_axis = [&](auto const& axis) {
-      auto const ps = std::array{dot(xs[0], axis), dot(xs[1], axis), dot(xs[2], axis), dot(xs[3], axis)};
+      auto const ps = std::array{dot(xs[0], axis), dot(xs[1], axis),
+                                 dot(xs[2], axis), dot(xs[3], axis)};
       auto       r  = e.x() * std::abs(dot(us[0], axis)) +
-                      e.y() * std::abs(dot(us[1], axis));
-      return tatooine::max(-tatooine::max(ps),
-                            tatooine::min(ps)) > r;
+               e.y() * std::abs(dot(us[1], axis));
+      return tatooine::max(-tatooine::max(ps), tatooine::min(ps)) > r;
     };
     for (auto const& u : us) {
       if (is_separating_axis(u)) {
@@ -585,7 +525,7 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_t
       }
     }
     for (size_t i = 0; i < size(xs); ++i) {
-      auto const j = i == size(xs) - 1 ? 0: i + 1;
+      auto const j = i == size(xs) - 1 ? 0 : i + 1;
       if (is_separating_axis(
               vec_t{xs[i].y() - xs[j].y(), xs[j].x() - xs[i].x()})) {
         return false;
@@ -665,15 +605,17 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_t
     return true;
   }
 
-  //------------------------------------------------------------------------------
-  template <typename... Indices>
-  auto insert_cell(Indices const... is) -> bool {
+ public :
+     //------------------------------------------------------------------------------
+     template <typename... Indices>
+     auto
+     insert_cell(Indices const... is) -> bool {
     if (!is_cell_inside(is...)) {
       return false;
     }
     if (holds_cells()) {
       if (is_at_max_depth()) {
-        m_cell_handles.push_back(std::array{static_cast<std::size_t>(is)...});
+        m_cell_handles.push_back(cell_t{static_cast<std::size_t>(is)...});
       } else {
         split_and_distribute();
         distribute_cell(is...);
@@ -682,14 +624,14 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_t
       if (is_splitted()) {
         distribute_cell(is...);
       } else {
-        m_cell_handles.push_back(std::array{static_cast<std::size_t>(is)...});
+        m_cell_handles.push_back(cell_t{static_cast<std::size_t>(is)...});
       }
     }
     return true;
   }
   //----------------------------------------------------------------------------
   auto distribute() {
-    if (!m_cell_handles.empty()) {
+    if (holds_cells()) {
       distribute_cell(m_cell_handles.front());
       m_cell_handles.clear();
     }
@@ -711,26 +653,34 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_t
       child->insert_cell(is...);
     }
   }
+  //----------------------------------------------------------------------------
+  template <std::size_t... Is>
+  auto distribute_cell(std::array<std::size_t, NumDimensions> const& is,
+                       std::index_sequence<Is...> /*seq*/) {
+    distribute_cell(is[Is]...);
+  }
+  //----------------------------------------------------------------------------
+  auto distribute_cell(std::array<std::size_t, NumDimensions> const& is) {
+    distribute_cell(is, std::make_index_sequence<NumDimensions>{});
+  }
   //============================================================================
-  auto collect_nearby_cells(
-      vec_t const&                                      pos,
-      std::set<std::array<std::size_t, NumDimensions>>& cells) const -> void {
+  auto collect_nearby_cells(vec_t const& pos, std::set<cell_t>& cells) const
+      -> void {
     if (is_inside(pos)) {
       if (is_splitted()) {
         for (auto const& child : children()) {
           child->collect_nearby_cells(pos, cells);
         }
       } else {
-        if (!m_cell_handles.empty()) {
-          std::copy(begin(m_cell_handles), end(m_cell_handles),
-                    std::inserter(cells, end(cells)));
+        if (holds_cells()) {
+          boost::copy(m_cell_handles, std::inserter(cells, end(cells)));
         }
       }
     }
   }
   //----------------------------------------------------------------------------
   auto nearby_cells(pos_t const& pos) const {
-    std::set<std::array<std::size_t, NumDimensions>> cells;
+    std::set<cell_t> cells;
     collect_nearby_cells(pos, cells);
     return cells;
   }
