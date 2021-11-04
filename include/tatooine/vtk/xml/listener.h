@@ -58,49 +58,87 @@ struct listener {
   virtual auto on_points(std::array<float, 4> const*) -> void {}
   virtual auto on_points(std::array<double, 4> const*) -> void {}
 
-  virtual auto on_point_data(std::string const& name, std::int8_t const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::uint8_t const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::int16_t const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::uint16_t const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::int32_t const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::uint32_t const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::int64_t const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::uint64_t const*) -> void {}
+  virtual auto on_point_data(std::string const& name, std::int8_t const*)
+      -> void {}
+  virtual auto on_point_data(std::string const& name, std::uint8_t const*)
+      -> void {}
+  virtual auto on_point_data(std::string const& name, std::int16_t const*)
+      -> void {}
+  virtual auto on_point_data(std::string const& name, std::uint16_t const*)
+      -> void {}
+  virtual auto on_point_data(std::string const& name, std::int32_t const*)
+      -> void {}
+  virtual auto on_point_data(std::string const& name, std::uint32_t const*)
+      -> void {}
+  virtual auto on_point_data(std::string const& name, std::int64_t const*)
+      -> void {}
+  virtual auto on_point_data(std::string const& name, std::uint64_t const*)
+      -> void {}
   virtual auto on_point_data(std::string const& name, float const*) -> void {}
   virtual auto on_point_data(std::string const& name, double const*) -> void {}
 
-  virtual auto on_point_data(std::string const& name, std::array<std::int8_t, 2> const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::array<std::uint8_t, 2> const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::array<std::int16_t, 2> const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::array<std::uint16_t, 2> const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::array<std::int32_t, 2> const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::array<std::uint32_t, 2> const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::array<std::int64_t, 2> const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::array<std::uint64_t, 2> const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::array<float, 2> const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::array<double, 2> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<std::int8_t, 2> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<std::uint8_t, 2> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<std::int16_t, 2> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<std::uint16_t, 2> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<std::int32_t, 2> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<std::uint32_t, 2> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<std::int64_t, 2> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<std::uint64_t, 2> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<float, 2> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<double, 2> const*) -> void {}
 
-  virtual auto on_point_data(std::string const& name, std::array<std::int8_t, 3> const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::array<std::uint8_t, 3> const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::array<std::int16_t, 3> const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::array<std::uint16_t, 3> const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::array<std::int32_t, 3> const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::array<std::uint32_t, 3> const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::array<std::int64_t, 3> const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::array<std::uint64_t, 3> const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::array<float, 3> const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::array<double, 3> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<std::int8_t, 3> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<std::uint8_t, 3> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<std::int16_t, 3> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<std::uint16_t, 3> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<std::int32_t, 3> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<std::uint32_t, 3> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<std::int64_t, 3> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<std::uint64_t, 3> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<float, 3> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<double, 3> const*) -> void {}
 
-  virtual auto on_point_data(std::string const& name, std::array<std::int8_t, 4> const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::array<std::uint8_t, 4> const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::array<std::int16_t, 4> const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::array<std::uint16_t, 4> const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::array<std::int32_t, 4> const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::array<std::uint32_t, 4> const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::array<std::int64_t, 4> const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::array<std::uint64_t, 4> const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::array<float, 4> const*) -> void {}
-  virtual auto on_point_data(std::string const& name, std::array<double, 4> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<std::int8_t, 4> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<std::uint8_t, 4> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<std::int16_t, 4> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<std::uint16_t, 4> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<std::int32_t, 4> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<std::uint32_t, 4> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<std::int64_t, 4> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<std::uint64_t, 4> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<float, 4> const*) -> void {}
+  virtual auto on_point_data(std::string const& name,
+                             std::array<double, 4> const*) -> void {}
 
   virtual auto on_structured_grid(
       std::array<std::pair<std::size_t, std::size_t>, 3> const&) -> void {}
