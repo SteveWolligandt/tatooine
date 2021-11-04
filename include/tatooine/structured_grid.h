@@ -3,8 +3,8 @@
 //==============================================================================
 #include <tatooine/multidim_size.h>
 #include <tatooine/pointset.h>
-#include <tatooine/vtk/xml.h>
 #include <tatooine/uniform_tree_hierarchy.h>
+#include <tatooine/vtk/xml.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -85,7 +85,7 @@ struct structured_grid : pointset<Real, NumDimensions>,
   template <arithmetic... Ts>
   requires(sizeof...(Ts) == NumDimensions)
 #else
-  template <typename... Ts, enable_if<is_arithmetic<Ts...>> = true,
+  template <typename... Ts, enable_if<is_arithmetic<Ts...> > = true,
             enable_if<sizeof...(Ts) == NumDimensions> = true>
 #endif
       auto insert_vertex(Ts const... ts) = delete;
@@ -207,11 +207,10 @@ auto structured_grid<Real, NumDimensions, IndexOrder>::read_vts(
                                     extents[2].first - whole_extent[2].first};
       cur_piece_resolution = std::array{extents[0].second - extents[0].first,
                                         extents[1].second - extents[1].first,
-                                    extents[2].second - extents[2].first};
+                                        extents[2].second - extents[2].first};
     }
     auto on_points(std::array<double, 3> const* v) -> void override {
-      auto extract_points = [&](
-                                auto const... is) mutable {
+      auto extract_points = [&](auto const... is) mutable {
         auto& x = grid.vertex_at(is...);
         for (size_t i = 0; i < num_dimensions(); ++i) {
           x(i) = v->at(i);
@@ -228,9 +227,8 @@ auto structured_grid<Real, NumDimensions, IndexOrder>::read_vts(
       auto& prop = grid.template vertex_property<float>(name);
       for_loop(
           [&](auto const... is) mutable {
-            auto& p =
-                prop[vertex_handle{grid.plain_index(is...)}];
-            p = *v++;
+            auto& p = prop[vertex_handle{grid.plain_index(is...)}];
+            p       = *v++;
           },
           std::pair{cur_piece_origin[0], cur_piece_resolution[0]},
           std::pair{cur_piece_origin[1], cur_piece_resolution[1]},
