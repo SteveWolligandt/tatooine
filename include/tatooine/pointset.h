@@ -173,6 +173,7 @@ struct pointset {
     for (auto v : vertices()) {
       aabb += at(v);
     }
+    return aabb;
   }
   //----------------------------------------------------------------------------
   auto vertex_properties() const -> auto const& { return m_vertex_properties; }
