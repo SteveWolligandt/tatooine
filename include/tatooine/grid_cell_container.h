@@ -136,10 +136,10 @@ struct grid_cell_container {
                                    decltype(((void)std::declval<Dimensions>(),
                                              size_t{}))...> > = true>
 #endif
-  auto iterate_indices(Iteration&& iteration, tag::sequential_t,
+  auto iterate_indices(Iteration&& iteration, execution_policy::sequential_t,
                        std::index_sequence<Ds...>) const -> decltype(auto) {
     return for_loop(
-        std::forward<Iteration>(iteration), tag::sequential,
+        std::forward<Iteration>(iteration), execution_policy::sequential,
         std::pair{size_t(0),
                   static_cast<size_t>(m_grid.template size<Ds>() - 1)}...);
   }
@@ -155,9 +155,9 @@ struct grid_cell_container {
                                    decltype(((void)std::declval<Dimensions>(),
                                              size_t{}))...> > = true>
 #endif
-  auto iterate_indices(Iteration&& iteration, tag::sequential_t) const
+  auto iterate_indices(Iteration&& iteration, execution_policy::sequential_t) const
       -> decltype(auto) {
-    return iterate_indices(std::forward<Iteration>(iteration), tag::sequential,
+    return iterate_indices(std::forward<Iteration>(iteration), execution_policy::sequential,
                            std::make_index_sequence<num_dimensions()>{});
   }
   //----------------------------------------------------------------------------
@@ -173,10 +173,10 @@ struct grid_cell_container {
                                    decltype(((void)std::declval<Dimensions>(),
                                              size_t{}))...> > = true>
 #endif
-  auto iterate_indices(Iteration&& iteration, tag::parallel_t,
+  auto iterate_indices(Iteration&& iteration, execution_policy::parallel_t,
                        std::index_sequence<Ds...>) const -> decltype(auto) {
     return for_loop(
-        std::forward<Iteration>(iteration), tag::parallel,
+        std::forward<Iteration>(iteration), execution_policy::parallel,
         std::pair{size_t(0),
                   static_cast<size_t>(m_grid.template size<Ds>() - 1)}...);
   }
@@ -192,9 +192,9 @@ struct grid_cell_container {
                                    decltype(((void)std::declval<Dimensions>(),
                                              size_t{}))...> > = true>
 #endif
-  auto iterate_indices(Iteration&& iteration, tag::parallel_t) const
+  auto iterate_indices(Iteration&& iteration, execution_policy::parallel_t) const
       -> decltype(auto) {
-    return iterate_indices(std::forward<Iteration>(iteration), tag::parallel,
+    return iterate_indices(std::forward<Iteration>(iteration), execution_policy::parallel,
                            std::make_index_sequence<num_dimensions()>{});
   }
   //----------------------------------------------------------------------------
@@ -209,7 +209,7 @@ struct grid_cell_container {
                                              size_t{}))...> > = true>
 #endif
   auto iterate_indices(Iteration&& iteration) const -> decltype(auto) {
-    return iterate_indices(std::forward<Iteration>(iteration), tag::sequential,
+    return iterate_indices(std::forward<Iteration>(iteration), execution_policy::sequential,
                            std::make_index_sequence<num_dimensions()>{});
   }
 };

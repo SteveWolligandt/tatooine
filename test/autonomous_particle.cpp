@@ -72,7 +72,7 @@ TEST_CASE("autonomous_particle_discretiation_doublegyre_rectilinear_grid",
           phi_backward(is...) = vec2{tag::fill{0.0 / 0.0}};
         }
       },
-      tag::sequential);
+      execution_policy::sequential);
   sampler_grid.write_vtk("autonomous_particle_sampler_doublegyre.vtk");
   std::vector<line2> all_advected_discretizations;
   std::vector<line2> all_initial_discretizations;

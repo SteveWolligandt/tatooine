@@ -104,9 +104,9 @@ auto isolines(GetScalars&& get_scalars, grid<XDomain, YDomain> const& g,
     }
   };
 #ifdef NDEBUG
-  for_loop(process_cube, tag::parallel, g.size(0) - 1, g.size(1) - 1);
+  for_loop(process_cube, execution_policy::parallel, g.size(0) - 1, g.size(1) - 1);
 #else
-  for_loop(process_cube, tag::sequential, g.size(0) - 1, g.size(1) - 1);
+  for_loop(process_cube, execution_policy::sequential, g.size(0) - 1, g.size(1) - 1);
 #endif
   return merge_lines(isolines);
 }

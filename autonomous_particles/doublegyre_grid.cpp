@@ -103,7 +103,7 @@ auto main(int argc, char** argv) -> int {
       numerical_flowmap_forward_prop(is...) = phi(x, args.t0, args.tau);
       numerical_flowmap_backward_prop(is...) =
           phi(x, args.t0 + args.tau, -args.tau);
-    } /*, tag::parallel*/);
+    } /*, execution_policy::parallel*/);
     //----------------------------------------------------------------------------
     indicator.set_text("Discretizing flow map with autonomous particles");
     auto num_particles_after_advection = size_t{};
@@ -154,7 +154,7 @@ auto main(int argc, char** argv) -> int {
               backward_errors_autonomous_prop(is...) = 0.0 / 0.0;
             }
           },
-          tag::parallel);
+          execution_policy::parallel);
       //----------------------------------------------------------------------------
       indicator.set_text("Writing results");
       { sampler_check_grid.write("doublegyre_grid_errors.vtk"); }
@@ -227,7 +227,7 @@ auto main(int argc, char** argv) -> int {
                 backward_errors_regular_prop(is...) -
                 backward_errors_autonomous_prop(is...);
           },
-          tag::parallel);
+          execution_policy::parallel);
       //----------------------------------------------------------------------------
       indicator.set_text("Writing results");
       { sampler_check_grid.write("doublegyre_grid_errors.vtk"); }
@@ -290,7 +290,7 @@ auto main(int argc, char** argv) -> int {
               backward_errors_agranovsky_prop(is...) -
               backward_errors_autonomous_prop(is...);
         },
-        tag::parallel);
+        execution_policy::parallel);
     //----------------------------------------------------------------------------
     indicator.set_text("Writing results");
     { sampler_check_grid.write("doublegyre_grid_errors.vtk"); }

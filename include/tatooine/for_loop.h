@@ -321,7 +321,7 @@ template <typename Int = std::size_t, typename Iteration, integral... Ranges>
 template <typename Int = std::size_t, typename Iteration, typename... Ranges,
           enable_if_integral<Ranges...> = true>
 #endif
-constexpr auto for_loop(Iteration&& iteration, tag::sequential_t,
+constexpr auto for_loop(Iteration&& iteration, execution_policy::sequential_t,
                         Ranges(&&... ranges)[2]) -> void {
   detail::for_loop<sizeof...(ranges) + 1, Int>(
       std::forward<Iteration>(iteration),
@@ -342,7 +342,7 @@ template <typename Int = std::size_t, typename Iteration, integral... Ranges>
 template <typename Int = std::size_t, typename Iteration, typename... Ranges,
           enable_if_integral<Ranges...> = true>
 #endif
-constexpr auto for_loop(Iteration&& iteration, tag::sequential_t,
+constexpr auto for_loop(Iteration&& iteration, execution_policy::sequential_t,
                         std::pair<Ranges, Ranges> const&... ranges) -> void {
   detail::for_loop<sizeof...(ranges) + 1, Int>(
       std::forward<Iteration>(iteration),
@@ -362,7 +362,7 @@ template <typename Int = std::size_t, typename Iteration, integral... Ends>
 template <typename Int = std::size_t, typename Iteration, typename... Ends,
           enable_if_integral<Ends...> = true>
 #endif
-constexpr auto for_loop(Iteration&& iteration, tag::sequential_t,
+constexpr auto for_loop(Iteration&& iteration, execution_policy::sequential_t,
                         Ends const... ends) -> void {
   detail::for_loop<sizeof...(ends) + 1, Int>(
       std::forward<Iteration>(iteration),
@@ -383,7 +383,7 @@ template <typename Int = std::size_t, typename Iteration, integral... Ranges>
 template <typename Int = std::size_t, typename Iteration, typename... Ranges,
           enable_if_integral<Ranges...> = true>
 #endif
-constexpr auto for_loop(Iteration&& iteration, tag::parallel_t,
+constexpr auto for_loop(Iteration&& iteration, execution_policy::parallel_t,
                         Ranges(&&... ranges)[2]) -> void {
 #ifdef _OPENMP
   return detail::for_loop<sizeof...(ranges) - 1, Int>(
@@ -410,7 +410,7 @@ template <typename Int = std::size_t, typename Iteration, integral... Ranges>
 template <typename Int = std::size_t, typename Iteration, typename... Ranges,
           enable_if_integral<Ranges...> = true>
 #endif
-constexpr auto for_loop(Iteration&& iteration, tag::parallel_t,
+constexpr auto for_loop(Iteration&& iteration, execution_policy::parallel_t,
                         std::pair<Ranges, Ranges> const&... ranges) -> void {
 #ifdef _OPENMP
   return detail::for_loop<sizeof...(ranges) - 1, Int>(
@@ -436,7 +436,7 @@ template <typename Int = std::size_t, typename Iteration, integral... Ends>
 template <typename Int = std::size_t, typename Iteration, typename... Ends,
           enable_if_integral<Ends...> = true>
 #endif
-constexpr auto for_loop(Iteration&& iteration, tag::parallel_t,
+constexpr auto for_loop(Iteration&& iteration, execution_policy::parallel_t,
                         Ends const... ends) -> void {
 #ifdef _OPENMP
   return detail::for_loop<sizeof...(ends) - 1, Int>(
@@ -466,7 +466,7 @@ template <typename Int = std::size_t, typename Iteration, typename... Ranges,
 #endif
 constexpr auto for_loop(Iteration&& iteration, Ranges(&&... ranges)[2])
     -> void {
-  for_loop(std::forward<Iteration>(iteration), tag::sequential,
+  for_loop(std::forward<Iteration>(iteration), execution_policy::sequential,
            std::pair{ranges[0], ranges[1]}...);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -485,7 +485,7 @@ template <typename Int = std::size_t, typename Iteration, typename... Ranges,
 #endif
 constexpr auto for_loop(Iteration&& iteration,
                         std::pair<Ranges, Ranges> const&... ranges) -> void {
-  for_loop(std::forward<Iteration>(iteration), tag::sequential, ranges...);
+  for_loop(std::forward<Iteration>(iteration), execution_policy::sequential, ranges...);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// \brief Use this function for creating a sequential nested loop.
@@ -502,12 +502,12 @@ template <typename Int = std::size_t, typename Iteration, typename... Ends,
           enable_if_integral<Ends...> = true>
 #endif
 constexpr auto for_loop(Iteration&& iteration, Ends const... ends) -> void {
-  for_loop(std::forward<Iteration>(iteration), tag::sequential, ends...);
+  for_loop(std::forward<Iteration>(iteration), execution_policy::sequential, ends...);
 }
 //==============================================================================
 /// dynamically-sized for loop
 template <typename Iteration>
-auto for_loop(Iteration&& iteration, tag::sequential_t,
+auto for_loop(Iteration&& iteration, execution_policy::sequential_t,
               std::vector<std::pair<size_t, size_t>> const& ranges) {
   auto cur_indices = std::vector<size_t>(size(ranges));
   std::transform(begin(ranges), end(ranges), begin(cur_indices),
@@ -535,7 +535,7 @@ auto for_loop(Iteration&& iteration, tag::sequential_t,
 template <typename Iteration>
 auto for_loop(Iteration&&                                   iteration,
               std::vector<std::pair<size_t, size_t>> const& ranges) {
-  for_loop(std::forward<Iteration>(iteration), tag::sequential, ranges);
+  for_loop(std::forward<Iteration>(iteration), execution_policy::sequential, ranges);
 }
 //==============================================================================
 }  // namespace tatooine

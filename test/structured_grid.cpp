@@ -126,8 +126,8 @@ TEST_CASE_METHOD(structured_grid3, "structured_grid_3_cell_coordinates",
   vertex_at(0, 1, 0) = {1.0, 4.0, 0.0};
   vertex_at(1, 1, 0) = {4.0, 4.0, 0.0};
   vertex_at(0, 0, 1) = {0.0, 1.0, 1.0};
-  vertex_at(1, 0, 1) = {3.0, 3.0, 1.0};
-  vertex_at(0, 1, 1) = {1.0, 5.0, 1.0};
+  vertex_at(1, 0, 1) = {3.0, 2.0, 1.0};
+  vertex_at(0, 1, 1) = {1.0, 4.0, 1.0};
   vertex_at(1, 1, 1) = {4.0, 5.0, 1.0};
   auto approx_0      = Approx(0).margin(1e-10);
   SECTION("0,0,0") {
@@ -177,25 +177,51 @@ TEST_CASE_METHOD(structured_grid3, "structured_grid_3_linear_sampler",
   vertex_at(0, 1, 0) = {1.0, 4.0, 0.0};
   vertex_at(1, 1, 0) = {4.0, 4.0, 0.0};
   vertex_at(0, 0, 1) = {0.0, 1.0, 1.0};
-  vertex_at(1, 0, 1) = {3.0, 3.0, 3.0};
-  vertex_at(0, 1, 1) = {1.0, 5.0, 5.0};
-  vertex_at(1, 1, 1) = {4.0, 5.0, 4.0};
+  vertex_at(1, 0, 1) = {3.0, 2.0, 1.0};
+  vertex_at(0, 1, 1) = {1.0, 4.0, 1.0};
+  vertex_at(1, 1, 1) = {4.0, 5.0, 1.0};
 
-  auto& prop                             = scalar_vertex_property("prop");
+  auto& prop                                = scalar_vertex_property("prop");
   prop[vertex_handle{plain_index(0, 0, 0)}] = 1;
   prop[vertex_handle{plain_index(1, 0, 0)}] = 2;
-  prop[vertex_handle{plain_index(1, 1, 0)}] = 3;
   prop[vertex_handle{plain_index(0, 1, 0)}] = 4;
+  prop[vertex_handle{plain_index(1, 1, 0)}] = 3;
   prop[vertex_handle{plain_index(0, 0, 1)}] = 3;
   prop[vertex_handle{plain_index(1, 0, 1)}] = 6;
-  prop[vertex_handle{plain_index(1, 1, 1)}] = 5;
   prop[vertex_handle{plain_index(0, 1, 1)}] = 2;
+  prop[vertex_handle{plain_index(1, 1, 1)}] = 5;
   auto const aabb                        = axis_aligned_bounding_box();
-  auto discretized = rectilinear_grid{linspace{aabb.min(0), aabb.max(0), 100},
-                                      linspace{aabb.min(1), aabb.max(1), 100},
-                                      linspace{aabb.min(2), aabb.max(2), 100}};
-  discretize(linear_vertex_property_sampler<real_t>("prop"), discretized,
-             "prop");
+  auto prop_sampler = linear_vertex_property_sampler(prop);
+
+  auto const p000 = prop_sampler(vertex_at(0, 0, 0));
+  REQUIRE(p000 == Approx(prop[vertex_handle{plain_index(0, 0, 0)}]));
+
+  auto const p100 = prop_sampler(vertex_at(1, 0, 0));
+  REQUIRE(p100 == Approx(prop[vertex_handle{plain_index(1, 0, 0)}]));
+
+  auto const p010 = prop_sampler(vertex_at(0, 1, 0));
+  REQUIRE(p010 == Approx(prop[vertex_handle{plain_index(0, 1, 0)}]));
+
+  auto const p110 = prop_sampler(vertex_at(1, 1, 0));
+  REQUIRE(p110 == Approx(prop[vertex_handle{plain_index(1, 1, 0)}]));
+
+  auto const p001 = prop_sampler(vertex_at(0, 0, 1));
+  REQUIRE(p001 == Approx(prop[vertex_handle{plain_index(0, 0, 1)}]));
+
+  auto const p101 = prop_sampler(vertex_at(1, 0, 1));
+  REQUIRE(p101 == Approx(prop[vertex_handle{plain_index(1, 0, 1)}]));
+
+  auto const p011 = prop_sampler(vertex_at(0, 1, 1));
+  REQUIRE(p011 == Approx(prop[vertex_handle{plain_index(0, 1, 1)}]));
+
+  auto const p111 = prop_sampler(vertex_at(1, 1, 1));
+  REQUIRE(p111 == Approx(prop[vertex_handle{plain_index(1, 1, 1)}]));
+
+  auto discretized = rectilinear_grid{linspace{aabb.min(0), aabb.max(0), 10},
+                                      linspace{aabb.min(1), aabb.max(1), 10},
+                                      linspace{aabb.min(2), aabb.max(2), 10}};
+  discretize(prop_sampler, discretized,
+             "prop", execution_policy::sequential);
   discretized.write_vtk("resampled_structured_grid_3d.vtk");
 }
 //==============================================================================

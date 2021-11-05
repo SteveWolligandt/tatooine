@@ -22,8 +22,11 @@ struct field {
     if constexpr (is_arithmetic<tensor_t>) {
       return Real(0) / Real(0);
     } else {
-      return tensor_t{tag::fill{Real(0) / Real(0)}};
+      return tensor_t::fill(Real(0) / Real(0));
     }
+  }
+  static auto constexpr ood_position() {
+    return pos_t::fill(Real(0) / Real(0));
   }
   //============================================================================
   // static methods
@@ -77,14 +80,9 @@ struct field {
   [[nodiscard]] constexpr virtual auto evaluate(pos_t const&,
                                                 real_t const) const
       -> tensor_t = 0;
-  //[[nodiscard]] constexpr virtual auto in_domain(pos_t const&,
-  //                                               real_t const) const
-  //    -> bool = 0;
 #else
   [[nodiscard]] virtual auto evaluate(pos_t const&, real_t const) const
       -> tensor_t = 0;
-  //[[nodiscard]] virtual auto in_domain(pos_t const&, real_t const) const
-  //    -> bool = 0;
 #endif
   //============================================================================
   // methods
@@ -169,11 +167,6 @@ struct field : polymorphic::field<Real, NumDims, Tensor> {
       -> tensor_t override {
     return as_derived().evaluate(x, t);
   }
-  //----------------------------------------------------------------------------
-  //[[nodiscard]] auto in_domain(pos_t const& x, real_t const t) const
-  //    -> bool override {
-  //  return as_derived().in_domain(x, t);
-  //}
 };
 //==============================================================================
 template <typename V, typename Real, size_t NumDims, size_t R = NumDims,
@@ -292,9 +285,8 @@ auto sample_to_raw(
   auto               vs = discretized_domain.vertices();
   raw_data.reserve(vs.size() * (f.num_tensor_components() + padding));
   for (auto v : vs) {
-    auto const x = vs[v];
-    // if (f.in_domain(x, t)) {
-    auto sample = f(x, t);
+    auto const x      = vs[v];
+    auto       sample = f(x, t);
     if constexpr (f.is_scalarfield()) {
       raw_data.push_back(static_cast<VReal>(sample));
     } else {
@@ -305,11 +297,6 @@ auto sample_to_raw(
     for (size_t i = 0; i < padding; ++i) {
       raw_data.push_back(padval);
     }
-    //} else {
-    //  for (size_t i = 0; i < f.num_tensor_components() + padding; ++i) {
-    //    raw_data.push_back(nan);
-    //  }
-    //}
   }
   return raw_data;
 }
@@ -335,9 +322,8 @@ auto sample_to_raw(
                    (f.num_tensor_components() + padding));
   for (auto t : temporal_domain) {
     for (auto v : vs) {
-      auto const x = v.position();
-      // if (f.in_domain(x, t)) {
-      auto sample = f(x, t);
+      auto const x      = v.position();
+      auto       sample = f(x, t);
       if constexpr (f.is_scalarfield()) {
         raw_data.push_back(static_cast<VReal>(sample));
       } else {
@@ -348,11 +334,6 @@ auto sample_to_raw(
       for (size_t i = 0; i < padding; ++i) {
         raw_data.push_back(padval);
       }
-      //} else {
-      //  for (size_t i = 0; i < f.num_tensor_components() + padding; ++i) {
-      //    raw_data.push_back(nan);
-      //  }
-      //}
     }
   }
   return raw_data;
@@ -396,7 +377,7 @@ auto discretize(polymorphic::field<VReal, NumDims, Tensor> const& f,
                 ExecutionPolicy const execution_policy) -> auto& {
   auto& discretized_field = [&]() -> decltype(auto) {
     if constexpr (is_arithmetic<Tensor>) {
-      return discretized_domain.template insert_chunked_vertex_property<VReal>(
+      return discretized_domain.template insert_vertex_property<VReal>(
           property_name);
     } else if constexpr (is_vec<Tensor>) {
       return discretized_domain
@@ -430,7 +411,8 @@ template <typename VReal, typename TReal, size_t NumDims, typename Tensor,
 auto discretize(polymorphic::field<VReal, NumDims, Tensor> const& f,
                 rectilinear_grid<SpatialDimensions...>& discretized_domain,
                 std::string const& property_name, TReal const t) -> auto& {
-  return discretize(f, discretized_domain, property_name, t, tag::sequential);
+  return discretize(f, discretized_domain, property_name, t,
+                    execution_policy::sequential);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concpets
@@ -443,7 +425,8 @@ template <typename VReal, size_t NumDims, typename Tensor,
 auto discretize(polymorphic::field<VReal, NumDims, Tensor> const& f,
                 rectilinear_grid<SpatialDimensions...>& discretized_domain,
                 std::string const& property_name) -> auto& {
-  return discretize(f, discretized_domain, property_name, 0, tag::sequential);
+  return discretize(f, discretized_domain, property_name, 0,
+                    execution_policy::sequential);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concpets
