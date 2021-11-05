@@ -9,8 +9,9 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
   size_t width = 10, height = 10, depth = 10, num_splits = 3,
          max_num_particles = 500000, output_res_x = 200, output_res_y = 100;
   double t0 = 0, tau = 2, tau_step = 0.05, min_cond = 0.01,
-         agranovsky_delta_t = 0.1;
-  bool write_ellipses       = true;
+         agranovsky_delta_t      = 0.1;
+  bool write_ellipses            = true;
+  auto autonomous_particles_file = std::optional<tatooine::filesystem::path>{};
   // Declare the supported options.
   po::options_description desc("Allowed options");
   desc.add_options()("help", "produce help message")(
@@ -28,7 +29,9 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
       "tau_step", po::value<double>(), "set stepsize for integrator")(
       "min_cond", po::value<double>(),
       "set minimal condition number of back calculation for advected "
-      "particles")("agranovsky_delta_t", po::value<double>(), "time gaps");
+      "particles")("agranovsky_delta_t", po::value<double>(), "time gaps")(
+      "autonomous_particles_file", po::value<std::string>(),
+      "already integrated particles");
 
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -38,13 +41,27 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
     std::cerr << desc;
     return {};
   }
+  if (vm.count("autonomous_particles_file") > 0) {
+    autonomous_particles_file = tatooine::filesystem::path{
+        vm["autonomous_particles_file"].as<std::string>()};
+    std::cerr << "reading from file " << *autonomous_particles_file << '\n';
+  }
   if (vm.count("width") > 0) {
+    if (autonomous_particles_file) {
+      throw std::runtime_error{
+          "\"autonomous_particles_file\" was specified. do not specify width!"};
+    }
     width = vm["width"].as<size_t>();
     std::cerr << "specified width = " << width << '\n';
   } else {
     std::cerr << "default width = " << width << '\n';
   }
   if (vm.count("height") > 0) {
+    if (autonomous_particles_file) {
+      throw std::runtime_error{
+          "\"autonomous_particles_file\" was specified. do not specify "
+          "height!"};
+    }
     height = vm["height"].as<size_t>();
     std::cerr << "specified height = " << height << '\n';
   } else {
@@ -63,12 +80,21 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
     std::cerr << "default output_res_y = " << output_res_y << '\n';
   }
   if (vm.count("depth") > 0) {
+    if (autonomous_particles_file) {
+      throw std::runtime_error{
+          "\"autonomous_particles_file\" was specified. do not specify depth!"};
+    }
     depth = vm["depth"].as<size_t>();
     std::cerr << "specified depth = " << depth << '\n';
   } else {
     std::cerr << "default depth = " << depth << '\n';
   }
   if (vm.count("num_splits") > 0) {
+    if (autonomous_particles_file) {
+      throw std::runtime_error{
+          "\"autonomous_particles_file\" was specified. do not specify "
+          "num_splits!"};
+    }
     num_splits = vm["num_splits"].as<size_t>();
     std::cerr << "specified number of splits num_splits = " << num_splits
               << '\n';
@@ -76,6 +102,11 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
     std::cerr << "default number of splits num_splits = " << num_splits << '\n';
   }
   if (vm.count("max_num_particles") > 0) {
+    if (autonomous_particles_file) {
+      throw std::runtime_error{
+          "\"autonomous_particles_file\" was specified. do not specify "
+          "max_num_particles!"};
+    }
     max_num_particles = vm["max_num_particles"].as<size_t>();
     std::cerr << "specified maximum number of particles = " << max_num_particles
               << '\n';
@@ -132,5 +163,6 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
                 tau_step,
                 min_cond,
                 agranovsky_delta_t,
-                write_ellipses};
+                write_ellipses,
+                autonomous_particles_file};
 }
