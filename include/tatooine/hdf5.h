@@ -805,7 +805,7 @@ class group {
       // api::get().disable_error_printing();
       auto  plist = property_list::dataset_creation();
       plist.set_chunk(
-          (static_cast<hsize_t>(size) == unlimited ? 64 : size)...);
+          (static_cast<hsize_t>(size) == unlimited ? 1024 : size)...);
       dataset_id =
           H5Dcreate(*m_group_id, dataset_name.data(), type_id<T>(),
                     dataset_space, H5P_DEFAULT, plist.id(), H5P_DEFAULT);
