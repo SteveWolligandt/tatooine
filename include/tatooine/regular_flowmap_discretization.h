@@ -125,7 +125,7 @@ struct regular_flowmap_discretization {
                                      tau,
                                      min,
                                      max,
-                                     tag::sequential,
+                                     execution_policy::sequential,
                                      resolution...} {
     static_assert(
         sizeof...(resolution) == N,
@@ -137,7 +137,7 @@ struct regular_flowmap_discretization {
   //----------------------------------------------------------------------------
   template <typename Flowmap>
   auto fill(Flowmap&& flowmap) -> void {
-    fill(std::forward<Flowmap>(flowmap), tag::sequential);
+    fill(std::forward<Flowmap>(flowmap), execution_policy::sequential);
   }
   //----------------------------------------------------------------------------
   template <typename Flowmap, typename Tag>

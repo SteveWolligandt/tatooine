@@ -152,7 +152,7 @@ TEST_CASE("lazy_reader_hdf5_parallel_access",
     auto rand = random::uniform<size_t>{0, data_size - 1};
     reader(rand(), rand(), rand());
   };
-  for_loop(iteration, tag::parallel, size_t(1000000000));
+  for_loop(iteration, execution_policy::parallel, size_t(1000000000));
 }
 //==============================================================================
 TEST_CASE("lazy_reader_hdf5", "[lazy_reader][hdf5]") {

@@ -72,7 +72,9 @@ struct structured_grid : pointset<Real, NumDimensions>,
     auto const aabb = this->axis_aligned_bounding_box();
     m_hierarchy =
         std::make_unique<hierarchy_t>(aabb.min(), aabb.max(), *this, 4);
-    auto       it = [&](auto const... is) { m_hierarchy->insert_cell(is...); };
+    auto       it = [&](auto const... is) {
+      m_hierarchy->insert_cell(is...);
+    };
     auto const s  = this->size();
     if constexpr (NumDimensions == 2) {
       for_loop(it, s[0] - 1, s[1] - 1);
@@ -147,21 +149,18 @@ struct structured_grid : pointset<Real, NumDimensions>,
       -> pos_t;
   //----------------------------------------------------------------------------
   template <typename T>
-  auto linear_vertex_property_sampler(vertex_property_t<T> const& name) const {
+  auto linear_vertex_property_sampler(vertex_property_t<T> const& prop) const {
     if (m_hierarchy == nullptr) {
       update_hierarchy();
       std::cout << "updating done!\n";
     }
-    return linear_cell_sampler_t<T>{this, &vertex_property<T>(name)};
+    return linear_cell_sampler_t<T>{*this, prop};
   }
   //----------------------------------------------------------------------------
   template <typename T>
   auto linear_vertex_property_sampler(std::string const& name) const {
-    if (m_hierarchy == nullptr) {
-      update_hierarchy();
-    }
-    return linear_cell_sampler_t<T>{*this,
-                                    this->template vertex_property<T>(name)};
+    return linear_vertex_property_sampler(
+        this->template vertex_property<T>(name));
   }
 };
 //==============================================================================
@@ -246,6 +245,12 @@ template <typename Real, std::size_t NumDimensions, typename IndexOrder>
 auto structured_grid<Real, NumDimensions, IndexOrder>::local_cell_coordinates(
     pos_t const                                   x,
     std::array<std::size_t, NumDimensions> const& cell_indices) const -> pos_t {
+  auto              bary = pos_t::fill(Real(0.5));  // initial
+  auto              dx   = pos_t::fill(Real(0.1));
+  auto              i    = std::size_t(0);
+  auto const        tol  = Real(1e-12);
+  auto              Dff  = mat<Real, NumDimensions, NumDimensions>{};
+  static auto const max_num_iterations = std::size_t(20);
   if constexpr (NumDimensions == 2) {
     auto const& v0 = vertex_at(cell_indices[0], cell_indices[1]);
     auto const& v1 = vertex_at(cell_indices[0] + 1, cell_indices[1]);
@@ -256,23 +261,18 @@ auto structured_grid<Real, NumDimensions, IndexOrder>::local_cell_coordinates(
     auto const  c  = v2 - v0;
     auto const  d  = v0 - v1 - v2 + v3;
 
-    auto              bary = pos_t{Real(0.5), Real(0.5)};  // initial
-    auto              dx   = Real(0.1) * pos_t::ones();
-    auto              i    = std::size_t(0);
-    auto const        tol  = 1e-12;
-    auto              Df   = mat<Real, 2, 2>{};
     static auto const max_num_iterations = std::size_t(20);
-    for (; i < max_num_iterations && euclidean_length(dx) > tol; ++i) {
+    for (; i < max_num_iterations && squared_euclidean_length(dx) > tol; ++i) {
       // apply Newton-Raphson method to solve f(x,y)=0
-      auto f = a + b * bary.x() + c * bary.y() + d * bary.x() * bary.y() - x;
+      auto const ff = a + b * bary.x() + c * bary.y() + d * bary.x() * bary.y() - x;
       // Newton: x_{n+1} = x_n - (Df^-1)*f
       // or equivalently denoting dx = x_{n+1}-x_n
       // Newton: Df*dx=-f
-      Df.col(0) = (b + d * bary.y());  // df/dx
-      Df.col(1) = (c + d * bary.x());  // df/dy
-      dx        = solve(Df, -f);
+      Dff.col(0) = (b + d * bary.y());  // df/dx
+      Dff.col(1) = (c + d * bary.x());  // df/dy
+      dx        = solve(Dff, -ff);
       bary += dx;
-      if (euclidean_length(bary) > 10) {
+      if (squared_euclidean_length(bary) > 100) {
         i = max_num_iterations;  // non convergent: just to save time
       }
     }
@@ -305,27 +305,22 @@ auto structured_grid<Real, NumDimensions, IndexOrder>::local_cell_coordinates(
     auto const  g  = v6 - v4 - v2 + v0;
     auto const  h  = v7 - v6 - v5 + v4 - v3 + v2 + v1 - v0;
 
-    auto              bary = pos_t{Real(0.5), Real(0.5), Real(0.5)};  // initial
-    auto              dx   = Real(0.1) * pos_t::ones();
-    auto              i    = std::size_t(0);
-    auto const        tol  = 1e-12;
-    auto              Df   = mat<Real, 3, 3>{};
-    static auto const max_num_iterations = std::size_t(20);
-    for (; i < max_num_iterations && euclidean_length(dx) > tol; ++i) {
+    for (; i < max_num_iterations && squared_euclidean_length(dx) > tol; ++i) {
       // apply Newton-Raphson method to solve f(x,y)=0
       auto const ff = a + b * bary.x() + c * bary.y() + d * bary.z() +
                       e * bary.x() * bary.y() + f * bary.x() * bary.z() +
                       g * bary.y() * bary.z() +
-                      h * bary.x() * bary.y() * bary.z() - x;
-      Df.col(0) =
+                      h * bary.x() * bary.y() * bary.z();
+      Dff.col(0) =
           b + e * bary.y() + f * bary.z() + h * bary.y() * bary.z();  // df/dx
-      Df.col(1) =
+      Dff.col(1) =
           c + e * bary.x() + g * bary.z() + h * bary.x() * bary.z();  // df/dy
-      Df.col(2) =
+      Dff.col(2) =
           d + f * bary.x() + g * bary.y() + h * bary.x() * bary.y();  // df/dz
-      dx = solve(Df, -ff);
+
+      dx = solve(Dff, -ff + x);
       bary += dx;
-      if (euclidean_length(bary) > 10) {
+      if (squared_euclidean_length(bary) > 100) {
         i = max_num_iterations;  // non convergent: just to save time
       }
     }
@@ -333,7 +328,7 @@ auto structured_grid<Real, NumDimensions, IndexOrder>::local_cell_coordinates(
       return bary;
     }
   }
-  return pos_t{tag::fill{Real(0) / Real(0)}};
+  return pos_t::fill(Real(0) / Real(0));
 }
 //==============================================================================
 template <std::size_t NumDimensions>
@@ -372,9 +367,12 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::linear_cell_sampler_t
 
     for (auto const& cell : possible_cells) {
       auto const c         = grid().local_cell_coordinates(x, cell);
+      if (std::isnan(c(0))) {
+        continue;
+      }
       auto       is_inside = true;
       for (size_t i = 0; i < NumDimensions; ++i) {
-        if (c(i) < 0 || c(i) > 1) {
+        if (c(i) < -1e-10 || c(i) > 1 + 1e-10) {
           is_inside = false;
           break;
         }
@@ -395,6 +393,31 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::linear_cell_sampler_t
                c(0) * c(1) *
                    property()[vertex_handle{
                        grid().plain_index(cell[0] + 1, cell[1] + 1)}];
+      } else if constexpr (NumDimensions == 3) {
+        return (1 - c(0)) * (1 - c(1)) * (1 - c(2)) *
+                   property()[vertex_handle{
+                       grid().plain_index(cell[0], cell[1], cell[2])}] +
+               c(0) * (1 - c(1)) * (1 - c(2)) *
+                   property()[vertex_handle{
+                       grid().plain_index(cell[0] + 1, cell[1], cell[2])}] +
+               (1 - c(0)) * c(1) * (1 - c(2)) *
+                   property()[vertex_handle{
+                       grid().plain_index(cell[0], cell[1] + 1, cell[2])}] +
+               c(0) * c(1) * (1 - c(2)) *
+                   property()[vertex_handle{
+                       grid().plain_index(cell[0] + 1, cell[1] + 1, cell[2])}] +
+               (1 - c(0)) * (1 - c(1)) * c(2) *
+                   property()[vertex_handle{
+                       grid().plain_index(cell[0], cell[1], cell[2] + 1)}] +
+               c(0) * (1 - c(1)) * c(2) *
+                   property()[vertex_handle{
+                       grid().plain_index(cell[0] + 1, cell[1], cell[2] + 1)}] +
+               (1 - c(0)) * c(1) * c(2) *
+                   property()[vertex_handle{
+                       grid().plain_index(cell[0], cell[1] + 1, cell[2] + 1)}] +
+               c(0) * c(1) * c(2) *
+                   property()[vertex_handle{grid().plain_index(
+                       cell[0] + 1, cell[1] + 1, cell[2] + 1)}];
       }
     }
     return this->ood_tensor();
