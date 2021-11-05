@@ -57,7 +57,7 @@ void uncertain_eddy_detection(arithmetic auto const threshold) {
   g.iterate_over_vertex_indices([&](auto const... is) {
     uncertain_lagrangian_Q_prop.data_at(is...) = 0.0 / 0.0;
     uncertain_eulerian_Q_prop.data_at(is...)   = 0.0 / 0.0;
-  }, tag::parallel);
+  }, execution_policy::parallel);
 
   V           v0{ensemble_file_paths.front()};
   auto const  P   = positions_in_domain(v0, g);

@@ -71,6 +71,9 @@ endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 set(TATOOINE_SRC_FILES 
   src/vtk_legacy.cpp
+  src/vtk/xml/reader.cpp
+  src/vtk/xml/data_attribute.cpp
+  src/vtk/xml/byte_order.cpp
   src/parse.cpp
 )
 # create library target

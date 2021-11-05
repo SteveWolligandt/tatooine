@@ -98,7 +98,7 @@ auto eddy_detection(std::vector<std::string> const& ensemble_ids) {
               [&](auto const... is) {
                 eQ.container().at(is...) = 0.0 / 0.0;
                 fQ.container().at(is...) = 0.0 / 0.0;
-              }, tag::parallel);
+              }, execution_policy::parallel);
 
           for (auto& z : ensemble_member_grid.dimension<2>()) {
             z *= -0.0025;

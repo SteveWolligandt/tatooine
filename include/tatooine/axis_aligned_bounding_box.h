@@ -398,10 +398,10 @@ struct axis_aligned_bounding_box
       auto const p2 = dot(x2, axis);
       auto const p3 = dot(x3, axis);
       auto       r  = e.x() * std::abs(dot(u0, axis)) +
-               e.y() * std::abs(dot(u1, axis)) +
-               e.z() * std::abs(dot(u2, axis));
+                      e.y() * std::abs(dot(u1, axis)) +
+                      e.z() * std::abs(dot(u2, axis));
       return tatooine::max(-tatooine::max(p0, p1, p2, p3),
-                           tatooine::min(p0, p1, p2, p3)) > r;
+                            tatooine::min(p0, p1, p2, p3)) > r;
     };
 
     if (is_separating_axis(cross(u0, f0))) {

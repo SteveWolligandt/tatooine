@@ -40,7 +40,7 @@ auto positions_in_domain(V const& v, Grid const& g) {
             xiss[omp_get_thread_num()].vector.push_back(vec<size_t, 3>{is...});
           }
           ++cnt;
-        }, tag::parallel);
+        }, execution_policy::parallel);
       },
       [&] {
         return static_cast<double>(cnt) / g.num_vertices();

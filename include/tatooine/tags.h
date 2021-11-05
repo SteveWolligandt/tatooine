@@ -1,12 +1,18 @@
 #ifndef TATOOINE_TAGS_H
 #define TATOOINE_TAGS_H
 //==============================================================================
-namespace tatooine::tag {
+namespace tatooine::execution_policy {
 //==============================================================================
 struct parallel_t {};
 static constexpr parallel_t parallel;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 struct sequential_t {};
 static constexpr sequential_t sequential;
+//==============================================================================
+}  // namespace tatooine::execution_policy
+//==============================================================================
+namespace tatooine::tag {
+//==============================================================================
 struct frobenius_t {};
 static constexpr frobenius_t frobenius;
 struct full_t {};
@@ -45,6 +51,6 @@ static constexpr zeros_t zeros;
 struct ones_t {};
 static constexpr ones_t ones;
 //==============================================================================
-}  // namespace tatooine::tags
+}  // namespace tatooine::tag
 //==============================================================================
 #endif

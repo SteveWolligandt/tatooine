@@ -65,7 +65,7 @@ auto smear(typed_multidim_property<PingGrid, PingReal> const& ping_field,
             sampled_current * (1 - lambda) + sampled_smeared * lambda;
       }
     }
-  }, tag::parallel);
+  }, execution_policy::parallel);
 }
 //==============================================================================
 }  // namespace tatooine

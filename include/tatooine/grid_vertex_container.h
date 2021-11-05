@@ -92,18 +92,51 @@ struct grid_vertex_container {
  private:
 #ifdef __cpp_concepts
   template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
-                Iteration, typename ExecutionPolicy,
+                Iteration,
             size_t... Ds>
 #else
-  template <typename Iteration, typename ExecutionPolicy, size_t... Ds,
+  template <typename Iteration, size_t... Ds,
             enable_if<is_invocable<Iteration,
                                    decltype(((void)std::declval<Dimensions>(),
                                              size_t{}))...> > = true>
 #endif
-  auto iterate_indices(Iteration&&       iteration,
-                       ExecutionPolicy execution_policy,
+  auto iterate_indices(Iteration&& iteration, execution_policy::sequential_t,
                        std::index_sequence<Ds...>) const -> decltype(auto) {
-    return for_loop(std::forward<Iteration>(iteration), execution_policy,
+    return for_loop(std::forward<Iteration>(iteration), execution_policy::sequential,
+                    std::pair{size_t(0), static_cast<size_t>(
+                                             m_grid.template size<Ds>())}...);
+  }
+  //----------------------------------------------------------------------------
+ public:
+#ifdef __cpp_concepts
+  template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
+                Iteration>
+#else
+  template <typename Iteration,
+            enable_if<is_invocable<Iteration,
+                                   decltype(((void)std::declval<Dimensions>(),
+                                             size_t{}))...> > = true>
+#endif
+  auto iterate_indices(Iteration&& iteration, execution_policy::sequential_t) const
+      -> decltype(auto) {
+    return iterate_indices(std::forward<Iteration>(iteration), execution_policy::sequential,
+                           std::make_index_sequence<num_dimensions()>{});
+  }
+  //----------------------------------------------------------------------------
+ private:
+#ifdef __cpp_concepts
+  template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
+                Iteration,
+            size_t... Ds>
+#else
+  template <typename Iteration, size_t... Ds,
+            enable_if<is_invocable<Iteration,
+                                   decltype(((void)std::declval<Dimensions>(),
+                                             size_t{}))...> > = true>
+#endif
+  auto iterate_indices(Iteration&& iteration, execution_policy::parallel_t,
+                       std::index_sequence<Ds...>) const -> decltype(auto) {
+    return for_loop(std::forward<Iteration>(iteration), execution_policy::parallel,
                     m_grid.template size<Ds>()...);
   }
   //----------------------------------------------------------------------------
@@ -117,28 +150,12 @@ struct grid_vertex_container {
                                    decltype(((void)std::declval<Dimensions>(),
                                              size_t{}))...> > = true>
 #endif
-  auto iterate_indices(Iteration&&       iteration,
-                       tag::sequential_t execution_policy) const
+  auto iterate_indices(Iteration&& iteration, execution_policy::parallel_t) const
       -> decltype(auto) {
-    return iterate_indices(std::forward<Iteration>(iteration), execution_policy,
+    return iterate_indices(std::forward<Iteration>(iteration), execution_policy::parallel,
                            std::make_index_sequence<num_dimensions()>{});
   }
-  //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
-                Iteration>
-#else
-  template <typename Iteration,
-            enable_if<is_invocable<Iteration,
-                                   decltype(((void)std::declval<Dimensions>(),
-                                             size_t{}))...> > = true>
-#endif
-  auto iterate_indices(Iteration&&     iteration,
-                       tag::parallel_t execution_policy) const
-      -> decltype(auto) {
-    return iterate_indices(std::forward<Iteration>(iteration), execution_policy,
-                           std::make_index_sequence<num_dimensions()>{});
-  }
+//------------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
                 Iteration>
@@ -149,7 +166,7 @@ struct grid_vertex_container {
                                              size_t{}))...> > = true>
 #endif
   auto iterate_indices(Iteration&& iteration) const -> decltype(auto) {
-    return iterate_indices(std::forward<Iteration>(iteration), tag::sequential,
+    return iterate_indices(std::forward<Iteration>(iteration), execution_policy::sequential,
                            std::make_index_sequence<num_dimensions()>{});
   }
 };

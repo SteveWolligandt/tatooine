@@ -36,7 +36,8 @@ struct pointset {
   static constexpr auto num_dimensions() { return NumDimensions; }
   using real_t = Real;
   using this_t = pointset<Real, NumDimensions>;
-  using pos_t  = vec<Real, NumDimensions>;
+  using vec_t  = vec<Real, NumDimensions>;
+  using pos_t  = vec_t;
 #if TATOOINE_FLANN_AVAILABLE
   using flann_index_t = flann::Index<flann::L2<Real>>;
 #endif
@@ -149,7 +150,8 @@ struct pointset {
   //----------------------------------------------------------------------------
   pointset(std::vector<pos_t> const& vertices) : m_vertex_positions(vertices) {}
   //----------------------------------------------------------------------------
-  pointset(std::vector<pos_t>&& vertices) : m_vertex_positions(std::move(vertices)) {}
+  pointset(std::vector<pos_t>&& vertices)
+      : m_vertex_positions(std::move(vertices)) {}
   //----------------------------------------------------------------------------
   auto operator=(pointset const& other) -> pointset& {
     if (&other == this) {
@@ -165,6 +167,14 @@ struct pointset {
   }
   //----------------------------------------------------------------------------
   auto operator=(pointset&& other) noexcept -> pointset& = default;
+  //----------------------------------------------------------------------------
+  auto axis_aligned_bounding_box() const {
+    auto aabb = tatooine::axis_aligned_bounding_box<Real, NumDimensions>{};
+    for (auto v : vertices()) {
+      aabb += at(v);
+    }
+    return aabb;
+  }
   //----------------------------------------------------------------------------
   auto vertex_properties() const -> auto const& { return m_vertex_properties; }
   //----------------------------------------------------------------------------
@@ -287,7 +297,6 @@ struct pointset {
   //  auto to_triangle_io() const {
   //    triangle::io in;
   //    size_t       i    = 0;
-  //    in.numberofpoints = vertices().size();
   //    in.pointlist      = new triangle::Real[in.numberofpoints *
   //    triangle_dims]; for (auto v : vertices()) {
   //      for (size_t j = 0; j < triangle_dims; ++j) {
@@ -535,8 +544,6 @@ struct pointset {
         }
         vertex_indices.back().push_back(i++);
       }
-      writer.write_points(points);
-      writer.write_vertices(vertex_indices);
       if (!m_vertex_properties.empty()) {
         writer.write_point_data(points.size());
       }
