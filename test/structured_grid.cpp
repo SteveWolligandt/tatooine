@@ -4,20 +4,6 @@
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
-TEST_CASE_METHOD(structured_grid3, "structured_grid_3",
-                 "[structured_grid][3d]") {
-  std::cout << "reading\n";
-  read("/home/steve/firetec/valley_losAlamos/output.1000.vts");
-  std::cout << "reading done\n";
-  auto const aabb  = axis_aligned_bounding_box();
-  auto discretized = rectilinear_grid{linspace{aabb.min(0), aabb.max(0), 100},
-                                      linspace{aabb.min(1), aabb.max(1), 100},
-                                      linspace{aabb.min(2), aabb.max(2), 100}};
-  discretize(linear_vertex_property_sampler<float>("O2"), discretized, "prop",
-             tag::parallel);
-  discretized.write_vtk("resampled_O2.vtk");
-}
-//==============================================================================
 TEST_CASE_METHOD(structured_grid2, "structured_grid_2_cell_coordinates",
                  "[structured_grid][2d][cell_coordinates]") {
   resize(2, 2);
@@ -128,7 +114,7 @@ TEST_CASE_METHOD(structured_grid2, "structured_grid_2_linear_sampler",
                                       linspace{aabb.min(1), aabb.max(1), 1000}};
   discretize(linear_vertex_property_sampler<real_t>("prop"), discretized,
              "prop");
-  discretized.write_vtk("resampled_structured_grid.vtk");
+  discretized.write_vtk("resampled_structured_grid_2d.vtk");
 }
 
 //==============================================================================
@@ -181,6 +167,36 @@ TEST_CASE_METHOD(structured_grid3, "structured_grid_3_cell_coordinates",
                              u * v * w * vertex_at(1, 1, 1),
                          x));
   }
+}
+//==============================================================================
+TEST_CASE_METHOD(structured_grid3, "structured_grid_3_linear_sampler",
+                 "[structured_grid][3d][linear][sampler]") {
+  resize(2, 2, 2);
+  vertex_at(0, 0, 0) = {0.0, 0.0, 0.0};
+  vertex_at(1, 0, 0) = {3.0, 2.0, 0.0};
+  vertex_at(0, 1, 0) = {1.0, 4.0, 0.0};
+  vertex_at(1, 1, 0) = {4.0, 4.0, 0.0};
+  vertex_at(0, 0, 1) = {0.0, 1.0, 1.0};
+  vertex_at(1, 0, 1) = {3.0, 3.0, 3.0};
+  vertex_at(0, 1, 1) = {1.0, 5.0, 5.0};
+  vertex_at(1, 1, 1) = {4.0, 5.0, 4.0};
+
+  auto& prop                             = scalar_vertex_property("prop");
+  prop[vertex_handle{plain_index(0, 0, 0)}] = 1;
+  prop[vertex_handle{plain_index(1, 0, 0)}] = 2;
+  prop[vertex_handle{plain_index(1, 1, 0)}] = 3;
+  prop[vertex_handle{plain_index(0, 1, 0)}] = 4;
+  prop[vertex_handle{plain_index(0, 0, 1)}] = 3;
+  prop[vertex_handle{plain_index(1, 0, 1)}] = 6;
+  prop[vertex_handle{plain_index(1, 1, 1)}] = 5;
+  prop[vertex_handle{plain_index(0, 1, 1)}] = 2;
+  auto const aabb                        = axis_aligned_bounding_box();
+  auto discretized = rectilinear_grid{linspace{aabb.min(0), aabb.max(0), 100},
+                                      linspace{aabb.min(1), aabb.max(1), 100},
+                                      linspace{aabb.min(2), aabb.max(2), 100}};
+  discretize(linear_vertex_property_sampler<real_t>("prop"), discretized,
+             "prop");
+  discretized.write_vtk("resampled_structured_grid_3d.vtk");
 }
 //==============================================================================
 }  // namespace tatooine::test
