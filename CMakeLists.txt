@@ -157,7 +157,7 @@ if (TATOOINE_GL_AVAILABLE)
 endif()
 add_subdirectory(raytracer)
 add_subdirectory(autonomous_particles)
-add_subdirectory(smearing_scalar_field)
+#add_subdirectory(smearing_scalar_field)
 
 if (TATOOINE_MPI_AVAILABLE)
   add_subdirectory(mpi)

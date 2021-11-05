@@ -64,15 +64,16 @@ struct regular_flowmap_discretization {
   backward_grid_t                m_backward_grid;
   mesh_vertex_property_t*        m_backward_discretization;
   mesh_vertex_property_sampler_t m_backward_sampler;
+  static constexpr auto          default_execution_policy = tag::parallel;
   //============================================================================
  private:
-  template <typename Flowmap, typename Tag, size_t... Is>
+  template <typename Flowmap, typename ExecutionPolicy, size_t... Is>
   regular_flowmap_discretization(std::index_sequence<Is...> /*seq*/,
-                               Flowmap&& flowmap, arithmetic auto const t0,
-                               arithmetic auto const tau, pos_t const& min,
-                               pos_t const& max,
-                               Tag tag,
-                               integral auto const... resolution)
+                                 Flowmap&& flowmap, arithmetic auto const t0,
+                                 arithmetic auto const tau, pos_t const& min,
+                                 pos_t const&    max,
+                                 ExecutionPolicy execution_policy,
+                                 integral auto const... resolution)
       : m_t0{real_t(t0)},
         m_t1{real_t(t0 + tau)},
         m_tau{real_t(tau)},
@@ -88,12 +89,13 @@ struct regular_flowmap_discretization {
                 "backward_discretization")},
         m_backward_sampler{
             m_backward_grid.sampler(*m_backward_discretization)} {
-    fill(std::forward<Flowmap>(flowmap), tag);
+    fill(flowmap, execution_policy);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
-  template <typename Flowmap, typename Tag>
-  regular_flowmap_discretization(Flowmap&& flowmap, Tag tag,
+  template <typename Flowmap, typename ExecutionPolicy>
+  regular_flowmap_discretization(Flowmap&&             flowmap,
+                                 ExecutionPolicy       execution_policy,
                                  arithmetic auto const t0,
                                  arithmetic auto const tau, pos_t const& min,
                                  pos_t const& max,
@@ -104,7 +106,7 @@ struct regular_flowmap_discretization {
                                        tau,
                                        min,
                                        max,
-                                       tag,
+                                       execution_policy,
                                        resolution...} {
     static_assert(
         sizeof...(resolution) == N,
@@ -116,17 +118,17 @@ struct regular_flowmap_discretization {
   //----------------------------------------------------------------------------
   template <typename Flowmap>
   regular_flowmap_discretization(Flowmap&& flowmap, arithmetic auto const t0,
-                               arithmetic auto const tau, pos_t const& min,
-                               pos_t const& max,
-                               integral auto const... resolution)
+                                 arithmetic auto const tau, pos_t const& min,
+                                 pos_t const& max,
+                                 integral auto const... resolution)
       : regular_flowmap_discretization{std::make_index_sequence<N>{},
-                                     std::forward<Flowmap>(flowmap),
-                                     t0,
-                                     tau,
-                                     min,
-                                     max,
-                                     tag::sequential,
-                                     resolution...} {
+                                       std::forward<Flowmap>(flowmap),
+                                       t0,
+                                       tau,
+                                       min,
+                                       max,
+                                       default_execution_policy,
+                                       resolution...} {
     static_assert(
         sizeof...(resolution) == N,
         "Number of resolution components does not match number of dimensions.");
@@ -135,17 +137,14 @@ struct regular_flowmap_discretization {
         "Number of dimensions of flowmap does not match number of dimensions.");
   }
   //----------------------------------------------------------------------------
-  template <typename Flowmap>
-  auto fill(Flowmap&& flowmap) -> void {
-    fill(std::forward<Flowmap>(flowmap), tag::sequential);
-  }
-  //----------------------------------------------------------------------------
-  template <typename Flowmap, typename Tag>
-  auto fill(Flowmap flowmap, Tag tag) -> void {
-    m_forward_grid.vertices().iterate_indices([&](auto const... is) {
-      m_forward_discretization->at(is...) =
-          flowmap(m_forward_grid.vertex_at(is...), m_t0, m_tau);
-    }, tag);
+  template <typename Flowmap, typename ExecutionPolicy>
+  auto fill(Flowmap flowmap, ExecutionPolicy execution_policy) -> void {
+    m_forward_grid.vertices().iterate_indices(
+        [&](auto const... is) {
+          m_forward_discretization->at(is...) =
+              flowmap(m_forward_grid.vertex_at(is...), m_t0, m_tau);
+        },
+        execution_policy);
 
     for (auto v : m_forward_grid.vertices()) {
       m_backward_discretization->at(typename backward_grid_t::vertex_handle{

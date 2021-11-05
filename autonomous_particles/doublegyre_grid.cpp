@@ -99,23 +99,31 @@ auto main(int argc, char** argv) -> int {
     phi.use_caching(false);
 
     sampler_check_grid.vertices().iterate_indices([&](auto const... is) {
+        auto local_phi = phi;
       auto const x = sampler_check_grid.vertex_at(is...);
-      numerical_flowmap_forward_prop(is...) = phi(x, args.t0, args.tau);
+      numerical_flowmap_forward_prop(is...) = local_phi(x, args.t0, args.tau);
       numerical_flowmap_backward_prop(is...) =
-          phi(x, args.t0 + args.tau, -args.tau);
-    } /*, tag::parallel*/);
+          local_phi(x, args.t0 + args.tau, -args.tau);
+    } , tag::parallel);
     //----------------------------------------------------------------------------
     indicator.set_text("Discretizing flow map with autonomous particles");
     auto num_particles_after_advection = size_t{};
     {
-      auto autonomous_disc = autonomous_particle_flowmap_discretization_2{
-          phi,
-          args.t0,
-          args.tau,
-          args.tau_step,
-          rectilinear_grid{linspace{0.0, 2.0, args.width + 1},
-                           linspace{0.0, 1.0, args.height + 1}},
-      };
+      auto autonomous_disc = [&] {
+        if (args.autonomous_particles_file) {
+          return autonomous_particle_flowmap_discretization_2{
+              *args.autonomous_particles_file};
+        }
+        return autonomous_particle_flowmap_discretization_2{
+            phi,
+            args.t0,
+            args.tau,
+            args.tau_step,
+            rectilinear_grid{linspace{0.0, 2.0, args.width + 1},
+                             linspace{0.0, 1.0, args.height + 1}},
+
+        };
+      }();
       num_particles_after_advection = autonomous_disc.num_particles();
       sampler_check_grid.vertices().iterate_indices(
           [&](auto const... is) {
@@ -141,8 +149,8 @@ auto main(int argc, char** argv) -> int {
               auto const x0 = autonomous_disc.sample_backward(x);
               autonomous_flowmap_backward_prop(is...) = x0;
 
-              auto const err =
-                  euclidean_distance(x0, numerical_flowmap_backward_prop(is...));
+              auto const err = euclidean_distance(
+                  x0, numerical_flowmap_backward_prop(is...));
               backward_errors_autonomous_prop(is...) = err;
               {
                 std::lock_guard lock{error_mutex};
@@ -153,28 +161,28 @@ auto main(int argc, char** argv) -> int {
                   vec2::ones() * 0.0 / 0.0;
               backward_errors_autonomous_prop(is...) = 0.0 / 0.0;
             }
-          },
-          tag::parallel);
+          });
       //----------------------------------------------------------------------------
       indicator.set_text("Writing results");
       { sampler_check_grid.write("doublegyre_grid_errors.vtk"); }
       //----------------------------------------------------------------------------
       indicator.set_text("Writing Autonomous Particles Results");
       {
-        //autonomous_disc.mesh0().write_vtk(
+        // autonomous_disc.mesh0().write_vtk(
         //    "doublegyre_grid_autonomous_mesh0.vtk");
-        //autonomous_disc.mesh1().write_vtk(
+        // autonomous_disc.mesh1().write_vtk(
         //    "doublegyre_grid_autonomous_mesh1.vtk");
-        //std::vector<line2> all_advected_discretizations;
-        //std::vector<line2> all_initial_discretizations;
-        //for (auto const& sampler : autonomous_disc.samplers()) {
+        // std::vector<line2> all_advected_discretizations;
+        // std::vector<line2> all_initial_discretizations;
+        // for (auto const& sampler : autonomous_disc.samplers()) {
         //  all_initial_discretizations.push_back(
         //      discretize(sampler.ellipse0(), 100));
         //  all_advected_discretizations.push_back(
         //      discretize(sampler.ellipse1(), 100));
         //}
-        //write_vtk(all_initial_discretizations, "doublegyre_grid_ellipses0.vtk");
-        //write_vtk(all_advected_discretizations,
+        // write_vtk(all_initial_discretizations,
+        // "doublegyre_grid_ellipses0.vtk");
+        // write_vtk(all_advected_discretizations,
         //          "doublegyre_grid_ellipses1.vtk");
       }
     }
@@ -211,9 +219,9 @@ auto main(int argc, char** argv) -> int {
                 forward_errors_regular_prop(is...) -
                 forward_errors_autonomous_prop(is...);
             try {
-              auto const x0 = regular_disc.sample_backward(x);
-              auto const err =
-                  euclidean_distance(x0, numerical_flowmap_backward_prop(is...));
+              auto const x0  = regular_disc.sample_backward(x);
+              auto const err = euclidean_distance(
+                  x0, numerical_flowmap_backward_prop(is...));
               backward_errors_regular_prop(is...) = err;
               {
                 std::lock_guard lock{error_mutex};
@@ -234,10 +242,10 @@ auto main(int argc, char** argv) -> int {
     }
     //----------------------------------------------------------------------------
     indicator.set_text("Discretizing flow map with agranovsky sampling");
-    auto const k =
+    auto const num_agranovksy_steps =
         static_cast<size_t>(std::ceil(args.agranovsky_delta_t / args.tau));
     auto const regularized_height_agranovksky = static_cast<size_t>(
-        std::ceil(std::sqrt((num_particles_after_advection / 2) / k)));
+        std::ceil(std::sqrt((num_particles_after_advection / 2) / num_agranovksy_steps)));
     auto agranovsky_disc =
         AgranovskyFlowmapDiscretization<2>{phi,
                                            args.t0,
@@ -327,7 +335,18 @@ auto main(int argc, char** argv) -> int {
         size(backward_agranovsky_errors);
     //----------------------------------------------------------------------------
     indicator.mark_as_completed();
-    report << num_points_ood_forward << " / "
+    report << "number of advected autonomous particles:  \n"
+           << num_particles_after_advection << '\n'
+
+           << "number of regular particles:  \n"
+           << regularized_height * regularized_height * 2 << '\n'
+
+           << "number of agranovsky particles:  \n"
+           << num_agranovksy_steps * regularized_height_agranovksky *
+                  regularized_height_agranovksky * 2
+           << '\n'
+
+           << num_points_ood_forward << " / "
            << sampler_check_grid.vertices().size()
            << " out of domain in forward direction("
            << (100 * num_points_ood_forward /
@@ -353,63 +372,26 @@ auto main(int argc, char** argv) -> int {
            << mean_agranovsky_backward_error << '\n';
 
     if (mean_regular_forward_error > mean_autonomous_forward_error &&
-        mean_agranovsky_forward_error > mean_autonomous_forward_error
-        //&&
-        // mean_staggered_autonomous_forward_error >
-        //    mean_autonomous_forward_error
-    ) {
+        mean_agranovsky_forward_error > mean_autonomous_forward_error) {
       report << "autonomous particles are better in forward direction\n";
     } else if (mean_agranovsky_forward_error > mean_regular_forward_error &&
-               mean_autonomous_forward_error > mean_regular_forward_error
-               //&&
-               // mean_staggered_autonomous_forward_error >
-               //    mean_regular_forward_error
-    ) {
+               mean_autonomous_forward_error > mean_regular_forward_error) {
       report << "regular grid is better in forward direction\n";
     } else if (mean_regular_forward_error > mean_agranovsky_forward_error &&
-               mean_autonomous_forward_error > mean_agranovsky_forward_error
-               //&&
-               // mean_staggered_autonomous_forward_error >
-               //    mean_agranovsky_forward_error
-    ) {
+               mean_autonomous_forward_error > mean_agranovsky_forward_error) {
       report << "agranovsky is better in forward direction\n";
-      //} else if (mean_regular_forward_error >
-      //               mean_staggered_autonomous_forward_error &&
-      //           mean_autonomous_forward_error >
-      //               mean_staggered_autonomous_forward_error &&
-      //           mean_agranovsky_forward_error >
-      //               mean_staggered_autonomous_forward_error) {
-      //  report << "agranovsky is better in forward direction\n";
     }
 
     if (mean_regular_backward_error > mean_autonomous_backward_error &&
-        mean_agranovsky_backward_error > mean_autonomous_backward_error
-        //&&
-        // mean_staggered_autonomous_backward_error >
-        //    mean_autonomous_backward_error
-    ) {
+        mean_agranovsky_backward_error > mean_autonomous_backward_error) {
       report << "autonomous particles are better in backward direction\n";
     } else if (mean_agranovsky_backward_error > mean_regular_backward_error &&
-               mean_autonomous_backward_error > mean_regular_backward_error
-               //&&
-               // mean_staggered_autonomous_backward_error >
-               //    mean_regular_backward_error
-    ) {
+               mean_autonomous_backward_error > mean_regular_backward_error) {
       report << "regular grid is better in backward direction\n";
     } else if (mean_regular_backward_error > mean_agranovsky_backward_error &&
-               mean_autonomous_backward_error > mean_agranovsky_backward_error
-               //    &&
-               // mean_staggered_autonomous_backward_error >
-               //    mean_agranovsky_backward_error
-    ) {
+               mean_autonomous_backward_error >
+                   mean_agranovsky_backward_error) {
       report << "agranovsky is better in backward direction\n";
-      //} else if (mean_regular_backward_error >
-      //               mean_staggered_autonomous_backward_error &&
-      //           mean_autonomous_backward_error >
-      //               mean_staggered_autonomous_backward_error &&
-      //           mean_agranovsky_backward_error >
-      //               mean_staggered_autonomous_backward_error) {
-      //  report << "agranovsky is better in backward direction\n";
     }
   });
   std::cerr << report.str();

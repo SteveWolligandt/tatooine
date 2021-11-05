@@ -210,8 +210,26 @@ struct autonomous_particle_flowmap_discretization {
   //std::unique_ptr<
   //    backward_autonomous_particle_sampler_hierarchy<Real, NumDimensions>>
   //    m_hierarchy1;
+  std::vector<sampler_t> loaded_particles;
   //============================================================================
  public:
+  autonomous_particle_flowmap_discretization(filesystem::path const& path)
+      : m_path{path} {
+    auto         file              = hdf5::file{m_path};
+    auto         particles_on_disk = file.dataset<particle_t>("finished");
+    size_t const total_num_particles =
+        particles_on_disk.dataspace().current_resolution()[0];
+
+    std::vector<particle_t> ps(total_num_particles);
+    particles_on_disk.read(ps);
+
+    loaded_particles.resize(total_num_particles);
+#pragma omp parallel for
+    for (std::size_t i = 0; i < total_num_particles; ++i) {
+      loaded_particles[i] = ps[i].sampler();
+    }
+  }
+  //----------------------------------------------------------------------------
   template <typename Flowmap>
   autonomous_particle_flowmap_discretization(
       Flowmap&& flowmap, arithmetic auto const t0, arithmetic auto const tau,
@@ -301,26 +319,15 @@ struct autonomous_particle_flowmap_discretization {
     auto         file              = hdf5::file{m_path};
     auto         particles_on_disk = file.dataset<particle_t>("finished");
     sampler_t    nearest_sampler;
-    size_t const num_particles_at_once = 10000000;
-    size_t const total_num_particles =
-        particles_on_disk.dataspace().current_resolution()[0];
-    auto         loaded_particles      = std::vector<particle_t>{};
-    loaded_particles.reserve(num_particles_at_once);
 
-    for (size_t i = 0; i < total_num_particles; i += num_particles_at_once) {
-      auto const cur_num_particles =
-          std::min(num_particles_at_once, total_num_particles - i);
-      loaded_particles.resize(cur_num_particles);
-      particles_on_disk.read(i, cur_num_particles, loaded_particles);
-
-      for (auto const& particle : loaded_particles) {
-        auto const sampler = particle.sampler();
-        if (auto const dist =
-                sampler.ellipse(tag).squared_euclidean_distance_to_center(x);
-            dist < shortest_distance) {
-          shortest_distance = dist;
-          nearest_sampler   = sampler;
-        }
+#pragma omp parallel for
+    for (size_t j = 0; j < size(loaded_particles); ++j) {
+      auto const& sampler = loaded_particles[j];
+      if (auto const dist =
+              sampler.ellipse(tag).squared_euclidean_distance_to_center(x);
+          dist < shortest_distance) {
+        shortest_distance = dist;
+        nearest_sampler   = sampler;
       }
     }
     return nearest_sampler.sample(x, tag);
