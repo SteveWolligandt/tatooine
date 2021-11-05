@@ -64,7 +64,7 @@ struct regular_flowmap_discretization {
   backward_grid_t                m_backward_grid;
   mesh_vertex_property_t*        m_backward_discretization;
   mesh_vertex_property_sampler_t m_backward_sampler;
-  static constexpr auto          default_execution_policy = tag::parallel;
+  static constexpr auto          default_execution_policy = execution_policy::parallel;
   //============================================================================
  private:
   template <typename Flowmap, typename ExecutionPolicy, size_t... Is>

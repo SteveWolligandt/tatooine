@@ -144,7 +144,7 @@ auto add_Q_cheng(Domain const& domain, File& channelflow_file, Vx const& velx,
           Q_data(ix, iy, iz) = calc_Q(ix, iy, iz);
         }
         ++cnt;
-      }, tag::parallel);
+      }, execution_policy::parallel);
   stop = true;
   watcher.join();
   auto Q = channelflow_file.template add_dataset<double>(

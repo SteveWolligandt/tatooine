@@ -22,7 +22,7 @@ auto direct_iso_discretized_tornado() {
         mat3 const Omega     = (J - transposed(J)) / 2;
         discretized_Q(is...) = (sqr_norm(Omega, 2) - sqr_norm(S, 2)) / 2;
       },
-      tag::parallel);
+      execution_policy::parallel);
   color_scales::viridis         color_scale;
   size_t const                  width = 2000, height = 2000;
   auto const                    eye    = vec3{2, 2, 2};
