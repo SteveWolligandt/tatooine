@@ -719,6 +719,60 @@ TEST_CASE("tensor_diag_inverse", "[tensor][diag][inverse]") {
   }
 }
 //==============================================================================
+TEST_CASE("tensor_solve_cramer_vector_2d", "[tensor][solve][cramer][vector][2d]") {
+  auto A = mat{{0.82298164267, 0.61268291865},
+               {0.15295590868, 0.73512602280}};
+  auto b = vec{0.23439500160,
+               0.89509111637};
+  auto x = solve_cramer(A, b);
+
+  CHECK(x(0) == Approx(-0.73559670942));
+  CHECK(x(1) == Approx(1.37065611640));
+}
+//==============================================================================
+TEST_CASE("tensor_solve_cramer_vector_3d", "[tensor][solve][cramer][vector][3d]") {
+  auto A = mat{{0.8274851323427, 0.3487297112442, 0.4876777015539},
+               {0.3082097416363, 0.0861406417574, 0.8064920724675},
+               {0.2938869008045, 0.9208472467795, 0.9042208208474}};
+  auto b = vec{0.9744926157477, 0.5519202556696, 0.0898994096900};
+  auto x = solve_cramer(A, b);
+
+  CHECK(x(0) == Approx(1.25979002402));
+  CHECK(x(1) == Approx(-0.56268894563));
+  CHECK(x(2) == Approx(0.26300455017));
+}
+//==============================================================================
+TEST_CASE("tensor_solve_direct_vector", "[tensor][solve][direct][vector]") {
+  auto A = mat{{0.82298164267, 0.61268291865},
+               {0.15295590868, 0.73512602280}};
+  auto b = vec{0.23439500160,
+               0.89509111637};
+  auto x = solve_direct(A, b);
+
+  REQUIRE(x(0) == Approx(-0.73559670942));
+  REQUIRE(x(1) == Approx(1.37065611640));
+}
+//==============================================================================
+TEST_CASE("tensor_solve_direct_matrix", "[tensor][solve][direct][matrix]") {
+  auto A = mat{{0.82298164267, 0.61268291865},
+               {0.15295590868, 0.73512602280}};
+  auto B =
+      mat{{0.7500931739523, 0.6005037120212, 0.7124666495326, 0.5156039083196},
+          {0.0609358236861, 0.3724406163807, 0.9725435103110, 0.0676138055160}};
+  auto X          = solve_direct(A, B);
+  auto X_expected = mat{
+      {1.0054704165380, 0.4171044672332, -0.1410338273626, 0.6603169920525},
+      {-0.1263141483904, 0.4198491333522, 1.3523061851876, -0.0454147710557}};
+  REQUIRE(X(0, 0) == Approx(X_expected(0,0)));
+  REQUIRE(X(1, 0) == Approx(X_expected(1,0)));
+  REQUIRE(X(0, 1) == Approx(X_expected(0,1)));
+  REQUIRE(X(1, 1) == Approx(X_expected(1,1)));
+  REQUIRE(X(0, 2) == Approx(X_expected(0,2)));
+  REQUIRE(X(1, 2) == Approx(X_expected(1,2)));
+  REQUIRE(X(0, 3) == Approx(X_expected(0,3)));
+  REQUIRE(X(1, 3) == Approx(X_expected(1,3)));
+}
+//==============================================================================
 TEST_CASE("tensor_solve_qr", "[tensor][solve][qr]") {
   SECTION("static size") {
     SECTION("[3x2] * x = [3]") {
@@ -727,7 +781,7 @@ TEST_CASE("tensor_solve_qr", "[tensor][solve][qr]") {
                          {0.574182859934675, 0.672548212017124}};
       auto const b =
           vec{0.959108917701253, 0.824089907371562, 0.216504922237786};
-      auto const x = solve_qr(A, b);
+      auto const x = solve_qr_lapack(A, b);
       REQUIRE(x(0) == Approx(-0.122835608990910));
       REQUIRE(x(1) == Approx(1.063825231297154));
     }
@@ -751,7 +805,7 @@ TEST_CASE("tensor_solve_qr", "[tensor][solve][qr]") {
           5.778721894369010e-02
 
       };
-      auto const x = solve_qr(A, b);
+      auto const x = solve_qr_lapack(A, b);
       REQUIRE(x.dimension(0) == 3);
       REQUIRE(x(0) == Approx(0.457193947639988));
       REQUIRE(x(1) == Approx(-0.124366910738489));
@@ -766,7 +820,7 @@ TEST_CASE("tensor_solve_qr", "[tensor][solve][qr]") {
               {0.758387692091753, 0.230406806948115, 0.161407203444348},
               {0.744379569825457, 0.520073661017721, 0.922036927885906}};
 
-      auto const X = solve_qr(A, B);
+      auto const X = solve_qr_lapack(A, B);
       auto const S = mat{{7.737842084745754e-01, 4.482121340398817e-01,
                           -9.328850644791921e-02},
                          {6.398173008803022e-01, 5.139792582646610e-01,
@@ -790,7 +844,7 @@ TEST_CASE("tensor_solve_qr", "[tensor][solve][qr]") {
                                     {0.574182859934675, 0.672548212017124}};
       auto const b =
           tensor_t{0.959108917701253, 0.824089907371562, 0.216504922237786};
-      auto const x = solve_qr(A, b);
+      auto const x = solve_qr_lapack(A, b);
       REQUIRE(x(0) == Approx(-0.122835608990910));
       REQUIRE(x(1) == Approx(1.063825231297154));
     }
@@ -814,7 +868,7 @@ TEST_CASE("tensor_solve_qr", "[tensor][solve][qr]") {
           5.778721894369010e-02
 
       };
-      auto const x = solve_qr(A, b);
+      auto const x = solve_qr_lapack(A, b);
       REQUIRE(x.dimension(0) == A.dimension(1));
       REQUIRE(x(0) == Approx(0.457193947639988));
       REQUIRE(x(1) == Approx(-0.124366910738489));
@@ -829,7 +883,7 @@ TEST_CASE("tensor_solve_qr", "[tensor][solve][qr]") {
               {0.758387692091753, 0.230406806948115, 0.161407203444348},
               {0.744379569825457, 0.520073661017721, 0.922036927885906}};
 
-      auto const X = solve_qr(A, B);
+      auto const X = solve_qr_lapack(A, B);
       auto const S = tensor_t{{7.737842084745754e-01, 4.482121340398817e-01,
                           -9.328850644791921e-02},
                          {6.398173008803022e-01, 5.139792582646610e-01,

@@ -256,21 +256,23 @@ auto structured_grid<Real, NumDimensions, IndexOrder>::local_cell_coordinates(
     auto const& v1 = vertex_at(cell_indices[0] + 1, cell_indices[1]);
     auto const& v2 = vertex_at(cell_indices[0], cell_indices[1] + 1);
     auto const& v3 = vertex_at(cell_indices[0] + 1, cell_indices[1] + 1);
-    auto const  a  = v0;
-    auto const  b  = v1 - v0;
-    auto const  c  = v2 - v0;
-    auto const  d  = v0 - v1 - v2 + v3;
-
+    auto             ff = vec_t{};
     static auto const max_num_iterations = std::size_t(20);
     for (; i < max_num_iterations && squared_euclidean_length(dx) > tol; ++i) {
       // apply Newton-Raphson method to solve f(x,y)=0
-      auto const ff = a + b * bary.x() + c * bary.y() + d * bary.x() * bary.y() - x;
-      // Newton: x_{n+1} = x_n - (Df^-1)*f
-      // or equivalently denoting dx = x_{n+1}-x_n
-      // Newton: Df*dx=-f
-      Dff.col(0) = (b + d * bary.y());  // df/dx
-      Dff.col(1) = (c + d * bary.x());  // df/dy
-      dx        = solve(Dff, -ff);
+       ff = (1-bary.x())*(1-bary.y()) * v0 +
+                      bary.x()*(1-bary.y()) * v1 +
+                      (1-bary.x())*bary.y() * v2 +
+                      bary.x()*bary.y() * v3 - x;
+      Dff(0, 0) = bary.y() * v3.x() - bary.y() * v2.x() +
+                  (1 - bary.y()) * v1.x() - (1 - bary.y()) * v0.x();
+      Dff(0, 1) = bary.x() * v3.x() + (1 - bary.x()) * v2.x() -
+                  bary.x() * v1.x() - (1 - bary.x()) * v0.x();
+      Dff(1, 0) = bary.y() * v3.y() - bary.y() * v2.y() +
+                  (1 - bary.y()) * v1.y() - (1 - bary.y()) * v0.y();
+      Dff(1, 1) = bary.x() * v3.y() + (1 - bary.x()) * v2.y() -
+                  bary.x() * v1.y() - (1 - bary.x()) * v0.y();
+      dx = solve(Dff, -ff);
       bary += dx;
       if (squared_euclidean_length(bary) > 100) {
         i = max_num_iterations;  // non convergent: just to save time
@@ -296,59 +298,77 @@ auto structured_grid<Real, NumDimensions, IndexOrder>::local_cell_coordinates(
         vertex_at(cell_indices[0], cell_indices[1] + 1, cell_indices[2] + 1);
     auto const& v7 = vertex_at(cell_indices[0] + 1, cell_indices[1] + 1,
                                cell_indices[2] + 1);
+    auto const x0 = v0.x();
+    auto const y0 = v0.y();
+    auto const z0 = v0.z();
+    auto const x1 = v1.x();
+    auto const y1 = v1.y();
+    auto const z1 = v1.z();
+    auto const x2 = v2.x();
+    auto const y2 = v2.y();
+    auto const z2 = v2.z();
+    auto const x3 = v3.x();
+    auto const y3 = v3.y();
+    auto const z3 = v3.z();
+    auto const x4 = v4.x();
+    auto const y4 = v4.y();
+    auto const z4 = v4.z();
+    auto const x5 = v5.x();
+    auto const y5 = v5.y();
+    auto const z5 = v5.z();
+    auto const x6 = v6.x();
+    auto const y6 = v6.y();
+    auto const z6 = v6.z();
+    auto const x7 = v7.x();
+    auto const y7 = v7.y();
+    auto const z7 = v7.z();
 
-    auto a  = v0;
-    auto b  = v1;
-    b -= v0;
-    auto c = v2;
-    c -= v0;
-    auto d = v4;
-    c -= v0;
-    auto e = v3;
-    e -= v2;
-    e -= v1;
-    e += v0;
-    auto f = v5;
-    f -= v4;
-    f -= v1;
-    f += v0;
-    auto g = v6;
-    g -= v4;
-    g -= v2;
-    g += v0;
-    auto h = v7;
-    h -= v6;
-    h -= v5;
-    h += v4;
-    h -= v3;
-    h += v2;
-    h += v1;
-    h -= v0;
-
-    vec_t ff;
+    auto ff = vec_t{};
     for (; i < max_num_iterations && squared_euclidean_length(dx) > tol; ++i) {
-      // apply Newton-Raphson method to solve f(x,y)=0
-      ff = a;
-      ff += b * bary.x();
-      ff += c * bary.y();
-      ff += d * bary.z();
-      ff += e * (bary.x() * bary.y());
-      ff += f * (bary.x() * bary.z());
-      ff += g * (bary.y() * bary.z());
-      ff += h * (bary.x() * bary.y() * bary.z());
+      auto const a = bary.x();
+      auto const b = bary.y();
+      auto const c = bary.z();
+      // apply Newton-Raphson method to solve ff(x,y)=x
+      ff =  (1 - a) * (1 - b) * (1 - c) * v0;
+      ff +=      a  * (1 - b) * (1 - c) * v1;
+      ff += (1 - a) *      b  * (1 - c) * v2;
+      ff +=      a  *      b  * (1 - c) * v3;
+      ff += (1 - a) * (1 - b) *      c  * v4;
+      ff +=      a  * (1 - b) *      c  * v5;
+      ff += (1 - a) *      b  *      c  * v6;
+      ff +=      a  *      b  *      c  * v7;
       ff -= x;
-      Dff.col(0) = b;
-      Dff.col(0) += e * bary.y();
-      Dff.col(0) += f * bary.z();
-      Dff.col(0) += h * (bary.y() * bary.z());  // df/dx
-      Dff.col(1) = c;
-      Dff.col(1) += e * bary.x();
-      Dff.col(1) += g * bary.z();
-      Dff.col(1) += h * (bary.x() * bary.z());  // df/dy
-      Dff.col(2) = d;
-      Dff.col(2) += f * bary.x();
-      Dff.col(2) += g * bary.y();
-      Dff.col(2) += h * (bary.x() * bary.y());  // df/dz
+
+      Dff(0, 0) = b * c * x7 - b * c * x6 + (1 - b) * c * x5 +
+                  (b - 1) * c * x4 + (b - b * c) * x3 + (b * c - b) * x2 +
+                  ((b - 1) * c - b + 1) * x1 + ((1 - b) * c + b - 1) * x0;
+      Dff(0, 1) = a * c * x7 + (1 - a) * c * x6 - a * c * x5 +
+                  (a - 1) * c * x4 + (a - a * c) * x3 +
+                  ((a - 1) * c - a + 1) * x2 + (a * c - a) * x1 +
+                  ((1 - a) * c + a - 1) * x0;
+      Dff(0, 2) = a * b * x7 + (1 - a) * b * x6 + (a - a * b) * x5 +
+                  ((a - 1) * b - a + 1) * x4 - a * b * x3 + (a - 1) * b * x2 +
+                  (a * b - a) * x1 + ((1 - a) * b + a - 1) * x0;
+      Dff(1, 0) = b * c * y7 - b * c * y6 + (1 - b) * c * y5 +
+                  (b - 1) * c * y4 + (b - b * c) * y3 + (b * c - b) * y2 +
+                  ((b - 1) * c - b + 1) * y1 + ((1 - b) * c + b - 1) * y0;
+      Dff(1, 1) = a * c * y7 + (1 - a) * c * y6 - a * c * y5 +
+                  (a - 1) * c * y4 + (a - a * c) * y3 +
+                  ((a - 1) * c - a + 1) * y2 + (a * c - a) * y1 +
+                  ((1 - a) * c + a - 1) * y0;
+      Dff(1, 2) = a * b * y7 + (1 - a) * b * y6 + (a - a * b) * y5 +
+                  ((a - 1) * b - a + 1) * y4 - a * b * y3 + (a - 1) * b * y2 +
+                  (a * b - a) * y1 + ((1 - a) * b + a - 1) * y0;
+      Dff(2, 0) = b * c * z7 - b * c * z6 + (1 - b) * c * z5 +
+                  (b - 1) * c * z4 + (b - b * c) * z3 + (b * c - b) * z2 +
+                  ((b - 1) * c - b + 1) * z1 + ((1 - b) * c + b - 1) * z0;
+      Dff(2, 1) = a * c * z7 + (1 - a) * c * z6 - a * c * z5 +
+                  (a - 1) * c * z4 + (a - a * c) * z3 +
+                  ((a - 1) * c - a + 1) * z2 + (a * c - a) * z1 +
+                  ((1 - a) * c + a - 1) * z0;
+      Dff(2, 2) = a * b * z7 + (1 - a) * b * z6 + (a - a * b) * z5 +
+                  ((a - 1) * b - a + 1) * z4 - a * b * z3 + (a - 1) * b * z2 +
+                  (a * b - a) * z1 + ((1 - a) * b + a - 1) * z0;
 
       dx = solve(Dff, -ff);
       bary += dx;

@@ -1944,7 +1944,7 @@ class rectilinear_grid {
             enable_if<(num_dimensions() == 1) || (num_dimensions() == 2) ||
                       (num_dimensions() == 3)> = true>
 #endif
-          void write_vtk(filesystem::path const& path,
+  void write_vtk(filesystem::path const& path,
                          std::string const&      description =
                              "tatooine rectilinear_grid") const {
     auto writer = [this, &path, &description] {

@@ -234,10 +234,10 @@ auto main(int argc, char** argv) -> int {
     }
     //----------------------------------------------------------------------------
     indicator.set_text("Discretizing flow map with agranovsky sampling");
-    auto const k =
+    auto const num_agranovksy_steps =
         static_cast<size_t>(std::ceil(args.agranovsky_delta_t / args.tau));
     auto const regularized_height_agranovksky = static_cast<size_t>(
-        std::ceil(std::sqrt((num_particles_after_advection / 2) / k)));
+        std::ceil(std::sqrt((num_particles_after_advection / 2) / num_agranovksy_steps)));
     auto agranovsky_disc =
         AgranovskyFlowmapDiscretization<2>{phi,
                                            args.t0,
@@ -327,6 +327,7 @@ auto main(int argc, char** argv) -> int {
         size(backward_agranovsky_errors);
     //----------------------------------------------------------------------------
     indicator.mark_as_completed();
+    report << "number of advected autonomous particles:  \n"
            << num_particles_after_advection << '\n'
 
            << "number of regular particles:  \n"

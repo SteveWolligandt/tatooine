@@ -180,7 +180,7 @@ class unstructured_simplicial_grid
   using parent_t::operator[];
   using parent_t::insert_vertex;
   using parent_t::is_valid;
-  using parent_t::vertex_data;
+  using parent_t::vertex_positions;
   using parent_t::vertex_properties;
   using parent_t::vertices;
 
@@ -833,11 +833,11 @@ if ( it == end(m_cell_properties)) {
         };
         std::vector<vec<Real, 3>> v3s(vertices().size());
         auto                      three_dimensional = transformed(three_dims);
-        copy(vertex_data() | three_dimensional, begin(v3s));
+        copy(vertex_positions() | three_dimensional, begin(v3s));
         writer.write_points(v3s);
 
       } else if constexpr (NumDimensions == 3) {
-        writer.write_points(vertex_data());
+        writer.write_points(vertex_positions());
       }
 
       std::vector<std::vector<size_t>> vertices_per_cell;
@@ -889,7 +889,7 @@ if ( it == end(m_cell_properties)) {
     if (writer.is_open()) {
       writer.set_title(title);
       writer.write_header();
-      writer.write_points(vertex_data());
+      writer.write_points(vertex_positions());
 
       std::vector<std::vector<size_t>> vertices_per_cell;
       vertices_per_cell.reserve(cells().size());
