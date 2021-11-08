@@ -523,8 +523,10 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
     auto const&             cur_lambdas = eig_HHt.second;
     auto                    ghosts = make_array<vec_t, num_dimensions() * 2>();
     for (size_t i = 0; i < num_dimensions(); ++i) {
-      ghosts[i * 2]     = x1() + B.col(i);
-      ghosts[i * 2 + 1] = x1() - B.col(i);
+      ghosts[i * 2]  = x1();
+      ghosts[i * 2] += B.col(i);
+      ghosts[i * 2 + 1]  = x1();
+      ghosts[i * 2 + 1] -= B.col(i);
     }
     real_t t2                  = m_t1;
     auto   old_advected_center = advected_ellipse.center();
@@ -567,7 +569,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
         eig_HHt  = eigenvectors_sym(HHt);
         cond_HHt = cur_lambdas(num_dimensions() - 1) / cur_lambdas(0);
 
-        nabla_phi2 = H * *inv(Sigma) * transposed(Q);
+        nabla_phi2 = H * solve(Sigma, transposed(Q));
         fmg2fmg1   = nabla_phi2 * m_nabla_phi1;
 
         current_radii        = sqrt(cur_lambdas);
@@ -590,7 +592,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
           for (size_t i = 0; i < size(radii); ++i) {
             auto const new_eigvals = current_radii * radii[i];
             auto const offset2     = cur_B * offsets[i];
-            auto const offset0     = *inv(fmg2fmg1) * offset2;
+            auto const offset0     = solve(fmg2fmg1, offset2);
             auto       offset_ellipse =
                 ellipse_t{advected_ellipse.center() + offset2,
                           cur_Q * diag(new_eigvals) * transposed(cur_Q)};

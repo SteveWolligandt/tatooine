@@ -3,6 +3,9 @@ project(tatooine)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+option(TATOOINE_USE_NATIVE_ARCH
+  "use native architecture to build" TRUE)
+
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # filesystem check
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -78,6 +81,9 @@ set(TATOOINE_SRC_FILES
 )
 # create library target
 add_library(tatooine STATIC ${TATOOINE_SRC_FILES})
+if(TATOOINE_USE_NATIVE_ARCH)
+  target_compile_options(tatooine PUBLIC -march=native)
+endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # set include dirs
 target_include_directories(tatooine
