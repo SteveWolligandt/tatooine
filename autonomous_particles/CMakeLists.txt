@@ -44,3 +44,12 @@ target_link_libraries(autonomous_particles.explorer PUBLIC tatooine gl)
 add_custom_target(autonomous_particles.explorer.run
   COMMAND ./autonomous_particles.explorer
   DEPENDS autonomous_particles.explorer)
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# double gyre error measure
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+add_executable (autonomous_particles.doublegyre_error_measure doublegyre_error_measure.cpp)
+target_link_libraries(autonomous_particles.doublegyre_error_measure PUBLIC tatooine)
+add_custom_target(autonomous_particles.doublegyre_error_measure.run
+  COMMAND ./autonomous_particles.doublegyre_error_measure
+  DEPENDS autonomous_particles.doublegyre_error_measure)

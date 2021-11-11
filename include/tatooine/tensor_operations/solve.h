@@ -1,6 +1,8 @@
 #ifndef TATOOINE_TENSOR_OPERATIONS_SOLVE_H
 #define TATOOINE_TENSOR_OPERATIONS_SOLVE_H
 //==============================================================================
+#include <cstdint>
+#include <tatooine/base_tensor.h>
 #include <tatooine/tensor_operations/determinant.h>
 //==============================================================================
 namespace tatooine {
@@ -148,7 +150,9 @@ template <typename TensorA, typename TensorB, typename Real, size_t M, size_t N,
           size_t K>
 auto solve(base_tensor<TensorA, Real, M, N> const& A,
            base_tensor<TensorB, Real, M, K> const& B) {
-  if constexpr (M == N) {
+  if constexpr (M == 2 && N == 2 && K >= M) {
+    return solve_direct(A, B);
+  } else if constexpr (M == N) {
     return solve_lu_lapack(A, B);
   } else if constexpr (M > N) {
     return solve_qr_lapack(A, B);
@@ -157,34 +161,20 @@ auto solve(base_tensor<TensorA, Real, M, N> const& A,
   }
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename TensorA, typename TensorB, typename Real, std::size_t K>
-auto solve(base_tensor<TensorA, Real, 2, 2> const& A,
-           base_tensor<TensorB, Real, 2, K> const& B) {
-  return solve_direct(A, B);
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename TensorA, typename TensorB, typename Real, size_t M, size_t N>
 auto solve(base_tensor<TensorA, Real, M, N> const& A,
            base_tensor<TensorB, Real, M> const&    b) {
-  if constexpr (M == N) {
+  if constexpr (M == 2 && N==2) {
+    return solve_direct(A, b);
+  } else if constexpr (M == 3 && N == 3) {
+    return solve_cramer(A, b);
+  } else if constexpr (M == N) {
     return solve_lu_lapack(A, b);
   } else if constexpr (M > N) {
     return solve_qr_lapack(A, b);
   } else {
     throw std::runtime_error{"System is under-determined."};
   }
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename TensorA, typename TensorB, typename Real>
-auto solve(base_tensor<TensorA, Real, 2, 2> const& A,
-           base_tensor<TensorB, Real, 2> const& b) {
-  return solve_direct(A, b);
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename TensorA, typename TensorB, typename Real>
-auto solve(base_tensor<TensorA, Real, 3, 3> const& A,
-           base_tensor<TensorB, Real, 3> const& b) {
-  return solve_cramer(A, b);
 }
 //------------------------------------------------------------------------------
 template <typename T>

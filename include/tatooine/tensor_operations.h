@@ -20,6 +20,7 @@
 #include <tatooine/tensor_operations/norm.h>
 #include <tatooine/tensor_operations/operator_overloads.h>
 #include <tatooine/tensor_operations/solve.h>
+#include <tatooine/tensor_operations/trace.h>
 #include <tatooine/tensor_operations/unary_operation.h>
 //==============================================================================
 namespace tatooine {

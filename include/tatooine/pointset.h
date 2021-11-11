@@ -616,12 +616,12 @@ struct pointset {
   auto nearest_neighbors_raw(pos_t const& x, size_t const num_nearest_neighbors,
                              flann::SearchParams const params = {}) const
       -> std::pair<std::vector<int>, std::vector<Real>> {
-    flann::Matrix<Real>            qm{const_cast<Real*>(x.data_ptr()), 1,
+    flann::Matrix<Real> qm{const_cast<Real*>(x.data_ptr()), 1,
                            num_dimensions()};
-    std::vector<std::vector<int>>  indices;
-    std::vector<std::vector<Real>> distances;
+    auto ret = std::pair{std::vector<int>{}, std::vector<Real>{}};
+    auto& [indices, distances] = ret;
     kd_tree().knnSearch(qm, indices, distances, num_nearest_neighbors, params);
-    return {std::move(indices.front()), std::move(distances.front())};
+    return ret;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto nearest_neighbors(pos_t const& x,
