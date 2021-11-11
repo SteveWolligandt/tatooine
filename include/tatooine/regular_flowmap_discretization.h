@@ -64,7 +64,7 @@ struct regular_flowmap_discretization {
   backward_grid_t                m_backward_grid;
   mesh_vertex_property_t*        m_backward_discretization;
   mesh_vertex_property_sampler_t m_backward_sampler;
-  static constexpr auto          default_execution_policy = execution_policy::parallel;
+  static constexpr auto default_execution_policy = execution_policy::parallel;
   //============================================================================
  private:
   template <typename Flowmap, typename ExecutionPolicy, size_t... Is>
@@ -89,7 +89,7 @@ struct regular_flowmap_discretization {
                 "backward_discretization")},
         m_backward_sampler{
             m_backward_grid.sampler(*m_backward_discretization)} {
-    fill(flowmap, execution_policy);
+    fill(std::forward<Flowmap>(flowmap), execution_policy);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
@@ -138,11 +138,13 @@ struct regular_flowmap_discretization {
   }
   //----------------------------------------------------------------------------
   template <typename Flowmap, typename ExecutionPolicy>
-  auto fill(Flowmap flowmap, ExecutionPolicy execution_policy) -> void {
+  auto fill(Flowmap&& flowmap, ExecutionPolicy execution_policy) -> void {
     m_forward_grid.vertices().iterate_indices(
         [&](auto const... is) {
+          auto flowmap2 = flowmap;
+          flowmap2.use_caching(false);
           m_forward_discretization->at(is...) =
-              flowmap(m_forward_grid.vertex_at(is...), m_t0, m_tau);
+              flowmap2(m_forward_grid.vertex_at(is...), m_t0, m_tau);
         },
         execution_policy);
 

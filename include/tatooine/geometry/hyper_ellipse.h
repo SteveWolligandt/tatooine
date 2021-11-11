@@ -88,7 +88,7 @@ struct hyper_ellipse {
     return distance(x, center());
   }
   //----------------------------------------------------------------------------
-  auto local_squared_distance_to_center(pos_t const& x) const {
+  auto local_squared_euclidean_distance_to_center(pos_t const& x) const {
     return squared_euclidean_length(local_coordinate(x));
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

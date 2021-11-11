@@ -183,10 +183,9 @@ constexpr auto solve(diag_tensor<TensorA, N, N> const& A, TensorB&& B)
       return {};
     }
   }
-  mat<std::common_type_t<typename std::decay_t<TensorA>::value_type,
-                         typename std::decay_t<TensorB>::value_type>,
-      N, N>
-      ret = B;
+  auto ret = mat<std::common_type_t<typename std::decay_t<TensorA>::value_type,
+                                    typename std::decay_t<TensorB>::value_type>,
+                 N, N>{B};
   for (size_t i = 0; i < N; ++i) {
     ret.row(i) /= A.internal_tensor()(i);
   }
