@@ -216,13 +216,6 @@ TEST_CASE_METHOD(structured_grid3, "structured_grid_3_linear_sampler",
 
   auto const p111 = prop_sampler(vertex_at(1, 1, 1));
   REQUIRE(p111 == Approx(prop[vertex_handle{plain_index(1, 1, 1)}]));
-
-  auto discretized = rectilinear_grid{linspace{aabb.min(0), aabb.max(0), 1000},
-                                      linspace{aabb.min(1), aabb.max(1), 1000},
-                                      linspace{aabb.min(2), aabb.max(2), 100}};
-  discretize(prop_sampler, discretized,
-             "prop", execution_policy::parallel);
-  discretized.write_vtk("resampled_structured_grid_3d.vtk");
 }
 //==============================================================================
 }  // namespace tatooine::test

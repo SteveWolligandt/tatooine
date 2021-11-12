@@ -150,13 +150,6 @@ endif ()
 
 if (NOT TATOOINE_DOC_ONLY)
 #===============================================================================
-# EXAMPLES
-#===============================================================================
-option(TATOOINE_BUILD_EXAMPLES "")
-if (TATOOINE_BUILD_EXAMPLES)
-  add_subdirectory(examples)
-endif()
-#===============================================================================
 # Required Packages
 #===============================================================================
 # OpenMP
@@ -439,12 +432,20 @@ set_property(TARGET tatooine PROPERTY COMPILE_DEFINITIONS ${defs})
 #-------------------------------------------------------------------------------
 # Subdirectories
 #-------------------------------------------------------------------------------
+#===============================================================================
+# EXAMPLES
+#===============================================================================
 add_subdirectory(gl)
 add_subdirectory(test)
 add_subdirectory(scivis_contest_2020 EXCLUDE_FROM_ALL)
 add_subdirectory(benchmarks)
 add_subdirectory(material_science EXCLUDE_FROM_ALL)
+option(TATOOINE_BUILD_EXAMPLES "")
+if (TATOOINE_BUILD_EXAMPLES)
+  add_subdirectory(examples)
+endif()
 if (TATOOINE_GL_AVAILABLE)
+  message(STATUS "gl avalaible in main")
   #add_subdirectory(steadification EXCLUDE_FROM_ALL)
 
   option(TATOOINE_BUILD_FLOWEXPLORER "Builds Flow Explorer" OFF)
