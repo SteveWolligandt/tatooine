@@ -227,6 +227,17 @@ struct autonomous_particle_flowmap_discretization {
   autonomous_particle_flowmap_discretization(
       Flowmap&& flowmap, arithmetic auto const t0, arithmetic auto const tau,
       arithmetic auto const                                tau_step,
+      std::vector<autonomous_particle<Real, NumDimensions>> const& initial_particles) {
+    static_assert(
+        std::decay_t<Flowmap>::num_dimensions() == NumDimensions,
+        "Number of dimensions of flowmap does not match number of dimensions.");
+    fill(std::forward<Flowmap>(flowmap), initial_particles, t0 + tau, tau_step);
+  }
+  //----------------------------------------------------------------------------
+  template <typename Flowmap>
+  autonomous_particle_flowmap_discretization(
+      Flowmap&& flowmap, arithmetic auto const t0, arithmetic auto const tau,
+      arithmetic auto const                                tau_step,
       uniform_rectilinear_grid<Real, NumDimensions> const& g) {
     static_assert(
         std::decay_t<Flowmap>::num_dimensions() == NumDimensions,
@@ -485,9 +496,9 @@ using staggered_autonomous_particle_flowmap_discretization =
 template <size_t NumDimensions>
 using StaggeredAutonomousParticleFlowmapDiscretization =
     staggered_autonomous_particle_flowmap_discretization<real_t, NumDimensions>;
-using staggered_autonomous_particle_flowmap_discretization_2 =
+using staggered_autonomous_particle_flowmap_discretization2 =
     StaggeredAutonomousParticleFlowmapDiscretization<2>;
-using staggered_autonomous_particle_flowmap_discretization_3 =
+using staggered_autonomous_particle_flowmap_discretization3 =
     StaggeredAutonomousParticleFlowmapDiscretization<3>;
 //==============================================================================
 }  // namespace tatooine

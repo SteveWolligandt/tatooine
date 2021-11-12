@@ -88,12 +88,12 @@ struct hyper_ellipse {
     return distance(x, center());
   }
   //----------------------------------------------------------------------------
-  auto local_squared_euclidean_distance_to_center(pos_t const& x) const {
+  auto squared_local_euclidean_distance_to_center(pos_t const& x) const {
     return squared_euclidean_length(local_coordinate(x));
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto local_distance_to_center(pos_t const& x) const {
-    return euclidean_length(local_coordinate());
+    return euclidean_length(local_coordinate(x));
   }
   //----------------------------------------------------------------------------
   /// Computes euclidean distance to nearest boundary point

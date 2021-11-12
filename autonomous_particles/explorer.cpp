@@ -179,8 +179,8 @@ auto update_nearest() {
   auto active_it                 = begin(active_particles);
   autonomous_particle2::sampler_t const* nearest_sampler = nullptr;
   for (auto const& s : samplers) {
-    if (auto const dist = s.ellipse1().squared_distance_to_center(x0) *
-                          s.ellipse1().local_squared_distance_to_center(x0);
+    if (auto const dist = s.ellipse1().squared_euclidean_distance_to_center(x0) *
+                          s.ellipse1().squared_local_euclidean_distance_to_center(x0);
         dist < shortest_distance) {
       shortest_distance = dist;
       nearest_sampler   = &s;
@@ -193,7 +193,7 @@ auto update_nearest() {
 //==============================================================================
 struct listener_t : gl::window_listener {
   Vec2<size_t> mouse_pos;
-  bool left_down = false;
+  bool         left_down = false;
   auto         on_cursor_moved(double x, double y) -> void override {
     mouse_pos = {x, y};
 

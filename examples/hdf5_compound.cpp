@@ -143,7 +143,7 @@ auto IO_ellipse() {
 //==============================================================================
 auto IO_autonomous_particles() {
   auto path   = filesystem::path{"autonomous_particle.h5"};
-  using particle_t = autonomous_particle_2;
+  using particle_t = autonomous_particle2;
   auto particle0        = particle_t{vec{0.5, 0.5}, 0.0, 0.01};
   {
     auto file    = hdf5::file{path};
