@@ -28,6 +28,7 @@ struct first_person_window : gl::window {
           gl::enable_depth_test();
     this->add_listener(m_cam);
   }
+  virtual ~first_person_window() = default;
   //============================================================================
   auto width() const { return m_width; }
   //----------------------------------------------------------------------------
