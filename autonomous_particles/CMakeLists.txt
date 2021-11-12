@@ -53,3 +53,12 @@ target_link_libraries(autonomous_particles.doublegyre_error_measure PUBLIC tatoo
 add_custom_target(autonomous_particles.doublegyre_error_measure.run
   COMMAND ./autonomous_particles.doublegyre_error_measure
   DEPENDS autonomous_particles.doublegyre_error_measure)
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# double gyre square
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+add_executable (autonomous_particles.doublegyre_initial_square doublegyre_initial_square.cpp)
+target_link_libraries(autonomous_particles.doublegyre_initial_square PUBLIC tatooine gl)
+add_custom_target(autonomous_particles.doublegyre_initial_square.run
+  COMMAND ./autonomous_particles.doublegyre_initial_square
+  DEPENDS autonomous_particles.doublegyre_initial_square)
