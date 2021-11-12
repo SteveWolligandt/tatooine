@@ -9,8 +9,6 @@ auto parallel_coordinates(const char*                             imgui_label,
                           std::vector<std::vector<double>> const& data,
                           std::vector<std::pair<double, double>>& ranges)
     -> int {
-  // visuals
-  size_t const grab_radius = 12;  // handlers: circle radius
 
   auto              active_bar = std::numeric_limits<std::size_t>::max();
   const ImGuiStyle& Style      = GetStyle();
@@ -29,12 +27,13 @@ auto parallel_coordinates(const char*                             imgui_label,
                              ImGui::GetContentRegionAvail().y - 100};
   auto const  bb = ImRect{Window->DC.CursorPos, Window->DC.CursorPos + canvas};
   auto        extent = bb.Max - bb.Min;
+  // interaction
   {
     char buf[128];
     sprintf(buf, "0##%s", imgui_label);
-    auto handle_grabber_fixed = [&](std::size_t const          i,
-                                    std::pair<double, double>& range) {};
+    size_t const grab_radius = 12;  // handlers: circle radius
     for (std::size_t i = 0; i < size(labels); ++i) {
+      // handle bottom grabber of bar
       {
         ImVec2 pos = ImVec2(bb.Min.x + space_between_bars * i,
                             bb.Min.y + ranges[i].first * extent.y);
@@ -51,6 +50,7 @@ auto parallel_coordinates(const char*                             imgui_label,
           changed = true;
         }
       }
+      // handle top grabber of bar
       {
         ImVec2 pos = ImVec2(bb.Min.x + space_between_bars * i,
                             bb.Min.y + ranges[i].second * extent.y);
@@ -70,6 +70,7 @@ auto parallel_coordinates(const char*                             imgui_label,
     }
   }
 
+  // drawing
   RenderFrame(bb.Min, bb.Max, GetColorU32(ImGuiCol_FrameBg, 1), true,
               Style.FrameRounding);
 

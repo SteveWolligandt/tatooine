@@ -891,8 +891,8 @@ autonomous_particle<Real, N>::autonomous_particle(pos_t const&     x0,
 //==============================================================================
 template <size_t N>
 using AutonomousParticle    = autonomous_particle<real_t, N>;
-using autonomous_particle_2 = AutonomousParticle<2>;
-using autonomous_particle_3 = AutonomousParticle<3>;
+using autonomous_particle2 = AutonomousParticle<2>;
+using autonomous_particle3 = AutonomousParticle<3>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
