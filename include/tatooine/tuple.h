@@ -1,10 +1,10 @@
-#ifndef TATOOINE_GL_TUPLE_H
-#define TATOOINE_GL_TUPLE_H
+#ifndef TATOOINE_TUPLE_H
+#define TATOOINE_TUPLE_H
 //==============================================================================
-#include <utility>
 #include <concepts>
+#include <utility>
 //==============================================================================
-namespace tatooine::gl {
+namespace tatooine {
 //==============================================================================
 template <typename... Ts>
 struct tuple;
@@ -18,11 +18,11 @@ struct tuple<Head, Tail...> {
   tuple(Head_&& head_, Tail_&&... tail_)
       : head{std::forward<Head_>(head_)}, tail{std::forward<Tail_>(tail_)...} {}
   //----------------------------------------------------------------------------
-  tuple()                                    = default;
-  tuple(tuple const&)                        = default;
-  tuple(tuple&&) noexcept                    = default;
-  ~tuple()                                   = default;
-  auto operator=(tuple const&) -> tuple&     = default;
+  tuple()                 = default;
+  tuple(tuple const&)     = default;
+  tuple(tuple&&) noexcept = default;
+  ~tuple()                = default;
+  auto operator=(tuple const&) -> tuple& = default;
   auto operator=(tuple&&) noexcept -> tuple& = default;
   //============================================================================
   template <typename T>
@@ -41,11 +41,11 @@ struct tuple<Head> {
   template <std::convertible_to<Head> Head_>
   tuple(Head_&& head_) : head{std::forward<Head_>(head_)} {}
   //----------------------------------------------------------------------------
-  tuple()                                    = default;
-  tuple(tuple const&)                        = default;
-  tuple(tuple&&) noexcept                    = default;
-  ~tuple()                                   = default;
-  auto operator=(tuple const&) -> tuple&     = default;
+  tuple()                 = default;
+  tuple(tuple const&)     = default;
+  tuple(tuple&&) noexcept = default;
+  ~tuple()                = default;
+  auto operator=(tuple const&) -> tuple& = default;
   auto operator=(tuple&&) noexcept -> tuple& = default;
   //============================================================================
   template <typename T = void>
@@ -58,35 +58,33 @@ template <typename Head>
 tuple(Head&&) -> tuple<std::decay_t<Head>>;
 //==============================================================================
 template <std::size_t Idx, typename Head, typename... Tail>
-struct _tuple_get_t {
+struct tuple_get_impl_t {
   static constexpr auto get(tuple<Head, Tail...> const& t) -> auto const& {
-    return _tuple_get_t<Idx - 1, Tail...>::get(t.tail);
+    return tuple_get_impl_t<Idx - 1, Tail...>::get(t.tail);
   }
   static constexpr auto get(tuple<Head, Tail...>& t) -> auto& {
-    return _tuple_get_t<Idx - 1, Tail...>::get(t.tail);
+    return tuple_get_impl_t<Idx - 1, Tail...>::get(t.tail);
   }
 };
 //------------------------------------------------------------------------------
 template <typename Head, typename... Tail>
-struct _tuple_get_t<0, Head, Tail...> {
+struct tuple_get_impl_t<0, Head, Tail...> {
   static constexpr auto get(tuple<Head, Tail...> const& t) -> auto const& {
     return t.head;
   }
-  static constexpr auto get(tuple<Head, Tail...>& t) -> auto& {
-    return t.head;
-  }
+  static constexpr auto get(tuple<Head, Tail...>& t) -> auto& { return t.head; }
 };
 //------------------------------------------------------------------------------
 template <std::size_t Idx, typename... Ts>
 constexpr auto get(tuple<Ts...> const& t) -> auto const& {
-  return _tuple_get_t<Idx, Ts...>::get(t);
+  return tuple_get_impl_t<Idx, Ts...>::get(t);
 }
 //------------------------------------------------------------------------------
 template <std::size_t Idx, typename... Ts>
 constexpr auto get(tuple<Ts...>& t) -> auto& {
-  return _tuple_get_t<Idx, Ts...>::get(t);
+  return tuple_get_impl_t<Idx, Ts...>::get(t);
 }
 //==============================================================================
-}  // namespace tatooine::gl
+}  // namespace tatooine
 //==============================================================================
 #endif

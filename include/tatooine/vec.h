@@ -13,7 +13,7 @@ template <arithmetic_or_complex T, size_t N>
 #else
 template <typename T, size_t N>
 #endif
-struct vec : tensor<T, N> {  // NOLINT
+struct vec : tensor<T, N> {
 #ifndef __cpp_concepts
   static_assert(is_arithmetic<T> || is_complex<T>);
 #endif
