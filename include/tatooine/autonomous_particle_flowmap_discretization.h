@@ -270,7 +270,7 @@ struct autonomous_particle_flowmap_discretization {
     for (size_t j = 0; j < size(indices); ++j) {
       auto const& sampler = m_samplers[indices[j]];
       auto const  local_dist =
-          sampler.ellipse(tag).local_squared_euclidean_distance_to_center(x);
+          sampler.ellipse(tag).squared_local_euclidean_distance_to_center(x);
       {
         auto       l                 = std::lock_guard{m};
         auto const weighted_distance = physical_distances[j] * local_dist;
@@ -311,9 +311,9 @@ struct autonomous_particle_flowmap_discretization {
 template <size_t NumDimensions>
 using AutonomousParticleFlowmapDiscretization =
     autonomous_particle_flowmap_discretization<real_t, NumDimensions>;
-using autonomous_particle_flowmap_discretization_2 =
+using autonomous_particle_flowmap_discretization2 =
     AutonomousParticleFlowmapDiscretization<2>;
-using autonomous_particle_flowmap_discretization_3 =
+using autonomous_particle_flowmap_discretization3 =
     AutonomousParticleFlowmapDiscretization<3>;
 //==============================================================================
 template <typename Real, size_t NumDimensions>
