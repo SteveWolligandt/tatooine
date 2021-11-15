@@ -1,18 +1,17 @@
 #ifndef TATOOINE_GL_VERTEXBUFFER_H
 #define TATOOINE_GL_VERTEXBUFFER_H
 //==============================================================================
-#include <tatooine/num_components.h>
 #include <tatooine/gl/buffer.h>
 #include <tatooine/gl/errorcheck.h>
 #include <tatooine/gl/glincludes.h>
-#include <tatooine/gl/tuple.h>
 #include <tatooine/gl/utility.h>
 #include <tatooine/gl/vbohelpers.h>
+#include <tatooine/num_components.h>
 #include <tatooine/tensor.h>
+#include <tatooine/tuple.h>
 
 #include <initializer_list>
 #include <iostream>
-#include <tuple>
 #include <vector>
 //==============================================================================
 namespace tatooine::gl {
@@ -35,7 +34,7 @@ class vertexbuffer
 
   static constexpr unsigned int num_attributes = sizeof...(Ts);
   static constexpr std::array<size_t, num_attributes> num_components{
-    tatooine::num_components<Ts>...};
+      tatooine::num_components<Ts>...};
   static constexpr std::array<GLenum, num_attributes> types{
       value_type_v<Ts>...};
   static constexpr std::array<size_t, num_attributes> offsets =

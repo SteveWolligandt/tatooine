@@ -114,10 +114,10 @@ auto main(int argc, char** argv) -> int {
     {
       auto autonomous_disc = [&] {
         if (args.autonomous_particles_file) {
-          return autonomous_particle_flowmap_discretization_2{
+          return autonomous_particle_flowmap_discretization2{
               *args.autonomous_particles_file};
         } else {
-          return autonomous_particle_flowmap_discretization_2{
+          return autonomous_particle_flowmap_discretization2{
               phi,
               args.t0,
               args.tau,
@@ -193,14 +193,9 @@ auto main(int argc, char** argv) -> int {
         std::ceil(std::sqrt(num_particles_after_advection / 2)));
     auto const regularized_width = regularized_height * 2;
     {
-      auto regular_disc =
-          regular_flowmap_discretization<real_t, 2>{phi,
-                                                    args.t0,
-                                                    args.tau,
-                                                    vec2{0, 0},
-                                                    vec2{2, 1},
-                                                    regularized_width,
-                                                    regularized_height};
+      auto regular_disc = regular_flowmap_discretization<real_t, 2>{
+          phi,        args.t0,           args.tau,          vec2{0, 0},
+          vec2{2, 1}, regularized_width, regularized_height};
       indicator.set_text("Resampling regular flow map discretization");
       sampler_check_grid.vertices().iterate_indices(
           [&](auto const... is) {
