@@ -172,20 +172,20 @@ auto main(int argc, char** argv) -> int {
       indicator.set_text("Writing results");
       { sampler_check_grid.write("doublegyre_grid_errors.vtk"); }
       //----------------------------------------------------------------------------
-      indicator.set_text("Writing Autonomous Particles Results");
-      {
-        std::vector<line2> all_advected_discretizations;
-        std::vector<line2> all_initial_discretizations;
-        for (auto const& sampler : autonomous_disc.samplers()) {
-          all_initial_discretizations.push_back(
-              discretize(sampler.ellipse0(), 100));
-          all_advected_discretizations.push_back(
-              discretize(sampler.ellipse1(), 100));
-        }
-        write_vtk(all_initial_discretizations, "doublegyre_grid_ellipses0.vtk");
-        write_vtk(all_advected_discretizations,
-                  "doublegyre_grid_ellipses1.vtk");
-      }
+      //indicator.set_text("Writing Autonomous Particles Results");
+      //{
+      //  std::vector<line2> all_advected_discretizations;
+      //  std::vector<line2> all_initial_discretizations;
+      //  for (auto const& sampler : autonomous_disc.samplers()) {
+      //    all_initial_discretizations.push_back(
+      //        discretize(sampler.ellipse0(), 100));
+      //    all_advected_discretizations.push_back(
+      //        discretize(sampler.ellipse1(), 100));
+      //  }
+      //  write_vtk(all_initial_discretizations, "doublegyre_grid_ellipses0.vtk");
+      //  write_vtk(all_advected_discretizations,
+      //            "doublegyre_grid_ellipses1.vtk");
+      //}
     }
     //----------------------------------------------------------------------------
     indicator.set_text("Discretizing flow map regularly");
