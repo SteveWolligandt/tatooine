@@ -21,7 +21,7 @@ auto add_Q_pnorm(auto const& domain, auto& channelflow_file, auto const& velx,
   size_t const       max  = domain.num_vertices();
   bool               stop = false;
   std::cerr << "adding dataset to hdf5 file... ";
-  auto Q = channelflow_file.template add_dataset<double>(
+  auto Q = channelflow_file.template create_dataset<double>(
       "Q_pnorm", domain.size(0) - 1, domain.size(1), domain.size(2));
   std::cerr << "done.\n";
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -15,7 +15,7 @@ auto add_velocity_magnitude(auto const& domain, auto& channelflow_file, auto con
   size_t const       max  = domain.num_vertices();
   bool               stop = false;
   std::cerr << "adding dataset to hdf5 file... ";
-  auto vel_mag = channelflow_file.template add_dataset<double>(
+  auto vel_mag = channelflow_file.template create_dataset<double>(
       "vel_mag", domain.size(0) - 1, domain.size(1), domain.size(2));
   std::cerr << "done.\n";
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

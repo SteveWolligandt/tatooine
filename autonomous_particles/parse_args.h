@@ -6,7 +6,7 @@
 //==============================================================================
 struct args_t {
   size_t width, height, depth, num_splits, max_num_particles, output_res_x,
-      output_res_y;
+      output_res_y, output_res_z;
   double t0, tau, tau_step, min_cond, agranovsky_delta_t;
   bool write_ellipses_to_netcdf;
   std::optional<tatooine::filesystem::path> autonomous_particles_file;

@@ -453,11 +453,11 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
     }
     auto file = hdf5::file{path};
     auto hdd_data =
-        std::array{file.add_dataset<typename container_t::value_type>(
+        std::array{file.create_dataset<typename container_t::value_type>(
                        "ping", hdf5::unlimited),
-                   file.add_dataset<typename container_t::value_type>(
+                   file.create_dataset<typename container_t::value_type>(
                        "pong", hdf5::unlimited)};
-    auto finished = file.add_dataset<typename container_t::value_type>(
+    auto finished = file.create_dataset<typename container_t::value_type>(
         "finished", hdf5::unlimited);
     size_t reader = 0;
     size_t writer = 1;

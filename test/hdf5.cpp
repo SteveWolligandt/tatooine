@@ -23,7 +23,7 @@ TEST_CASE("hdf5_read_chunk", "[hdf5][read][chunk]") {
   }
   {
     auto out     = hdf5::file{filepath};
-    auto arr_out = out.add_dataset<value_type>(array_name, full_size[0],
+    auto arr_out = out.create_dataset<value_type>(array_name, full_size[0],
                                                full_size[1], full_size[2]);
     arr_out.write(data_src);
   }
@@ -103,8 +103,8 @@ TEST_CASE("hdf5_index_order", "[hdf5][index_order]") {
   }
   auto file             = hdf5::file{filepath};
   size_t width = 4, height = 6;
-  auto arr_out_fastest = file.add_dataset<int, x_fastest>("x_fastest", width, height);
-  auto arr_out_slowest = file.add_dataset<int, x_slowest>("x_slowest", width, height);
+  auto arr_out_fastest = file.create_dataset<int, x_fastest>("x_fastest", width, height);
+  auto arr_out_slowest = file.create_dataset<int, x_slowest>("x_slowest", width, height);
   dynamic_multidim_array<int, x_slowest> data_x_slowest(width, height);
   dynamic_multidim_array<int, x_fastest> data_x_fastest(width, height);
 
@@ -187,7 +187,7 @@ TEST_CASE("hdf5_reversed_memspace", "[hdf5][reversed_memspace]") {
   }
   {
     auto out     = hdf5::file{filepath};
-    auto arr_out = out.add_dataset<value_type>(dataset_name, width, height);
+    auto arr_out = out.create_dataset<value_type>(dataset_name, width, height);
     arr_out.write(data);
   }
   auto const ds = hdf5::file{filepath}.dataset<value_type>(dataset_name);
@@ -209,7 +209,7 @@ TEST_CASE("hdf5_unlimited_1d", "[hdf5][unlimited][1d]") {
     filesystem::remove(filepath);
   }
   auto file    = hdf5::file{filepath};
-  auto dataset = file.add_dataset<value_type>(dataset_name, hdf5::unlimited);
+  auto dataset = file.create_dataset<value_type>(dataset_name, hdf5::unlimited);
   dataset.push_back(linspace{0.0, 1.0, 11});
   dataset.push_back(linspace{0.0, 2.0, 21});
   dataset.push_back(linspace{0.0, 3.0, 31});
