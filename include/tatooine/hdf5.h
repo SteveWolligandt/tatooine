@@ -44,7 +44,7 @@ struct api {
     return obj;
   }
   //----------------------------------------------------------------------------
-  static auto my_hdf5_error_handler(void * /*error_data*/) -> herr_t {
+  static auto my_hdf5_error_handler(void* /*error_data*/) -> herr_t {
     std::cerr << "An HDF5 error was detected. Bye.\n";
     exit(1);
   }
@@ -73,10 +73,11 @@ struct property_list : id_holder {
  public:
   explicit property_list(hid_t cls_id = H5P_DEFAULT)
       : id_holder{cls_id == H5P_DEFAULT ? H5P_DEFAULT : H5Pcreate(cls_id)} {}
-  property_list(property_list const& other) : m_id{H5Pcopy(other.m_id)} {}
+  property_list(property_list const& other) : id_holder{H5Pcopy(other.id())} {}
   auto operator=(property_list const& other) -> property_list& {
     close();
     set_id(H5Pcopy(other.id()));
+    return *this;
   }
   ~property_list() { close(); }
 
@@ -214,30 +215,29 @@ struct attribute {
   using this_t = attribute;
 
  private:
-  std::unique_ptr<hid_t> m_parent_id;
-  std::string            m_name;
+  hid_t       m_parent_id;
+  std::string m_name;
 
  public:
-  attribute(std::unique_ptr<hid_t> const& file_id, std::string const& name)
-      : m_parent_id{std::make_unique<hid_t>(*file_id)}, m_name{name} {
-    // H5Iinc_ref(*m_parent_id);
+  attribute(hid_t const parent_id, std::string const& name)
+      : m_parent_id{parent_id}, m_name{name} {
+    // H5Iinc_ref(m_parent_id);
   }
   //----------------------------------------------------------------------------
   attribute(attribute const& other)
-      : m_parent_id{std::make_unique<hid_t>(*other.m_parent_id)},
-        m_name{other.m_name} {
-    // H5Iinc_ref(*m_parent_id);
+      : m_parent_id{other.m_parent_id}, m_name{other.m_name} {
+    // H5Iinc_ref(m_parent_id);
   }
   //----------------------------------------------------------------------------
   attribute(attribute&&) noexcept = default;
   //----------------------------------------------------------------------------
   auto operator=(attribute const& other) -> attribute& {
     // if (m_parent_id != nullptr) {
-    //  H5Fclose(*m_parent_id);
+    //  H5Fclose(m_parent_id);
     //}
-    m_parent_id = std::make_unique<hid_t>(*other.m_parent_id);
+    m_parent_id = other.m_parent_id;
     m_name      = other.m_name;
-    // H5Iinc_ref(*m_parent_id);
+    // H5Iinc_ref(m_parent_id);
     return *this;
   }
   //----------------------------------------------------------------------------
@@ -245,7 +245,7 @@ struct attribute {
   //----------------------------------------------------------------------------
   ~attribute() {
     // if (m_parent_id != nullptr) {
-    //  H5Fclose(*m_parent_id);
+    //  H5Fclose(m_parent_id);
     //}
   }
   //============================================================================
@@ -262,11 +262,11 @@ struct attribute {
     auto type_id      = H5Tcopy(H5T_C_S1);
     H5Tset_size(type_id, s.size());
     api::get().disable_error_printing();
-    auto attribute_id = H5Acreate(*m_parent_id, m_name.data(), type_id,
+    auto attribute_id = H5Acreate(m_parent_id, m_name.data(), type_id,
                                   dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
     api::get().enable_error_printing();
     if (attribute_id <= 0) {
-      attribute_id = H5Aopen(*m_parent_id, m_name.data(), H5P_DEFAULT);
+      attribute_id = H5Aopen(m_parent_id, m_name.data(), H5P_DEFAULT);
     }
 
     if (attribute_id >= 0) {
@@ -285,39 +285,35 @@ struct attribute {
 };
 //==============================================================================
 template <typename T>
-struct dataset {
+struct dataset : id_holder {
  public:
   using this_t     = dataset<T>;
   using value_type = T;
 
  private:
-  std::unique_ptr<hid_t> m_parent_id;
-  std::unique_ptr<hid_t> m_dataset_id;
-  std::string            m_name;
+  hid_t       m_parent_id;
+  std::string m_name;
   //============================================================================
  public:
   template <typename... Size>
-  dataset(std::unique_ptr<hid_t> const& parent_id, hid_t const dataset_id,
-          std::string const& name, Size const... size)
-      : m_parent_id{std::make_unique<hid_t>(*parent_id)},
-
-        m_name{name} {
-    // H5Iinc_ref(*m_parent_id);
+  dataset(hid_t const parent_id, std::string const& name, Size const... size)
+      : id_holder{-1}, m_parent_id{parent_id}, m_name{name} {
+    // H5Iinc_ref(m_parent_id);
 
     if constexpr (sizeof...(Size) > 0) {
-      auto dimsf                   = std::array{static_cast<hsize_t>(size)...};
+      auto dims                    = std::array{static_cast<hsize_t>(size)...};
       bool has_unlimited_dimension = false;
-      for (auto dim : dimsf) {
+      for (auto dim : dims) {
         if (dim == unlimited) {
           has_unlimited_dimension = true;
           break;
         }
       }
-      auto ds    = hdf5::dataspace{dimsf};
+      auto ds    = hdf5::dataspace{dims};
       auto plist = property_list{};
       if (has_unlimited_dimension) {
-        auto maxdims = dimsf;
-        for (auto& dim : dimsf) {
+        auto maxdims = dims;
+        for (auto& dim : dims) {
           if (dim == unlimited) {
             dim = 0;
           }
@@ -328,42 +324,37 @@ struct dataset {
             (static_cast<hsize_t>(size) == unlimited ? 100 : size)...);
       }
       // api::get().enable_error_printing();
-      m_dataset_id = std::make_unique<hid_t>(
-          H5Dcreate(*parent_id, name.data(), type_id<T>(), ds.id(), H5P_DEFAULT,
-                    plist.id(), H5P_DEFAULT));
-      if (*m_dataset_id > 0) {
-        throw std::runtime_error {
-          "[hdf5] dataset \"" + name + "\" already exists."
-        }
+      set_id(H5Dcreate(parent_id, name.data(), type_id<T>(), ds.id(),
+                       H5P_DEFAULT, plist.id(), H5P_DEFAULT));
+      if (id() < 0) {
+        set_id(H5Dopen(m_parent_id, name.c_str(), H5P_DEFAULT));
+        resize(size...);
       }
     } else {
-      m_dataset_id = std::make_unique<hid_t>(
-          H5Dopen(*m_parent_id, name.c_str(), H5P_DEFAULT));
+      set_id(H5Dopen(m_parent_id, name.c_str(), H5P_DEFAULT));
     }
   }
   //----------------------------------------------------------------------------
   dataset(dataset const& other)
-      : m_parent_id{std::make_unique<hid_t>(*other.m_parent_id)},
-        m_dataset_id{std::make_unique<hid_t>(*other.m_dataset_id)},
+      : id_holder{other.id()},
+        m_parent_id{other.m_parent_id},
         m_name{other.m_name} {
-    // H5Iinc_ref(*m_parent_id);
-    H5Iinc_ref(*m_dataset_id);
+    // H5Iinc_ref(m_parent_id);
+    H5Iinc_ref(id());
   }
   //----------------------------------------------------------------------------
   dataset(dataset&&) noexcept = default;
   //----------------------------------------------------------------------------
   auto operator=(dataset const& other) -> dataset& {
     // if (m_parent_id != nullptr) {
-    //  H5Fclose(*m_parent_id);
+    //  H5Fclose(m_parent_id);
     //}
-    if (m_dataset_id != nullptr) {
-      H5Dclose(*m_dataset_id);
-    }
-    m_parent_id  = std::make_unique<hid_t>(*other.m_parent_id);
-    m_dataset_id = std::make_unique<hid_t>(*other.m_dataset_id);
-    m_name       = other.m_name;
-    // H5Iinc_ref(*m_parent_id);
-    H5Iinc_ref(*m_dataset_id);
+    H5Dclose(id());
+    set_id(other.id());
+    m_parent_id = other.m_parent_id;
+    m_name      = other.m_name;
+    // H5Iinc_ref(m_parent_id);
+    H5Iinc_ref(id());
     return *this;
   }
   //----------------------------------------------------------------------------
@@ -371,22 +362,20 @@ struct dataset {
   //----------------------------------------------------------------------------
   ~dataset() {
     // if (m_parent_id != nullptr) {
-    //  H5Fclose(*m_parent_id);
+    //  H5Fclose(m_parent_id);
     //}
-    if (m_dataset_id != nullptr) {
-      H5Dclose(*m_dataset_id);
-    }
+    H5Dclose(id());
   }
   //============================================================================
-  auto resize(hsize_t const extent) { H5Dset_extent(*m_dataset_id, &extent); }
+  auto resize(hsize_t const extent) { H5Dset_extent(id(), &extent); }
   //----------------------------------------------------------------------------
   auto resize(std::vector<hsize_t> const& extent) {
-    H5Dset_extent(*m_dataset_id, extent.data());
+    H5Dset_extent(id(), extent.data());
   }
   //----------------------------------------------------------------------------
   template <std::size_t N>
   auto resize(std::array<hsize_t, N> const& extent) {
-    H5Dset_extent(*m_dataset_id, extent.data());
+    H5Dset_extent(id(), extent.data());
   }
   //----------------------------------------------------------------------------
   template <typename Integral, enable_if_integral<Integral>>
@@ -397,6 +386,11 @@ struct dataset {
   template <typename Integral, std::size_t N, enable_if_integral<Integral>>
   auto resize(std::array<Integral, N> const& extent) {
     resize(std::array<hsize_t, N>(begin(extent), end(extent)));
+  }
+  //----------------------------------------------------------------------------
+  template <typename... Size>
+  auto resize(Size const... size) {
+    resize(std::array{static_cast<hsize_t>(size)...});
   }
   //----------------------------------------------------------------------------
   auto resize_if_necessary(hsize_t const requested_size) {
@@ -430,13 +424,12 @@ struct dataset {
   }
   //============================================================================
   auto write(T const* data) -> void {
-    H5Dwrite(*m_dataset_id, type_id<T>(), H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
+    H5Dwrite(id(), type_id<T>(), H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto write(std::vector<T> const& data) -> void {
     resize_if_necessary(data.size());
-    H5Dwrite(*m_dataset_id, type_id<T>(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
-             data.data());
+    H5Dwrite(id(), type_id<T>(), H5S_ALL, H5S_ALL, H5P_DEFAULT, data.data());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto write(std::vector<T> const& data, hsize_t const offset) -> void {
@@ -459,8 +452,7 @@ struct dataset {
   template <std::size_t N>
   auto write(std::array<T, N> const& data) -> void {
     resize_if_necessary(data.size());
-    H5Dwrite(*m_dataset_id, type_id<T>(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
-             data.data());
+    H5Dwrite(id(), type_id<T>(), H5S_ALL, H5S_ALL, H5P_DEFAULT, data.data());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   //#ifdef __cpp_concepts
@@ -551,14 +543,14 @@ struct dataset {
     auto dataset_space = dataspace();
     dataset_space.select_hyperslab(offset, count);
     auto memory_space = hdf5::dataspace{count};
-    H5Dwrite(*m_dataset_id, type_id<T>(), memory_space.id(), dataset_space.id(),
+    H5Dwrite(id(), type_id<T>(), memory_space.id(), dataset_space.id(),
              H5P_DEFAULT, data);
   }
   //============================================================================
   auto read(hid_t mem_space_id, hid_t file_space_id, hid_t xfer_plist_id,
             T* buf) const -> void {
-    H5Dread(*m_dataset_id, type_id<T>(), mem_space_id, file_space_id,
-            xfer_plist_id, buf);
+    H5Dread(id(), type_id<T>(), mem_space_id, file_space_id, xfer_plist_id,
+            buf);
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest>
@@ -635,38 +627,37 @@ struct dataset {
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder>
-  auto read_chunk(std::vector<std::size_t> const&        offset,
-                  std::vector<std::size_t> const&        count,
-                  dynamic_multidim_array<T, IndexOrder>& arr) const {
-    read_chunk(std::vector<hsize_t>(begin(offset), end(offset)),
-               std::vector<hsize_t>(begin(count), end(count)), arr);
+  auto read(std::vector<std::size_t> const&        offset,
+            std::vector<std::size_t> const&        count,
+            dynamic_multidim_array<T, IndexOrder>& arr) const {
+    read(std::vector<hsize_t>(begin(offset), end(offset)),
+         std::vector<hsize_t>(begin(count), end(count)), arr);
     return arr;
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest>
-  auto read_chunk(std::vector<std::size_t> const& offset,
-                  std::vector<std::size_t> const& count) const {
-    return read_chunk<IndexOrder>(
-        std::vector<hsize_t>(begin(offset), end(offset)),
-        std::vector<hsize_t>(begin(count), end(count)));
+  auto read(std::vector<std::size_t> const& offset,
+            std::vector<std::size_t> const& count) const {
+    return read<IndexOrder>(std::vector<hsize_t>(begin(offset), end(offset)),
+                            std::vector<hsize_t>(begin(count), end(count)));
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest>
-  auto read_chunk(std::vector<hsize_t> const& offset,
-                  std::vector<hsize_t> const& count) const {
+  auto read(std::vector<hsize_t> const& offset,
+            std::vector<hsize_t> const& count) const {
     dynamic_multidim_array<T, IndexOrder> arr;
-    read_chunk(offset, count, arr);
+    read(offset, count, arr);
     return arr;
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder>
-  auto read_chunk(std::vector<hsize_t> offset, std::vector<hsize_t> count,
-                  dynamic_multidim_array<T, IndexOrder>& arr) const -> auto& {
+  auto read(std::vector<hsize_t> offset, std::vector<hsize_t> count,
+            dynamic_multidim_array<T, IndexOrder>& arr) const -> auto& {
     assert(offset.size() == count.size());
 
     std::vector<hsize_t> count_without_ones;
 
-    hid_t       dataset_space = H5Dget_space(*m_dataset_id);
+    hid_t       dataset_space = H5Dget_space(id());
     std::size_t rank          = 0;
     for (std::size_t i = 0; i < count.size(); ++i) {
       if (count[i] > 1) {
@@ -711,7 +702,7 @@ struct dataset {
     std::vector<hsize_t> offset{static_cast<hsize_t>(is)...};
     std::vector<hsize_t> count(sizeof...(Is), 1);
 
-    hid_t      dataset_space = H5Dget_space(*m_dataset_id);
+    hid_t      dataset_space = H5Dget_space(id());
     auto const rank          = H5Sget_simple_extent_ndims(dataset_space);
     auto       size          = std::make_unique<hsize_t[]>(rank);
     H5Sselect_hyperslab(dataset_space, H5S_SELECT_SET, offset.data(), nullptr,
@@ -727,7 +718,7 @@ struct dataset {
   auto operator[](hsize_t const i) const { return read(i); }
   //----------------------------------------------------------------------------
   auto num_dimensions() const {
-    auto dataset_space = H5Dget_space(*m_dataset_id);
+    auto dataset_space = H5Dget_space(id());
     auto ndims         = H5Sget_simple_extent_ndims(dataset_space);
     H5Sclose(dataset_space);
     return ndims;
@@ -741,19 +732,19 @@ struct dataset {
   auto name() const -> auto const& { return m_name; }
   //----------------------------------------------------------------------------
   auto attribute(std::string const& name) const {
-    return hdf5::attribute{m_dataset_id, name};
+    return hdf5::attribute{id(), name};
   }
-  auto dataspace() const {
-    return hdf5::dataspace{H5Dget_space(*m_dataset_id)};
-  }
-  auto flush() { H5Dflush(*m_dataset_id); }
+  auto dataspace() const { return hdf5::dataspace{H5Dget_space(id())}; }
+  auto flush() { H5Dflush(id()); }
+  //----------------------------------------------------------------------------
+  auto size() const { return dataspace().current_resolution(); }
 };
 //==============================================================================
 template <typename IDHolder>
 struct dataset_creator {
   auto as_id_holder() -> auto& { return *static_cast<IDHolder*>(this); }
   auto as_id_holder() const -> auto const& {
-    return *static_cast<IDHolder*>(this);
+    return *static_cast<IDHolder const*>(this);
   }
 #ifdef __cpp_concepts
   template <typename T, typename IndexOrder = x_fastest, integral... Size>
@@ -761,18 +752,18 @@ struct dataset_creator {
   template <typename T, typename IndexOrder = x_fastest, typename... Size,
             enable_if_integral<Size...> = true>
 #endif
-  auto create_dataset(std::string const& dataset_name, Size const... size) {
-    return hdf5::dataset<T>{as_id_holder().id(), dataset_name, size...};
+  auto create_dataset(std::string const& name, Size const... size) {
+    return hdf5::dataset<T>{as_id_holder().id(), name, size...};
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  auto dataset(char const* dataset_name) const {
-    return hdf5::dataset<T>{as_id_holder().id(), dataset_name};
+  [[nodiscard]] auto dataset(char const* name) const {
+    return hdf5::dataset<T>{as_id_holder().id(), name};
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  auto dataset(std::string const& name) const {
-    return dataset(name.c_str());
+  [[nodiscard]] auto dataset(std::string const& name) const {
+    return dataset<T>(name.c_str());
   }
 };
 //==============================================================================
@@ -781,40 +772,35 @@ struct group : id_holder, dataset_creator<group> {
   using this_t = group;
 
  private:
-  std::unique_ptr<hid_t> m_parent_id;
-  std::string            m_name;
+  hid_t       m_parent_id;
+  std::string m_name;
   //============================================================================
  public:
-  group(std::unique_ptr<hid_t> const& file_id, hid_t const group_id,
-        std::string const& name)
-      : m_parent_id{std::make_unique<hid_t>(*file_id)},
-        m_id{std::make_unique<hid_t>(group_id)},
-        m_name{name} {
-    // H5Iinc_ref(*m_parent_id);
+  group(hid_t const file_id, hid_t const group_id, std::string const& name)
+      : id_holder{group_id}, m_parent_id{file_id}, m_name{name} {
+    // H5Iinc_ref(m_parent_id);
   }
   //----------------------------------------------------------------------------
   group(group const& other)
-      : m_parent_id{std::make_unique<hid_t>(*other.m_parent_id)},
-        m_id{std::make_unique<hid_t>(*other.m_id)},
+      : id_holder{other.id()},
+        m_parent_id{other.m_parent_id},
         m_name{other.m_name} {
-    // H5Iinc_ref(*m_parent_id);
-    H5Iinc_ref(*m_id);
+    // H5Iinc_ref(m_parent_id);
+    H5Iinc_ref(id());
   }
   //----------------------------------------------------------------------------
   group(group&&) noexcept = default;
   //----------------------------------------------------------------------------
   auto operator=(group const& other) -> group& {
     // if (m_parent_id != nullptr) {
-    //  H5Fclose(*m_parent_id);
+    //  H5Fclose(m_parent_id);
     //}
-    if (m_id != nullptr) {
-      H5Gclose(*m_id);
-    }
-    m_parent_id = std::make_unique<hid_t>(*other.m_parent_id);
-    m_id        = std::make_unique<hid_t>(*other.m_id);
-    m_name      = other.m_name;
-    // H5Iinc_ref(*m_parent_id);
-    H5Iinc_ref(*m_id);
+    H5Gclose(id());
+    m_parent_id = other.m_parent_id;
+    set_id(other.id());
+    m_name = other.m_name;
+    // H5Iinc_ref(m_parent_id);
+    H5Iinc_ref(id());
     return *this;
   }
   //----------------------------------------------------------------------------
@@ -822,70 +808,57 @@ struct group : id_holder, dataset_creator<group> {
   //----------------------------------------------------------------------------
   ~group() {
     // if (m_parent_id != nullptr) {
-    //  H5Fclose(*m_parent_id);
+    //  H5Fclose(m_parent_id);
     //}
-    if (m_id != nullptr) {
-      H5Gclose(*m_id);
-    }
+    H5Gclose(id());
   }
   auto attribute(std::string const& name) const {
-    return hdf5::attribute{m_id, name};
+    return hdf5::attribute{id(), name};
   }
   //============================================================================
   auto sub_group(char const* name) {
     hid_t group_id;
     api::get().disable_error_printing();
-    group_id = H5Gcreate2(*m_id, name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    group_id = H5Gcreate2(id(), name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     api::get().enable_error_printing();
     if (group_id <= 0) {
-      group_id = H5Gopen2(*m_id, name, H5P_DEFAULT);
+      group_id = H5Gopen(id(), name, H5P_DEFAULT);
     }
-    return hdf5::group{m_id, group_id, name};
+    return hdf5::group{id(), group_id, name};
   }
   //----------------------------------------------------------------------------
   auto sub_group(std::string const& name) { return sub_group(name.data()); }
 };
 //==============================================================================
-struct file : dataset_creator<file> {
-  std::unique_ptr<hid_t> m_id;
-  //============================================================================
+struct file : id_holder, dataset_creator<file> {
  public:
-  file(filesystem::path const& path) : file{path.c_str()} {}
+  explicit file(filesystem::path const& path) : file{path.c_str()} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  file(std::string const& path) : file{path.data()} {}
+  explicit file(std::string const& path) : file{path.data()} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  file(char const* path) { open(path); }
+  explicit file(char const* path) : id_holder{-1} { open(path); }
   //----------------------------------------------------------------------------
-  file(file const& other) : m_id{std::make_unique<hid_t>(*other.m_id)} {
-    H5Iinc_ref(*m_id);
-  }
+  file(file const& other) : id_holder{other.id()} { H5Iinc_ref(id()); }
   //----------------------------------------------------------------------------
   file(file&&) noexcept = default;
   //----------------------------------------------------------------------------
   auto operator=(file const& other) -> file& {
-    if (m_id != nullptr) {
-      H5Fclose(*m_id);
-    }
-    m_id = std::make_unique<hid_t>(*other.m_id);
-    H5Iinc_ref(*m_id);
+    H5Fclose(id());
+    set_id(other.id());
+    H5Iinc_ref(id());
     return *this;
   }
   //----------------------------------------------------------------------------
   auto operator=(file&&) noexcept -> file& = default;
   //----------------------------------------------------------------------------
-  ~file() {
-    if (m_id != nullptr) {
-      H5Fclose(*m_id);
-    }
-  }
+  ~file() { H5Fclose(id()); }
 
  private:
   auto open(char const* path) -> void {
     if (filesystem::exists(filesystem::path{path})) {
-      m_id = std::make_unique<hid_t>(H5Fopen(path, H5F_ACC_RDWR, H5P_DEFAULT));
+      set_id(H5Fopen(path, H5F_ACC_RDWR, H5P_DEFAULT));
     } else {
-      m_id = std::make_unique<hid_t>(
-          H5Fcreate(path, H5F_ACC_EXCL, H5P_DEFAULT, H5P_DEFAULT));
+      set_id(H5Fcreate(path, H5F_ACC_EXCL, H5P_DEFAULT, H5P_DEFAULT));
     }
   }
 
@@ -893,12 +866,12 @@ struct file : dataset_creator<file> {
   //----------------------------------------------------------------------------
   auto node_exists(char const* name,
                    hid_t link_access_property_list_id = H5P_DEFAULT) const {
-    return H5Lexists(*m_id, name, link_access_property_list_id);
+    return H5Lexists(id(), name, link_access_property_list_id);
   }
   //----------------------------------------------------------------------------
   auto node_exists(std::string const& name,
                    hid_t link_access_property_list_id = H5P_DEFAULT) const {
-    return node_exists(name.c_str(), link_access_property_list_id)
+    return node_exists(name.c_str(), link_access_property_list_id);
   }
   //============================================================================
   // auto group(std::string const& group_name) {
@@ -908,18 +881,18 @@ struct file : dataset_creator<file> {
   auto group(char const* name) {
     hid_t group_id;
     api::get().disable_error_printing();
-    group_id = H5Gcreate2(*m_id, name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    group_id = H5Gcreate(id(), name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     api::get().enable_error_printing();
     if (group_id <= 0) {
-      group_id = H5Gopen2(*m_id, name, H5P_DEFAULT);
+      group_id = H5Gopen2(id(), name, H5P_DEFAULT);
     }
-    return hdf5::group{m_id, group_id, name};
+    return hdf5::group{id(), group_id, name};
   }
   //----------------------------------------------------------------------------
   auto group(std::string const& name) { return group(name.data()); }
   //============================================================================
   auto attribute(std::string const& name) const {
-    return hdf5::attribute{m_id, name};
+    return hdf5::attribute{id(), name};
   }
 };
 //==============================================================================
