@@ -101,6 +101,16 @@ auto physical_pos_in_square() {
 //==============================================================================
 auto update_initial_particles() -> void;
 auto update_advected_particles() -> void;
+auto update() {
+  x0    = physical_pos_in_square();
+  x1    = flowmap(v)(x0, t0, tau);
+  x0    = disc->sample_backward(x1);
+  error = euclidean_distance(x0, physical_pos_in_square());
+  points_geom->vertexbuffer()[0] = x0;
+  points_geom->vertexbuffer()[1] = x1;
+  update_initial_particles();
+  update_advected_particles();
+}
 //==============================================================================
 struct listener_t : gl::window_listener {
   Vec2<size_t> mouse_pos;
@@ -121,7 +131,7 @@ struct listener_t : gl::window_listener {
       if (grabbed_x1) {
         x1(0) = unprojected(0);
         x1(1) = unprojected(1);
-        x0    = flowmap(v)(x1, t0 + tau, -tau);
+        x0    = disc->sample_backward(x1);
         error = euclidean_distance(x0, physical_pos_in_square());
         points_geom->vertexbuffer()[0] = x0;
         points_geom->vertexbuffer()[1] = x1;
@@ -129,14 +139,7 @@ struct listener_t : gl::window_listener {
         auto const newpos = vec{unprojected(0), unprojected(1)};
         auto const offset = newpos - center_of_square;
         center_of_square  = newpos;
-        x0                = x0 + offset;
-        x1                = flowmap(v)(x0, t0, tau);
-        x0                = flowmap(v)(x1, t0 + tau, -tau);
-        error             = euclidean_distance(x0, physical_pos_in_square());
-        points_geom->vertexbuffer()[0] = x0;
-        points_geom->vertexbuffer()[1] = x1;
-        update_initial_particles();
-        update_advected_particles();
+        update();
       }
     }
   }
@@ -233,7 +236,6 @@ struct particle_shader_t : gl::shader {
   }
 };
 auto particle_shader = std::unique_ptr<particle_shader_t>{};
-//------------------------------------------------------------------------------
 auto render_ui() {
   ImGui::Begin("Controls");
   bool need_update = false;
@@ -244,29 +246,20 @@ auto render_ui() {
     need_update = true;
   }
   if (ImGui::DragDouble("radius", &radius, 0.01, 0.0001, 0.5)) {
-    x0          = physical_pos_in_square();
     need_update = true;
   }
   if (ImGui::Button("x0 to center of square")) {
     local_pos_in_square = {0.5, 0.5};
-    x0                  = physical_pos_in_square();
     need_update         = true;
   }
   ImGui::Text("error: %e", error);
   if (ImGui::square_widget("foo", local_pos_in_square(0),
                            local_pos_in_square(1))) {
-    x0          = physical_pos_in_square();
     need_update = true;
   }
   ImGui::End();
   if (need_update) {
-    x1    = flowmap(v)(x0, t0, tau);
-    x0    = flowmap(v)(x1, t0 + tau, -tau);
-    error = euclidean_distance(x0, physical_pos_in_square());
-    points_geom->vertexbuffer()[0] = x0;
-    points_geom->vertexbuffer()[1] = x1;
-    update_initial_particles();
-    update_advected_particles();
+    update();
   }
 }
 //==============================================================================
@@ -346,7 +339,12 @@ auto update_initial_particles() -> void {
           radius},
       autonomous_particle2{
           vec2{center_of_square(0) - radius, center_of_square(1) + radius}, t0,
-          radius}};
+          radius}
+      ,
+      autonomous_particle2{
+          vec2{center_of_square(0), center_of_square(1)}, t0,
+          radius}
+  };
   square_t0_geom->vertexbuffer()[0] = initial_particles[0].center();
   square_t0_geom->vertexbuffer()[1] = initial_particles[1].center();
   square_t0_geom->vertexbuffer()[2] = initial_particles[2].center();
@@ -382,7 +380,7 @@ int main() {
   update_initial_particles();
   update_advected_particles();
   x1    = flowmap(v)(x0, t0, tau);
-  x0    = flowmap(v)(x1, t0 + tau, -tau);
+  x0    = disc->sample_backward(x1);
   error = euclidean_distance(x0, physical_pos_in_square());
   points_geom->vertexbuffer()[0] = x0;
   points_geom->vertexbuffer()[1] = x1;
