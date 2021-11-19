@@ -258,33 +258,12 @@ struct autonomous_particle_flowmap_discretization {
     //auto         particles_on_disk = file.dataset<particle_t>("finished");
     sampler_t    nearest_sampler;
     auto const& h = hierarchy(tag);
-    std::pair<std::vector<int>, std::vector<Real>> nn;
+    auto         nn = typename pointset<Real, NumDimensions>::vertex_handle{};
     {
       auto l = std::lock_guard{hierarchy_mutex(tag)};
-      nn     = h->nearest_neighbors_radius_raw(x, 0.1);
+      nn     = h->nearest_neighbor(x);
     }
-    auto const& indices            = nn.first;
-    auto const& physical_distances = nn.second;
-    static auto m = std::mutex{};
-#pragma omp parallel for
-    for (size_t j = 0; j < size(indices); ++j) {
-      auto const& sampler = m_samplers[indices[j]];
-      auto const  local_dist =
-          sampler.ellipse(tag).squared_local_euclidean_distance_to_center(x);
-      {
-        auto       l                 = std::lock_guard{m};
-        auto const weighted_distance = physical_distances[j] * local_dist;
-        if (weighted_distance < shortest_distance) {
-          shortest_distance = weighted_distance;
-          nearest_sampler   = sampler;
-        }
-      }
-    }
-
-    if (shortest_distance < std::numeric_limits<real_t>::infinity()) {
-      return nearest_sampler.sample(x, tag);
-    }
-    return pos_t::fill(Real(0) / Real(0));
+    return m_samplers[nn.i].sample(x, tag);
   }
 
  public:

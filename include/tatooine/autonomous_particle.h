@@ -663,10 +663,10 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
                           real_t const objective_cond, range auto const radii,
                           range auto const& offsets, container_t& out,
                           container_t& finished_particles) const {
-    bool                    tau_should_have_changed_but_did_not = false;
-    static constexpr real_t min_tau_step                        = 1e-8;
-    static constexpr real_t max_cond_overshoot                  = 1e-6;
-    auto const [eigvecs_S, eigvals_S] = eigenvectors_sym(S1());
+    bool                    min_step_size_reached = false;
+    static constexpr real_t min_tau_step          = 1e-8;
+    static constexpr real_t max_cond_overshoot    = 1e-6;
+    auto const [eigvecs_S, eigvals_S]             = eigenvectors_sym(S1());
     auto const B = eigvecs_S * diag(eigvals_S);  // current main axes
 
     mat_t                   H, HHt, nabla_phi2, fmg2fmg1, cur_B;
@@ -683,42 +683,39 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
       ghosts[i * 2 + 1] = x();
       ghosts[i * 2 + 1] -= B.col(i);
     }
-    real_t advected_t          = t();
-    auto   old_advected_center = advected_ellipse.center();
-    auto   old_advected_time   = advected_t;
-    auto   old_ghosts          = ghosts;
-    auto   old_cond_HHt        = cond_HHt;
-    bool   first               = true;
+    real_t cur_t         = t();
+    auto   prev_t        = cur_t;
+    auto   prev_center   = advected_ellipse.center();
+    auto   prev_ghosts   = ghosts;
+    auto   prev_cond_HHt = cond_HHt;
+    bool   first         = true;
     if constexpr (is_cacheable<std::decay_t<decltype(phi)>>()) {
       phi.use_caching(false);
     }
 
-    while (cond_HHt < objective_cond || advected_t < t_end) {
-      if (!tau_should_have_changed_but_did_not) {
+    while (cond_HHt < objective_cond || cur_t < t_end) {
+      if (!min_step_size_reached) {
         if (!first) {
-          old_ghosts          = ghosts;
-          old_advected_center = advected_ellipse.center();
-          old_cond_HHt        = cond_HHt;
-          old_advected_time   = advected_t;
+          prev_ghosts   = ghosts;
+          prev_center   = advected_ellipse.center();
+          prev_cond_HHt = cond_HHt;
+          prev_t        = cur_t;
         } else {
           first = false;
         }
 
-        if (advected_t + step_size > t_end) {
-          step_size  = t_end - advected_t;
-          advected_t = t_end;
+        if (cur_t + step_size > t_end) {
+          step_size = t_end - cur_t;
+          cur_t     = t_end;
         } else {
-          advected_t += step_size;
+          cur_t += step_size;
         }
 
         advected_ellipse.center() =
-            phi(advected_ellipse.center(), old_advected_time,
-                advected_t - old_advected_time);
+            phi(advected_ellipse.center(), prev_t, cur_t - prev_t);
         for (size_t i = 0; i < num_dimensions(); ++i) {
-          ghosts[i * 2]     = phi(ghosts[i * 2], old_advected_time,
-                              advected_t - old_advected_time);
-          ghosts[i * 2 + 1] = phi(ghosts[i * 2 + 1], old_advected_time,
-                                  advected_t - old_advected_time);
+          ghosts[i * 2]     = phi(ghosts[i * 2], prev_t, cur_t - prev_t);
+          ghosts[i * 2 + 1] = phi(ghosts[i * 2 + 1], prev_t, cur_t - prev_t);
           H.col(i)          = ghosts[i * 2] - ghosts[i * 2 + 1];
         }
         H *= half;
@@ -735,15 +732,14 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
         advected_ellipse.S() = cur_B * transposed(eigvecs_HHt);
       }
 
-      if (advected_t == t_end &&
-          cond_HHt <= objective_cond + max_cond_overshoot) {
-        finished_particles.emplace_back(x0(), advected_t, fmg2fmg1,
+      if (cur_t == t_end && cond_HHt <= objective_cond + max_cond_overshoot) {
+        finished_particles.emplace_back(x0(), cur_t, fmg2fmg1,
                                         advected_ellipse);
         return;
       }
       if ((cond_HHt >= objective_cond &&
            cond_HHt <= objective_cond + max_cond_overshoot) ||
-          tau_should_have_changed_but_did_not) {
+          min_step_size_reached) {
         real_t acc_radii = 0;
         for (auto const& radius : radii) {
           acc_radii += radius(0) * radius(1);
@@ -756,35 +752,34 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
             auto       offset_ellipse = ellipse_t{
                 advected_ellipse.center() + offset2,
                 eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt)};
-            out.emplace_back(x0() + offset0, advected_t, fmg2fmg1,
-                             offset_ellipse);
+            out.emplace_back(x0() + offset0, cur_t, fmg2fmg1, offset_ellipse);
           }
         }
         return;
       }
       if (cond_HHt > objective_cond + max_cond_overshoot) {
-        // if (old_cond_HHt < objective_cond) {
+        // if (prev_cond_HHt < objective_cond) {
         //  auto const _t =
-        //      (old_cond_HHt - objective_cond) / (old_cond_HHt - cond_HHt);
+        //      (prev_cond_HHt - objective_cond) / (prev_cond_HHt - cond_HHt);
         //  assert(_t >= 0 && _t <= 1);
         //  step_size *= _t;
         //}
-        auto const old_tau_step = step_size;
+        auto const prev_step_size = step_size;
         step_size *= half;
-        tau_should_have_changed_but_did_not = step_size == old_tau_step;
+        min_step_size_reached = step_size == prev_step_size;
         if (step_size < min_tau_step) {
-          tau_should_have_changed_but_did_not = true;
+          min_step_size_reached = true;
         }
 
-        if (!tau_should_have_changed_but_did_not) {
-          cond_HHt                  = old_cond_HHt;
-          ghosts                    = old_ghosts;
-          advected_t                = old_advected_time;
-          advected_ellipse.center() = old_advected_center;
+        if (!min_step_size_reached) {
+          cond_HHt                  = prev_cond_HHt;
+          ghosts                    = prev_ghosts;
+          cur_t                     = prev_t;
+          advected_ellipse.center() = prev_center;
         }
         //} else {
         //   auto const _t =
-        //      (old_cond_HHt - objective_cond) / (old_cond_HHt - cond_HHt);
+        //      (prev_cond_HHt - objective_cond) / (prev_cond_HHt - cond_HHt);
         //   assert(_t >= 1);
         //   step_size *= _t;
       }
