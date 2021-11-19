@@ -130,7 +130,7 @@ struct lazy_reader
       for (size_t i = 0; i < offset.size(); ++i) {
         assert(offset[i] + chunk.size()[i] <= this->size()[i]);
       }
-      m_dataset.read_chunk(offset, chunk.size(), chunk);
+      m_dataset.read(offset, chunk.size(), chunk);
 
     } else {
       std::lock_guard lock{m_chunks_loaded_mutex};
