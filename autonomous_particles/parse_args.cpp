@@ -7,7 +7,8 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
   namespace po = boost::program_options;
 
   size_t width = 10, height = 10, depth = 10, num_splits = 3,
-         max_num_particles = 500000, output_res_x = 200, output_res_y = 100;
+         max_num_particles = 500000, output_res_x = 200, output_res_y = 100,
+         output_res_z = 100;
   double t0 = 0, tau = 2, tau_step = 0.05, min_cond = 0.01,
          agranovsky_delta_t      = 0.1;
   bool write_ellipses            = true;
@@ -18,8 +19,9 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
       "write_ellipses", po::value<bool>(), "write ellipses")(
       "width", po::value<size_t>(), "set width")("height", po::value<size_t>(),
                                                  "set height")(
-      "output_res_x", po::value<size_t>(), "set outputresolution width")(
-      "output_res_y", po::value<size_t>(), "set outputresolution height")(
+      "output_res_x", po::value<size_t>(), "set output resolution width")(
+      "output_res_y", po::value<size_t>(), "set output resolution height")(
+      "output_res_z", po::value<size_t>(), "set output resolution depth")(
       "depth", po::value<size_t>(), "set depth")(
       "num_splits", po::value<size_t>(), "set number of splits")(
       "max_num_particles", po::value<size_t>(),
@@ -67,6 +69,16 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
   } else {
     std::cerr << "default height = " << height << '\n';
   }
+  if (vm.count("depth") > 0) {
+    if (autonomous_particles_file) {
+      throw std::runtime_error{
+          "\"autonomous_particles_file\" was specified. do not specify depth!"};
+    }
+    depth = vm["depth"].as<size_t>();
+    std::cerr << "specified depth = " << depth << '\n';
+  } else {
+    std::cerr << "default depth = " << depth << '\n';
+  }
   if (vm.count("output_res_x") > 0) {
     output_res_x = vm["output_res_x"].as<size_t>();
     std::cerr << "specified output_res_x = " << output_res_x << '\n';
@@ -79,15 +91,11 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
   } else {
     std::cerr << "default output_res_y = " << output_res_y << '\n';
   }
-  if (vm.count("depth") > 0) {
-    if (autonomous_particles_file) {
-      throw std::runtime_error{
-          "\"autonomous_particles_file\" was specified. do not specify depth!"};
-    }
-    depth = vm["depth"].as<size_t>();
-    std::cerr << "specified depth = " << depth << '\n';
+  if (vm.count("output_res_z") > 0) {
+    output_res_z = vm["output_res_z"].as<size_t>();
+    std::cerr << "specified output_res_z = " << output_res_z << '\n';
   } else {
-    std::cerr << "default depth = " << depth << '\n';
+    std::cerr << "default output_res_z = " << output_res_z << '\n';
   }
   if (vm.count("num_splits") > 0) {
     if (autonomous_particles_file) {
@@ -158,6 +166,7 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
                 max_num_particles,
                 output_res_x,
                 output_res_y,
+                output_res_z,
                 t0,
                 tau,
                 tau_step,

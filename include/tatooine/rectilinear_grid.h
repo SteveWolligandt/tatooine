@@ -2067,7 +2067,7 @@ class rectilinear_grid {
       typed_vertex_property_interface_t<T, HasNonConstReference> const& prop,
       std::index_sequence<Is...> /*seq*/) const {
     if constexpr (is_arithmetic<T>) {
-      auto dataset                      = f.add_dataset<T>(name, size<Is>()...);
+      auto dataset                      = f.create_dataset<T>(name, size<Is>()...);
       dataset.attribute("vsMesh")       = "/rectilinear_grid";
       dataset.attribute("vsCentering")  = "nodal";
       dataset.attribute("vsType")       = "variable";
@@ -2092,7 +2092,7 @@ class rectilinear_grid {
       gg.attribute("vsType") = "vsVars";
 
       for (size_t i = 0; i < vec_t::dimension(0); ++i) {
-        auto dataset = g.add_dataset<typename vec_t::value_type>(
+        auto dataset = g.create_dataset<typename vec_t::value_type>(
             name + "_" + std::to_string(i), size<Is>()...);
         dataset.attribute("vsMesh")       = "/rectilinear_grid";
         dataset.attribute("vsCentering")  = "nodal";
@@ -2154,7 +2154,7 @@ class rectilinear_grid {
               typename std::decay_t<decltype(dimension<Is>())>::value_type;
           group.attribute("vsAxis" + std::to_string(Is)) =
               "axis" + std::to_string(Is);
-          auto dim = f.add_dataset<dim_type>(
+          auto dim = f.create_dataset<dim_type>(
               "rectilinear_grid/axis" + std::to_string(Is), size<Is>());
           dim.write(std::vector<dim_type>(
               begin(dimension<Is>()), end(dimension<Is>())));

@@ -56,7 +56,7 @@ int main() {
   }
   tatooine::hdf5::file file{FILE_NAME};
 
-  auto dataset = file.add_dataset<int>(DATASET_NAME, NX, NY);
+  auto dataset = file.create_dataset<int>(DATASET_NAME, NX, NY);
   /*
    * Write the data to the dataset using default memory space, file
    * space, and transfer properties.

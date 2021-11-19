@@ -37,7 +37,7 @@ auto IO_S() {
   auto path = filesystem::path{"SDScompound.h5"};
   {
     auto file    = hdf5::file{path};
-    auto dataset = file.add_dataset<S>("data", 1);
+    auto dataset = file.create_dataset<S>("data", 1);
 
     auto s = S{{1, 2, 2, 2, 2}, 2.0f, 15.0};
     dataset.write(&s);
@@ -63,7 +63,7 @@ auto IO_static_multidim_array() {
   auto s0     = arr_t::randu();
   {
     auto file    = hdf5::file{path};
-    auto dataset = file.add_dataset<arr_t>("data", 1);
+    auto dataset = file.create_dataset<arr_t>("data", 1);
 
     dataset.write(&s0);
   }
@@ -88,7 +88,7 @@ auto IO_tensor() {
   auto t0     = tensor_t::randu();
   {
     auto file    = hdf5::file{path};
-    auto dataset = file.add_dataset<tensor_t>("data", 1);
+    auto dataset = file.create_dataset<tensor_t>("data", 1);
 
     dataset.write(&t0);
   }
@@ -114,7 +114,7 @@ auto IO_ellipse() {
   auto ell0     = ell_t{};
   {
     auto file    = hdf5::file{path};
-    auto dataset = file.add_dataset<ell_t>("data", 1);
+    auto dataset = file.create_dataset<ell_t>("data", 1);
     dataset.write(&ell0);
   }
   {
@@ -147,7 +147,7 @@ auto IO_autonomous_particles() {
   auto particle0        = particle_t{vec{0.5, 0.5}, 0.0, 0.01};
   {
     auto file    = hdf5::file{path};
-    auto dataset = file.add_dataset<particle_t>("data", 1);
+    auto dataset = file.create_dataset<particle_t>("data", 1);
     dataset.write(&particle0);
   }
   {

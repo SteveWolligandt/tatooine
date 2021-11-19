@@ -14,7 +14,7 @@ namespace tatooine::test {
 #ifdef TATOOINE_NETCDF_AVAILABLE
 TEST_CASE("lazy_reader_hdf5_stress", "[lazy_reader][hdf5][stress]") {
   auto file    = hdf5::file{"lazy_reader_hdf_stress.h5"};
-  auto dataset = file.add_dataset<double>("data", 4096, 2048, 512);
+  auto dataset = file.create_dataset<double>("data", 4096, 2048, 512);
 
     auto chunk = dynamic_multidim_array<double> {512, 512, 512};
   for (size_t iz = 0; iz < 4096/512; ++iz) { 
@@ -47,7 +47,7 @@ TEST_CASE("lazy_reader_hdf5_limit_num_chunks",
     auto const num_chunks = data_size / chunk_size;
     auto       file       = hdf5::file{file_path};
     auto       dataset =
-        file.add_dataset<dataset_type>(dataset_name, data_size, data_size, data_size);
+        file.create_dataset<dataset_type>(dataset_name, data_size, data_size, data_size);
     auto data_arr =
         dynamic_multidim_array<dataset_type>{chunk_size, chunk_size, chunk_size};
     auto i = size_t(0);
@@ -115,7 +115,7 @@ TEST_CASE("lazy_reader_hdf5_parallel_access",
     auto const num_chunks = data_size / chunk_size;
     auto       file       = hdf5::file{file_path};
     auto       dataset =
-        file.add_dataset<dataset_type>(dataset_name, data_size, data_size, data_size);
+        file.create_dataset<dataset_type>(dataset_name, data_size, data_size, data_size);
     auto data_arr =
         dynamic_multidim_array<dataset_type>{chunk_size, chunk_size, chunk_size};
     auto i = size_t(0);
@@ -170,7 +170,7 @@ TEST_CASE("lazy_reader_hdf5", "[lazy_reader][hdf5]") {
       arr_out.write(data_src);
     } else {
       auto out     = hdf5::file{filepath};
-      auto arr_out = out.add_dataset<value_type>(array_name, full_size[0],
+      auto arr_out = out.create_dataset<value_type>(array_name, full_size[0],
                                                  full_size[1], full_size[2]);
       arr_out.write(data_src);
     }
