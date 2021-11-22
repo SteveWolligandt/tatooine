@@ -1,8 +1,9 @@
 #ifndef TATOOINE_HDF5_TYPE_H
 #define TATOOINE_HDF5_TYPE_H
 //==============================================================================
-#include <@TATOOINE_HDF5_HEADER@>
 #include <tatooine/reflection.h>
+
+#include <@TATOOINE_HDF5_HEADER@>
 //==============================================================================
 namespace tatooine::hdf5 {
 //==============================================================================
@@ -10,14 +11,14 @@ template <typename T>
 struct type;
 template <typename T>
 struct reflected_type;
-  template <typename S>
-  auto type_id() -> decltype(auto) {
-    if constexpr (!type_exists<type<S>> && reflection::is_reflectable<S>) {
-      return reflected_type<S>::id();
-    } else {
-      return type<S>::id();
-    }
-  };
+template <typename S>
+auto type_id() -> decltype(auto) {
+  if constexpr (!type_exists<type<S>> && reflection::is_reflectable<S>) {
+    return reflected_type<S>::id();
+  } else {
+    return type<S>::id();
+  }
+};
 //==============================================================================
 namespace detail {
 //==============================================================================
@@ -151,16 +152,38 @@ struct type<std::array<T, N>> : detail::base_array_type<T, N> {
   type() : parent_t{dim} {}
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Char>
-struct type<std::basic_string<Char>> {
-  static auto memory_type() { return H5T_STRING; }
-  static auto little_endian() {
-    return type<typename std::basic_string<Char>::value_type>::little_endian();
-  }
-  static auto big_endian() {
-    return type<typename std::basic_string<Char>::value_type>::big_endian();
-  }
-  static auto id() { return little_endian(); }
+template <>
+struct type<std::string> {
+ private:
+  hid_t m_id;
+
+ public:
+  auto id() const { return m_id; }
+  auto set_id(hid_t const id) { m_id = id; }
+
+  explicit type(size_t const size) : m_id{H5Tcopy(H5T_C_S1)} { set_size(1); }
+  type() : type{size_t(1)} {}
+  type(hid_t const id) : m_id{id} {}
+  ~type() { H5Tclose(m_id); }
+
+  auto set_size(size_t const size) -> void { H5Tset_size(m_id, size); }
+  auto size() const { return H5Tget_size(m_id); }
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <std::size_t N>
+struct type<char[N]> {
+ private:
+  hid_t m_id;
+
+ public:
+  auto id() const { return m_id; }
+  auto set_id(hid_t const id) { m_id = id; }
+
+  explicit type() : m_id{H5Tcopy(H5T_C_S1)} { H5Tset_size(m_id, N); }
+  type(hid_t const id) : m_id{id} {}
+  ~type() { H5Tclose(m_id); }
+
+  auto size() const { return H5Tget_size(m_id); }
 };
 
 template <typename T>

@@ -4,7 +4,7 @@
 #include <tatooine/chunked_multidim_array.h>
 #include <tatooine/index_order.h>
 #include <mutex>
-#include <list>
+#include <queue>
 #include <map>
 //==============================================================================
 namespace tatooine {
@@ -24,17 +24,20 @@ struct lazy_reader
   }
 
  private:
-  struct chunks_it_comp {
-    auto operator()(
-        std::pair<size_t, typename std::list<size_t>::iterator> const& lhs,
-        std::pair<size_t, typename std::list<size_t>::iterator> const& rhs) {
-      return lhs.first < rhs.first;
+  DataSet                    m_dataset;
+  mutable std::vector<bool>  m_read;
+  using queue_data_t = std::pair<
+      size_t, std::chrono::time_point_cast<std::chrono::high_resolution_clock>>;
+  struct queue_compare_t {
+    auto operator()(queue_data_t const& lhs, queue_data_t const& rhs) const
+        -> bool {
+      return lhs.second < rhs.second;
     }
   };
-  DataSet                   m_dataset;
-  mutable std::vector<bool> m_read;
-  mutable std::list<size_t> m_chunks_loaded;
-  mutable std::map<size_t, typename std::list<size_t>::iterator> m_chunks_its;
+  using queue_t = std::priority_queue<queue_data_t, std::vector<queue_data_t>,
+                                      queue_compare_t>;
+  mutable queue_t m_chunks_loaded;
+  // mutable std::map<size_t, typename queue_t::iterator> m_chunks_its;
   size_t             m_max_num_chunks_loaded   = 1024;
   bool               m_limit_num_chunks_loaded = false;
   mutable std::mutex m_chunks_loaded_mutex;
@@ -97,8 +100,8 @@ struct lazy_reader
     if (this->chunk_at_is_null(plain_chunk_index) && !m_read[plain_chunk_index]) {
       {
         std::lock_guard chunks_loaded_lock{m_chunks_loaded_mutex};
-        m_chunks_loaded.push_back(plain_chunk_index);
-        m_chunks_its[plain_chunk_index] = prev(end(m_chunks_loaded));
+        m_chunks_loaded.emplace(plain_chunk_index, std::chrono::high_resolution_clock::now());
+        //m_chunks_its[plain_chunk_index] = prev(end(m_chunks_loaded));
         if (m_limit_num_chunks_loaded &&
             num_chunks_loaded() > m_max_num_chunks_loaded) {
           auto chunk_to_erase = begin(m_chunks_loaded);
@@ -114,7 +117,7 @@ struct lazy_reader
             if (is_locked) {
               m_read[*chunk_to_erase] = false;
               this->destroy_chunk_at(*chunk_to_erase);
-              m_chunks_its.erase(*chunk_to_erase);
+              //m_chunks_its.erase(*chunk_to_erase);
               m_chunks_loaded.erase(chunk_to_erase);
               success = true;
             }
@@ -136,8 +139,8 @@ struct lazy_reader
       std::lock_guard lock{m_chunks_loaded_mutex};
       // this will move the current adressed chunked at the end of loaded
       // chunks
-      m_chunks_loaded.splice(end(m_chunks_loaded), m_chunks_loaded,
-                             m_chunks_its[plain_chunk_index]);
+      //m_chunks_loaded.splice(end(m_chunks_loaded), m_chunks_loaded,
+      //                       m_chunks_its[plain_chunk_index]);
     }
 
     return this->chunk_at(plain_chunk_index);

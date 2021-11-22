@@ -31,20 +31,32 @@ struct api {
 
  public:
   //----------------------------------------------------------------------------
-  auto disable_error_printing() -> void {
-    H5Eset_auto(H5E_DEFAULT, nullptr, nullptr);
-  }
-  //----------------------------------------------------------------------------
-  auto enable_error_printing() -> void {
-    H5Eset_auto(H5E_DEFAULT, m_old_func, m_old_client_data);
-  }
-  //----------------------------------------------------------------------------
   static auto get() -> auto& {
     static auto obj = api{};
     return obj;
   }
   //----------------------------------------------------------------------------
-  static auto my_hdf5_error_handler(void* /*error_data*/) -> herr_t {
+ public:
+  static auto disable_error_printing() -> void {
+    get()._disable_error_printing();
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ private:
+  auto _disable_error_printing() -> void {
+    H5Eset_auto(H5E_DEFAULT, nullptr, nullptr);
+  }
+  //----------------------------------------------------------------------------
+ public:
+  static auto enable_error_printing() -> void {
+    get()._enable_error_printing();
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ private:
+  auto _enable_error_printing() -> void {
+    H5Eset_auto(H5E_DEFAULT, m_old_func, m_old_client_data);
+  }
+  //----------------------------------------------------------------------------
+  static auto hdf5_error_handler(void* /*error_data*/) -> herr_t {
     std::cerr << "An HDF5 error was detected. Bye.\n";
     exit(1);
   }
@@ -134,8 +146,8 @@ struct dataspace : id_holder {
   template <std::size_t N>
   dataspace(std::array<hsize_t, N> cur_resolution,
             std::array<hsize_t, N> maxdims)
-      : id_holder{H5Screate_simple(N, boost::reverse(cur_resolution).data()),
-                  boost::reverse(maxdims).data()} {}
+      : id_holder{H5Screate_simple(N, boost::reverse(cur_resolution).data(),
+                                   boost::reverse(maxdims).data())} {}
   //----------------------------------------------------------------------------
   ~dataspace() { H5Sclose(id()); }
 
@@ -210,93 +222,140 @@ struct dataspace : id_holder {
   }
 };
 //==============================================================================
-template <typename T>
-struct attribute : id_holder {
+struct attribute {
  public:
   using this_t = attribute;
 
+ private:
+  hid_t       m_parent_id;
+  std::string m_name;
+
  public:
-  attribute(hid_t const parent_id, std::string const& name)
-      : id_holder{H5Aopen(parent_id, name.data(), H5P_DEFAULT)} {
-    if (id() < 0) {
-      if constexpr (is_same<T, std::string>) {
-        auto ds = hdf5::dataspace{H5S_SCALAR};
-        auto type_id      = H5Tcopy(H5T_C_S1);
-        H5Tset_size(type_id, 1);
-        api::get().disable_error_printing();
-        set_id(H5Acreate(parent_id, name.data(), type_id, ds.id(),
-                         H5P_DEFAULT, H5P_DEFAULT));
-        api::get().enable_error_printing();
-        H5Tclose(type_id);
-      }
-    }
-  }
-  //----------------------------------------------------------------------------
-  attribute(hid_t const parent_id, std::string const& name, T const& value)
-      : id_holder{H5Aopen(parent_id, name.data(), H5P_DEFAULT)} {
-    if (id() < 0) {
-      if constexpr (is_same<T, std::string>) {
-        auto ds = hdf5::dataspace{H5S_SCALAR};
-        auto type_id      = H5Tcopy(H5T_C_S1);
-        H5Tset_size(type_id, value.size());
-        api::get().disable_error_printing();
-        set_id(H5Acreate(parent_id, name.data(), type_id, ds.id(),
-                         H5P_DEFAULT, H5P_DEFAULT));
-        api::get().enable_error_printing();
-        H5Tclose(type_id);
-      } else {
-        auto ds = hdf5::dataspace{H5S_SCALAR};
-        auto type = hdf5::type<T>{}
-        H5Tset_size(type_id, value.size());
-        api::get().disable_error_printing();
-        set_id(H5Acreate(parent_id, name.data(), type.id(), ds.id(),
-                         H5P_DEFAULT, H5P_DEFAULT));
-        api::get().enable_error_printing();
-      }
-    } else {
-      write(value);
-    }
+  attribute(hid_t const parent_id, std::string name)
+      : m_parent_id{parent_id}, m_name{std::move(name)} {
+    H5Iinc_ref(m_parent_id);
   }
   //----------------------------------------------------------------------------
   attribute(attribute&&) noexcept = default;
   auto operator=(attribute&&) noexcept -> attribute& = default;
   //----------------------------------------------------------------------------
-  ~attribute(){
-    if (id() >= 0) {
-      H5Aclose(id());
+  ~attribute() {
+    H5Idec_ref(m_parent_id);
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto read_as() const {
+    T attr;
+    auto attr_id = H5Aopen(m_parent_id, m_name.c_str(), H5P_DEFAULT);
+    if (attr_id < 0) {
+      throw std::runtime_error{"Attribute not found."};
     }
+      auto t   = H5Aget_type(attr_id);
+    if constexpr (is_same<T, std::string>) {
+      attr = T(H5Tget_size(t) - 1, ' ');
+      H5Aread(attr_id, t, attr.data());
+    } else {
+      H5Aread(attr_id, t, &attr);
+    }
+      H5Tclose(t);
+      H5Aclose(attr_id);
+    return attr;
   }
-  //============================================================================
-  auto read() const {
-     T data;
-     if constexpr (is_same<T, std::string>) {
-       auto t = type_id();
-       H5Aread(id(), t, data.data()) H5Tclose(t);
-       // auto           s = m_attribute.getInMemDataSize();
-       // t.resize(s / sizeof(T));
-       // m_attribute.read(type_id<T>(), t.data());
-     }
-    return data;
+  //----------------------------------------------------------------------------
+  auto read_as_string() const {
+    return read_as<std::string>();
   }
-  //============================================================================
-  auto write(T const& value) {
-    if (id() >= 0) {
-      H5Awrite(id(), type_id, value.data());
+  //----------------------------------------------------------------------------
+  auto read_int() const {
+    return read_as<int>();
+  }
+  //----------------------------------------------------------------------------
+  auto read_float() const {
+    return read_as<float>();
+  }
+  //----------------------------------------------------------------------------
+  auto read_double() const {
+    return read_as<double>();
+  }
+  //----------------------------------------------------------------------------
+  auto read_int8() const {
+    return read_as<std::int8_t>();
+  }
+  //----------------------------------------------------------------------------
+  auto read_uint8() const {
+    return read_as<std::uint8_t>();
+  }
+  //----------------------------------------------------------------------------
+  auto read_int16() const {
+    return read_as<std::int16_t>();
+  }
+  //----------------------------------------------------------------------------
+  auto read_uint16() const {
+    return read_as<std::uint16_t>();
+  }
+  //----------------------------------------------------------------------------
+  auto read_int32() const {
+    return read_as<std::int32_t>();
+  }
+  //----------------------------------------------------------------------------
+  auto read_uint32() const {
+    return read_as<std::uint32_t>();
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto write(T const& val) {
+    if (H5Aexists(m_parent_id, m_name.c_str()) > 0) {
+      H5Adelete(m_parent_id, m_name.c_str());
+    }
+
+    auto ds      = hdf5::dataspace{H5Screate(H5S_SCALAR)};
+    auto type    = hdf5::type<T>{};
+    if constexpr (is_same<T, std::string>) {
+      type.set_size(val.size() + 1);
+    } else if constexpr (is_same<T, char const*>) {
+      type.set_size(std::strlen(val));
+    }
+    api::enable_error_printing();
+    auto attr_id = H5Acreate(m_parent_id, m_name.c_str(), type.id(), ds.id(),
+                             H5P_DEFAULT, H5P_DEFAULT);
+    api::disable_error_printing();
+    if (attr_id >= 0) {
+      if constexpr (is_same<T, std::string>) {
+        H5Awrite(attr_id, type.id(), val.data());
+      } else if constexpr (is_same<T, char const*>) {
+        H5Awrite(attr_id, type.id(), val);
+      } else {
+        H5Awrite(attr_id, type.id(), &val);
+      }
+      H5Aclose(attr_id);
     }
   }
   //----------------------------------------------------------------------------
-  auto operator=(std::string const& s) -> attribute& {
-    write(s);
+  template <typename T>
+  auto operator=(T const& val) -> attribute& {
+    write(val);
     return *this;
   }
+};
+//==============================================================================
+template <typename IDHolder>
+struct attribute_creator {
+  auto as_id_holder() -> auto& { return *static_cast<IDHolder*>(this); }
+  auto as_id_holder() const -> auto const& {
+    return *static_cast<IDHolder const*>(this);
+  }
   //----------------------------------------------------------------------------
-  auto type_id() const {
-    return H5Aget_type(id());
+  [[nodiscard]] auto attribute(char const* name) const {
+    return hdf5::attribute{as_id_holder().id(), name};
+  }
+  //----------------------------------------------------------------------------
+  [[nodiscard]] auto attribute(std::string const& name) const {
+    return attribute(name.c_str());
   }
 };
 //==============================================================================
 template <typename T>
-struct dataset : id_holder {
+struct dataset : id_holder, attribute_creator<dataset<T>> {
  public:
   using this_t     = dataset<T>;
   using value_type = T;
@@ -309,8 +368,6 @@ struct dataset : id_holder {
   template <typename... Size>
   dataset(hid_t const parent_id, std::string const& name, Size const... size)
       : id_holder{-1}, m_parent_id{parent_id}, m_name{name} {
-    // H5Iinc_ref(m_parent_id);
-
     if constexpr (sizeof...(Size) > 0) {
       auto dims                    = std::array{static_cast<hsize_t>(size)...};
       bool has_unlimited_dimension = false;
@@ -320,21 +377,19 @@ struct dataset : id_holder {
           break;
         }
       }
-      auto ds    = hdf5::dataspace{dims};
-      auto plist = property_list{};
+      auto plist   = property_list{};
+      auto maxdims = dims;
       if (has_unlimited_dimension) {
-        auto maxdims = dims;
         for (auto& dim : dims) {
           if (dim == unlimited) {
             dim = 0;
           }
         }
-        // api::get().disable_error_printing();
         plist = property_list::dataset_creation();
         plist.set_chunk(
             (static_cast<hsize_t>(size) == unlimited ? 100 : size)...);
       }
-      // api::get().enable_error_printing();
+      auto ds = hdf5::dataspace{dims, maxdims};
       set_id(H5Dcreate(parent_id, name.data(), type_id<T>(), ds.id(),
                        H5P_DEFAULT, plist.id(), H5P_DEFAULT));
       if (id() < 0) {
@@ -349,10 +404,7 @@ struct dataset : id_holder {
   dataset(dataset const& other)
       : id_holder{other.id()},
         m_parent_id{other.m_parent_id},
-        m_name{other.m_name} {
-    // H5Iinc_ref(m_parent_id);
-    H5Iinc_ref(id());
-  }
+        m_name{other.m_name} {}
   //----------------------------------------------------------------------------
   dataset(dataset&&) noexcept = default;
   //----------------------------------------------------------------------------
@@ -364,8 +416,6 @@ struct dataset : id_holder {
     set_id(other.id());
     m_parent_id = other.m_parent_id;
     m_name      = other.m_name;
-    // H5Iinc_ref(m_parent_id);
-    H5Iinc_ref(id());
     return *this;
   }
   //----------------------------------------------------------------------------
@@ -668,8 +718,8 @@ struct dataset : id_holder {
 
     std::vector<hsize_t> count_without_ones;
 
-    auto ds = dataspace();
-    std::size_t rank          = 0;
+    auto        ds   = dataspace();
+    std::size_t rank = 0;
     for (std::size_t i = 0; i < count.size(); ++i) {
       if (count[i] > 1) {
         ++rank;
@@ -695,7 +745,7 @@ struct dataset : id_holder {
     }
     ds.select_hyperslab(offset, count);
     auto memory_space = hdf5::dataspace{count};
-    read(memory_space.id(), dataset_space.id(), H5P_DEFAULT, arr.data_ptr());
+    read(memory_space.id(), ds.id(), H5P_DEFAULT, arr.data_ptr());
     return arr;
   }
   //----------------------------------------------------------------------------
@@ -712,7 +762,7 @@ struct dataset : id_holder {
     ds.select_hyperslab(offset, count);
     auto ms = hdf5::dataspace{count};
     T    data;
-    read(memory_space.id(), dataset_space.id(), H5P_DEFAULT, &data);
+    read(ms.id(), ds.id(), H5P_DEFAULT, &data);
     return data;
   }
   //----------------------------------------------------------------------------
@@ -732,9 +782,6 @@ struct dataset : id_holder {
   //----------------------------------------------------------------------------
   auto name() const -> auto const& { return m_name; }
   //----------------------------------------------------------------------------
-  auto attribute(std::string const& name) const {
-    return hdf5::attribute{id(), name};
-  }
   auto dataspace() const { return hdf5::dataspace{H5Dget_space(id())}; }
   auto flush() { H5Dflush(id()); }
   //----------------------------------------------------------------------------
@@ -768,112 +815,83 @@ struct dataset_creator {
   }
 };
 //==============================================================================
+struct group;
+//==============================================================================
 template <typename IDHolder>
-struct attribute_creator {
+struct group_creator {
   auto as_id_holder() -> auto& { return *static_cast<IDHolder*>(this); }
   auto as_id_holder() const -> auto const& {
     return *static_cast<IDHolder const*>(this);
   }
-#ifdef __cpp_concepts
-  template <typename T, typename IndexOrder = x_fastest, integral... Size>
-#else
-  template <typename T, typename IndexOrder = x_fastest, typename... Size,
-            enable_if_integral<Size...> = true>
-#endif
-  auto create_attribute(std::string const& name, T const& value) {
-    return hdf5::attribute{as_id_holder().id(), name, value};
+  //============================================================================
+  auto group(char const* name) {
+    return hdf5::group{as_id_holder().id(), name};
   }
   //----------------------------------------------------------------------------
-  template <typename T>
-  [[nodiscard]] auto attribute(char const* name) const {
-    return hdf5::attribute<T>{as_id_holder().id(), name};
-  }
-  //----------------------------------------------------------------------------
-  template <typename T>
-  [[nodiscard]] auto attribute(std::string const& name) const {
-    return attribute<T>(name.c_str());
-  }
+  auto group(std::string const& name) { return group(name.data()); }
 };
 //==============================================================================
-struct group : id_holder, dataset_creator<group>, attribute_creator<group> {
+template <typename IDHolder>
+struct node : id_holder,
+              dataset_creator<IDHolder>,
+              attribute_creator<IDHolder>,
+              group_creator<IDHolder> {
+  node(hid_t const id) : id_holder{id} {}
+};
+//==============================================================================
+struct group : node<group> {
  public:
   using this_t = group;
 
  private:
-  hid_t       m_parent_id;
   std::string m_name;
   //============================================================================
  public:
-  group(hid_t const file_id, hid_t const group_id, std::string const& name)
-      : id_holder{group_id}, m_parent_id{file_id}, m_name{name} {
-    // H5Iinc_ref(m_parent_id);
+  group(hid_t const parent_id, char const* name)
+      : node{H5Gopen(parent_id, name, H5P_DEFAULT)}, m_name{name} {
+    if (id() < 0) {
+      H5Gcreate(parent_id, name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    }
   }
   //----------------------------------------------------------------------------
-  group(group const& other)
-      : id_holder{other.id()},
-        m_parent_id{other.m_parent_id},
-        m_name{other.m_name} {
-    // H5Iinc_ref(m_parent_id);
-    H5Iinc_ref(id());
-  }
+  group(hid_t const parent_id, std::string const& name)
+      : group{parent_id, name.c_str()} {}
   //----------------------------------------------------------------------------
   group(group&&) noexcept = default;
   //----------------------------------------------------------------------------
   auto operator=(group const& other) -> group& {
-    // if (m_parent_id != nullptr) {
-    //  H5Fclose(m_parent_id);
-    //}
     H5Gclose(id());
-    m_parent_id = other.m_parent_id;
     set_id(other.id());
     m_name = other.m_name;
-    // H5Iinc_ref(m_parent_id);
-    H5Iinc_ref(id());
     return *this;
   }
   //----------------------------------------------------------------------------
   auto operator=(group&&) noexcept -> group& = default;
   //----------------------------------------------------------------------------
-  ~group() {
-    // if (m_parent_id != nullptr) {
-    //  H5Fclose(m_parent_id);
-    //}
-    H5Gclose(id());
-  }
-  auto attribute(std::string const& name) const {
-    return hdf5::attribute{id(), name};
-  }
+  ~group() { H5Gclose(id()); }
   //============================================================================
-  auto sub_group(char const* name) {
-    hid_t group_id;
-    api::get().disable_error_printing();
-    group_id = H5Gcreate2(id(), name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    api::get().enable_error_printing();
-    if (group_id <= 0) {
-      group_id = H5Gopen(id(), name, H5P_DEFAULT);
-    }
-    return hdf5::group{id(), group_id, name};
-  }
-  //----------------------------------------------------------------------------
-  auto sub_group(std::string const& name) { return sub_group(name.data()); }
+  auto sub_group(char const* name) { return node<group>::group(name); }
+  auto sub_group(std::string const& name) { return node<group>::group(name); }
 };
 //==============================================================================
-struct file : id_holder, dataset_creator<file>, attribute_creator<group> {
+struct file : node<file> {
  public:
   explicit file(filesystem::path const& path) : file{path.c_str()} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   explicit file(std::string const& path) : file{path.data()} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  explicit file(char const* path) : id_holder{-1} { open(path); }
+  explicit file(char const* path) : node{-1} {
+    api::disable_error_printing();
+    open(path);
+  }
   //----------------------------------------------------------------------------
-  file(file const& other) : id_holder{other.id()} { H5Iinc_ref(id()); }
+  file(file const& other) : node{other.id()} {}
   //----------------------------------------------------------------------------
   file(file&&) noexcept = default;
   //----------------------------------------------------------------------------
   auto operator=(file const& other) -> file& {
     H5Fclose(id());
     set_id(other.id());
-    H5Iinc_ref(id());
     return *this;
   }
   //----------------------------------------------------------------------------
@@ -900,27 +918,6 @@ struct file : id_holder, dataset_creator<file>, attribute_creator<group> {
   auto node_exists(std::string const& name,
                    hid_t link_access_property_list_id = H5P_DEFAULT) const {
     return node_exists(name.c_str(), link_access_property_list_id);
-  }
-  //============================================================================
-  // auto group(std::string const& group_name) {
-  //  return hdf5::group{m_id, m_id->openGroup(group_name),
-  //                     group_name};
-  //============================================================================
-  auto group(char const* name) {
-    hid_t group_id;
-    api::get().disable_error_printing();
-    group_id = H5Gcreate(id(), name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    api::get().enable_error_printing();
-    if (group_id <= 0) {
-      group_id = H5Gopen2(id(), name, H5P_DEFAULT);
-    }
-    return hdf5::group{id(), group_id, name};
-  }
-  //----------------------------------------------------------------------------
-  auto group(std::string const& name) { return group(name.data()); }
-  //============================================================================
-  auto attribute(std::string const& name) const {
-    return hdf5::attribute{id(), name};
   }
 };
 //==============================================================================
