@@ -14,9 +14,9 @@ namespace tatooine::test {
 #ifdef TATOOINE_NETCDF_AVAILABLE
 TEST_CASE("lazy_reader_hdf5_stress", "[lazy_reader][hdf5][stress]") {
   auto file    = hdf5::file{"lazy_reader_hdf_stress.h5"};
-  auto dataset = file.create_dataset<double>("data", 4096, 2048, 512);
+  auto dataset = file.create_dataset<double>("data", 10, 11, 12);
 
-    auto chunk = dynamic_multidim_array<double> {512, 512, 512};
+  auto chunk = dynamic_multidim_array<double>{2, 2, 2};
   for (size_t iz = 0; iz < 4096/512; ++iz) { 
   for (size_t iy = 0; iy < 2048/512; ++iy) { 
   for (size_t ix = 0; ix < 512/512; ++ix) { 

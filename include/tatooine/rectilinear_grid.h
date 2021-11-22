@@ -1944,7 +1944,7 @@ class rectilinear_grid {
             enable_if<(num_dimensions() == 1) || (num_dimensions() == 2) ||
                       (num_dimensions() == 3)> = true>
 #endif
-  void write_vtk(filesystem::path const& path,
+          void write_vtk(filesystem::path const& path,
                          std::string const&      description =
                              "tatooine rectilinear_grid") const {
     auto writer = [this, &path, &description] {
@@ -2067,10 +2067,10 @@ class rectilinear_grid {
       typed_vertex_property_interface_t<T, HasNonConstReference> const& prop,
       std::index_sequence<Is...> /*seq*/) const {
     if constexpr (is_arithmetic<T>) {
-      auto dataset                      = f.create_dataset<T>(name, size<Is>()...);
-      dataset.attribute("vsMesh")       = "/rectilinear_grid";
-      dataset.attribute("vsCentering")  = "nodal";
-      dataset.attribute("vsType")       = "variable";
+      auto dataset = f.create_dataset<T>(name, size<Is>()...);
+      dataset.attribute("vsMesh") = "/rectilinear_grid";
+      dataset.attribute("vsCentering") = "nodal";
+      dataset.attribute("vsType") = "variable";
       dataset.attribute("vsIndexOrder") = "compMinorF";
       auto data = std::vector<T>{};
       data.reserve(vertices().size());
@@ -2078,9 +2078,9 @@ class rectilinear_grid {
           [&](auto const... is) { data.push_back(prop(is...)); });
       dataset.write(data);
     } else if constexpr (is_vec<T>) {
-      using vec_t         = T;
-      auto g = f.group(name);
-      auto gg = g.sub_group(name);
+      using vec_t          = T;
+      auto              g  = f.group(name);
+      auto              gg = g.sub_group(name);
       std::stringstream ss;
       ss << "{";
       ss << "<" + name + "/" << name << "_0>";
@@ -2088,15 +2088,15 @@ class rectilinear_grid {
         ss << ",<" + name + "/" << name << "_" << i << ">";
       }
       ss << "}";
-      gg.attribute(name)     = ss.str();
-      gg.attribute("vsType") = "vsVars";
+      gg.attribute(name) =  ss.str();
+      gg.attribute("vsType") =  "vsVars";
 
       for (size_t i = 0; i < vec_t::dimension(0); ++i) {
         auto dataset = g.create_dataset<typename vec_t::value_type>(
             name + "_" + std::to_string(i), size<Is>()...);
-        dataset.attribute("vsMesh")       = "/rectilinear_grid";
-        dataset.attribute("vsCentering")  = "nodal";
-        dataset.attribute("vsType")       = "variable";
+        dataset.attribute("vsMesh") = "/rectilinear_grid";
+        dataset.attribute("vsCentering") = "nodal";
+        dataset.attribute("vsType") = "variable";
         dataset.attribute("vsIndexOrder") = "compMinorF";
         auto data = std::vector<typename vec_t::value_type>{};
         data.reserve(vertices().size());
@@ -2131,7 +2131,7 @@ class rectilinear_grid {
     if (filesystem::exists(path)) {
       filesystem::remove(path);
     }
-    auto f = hdf5::file{path};
+    auto f     = hdf5::file{path};
     auto group = f.group("rectilinear_grid");
 
     std::stringstream axis_labels_stream;
@@ -2145,8 +2145,8 @@ class rectilinear_grid {
         }(),
         ...);
     group.attribute("vsAxisLabels") = axis_labels_stream.str();
-    group.attribute("vsKind")       = "rectilinear";
-    group.attribute("vsType")       = "mesh";
+    group.attribute("vsKind") = "rectilinear";
+    group.attribute("vsType") = "mesh";
     group.attribute("vsIndexOrder") = "compMinorF";
     (
         [&] {
@@ -2156,8 +2156,8 @@ class rectilinear_grid {
               "axis" + std::to_string(Is);
           auto dim = f.create_dataset<dim_type>(
               "rectilinear_grid/axis" + std::to_string(Is), size<Is>());
-          dim.write(std::vector<dim_type>(
-              begin(dimension<Is>()), end(dimension<Is>())));
+          dim.write(std::vector<dim_type>(begin(dimension<Is>()),
+                                          end(dimension<Is>())));
         }(),
         ...);
 
@@ -2321,7 +2321,8 @@ template <arithmetic Real, size_t N>
 #else
 template <typename Real, size_t N>
 #endif
-using nonuniform_rectilinear_grid = rectilinear_grid_creator_t<std::vector<Real>, N>;
+using nonuniform_rectilinear_grid =
+    rectilinear_grid_creator_t<std::vector<Real>, N>;
 template <size_t N>
 using NonuniformRectilinearGrid    = nonuniform_rectilinear_grid<real_t, N>;
 using nonuniform_rectilinear_grid2 = NonuniformRectilinearGrid<2>;
@@ -2334,9 +2335,10 @@ template <arithmetic Real, size_t... N>
 #else
 template <typename Real, size_t... N>
 #endif
-using static_nonuniform_rectilinear_grid = rectilinear_grid<std::array<Real, N>...>;
+using static_nonuniform_rectilinear_grid =
+    rectilinear_grid<std::array<Real, N>...>;
 template <size_t N>
-using StaticNonUniformGrid     = static_nonuniform_rectilinear_grid<real_t, N>;
+using StaticNonUniformGrid = static_nonuniform_rectilinear_grid<real_t, N>;
 using static_nonuniform_rectilinear_grid2 = NonuniformRectilinearGrid<2>;
 using static_nonuniform_rectilinear_grid3 = NonuniformRectilinearGrid<3>;
 using static_nonuniform_rectilinear_grid4 = NonuniformRectilinearGrid<4>;
