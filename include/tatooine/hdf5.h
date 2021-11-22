@@ -217,21 +217,41 @@ struct attribute : id_holder {
 
  public:
   attribute(hid_t const parent_id, std::string const& name)
-      : id_holder{H5Aopen(parent_id, name.data(), H5P_DEFAULT)} {}
+      : id_holder{H5Aopen(parent_id, name.data(), H5P_DEFAULT)} {
+    if (id() < 0) {
+      if constexpr (is_same<T, std::string>) {
+        auto ds = hdf5::dataspace{H5S_SCALAR};
+        auto type_id      = H5Tcopy(H5T_C_S1);
+        H5Tset_size(type_id, 1);
+        api::get().disable_error_printing();
+        set_id(H5Acreate(parent_id, name.data(), type_id, ds.id(),
+                         H5P_DEFAULT, H5P_DEFAULT));
+        api::get().enable_error_printing();
+        H5Tclose(type_id);
+      }
+    }
+  }
   //----------------------------------------------------------------------------
   attribute(hid_t const parent_id, std::string const& name, T const& value)
       : id_holder{H5Aopen(parent_id, name.data(), H5P_DEFAULT)} {
     if (id() < 0) {
       if constexpr (is_same<T, std::string>) {
-        auto dataspace_id = H5Screate(H5S_SCALAR);
+        auto ds = hdf5::dataspace{H5S_SCALAR};
         auto type_id      = H5Tcopy(H5T_C_S1);
         H5Tset_size(type_id, value.size());
         api::get().disable_error_printing();
-        set_id(H5Acreate(parent_id, name.data(), type_id, dataspace_id,
+        set_id(H5Acreate(parent_id, name.data(), type_id, ds.id(),
                          H5P_DEFAULT, H5P_DEFAULT));
         api::get().enable_error_printing();
         H5Tclose(type_id);
-        H5Sclose(dataspace_id);
+      } else {
+        auto ds = hdf5::dataspace{H5S_SCALAR};
+        auto type = hdf5::type<T>{}
+        H5Tset_size(type_id, value.size());
+        api::get().disable_error_printing();
+        set_id(H5Acreate(parent_id, name.data(), type.id(), ds.id(),
+                         H5P_DEFAULT, H5P_DEFAULT));
+        api::get().enable_error_printing();
       }
     } else {
       write(value);
