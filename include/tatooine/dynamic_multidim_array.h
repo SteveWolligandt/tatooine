@@ -506,6 +506,38 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   }
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
+  template <unsigned_integral UInt, std::size_t N, arithmetic RandomReal,
+            typename Engine>
+  requires arithmetic<T>
+#else
+  template <typename UInt, std::size_t N, typename RandomReal, typename Engine,
+            enable_if<is_unsigned_integral<UInt> > = true,
+            enable_if_arithmetic<T, RandomReal>    = true>
+#endif
+  dynamic_multidim_array(random::uniform<RandomReal, Engine> const& rand,
+                         std::array<UInt, N> const&                 size)
+      : dynamic_multidim_array{size} {
+    this->unary_operation(
+        [&](auto const& /*c*/) { return static_cast<T>(rand.get()); });
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#ifdef __cpp_concepts
+  template <unsigned_integral UInt, std::size_t N, arithmetic RandomReal,
+            typename Engine>
+  requires arithmetic<T>
+#else
+  template <typename UInt, std::size_t N, typename RandomReal, typename Engine,
+            enable_if<is_unsigned_integral<RandomReal, T> > = true,
+            enable_if_arithmetic<RandomReal, T>             = true>
+#endif
+  dynamic_multidim_array(random::uniform<RandomReal, Engine>&& rand,
+                         std::array<UInt, N> const&            size)
+      : dynamic_multidim_array{size} {
+    this->unary_operation(
+        [&](auto const& /*c*/) { return static_cast<T>(rand.get()); });
+  }
+  //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <unsigned_integral UInt, arithmetic RandomReal, typename Engine>
   requires arithmetic<T>
 #else
