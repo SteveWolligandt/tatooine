@@ -4,6 +4,7 @@
 #include <tatooine/concepts.h>
 #include <tatooine/packages.h>
 #include <tatooine/tags.h>
+#include <boost/range/algorithm/transform.hpp>
 
 #include <array>
 
@@ -504,6 +505,28 @@ template <typename Int = std::size_t, typename Iteration, typename... Ends,
 constexpr auto for_loop(Iteration&& iteration, Ends const... ends) -> void {
   for_loop(std::forward<Iteration>(iteration), execution_policy::sequential, ends...);
 }
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// 
+template <typename Iteration, typename ExecutionPolicy, std::size_t N, std::size_t...Is>
+auto for_loop(Iteration&& iteration, ExecutionPolicy pol,
+              std::array<std::size_t, N> const& sizes, std::index_sequence<Is...>) {
+  for_loop(std::forward<Iteration>(iteration), pol,
+           std::pair{std::size_t(0), sizes[Is]}...);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// 
+template <typename Iteration, typename ExecutionPolicy, std::size_t N>
+auto for_loop(Iteration&& iteration, ExecutionPolicy pol,
+              std::array<std::size_t, N> const& sizes) {
+  for_loop(std::forward<Iteration>(iteration), pol, sizes, std::make_index_sequence<N>{});
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+///
+template <typename Iteration, std::size_t N>
+auto for_loop(Iteration&& iteration, std::array<size_t, N> const& sizes) {
+  for_loop(std::forward<Iteration>(iteration), execution_policy::sequential,
+           sizes);
+}
 //==============================================================================
 /// dynamically-sized for loop
 template <typename Iteration>
@@ -536,6 +559,23 @@ template <typename Iteration>
 auto for_loop(Iteration&&                                   iteration,
               std::vector<std::pair<size_t, size_t>> const& ranges) {
   for_loop(std::forward<Iteration>(iteration), execution_policy::sequential, ranges);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// dynamically-sized for loop
+template <typename Iteration, typename ExecutionPolicy>
+auto for_loop(Iteration&& iteration, ExecutionPolicy pol, std::vector<size_t> const& sizes) {
+  auto ranges = std::vector<std::pair<std::size_t, std::size_t>>(sizes.size());
+  boost::transform(sizes, begin(ranges), [](auto const s) {
+    return std::pair{std::size_t(0), s};
+  });
+  for_loop(std::forward<Iteration>(iteration), pol, ranges);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// dynamically-sized for loop
+template <typename Iteration>
+auto for_loop(Iteration&& iteration, std::vector<size_t> const& sizes) {
+  for_loop(std::forward<Iteration>(iteration), execution_policy::sequential,
+           sizes);
 }
 //==============================================================================
 }  // namespace tatooine

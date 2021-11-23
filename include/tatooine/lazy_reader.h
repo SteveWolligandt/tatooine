@@ -4,7 +4,6 @@
 #include <tatooine/chunked_multidim_array.h>
 #include <tatooine/index_order.h>
 #include <mutex>
-#include <queue>
 #include <map>
 //==============================================================================
 namespace tatooine {
@@ -24,23 +23,12 @@ struct lazy_reader
   }
 
  private:
-  DataSet                    m_dataset;
-  mutable std::vector<bool>  m_read;
-  using queue_data_t = std::pair<
-      size_t, std::chrono::time_point_cast<std::chrono::high_resolution_clock>>;
-  struct queue_compare_t {
-    auto operator()(queue_data_t const& lhs, queue_data_t const& rhs) const
-        -> bool {
-      return lhs.second < rhs.second;
-    }
-  };
-  using queue_t = std::priority_queue<queue_data_t, std::vector<queue_data_t>,
-                                      queue_compare_t>;
-  mutable queue_t m_chunks_loaded;
-  // mutable std::map<size_t, typename queue_t::iterator> m_chunks_its;
-  size_t             m_max_num_chunks_loaded   = 1024;
-  bool               m_limit_num_chunks_loaded = false;
-  mutable std::mutex m_chunks_loaded_mutex;
+  DataSet                     m_dataset;
+  mutable std::vector<bool>   m_read;
+  size_t                      m_max_num_chunks_loaded   = 1024;
+  bool                        m_limit_num_chunks_loaded = false;
+  mutable std::mutex          m_chunks_loaded_mutex;
+  mutable std::vector<size_t> m_chunks_loaded;
   mutable std::vector<std::unique_ptr<std::mutex>> m_mutexes;
 
  public:
@@ -53,9 +41,10 @@ struct lazy_reader
   lazy_reader(lazy_reader const& other)
       : parent_t{other},
         m_dataset{other.m_dataset},
-        m_read{other.m_read},
-        m_max_num_chunks_loaded{other.m_max_num_chunks_loaded},
-        m_limit_num_chunks_loaded{other.m_limit_num_chunks_loaded} {
+        m_read{other.m_read}
+        //, m_max_num_chunks_loaded{other.m_max_num_chunks_loaded}
+        //, m_limit_num_chunks_loaded{other.m_limit_num_chunks_loaded}
+  {
     create_mutexes();
   }
   //----------------------------------------------------------------------------
@@ -100,29 +89,11 @@ struct lazy_reader
     if (this->chunk_at_is_null(plain_chunk_index) && !m_read[plain_chunk_index]) {
       {
         std::lock_guard chunks_loaded_lock{m_chunks_loaded_mutex};
-        m_chunks_loaded.emplace(plain_chunk_index, std::chrono::high_resolution_clock::now());
-        //m_chunks_its[plain_chunk_index] = prev(end(m_chunks_loaded));
-        if (m_limit_num_chunks_loaded &&
-            num_chunks_loaded() > m_max_num_chunks_loaded) {
-          auto chunk_to_erase = begin(m_chunks_loaded);
-          bool success        = false;
-          while (!success) {
-            ++chunk_to_erase;
-            if (chunk_to_erase == end(m_chunks_loaded)) {
-              chunk_to_erase = begin(m_chunks_loaded);
-            }
-            auto chunk_to_erase_lock =
-                std::unique_lock{*m_mutexes[*chunk_to_erase], std::defer_lock};
-            auto const is_locked = chunk_to_erase_lock.try_lock();
-            if (is_locked) {
-              m_read[*chunk_to_erase] = false;
-              this->destroy_chunk_at(*chunk_to_erase);
-              //m_chunks_its.erase(*chunk_to_erase);
-              m_chunks_loaded.erase(chunk_to_erase);
-              success = true;
-            }
-          }
-        }
+        m_chunks_loaded.push_back(plain_chunk_index);
+        //if (m_limit_num_chunks_loaded &&
+        //    num_chunks_loaded() > m_max_num_chunks_loaded) {
+        //  // TODO reimplement
+        //}
       }
 
       this->create_chunk_at(plain_chunk_index);
@@ -135,12 +106,6 @@ struct lazy_reader
       }
       m_dataset.read(offset, chunk.size(), chunk);
 
-    } else {
-      std::lock_guard lock{m_chunks_loaded_mutex};
-      // this will move the current adressed chunked at the end of loaded
-      // chunks
-      //m_chunks_loaded.splice(end(m_chunks_loaded), m_chunks_loaded,
-      //                       m_chunks_its[plain_chunk_index]);
     }
 
     return this->chunk_at(plain_chunk_index);
@@ -222,12 +187,12 @@ struct lazy_reader
   }
   //----------------------------------------------------------------------------
   auto set_max_num_chunks_loaded(size_t const max_num_chunks_loaded) {
-    limit_num_chunks_loaded();
-    m_max_num_chunks_loaded = max_num_chunks_loaded;
+    //limit_num_chunks_loaded();
+    //m_max_num_chunks_loaded = max_num_chunks_loaded;
   }
   //----------------------------------------------------------------------------
   auto limit_num_chunks_loaded(bool const l = true) {
-    m_limit_num_chunks_loaded = l;
+    //m_limit_num_chunks_loaded = l;
   }
   //----------------------------------------------------------------------------
   auto num_chunks_loaded() const {

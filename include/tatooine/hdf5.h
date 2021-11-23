@@ -775,9 +775,8 @@ struct dataset : id_holder, attribute_creator<dataset<T>> {
     return ndims;
   }
   //----------------------------------------------------------------------------
-  template <typename IndexOrder = x_fastest>
   auto read_lazy(std::vector<std::size_t> const& chunk_size) {
-    return lazy_reader<this_t, IndexOrder>{*this, chunk_size};
+    return lazy_reader<this_t>{*this, chunk_size};
   }
   //----------------------------------------------------------------------------
   auto name() const -> auto const& { return m_name; }
