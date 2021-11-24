@@ -13,6 +13,7 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
          agranovsky_delta_t      = 0.1;
   bool write_ellipses            = true;
   auto autonomous_particles_file = std::optional<tatooine::filesystem::path>{};
+  auto velocity_file = std::optional<tatooine::filesystem::path>{};
   // Declare the supported options.
   po::options_description desc("Allowed options");
   desc.add_options()("help", "produce help message")(
@@ -33,7 +34,9 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
       "set minimal condition number of back calculation for advected "
       "particles")("agranovsky_delta_t", po::value<double>(), "time gaps")(
       "autonomous_particles_file", po::value<std::string>(),
-      "already integrated particles");
+      "already integrated particles")(
+      "velocity_file", po::value<std::string>(),
+      "file with velocity data");
 
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -46,7 +49,12 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
   if (vm.count("autonomous_particles_file") > 0) {
     autonomous_particles_file = tatooine::filesystem::path{
         vm["autonomous_particles_file"].as<std::string>()};
-    std::cerr << "reading from file " << *autonomous_particles_file << '\n';
+    std::cerr << "reading particles from  " << *autonomous_particles_file << '\n';
+  }
+  if (vm.count("velocity_file") > 0) {
+    velocity_file = tatooine::filesystem::path{
+        vm["velocity_file"].as<std::string>()};
+    std::cerr << "reading velocity from file " << *velocity_file << '\n';
   }
   if (vm.count("width") > 0) {
     if (autonomous_particles_file) {
@@ -173,5 +181,6 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
                 min_cond,
                 agranovsky_delta_t,
                 write_ellipses,
-                autonomous_particles_file};
+                autonomous_particles_file,
+                velocity_file};
 }

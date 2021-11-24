@@ -56,7 +56,7 @@ struct api {
     H5Eset_auto(H5E_DEFAULT, m_old_func, m_old_client_data);
   }
   //----------------------------------------------------------------------------
-  static auto hdf5_error_handler(void* /*error_data*/) -> herr_t {
+  static auto error_handler(void* /*error_data*/) -> herr_t {
     std::cerr << "An HDF5 error was detected. Bye.\n";
     exit(1);
   }
@@ -178,6 +178,15 @@ struct dataspace : id_holder {
     return ret;
   }
   //------------------------------------------------------------------------------
+  auto num_elements() const { return H5Sget_simple_extent_npoints(id()); }
+  auto selected_num_elements() const { return H5Sget_select_npoints(id()); }
+  auto num_hyperslab_blocks() const {
+    return H5Sget_select_hyper_nblocks(id());
+  }
+  auto selected_num_hyperslab_blocks() const {
+    return H5Sget_select_elem_npoints(id());
+  }
+  //------------------------------------------------------------------------------
   auto select_hyperslab(hsize_t const* start, hsize_t const* stride,
                         hsize_t const* count, hsize_t const* block = nullptr) {
     H5Sselect_hyperslab(id(), H5S_SELECT_SET, start, stride, count, block);
@@ -219,6 +228,18 @@ struct dataspace : id_holder {
       }
     }
     return has_unlimited_dimension;
+  }
+  //----------------------------------------------------------------------------
+  auto name() const {
+    auto n = std::string(H5Aget_name(id(), 0, nullptr), ' ');
+    H5Aget_name(id(), n.size(), n.data());
+    return n;
+  }
+  //----------------------------------------------------------------------------
+  auto info() const {
+    auto i = H5A_info_t{};
+    H5Aget_info(id(), &i);
+    return i;
   }
 };
 //==============================================================================
