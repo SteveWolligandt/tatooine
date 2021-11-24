@@ -32,10 +32,13 @@ auto main(int argc, char** argv) -> int {
   report << "t0: " << args.t0 << '\n' << "tau: " << args.tau << '\n';
 
   auto channelflow_154_file =
-      hdf5::file{"/home/vcuser/channel_flow/dino_res_154000.h5"};
+      hdf5::file{args.velocity_file == std::nullopt
+                     ? "/home/vcuser/channel_flow/dino_res_154000.h5"
+                     : *args.velocity_file};
   auto discrete_channelflow_domain = nonuniform_rectilinear_grid3{};
   channelflow_154_file.dataset<double>("CartGrid/axis0")
       .read(discrete_channelflow_domain.dimension<0>());
+  discrete_channelflow_domain.dimension<0>().pop_back();
   channelflow_154_file.dataset<double>("CartGrid/axis1")
       .read(discrete_channelflow_domain.dimension<1>());
   channelflow_154_file.dataset<double>("CartGrid/axis2")
@@ -46,6 +49,7 @@ auto main(int argc, char** argv) -> int {
          << size(discrete_channelflow_domain.dimension<1>()) << '\n';
   report << "size of axis2: "
          << size(discrete_channelflow_domain.dimension<2>()) << '\n';
+  discrete_channelflow_domain.write("channelflow_grid.vtk");
 
   indeterminate_progress_bar([&](auto indicator) {
     indicator.set_text("Allocating data for velocity");
@@ -59,22 +63,40 @@ auto main(int argc, char** argv) -> int {
     //----------------------------------------------------------------------------
     indicator.set_text("Loading x-velocity");
     {
-      auto dataset   = channelflow_154_file.dataset<double>("velocity/xvel");
-      auto mem_space = hdf5::dataspace{discrete_channelflow_domain.size(0) * 3,
+      auto dataset    = channelflow_154_file.dataset<double>("velocity/xvel");
+      auto data_space = dataset.dataspace();
+      auto num_elems0 = data_space.num_elements();
+      auto sel_num_elems0 = data_space.selected_num_elements();
+      data_space.select_hyperslab({0, 0, 0},
+                                  {discrete_channelflow_domain.size(0),
+                                   discrete_channelflow_domain.size(1),
+                                   discrete_channelflow_domain.size(2)});
+      auto num_elems1     = data_space.num_elements();
+      auto sel_num_elems1 = data_space.selected_num_elements();
+      auto mem_space  = hdf5::dataspace{discrete_channelflow_domain.size(0) * 3,
                                        discrete_channelflow_domain.size(1),
                                        discrete_channelflow_domain.size(2)};
+      auto num_elems2 = mem_space.num_elements();
+      auto sel_num_elems2 = mem_space.selected_num_elements();
       mem_space.select_hyperslab({0, 0, 0}, {3, 1, 1},
                                  {discrete_channelflow_domain.size(0),
                                   discrete_channelflow_domain.size(1),
                                   discrete_channelflow_domain.size(2)});
+      auto num_elems3     = mem_space.num_elements();
+      auto sel_num_elems3 = mem_space.selected_num_elements();
 
-      dataset.read(H5S_ALL, mem_space.id(), H5P_DEFAULT,
+      dataset.read(mem_space.id(), data_space.id(), H5P_DEFAULT,
                    discrete_velocity.data().front().data_ptr());
     }
 
     indicator.set_text("Loading y-velocity");
     {
-      auto dataset   = channelflow_154_file.dataset<double>("velocity/yvel");
+      auto dataset    = channelflow_154_file.dataset<double>("velocity/yvel");
+      auto data_space = dataset.dataspace();
+      data_space.select_hyperslab({0, 0, 0},
+                                  {discrete_channelflow_domain.size(0),
+                                   discrete_channelflow_domain.size(1),
+                                   discrete_channelflow_domain.size(2)});
       auto mem_space = hdf5::dataspace{discrete_channelflow_domain.size(0) * 3,
                                        discrete_channelflow_domain.size(1),
                                        discrete_channelflow_domain.size(2)};
@@ -83,12 +105,17 @@ auto main(int argc, char** argv) -> int {
                                   discrete_channelflow_domain.size(1),
                                   discrete_channelflow_domain.size(2)});
 
-      dataset.read(H5S_ALL, mem_space.id(), H5P_DEFAULT,
+      dataset.read(mem_space.id(), data_space.id(), H5P_DEFAULT,
                    discrete_velocity.data().front().data_ptr());
     }
     indicator.set_text("Loading z-velocity");
     {
-      auto dataset   = channelflow_154_file.dataset<double>("velocity/zvel");
+      auto dataset    = channelflow_154_file.dataset<double>("velocity/zvel");
+      auto data_space = dataset.dataspace();
+      data_space.select_hyperslab({0, 0, 0},
+                                  {discrete_channelflow_domain.size(0),
+                                   discrete_channelflow_domain.size(1),
+                                   discrete_channelflow_domain.size(2)});
       auto mem_space = hdf5::dataspace{discrete_channelflow_domain.size(0) * 3,
                                        discrete_channelflow_domain.size(1),
                                        discrete_channelflow_domain.size(2)};
@@ -97,7 +124,7 @@ auto main(int argc, char** argv) -> int {
                                   discrete_channelflow_domain.size(1),
                                   discrete_channelflow_domain.size(2)});
 
-      dataset.read(H5S_ALL, mem_space.id(), H5P_DEFAULT,
+      dataset.read(mem_space.id(), data_space.id(), H5P_DEFAULT,
                    discrete_velocity.data().front().data_ptr());
     }
 
@@ -110,14 +137,14 @@ auto main(int argc, char** argv) -> int {
     std::vector<real_t> backward_autonomous_errors, backward_regular_errors,
         backward_agranovsky_errors;
     rectilinear_grid sampler_check_grid{
-        linspace{discrete_channelflow_domain.dimension<0>().front(),
-                 discrete_channelflow_domain.dimension<0>().back(),
+        linspace{discrete_channelflow_domain.front<0>() + 1e-10,
+                 discrete_channelflow_domain.back<0>() - 1e-10,
                  args.output_res_x},
-        linspace{discrete_channelflow_domain.dimension<1>().front(),
-                 discrete_channelflow_domain.dimension<1>().back(),
+        linspace{discrete_channelflow_domain.front<1>() + 1e-10,
+                 discrete_channelflow_domain.back<1>() - 1e-10,
                  args.output_res_y},
-        linspace{discrete_channelflow_domain.dimension<2>().front(),
-                 discrete_channelflow_domain.dimension<2>().back(),
+        linspace{discrete_channelflow_domain.front<2>() + 1e-10,
+                 discrete_channelflow_domain.back<2>() - 1e-10,
                  args.output_res_z}};
     forward_autonomous_errors.reserve(sampler_check_grid.vertices().size());
     forward_regular_errors.reserve(sampler_check_grid.vertices().size());
@@ -173,11 +200,12 @@ auto main(int argc, char** argv) -> int {
 
     sampler_check_grid.vertices().iterate_indices(
         [&](auto const... is) {
-          auto       copy_phi = phi;
-          auto const x        = sampler_check_grid.vertex_at(is...);
+          auto copy_phi = phi;
+          copy_phi.use_caching(false);
+          auto const x = sampler_check_grid.vertex_at(is...);
           numerical_flowmap_forward_prop(is...) =
               copy_phi(x, args.t0, args.tau);
-          numerical_flowmap_backward_prop(is...) =
+           numerical_flowmap_backward_prop(is...) =
               copy_phi(x, args.t0 + args.tau, -args.tau);
         },
         execution_policy::parallel);
@@ -220,8 +248,8 @@ auto main(int argc, char** argv) -> int {
     //              forward_autonomous_errors.push_back(err);
     //            }
     //          } catch (std::exception const& e) {
-    //            autonomous_flowmap_forward_prop(is...) = vec2::ones() * 0.0 /
-    //            0.0; forward_errors_autonomous_prop(is...)  = 0.0 / 0.0;
+    //            autonomous_flowmap_forward_prop(is...) = vec2::ones() * 0.0
+    //            / 0.0; forward_errors_autonomous_prop(is...)  = 0.0 / 0.0;
     //          }
     //          // backward
     //          try {
@@ -319,7 +347,8 @@ auto main(int argc, char** argv) -> int {
     //  }
     //  //----------------------------------------------------------------------------
     //  auto const num_agranovksy_steps =
-    //      static_cast<size_t>(std::ceil(args.agranovsky_delta_t / args.tau));
+    //      static_cast<size_t>(std::ceil(args.agranovsky_delta_t /
+    //      args.tau));
     //  auto const regularized_height_agranovksky =
     //  static_cast<size_t>(std::ceil(
     //      std::sqrt((num_particles_after_advection / 2) /
@@ -446,7 +475,8 @@ auto main(int argc, char** argv) -> int {
     //         //    (real_t)sampler_check_grid.vertices().size())
     //         //<< "%)\n"
     //
-    //         << "mean error forward autonomous particles: " << std::scientific
+    //         << "mean error forward autonomous particles: " <<
+    //         std::scientific
     //         << mean_autonomous_forward_error << '\n'
     //
     //         << "mean error forward regular grid: " << std::scientific
@@ -468,10 +498,13 @@ auto main(int argc, char** argv) -> int {
     //  if (mean_regular_forward_error > mean_autonomous_forward_error &&
     //      mean_agranovsky_forward_error > mean_autonomous_forward_error) {
     //    report << "autonomous particles are better in forward direction\n";
-    //  } else if (mean_agranovsky_forward_error > mean_regular_forward_error &&
-    //             mean_autonomous_forward_error > mean_regular_forward_error) {
+    //  } else if (mean_agranovsky_forward_error > mean_regular_forward_error
+    //  &&
+    //             mean_autonomous_forward_error > mean_regular_forward_error)
+    //             {
     //    report << "regular grid is better in forward direction\n";
-    //  } else if (mean_regular_forward_error > mean_agranovsky_forward_error &&
+    //  } else if (mean_regular_forward_error > mean_agranovsky_forward_error
+    //  &&
     //             mean_autonomous_forward_error >
     //             mean_agranovsky_forward_error)
     //             {
@@ -481,12 +514,15 @@ auto main(int argc, char** argv) -> int {
     //  if (mean_regular_backward_error > mean_autonomous_backward_error &&
     //      mean_agranovsky_backward_error > mean_autonomous_backward_error) {
     //    report << "autonomous particles are better in backward direction\n";
-    //  } else if (mean_agranovsky_backward_error > mean_regular_backward_error
+    //  } else if (mean_agranovsky_backward_error >
+    //  mean_regular_backward_error
     //  &&
-    //             mean_autonomous_backward_error > mean_regular_backward_error)
+    //             mean_autonomous_backward_error >
+    //             mean_regular_backward_error)
     //             {
     //    report << "regular grid is better in backward direction\n";
-    //  } else if (mean_regular_backward_error > mean_agranovsky_backward_error
+    //  } else if (mean_regular_backward_error >
+    //  mean_agranovsky_backward_error
     //  &&
     //             mean_autonomous_backward_error >
     //                 mean_agranovsky_backward_error) {
