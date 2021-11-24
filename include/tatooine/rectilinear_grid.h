@@ -1185,7 +1185,7 @@ class rectilinear_grid {
             enable_if_integral<ChunkSize...>                      = true,
             enable_if<(sizeof...(ChunkSize) == num_dimensions())> = true>
 #endif
-      auto insert_chunked_vertex_property(std::string const& name,
+  auto insert_chunked_vertex_property(std::string const& name,
                                           ChunkSize const... chunk_size)
           -> auto& {
     return create_vertex_property<chunked_multidim_array<T, IndexOrder>>(
@@ -1198,6 +1198,7 @@ class rectilinear_grid {
         name, size(), make_array<num_dimensions()>(size_t(10)));
   }
   //----------------------------------------------------------------------------
+  /// \return Reference to a polymorphic vertex property.
   template <typename T, bool HasNonConstReference = true>
   auto vertex_property(std::string const& name)
       -> typed_vertex_property_interface_t<T, HasNonConstReference>& {
@@ -1929,7 +1930,7 @@ class rectilinear_grid {
         return;
       }
       if (ext == ".h5") {
-        write_hdf5(path);
+        write_visitvs(path);
         return;
       }
     }
@@ -2076,7 +2077,7 @@ class rectilinear_grid {
       data.reserve(vertices().size());
       vertices().iterate_indices(
           [&](auto const... is) { data.push_back(prop(is...)); });
-      dataset.write(data);
+      dataset.write(H5S_ALL, H5S_ALL, H5P_DEFAULT, data.data());
     } else if constexpr (is_vec<T>) {
       using vec_t          = T;
       auto              g  = f.group(name);
@@ -2102,7 +2103,7 @@ class rectilinear_grid {
         data.reserve(vertices().size());
         vertices().iterate_indices(
             [&](auto const... is) { data.push_back(prop(is...)(i)); });
-        dataset.write(data);
+        dataset.write(H5S_ALL, H5S_ALL, H5P_DEFAULT, data.data());
       }
     }
   }
@@ -2126,8 +2127,8 @@ class rectilinear_grid {
   }
   //----------------------------------------------------------------------------
   template <size_t... Is>
-  auto write_hdf5(filesystem::path const&    path,
-                  std::index_sequence<Is...> seq) const -> void {
+  auto write_visitvs(filesystem::path const&    path,
+                   std::index_sequence<Is...> seq) const -> void {
     if (filesystem::exists(path)) {
       filesystem::remove(path);
     }
@@ -2135,31 +2136,27 @@ class rectilinear_grid {
     auto group = f.group("rectilinear_grid");
 
     std::stringstream axis_labels_stream;
-    (
-        [&] {
-          if constexpr (Is == 0) {
-            axis_labels_stream << cartesian_axis_label<Is>;
-          } else {
-            axis_labels_stream << ", " << cartesian_axis_label<Is>;
-          }
-        }(),
-        ...);
+    ([&]{
+      if constexpr (Is == 0) {
+        axis_labels_stream << cartesian_axis_label<Is>;
+      } else {
+        axis_labels_stream << ", " << cartesian_axis_label<Is>;
+      }
+    }(), ...);
     group.attribute("vsAxisLabels") = axis_labels_stream.str();
-    group.attribute("vsKind") = "rectilinear";
-    group.attribute("vsType") = "mesh";
+    group.attribute("vsKind")       = "rectilinear";
+    group.attribute("vsType")       = "mesh";
     group.attribute("vsIndexOrder") = "compMinorF";
-    (
-        [&] {
-          using dim_type =
-              typename std::decay_t<decltype(dimension<Is>())>::value_type;
-          group.attribute("vsAxis" + std::to_string(Is)) =
-              "axis" + std::to_string(Is);
-          auto dim = f.create_dataset<dim_type>(
-              "rectilinear_grid/axis" + std::to_string(Is), size<Is>());
-          dim.write(std::vector<dim_type>(begin(dimension<Is>()),
-                                          end(dimension<Is>())));
-        }(),
-        ...);
+    ([&] {
+      using dim_type =
+          typename std::decay_t<decltype(dimension<Is>())>::value_type;
+      group.attribute("vsAxis" + std::to_string(Is)) =
+          "axis" + std::to_string(Is);
+      auto dim = f.create_dataset<dim_type>(
+          "rectilinear_grid/axis" + std::to_string(Is), size<Is>());
+      dim.write(std::vector<dim_type>(begin(dimension<Is>()),
+                                      end(dimension<Is>())));
+    }(), ...);
 
     for (const auto& [name, prop] : this->m_vertex_properties) {
       write_prop_hdf5_wrapper<std::uint16_t, std::uint32_t, std::int16_t,
@@ -2170,8 +2167,8 @@ class rectilinear_grid {
   }
   //----------------------------------------------------------------------------
  public:
-  auto write_hdf5(filesystem::path const& path) const -> void {
-    write_hdf5(path, std::make_index_sequence<num_dimensions()>{});
+  auto write_visitvs(filesystem::path const& path) const -> void {
+    write_visitvs(path, std::make_index_sequence<num_dimensions()>{});
   }
 
  private:

@@ -35,41 +35,33 @@ struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
   //----------------------------------------------------------------------------
   [[nodiscard]] auto evaluate(pos_t const& x, Real const t) const
       -> tensor_t {
-    Real const a  = m_epsilon * sin(m_omega * t);
+    if (!m_infinite_domain && x(0) < 0 || x(0) > 2 || x(1) < 0 || x(1) > 1) {
+      return parent_t::ood_tensor();
+    }
+    Real const a  = m_epsilon * std::sin(m_omega * t);
     Real const b  = 1.0 - 2.0 * a;
     Real const f  = a * x(0) * x(0) + b * x(0);
     Real const df = 2 * a * x(0) + b;
 
     return {-pi * m_A * std::sin(pi * f) * std::cos(pi * x(1)),
-            pi * m_A * std::cos(pi * f) * std::sin(pi * x(1)) * df};
+             pi * m_A * std::cos(pi * f) * std::sin(pi * x(1)) * df};
   }
   //----------------------------------------------------------------------------
-  [[nodiscard]] auto in_domain(pos_t const& x, Real const /*t*/) const
-      -> bool {
-    if (m_infinite_domain) {
-      return true;
-    }
-    return 0 <= x(0) && x(0) <= 2 && 0 <= x(1) && x(1) <= 1;
-  }
-  //----------------------------------------------------------------------------
-  constexpr void set_infinite_domain(bool const v = true) {
+  constexpr auto set_infinite_domain(bool const v = true) {
     m_infinite_domain = v;
   }
   //----------------------------------------------------------------------------
   constexpr auto epsilon() const { return m_epsilon; }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr auto epsilon() -> auto& { return m_epsilon; }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr auto set_epsilon(Real const epsilon) { m_epsilon = epsilon; }
   //----------------------------------------------------------------------------
   constexpr auto omega() const { return m_omega; }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr auto omega() -> auto& { return m_omega; }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr auto set_omega(Real const omega) { m_omega = omega; }
   //----------------------------------------------------------------------------
   constexpr auto A() const { return m_A; }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr auto A() -> auto& { return m_A; }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr auto set_A(Real const A) { m_A = A; }

@@ -260,68 +260,46 @@ struct attribute {
   attribute(attribute&&) noexcept = default;
   auto operator=(attribute&&) noexcept -> attribute& = default;
   //----------------------------------------------------------------------------
-  ~attribute() {
-    H5Idec_ref(m_parent_id);
-  }
+  ~attribute() { H5Idec_ref(m_parent_id); }
   //----------------------------------------------------------------------------
   template <typename T>
   auto read_as() const {
-    T attr;
+    T    attr;
     auto attr_id = H5Aopen(m_parent_id, m_name.c_str(), H5P_DEFAULT);
     if (attr_id < 0) {
       throw std::runtime_error{"Attribute not found."};
     }
-      auto t   = H5Aget_type(attr_id);
+    auto t = H5Aget_type(attr_id);
     if constexpr (is_same<T, std::string>) {
       attr = T(H5Tget_size(t) - 1, ' ');
       H5Aread(attr_id, t, attr.data());
     } else {
       H5Aread(attr_id, t, &attr);
     }
-      H5Tclose(t);
-      H5Aclose(attr_id);
+    H5Tclose(t);
+    H5Aclose(attr_id);
     return attr;
   }
   //----------------------------------------------------------------------------
-  auto read_as_string() const {
-    return read_as<std::string>();
-  }
+  auto read_as_string() const { return read_as<std::string>(); }
   //----------------------------------------------------------------------------
-  auto read_int() const {
-    return read_as<int>();
-  }
+  auto read_int() const { return read_as<int>(); }
   //----------------------------------------------------------------------------
-  auto read_float() const {
-    return read_as<float>();
-  }
+  auto read_float() const { return read_as<float>(); }
   //----------------------------------------------------------------------------
-  auto read_double() const {
-    return read_as<double>();
-  }
+  auto read_double() const { return read_as<double>(); }
   //----------------------------------------------------------------------------
-  auto read_int8() const {
-    return read_as<std::int8_t>();
-  }
+  auto read_int8() const { return read_as<std::int8_t>(); }
   //----------------------------------------------------------------------------
-  auto read_uint8() const {
-    return read_as<std::uint8_t>();
-  }
+  auto read_uint8() const { return read_as<std::uint8_t>(); }
   //----------------------------------------------------------------------------
-  auto read_int16() const {
-    return read_as<std::int16_t>();
-  }
+  auto read_int16() const { return read_as<std::int16_t>(); }
   //----------------------------------------------------------------------------
-  auto read_uint16() const {
-    return read_as<std::uint16_t>();
-  }
+  auto read_uint16() const { return read_as<std::uint16_t>(); }
   //----------------------------------------------------------------------------
-  auto read_int32() const {
-    return read_as<std::int32_t>();
-  }
+  auto read_int32() const { return read_as<std::int32_t>(); }
   //----------------------------------------------------------------------------
-  auto read_uint32() const {
-    return read_as<std::uint32_t>();
-  }
+  auto read_uint32() const { return read_as<std::uint32_t>(); }
   //----------------------------------------------------------------------------
   template <typename T>
   auto write(T const& val) {
@@ -329,8 +307,8 @@ struct attribute {
       H5Adelete(m_parent_id, m_name.c_str());
     }
 
-    auto ds      = hdf5::dataspace{H5Screate(H5S_SCALAR)};
-    auto type    = hdf5::type<T>{};
+    auto ds   = hdf5::dataspace{H5Screate(H5S_SCALAR)};
+    auto type = hdf5::type<T>{};
     if constexpr (is_same<T, std::string>) {
       type.set_size(val.size() + 1);
     } else if constexpr (is_same<T, char const*>) {
@@ -505,13 +483,18 @@ struct dataset : id_holder, attribute_creator<dataset<T>> {
     resize(s);
   }
   //============================================================================
+  auto write(hid_t mem_space_id, hid_t file_space_id, hid_t xfer_plist_id,
+             const void* buf) const -> void {
+    H5Dwrite(id(), type_id<T>(), mem_space_id, file_space_id, xfer_plist_id, buf);
+  }
+  //----------------------------------------------------------------------------
   auto write(T const* data) -> void {
-    H5Dwrite(id(), type_id<T>(), H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
+    write(H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto write(std::vector<T> const& data) -> void {
     resize_if_necessary(data.size());
-    H5Dwrite(id(), type_id<T>(), H5S_ALL, H5S_ALL, H5P_DEFAULT, data.data());
+    write(H5S_ALL, H5S_ALL, H5P_DEFAULT, data.data());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto write(std::vector<T> const& data, hsize_t const offset) -> void {
@@ -534,7 +517,7 @@ struct dataset : id_holder, attribute_creator<dataset<T>> {
   template <std::size_t N>
   auto write(std::array<T, N> const& data) -> void {
     resize_if_necessary(data.size());
-    H5Dwrite(id(), type_id<T>(), H5S_ALL, H5S_ALL, H5P_DEFAULT, data.data());
+    write(H5S_ALL, H5S_ALL, H5P_DEFAULT, data.data());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   //#ifdef __cpp_concepts
@@ -625,8 +608,8 @@ struct dataset : id_holder, attribute_creator<dataset<T>> {
     auto dataset_space = dataspace();
     dataset_space.select_hyperslab(offset, count);
     auto memory_space = hdf5::dataspace{count};
-    H5Dwrite(id(), type_id<T>(), memory_space.id(), dataset_space.id(),
-             H5P_DEFAULT, data);
+    write(memory_space.id(), dataset_space.id(), H5P_DEFAULT,
+          data);
   }
   //============================================================================
   auto read(hid_t mem_space_id, hid_t file_space_id, hid_t xfer_plist_id,
@@ -870,7 +853,7 @@ struct group : node<group> {
   group(hid_t const parent_id, char const* name)
       : node{H5Gopen(parent_id, name, H5P_DEFAULT)}, m_name{name} {
     if (id() < 0) {
-      H5Gcreate(parent_id, name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+      set_id(H5Gcreate(parent_id, name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
     }
   }
   //----------------------------------------------------------------------------
