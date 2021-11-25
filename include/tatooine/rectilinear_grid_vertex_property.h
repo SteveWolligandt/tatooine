@@ -1,11 +1,11 @@
-#ifndef TATOOINE_GRID_VERTEX_PROPERTY_PROPERTY_H
-#define TATOOINE_GRID_VERTEX_PROPERTY_PROPERTY_H
+#ifndef TATOOINE_RECTILINEAR_GRID_VERTEX_PROPERTY_PROPERTY_H
+#define TATOOINE_RECTILINEAR_GRID_VERTEX_PROPERTY_PROPERTY_H
 //==============================================================================
 #include <tatooine/concepts.h>
 #include <tatooine/finite_differences_coefficients.h>
-#include <tatooine/grid_vertex_property_sampler.h>
 #include <tatooine/interpolation.h>
 #include <tatooine/invoke_unpacked.h>
+#include <tatooine/rectilinear_grid_vertex_property_sampler.h>
 #include <tatooine/type_traits.h>
 #include <tatooine/write_png.h>
 //==============================================================================
@@ -14,12 +14,12 @@ namespace tatooine {
 template <size_t N, template <typename> typename DefaultInterpolationKernel,
           typename GridVertexProperty,
           template <typename> typename... InterpolationKernels>
-struct default_grid_vertex_sampler {
+struct default_rectilinear_grid_vertex_property_sampler {
   template <template <typename> typename... _InterpolationKernels>
   using vertex_property_t =
-      grid_vertex_property_sampler<GridVertexProperty,
-                                   _InterpolationKernels...>;
-  using type = typename default_grid_vertex_sampler<
+      rectilinear_grid_vertex_property_sampler<GridVertexProperty,
+                                               _InterpolationKernels...>;
+  using type = typename default_rectilinear_grid_vertex_property_sampler<
       N - 1, DefaultInterpolationKernel, GridVertexProperty,
       InterpolationKernels..., DefaultInterpolationKernel>::type;
 };
@@ -27,24 +27,25 @@ struct default_grid_vertex_sampler {
 template <template <typename> typename DefaultInterpolationKernel,
           typename GridVertexProperty,
           template <typename> typename... InterpolationKernels>
-struct default_grid_vertex_sampler<0, DefaultInterpolationKernel,
-                                   GridVertexProperty,
-                                   InterpolationKernels...> {
+struct default_rectilinear_grid_vertex_property_sampler<
+    0, DefaultInterpolationKernel, GridVertexProperty,
+    InterpolationKernels...> {
   using type =
-      grid_vertex_property_sampler<GridVertexProperty, InterpolationKernels...>;
+      rectilinear_grid_vertex_property_sampler<GridVertexProperty,
+                                               InterpolationKernels...>;
 };
 template <size_t N, template <typename> typename DefaultInterpolationKernel,
           typename GridVertexProperty,
           template <typename> typename... InterpolationKernels>
-using default_grid_vertex_sampler_t =
-    typename default_grid_vertex_sampler<N, DefaultInterpolationKernel,
-                                         GridVertexProperty,
-                                         InterpolationKernels...>::type;
+using default_rectilinear_grid_vertex_property_sampler_t =
+    typename default_rectilinear_grid_vertex_property_sampler<
+        N, DefaultInterpolationKernel, GridVertexProperty,
+        InterpolationKernels...>::type;
 //==============================================================================
 template <typename Grid>
-struct grid_vertex_property {
+struct rectilinear_grid_vertex_property {
   //============================================================================
-  using this_t        = grid_vertex_property<Grid>;
+  using this_t        = rectilinear_grid_vertex_property<Grid>;
   using real_t        = typename Grid::real_t;
   using vertex_handle = typename Grid::vertex_handle;
   //============================================================================
@@ -54,12 +55,14 @@ struct grid_vertex_property {
   Grid const* m_grid;
   //============================================================================
  public:
-  grid_vertex_property(Grid const& grid) : m_grid{&grid} {}
-  grid_vertex_property(grid_vertex_property const& other)     = default;
-  grid_vertex_property(grid_vertex_property&& other) noexcept = default;
+  rectilinear_grid_vertex_property(Grid const& g) : m_grid{&g} {}
+  rectilinear_grid_vertex_property(
+      rectilinear_grid_vertex_property const& other) = default;
+  rectilinear_grid_vertex_property(
+      rectilinear_grid_vertex_property&& other) noexcept = default;
   //----------------------------------------------------------------------------
   /// Destructor.
-  virtual ~grid_vertex_property() {}
+  virtual ~rectilinear_grid_vertex_property() {}
   //----------------------------------------------------------------------------
   /// for identifying type.
   virtual auto type() const -> std::type_info const&           = 0;
@@ -73,13 +76,15 @@ struct grid_vertex_property {
 };
 //==============================================================================
 template <typename Grid, typename ValueType, bool HasNonConstReference>
-struct typed_grid_vertex_property_interface : grid_vertex_property<Grid> {
+struct typed_rectilinear_grid_vertex_property_interface
+    : rectilinear_grid_vertex_property<Grid> {
   //============================================================================
   // typedefs
   //============================================================================
-  using this_t          = typed_grid_vertex_property_interface<Grid, ValueType,
-                                                      HasNonConstReference>;
-  using parent_t        = grid_vertex_property<Grid>;
+  using this_t =
+      typed_rectilinear_grid_vertex_property_interface<Grid, ValueType,
+                                                       HasNonConstReference>;
+  using parent_t        = rectilinear_grid_vertex_property<Grid>;
   using value_type      = ValueType;
   using const_reference = ValueType const&;
   using reference =
@@ -92,14 +97,14 @@ struct typed_grid_vertex_property_interface : grid_vertex_property<Grid> {
   //============================================================================
   // ctors
   //============================================================================
-  explicit typed_grid_vertex_property_interface(Grid const& grid)
-      : parent_t{grid} {}
-  typed_grid_vertex_property_interface(
-      typed_grid_vertex_property_interface const&) = default;
-  typed_grid_vertex_property_interface(
-      typed_grid_vertex_property_interface&&) noexcept = default;
+  explicit typed_rectilinear_grid_vertex_property_interface(Grid const& g)
+      : parent_t{g} {}
+  typed_rectilinear_grid_vertex_property_interface(
+      typed_rectilinear_grid_vertex_property_interface const&) = default;
+  typed_rectilinear_grid_vertex_property_interface(
+      typed_rectilinear_grid_vertex_property_interface&&) noexcept = default;
   //----------------------------------------------------------------------------
-  ~typed_grid_vertex_property_interface() override = default;
+  ~typed_rectilinear_grid_vertex_property_interface() override = default;
   //============================================================================
   // methods
   //============================================================================
@@ -110,9 +115,8 @@ struct typed_grid_vertex_property_interface : grid_vertex_property<Grid> {
  private:
   template <template <typename> typename InterpolationKernel>
   auto sampler_() const {
-    using sampler_t =
-        default_grid_vertex_sampler_t<num_dimensions(), InterpolationKernel,
-                                      this_t>;
+    using sampler_t = default_rectilinear_grid_vertex_property_sampler_t<
+        num_dimensions(), InterpolationKernel, this_t>;
     grid().update_diff_stencil_coefficients();
     return sampler_t{*this};
   }
@@ -130,17 +134,15 @@ struct typed_grid_vertex_property_interface : grid_vertex_property<Grid> {
         "Number of interpolation kernels does not match number of dimensions.");
 
     if constexpr (sizeof...(InterpolationKernels) == 0) {
-      using sampler_t =
-          default_grid_vertex_sampler_t<num_dimensions(), interpolation::cubic,
-                                        this_t>;
+      using sampler_t = default_rectilinear_grid_vertex_property_sampler_t<
+          num_dimensions(), interpolation::cubic, this_t>;
       grid().update_diff_stencil_coefficients();
       return sampler_t{*this};
     } else if constexpr (sizeof...(InterpolationKernels) == 1) {
       return sampler_<InterpolationKernels...>();
     } else {
-      using sampler_t =
-          tatooine::grid_vertex_property_sampler<this_t,
-                                                 InterpolationKernels...>;
+      using sampler_t = tatooine::rectilinear_grid_vertex_property_sampler<
+          this_t, InterpolationKernels...>;
       if (!grid().diff_stencil_coefficients_created_once()) {
         grid().update_diff_stencil_coefficients();
       }
@@ -310,8 +312,8 @@ struct typed_grid_vertex_property_interface : grid_vertex_property<Grid> {
           if (std::isnan(d)) {
             d = 0;
           } else {
-              d = std::max<typename ValueType::value_type>(
-                  0, std::min<typename ValueType::value_type>(1, d));
+            d = std::max<typename ValueType::value_type>(
+                0, std::min<typename ValueType::value_type>(1, d));
           }
           image[image.get_height() - 1 - y][x].red   = d * 255;
           image[image.get_height() - 1 - y][x].green = d * 255;
@@ -390,7 +392,6 @@ struct typed_grid_vertex_property_interface : grid_vertex_property<Grid> {
         static_cast<png::uint_32>(this->grid().size(1))};
     for (unsigned int y = 0; y < image.get_height(); ++y) {
       for (png::uint_32 x = 0; x < image.get_width(); ++x) {
-
         auto d = at(x, y);
         if (std::isnan(d)) {
           d = 0;
@@ -412,7 +413,7 @@ struct typed_grid_vertex_property_interface : grid_vertex_property<Grid> {
 //==============================================================================
 #if TATOOINE_PNG_AVAILABLE
 template <typename Grid, typename ValueType, bool HasNonConstReference>
-auto write_png(typed_grid_vertex_property_interface<
+auto write_png(typed_rectilinear_grid_vertex_property_interface<
                    Grid, ValueType, HasNonConstReference> const& prop,
                filesystem::path const&                           path) -> void {
   prop.write_png(path);
@@ -420,7 +421,7 @@ auto write_png(typed_grid_vertex_property_interface<
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Grid, typename ValueType, bool HasNonConstReference>
 auto write_png(filesystem::path const& path,
-               typed_grid_vertex_property_interface<
+               typed_rectilinear_grid_vertex_property_interface<
                    Grid, ValueType, HasNonConstReference> const& prop) -> void {
   prop.write_png(path);
 }
@@ -428,7 +429,7 @@ auto write_png(filesystem::path const& path,
 //==============================================================================
 template <typename Grid, typename ValueType, typename Container>
 struct typed_vertex_property
-    : typed_grid_vertex_property_interface<
+    : typed_rectilinear_grid_vertex_property_interface<
           Grid, ValueType,
           std::is_convertible_v<
               decltype(std::declval<Container&>().at(
@@ -445,8 +446,8 @@ struct typed_vertex_property
           std::declval<std::array<size_t, Grid::num_dimensions()>>())),
       ValueType&>;
   using prop_parent_t =
-      typed_grid_vertex_property_interface<Grid, ValueType,
-                                           has_non_const_reference>;
+      typed_rectilinear_grid_vertex_property_interface<Grid, ValueType,
+                                                       has_non_const_reference>;
   using cont_parent_t   = Container;
   using value_type      = typename prop_parent_t::value_type;
   using reference       = typename prop_parent_t::reference;
@@ -457,8 +458,8 @@ struct typed_vertex_property
   // ctors
   //============================================================================
   template <typename... Args>
-  explicit typed_vertex_property(Grid const& grid, Args&&... args)
-      : prop_parent_t{grid}, cont_parent_t{std::forward<Args>(args)...} {}
+  explicit typed_vertex_property(Grid const& g, Args&&... args)
+      : prop_parent_t{g}, cont_parent_t{std::forward<Args>(args)...} {}
   typed_vertex_property(typed_vertex_property const&)     = default;
   typed_vertex_property(typed_vertex_property&&) noexcept = default;
   //----------------------------------------------------------------------------
@@ -466,7 +467,8 @@ struct typed_vertex_property
   //============================================================================
   // methods
   //============================================================================
-  auto clone() const -> std::unique_ptr<grid_vertex_property<Grid>> override {
+  auto clone() const
+      -> std::unique_ptr<rectilinear_grid_vertex_property<Grid>> override {
     return std::unique_ptr<this_t>(new this_t{*this});
   }
   //----------------------------------------------------------------------------
@@ -547,151 +549,57 @@ struct typed_vertex_property
     Container::resize(size);
   }
 };
-////==============================================================================
-// template <typename Grid, typename F>
-// struct typed_grid_vertex_lambda
-//    : typed_grid_vertex_property_interface<
-//          Grid, typename Grid::template invoke_result_with_indices<F>, false>
-//          {
-//  //============================================================================
-//  // typedefs
-//  //============================================================================
-//  using this_t = typed_grid_vertex_lambda<Grid, F>;
-//  using value_type = typename Grid::template invoke_result_with_indices<F>;
-//  static constexpr bool has_non_const_reference = false;
-//  using prop_parent_t =
-//      typed_grid_vertex_property_interface<Grid, value_type,
-//      has_non_const_reference>;
-//  using grid_t        = Grid;
-//  using prop_parent_t::num_dimensions;
-//  using reference = typename prop_parent_t::reference;
-//  using const_reference = typename prop_parent_t::const_reference;
-//
-//  //============================================================================
-//  // members
-//  //============================================================================
-// private:
-//  F m_f;
-//
-//  //============================================================================
-//  // ctors
-//  //============================================================================
-// public:
-//  template <typename _F>
-//  typed_grid_vertex_lambda(Grid const& grid, _F&& f)
-//      : prop_parent_t{grid}, m_f{std::forward<_F>(f)} {}
-//  typed_grid_vertex_lambda(typed_grid_vertex_lambda const&) =
-//      default;
-//  typed_grid_vertex_lambda(typed_grid_vertex_lambda&&) noexcept =
-//      default;
-//  //----------------------------------------------------------------------------
-//  ~typed_grid_vertex_lambda() override = default;
-//  //============================================================================
-//  // methods
-//  //============================================================================
-//  auto clone() const -> std::unique_ptr<grid_vertex_property<Grid>> override {
-//    return std::unique_ptr<this_t>(new this_t{*this});
-//  }
-//  //----------------------------------------------------------------------------
-//#ifdef __cpp_concepts
-//  template <integral... Is>
-//  requires(sizeof...(Is) == num_dimensions())
-//#else
-//  template <typename... Is, enable_if<is_integral<Is...>> = true,
-//  enable_if<(sizeof...(Is) == num_dimensions())> = true>
-//#endif
-//  constexpr auto operator()(Is const... is) const -> decltype(auto) {
-//    return m_f(is...);
-//  }
-//  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-//  -
-//#ifdef __cpp_concepts
-//  template <integral... Is>
-//  requires(sizeof...(Is) == num_dimensions())
-//#else
-//  template <typename... Is, enable_if<is_integral<Is...>> = true,
-//  enable_if<(sizeof...(Is) == num_dimensions())> = true>
-//#endif
-//  constexpr auto operator()(Is const... is) -> decltype(auto) {
-//    return m_f(is...);
-//  }
-//  //----------------------------------------------------------------------------
-//#ifdef __cpp_concepts
-//  template <integral... Is>
-//  requires(sizeof...(Is) == Grid::num_dimensions())
-//#else
-//  template <typename... Is, enable_if<is_integral<Is...>> = true,
-//  enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
-//#endif
-//  auto at(Is const... is) const -> const_reference {
-//    return m_f(is...);
-//  }
-//  //----------------------------------------------------------------------------
-//  template <size_t... Is>
-//  auto at(std::array<size_t, num_dimensions()> const& size,
-//          std::index_sequence<Is...> [>seq<]) const -> const_reference {
-//    return m_f(size[Is]...);
-//  }
-//  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-//  - auto at(std::array<size_t, num_dimensions()> const& size) const
-//      -> const_reference override {
-//    return at(size, std::make_index_sequence<num_dimensions()>{});
-//  }
-//  //----------------------------------------------------------------------------
-//  auto resize(std::array<size_t, num_dimensions()> const & [>size<])
-//      -> void override {}
-//  auto container_type() const -> std::type_info const& override {
-//    return typeid(m_f);
-//  }
-//};
 //==============================================================================
 template <typename Grid, typename ValueType>
-struct grid_vertex_property_differentiated_type_impl;
+struct rectilinear_grid_vertex_property_differentiated_type_impl;
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename Grid, typename ValueType>
-using grid_vertex_property_differentiated_type =
-    typename grid_vertex_property_differentiated_type_impl<Grid,
-                                                           ValueType>::type;
+using rectilinear_grid_vertex_property_differentiated_type =
+    typename rectilinear_grid_vertex_property_differentiated_type_impl<
+        Grid, ValueType>::type;
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename Grid>
-struct grid_vertex_property_differentiated_type_impl<Grid, float> {
+struct rectilinear_grid_vertex_property_differentiated_type_impl<Grid, float> {
   using type = vec<float, Grid::num_dimensions()>;
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename Grid>
-struct grid_vertex_property_differentiated_type_impl<Grid, double> {
+struct rectilinear_grid_vertex_property_differentiated_type_impl<Grid, double> {
   using type = vec<double, Grid::num_dimensions()>;
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename Grid>
-struct grid_vertex_property_differentiated_type_impl<Grid, long double> {
+struct rectilinear_grid_vertex_property_differentiated_type_impl<Grid,
+                                                                 long double> {
   using type = vec<long double, Grid::num_dimensions()>;
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename Grid, typename T, size_t N>
-struct grid_vertex_property_differentiated_type_impl<Grid, vec<T, N>> {
+struct rectilinear_grid_vertex_property_differentiated_type_impl<Grid,
+                                                                 vec<T, N>> {
   using type = mat<T, N, Grid::num_dimensions()>;
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename Grid, typename T, size_t M, size_t N>
-struct grid_vertex_property_differentiated_type_impl<Grid, mat<T, M, N>> {
+struct rectilinear_grid_vertex_property_differentiated_type_impl<Grid,
+                                                                 mat<T, M, N>> {
   using type = tensor<T, M, N, Grid::num_dimensions()>;
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename Grid, typename T, size_t... Dims>
-struct grid_vertex_property_differentiated_type_impl<Grid, tensor<T, Dims...>> {
+struct rectilinear_grid_vertex_property_differentiated_type_impl<
+    Grid, tensor<T, Dims...>> {
   using type = tensor<T, Dims..., Grid::num_dimensions()>;
 };
 //==============================================================================
 template <typename Grid, typename PropValueType, bool PropHasNonConstReference>
-struct differentiated_typed_grid_vertex_property {
-  using this_t =
-      differentiated_typed_grid_vertex_property<Grid, PropValueType,
-                                                PropHasNonConstReference>;
-  using prop_t = typed_grid_vertex_property_interface<Grid, PropValueType,
-                                                      PropHasNonConstReference>;
+struct differentiated_typed_rectilinear_grid_vertex_property {
+  using this_t = differentiated_typed_rectilinear_grid_vertex_property<
+      Grid, PropValueType, PropHasNonConstReference>;
+  using prop_t = typed_rectilinear_grid_vertex_property_interface<
+      Grid, PropValueType, PropHasNonConstReference>;
   using value_type =
-      grid_vertex_property_differentiated_type<Grid, PropValueType>;
+      rectilinear_grid_vertex_property_differentiated_type<Grid, PropValueType>;
   using grid_t = Grid;
   //----------------------------------------------------------------------------
   static constexpr auto num_dimensions() { return Grid::num_dimensions(); }
@@ -759,9 +667,8 @@ struct differentiated_typed_grid_vertex_property {
   //----------------------------------------------------------------------------
   template <template <typename> typename InterpolationKernel>
   auto sampler_() const {
-    using sampler_t =
-        default_grid_vertex_sampler_t<num_dimensions(), InterpolationKernel,
-                                      this_t>;
+    using sampler_t = default_rectilinear_grid_vertex_property_sampler_t<
+        num_dimensions(), InterpolationKernel, this_t>;
     grid().update_diff_stencil_coefficients();
     return sampler_t{*this};
   }
@@ -779,17 +686,15 @@ struct differentiated_typed_grid_vertex_property {
         "Number of interpolation kernels does not match number of dimensions.");
 
     if constexpr (sizeof...(InterpolationKernels) == 0) {
-      using sampler_t =
-          default_grid_vertex_sampler_t<num_dimensions(), interpolation::cubic,
-                                        this_t>;
+      using sampler_t = default_rectilinear_grid_vertex_property_sampler_t<
+          num_dimensions(), interpolation::cubic, this_t>;
       grid().update_diff_stencil_coefficients();
       return sampler_t{*this};
     } else if constexpr (sizeof...(InterpolationKernels) == 1) {
       return sampler_<InterpolationKernels...>();
     } else {
-      using sampler_t =
-          tatooine::grid_vertex_property_sampler<this_t,
-                                                 InterpolationKernels...>;
+      using sampler_t = tatooine::rectilinear_grid_vertex_property_sampler<
+          this_t, InterpolationKernels...>;
       grid().update_diff_stencil_coefficients();
       return sampler_t{*this};
     }
@@ -797,13 +702,13 @@ struct differentiated_typed_grid_vertex_property {
 };
 //==============================================================================
 template <typename Grid, typename ValueType, bool HasNonConstReference>
-auto diff(typed_grid_vertex_property_interface<
+auto diff(typed_rectilinear_grid_vertex_property_interface<
           Grid, ValueType, HasNonConstReference> const& prop) {
   if (!prop.grid().diff_stencil_coefficients_created_once()) {
     prop.grid().update_diff_stencil_coefficients();
   }
-  return differentiated_typed_grid_vertex_property<Grid, ValueType,
-                                                   HasNonConstReference>{prop};
+  return differentiated_typed_rectilinear_grid_vertex_property<
+      Grid, ValueType, HasNonConstReference>{prop};
 }
 //==============================================================================
 }  // namespace tatooine
