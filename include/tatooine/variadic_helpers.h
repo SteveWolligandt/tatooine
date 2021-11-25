@@ -52,6 +52,18 @@ struct ith_type_impl<0, CurType, RestTypes...> {
 template <std::size_t I, typename... Types>
 using ith_type = typename ith_type_impl<I, Types...>::type;
 //==============================================================================
+template <std::size_t X, std::size_t... Rest>
+struct contains_impl;
+template <std::size_t X, std::size_t I, std::size_t... Rest>
+struct contains_impl<X, I, Rest...>
+    : std::integral_constant<bool, contains_impl<X, Rest...>::value> {};
+template <std::size_t X, std::size_t... Rest>
+struct contains_impl<X, X, Rest...> : std::true_type {};
+template <std::size_t X>
+struct contains_impl<X> : std::false_type {};
+template <std::size_t X, std::size_t... Is>
+static constexpr auto contains = contains_impl<X, Is...>::value;
+//==============================================================================
 }  // namespace tatooine::variadic
 //==============================================================================
 #endif

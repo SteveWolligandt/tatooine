@@ -117,7 +117,8 @@ TEST_CASE("grid_vertex_property", "[rectilinear_grid][property]") {
   }
 }
 //==============================================================================
-TEST_CASE("grid_vertex_property_sampler", "[rectilinear_grid][sampler][linear]") {
+TEST_CASE("grid_vertex_property_sampler_scalar",
+          "[rectilinear_grid][sampler][linear][scalar]") {
   auto  g    = rectilinear_grid{linspace{0.0, 10.0, 11}, linspace{0.0, 10.0, 11}};
   auto& prop = g.insert_scalar_vertex_property("double_prop");
   prop(0, 0) = 1;
@@ -143,6 +144,47 @@ TEST_CASE("grid_vertex_property_sampler", "[rectilinear_grid][sampler][linear]")
   REQUIRE(sampler(1, 0.5) == 3);
   REQUIRE(sampler(1, 0.25) == 2.5);
   REQUIRE(sampler(0.5, 0.5) == 2.5);
+  REQUIRE(sampler(0.25, 0.25) == 1.75);
+}
+//==============================================================================
+TEST_CASE("grid_vertex_property_sampler_vec",
+          "[rectilinear_grid][sampler][linear][vec]") {
+  auto  g = rectilinear_grid{linspace{0.0, 10.0, 11}, linspace{0.0, 10.0, 11}};
+  auto& prop   = g.insert_vec2_vertex_property("double_prop");
+  prop(0, 0)   = vec{1, 2};
+  prop(1, 0)   = vec{2, 4};
+  prop(0, 1)   = vec{3, 6};
+  prop(1, 1) = vec{4,8};
+  auto sampler = prop.linear_sampler();
+  REQUIRE(sampler(0, 0)(0) == 1);
+  REQUIRE(sampler(0, 0)(1) == 2);
+  REQUIRE(sampler(1, 0)(0) == 2);
+  REQUIRE(sampler(1, 0)(1) == 4);
+  REQUIRE(sampler(0, 1)(0) == 3);
+  REQUIRE(sampler(0, 1)(1) == 6);
+  REQUIRE(sampler(1, 1)(0) == 4);
+  REQUIRE(sampler(1, 1)(1) == 8);
+
+  REQUIRE(sampler(0.5, 0)(0) == 1.5);
+  REQUIRE(sampler(0.5, 0)(1) == 3);
+  REQUIRE(sampler(0.25, 0)(0) == 1.25);
+  REQUIRE(sampler(0.25, 0)(1) == 2.5);
+  REQUIRE(sampler(0.5, 1)(0) == 3.5);
+  REQUIRE(sampler(0.5, 1)(1) == 7);
+  REQUIRE(sampler(0.25, 1)(0) == 3.25);
+  REQUIRE(sampler(0.25, 1)(1) == 6.5);
+  REQUIRE(sampler(0, 0.5)(0) == 2);
+  REQUIRE(sampler(0, 0.5)(1) == 4);
+  REQUIRE(sampler(0, 0.25)(0) == 1.5);
+  REQUIRE(sampler(0, 0.25)(1) == 3);
+  REQUIRE(sampler(1, 0.5)(0) == 3);
+  REQUIRE(sampler(1, 0.5)(1) == 6);
+  REQUIRE(sampler(1, 0.25)(0) == 2.5);
+  REQUIRE(sampler(1, 0.25)(1) == 5);
+  REQUIRE(sampler(0.5, 0.5)(0) == 2.5);
+  REQUIRE(sampler(0.5, 0.5)(1) == 5);
+  REQUIRE(sampler(0.25, 0.25)(0) == 1.75);
+  REQUIRE(sampler(0.25, 0.25)(1) == 3.5);
 }
 //==============================================================================
 TEST_CASE("grid_vertex_prop_cubic", "[rectilinear_grid][sampler][cubic]") {

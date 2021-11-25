@@ -179,6 +179,17 @@ using vectorfield = field<V, Real, NumDims, vec<Real, NumDims>>;
 template <typename V, typename Real, size_t NumDims>
 using scalarfield = field<V, Real, NumDims, Real>;
 //==============================================================================
+template <typename Real, size_t NumDims, typename Tensor>
+template<typename F>
+struct lambda_field : field<lambda_field>{};
+//==============================================================================
+template <std::size_t NumDims, typename Real = real_t, typename F>
+auto make_field(F&& f) {
+  return lambda_field<Real, NumDums,
+                      std::invoke_result_t<F, vec<Real, NumDims>, Real>>{
+      std::forward<F>(f)};
+}
+//==============================================================================
 // type traits
 //==============================================================================
 template <typename T, typename = void>

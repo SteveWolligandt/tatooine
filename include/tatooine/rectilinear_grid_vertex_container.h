@@ -1,11 +1,11 @@
-#ifndef TATOOINE_GRID_VERTEX_CONTAINER_H
-#define TATOOINE_GRID_VERTEX_CONTAINER_H
+#ifndef TATOOINE_RECTILINEAR_GRID_VERTEX_CONTAINER_H
+#define TATOOINE_RECTILINEAR_GRID_VERTEX_CONTAINER_H
 //==============================================================================
 #include <tatooine/concepts.h>
 #include <tatooine/for_loop.h>
-#include <tatooine/grid_vertex_handle.h>
-#include <tatooine/grid_vertex_iterator.h>
 #include <tatooine/rectilinear_grid.h>
+#include <tatooine/rectilinear_grid_vertex_handle.h>
+#include <tatooine/rectilinear_grid_vertex_iterator.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -17,9 +17,9 @@ template <typename... Dimensions>
 class rectilinear_grid;
 //==============================================================================
 template <typename... Dimensions>
-struct grid_vertex_container {
+struct rectilinear_grid_vertex_container {
   using grid_t         = rectilinear_grid<Dimensions...>;
-  using iterator       = grid_vertex_iterator<Dimensions...>;
+  using iterator       = rectilinear_grid_vertex_iterator<Dimensions...>;
   using const_iterator = iterator;
   using handle         = typename grid_t::vertex_handle;
   using pos_t          = typename grid_t::pos_t;
@@ -30,7 +30,7 @@ struct grid_vertex_container {
   grid_t const& m_grid;
   //----------------------------------------------------------------------------
  public:
-  grid_vertex_container(grid_t const& g) : m_grid{g} {}
+  rectilinear_grid_vertex_container(grid_t const& g) : m_grid{g} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
 #ifdef __cpp_concepts
@@ -102,9 +102,10 @@ struct grid_vertex_container {
 #endif
   auto iterate_indices(Iteration&& iteration, execution_policy::sequential_t,
                        std::index_sequence<Ds...>) const -> decltype(auto) {
-    return for_loop(std::forward<Iteration>(iteration), execution_policy::sequential,
-                    std::pair{size_t(0), static_cast<size_t>(
-                                             m_grid.template size<Ds>())}...);
+    return for_loop(
+        std::forward<Iteration>(iteration), execution_policy::sequential,
+        std::pair{size_t(0),
+                  static_cast<size_t>(m_grid.template size<Ds>())}...);
   }
   //----------------------------------------------------------------------------
  public:
@@ -117,9 +118,10 @@ struct grid_vertex_container {
                                    decltype(((void)std::declval<Dimensions>(),
                                              size_t{}))...> > = true>
 #endif
-  auto iterate_indices(Iteration&& iteration, execution_policy::sequential_t) const
-      -> decltype(auto) {
-    return iterate_indices(std::forward<Iteration>(iteration), execution_policy::sequential,
+  auto iterate_indices(Iteration&& iteration,
+                       execution_policy::sequential_t) const -> decltype(auto) {
+    return iterate_indices(std::forward<Iteration>(iteration),
+                           execution_policy::sequential,
                            std::make_index_sequence<num_dimensions()>{});
   }
   //----------------------------------------------------------------------------
@@ -136,8 +138,8 @@ struct grid_vertex_container {
 #endif
   auto iterate_indices(Iteration&& iteration, execution_policy::parallel_t,
                        std::index_sequence<Ds...>) const -> decltype(auto) {
-    return for_loop(std::forward<Iteration>(iteration), execution_policy::parallel,
-                    m_grid.template size<Ds>()...);
+    return for_loop(std::forward<Iteration>(iteration),
+                    execution_policy::parallel, m_grid.template size<Ds>()...);
   }
   //----------------------------------------------------------------------------
  public:
@@ -150,9 +152,10 @@ struct grid_vertex_container {
                                    decltype(((void)std::declval<Dimensions>(),
                                              size_t{}))...> > = true>
 #endif
-  auto iterate_indices(Iteration&& iteration, execution_policy::parallel_t) const
-      -> decltype(auto) {
-    return iterate_indices(std::forward<Iteration>(iteration), execution_policy::parallel,
+  auto iterate_indices(Iteration&& iteration,
+                       execution_policy::parallel_t) const -> decltype(auto) {
+    return iterate_indices(std::forward<Iteration>(iteration),
+                           execution_policy::parallel,
                            std::make_index_sequence<num_dimensions()>{});
   }
 //------------------------------------------------------------------------------
@@ -166,7 +169,8 @@ struct grid_vertex_container {
                                              size_t{}))...> > = true>
 #endif
   auto iterate_indices(Iteration&& iteration) const -> decltype(auto) {
-    return iterate_indices(std::forward<Iteration>(iteration), execution_policy::sequential,
+    return iterate_indices(std::forward<Iteration>(iteration),
+                           execution_policy::sequential,
                            std::make_index_sequence<num_dimensions()>{});
   }
 };
@@ -176,7 +180,7 @@ template <indexable_space... Dimensions>
 #else
 template <typename... Dimensions>
 #endif
-auto begin(grid_vertex_container<Dimensions...> const& c) {
+auto begin(rectilinear_grid_vertex_container<Dimensions...> const& c) {
   return c.begin();
 }
 //------------------------------------------------------------------------------
@@ -185,7 +189,7 @@ template <indexable_space... Dimensions>
 #else
 template <typename... Dimensions>
 #endif
-auto end(grid_vertex_container<Dimensions...> const& c) {
+auto end(rectilinear_grid_vertex_container<Dimensions...> const& c) {
   return c.end();
 }
 //------------------------------------------------------------------------------
@@ -194,7 +198,7 @@ template <indexable_space... Dimensions>
 #else
 template <typename... Dimensions>
 #endif
-auto size(grid_vertex_container<Dimensions...> const& c) {
+auto size(rectilinear_grid_vertex_container<Dimensions...> const& c) {
   return c.size();
 }
 //==============================================================================

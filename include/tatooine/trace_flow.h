@@ -8,8 +8,8 @@ namespace tatooine {
 //==============================================================================
 template <typename V, typename Real, std::size_t N, typename T0Real,
           typename TauReal>
-auto trace_pathline(vectorfield<V, Real, N> const& v, vec<Real, N> const& x0,
-                    T0Real const t0, TauReal const tau) {
+auto trace_flow(vectorfield<V, Real, N> const& v, vec<Real, N> const& x0,
+                T0Real const t0, TauReal const tau) {
   auto  solver   = ode::vclibs::rungekutta43<Real, N> {};
   auto  l        = line<Real, N>{};
   auto& param    = l.parameterization();

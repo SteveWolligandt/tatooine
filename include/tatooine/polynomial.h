@@ -69,12 +69,11 @@ struct polynomial {
   template <arithmetic... Coeffs>
   requires(sizeof...(Coeffs) == Degree + 1)
 #else
-  template <typename... Coeffs, enable_if<is_arithmetic<Coeffs...>> = true,
+  template <typename... Coeffs, enable_if_arithmetic<Coeffs...> = true,
             enable_if<(sizeof...(Coeffs) == Degree + 1)> = true>
 #endif
-      constexpr polynomial(Coeffs... coeffs)
-      : m_coefficients{static_cast<Real>(coeffs)...} {
-  }
+  constexpr polynomial(Coeffs const... coeffs)
+    : m_coefficients{static_cast<Real>(coeffs)...} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concepts
   template <arithmetic OtherReal>

@@ -8,9 +8,9 @@
 #include <tatooine/concepts.h>
 #include <tatooine/filesystem.h>
 #include <tatooine/for_loop.h>
-#include <tatooine/grid_cell_container.h>
-#include <tatooine/grid_vertex_container.h>
-#include <tatooine/grid_vertex_property.h>
+#include <tatooine/rectilinear_grid_cell_container.h>
+#include <tatooine/rectilinear_grid_vertex_container.h>
+#include <tatooine/rectilinear_grid_vertex_property.h>
 #include <tatooine/hdf5.h>
 #include <tatooine/interpolation.h>
 #include <tatooine/lazy_reader.h>
@@ -51,15 +51,15 @@ class rectilinear_grid {
 
   using dimensions_t = std::tuple<std::decay_t<Dimensions>...>;
 
-  using vertex_container = grid_vertex_container<Dimensions...>;
-  using vertex_handle    = grid_vertex_handle<sizeof...(Dimensions)>;
-  using cell_container   = grid_cell_container<Dimensions...>;
+  using vertex_container = rectilinear_grid_vertex_container<Dimensions...>;
+  using vertex_handle    = rectilinear_grid_vertex_handle<sizeof...(Dimensions)>;
+  using cell_container   = rectilinear_grid_cell_container<Dimensions...>;
 
   // general property types
-  using vertex_property_t = grid_vertex_property<this_t>;
+  using vertex_property_t = rectilinear_grid_vertex_property<this_t>;
   template <typename ValueType, bool HasNonConstReference>
   using typed_vertex_property_interface_t =
-      typed_grid_vertex_property_interface<this_t, ValueType,
+      typed_rectilinear_grid_vertex_property_interface<this_t, ValueType,
                                            HasNonConstReference>;
   template <typename Container>
   using typed_vertex_property_t =
@@ -442,6 +442,16 @@ class rectilinear_grid {
                           template_helper::get_t<I, Dimensions...>>> = true>
 #endif
   constexpr auto size() -> auto& { return dimension<I>().size(); }
+  //----------------------------------------------------------------------------
+  template <size_t I>
+  constexpr auto at(std::size_t const i) const {
+    return dimension<I>().at(i);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <size_t I>
+  constexpr auto at(std::size_t const i) -> auto& {
+    return dimension<I>().at(i);
+  }
   //----------------------------------------------------------------------------
   template <size_t I>
   constexpr auto front() const {
@@ -994,7 +1004,7 @@ class rectilinear_grid {
   }
   //----------------------------------------------------------------------------
   /// \return number of dimensions for one dimension dim
-  // constexpr auto edges() const { return grid_edge_container{this}; }
+  // constexpr auto edges() const { return rectilinear_grid_edge_container{this}; }
 
   //----------------------------------------------------------------------------
   auto vertices() const { return vertex_container{*this}; }
@@ -1312,7 +1322,7 @@ class rectilinear_grid {
   //              F>
   // auto insert_vertex_property(std::string const& name, F&& f) -> auto& {
   //  return create_vertex_property<
-  //      typed_grid_vertex_property_lambda<this_t, std::decay_t<F>>>(
+  //      typed_rectilinear_grid_vertex_property_lambda<this_t, std::decay_t<F>>>(
   //      name, std::forward<F>(f));
   //}
   //----------------------------------------------------------------------------

@@ -1,5 +1,5 @@
-#ifndef TATOOINE_GRID_CELL_CONTAINER_H
-#define TATOOINE_GRID_CELL_CONTAINER_H
+#ifndef TATOOINE_RECTILINEAR_GRID_CELL_CONTAINER_H
+#define TATOOINE_RECTILINEAR_GRID_CELL_CONTAINER_H
 //==============================================================================
 #include <tatooine/concepts.h>
 #include <tatooine/for_loop.h>
@@ -17,19 +17,19 @@ template <typename... Dimensions>
 class rectilinear_grid;
 //==============================================================================
 template <typename... Dimensions>
-struct grid_cell_container {
+struct rectilinear_grid_cell_container {
  private:
   rectilinear_grid<Dimensions...> const& m_grid;
 
  public:
-  //using iterator          = grid_cell_iterator<Dimensions...>;
+  //using iterator          = rectilinear_grid_cell_iterator<Dimensions...>;
   //using const_iterator    = iterator;
-  //using handle    = grid_cell_handle<Dimensions...>;
+  //using handle    = rectilinear_grid_cell_handle<Dimensions...>;
   //using pos_t = typename rectilinear_grid<Dimensions...>::pos_t;
   using seq_t = typename rectilinear_grid<Dimensions...>::seq_t;
   static constexpr auto num_dimensions() { return sizeof...(Dimensions); }
   //----------------------------------------------------------------------------
-  grid_cell_container(rectilinear_grid<Dimensions...> const& g) : m_grid{g} {}
+  rectilinear_grid_cell_container(rectilinear_grid<Dimensions...> const& g) : m_grid{g} {}
   //----------------------------------------------------------------------------
 //#ifdef __cpp_concepts
 //  template <size_t... DIs, integral Int>
@@ -219,7 +219,7 @@ struct grid_cell_container {
 //#else
 //template <typename... Dimensions>
 //#endif
-//auto begin(grid_cell_container<Dimensions...> const& c) {
+//auto begin(rectilinear_grid_cell_container<Dimensions...> const& c) {
 //  return c.begin();
 //}
 ////------------------------------------------------------------------------------
@@ -228,7 +228,7 @@ struct grid_cell_container {
 //#else
 //template <typename... Dimensions>
 //#endif
-//auto end(grid_cell_container<Dimensions...> const& c) {
+//auto end(rectilinear_grid_cell_container<Dimensions...> const& c) {
 //  return c.end();
 //}
 //------------------------------------------------------------------------------
@@ -237,7 +237,7 @@ template <indexable_space... Dimensions>
 #else
 template <typename... Dimensions>
 #endif
-auto size(grid_cell_container<Dimensions...> const& c) {
+auto size(rectilinear_grid_cell_container<Dimensions...> const& c) {
   return c.size();
 }
 //==============================================================================
@@ -250,7 +250,7 @@ namespace std::ranges {
 //#else
 //template <typename... Dimensions>
 //#endif
-//constexpr auto begin(tatooine::grid_cell_container<Dimensions...>& r) {
+//constexpr auto begin(tatooine::rectilinear_grid_cell_container<Dimensions...>& r) {
 //  r.begin();
 //}
 //#ifdef __cpp_concepts
@@ -258,7 +258,7 @@ namespace std::ranges {
 //#else
 //template <typename... Dimensions>
 //#endif
-//constexpr auto end(tatooine::grid_cell_container<Dimensions...>& r) {
+//constexpr auto end(tatooine::rectilinear_grid_cell_container<Dimensions...>& r) {
 //  r.end();
 //}
 //#ifdef __cpp_concepts
@@ -266,7 +266,7 @@ namespace std::ranges {
 //#else
 //template <typename... Dimensions>
 //#endif
-//constexpr auto begin(tatooine::grid_cell_container<Dimensions...> const& r) {
+//constexpr auto begin(tatooine::rectilinear_grid_cell_container<Dimensions...> const& r) {
 //  r.begin();
 //}
 //#ifdef __cpp_concepts
@@ -274,7 +274,7 @@ namespace std::ranges {
 //#else
 //template <typename... Dimensions>
 //#endif
-//constexpr auto end(tatooine::grid_cell_container<Dimensions...> const& r) {
+//constexpr auto end(tatooine::rectilinear_grid_cell_container<Dimensions...> const& r) {
 //  r.end();
 //}
 //==============================================================================

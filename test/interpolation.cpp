@@ -5,6 +5,29 @@
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
+TEST_CASE("interpolation_linear_scalar", "[interpolation][linear][scalar]") {
+  auto const f = interpolation::linear{1.0, 2.0};
+  REQUIRE(f(0) == 1);
+  REQUIRE(f(1) == 2);
+  REQUIRE(f(0.5) == 1.5);
+  REQUIRE(f(0.25) == 1.25);
+  REQUIRE(f(0.75) == 1.75);
+}
+//==============================================================================
+TEST_CASE("interpolation_linear_vec", "[interpolation][linear][vec]") {
+  auto const f = interpolation::linear{vec{1.0, 2.0}, vec{2.0, 4.0}};
+  REQUIRE(f(0)(0) == 1);
+  REQUIRE(f(0)(1) == 2);
+  REQUIRE(f(1)(0) == 2);
+  REQUIRE(f(1)(1) == 4);
+  REQUIRE(f(0.5)(0) == 1.5);
+  REQUIRE(f(0.5)(1) == 3);
+  REQUIRE(f(0.25)(0) == 1.25);
+  REQUIRE(f(0.25)(1) == 2.5);
+  REQUIRE(f(0.75)(0) == 1.75);
+  REQUIRE(f(0.75)(1) == 3.5);
+}
+//==============================================================================
 TEST_CASE("interpolation_cubic_scalar", "[interpolation][cubic][scalar]") {
   auto const f = interpolation::cubic{0.0, 1.0, 1.0, -2.0};
   REQUIRE(f(0) == 0);
