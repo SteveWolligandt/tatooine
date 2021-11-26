@@ -454,6 +454,21 @@ class rectilinear_grid {
   }
   //----------------------------------------------------------------------------
   template <size_t I>
+  constexpr auto cell_extent_in_dim(std::size_t const i) const {
+    return at<I>(i+1) - at<I>(i);
+  }
+  //----------------------------------------------------------------------------
+  template <size_t I>
+  constexpr auto push_back() {
+    if constexpr (is_linspace<decltype(dimension<I>())>) {
+      dimension<I>().push_back();
+    } else {
+      dimension<I>().push_back(back<I>() +
+                               cell_extent_in_dim<I>(size<I>() - 2));
+    }
+  }
+  //----------------------------------------------------------------------------
+  template <size_t I>
   constexpr auto front() const {
     return dimension<I>().front();
   }
@@ -2353,4 +2368,5 @@ using static_nonuniform_rectilinear_grid5 = NonuniformRectilinearGrid<5>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
+#include <tatooine/infinite_rectilinear_grid_vertex_property_sampler.h>
 #endif

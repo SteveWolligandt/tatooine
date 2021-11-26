@@ -35,7 +35,7 @@ struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
   //----------------------------------------------------------------------------
   [[nodiscard]] auto evaluate(pos_t const& x, Real const t) const
       -> tensor_t {
-    if (!m_infinite_domain && x(0) < 0 || x(0) > 2 || x(1) < 0 || x(1) > 1) {
+    if (!m_infinite_domain && (x(0) < 0 || x(0) > 2 || x(1) < 0 || x(1) > 1)) {
       return parent_t::ood_tensor();
     }
     Real const a  = m_epsilon * std::sin(m_omega * t);

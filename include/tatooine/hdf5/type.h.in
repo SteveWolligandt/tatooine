@@ -51,7 +51,7 @@ struct base_array_type {
  private:
   base_array_type()
       : m_id{H5Tarray_create(type_id<T>(), sizeof...(Dimensions),
-                             (hsize_t[sizeof...(Dimensions)]){Dimensions...})} {
+                             std::array{static_cast<hsize_t>(Dimensions)...}.data())} {
   }
 
  public:

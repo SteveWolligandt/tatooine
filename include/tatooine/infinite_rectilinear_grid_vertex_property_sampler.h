@@ -108,6 +108,17 @@ auto make_infinite(rectilinear_grid_vertex_property_sampler<
       RepeatedDims...>{v};
 }
 //------------------------------------------------------------------------------
+template <std::size_t... RepeatedDims, typename GridVertexProperty>
+auto make_infinite(rectilinear_grid_vertex_property_sampler<
+                   GridVertexProperty, interpolation::linear,
+                   interpolation::linear, interpolation::linear> const& v) {
+  return infinite_rectilinear_grid_vertex_property_sampler<
+      rectilinear_grid_vertex_property_sampler<
+          GridVertexProperty, interpolation::linear, interpolation::linear,
+          interpolation::linear>,
+      RepeatedDims...>{v};
+}
+//------------------------------------------------------------------------------
 template <std::size_t... DimsToRepeat, typename Dim0, typename Dim1,
           typename ValueType>
 auto repeat_for_infinite(typed_rectilinear_grid_vertex_property_interface<

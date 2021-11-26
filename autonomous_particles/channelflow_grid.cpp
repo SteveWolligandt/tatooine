@@ -41,8 +41,10 @@ auto main(int argc, char** argv) -> int {
   discrete_channelflow_domain.dimension<0>().pop_back();
   channelflow_154_file.dataset<double>("CartGrid/axis1")
       .read(discrete_channelflow_domain.dimension<1>());
+  discrete_channelflow_domain.push_back<1>();
   channelflow_154_file.dataset<double>("CartGrid/axis2")
       .read(discrete_channelflow_domain.dimension<2>());
+  discrete_channelflow_domain.push_back<2>();
   report << "size of axis0: "
          << size(discrete_channelflow_domain.dimension<0>()) << '\n';
   report << "size of axis1: "
@@ -57,7 +59,8 @@ auto main(int argc, char** argv) -> int {
         typed_vertex_property<nonuniform_rectilinear_grid3, vec3,
                               dynamic_multidim_array<vec3, x_fastest>>*>(
         &discrete_channelflow_domain.vec3_vertex_property("velocity"));
-    auto v = discrete_velocity.linear_sampler();
+    auto       w = discrete_velocity.linear_sampler();
+    auto const v = make_infinite<1, 2>(w);
     //----------------------------------------------------------------------------
     // Create memory for measuring
     //----------------------------------------------------------------------------
@@ -65,26 +68,18 @@ auto main(int argc, char** argv) -> int {
     {
       auto dataset    = channelflow_154_file.dataset<double>("velocity/xvel");
       auto data_space = dataset.dataspace();
-      auto num_elems0 = data_space.num_elements();
-      auto sel_num_elems0 = data_space.selected_num_elements();
       data_space.select_hyperslab({0, 0, 0},
-                                  {discrete_channelflow_domain.size(0),
-                                   discrete_channelflow_domain.size(1),
-                                   discrete_channelflow_domain.size(2)});
-      auto num_elems1     = data_space.num_elements();
-      auto sel_num_elems1 = data_space.selected_num_elements();
-      auto mem_space  = hdf5::dataspace{discrete_channelflow_domain.size(0) * 3,
-                                       discrete_channelflow_domain.size(1),
-                                       discrete_channelflow_domain.size(2)};
-      auto num_elems2 = mem_space.num_elements();
-      auto sel_num_elems2 = mem_space.selected_num_elements();
+                                  {discrete_channelflow_domain.size<0>(),
+                                   discrete_channelflow_domain.size<1>() - 1,
+                                   discrete_channelflow_domain.size<2>() - 1});
+      auto mem_space =
+          hdf5::dataspace{discrete_channelflow_domain.size<0>() * 3,
+                          discrete_channelflow_domain.size<1>() - 1,
+                          discrete_channelflow_domain.size<2>() - 1};
       mem_space.select_hyperslab({0, 0, 0}, {3, 1, 1},
-                                 {discrete_channelflow_domain.size(0),
-                                  discrete_channelflow_domain.size(1),
-                                  discrete_channelflow_domain.size(2)});
-      auto num_elems3     = mem_space.num_elements();
-      auto sel_num_elems3 = mem_space.selected_num_elements();
-
+                                 {discrete_channelflow_domain.size<0>(),
+                                  discrete_channelflow_domain.size<1>() - 1,
+                                  discrete_channelflow_domain.size<2>() - 1});
       dataset.read(mem_space.id(), data_space.id(), H5P_DEFAULT,
                    discrete_velocity.data().front().data_ptr());
     }
@@ -94,16 +89,16 @@ auto main(int argc, char** argv) -> int {
       auto dataset    = channelflow_154_file.dataset<double>("velocity/yvel");
       auto data_space = dataset.dataspace();
       data_space.select_hyperslab({0, 0, 0},
-                                  {discrete_channelflow_domain.size(0),
-                                   discrete_channelflow_domain.size(1),
-                                   discrete_channelflow_domain.size(2)});
+                                  {discrete_channelflow_domain.size<0>(),
+                                   discrete_channelflow_domain.size<1>() - 1,
+                                   discrete_channelflow_domain.size<2>() - 1});
       auto mem_space = hdf5::dataspace{discrete_channelflow_domain.size(0) * 3,
-                                       discrete_channelflow_domain.size(1),
-                                       discrete_channelflow_domain.size(2)};
+                                       discrete_channelflow_domain.size(1) - 1,
+                                       discrete_channelflow_domain.size(2) - 1};
       mem_space.select_hyperslab({1, 0, 0}, {3, 1, 1},
                                  {discrete_channelflow_domain.size(0),
-                                  discrete_channelflow_domain.size(1),
-                                  discrete_channelflow_domain.size(2)});
+                                  discrete_channelflow_domain.size(1) - 1,
+                                  discrete_channelflow_domain.size(2) - 1});
 
       dataset.read(mem_space.id(), data_space.id(), H5P_DEFAULT,
                    discrete_velocity.data().front().data_ptr());
@@ -113,20 +108,21 @@ auto main(int argc, char** argv) -> int {
       auto dataset    = channelflow_154_file.dataset<double>("velocity/zvel");
       auto data_space = dataset.dataspace();
       data_space.select_hyperslab({0, 0, 0},
-                                  {discrete_channelflow_domain.size(0),
-                                   discrete_channelflow_domain.size(1),
-                                   discrete_channelflow_domain.size(2)});
+                                  {discrete_channelflow_domain.size<0>(),
+                                   discrete_channelflow_domain.size<1>() - 1,
+                                   discrete_channelflow_domain.size<2>() - 1});
       auto mem_space = hdf5::dataspace{discrete_channelflow_domain.size(0) * 3,
-                                       discrete_channelflow_domain.size(1),
-                                       discrete_channelflow_domain.size(2)};
+                                       discrete_channelflow_domain.size(1) - 1,
+                                       discrete_channelflow_domain.size(2) - 1};
       mem_space.select_hyperslab({2, 0, 0}, {3, 1, 1},
                                  {discrete_channelflow_domain.size(0),
-                                  discrete_channelflow_domain.size(1),
-                                  discrete_channelflow_domain.size(2)});
+                                  discrete_channelflow_domain.size(1) - 1,
+                                  discrete_channelflow_domain.size(2) - 1});
 
       dataset.read(mem_space.id(), data_space.id(), H5P_DEFAULT,
                    discrete_velocity.data().front().data_ptr());
     }
+    repeat_for_infinite<1, 2>(discrete_velocity);
 
     //----------------------------------------------------------------------------
     // Create memory for measuring

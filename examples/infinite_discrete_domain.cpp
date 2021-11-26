@@ -1,12 +1,12 @@
-#include <tatooine/infinite_rectilinear_grid_vertex_property_sampler.h>
 #include <tatooine/rectilinear_grid.h>
 #include <tatooine/trace_flow.h>
 //==============================================================================
 using namespace tatooine;
 //==============================================================================
 int main() {
-  auto discretized_domain = NonuniformRectilinearGrid<2>{std::vector{0.0, 1.0, 2.0, 3.0, 4.0, 5.0},
-                                                         std::vector{0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0}};
+  auto discretized_domain = NonuniformRectilinearGrid<2>{
+      std::vector{0.0, 1.0, 2.0, 3.0, 4.0, 5.0},
+      std::vector{0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0}};
 
   discretized_domain.dimension<0>().push_back(
       2 * discretized_domain.back<0>() -
