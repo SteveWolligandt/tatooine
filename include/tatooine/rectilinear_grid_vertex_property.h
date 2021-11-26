@@ -11,36 +11,32 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <size_t N, template <typename> typename DefaultInterpolationKernel,
-          typename GridVertexProperty,
-          template <typename> typename... InterpolationKernels>
-struct default_rectilinear_grid_vertex_property_sampler {
-  template <template <typename> typename... _InterpolationKernels>
-  using vertex_property_t =
-      rectilinear_grid_vertex_property_sampler<GridVertexProperty,
-                                               _InterpolationKernels...>;
-  using type = typename default_rectilinear_grid_vertex_property_sampler<
-      N - 1, DefaultInterpolationKernel, GridVertexProperty,
-      InterpolationKernels..., DefaultInterpolationKernel>::type;
+template <typename GridVertexProperty,
+          template <typename> typename DefaultInterpolationKernel,
+          std::size_t N, template <typename> typename... InterpolationKernels>
+struct repeated_interpolation_kernel_for_rectilinear_grid_vertex_property_impl {
+  using type =
+      typename repeated_interpolation_kernel_for_rectilinear_grid_vertex_property_impl<
+          GridVertexProperty, DefaultInterpolationKernel, N - 1,
+          InterpolationKernels..., DefaultInterpolationKernel>::type;
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <template <typename> typename DefaultInterpolationKernel,
-          typename GridVertexProperty,
+template <typename GridVertexProperty,
+          template <typename> typename DefaultInterpolationKernel,
           template <typename> typename... InterpolationKernels>
-struct default_rectilinear_grid_vertex_property_sampler<
-    0, DefaultInterpolationKernel, GridVertexProperty,
+struct repeated_interpolation_kernel_for_rectilinear_grid_vertex_property_impl<
+    GridVertexProperty, DefaultInterpolationKernel, 0,
     InterpolationKernels...> {
   using type =
       rectilinear_grid_vertex_property_sampler<GridVertexProperty,
                                                InterpolationKernels...>;
 };
-template <size_t N, template <typename> typename DefaultInterpolationKernel,
-          typename GridVertexProperty,
-          template <typename> typename... InterpolationKernels>
-using default_rectilinear_grid_vertex_property_sampler_t =
-    typename default_rectilinear_grid_vertex_property_sampler<
-        N, DefaultInterpolationKernel, GridVertexProperty,
-        InterpolationKernels...>::type;
+template <typename GridVertexProperty,
+          template <typename> typename DefaultInterpolationKernel>
+using repeated_interpolation_kernel_for_rectilinear_grid_vertex_property =
+    typename repeated_interpolation_kernel_for_rectilinear_grid_vertex_property_impl<
+        GridVertexProperty, DefaultInterpolationKernel,
+        GridVertexProperty::num_dimensions()>::type;
 //==============================================================================
 template <typename Grid>
 struct rectilinear_grid_vertex_property {
@@ -115,8 +111,9 @@ struct typed_rectilinear_grid_vertex_property_interface
  private:
   template <template <typename> typename InterpolationKernel>
   auto sampler_() const {
-    using sampler_t = default_rectilinear_grid_vertex_property_sampler_t<
-        num_dimensions(), InterpolationKernel, this_t>;
+    using sampler_t =
+        repeated_interpolation_kernel_for_rectilinear_grid_vertex_property<
+            this_t, InterpolationKernel>;
     grid().update_diff_stencil_coefficients();
     return sampler_t{*this};
   }
@@ -134,8 +131,9 @@ struct typed_rectilinear_grid_vertex_property_interface
         "Number of interpolation kernels does not match number of dimensions.");
 
     if constexpr (sizeof...(InterpolationKernels) == 0) {
-      using sampler_t = default_rectilinear_grid_vertex_property_sampler_t<
-          num_dimensions(), interpolation::cubic, this_t>;
+      using sampler_t =
+          repeated_interpolation_kernel_for_rectilinear_grid_vertex_property<
+              this_t, interpolation::cubic>;
       grid().update_diff_stencil_coefficients();
       return sampler_t{*this};
     } else if constexpr (sizeof...(InterpolationKernels) == 1) {
@@ -168,12 +166,12 @@ struct typed_rectilinear_grid_vertex_property_interface
     return at(h);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto operator()(
-      std::array<size_t, num_dimensions()> const& is) const -> decltype(auto) {
+  constexpr auto operator()(std::array<std::size_t, num_dimensions()> const& is)
+      const -> decltype(auto) {
     return at(is);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto operator()(std::array<size_t, num_dimensions()> const& is)
+  constexpr auto operator()(std::array<std::size_t, num_dimensions()> const& is)
       -> decltype(auto) {
     return at(is);
   }
@@ -187,7 +185,7 @@ struct typed_rectilinear_grid_vertex_property_interface
 #endif
       constexpr auto
       operator()(Is const... is) const -> decltype(auto) {
-    return at(std::array{static_cast<size_t>(is)...});
+    return at(std::array{static_cast<std::size_t>(is)...});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concepts
@@ -199,7 +197,7 @@ struct typed_rectilinear_grid_vertex_property_interface
 #endif
       constexpr auto
       operator()(Is const... is) -> decltype(auto) {
-    return at(std::array{static_cast<size_t>(is)...});
+    return at(std::array{static_cast<std::size_t>(is)...});
   }
   //----------------------------------------------------------------------------
   constexpr auto at(vertex_handle const& h) const -> decltype(auto) {
@@ -211,14 +209,14 @@ struct typed_rectilinear_grid_vertex_property_interface
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  private:
-  template <size_t... Is>
+  template <std::size_t... Is>
   constexpr auto at(vertex_handle const& h,
                     std::index_sequence<Is...> /*seq*/) const
       -> decltype(auto) {
     return at(h.index(Is)...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <size_t... Is>
+  template <std::size_t... Is>
   constexpr auto at(vertex_handle const& h, std::index_sequence<Is...> /*seq*/)
       -> decltype(auto) {
     return at(h.index(Is)...);
@@ -233,7 +231,7 @@ struct typed_rectilinear_grid_vertex_property_interface
             enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
 #endif
       auto at(Is const... is) const -> decltype(auto) {
-    return at(std::array{static_cast<size_t>(is)...});
+    return at(std::array{static_cast<std::size_t>(is)...});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concepts
@@ -244,13 +242,13 @@ struct typed_rectilinear_grid_vertex_property_interface
             enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
 #endif
       auto at(Is const... is) -> decltype(auto) {
-    return at(std::array{static_cast<size_t>(is)...});
+    return at(std::array{static_cast<std::size_t>(is)...});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  virtual auto at(std::array<size_t, num_dimensions()> const& is) const
+  virtual auto at(std::array<std::size_t, num_dimensions()> const& is) const
       -> const_reference = 0;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  virtual auto at(std::array<size_t, num_dimensions()> const& is)
+  virtual auto at(std::array<std::size_t, num_dimensions()> const& is)
       -> reference = 0;
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
@@ -261,15 +259,15 @@ struct typed_rectilinear_grid_vertex_property_interface
             enable_if<(sizeof...(Size) == Grid::num_dimensions())> = true>
 #endif
       auto resize(Size const... size) -> decltype(auto) {
-    return resize(std::array{static_cast<size_t>(size)...});
+    return resize(std::array{static_cast<std::size_t>(size)...});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  virtual auto resize(std::array<size_t, num_dimensions()> const& size)
+  virtual auto resize(std::array<std::size_t, num_dimensions()> const& size)
       -> void = 0;
   //----------------------------------------------------------------------------
 #if TATOOINE_PNG_AVAILABLE
 #ifndef __cpp_concepts
-  template <size_t _N = num_dimensions(),
+  template <std::size_t _N = num_dimensions(),
             enable_if<(_N == 2) &&
                       ((is_vec<ValueType>) || is_arithmetic<ValueType>)> = true>
 #endif
@@ -324,7 +322,7 @@ struct typed_rectilinear_grid_vertex_property_interface
     }
   }
 #ifndef __cpp_concepts
-  template <size_t _N = num_dimensions(),
+  template <std::size_t _N = num_dimensions(),
             enable_if<(_N == 2) &&
                       ((is_vec<ValueType>) || is_arithmetic<ValueType>)> = true>
 #endif
@@ -376,7 +374,7 @@ struct typed_rectilinear_grid_vertex_property_interface
 #ifdef __cpp_concepts
   template <typename ColorScale>
 #else
-  template <typename ColorScale, size_t _N = num_dimensions(),
+  template <typename ColorScale, std::size_t _N = num_dimensions(),
             enable_if<(_N == 2), (is_floating_point<ValueType>)> = true>
 #endif
       auto write_png(filesystem::path const& path, ColorScale&& color_scale,
@@ -433,7 +431,8 @@ struct typed_vertex_property
           Grid, ValueType,
           std::is_convertible_v<
               decltype(std::declval<Container&>().at(
-                  std::declval<std::array<size_t, Grid::num_dimensions()>>())),
+                  std::declval<
+                      std::array<std::size_t, Grid::num_dimensions()>>())),
               ValueType&>>,
       Container {
   static_assert(std::is_same_v<ValueType, typename Container::value_type>);
@@ -443,7 +442,7 @@ struct typed_vertex_property
   using this_t = typed_vertex_property<Grid, ValueType, Container>;
   static constexpr bool has_non_const_reference = std::is_convertible_v<
       decltype(std::declval<Container&>().at(
-          std::declval<std::array<size_t, Grid::num_dimensions()>>())),
+          std::declval<std::array<std::size_t, Grid::num_dimensions()>>())),
       ValueType&>;
   using prop_parent_t =
       typed_rectilinear_grid_vertex_property_interface<Grid, ValueType,
@@ -522,29 +521,29 @@ struct typed_vertex_property
     return Container::at(is...);
   }
   //----------------------------------------------------------------------------
-  template <size_t... Is>
-  auto at(std::array<size_t, num_dimensions()> const& size,
+  template <std::size_t... Is>
+  auto at(std::array<std::size_t, num_dimensions()> const& size,
           std::index_sequence<Is...> /*seq*/) const -> const_reference {
     return Container::at(size[Is]...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto at(std::array<size_t, num_dimensions()> const& size) const
+  auto at(std::array<std::size_t, num_dimensions()> const& size) const
       -> const_reference override {
     return at(size, std::make_index_sequence<num_dimensions()>{});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <size_t... Is>
-  auto at(std::array<size_t, num_dimensions()> const& size,
+  template <std::size_t... Is>
+  auto at(std::array<std::size_t, num_dimensions()> const& size,
           std::index_sequence<Is...> /*seq*/) -> reference {
     return Container::at(size[Is]...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto at(std::array<size_t, num_dimensions()> const& size)
+  auto at(std::array<std::size_t, num_dimensions()> const& size)
       -> reference override {
     return at(size, std::make_index_sequence<num_dimensions()>{});
   }
   //----------------------------------------------------------------------------
-  auto resize(std::array<size_t, num_dimensions()> const& size)
+  auto resize(std::array<std::size_t, num_dimensions()> const& size)
       -> void override {
     Container::resize(size);
   }
@@ -574,19 +573,19 @@ struct rectilinear_grid_vertex_property_differentiated_type_impl<Grid,
   using type = vec<long double, Grid::num_dimensions()>;
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-template <typename Grid, typename T, size_t N>
+template <typename Grid, typename T, std::size_t N>
 struct rectilinear_grid_vertex_property_differentiated_type_impl<Grid,
                                                                  vec<T, N>> {
   using type = mat<T, N, Grid::num_dimensions()>;
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-template <typename Grid, typename T, size_t M, size_t N>
+template <typename Grid, typename T, std::size_t M, std::size_t N>
 struct rectilinear_grid_vertex_property_differentiated_type_impl<Grid,
                                                                  mat<T, M, N>> {
   using type = tensor<T, M, N, Grid::num_dimensions()>;
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-template <typename Grid, typename T, size_t... Dims>
+template <typename Grid, typename T, std::size_t... Dims>
 struct rectilinear_grid_vertex_property_differentiated_type_impl<
     Grid, tensor<T, Dims...>> {
   using type = tensor<T, Dims..., Grid::num_dimensions()>;
@@ -637,16 +636,16 @@ struct differentiated_typed_rectilinear_grid_vertex_property {
   }
   //----------------------------------------------------------------------------
  private:
-  template <size_t... Seq, typename... Is>
+  template <std::size_t... Seq, typename... Is>
   auto at(std::index_sequence<Seq...> /*seq*/, Is const... is) const
       -> value_type {
     value_type d{};
     (
         [&](auto const dim, auto const index) {
-          constexpr size_t targeted_stencil_size = 7;
-          constexpr int    offset                = targeted_stencil_size / 2;
+          constexpr std::size_t targeted_stencil_size = 7;
+          constexpr int         offset = targeted_stencil_size / 2;
 
-          auto       indices         = std::array{static_cast<size_t>(is)...};
+          auto       indices = std::array{static_cast<std::size_t>(is)...};
           auto const negative_offset = std::max<int>(-indices[dim], -offset);
           auto const positive_offset =
               std::min<int>(grid().size(dim) - index - 1,
@@ -655,7 +654,8 @@ struct differentiated_typed_rectilinear_grid_vertex_property {
               dim, positive_offset - negative_offset + 1, -negative_offset,
               index);
           indices[dim] += negative_offset;
-          for (size_t i = 0; i < size_t(positive_offset - negative_offset + 1);
+          for (std::size_t i = 0;
+               i < std::size_t(positive_offset - negative_offset + 1);
                ++i, ++indices[dim]) {
             d.template slice<value_type::rank() - 1>(dim) +=
                 m_prop(indices) * coeffs[i];
@@ -667,8 +667,9 @@ struct differentiated_typed_rectilinear_grid_vertex_property {
   //----------------------------------------------------------------------------
   template <template <typename> typename InterpolationKernel>
   auto sampler_() const {
-    using sampler_t = default_rectilinear_grid_vertex_property_sampler_t<
-        num_dimensions(), InterpolationKernel, this_t>;
+    using sampler_t =
+        repeated_interpolation_kernel_for_rectilinear_grid_vertex_property<
+            this_t, InterpolationKernel>;
     grid().update_diff_stencil_coefficients();
     return sampler_t{*this};
   }
@@ -686,8 +687,9 @@ struct differentiated_typed_rectilinear_grid_vertex_property {
         "Number of interpolation kernels does not match number of dimensions.");
 
     if constexpr (sizeof...(InterpolationKernels) == 0) {
-      using sampler_t = default_rectilinear_grid_vertex_property_sampler_t<
-          num_dimensions(), interpolation::cubic, this_t>;
+      using sampler_t =
+          repeated_interpolation_kernel_for_rectilinear_grid_vertex_property<
+              this_t, interpolation::cubic>;
       grid().update_diff_stencil_coefficients();
       return sampler_t{*this};
     } else if constexpr (sizeof...(InterpolationKernels) == 1) {

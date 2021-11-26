@@ -28,7 +28,7 @@ struct regular_flowmap_discretization {
   //----------------------------------------------------------------------------
   using forward_grid_t = typename grid_type_creator<N>::type;
   using grid_vertex_property_t =
-      typed_grid_vertex_property_interface<forward_grid_t, pos_t, true>;
+      typed_rectilinear_grid_vertex_property_interface<forward_grid_t, pos_t, true>;
   //----------------------------------------------------------------------------
   template <size_t M, template <typename> typename... InterpolationKernels>
   struct grid_sampler_type_creator {
@@ -39,9 +39,8 @@ struct regular_flowmap_discretization {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <template <typename> typename... InterpolationKernels>
   struct grid_sampler_type_creator<0, InterpolationKernels...> {
-    using type =
-        tatooine::grid_vertex_property_sampler<grid_vertex_property_t,
-                                               InterpolationKernels...>;
+    using type = tatooine::rectilinear_grid_vertex_property_sampler<
+        grid_vertex_property_t, InterpolationKernels...>;
   };
   using grid_vertex_property_sampler_t =
       typename grid_sampler_type_creator<N>::type;

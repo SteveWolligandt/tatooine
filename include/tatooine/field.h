@@ -185,16 +185,16 @@ using scalarfield = field<V, Real, NumDims, Real>;
 template <std::size_t NumDims, typename F>
 struct lambda_field : field<
      lambda_field<NumDims, F>,
-     internal_value_type<std::invoke_result_t<F, vec<real_t, NumDims>, real_t>>,
+     internal_value_type<std::invoke_result_t<F, vec<tatooine::real_t, NumDims>, tatooine::real_t>>,
      NumDims,
-     std::invoke_result_t<F, vec<real_t, NumDims>, real_t>> {
+     std::invoke_result_t<F, vec<tatooine::real_t, NumDims>, tatooine::real_t>> {
   F m_f;
   constexpr lambda_field(F&& f) : m_f{std::forward<F>(f)} {}
   using parent_t =
       field<lambda_field<NumDims, F>,
             internal_value_type<
-                std::invoke_result_t<F, vec<real_t, NumDims>, real_t>>,
-            NumDims, std::invoke_result_t<F, vec<real_t, NumDims>, real_t>>;
+                std::invoke_result_t<F, vec<tatooine::real_t, NumDims>, tatooine::real_t>>,
+            NumDims, std::invoke_result_t<F, vec<tatooine::real_t, NumDims>, tatooine::real_t>>;
   using typename parent_t::pos_t;
   using typename parent_t::real_t;
   using typename parent_t::tensor_t;
