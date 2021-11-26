@@ -47,12 +47,10 @@ struct base_type {
 template <typename T, size_t... Dimensions>
 struct base_array_type {
   hid_t m_id;
-
+  static hsize_t dims[sizeof...(Dimensions)]{Dimensions...};
  private:
   base_array_type()
-      : m_id{H5Tarray_create(type_id<T>(), sizeof...(Dimensions),
-                             std::array{static_cast<hsize_t>(Dimensions)...}.data())} {
-  }
+      : m_id{H5Tarray_create(type_id<T>(), sizeof...(Dimensions), dims)} {}
 
  public:
   ~base_array_type() { H5Tclose(m_id); }

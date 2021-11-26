@@ -183,7 +183,7 @@ auto repeat_for_infinite(
       for (std::size_t j = 0;
            j < (variadic::contains<1, DimsToRepeat...> ? s[1] - 1 : s[1]);
            ++j) {
-        prop(i, j, s[1] - 1) = prop(i, j, 0);
+        prop(i, j, s[2] - 1) = prop(i, j, 0);
       }
     }
   }
@@ -193,7 +193,7 @@ auto repeat_for_infinite(
                  variadic::contains<2, DimsToRepeat...>)) {
     for (std::size_t i = 0;
          i < (variadic::contains<0, DimsToRepeat...> ? s[0] - 1 : s[0]); ++i) {
-      prop(i, s[0] - 1, s[1] - 1) = prop(i, 0, 0);
+      prop(i, s[1] - 1, s[2] - 1) = prop(i, 0, 0);
     }
   }
   if constexpr (sizeof...(DimsToRepeat) == 0 ||
@@ -201,7 +201,7 @@ auto repeat_for_infinite(
                  variadic::contains<2, DimsToRepeat...>)) {
     for (std::size_t i = 0;
          i < (variadic::contains<1, DimsToRepeat...> ? s[1] - 1 : s[1]); ++i) {
-      prop(s[0] - 1, i, s[1] - 1) = prop(0, i, 0);
+      prop(s[0] - 1, i, s[2] - 1) = prop(0, i, 0);
     }
   }
   if constexpr (sizeof...(DimsToRepeat) == 0 ||

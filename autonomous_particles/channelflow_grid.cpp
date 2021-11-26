@@ -59,6 +59,7 @@ auto main(int argc, char** argv) -> int {
         typed_vertex_property<nonuniform_rectilinear_grid3, vec3,
                               dynamic_multidim_array<vec3, x_fastest>>*>(
         &discrete_channelflow_domain.vec3_vertex_property("velocity"));
+    indicator.set_text("Creating sampler");
     auto       w = discrete_velocity.linear_sampler();
     auto const v = make_infinite<1, 2>(w);
     //----------------------------------------------------------------------------
@@ -122,6 +123,7 @@ auto main(int argc, char** argv) -> int {
       dataset.read(mem_space.id(), data_space.id(), H5P_DEFAULT,
                    discrete_velocity.data().front().data_ptr());
     }
+    indicator.set_text("Creating slabs for infinite domain");
     repeat_for_infinite<1, 2>(discrete_velocity);
 
     //----------------------------------------------------------------------------
