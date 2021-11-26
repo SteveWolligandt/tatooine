@@ -91,7 +91,7 @@ struct vec : tensor<T, N> {
 #else
   template <size_t _N = N, enable_if<(_N >= 1)> = true>
 #endif
-      auto x() const -> auto const& {
+  constexpr auto x() const -> auto const& {
     return this->at(0);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -101,7 +101,7 @@ struct vec : tensor<T, N> {
 #else
   template <size_t _N = N, enable_if<(_N >= 1)> = true>
 #endif
-      auto x() -> auto& {
+  constexpr auto x() -> auto& {
     return this->at(0);
   }
   //----------------------------------------------------------------------------
@@ -111,7 +111,7 @@ struct vec : tensor<T, N> {
 #else
   template <size_t _N = N, enable_if<(_N >= 2)> = true>
 #endif
-      auto y() const -> auto const& {
+  constexpr auto y() const -> auto const& {
     return this->at(1);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -121,7 +121,7 @@ struct vec : tensor<T, N> {
 #else
   template <size_t _N = N, enable_if<(_N >= 2)> = true>
 #endif
-      auto y() -> auto& {
+  constexpr auto y() -> auto& {
     return this->at(1);
   }
   //----------------------------------------------------------------------------
@@ -131,7 +131,7 @@ struct vec : tensor<T, N> {
 #else
   template <size_t _N = N, enable_if<(_N >= 3)> = true>
 #endif
-      auto z() const -> auto const& {
+  constexpr auto z() const -> auto const& {
     return this->at(2);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -141,7 +141,7 @@ struct vec : tensor<T, N> {
 #else
   template <size_t _N = N, enable_if<(_N >= 3)> = true>
 #endif
-      auto z() -> auto& {
+  constexpr auto z() -> auto& {
     return this->at(2);
   }
   //----------------------------------------------------------------------------
@@ -151,9 +151,8 @@ struct vec : tensor<T, N> {
 #else
   template <size_t _N = N, enable_if<(_N >= 4)> = true>
 #endif
-      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-      // - -
-      auto w() const -> auto const& {
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto w() const -> auto const& {
     return this->at(3);
   }
 #ifdef __cpp_concepts
@@ -162,7 +161,7 @@ struct vec : tensor<T, N> {
 #else
   template <size_t _N = N, enable_if<(_N >= 4)> = true>
 #endif
-      auto w() -> auto& {
+  constexpr auto w() -> auto& {
     return this->at(3);
   }
 
