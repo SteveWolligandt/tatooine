@@ -52,15 +52,6 @@ struct unary_operation_field
       return m_op(m_field(x, t));
     }
   }
-  //----------------------------------------------------------------------------
-  constexpr auto in_domain(pos_t const& x, real_t const t) const -> bool final {
-    if constexpr (std::is_pointer_v<std::decay_t<InternalField>>) {
-      return m_field->in_domain(x, t);
-    } else {
-      return m_field.in_domain(x, t);
-    }
-  }
-
   auto internal_field() const -> decltype(auto) { return m_field; }
   auto internal_field() -> decltype(auto) { return m_field; }
 };
