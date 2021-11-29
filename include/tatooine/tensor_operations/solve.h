@@ -1,15 +1,16 @@
 #ifndef TATOOINE_TENSOR_OPERATIONS_SOLVE_H
 #define TATOOINE_TENSOR_OPERATIONS_SOLVE_H
 //==============================================================================
-#include <cstdint>
 #include <tatooine/base_tensor.h>
 #include <tatooine/tensor_operations/determinant.h>
+
+#include <cstdint>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
 template <typename TensorA, typename TensorB, typename Real, std::size_t K>
 auto solve_direct(base_tensor<TensorA, Real, 2, 2> const& A,
-           base_tensor<TensorB, Real, 2, K> const& B) {
+                  base_tensor<TensorB, Real, 2, K> const& B) {
   auto const p = 1 / (A(0, 0) * A(1, 1) - A(1, 0) * A(0, 1));
   auto       X = mat<Real, 2, K>{};
   for (std::size_t i = 0; i < K; ++i) {
@@ -21,7 +22,7 @@ auto solve_direct(base_tensor<TensorA, Real, 2, 2> const& A,
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename TensorA, typename TensorB, typename Real>
 auto solve_direct(base_tensor<TensorA, Real, 2, 2> const& A,
-           base_tensor<TensorB, Real, 2> const&    b) {
+                  base_tensor<TensorB, Real, 2> const&    b) {
   auto const p = 1 / (A(0, 0) * A(1, 1) - A(1, 0) * A(0, 1));
   return vec<Real, 2>{-(A(0, 1) * b(1) - A(1, 1) * b(0)) * p,
                       (A(0, 0) * b(1) - A(1, 0) * b(0)) * p};
@@ -31,9 +32,9 @@ template <typename TensorA, typename TensorB, typename Real, std::size_t N>
 auto solve_cramer(base_tensor<TensorA, Real, N, N> const& A,
                   base_tensor<TensorB, Real, N> const&    b) {
   auto const det_inv = 1 / det(A);
-  auto Y       = mat<Real, N, N>{A};
-  auto tmp     = vec<Real, N>{};
-  auto result  = vec<Real, N>{};
+  auto       Y       = mat<Real, N, N>{A};
+  auto       tmp     = vec<Real, N>{};
+  auto       result  = vec<Real, N>{};
   for (size_t i = 0; i < N; ++i) {
     tmp       = Y.col(i);
     Y.col(i)  = b;
@@ -45,7 +46,7 @@ auto solve_cramer(base_tensor<TensorA, Real, N, N> const& A,
 //------------------------------------------------------------------------------
 template <typename TensorA, typename TensorB, typename Real, size_t N>
 auto solve_lu_lapack(base_tensor<TensorA, Real, N, N> const& A_base,
-              base_tensor<TensorB, Real, N> const&    b_base) {
+                     base_tensor<TensorB, Real, N> const&    b_base) {
   auto                  A    = mat<Real, N, N>{A_base};
   auto                  b    = vec<Real, N>{b_base};
   auto                  ipiv = vec<std::int64_t, N>{};
@@ -55,10 +56,10 @@ auto solve_lu_lapack(base_tensor<TensorA, Real, N, N> const& A_base,
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename TensorA, typename TensorB, typename Real, size_t N, size_t K>
 auto solve_lu_lapack(base_tensor<TensorA, Real, N, N> const& A_base,
-              base_tensor<TensorB, Real, N, K> const& B_base) {
+                     base_tensor<TensorB, Real, N, K> const& B_base) {
   auto                  A    = mat<Real, N, N>{A_base};
   auto                  B    = mat<Real, N, K>{B_base};
-  auto                  ipiv = vec<int, N>{};
+  auto                  ipiv = vec<std::int64_t, N>{};
   [[maybe_unused]] auto info = lapack::gesv(A, B, ipiv);
   return B;
 }
@@ -77,7 +78,7 @@ auto solve_lu_lapack(tensor<Real> A, tensor<Real> B) {
 template <typename TensorA, typename TensorB, typename Real, size_t M, size_t N,
           size_t K>
 auto solve_qr_lapack(base_tensor<TensorA, Real, M, N> const& A_base,
-              base_tensor<TensorB, Real, M, K> const& B_base) {
+                     base_tensor<TensorB, Real, M, K> const& B_base) {
   auto A   = mat<Real, M, N>{A_base};
   auto B   = mat<Real, M, K>{B_base};
   auto tau = vec<Real, (M < N ? M : N)>{};
@@ -98,7 +99,7 @@ auto solve_qr_lapack(base_tensor<TensorA, Real, M, N> const& A_base,
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename TensorA, typename TensorB, typename Real, size_t M, size_t N>
 auto solve_qr_lapack(base_tensor<TensorA, Real, M, N> const& A_base,
-              base_tensor<TensorB, Real, M> const&    b_base) {
+                     base_tensor<TensorB, Real, M> const&    b_base) {
   auto A   = mat<Real, M, N>{A_base};
   auto b   = vec<Real, M>{b_base};
   auto tau = vec<Real, (M < N ? M : N)>{};
@@ -164,7 +165,7 @@ auto solve(base_tensor<TensorA, Real, M, N> const& A,
 template <typename TensorA, typename TensorB, typename Real, size_t M, size_t N>
 auto solve(base_tensor<TensorA, Real, M, N> const& A,
            base_tensor<TensorB, Real, M> const&    b) {
-  if constexpr (M == 2 && N==2) {
+  if constexpr (M == 2 && N == 2) {
     return solve_direct(A, b);
   } else if constexpr (M == 3 && N == 3) {
     return solve_cramer(A, b);
