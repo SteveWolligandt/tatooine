@@ -515,14 +515,22 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
    #else
    auto constexpr exec = execution_policy::sequential;
    #endif
-   for_loop(check_faces_x, exec, g.template size<1>() - 1,
-            g.template size<2>() - 1, g.template size<0>());
-   for_loop(check_faces_y, exec, g.template size<0>() - 1,
-            g.template size<2>() - 1, g.template size<1>());
-   for_loop(check_faces_z, exec, g.template size<0>() - 1,
-            g.template size<1>() - 1, g.template size<2>());
-   for_loop(check_inner_faces, exec, g.template size<0>() - 1,
-            g.template size<1>() - 1, g.template size<2>() - 1);
+   for_loop(check_faces_x, exec,
+            g.template size<1>() - 1,
+            g.template size<2>() - 1,
+            g.template size<0>());
+   for_loop(check_faces_y, exec,
+            g.template size<0>() - 1,
+            g.template size<2>() - 1,
+            g.template size<1>());
+   for_loop(check_faces_z, exec,
+            g.template size<0>() - 1,
+            g.template size<1>() - 1,
+            g.template size<2>());
+   for_loop(check_inner_faces, exec,
+            g.template size<0>() - 1,
+            g.template size<1>() - 1,
+            g.template size<2>() - 1);
    auto lines = std::vector<line<Real, 3>>{};
    for_loop(
        [&](auto const ix, auto const iy, auto const iz) {
@@ -617,17 +625,17 @@ auto parallel_vectors(polymorphic::vectorfield<VReal, 3> const&          vf,
   return detail::calc_parallel_vectors<common_type<VReal, WReal>>(
       // get v data by evaluating V field
       [&vf, t](auto /*ix*/, auto /*iy*/, auto /*iz*/, auto const& p) {
-        if (vf.in_domain(p, t)) {
-          return vf(p, t);
-        }
+        //if (vf.in_domain(p, t)) {
+        //  return vf(p, t);
+        //}
         return typename std::decay_t<decltype(vf)>::tensor_t{
             tag::fill{VReal(0) / VReal(0)}};
       },
       // get w data by evaluating W field
       [&wf, t](auto /*ix*/, auto /*iy*/, auto /*iz*/, auto const& p) {
-        if (wf.in_domain(p, t)) {
-          return wf(p, t);
-        }
+        //if (wf.in_domain(p, t)) {
+        //  return wf(p, t);
+        //}
         return typename std::decay_t<decltype(wf)>::tensor_t{
             tag::fill{WReal(0) / WReal(0)}};
       },
@@ -656,17 +664,17 @@ auto parallel_vectors(vectorfield<V, VReal, 3> const&                    vf,
   return detail::calc_parallel_vectors<common_type<VReal, WReal>>(
       // get v data by evaluating V field
       [&vf, t](auto /*ix*/, auto /*iy*/, auto /*iz*/, auto const& p) {
-        if (vf.in_domain(p, t)) {
-          return vf(p, t);
-        }
+        //if (vf.in_domain(p, t)) {
+        //  return vf(p, t);
+        //}
         return typename std::decay_t<decltype(vf)>::tensor_t{
             tag::fill{VReal(0) / VReal(0)}};
       },
       // get w data by evaluating W field
       [&wf, t](auto /*ix*/, auto /*iy*/, auto /*iz*/, auto const& p) {
-        if (wf.in_domain(p, t)) {
-          return wf(p, t);
-        }
+        //if (wf.in_domain(p, t)) {
+        //  return wf(p, t);
+        //}
         return typename std::decay_t<decltype(wf)>::tensor_t{
             tag::fill{WReal(0) / WReal(0)}};
       },

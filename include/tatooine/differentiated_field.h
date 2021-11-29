@@ -96,10 +96,6 @@ struct differentiated_field
     return derivative;
   }
   //----------------------------------------------------------------------------
-  constexpr auto in_domain(pos_t const& x, real_t t) const -> bool final {
-    return internal_field().in_domain(x, t);
-  }
-  //----------------------------------------------------------------------------
   auto set_eps(vec_t const& eps) { m_eps = eps; }
   auto set_eps(vec_t&& eps) { m_eps = std::move(eps); }
   auto set_eps(real_t eps) { m_eps = vec_t{tag::fill{eps}}; }

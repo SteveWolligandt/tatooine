@@ -505,20 +505,32 @@ template <typename Int = std::size_t, typename Iteration, typename... Ends,
 constexpr auto for_loop(Iteration&& iteration, Ends const... ends) -> void {
   for_loop(std::forward<Iteration>(iteration), execution_policy::sequential, ends...);
 }
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// 
-template <typename Iteration, typename ExecutionPolicy, std::size_t N, std::size_t...Is>
-auto for_loop(Iteration&& iteration, ExecutionPolicy pol,
-              std::array<std::size_t, N> const& sizes, std::index_sequence<Is...>) {
-  for_loop(std::forward<Iteration>(iteration), pol,
-           std::pair{std::size_t(0), sizes[Is]}...);
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// \brief Use this function for creating a sequential nested loop.
+///
+/// First Index grows fastest, then the second and so on.
+///
+/// iteration must either return bool or nothing. If iteration returns false in
+/// any state the whole nested iteration will stop. iteration must return true
+/// to continue.
+#ifdef __cpp_concepts
+template <typename Int = std::size_t, typename Iteration,
+          typename ExecutionPolicy, integral... Ends>
+#else
+template <typename Int = std::size_t, typename Iteration,
+          typename ExecutionPolicy, typename... Ends,
+          enable_if_integral<Ends...> = true>
+#endif
+constexpr auto for_loop(Iteration&& iteration, ExecutionPolicy const pol,
+                        Ends const... ends) -> void {
+  for_loop(std::forward<Iteration>(iteration), pol, ends...);
 }
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Iteration, typename ExecutionPolicy, std::size_t N>
 auto for_loop(Iteration&& iteration, ExecutionPolicy pol,
               std::array<std::size_t, N> const& sizes) {
-  for_loop(std::forward<Iteration>(iteration), pol, sizes, std::make_index_sequence<N>{});
+  for_loop(std::forward<Iteration>(iteration), pol, sizes,
+           std::make_index_sequence<N>{});
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ///

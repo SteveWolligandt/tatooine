@@ -83,10 +83,6 @@ struct binary_operation_field
       -> tensor_t final {
     return m_op(lhs()(x, t), rhs()(x, t));
   }
-  //----------------------------------------------------------------------------
-  constexpr auto in_domain(pos_t const& x, real_t const t) const -> bool final {
-    return lhs().in_domain(x, t) && rhs().in_domain(x, t);
-  }
   auto lhs() const -> auto const& {
     if constexpr (is_pointer<LHSInternalField>) {
       return *m_lhs;
