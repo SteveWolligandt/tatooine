@@ -5,6 +5,9 @@
 using namespace tatooine;
 auto main() -> int {
   auto v = analytical::fields::numerical::abcflow{};
-  parallel_vectors(v, diff(v, 1e-10) * v, linspace{-1.0, 1.0, 10},
-                   linspace{-1.0, 1.0, 10}, linspace{-1.0, 1.0, 10});
+  write_vtk(
+      parallel_vectors(v, diff(v, 1e-10) * v, linspace{-3.0, 3.0 + 1e-6, 250},
+                       linspace{-3.0, 3.0 + 1e-5, 250},
+                       linspace{-3.0, 3.0 + 1e-4, 250}),
+      "pv_abc.vtk");
 }

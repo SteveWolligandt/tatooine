@@ -16,7 +16,7 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-namespace detail {
+namespace detail::for_loop {
 //==============================================================================
 /// \tparam Int integer type for counting
 /// \tparam N number of nestings
@@ -324,7 +324,7 @@ template <typename Int = std::size_t, typename Iteration, typename... Ranges,
 #endif
 constexpr auto for_loop(Iteration&& iteration, execution_policy::sequential_t,
                         Ranges(&&... ranges)[2]) -> void {
-  detail::for_loop<sizeof...(ranges) + 1, Int>(
+  detail::for_loop::for_loop<sizeof...(ranges) + 1, Int>(
       std::forward<Iteration>(iteration),
       std::make_integer_sequence<Int, sizeof...(ranges)>{},
       std::pair{ranges[0], ranges[1]}...);
@@ -345,7 +345,7 @@ template <typename Int = std::size_t, typename Iteration, typename... Ranges,
 #endif
 constexpr auto for_loop(Iteration&& iteration, execution_policy::sequential_t,
                         std::pair<Ranges, Ranges> const&... ranges) -> void {
-  detail::for_loop<sizeof...(ranges) + 1, Int>(
+  detail::for_loop::for_loop<sizeof...(ranges) + 1, Int>(
       std::forward<Iteration>(iteration),
       std::make_integer_sequence<Int, sizeof...(ranges)>{}, ranges...);
 }
@@ -365,7 +365,7 @@ template <typename Int = std::size_t, typename Iteration, typename... Ends,
 #endif
 constexpr auto for_loop(Iteration&& iteration, execution_policy::sequential_t,
                         Ends const... ends) -> void {
-  detail::for_loop<sizeof...(ends) + 1, Int>(
+  detail::for_loop::for_loop<sizeof...(ends) + 1, Int>(
       std::forward<Iteration>(iteration),
       std::make_integer_sequence<Int, sizeof...(ends)>{},
       std::pair{Ends(0), ends}...);
@@ -387,7 +387,7 @@ template <typename Int = std::size_t, typename Iteration, typename... Ranges,
 constexpr auto for_loop(Iteration&& iteration, execution_policy::parallel_t,
                         Ranges(&&... ranges)[2]) -> void {
 #ifdef _OPENMP
-  return detail::for_loop<sizeof...(ranges) - 1, Int>(
+  return detail::for_loop::for_loop<sizeof...(ranges) - 1, Int>(
       std::forward<Iteration>(iteration),
       std::make_integer_sequence<Int, sizeof...(ranges)>{},
       std::pair{ranges[0], ranges[1]}...);
@@ -411,10 +411,11 @@ template <typename Int = std::size_t, typename Iteration, integral... Ranges>
 template <typename Int = std::size_t, typename Iteration, typename... Ranges,
           enable_if_integral<Ranges...> = true>
 #endif
-constexpr auto for_loop(Iteration&& iteration, execution_policy::parallel_t,
+constexpr auto for_loop(Iteration&& iteration,
+                        execution_policy::parallel_t /*policy*/,
                         std::pair<Ranges, Ranges> const&... ranges) -> void {
 #ifdef _OPENMP
-  return detail::for_loop<sizeof...(ranges) - 1, Int>(
+  return detail::for_loop::for_loop<sizeof...(ranges) - 1, Int>(
       std::forward<Iteration>(iteration),
       std::make_integer_sequence<Int, sizeof...(ranges)>{}, ranges...);
 #else
@@ -437,18 +438,20 @@ template <typename Int = std::size_t, typename Iteration, integral... Ends>
 template <typename Int = std::size_t, typename Iteration, typename... Ends,
           enable_if_integral<Ends...> = true>
 #endif
-constexpr auto for_loop(Iteration&& iteration, execution_policy::parallel_t,
-                        Ends const... ends) -> void {
+constexpr auto for_loop(Iteration&& iteration,
+                        execution_policy::parallel_t /*policy*/,
+                        Ends const... ends)
+    -> void
+    //requires invocable<Iteration, decltype((Ends, Int{}))...>
+{
 #ifdef _OPENMP
-  return detail::for_loop<sizeof...(ends) - 1, Int>(
+  return detail::for_loop::for_loop<sizeof...(ends) - 1, Int>(
       std::forward<Iteration>(iteration),
       std::make_integer_sequence<Int, sizeof...(ends)>{},
       std::pair{Ends(0), ends}...);
 #else
-  //#pragma message "Not able to execute nested for loop in parallel because
-  // OpenMP is not available."
-  return for_loop(std::forward<Iteration>(iteration),
-                  std::pair{Ends(0), ends}...);
+  static_assert(false,
+                "OpenMP is not available. Cannot execute parallel for loop");
 #endif  // _OPENMP
 }
 //==============================================================================
@@ -504,26 +507,6 @@ template <typename Int = std::size_t, typename Iteration, typename... Ends,
 #endif
 constexpr auto for_loop(Iteration&& iteration, Ends const... ends) -> void {
   for_loop(std::forward<Iteration>(iteration), execution_policy::sequential, ends...);
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// \brief Use this function for creating a sequential nested loop.
-///
-/// First Index grows fastest, then the second and so on.
-///
-/// iteration must either return bool or nothing. If iteration returns false in
-/// any state the whole nested iteration will stop. iteration must return true
-/// to continue.
-#ifdef __cpp_concepts
-template <typename Int = std::size_t, typename Iteration,
-          typename ExecutionPolicy, integral... Ends>
-#else
-template <typename Int = std::size_t, typename Iteration,
-          typename ExecutionPolicy, typename... Ends,
-          enable_if_integral<Ends...> = true>
-#endif
-constexpr auto for_loop(Iteration&& iteration, ExecutionPolicy const pol,
-                        Ends const... ends) -> void {
-  for_loop(std::forward<Iteration>(iteration), pol, ends...);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Iteration, typename ExecutionPolicy, std::size_t N>
