@@ -20,6 +20,80 @@
 #include <tuple>
 #include <vector>
 //==============================================================================
+/** \page parallel_vectors_page Parallel Vectors
+
+\section pv_cube_sec Cube Setup
+
+A cube's vertices are numbered like this where
+- `0 -> 1` corresponds to `x`-direction,
+- `0 -> 2` corresponds to `y`-direction and
+- `0 -> 4` corresponds to `z`-direction.
+
+```
+     6---------7
+    /.        /|
+   / .       / |
+  2---------3  |
+  |  4. . . |. 5
+  | .       | /
+  |.        |/
+  0---------1
+```
+A cube can be decomposed into 5 tetrahedrons in 2 ways. The first one is called
+'non-turned' and the other one is called 'turned'.
+
+\subsection pv_cube_tet_sec Tetrahedrons per cube
+The tetrahedrons are setup like this:
+- turned tetrahedrons per cube:
+  - `[0]`: `0236` (with triangles `023`, `026`, `036`, `236`)
+  - `[1]`: `0135` (with triangles `013`, `015`, `035`, `135`)
+  - `[2]`: `3567` (with triangles `356`, `357`, `367`, `567`)
+  - `[3]`: `0456` (with triangles `045`, `046`, `056`, `456`)
+  - `[4]`: `0356` (with triangles `035`, `036`, `056`, `356`)
+- non-turned tetrahedrons per cube:
+  - `[0]`: `0124` (with triangles `012`, `014`, `024`, `124`)
+  - `[1]`: `1457` (with triangles `145`, `147`, `157`, `457`)
+  - `[2]`: `2467` (with triangles `246`, `247`, `267`, `467`)
+  - `[3]`: `1237` (with triangles `123`, `127`, `137`, `237`)
+  - `[4]`: `1247` (with triangles `124`, `127`, `147`, `247`)
+  
+\subsection pv_cube_x_sec Faces with constant x
+- turned inner tet order:
+  - `[0]`: `046` / `157`
+  - `[1]`: `026` / `137`
+- non-turned inner tet order:
+  - `[0]`: `024` / `135`
+  - `[1]`: `246` / `357`
+
+\subsection pv_cube_y_sec Faces with constant y
+- turned inner tet order:
+  - `[0]`: `015` / `237`
+  - `[1]`: `045` / `267`
+- non-turned inner tet order:
+  - `[0]`: `014` / `236`
+  - `[1]`: `145` / `367`
+
+\subsection pv_cube_z_sec Faces with constant z
+- turned inner tet order:
+  - `[0]`: `013` / `457`
+  - `[1]`: `023` / `467`
+- non-turned inner tet order:
+  - `[0]`: `012` / `456`
+  - `[1]`: `123` / `567`
+
+\subsection pv_cube_z_sec Inner tetrahedron's faces
+- turned inner tet order:
+  - `[0]`: `035`
+  - `[1]`: `036`
+  - `[2]`: `356`
+  - `[3]`: `056`
+- non-turned inner tet order:
+  - `[0]`: `124`
+  - `[1]`: `127`
+  - `[2]`: `147`
+  - `[3]`: `247`
+*/
+//==============================================================================
 namespace tatooine {
 //==============================================================================
 namespace detail {
