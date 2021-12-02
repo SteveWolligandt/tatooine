@@ -101,6 +101,7 @@ struct unstructured_simplicial_grid_parent<Mesh, Real, 3, 2>
   using typename ray_intersectable<real_t, 3>::intersection_t;
   using typename ray_intersectable<real_t, 3>::optional_intersection_t;
   //----------------------------------------------------------------------------
+  virtual ~unstructured_simplicial_grid_parent() = default;
   auto as_mesh() const -> auto const& {
     return *dynamic_cast<Mesh const*>(this);
   }
@@ -542,7 +543,7 @@ class unstructured_simplicial_grid
   template <typename... Ts, enable_if<is_arithmetic<Ts...>> = true,
             enable_if<sizeof...(Ts) == NumDimensions> = true>
 #endif
-      auto insert_vertex(Ts const... ts) {
+  auto insert_vertex(Ts const... ts) {
     auto const vi = parent_t::insert_vertex(ts...);
     // if (m_hierarchy != nullptr) {
     //  if (!m_hierarchy->insert_vertex(vi.i)) {
@@ -840,43 +841,43 @@ if ( it == end(m_cell_properties)) {
         writer.write_points(vertex_positions());
       }
 
-      std::vector<std::vector<size_t>> vertices_per_cell;
-      vertices_per_cell.reserve(cells().size());
-      std::vector<vtk::cell_type> cell_types(cells().size(),
-                                             vtk::cell_type::triangle);
-      for (auto const c : cells()) {
-        auto const [v0, v1, v2] = at(c);
-        vertices_per_cell.push_back(std::vector{v0.i, v1.i, v2.i});
-      }
-      writer.write_cells(vertices_per_cell);
-      writer.write_cell_types(cell_types);
-
-      // write vertex_handle data
-      writer.write_point_data(vertices().size());
-      for (auto const& [name, prop] : vertex_properties()) {
-        if (prop->type() == typeid(vec<Real, 4>)) {
-          auto const& casted_prop =
-              *dynamic_cast<vertex_property_t<vec<Real, 4>> const*>(prop.get());
-          writer.write_scalars(name, casted_prop.data());
-        } else if (prop->type() == typeid(vec<Real, 3>)) {
-          auto const& casted_prop =
-              *dynamic_cast<vertex_property_t<vec<Real, 3>> const*>(prop.get());
-          writer.write_scalars(name, casted_prop.data());
-        } else if (prop->type() == typeid(vec<Real, 2>)) {
-          auto const& casted_prop =
-              *dynamic_cast<vertex_property_t<vec<Real, 2>> const*>(prop.get());
-          writer.write_scalars(name, casted_prop.data());
-        } else if (prop->type() == typeid(Real)) {
-          auto const& casted_prop =
-              *dynamic_cast<vertex_property_t<Real> const*>(prop.get());
-          writer.write_scalars(name, casted_prop.data());
-        }
-      }
+      //auto vertices_per_cell = std::vector<std::vector<size_t>> {};
+      //vertices_per_cell.reserve(cells().size());
+      //auto cell_types =
+      //    std::vector<vtk::cell_type>(cells().size(), vtk::cell_type::triangle);
+      //for (auto const c : cells()) {
+      //  auto const [v0, v1, v2] = at(c);
+      //  vertices_per_cell.push_back(std::vector{v0.i, v1.i, v2.i});
+      //}
+      //writer.write_cells(vertices_per_cell);
+      //writer.write_cell_types(cell_types);
+      //
+      //// write vertex_handle data
+      //writer.write_point_data(vertices().size());
+      //for (auto const& [name, prop] : vertex_properties()) {
+      //  if (prop->type() == typeid(vec<Real, 4>)) {
+      //    auto const& casted_prop =
+      //        *dynamic_cast<vertex_property_t<vec<Real, 4>> const*>(prop.get());
+      //    writer.write_scalars(name, casted_prop.data());
+      //  } else if (prop->type() == typeid(vec<Real, 3>)) {
+      //    auto const& casted_prop =
+      //        *dynamic_cast<vertex_property_t<vec<Real, 3>> const*>(prop.get());
+      //    writer.write_scalars(name, casted_prop.data());
+      //  } else if (prop->type() == typeid(vec<Real, 2>)) {
+      //    auto const& casted_prop =
+      //        *dynamic_cast<vertex_property_t<vec<Real, 2>> const*>(prop.get());
+      //    writer.write_scalars(name, casted_prop.data());
+      //  } else if (prop->type() == typeid(Real)) {
+      //    auto const& casted_prop =
+      //        *dynamic_cast<vertex_property_t<Real> const*>(prop.get());
+      //    writer.write_scalars(name, casted_prop.data());
+      //  }
+      //}
 
       writer.close();
       return true;
-    }       return false;
-
+    }
+    return false;
   }
   //----------------------------------------------------------------------------
   template <size_t SimplexDim_ = SimplexDim, enable_if<SimplexDim_ == 3> = true>

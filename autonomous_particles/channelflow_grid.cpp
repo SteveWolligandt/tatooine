@@ -1,5 +1,4 @@
 #include <tatooine/agranovsky_flowmap_discretization.h>
-#include <tatooine/analytical/fields/numerical/doublegyre.h>
 #include <tatooine/autonomous_particle.h>
 #include <tatooine/autonomous_particle_flowmap_discretization.h>
 #include <tatooine/chrono.h>
@@ -45,13 +44,15 @@ auto main(int argc, char** argv) -> int {
   channelflow_154_file.dataset<double>("CartGrid/axis2")
       .read(discrete_channelflow_domain.dimension<2>());
   discrete_channelflow_domain.push_back<2>();
-  report << "size of axis0: "
-         << size(discrete_channelflow_domain.dimension<0>()) << '\n';
-  report << "size of axis1: "
-         << size(discrete_channelflow_domain.dimension<1>()) << '\n';
-  report << "size of axis2: "
-         << size(discrete_channelflow_domain.dimension<2>()) << '\n';
+  report << "size of axis0: " << discrete_channelflow_domain.size<0>() << '\n';
+  report << "size of axis1: " << discrete_channelflow_domain.size<1>() << '\n';
+  report << "size of axis2: " << discrete_channelflow_domain.size<2>() << '\n';
   discrete_channelflow_domain.write("channelflow_grid.vtk");
+
+  if (args.show_dimensions) {
+    std::cout << discrete_channelflow_domain << '\n';
+    return 0;
+  }
 
   indeterminate_progress_bar([&](auto indicator) {
     indicator.set_text("Allocating data for velocity");
@@ -129,165 +130,184 @@ auto main(int argc, char** argv) -> int {
     //----------------------------------------------------------------------------
     // Create memory for measuring
     //----------------------------------------------------------------------------
-    indicator.set_text("Creating memory for measuring");
-    std::vector<real_t> forward_autonomous_errors, forward_regular_errors,
-        forward_agranovsky_errors;
-    std::vector<real_t> backward_autonomous_errors, backward_regular_errors,
-        backward_agranovsky_errors;
-    rectilinear_grid sampler_check_grid{
-        linspace{discrete_channelflow_domain.front<0>() + 1e-10,
-                 discrete_channelflow_domain.back<0>() - 1e-10,
-                 args.output_res_x},
-        linspace{discrete_channelflow_domain.front<1>() + 1e-10,
-                 discrete_channelflow_domain.back<1>() - 1e-10,
-                 args.output_res_y},
-        linspace{discrete_channelflow_domain.front<2>() + 1e-10,
-                 discrete_channelflow_domain.back<2>() - 1e-10,
-                 args.output_res_z}};
-    forward_autonomous_errors.reserve(sampler_check_grid.vertices().size());
-    forward_regular_errors.reserve(sampler_check_grid.vertices().size());
-    forward_agranovsky_errors.reserve(sampler_check_grid.vertices().size());
-    backward_autonomous_errors.reserve(sampler_check_grid.vertices().size());
-    backward_regular_errors.reserve(sampler_check_grid.vertices().size());
-    backward_agranovsky_errors.reserve(sampler_check_grid.vertices().size());
-    [[maybe_unused]] auto& numerical_flowmap_forward_prop =
-        sampler_check_grid.vec3_vertex_property("numerical_flowmap_forward");
-    [[maybe_unused]] auto& numerical_flowmap_backward_prop =
-        sampler_check_grid.vec3_vertex_property("numerical_flowmap_backward");
-
-    [[maybe_unused]] auto& autonomous_flowmap_forward_prop =
-        sampler_check_grid.vec3_vertex_property("autonomous_flowmap_forward");
-    [[maybe_unused]] auto& autonomous_flowmap_backward_prop =
-        sampler_check_grid.vec3_vertex_property("autonomous_flowmap_backward");
-    [[maybe_unused]] auto& forward_errors_autonomous_prop =
-        sampler_check_grid.scalar_vertex_property("forward_error_autonomous");
-    [[maybe_unused]] auto& forward_errors_regular_prop =
-        sampler_check_grid.scalar_vertex_property("forward_error_regular");
-    [[maybe_unused]] auto& forward_errors_agranovsky_prop =
-        sampler_check_grid.scalar_vertex_property("forward_error_agranovsky");
-    [[maybe_unused]] auto& forward_errors_diff_regular_prop =
-        sampler_check_grid.scalar_vertex_property("forward_error_diff_regular");
-    [[maybe_unused]] auto& forward_errors_diff_agranovsky_prop =
-        sampler_check_grid.scalar_vertex_property(
-            "forward_error_diff_agranovsky");
-    [[maybe_unused]] auto& backward_errors_autonomous_prop =
-        sampler_check_grid.scalar_vertex_property("backward_error_autonomous");
-    [[maybe_unused]] auto& backward_errors_regular_prop =
-        sampler_check_grid.scalar_vertex_property("backward_error_regular");
-    [[maybe_unused]] auto& backward_errors_agranovsky_prop =
-        sampler_check_grid.scalar_vertex_property("backward_error_agranovsky");
-    [[maybe_unused]] auto& backward_errors_diff_regular_prop =
-        sampler_check_grid.scalar_vertex_property(
-            "backward_error_diff_regular");
-    [[maybe_unused]] auto& backward_errors_diff_agranovsky_prop =
-        sampler_check_grid.scalar_vertex_property(
-            "backward_error_diff_agranovsky");
-    real_t mean_autonomous_forward_error  = std::numeric_limits<real_t>::max(),
-           mean_regular_forward_error     = std::numeric_limits<real_t>::max(),
-           mean_agranovsky_forward_error  = std::numeric_limits<real_t>::max();
-    real_t mean_autonomous_backward_error = std::numeric_limits<real_t>::max(),
-           mean_regular_backward_error    = std::numeric_limits<real_t>::max(),
-           mean_agranovsky_backward_error = std::numeric_limits<real_t>::max();
-    size_t     num_points_ood_forward = 0, num_points_ood_backward = 0;
+    // indicator.set_text("Creating memory for measuring");
+    // std::vector<real_t> forward_autonomous_errors, forward_regular_errors,
+    //    forward_agranovsky_errors;
+    // std::vector<real_t> backward_autonomous_errors, backward_regular_errors,
+    //    backward_agranovsky_errors;
+    // rectilinear_grid sampler_check_grid{
+    //    linspace{discrete_channelflow_domain.front<0>() + 1e-10,
+    //             discrete_channelflow_domain.back<0>() - 1e-10,
+    //             args.output_res_x},
+    //    linspace{discrete_channelflow_domain.front<1>() + 1e-10,
+    //             discrete_channelflow_domain.back<1>() - 1e-10,
+    //             args.output_res_y},
+    //    linspace{discrete_channelflow_domain.front<2>() + 1e-10,
+    //             discrete_channelflow_domain.back<2>() - 1e-10,
+    //             args.output_res_z}};
+    // forward_autonomous_errors.reserve(sampler_check_grid.vertices().size());
+    // forward_regular_errors.reserve(sampler_check_grid.vertices().size());
+    // forward_agranovsky_errors.reserve(sampler_check_grid.vertices().size());
+    // backward_autonomous_errors.reserve(sampler_check_grid.vertices().size());
+    // backward_regular_errors.reserve(sampler_check_grid.vertices().size());
+    // backward_agranovsky_errors.reserve(sampler_check_grid.vertices().size());
+    //[[maybe_unused]] auto& numerical_flowmap_forward_prop =
+    //    sampler_check_grid.vec3_vertex_property("numerical_flowmap_forward");
+    //[[maybe_unused]] auto& numerical_flowmap_backward_prop =
+    //    sampler_check_grid.vec3_vertex_property("numerical_flowmap_backward");
+    //
+    //[[maybe_unused]] auto& autonomous_flowmap_forward_prop =
+    //    sampler_check_grid.vec3_vertex_property("autonomous_flowmap_forward");
+    //[[maybe_unused]] auto& autonomous_flowmap_backward_prop =
+    //    sampler_check_grid.vec3_vertex_property("autonomous_flowmap_backward");
+    //[[maybe_unused]] auto& forward_errors_autonomous_prop =
+    //    sampler_check_grid.scalar_vertex_property("forward_error_autonomous");
+    //[[maybe_unused]] auto& forward_errors_regular_prop =
+    //    sampler_check_grid.scalar_vertex_property("forward_error_regular");
+    //[[maybe_unused]] auto& forward_errors_agranovsky_prop =
+    //    sampler_check_grid.scalar_vertex_property("forward_error_agranovsky");
+    //[[maybe_unused]] auto& forward_errors_diff_regular_prop =
+    //    sampler_check_grid.scalar_vertex_property("forward_error_diff_regular");
+    //[[maybe_unused]] auto& forward_errors_diff_agranovsky_prop =
+    //    sampler_check_grid.scalar_vertex_property(
+    //        "forward_error_diff_agranovsky");
+    //[[maybe_unused]] auto& backward_errors_autonomous_prop =
+    //    sampler_check_grid.scalar_vertex_property("backward_error_autonomous");
+    //[[maybe_unused]] auto& backward_errors_regular_prop =
+    //    sampler_check_grid.scalar_vertex_property("backward_error_regular");
+    //[[maybe_unused]] auto& backward_errors_agranovsky_prop =
+    //    sampler_check_grid.scalar_vertex_property("backward_error_agranovsky");
+    //[[maybe_unused]] auto& backward_errors_diff_regular_prop =
+    //    sampler_check_grid.scalar_vertex_property(
+    //        "backward_error_diff_regular");
+    //[[maybe_unused]] auto& backward_errors_diff_agranovsky_prop =
+    //    sampler_check_grid.scalar_vertex_property(
+    //        "backward_error_diff_agranovsky");
+    // real_t mean_autonomous_forward_error  =
+    // std::numeric_limits<real_t>::max(),
+    //       mean_regular_forward_error     =
+    //       std::numeric_limits<real_t>::max(), mean_agranovsky_forward_error
+    //       = std::numeric_limits<real_t>::max();
+    // real_t mean_autonomous_backward_error =
+    // std::numeric_limits<real_t>::max(),
+    //       mean_regular_backward_error    =
+    //       std::numeric_limits<real_t>::max(), mean_agranovsky_backward_error
+    //       = std::numeric_limits<real_t>::max();
+    // size_t     num_points_ood_forward = 0, num_points_ood_backward = 0;
     std::mutex error_mutex;
 
     //----------------------------------------------------------------------------
-    indicator.set_text("Building numerical flowmap");
-    auto phi = flowmap(v);
+    // indicator.set_text("Building numerical flowmap");
+    auto phi = flowmap(w);
     phi.use_caching(false);
+    //
+    // sampler_check_grid.vertices().iterate_indices(
+    //    [&](auto const... is) {
+    //      auto copy_phi = phi;
+    //      copy_phi.use_caching(false);
+    //      auto const x = sampler_check_grid.vertex_at(is...);
+    //      numerical_flowmap_forward_prop(is...) =
+    //          copy_phi(x, args.t0, args.tau);
+    //       numerical_flowmap_backward_prop(is...) =
+    //          copy_phi(x, args.t0 + args.tau, -args.tau);
+    //    },
+    //    execution_policy::parallel);
+    //----------------------------------------------------------------------------
+    indicator.set_text("Advecting autonomous particles");
+    auto num_particles_after_advection = size_t{};
+    {
+      auto autonomous_disc = [&] {
+        if (args.autonomous_particles_file) {
+          return autonomous_particle_flowmap_discretization3{
+              *args.autonomous_particles_file};
+        }
+        auto x_space =
+            linspace{discrete_channelflow_domain.front<0>(),
+                     discrete_channelflow_domain.back<0>(), args.width + 1};
+        auto y_space = linspace{
+            discrete_channelflow_domain.front<1>(),
+            discrete_channelflow_domain.front<1>() + x_space.spacing(), 2};
+        auto z_space = linspace{
+            discrete_channelflow_domain.front<2>(),
+            discrete_channelflow_domain.front<2>() + x_space.spacing(), 2};
 
-    sampler_check_grid.vertices().iterate_indices(
-        [&](auto const... is) {
-          auto copy_phi = phi;
-          copy_phi.use_caching(false);
-          auto const x = sampler_check_grid.vertex_at(is...);
-          numerical_flowmap_forward_prop(is...) =
-              copy_phi(x, args.t0, args.tau);
-           numerical_flowmap_backward_prop(is...) =
-              copy_phi(x, args.t0 + args.tau, -args.tau);
-        },
-        execution_policy::parallel);
-    //  //----------------------------------------------------------------------------
-    //  indicator.set_text("Discretizing flow map with autonomous particles");
-    //  auto num_particles_after_advection = size_t{};
-    //  {
-    //    auto autonomous_disc = [&] {
-    //      if (args.autonomous_particles_file) {
-    //        return autonomous_particle_flowmap_discretization2{
-    //            *args.autonomous_particles_file};
-    //      } else {
-    //        return autonomous_particle_flowmap_discretization2{
-    //            phi,
-    //            args.t0,
-    //            args.tau,
-    //            args.tau_step,
-    //            rectilinear_grid{linspace{0.0, 2.0, args.width + 1},
-    //                             linspace{0.0, 1.0, args.height + 1}},
-    //        };
-    //      }
-    //    }();
-    //    indicator.set_text(
-    //        "Resampling autonomous particle flow map discretization");
-    //    num_particles_after_advection = autonomous_disc.num_particles();
-    //    sampler_check_grid.vertices().iterate_indices(
-    //        [&](auto const... is) {
-    //          auto const x = sampler_check_grid.vertex_at(is...);
-    //          // forward
-    //          try {
-    //            auto const x1 = autonomous_disc.sample_forward(x);
-    //            autonomous_flowmap_forward_prop(is...) = x1;
-    //
-    //            auto const err =
-    //                euclidean_distance(x1,
-    //                numerical_flowmap_forward_prop(is...));
-    //            forward_errors_autonomous_prop(is...) = err;
-    //            {
-    //              std::lock_guard lock{error_mutex};
-    //              forward_autonomous_errors.push_back(err);
-    //            }
-    //          } catch (std::exception const& e) {
-    //            autonomous_flowmap_forward_prop(is...) = vec2::ones() * 0.0
-    //            / 0.0; forward_errors_autonomous_prop(is...)  = 0.0 / 0.0;
-    //          }
-    //          // backward
-    //          try {
-    //            auto const x0 = autonomous_disc.sample_backward(x);
-    //            autonomous_flowmap_backward_prop(is...) = x0;
-    //
-    //            auto const err = euclidean_distance(
-    //                x0, numerical_flowmap_backward_prop(is...));
-    //            backward_errors_autonomous_prop(is...) = err;
-    //            {
-    //              std::lock_guard lock{error_mutex};
-    //              backward_autonomous_errors.push_back(err);
-    //            }
-    //          } catch (std::exception const& e) {
-    //            autonomous_flowmap_backward_prop(is...) =
-    //                vec2::ones() * 0.0 / 0.0;
-    //            backward_errors_autonomous_prop(is...) = 0.0 / 0.0;
-    //          }
-    //        },
-    //        execution_policy::parallel);
-    //    //----------------------------------------------------------------------------
-    //    indicator.set_text("Writing results");
-    //    { sampler_check_grid.write("doublegyre_grid_errors.vtk"); }
-    //    //----------------------------------------------------------------------------
-    //    //indicator.set_text("Writing Autonomous Particles Results");
-    //    //{
-    //    //  std::vector<line2> all_advected_discretizations;
-    //    //  std::vector<line2> all_initial_discretizations;
-    //    //  for (auto const& sampler : autonomous_disc.samplers()) {
-    //    //    all_initial_discretizations.push_back(
-    //    //        discretize(sampler.ellipse0(), 100));
-    //    //    all_advected_discretizations.push_back(
-    //    //        discretize(sampler.ellipse1(), 100));
-    //    //  }
-    //    //  write_vtk(all_initial_discretizations,
-    //    "doublegyre_grid_ellipses0.vtk");
-    //    //  write_vtk(all_advected_discretizations,
-    //    //            "doublegyre_grid_ellipses1.vtk");
-    //    //}
-    //  }
+        while (y_space.back() + y_space.spacing() <
+               discrete_channelflow_domain.back<1>()) {
+          y_space.push_back();
+        }
+        while (z_space.back() + z_space.spacing() <
+               discrete_channelflow_domain.back<2>()) {
+          z_space.push_back();
+        }
+        auto const distribution = rectilinear_grid{x_space, y_space, z_space};
+        std::cout << distribution << '\n';
+        return autonomous_particle_flowmap_discretization3{
+            phi, args.t0, args.tau, args.tau_step, distribution,
+        };
+      }();
+      indicator.set_text(
+          "Resampling autonomous particle flow map discretization");
+      num_particles_after_advection = autonomous_disc.num_particles();
+      indicator.set_text("Discretizing flow map with autonomous particles");
+      // sampler_check_grid.vertices().iterate_indices(
+      //     [&](auto const... is) {
+      //       auto const x = sampler_check_grid.vertex_at(is...);
+      //       // forward
+      //       try {
+      //         auto const x1 = autonomous_disc.sample_forward(x);
+      //         autonomous_flowmap_forward_prop(is...) = x1;
+      //
+      //         auto const err =
+      //             euclidean_distance(x1,
+      //             numerical_flowmap_forward_prop(is...));
+      //         forward_errors_autonomous_prop(is...) = err;
+      //         {
+      //           std::lock_guard lock{error_mutex};
+      //           forward_autonomous_errors.push_back(err);
+      //         }
+      //       } catch (std::exception const& e) {
+      //         autonomous_flowmap_forward_prop(is...) = vec2::ones() * 0.0
+      //         / 0.0; forward_errors_autonomous_prop(is...)  = 0.0 / 0.0;
+      //       }
+      //       // backward
+      //       try {
+      //         auto const x0 = autonomous_disc.sample_backward(x);
+      //         autonomous_flowmap_backward_prop(is...) = x0;
+      //
+      //         auto const err = euclidean_distance(
+      //             x0, numerical_flowmap_backward_prop(is...));
+      //         backward_errors_autonomous_prop(is...) = err;
+      //         {
+      //           std::lock_guard lock{error_mutex};
+      //           backward_autonomous_errors.push_back(err);
+      //         }
+      //       } catch (std::exception const& e) {
+      //         autonomous_flowmap_backward_prop(is...) =
+      //             vec2::ones() * 0.0 / 0.0;
+      //         backward_errors_autonomous_prop(is...) = 0.0 / 0.0;
+      //       }
+      //     },
+      //     execution_policy::parallel);
+      //----------------------------------------------------------------------------
+      // indicator.set_text("Writing results");
+      //{ sampler_check_grid.write("channelflow_grid_errors.vtk"); }
+      //----------------------------------------------------------------------------
+      indicator.set_text("Writing Autonomous Particles Results");
+      {
+        std::vector<unstructured_triangular_grid3> all_advected_discretizations;
+        std::vector<unstructured_triangular_grid3> all_initial_discretizations;
+        for (auto const& sampler : autonomous_disc.samplers()) {
+          all_initial_discretizations.push_back(
+              discretize(sampler.ellipse0(), 2));
+          all_advected_discretizations.push_back(
+              discretize(sampler.ellipse1(), 2));
+        }
+        write_vtk(all_initial_discretizations,
+                  "channelflow_grid_ellipsoids0.vtk");
+        write_vtk(all_advected_discretizations,
+                  "channelflow_grid_ellipsoids1.vtk");
+      }
+    }
     //  //----------------------------------------------------------------------------
     //  indicator.set_text("Discretizing flow map regularly");
     //  auto const regularized_height = static_cast<size_t>(
@@ -341,7 +361,7 @@ auto main(int argc, char** argv) -> int {
     //        execution_policy::parallel);
     //    //----------------------------------------------------------------------------
     //    indicator.set_text("Writing results");
-    //    { sampler_check_grid.write("doublegyre_grid_errors.vtk"); }
+    //    { sampler_check_grid.write("channelflow_grid_errors.vtk"); }
     //  }
     //  //----------------------------------------------------------------------------
     //  auto const num_agranovksy_steps =
@@ -411,8 +431,8 @@ auto main(int argc, char** argv) -> int {
     //        },
     //        execution_policy::parallel);
     //----------------------------------------------------------------------------
-    indicator.set_text("Writing results");
-    { sampler_check_grid.write("channelflow_grid_errors.vtk"); }
+    // indicator.set_text("Writing results");
+    //{ sampler_check_grid.write("channelflow_grid_errors.vtk"); }
     //  }
     //
     //  //----------------------------------------------------------------------------

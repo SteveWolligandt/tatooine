@@ -2,6 +2,7 @@
 #define TATOOINE_GEOMETRY_HYPER_ELLIPSE_H
 //==============================================================================
 #include <tatooine/reflection.h>
+#include <tatooine/unstructured_triangular_grid.h>
 #include <tatooine/tensor.h>
 #include <tatooine/transposed_tensor.h>
 //==============================================================================
@@ -163,7 +164,80 @@ struct hyper_ellipse {
     return squared_euclidean_length(solve(m_S, x - m_center)) <= 1;
   }
 };
-
+//------------------------------------------------------------------------------
+template <typename Real>
+auto discretize(hyper_ellipse<Real, 3> const& s, size_t num_subdivisions = 0) {
+  using mesh_t        = tatooine::unstructured_triangular_grid<Real, 3>;
+  using vh = typename mesh_t::vertex_handle;
+  // Real const  X = 0.525731112119133606;
+  // Real const  Z = 0.850650808352039932;
+  Real const  X = 0.525731112119133606;
+  Real const  Z = 0.850650808352039932;
+  std::vector vertices{vec{-X, 0, Z}, vec{X, 0, Z},   vec{-X, 0, -Z},
+                       vec{X, 0, -Z}, vec{0, Z, X},   vec{0, Z, -X},
+                       vec{0, -Z, X}, vec{0, -Z, -X}, vec{Z, X, 0},
+                       vec{-Z, X, 0}, vec{Z, -X, 0},  vec{-Z, -X, 0}};
+  auto        faces = std::vector<std::array<vh, 3>>{
+      {vh{0}, vh{4}, vh{1}},
+      {vh{0}, vh{9}, vh{4}},
+      {vh{9}, vh{5}, vh{4}},
+      {vh{4}, vh{5}, vh{8}},
+      {vh{4}, vh{8}, vh{1}},
+      {vh{8}, vh{10}, vh{1}},
+      {vh{8}, vh{3}, vh{10}},
+      {vh{5}, vh{3}, vh{8}},
+      {vh{5}, vh{2}, vh{3}},
+      {vh{2}, vh{7}, vh{3}},
+      {vh{7}, vh{10}, vh{3}},
+      {vh{7}, vh{6}, vh{10}},
+      {vh{7}, vh{11}, vh{6}},
+      {vh{11}, vh{0}, vh{6}},
+      {vh{0}, vh{1}, vh{6}},
+      {vh{6}, vh{1}, vh{10}},
+      {vh{9}, vh{0}, vh{11}},
+      {vh{9}, vh{11}, vh{2}},
+      {vh{9}, vh{2}, vh{5}},
+      {vh{7}, vh{2}, vh{11}}};
+  for (size_t i = 0; i < num_subdivisions; ++i) {
+    std::vector<std::array<vh, 3>> subdivided_faces;
+    using edge_t = std::pair<vh, vh>;
+    std::map<edge_t, size_t> subdivided;  // vh index on edge
+    for (auto& [v0, v1, v2] : faces) {
+      std::array edges{edge_t{v0, v1}, edge_t{v0, v2}, edge_t{v1, v2}};
+      std::array nvs{vh{0}, vh{0}, vh{0}};
+      size_t     i = 0;
+      for (auto& edge : edges) {
+        if (edge.first < edge.second) {
+          std::swap(edge.first, edge.second);
+        }
+        if (subdivided.find(edge) == end(subdivided)) {
+          subdivided[edge] = size(vertices);
+          nvs[i++]         = size(vertices);
+          vertices.push_back(normalize(
+              (vertices[edge.first.i] + vertices[edge.second.i]) * 0.5));
+        } else {
+          nvs[i++] = subdivided[edge];
+        }
+      }
+      subdivided_faces.emplace_back(std::array{v0, nvs[1], nvs[0]});
+      subdivided_faces.emplace_back(std::array{nvs[0], nvs[2], v1});
+      subdivided_faces.emplace_back(std::array{nvs[1], v2, nvs[2]});
+      subdivided_faces.emplace_back(std::array{nvs[0], nvs[1], nvs[2]});
+    }
+    faces = subdivided_faces;
+  }
+  for (auto& v : vertices) {
+    v = s.S() * v + s.center();
+  }
+  mesh_t m;
+  for (auto& v : vertices) {
+    m.insert_vertex(std::move(v));
+  }
+  for (auto& f : faces) {
+    m.insert_cell(f[0], f[1], f[2]);
+  }
+  return m;
+}
 //==============================================================================
 }  // namespace geometry
 //==============================================================================

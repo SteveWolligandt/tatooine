@@ -8,11 +8,19 @@ namespace tatooine {
 template <typename Real, size_t N>
 using unstructured_triangular_grid = unstructured_simplicial_grid<Real, N, 2>;
 template <size_t N>
-using UnstructuredTriangularGird     = unstructured_triangular_grid<real_t, N>;
-using unstructured_triangular_grid_2 = UnstructuredTriangularGird<2>;
-using unstructured_triangular_grid_3 = UnstructuredTriangularGird<3>;
-using unstructured_triangular_grid_4 = UnstructuredTriangularGird<4>;
-using unstructured_triangular_grid_5 = UnstructuredTriangularGird<5>;
+using UnstructuredTriangularGrid = unstructured_triangular_grid<real_t, N>;
+template <typename Real>
+using UnstructuredTriangularGrid2   = unstructured_triangular_grid<Real, 2>;
+template <typename Real>
+using UnstructuredTriangularGrid3   = unstructured_triangular_grid<Real, 3>;
+template <typename Real>
+using UnstructuredTriangularGrid4   = unstructured_triangular_grid<Real, 4>;
+template <typename Real>
+using UnstructuredTriangularGrid5   = unstructured_triangular_grid<Real, 5>;
+using unstructured_triangular_grid2 = UnstructuredTriangularGrid<2>;
+using unstructured_triangular_grid3 = UnstructuredTriangularGrid<3>;
+using unstructured_triangular_grid4 = UnstructuredTriangularGrid<4>;
+using unstructured_triangular_grid5 = UnstructuredTriangularGrid<5>;
 //==============================================================================
 namespace detail {
 //==============================================================================
@@ -39,11 +47,12 @@ auto write_unstructured_triangular_grid_container_to_vtk(
       }
 
       // add faces
-      for (auto t : m.faces()) {
+      for (auto c : m.cells()) {
         faces.emplace_back();
-        faces.back().push_back(cur_first + m[t][0].i);
-        faces.back().push_back(cur_first + m[t][1].i);
-        faces.back().push_back(cur_first + m[t][2].i);
+        auto [v0, v1, v2] = m[c];
+        faces.back().push_back(cur_first + v0.i);
+        faces.back().push_back(cur_first + v1.i);
+        faces.back().push_back(cur_first + v2.i);
       }
       cur_first += m.vertices().size();
     }
