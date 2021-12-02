@@ -12,10 +12,11 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
   double t0 = 0, tau = 2, tau_step = 0.05, min_cond = 0.01,
          agranovsky_delta_t      = 0.1;
   bool write_ellipses            = true;
+  bool show_dimensions = false;
   auto autonomous_particles_file = std::optional<tatooine::filesystem::path>{};
-  auto velocity_file = std::optional<tatooine::filesystem::path>{};
+  auto velocity_file             = std::optional<tatooine::filesystem::path>{};
   // Declare the supported options.
-  po::options_description desc("Allowed options");
+  auto desc = po::options_description{"Allowed options"};
   desc.add_options()("help", "produce help message")(
       "write_ellipses", po::value<bool>(), "write ellipses")(
       "width", po::value<size_t>(), "set width")("height", po::value<size_t>(),
@@ -34,138 +35,140 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
       "set minimal condition number of back calculation for advected "
       "particles")("agranovsky_delta_t", po::value<double>(), "time gaps")(
       "autonomous_particles_file", po::value<std::string>(),
-      "already integrated particles")(
-      "velocity_file", po::value<std::string>(),
-      "file with velocity data");
+      "already integrated particles")("velocity_file", po::value<std::string>(),
+                                      "file with velocity data")(
+      "showdimensions,sd", po::bool_switch(&show_dimensions),
+      "show dimensions of dataset");
 
-  po::variables_map vm;
-  po::store(po::parse_command_line(argc, argv, desc), vm);
-  po::notify(vm);
+  auto variables_map = po::variables_map{};
+  po::store(po::parse_command_line(argc, argv, desc), variables_map);
+  po::notify(variables_map);
 
-  if (vm.count("help") > 0) {
-    std::cerr << desc;
+  if (variables_map.count("help") > 0) {
+    std::cout << desc;
     return {};
   }
-  if (vm.count("autonomous_particles_file") > 0) {
+  if (variables_map.count("autonomous_particles_file") > 0) {
     autonomous_particles_file = tatooine::filesystem::path{
-        vm["autonomous_particles_file"].as<std::string>()};
-    std::cerr << "reading particles from  " << *autonomous_particles_file << '\n';
+        variables_map["autonomous_particles_file"].as<std::string>()};
+    std::cout << "reading particles from  " << *autonomous_particles_file
+              << '\n';
   }
-  if (vm.count("velocity_file") > 0) {
+  if (variables_map.count("velocity_file") > 0) {
     velocity_file = tatooine::filesystem::path{
-        vm["velocity_file"].as<std::string>()};
-    std::cerr << "reading velocity from file " << *velocity_file << '\n';
+        variables_map["velocity_file"].as<std::string>()};
+    std::cout << "reading velocity from file " << *velocity_file << '\n';
   }
-  if (vm.count("width") > 0) {
+  if (variables_map.count("width") > 0) {
     if (autonomous_particles_file) {
       throw std::runtime_error{
           "\"autonomous_particles_file\" was specified. do not specify width!"};
     }
-    width = vm["width"].as<size_t>();
-    std::cerr << "specified width = " << width << '\n';
+    width = variables_map["width"].as<size_t>();
+    std::cout << "specified width = " << width << '\n';
   } else {
-    std::cerr << "default width = " << width << '\n';
+    std::cout << "default width = " << width << '\n';
   }
-  if (vm.count("height") > 0) {
+  if (variables_map.count("height") > 0) {
     if (autonomous_particles_file) {
       throw std::runtime_error{
           "\"autonomous_particles_file\" was specified. do not specify "
           "height!"};
     }
-    height = vm["height"].as<size_t>();
-    std::cerr << "specified height = " << height << '\n';
+    height = variables_map["height"].as<size_t>();
+    std::cout << "specified height = " << height << '\n';
   } else {
-    std::cerr << "default height = " << height << '\n';
+    std::cout << "default height = " << height << '\n';
   }
-  if (vm.count("depth") > 0) {
+  if (variables_map.count("depth") > 0) {
     if (autonomous_particles_file) {
       throw std::runtime_error{
           "\"autonomous_particles_file\" was specified. do not specify depth!"};
     }
-    depth = vm["depth"].as<size_t>();
-    std::cerr << "specified depth = " << depth << '\n';
+    depth = variables_map["depth"].as<size_t>();
+    std::cout << "specified depth = " << depth << '\n';
   } else {
-    std::cerr << "default depth = " << depth << '\n';
+    std::cout << "default depth = " << depth << '\n';
   }
-  if (vm.count("output_res_x") > 0) {
-    output_res_x = vm["output_res_x"].as<size_t>();
-    std::cerr << "specified output_res_x = " << output_res_x << '\n';
+  if (variables_map.count("output_res_x") > 0) {
+    output_res_x = variables_map["output_res_x"].as<size_t>();
+    std::cout << "specified output_res_x = " << output_res_x << '\n';
   } else {
-    std::cerr << "default output_res_x = " << output_res_x << '\n';
+    std::cout << "default output_res_x = " << output_res_x << '\n';
   }
-  if (vm.count("output_res_y") > 0) {
-    output_res_y = vm["output_res_y"].as<size_t>();
-    std::cerr << "specified output_res_y = " << output_res_y << '\n';
+  if (variables_map.count("output_res_y") > 0) {
+    output_res_y = variables_map["output_res_y"].as<size_t>();
+    std::cout << "specified output_res_y = " << output_res_y << '\n';
   } else {
-    std::cerr << "default output_res_y = " << output_res_y << '\n';
+    std::cout << "default output_res_y = " << output_res_y << '\n';
   }
-  if (vm.count("output_res_z") > 0) {
-    output_res_z = vm["output_res_z"].as<size_t>();
-    std::cerr << "specified output_res_z = " << output_res_z << '\n';
+  if (variables_map.count("output_res_z") > 0) {
+    output_res_z = variables_map["output_res_z"].as<size_t>();
+    std::cout << "specified output_res_z = " << output_res_z << '\n';
   } else {
-    std::cerr << "default output_res_z = " << output_res_z << '\n';
+    std::cout << "default output_res_z = " << output_res_z << '\n';
   }
-  if (vm.count("num_splits") > 0) {
+  if (variables_map.count("num_splits") > 0) {
     if (autonomous_particles_file) {
       throw std::runtime_error{
           "\"autonomous_particles_file\" was specified. do not specify "
           "num_splits!"};
     }
-    num_splits = vm["num_splits"].as<size_t>();
-    std::cerr << "specified number of splits num_splits = " << num_splits
+    num_splits = variables_map["num_splits"].as<size_t>();
+    std::cout << "specified number of splits num_splits = " << num_splits
               << '\n';
   } else {
-    std::cerr << "default number of splits num_splits = " << num_splits << '\n';
+    std::cout << "default number of splits num_splits = " << num_splits << '\n';
   }
-  if (vm.count("max_num_particles") > 0) {
+  if (variables_map.count("max_num_particles") > 0) {
     if (autonomous_particles_file) {
       throw std::runtime_error{
           "\"autonomous_particles_file\" was specified. do not specify "
           "max_num_particles!"};
     }
-    max_num_particles = vm["max_num_particles"].as<size_t>();
-    std::cerr << "specified maximum number of particles = " << max_num_particles
+    max_num_particles = variables_map["max_num_particles"].as<size_t>();
+    std::cout << "specified maximum number of particles = " << max_num_particles
               << '\n';
   } else {
-    std::cerr << "default maximum number of particles = " << max_num_particles
+    std::cout << "default maximum number of particles = " << max_num_particles
               << '\n';
   }
-  if (vm.count("t0") > 0) {
-    t0 = vm["t0"].as<double>();
-    std::cerr << "specified t0 = " << t0 << '\n';
+  if (variables_map.count("t0") > 0) {
+    t0 = variables_map["t0"].as<double>();
+    std::cout << "specified t0 = " << t0 << '\n';
   } else {
-    std::cerr << "default t0 = " << t0 << '\n';
+    std::cout << "default t0 = " << t0 << '\n';
   }
-  if (vm.count("tau") > 0) {
-    tau = vm["tau"].as<double>();
-    std::cerr << "specified integration length tau = " << tau << '\n';
+  if (variables_map.count("tau") > 0) {
+    tau = variables_map["tau"].as<double>();
+    std::cout << "specified integration length tau = " << tau << '\n';
   } else {
-    std::cerr << "default integration length tau = " << tau << '\n';
+    std::cout << "default integration length tau = " << tau << '\n';
   }
-  if (vm.count("agranovsky_delta_t") > 0) {
-    agranovsky_delta_t = vm["agranovsky_delta_t"].as<double>();
-    std::cerr << "specified agranovsky_delta_t = " << agranovsky_delta_t
+  if (variables_map.count("agranovsky_delta_t") > 0) {
+    agranovsky_delta_t = variables_map["agranovsky_delta_t"].as<double>();
+    std::cout << "specified agranovsky_delta_t = " << agranovsky_delta_t
               << '\n';
   } else {
-    std::cerr << "default integration length tau = " << tau << '\n';
+    std::cout << "default integration length tau = " << tau << '\n';
   }
-  if (vm.count("tau_step") > 0) {
-    tau_step = vm["tau_step"].as<double>();
-    std::cerr << "specified step width tau_step = " << tau_step << '\n';
+  if (variables_map.count("tau_step") > 0) {
+    tau_step = variables_map["tau_step"].as<double>();
+    std::cout << "specified step width tau_step = " << tau_step << '\n';
   } else {
-    std::cerr << "default step width tau_step = " << tau_step << '\n';
+    std::cout << "default step width tau_step = " << tau_step << '\n';
   }
-  if (vm.count("min_cond") > 0) {
-    min_cond = vm["min_cond"].as<double>();
-    std::cerr << "specified min_cond = " << min_cond << '\n';
+  if (variables_map.count("min_cond") > 0) {
+    min_cond = variables_map["min_cond"].as<double>();
+    std::cout << "specified min_cond = " << min_cond << '\n';
   } else {
-    std::cerr << "default min_cond = " << min_cond << '\n';
+    std::cout << "default min_cond = " << min_cond << '\n';
   }
-  if (vm.count("write_ellipses") > 0) {
-    write_ellipses = vm["write_ellipses"].as<bool>();
-    std::cerr << "specified write_ellipses = " << write_ellipses << '\n';
+  if (variables_map.count("write_ellipses") > 0) {
+    write_ellipses = variables_map["write_ellipses"].as<bool>();
+    std::cout << "specified write_ellipses = " << write_ellipses << '\n';
   } else {
-    std::cerr << "default write_ellipses = " << write_ellipses << '\n';
+    std::cout << "default write_ellipses = " << write_ellipses << '\n';
   }
   return args_t{width,
                 height,
@@ -181,6 +184,7 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
                 min_cond,
                 agranovsky_delta_t,
                 write_ellipses,
+                show_dimensions,
                 autonomous_particles_file,
                 velocity_file};
 }

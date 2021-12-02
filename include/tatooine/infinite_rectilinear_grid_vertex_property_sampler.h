@@ -1,18 +1,22 @@
 #include <tatooine/field.h>
-#include <tatooine/variadic_helpers.h>
 #include <tatooine/rectilinear_grid_vertex_property_sampler.h>
+#include <tatooine/variadic_helpers.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
 template <typename VertexPropSampler, std::size_t... RepeatedDims>
 struct infinite_rectilinear_grid_vertex_property_sampler
-    : field<infinite_rectilinear_grid_vertex_property_sampler<VertexPropSampler, RepeatedDims...>,
+    : field<infinite_rectilinear_grid_vertex_property_sampler<VertexPropSampler,
+                                                              RepeatedDims...>,
             typename VertexPropSampler::real_t,
             VertexPropSampler::num_dimensions(),
             typename VertexPropSampler::tensor_t> {
   VertexPropSampler const& m_sampler;
-  infinite_rectilinear_grid_vertex_property_sampler(VertexPropSampler const& sampler) : m_sampler{sampler} {}
-  using parent_t = field<infinite_rectilinear_grid_vertex_property_sampler, typename VertexPropSampler::real_t,
+  infinite_rectilinear_grid_vertex_property_sampler(
+      VertexPropSampler const& sampler)
+      : m_sampler{sampler} {}
+  using parent_t = field<infinite_rectilinear_grid_vertex_property_sampler,
+                         typename VertexPropSampler::real_t,
                          VertexPropSampler::num_dimensions(),
                          typename VertexPropSampler::tensor_t>;
   using typename parent_t::pos_t;
@@ -212,7 +216,7 @@ auto repeat_for_infinite(
       prop(s[0] - 1, s[1] - 1, i) = prop(0, 0, i);
     }
   }
-    // corner
+  // corner
   if constexpr (sizeof...(DimsToRepeat) == 0 ||
                 (variadic::contains<0, DimsToRepeat...> &&
                  variadic::contains<1, DimsToRepeat...> &&
