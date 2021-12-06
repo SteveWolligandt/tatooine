@@ -8,8 +8,9 @@
 namespace tatooine {
 //==============================================================================
 template <typename Tensor, size_t M, size_t N>
-struct diag_tensor : base_tensor<diag_tensor<Tensor, M, N>,
-                                 typename std::decay_t<Tensor>::value_type, M, N> {
+struct diag_tensor
+    : base_tensor<diag_tensor<Tensor, M, N>,
+                  typename std::decay_t<Tensor>::value_type, M, N> {
   //============================================================================
   using tensor_t = Tensor;
   using this_t   = diag_tensor<Tensor, M, N>;
@@ -32,7 +33,9 @@ struct diag_tensor : base_tensor<diag_tensor<Tensor, M, N>,
   constexpr auto at(size_t i, size_t j) const -> value_type {
     assert(i < M);
     assert(j < N);
-    if (i == j) { return m_internal_tensor(i); }
+    if (i == j) {
+      return m_internal_tensor(i);
+    }
     return 0;
   }
   //----------------------------------------------------------------------------
@@ -49,27 +52,18 @@ struct diag_tensor : base_tensor<diag_tensor<Tensor, M, N>,
 //==============================================================================
 template <typename Tensor>
 diag_tensor(Tensor const& t)
-    -> diag_tensor<Tensor const&,
-                   Tensor::dimension(0),
-                   Tensor::dimension(0)>;
+    -> diag_tensor<Tensor const&, Tensor::dimension(0), Tensor::dimension(0)>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor>
 diag_tensor(Tensor& t)
-    -> diag_tensor<Tensor&,
-                   Tensor::dimension(0),
-                   Tensor::dimension(0)>;
+    -> diag_tensor<Tensor&, Tensor::dimension(0), Tensor::dimension(0)>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor>
 diag_tensor(Tensor&& t)
-    -> diag_tensor<std::decay_t<Tensor>,
-                   Tensor::dimension(0),
+    -> diag_tensor<std::decay_t<Tensor>, Tensor::dimension(0),
                    Tensor::dimension(0)>;
 //==============================================================================
-#ifdef __cpp_concepts
 template <arithmetic_or_complex Real, size_t N>
-#else
-template <typename Real, size_t N>
-#endif
 struct vec;
 //==============================================================================
 // factory functions
@@ -121,19 +115,14 @@ constexpr auto inv(diag_tensor<Tensor, N, N> const& A) -> std::optional<
 //------------------------------------------------------------------------------
 #include <tatooine/vec.h>
 //------------------------------------------------------------------------------
-#ifdef __cpp_concepts
 template <typename TensorA, typename TensorB, size_t N>
-requires is_vec<TensorB> && (std::decay_t<TensorB>::num_dimensions() == N)
-#else
-template <typename TensorA, typename TensorB, size_t N,
-          enable_if_vec<TensorB>                                    = true,
-          enable_if<(std::decay_t<TensorB>::num_dimensions() == N)> = true>
-#endif
-constexpr auto solve(diag_tensor<TensorA, N, N> const& A, TensorB&& b)
-    -> std::optional<
-        vec<std::common_type_t<typename std::decay_t<TensorA>::value_type,
-                               typename std::decay_t<TensorB>::value_type>,
-            N>> {
+    requires is_vec<TensorB> &&
+    (std::decay_t<TensorB>::num_dimensions() ==
+     N) constexpr auto solve(diag_tensor<TensorA, N, N> const& A, TensorB&& b)
+        -> std::optional<
+            vec<std::common_type_t<typename std::decay_t<TensorA>::value_type,
+                                   typename std::decay_t<TensorB>::value_type>,
+                N>> {
   for (size_t i = 0; i < N; ++i) {
     if (std::abs(A.internal_tensor()(i)) < 1e-10) {
       return {};
@@ -164,20 +153,14 @@ constexpr auto operator*(base_tensor<TensorB, BReal, N> const& b,
 //------------------------------------------------------------------------------
 #include <tatooine/mat.h>
 //------------------------------------------------------------------------------
-#ifdef __cpp_concepts
 template <typename TensorA, typename TensorB, size_t N>
-requires is_mat<TensorB> &&
-         (std::decay_t<TensorB>::dimension(0) == N)
-#else
-template <typename TensorA, typename TensorB, size_t N,
-          enable_if_mat<TensorB>                                    = true,
-          enable_if<(std::decay_t<TensorB>::num_dimension(0) == N)> = true>
-#endif
-constexpr auto solve(diag_tensor<TensorA, N, N> const& A, TensorB&& B)
-    -> std::optional<
-        mat<std::common_type_t<typename std::decay_t<TensorA>::value_type,
-                               typename std::decay_t<TensorB>::value_type>,
-            N, N>> {
+    requires is_mat<TensorB> &&
+    (std::decay_t<TensorB>::dimension(0) ==
+     N) constexpr auto solve(diag_tensor<TensorA, N, N> const& A, TensorB&& B)
+        -> std::optional<
+            mat<std::common_type_t<typename std::decay_t<TensorA>::value_type,
+                                   typename std::decay_t<TensorB>::value_type>,
+                N, N>> {
   for (size_t i = 0; i < N; ++i) {
     if (std::abs(A.internal_tensor()(i)) < 1e-10) {
       return {};
@@ -225,82 +208,43 @@ constexpr auto operator*(base_tensor<TensorB, BReal, M, N> const& B,
 // dynamic
 //==============================================================================
 template <typename DynamicTensor>
-#ifdef __cpp_concepts
-requires is_dynamic_tensor<DynamicTensor>
-#endif
-struct const_diag_dynamic_tensor {
+requires is_dynamic_tensor<DynamicTensor> struct const_diag_dynamic_tensor {
   using value_type = typename DynamicTensor::value_type;
   DynamicTensor const&  m_tensor;
   static constexpr auto zero = typename DynamicTensor::value_type{};
   //============================================================================
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if_integral<Is...> = true>
-#endif
-  auto at(Is const... /*is*/) const -> value_type const& {
+  auto at(integral auto const... /*is*/) const -> value_type const& {
     throw std::runtime_error{
         "[const_diag_dynamic_tensor::at] need exactly two indices"};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <integral R, integral C>
-#else
-  template <typename R, typename C, enable_if_integral<R, C> = true>
-#endif
-  auto at(R const r, C const c) const -> value_type const& {
+  auto at(integral auto const r, integral auto const c) const
+      -> value_type const& {
     if (r == c) {
       return m_tensor(r);
     }
     return zero;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <range Indices>
-#else
-  template <typename Indices, enable_if<is_range<Indices>> = true>
-#endif
-  auto operator()(Indices const& indices) const -> auto const& {
+  auto operator()(range auto const& indices) const -> auto const& {
     return at(indices);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <range Indices>
-#else
-  template <typename Indices, enable_if<is_range<Indices>> = true>
-#endif
-  auto operator()(Indices const& indices) -> auto& {
-    return at(indices);
-  }
+  auto operator()(range auto const& indices) -> auto& { return at(indices); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <range Indices>
-#else
-  template <typename Indices, enable_if<is_range<Indices>> = true>
-#endif
-  auto at(Indices indices) -> auto& {
+  auto at(range auto indices) -> auto& {
     assert(indices.size() == num_dimensions());
     std::reverse(begin(indices), end(indices));
     return m_tensor(indices);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <range Indices>
-#else
-  template <typename Indices, enable_if<is_range<Indices>> = true>
-#endif
-  auto at(Indices indices) const -> auto const& {
+  auto at(range auto indices) const -> auto const& {
     assert(indices.size() == num_dimensions());
     std::reverse(begin(indices), end(indices));
     return m_tensor(indices);
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if_integral<Is...> = true>
-#endif
-  auto operator()(Is const... is) const -> value_type const& {
+  auto operator()(integral auto const... is) const -> value_type const& {
     return at(is...);
   }
   //----------------------------------------------------------------------------
@@ -310,11 +254,8 @@ struct const_diag_dynamic_tensor {
 };
 //------------------------------------------------------------------------------
 template <typename DynamicTensor>
-#ifdef __cpp_concepts
-requires is_dynamic_tensor<DynamicTensor>
-#endif
-struct is_dynamic_tensor_impl<const_diag_dynamic_tensor<DynamicTensor>>
-    : std::true_type {};
+requires is_dynamic_tensor<DynamicTensor> struct is_dynamic_tensor_impl<
+    const_diag_dynamic_tensor<DynamicTensor>> : std::true_type {};
 //==============================================================================
 template <typename DynamicTensor>
 struct diag_dynamic_tensor {
@@ -322,43 +263,24 @@ struct diag_dynamic_tensor {
   DynamicTensor&        m_tensor;
   static constexpr auto zero = typename DynamicTensor::value_type{};
   //============================================================================
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if_integral<Is...> = true>
-#endif
-  auto at(Is const... /*is*/) const -> value_type const& {
+  auto at(integral auto const... /*is*/) const -> value_type const& {
     throw std::runtime_error{
         "[diag_dynamic_tensor::at] need exactly two indices"};
   }
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if_integral<Is...> = true>
-#endif
-  auto at(Is const... /*is*/) -> value_type& {
+  auto at(integral auto const... /*is*/) -> value_type& {
     throw std::runtime_error{
         "[diag_dynamic_tensor::at] need exactly two indices"};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <integral R, integral C>
-#else
-  template <typename R, typename C, enable_if_integral<R, C> = true>
-#endif
-  auto at(R const r, C const c) const -> value_type const& {
+  auto at(integral auto const r, integral auto const c) const
+      -> value_type const& {
     if (r == c) {
       return m_tensor(r);
     }
     return zero;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <integral R, integral C>
-#else
-  template <typename R, typename C, enable_if_integral<R, C> = true>
-#endif
-  auto at(R const r, C const c) -> value_type& {
+  auto at(integral auto const r, integral auto const c) -> value_type& {
     static typename DynamicTensor::value_type zero;
     zero = typename DynamicTensor::value_type{};
     if (r == c) {
@@ -367,21 +289,11 @@ struct diag_dynamic_tensor {
     return zero;
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if_integral<Is...> = true>
-#endif
-  auto operator()(Is const... is) const -> value_type const& {
+  auto operator()(integral auto const... is) const -> value_type const& {
     return at(is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if_integral<Is...> = true>
-#endif
-  auto operator()(Is const... is) -> value_type& {
+  auto operator()(integral auto const... is) -> value_type& {
     return at(is...);
   }
   //----------------------------------------------------------------------------
@@ -391,38 +303,24 @@ struct diag_dynamic_tensor {
 };
 //------------------------------------------------------------------------------
 template <typename DynamicTensor>
-#ifdef __cpp_concepts
-requires is_dynamic_tensor<DynamicTensor>
-#endif
-struct is_dynamic_tensor_impl<diag_dynamic_tensor<DynamicTensor>>
-    : std::true_type {};
+requires is_dynamic_tensor<DynamicTensor> struct is_dynamic_tensor_impl<
+    diag_dynamic_tensor<DynamicTensor>> : std::true_type {};
 //==============================================================================
 template <typename DynamicTensor>
-#ifdef __cpp_concepts
-requires is_dynamic_tensor<DynamicTensor>
-#endif
-auto diag(DynamicTensor const& A) {
+requires is_dynamic_tensor<DynamicTensor> auto diag(DynamicTensor const& A) {
   assert(A.num_dimensions() == 1);
   return const_diag_dynamic_tensor<DynamicTensor>{A};
 }
 //------------------------------------------------------------------------------
 template <typename DynamicTensor>
-#ifdef __cpp_concepts
-requires is_dynamic_tensor<DynamicTensor>
-#endif
-auto diag(DynamicTensor& A) {
+requires is_dynamic_tensor<DynamicTensor> auto diag(DynamicTensor& A) {
   assert(A.num_dimensions() == 1);
   return diag_dynamic_tensor<DynamicTensor>{A};
 }
 //------------------------------------------------------------------------------
-#ifdef __cpp_concepts
 template <typename LhsTensor, typename RhsTensor>
-requires is_dynamic_tensor<LhsTensor>
-#else
-template <typename LhsTensor, typename RhsTensor,
-          enable_if<is_dynamic_tensor<LhsTensor>> = true>
-#endif
-auto operator*(LhsTensor const& lhs, diag_dynamic_tensor<RhsTensor> const& rhs)
+requires is_dynamic_tensor<LhsTensor> auto operator*(
+    LhsTensor const& lhs, diag_dynamic_tensor<RhsTensor> const& rhs)
     -> tensor<std::common_type_t<typename LhsTensor::value_type,
                                  typename RhsTensor::value_type>> {
   using out_t = tensor<std::common_type_t<typename LhsTensor::value_type,

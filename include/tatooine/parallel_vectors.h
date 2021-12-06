@@ -99,12 +99,7 @@ namespace tatooine {
 namespace detail {
 //==============================================================================
 /// \return Position where v and w are parallel otherwise nothing.
-#ifdef __cpp_concepts
 template <typename Real, invocable<vec<Real, 3>>... Preds>
-#else
-template <typename Real, typename... Preds,
-          enable_if<is_invocable<Preds, vec<Real, 3>>...> = true>
-#endif
 constexpr auto pv_on_tri(vec<Real, 3> const& p0, vec<Real, 3> const& v0,
                          vec<Real, 3> const& w0, vec<Real, 3> const& p1,
                          vec<Real, 3> const& v1, vec<Real, 3> const& w1,
@@ -253,15 +248,9 @@ auto constexpr turned(size_t const ix, size_t const iy, size_t const iz)
 /// Framework for calculating PV Operator.
 /// \param getv function for getting value for V field
 /// \param getw function for getting value for W field
-#ifdef __cpp_concepts
 template <typename Real, typename GetV, typename GetW, indexable_space XDomain,
           indexable_space YDomain, indexable_space ZDomain,
           invocable<vec<Real, 3>>... Preds>
-#else
-template <typename Real, typename GetV, typename GetW, typename XDomain,
-          typename YDomain, typename ZDomain, typename... Preds,
-          enable_if<is_invocable<Preds, vec<Real, 3>>...> = true>
-#endif
 auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
                            rectilinear_grid<XDomain, YDomain, ZDomain> const& g,
                            Preds&&... preds) -> std::vector<line<Real, 3>> {
@@ -765,17 +754,9 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
 }  // namespace detail
 //==============================================================================
 /// This is an implementation of \cite Peikert1999TheV.
-#ifdef __cpp_concepts
 template <typename VReal, typename WReal, typename XDomain, typename YDomain,
           typename ZDomain, arithmetic TReal,
           invocable<vec<common_type<VReal, WReal>, 3>>... Preds>
-#else
-template <typename VReal, typename WReal, typename TReal, typename XDomain,
-          typename YDomain, typename ZDomain, typename... Preds,
-          enable_if<is_arithmetic<TReal> &&
-                    (is_invocable<Preds, vec<common_type<VReal, WReal>, 3>> &&
-                     ...)> = true>
-#endif
 auto parallel_vectors(polymorphic::vectorfield<VReal, 3> const&          vf,
                       polymorphic::vectorfield<WReal, 3> const&          wf,
                       rectilinear_grid<XDomain, YDomain, ZDomain> const& g,
@@ -792,19 +773,10 @@ auto parallel_vectors(polymorphic::vectorfield<VReal, 3> const&          vf,
 }
 //------------------------------------------------------------------------------
 /// This is an implementation of \cite Peikert1999TheV.
-#ifdef __cpp_concepts
 template <typename V, typename W, typename VReal, typename WReal,
           typename XDomain, typename YDomain, typename ZDomain,
           arithmetic TReal,
           invocable<vec<common_type<VReal, WReal>, 3>>... Preds>
-#else
-template <
-    typename V, typename W, typename VReal, typename WReal, typename TReal,
-    typename XDomain, typename YDomain, typename ZDomain, typename... Preds,
-    enable_if<is_arithmetic<TReal> &&
-              (is_invocable<Preds, vec<common_type<VReal, WReal>, 3>> && ...)> =
-        true>
-#endif
 auto parallel_vectors(vectorfield<V, VReal, 3> const&                    vf,
                       vectorfield<W, WReal, 3> const&                    wf,
                       rectilinear_grid<XDomain, YDomain, ZDomain> const& g,
@@ -821,16 +793,9 @@ auto parallel_vectors(vectorfield<V, VReal, 3> const&                    vf,
 }
 //------------------------------------------------------------------------------
 /// This is an implementation of \cite Peikert1999TheV.
-#ifdef __cpp_concepts
 template <typename V, typename W, typename VReal, typename WReal,
           typename XDomain, typename YDomain, typename ZDomain,
           invocable<vec<common_type<VReal, WReal>, 3>>... Preds>
-#else
-template <
-    typename V, typename W, typename VReal, typename WReal, typename XDomain,
-    typename YDomain, typename ZDomain, typename... Preds,
-    enable_if<is_invocable<Preds, vec<common_type<VReal, WReal>, 3>>...> = true>
-#endif
 auto parallel_vectors(vectorfield<V, VReal, 3> const&                    v,
                       vectorfield<W, WReal, 3> const&                    w,
                       rectilinear_grid<XDomain, YDomain, ZDomain> const& g,
@@ -840,18 +805,9 @@ auto parallel_vectors(vectorfield<V, VReal, 3> const&                    v,
 }
 //------------------------------------------------------------------------------
 /// This is an implementation of \cite Peikert1999TheV.
-#ifdef __cpp_concepts
 template <typename V, typename W, typename VReal, typename WReal,
           typename XReal, typename YReal, typename ZReal, arithmetic TReal,
           invocable<vec<common_type<VReal, WReal>, 3>>... Preds>
-#else
-template <
-    typename V, typename W, typename VReal, typename WReal, typename XReal,
-    typename YReal, typename ZReal, typename TReal, typename... Preds,
-    enable_if<is_arithmetic<TReal>,
-              (is_invocable<Preds, vec<common_type<VReal, WReal>, 3>> && ...)> =
-        true>
-#endif
 auto parallel_vectors(vectorfield<V, VReal, 3> const& v,
                       vectorfield<W, WReal, 3> const& w,
                       linspace<XReal> const& x, linspace<YReal> const& y,
@@ -862,16 +818,9 @@ auto parallel_vectors(vectorfield<V, VReal, 3> const& v,
 }
 //------------------------------------------------------------------------------
 /// This is an implementation of \cite Peikert1999TheV.
-#ifdef __cpp_concepts
 template <typename V, typename W, typename VReal, typename WReal,
           typename XReal, typename YReal, typename ZReal,
           invocable<vec<common_type<VReal, WReal>, 3>>... Preds>
-#else
-template <typename V, typename W, typename VReal, typename WReal,
-          typename XReal, typename YReal, typename ZReal, typename... Preds,
-          enable_if<(is_invocable<Preds, vec<common_type<VReal, WReal>, 3>> &&
-                     ...)> = true>
-#endif
 auto parallel_vectors(vectorfield<V, VReal, 3> const& v,
                       vectorfield<W, WReal, 3> const& w,
                       linspace<XReal> const& x, linspace<YReal> const& y,
@@ -882,16 +831,9 @@ auto parallel_vectors(vectorfield<V, VReal, 3> const& v,
 }
 //------------------------------------------------------------------------------
 /// This is an implementation of \cite Peikert1999TheV.
-#ifdef __cpp_concepts
 template <typename VReal, typename VIndexing, typename WReal,
           typename WIndexing, typename AABBReal,
           invocable<vec<common_type<VReal, WReal>, 3>>... Preds>
-#else
-template <
-    typename VReal, typename VIndexing, typename WReal, typename WIndexing,
-    typename AABBReal, typename... Preds,
-    enable_if<is_invocable<Preds, vec<common_type<VReal, WReal>, 3>>...> = true>
-#endif
 auto parallel_vectors(
     dynamic_multidim_array<vec<VReal, 3>, VIndexing> const& vf,
     dynamic_multidim_array<vec<WReal, 3>, WIndexing> const& wf,

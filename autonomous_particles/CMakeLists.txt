@@ -34,6 +34,7 @@ unset(TAT_AP_APP)
 endfunction()
 create_autonomous_particles_application(doublegyre_grid)
 create_autonomous_particles_application(channelflow_grid)
+create_autonomous_particles_application(channelflow_single)
 create_autonomous_particles_application(tornado_grid)
 create_autonomous_particles_application(abcflow_grid)
 

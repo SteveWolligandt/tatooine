@@ -6,11 +6,7 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-#ifdef __cpp_concepts
 template <arithmetic_or_complex Real, size_t... N>
-#else
-template <typename Real, size_t... N>
-#endif
 struct tensor;
 //==============================================================================
 }  // namespace tatooine

@@ -23,67 +23,43 @@ struct static_multidim_size {
   static constexpr auto num_dimensions() { return sizeof...(Resolution); }
   static constexpr auto num_components() { return (Resolution * ...); }
   //----------------------------------------------------------------------------
-  static constexpr auto size() {
-    return std::array{Resolution...};
-  }
+  static constexpr auto size() { return std::array{Resolution...}; }
   //----------------------------------------------------------------------------
   static constexpr auto size(size_t const i) { return size()[i]; }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
-#endif
-  static constexpr auto in_range(Is const... is) {
-    static_assert(sizeof...(is) == num_dimensions(),
+  static constexpr auto in_range(integral auto const... indices) {
+    static_assert(sizeof...(indices) == num_dimensions(),
                   "Number of indices does not match number of dimensions.");
-    return ((is >= 0) && ...) &&
-           ((static_cast<size_t>(is) < Resolution) && ...);
+    return ((indices >= 0) && ...) &&
+           ((static_cast<size_t>(indices) < Resolution) && ...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <range Indices>
-#else
-  template <typename Indices, enable_if<is_range<Indices>> = true>
-#endif
-  static constexpr auto in_range(Indices const& is) {
-    for (size_t i = 0; i < is.size(); ++i) {
-      if (is[i] >= size(i)) { return false; }
+  static constexpr auto in_range(range auto const& indices) {
+    for (size_t i = 0; i < indices.size(); ++i) {
+      if (indices[i] >= size(i)) {
+        return false;
+      }
     }
     return true;
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
-#endif
-  static constexpr auto plain_index(Is const... is) {
-    static_assert(sizeof...(is) == num_dimensions(),
+  static constexpr auto plain_index(integral auto const... indices) {
+    static_assert(sizeof...(indices) == num_dimensions(),
                   "number of indices does not match number of dimensions");
-    return IndexOrder::plain_index(size(), is...);
+    return IndexOrder::plain_index(size(), indices...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <range Indices>
-#else
-  template <typename Indices, enable_if<is_range<Indices>> = true>
-#endif
-  static auto plain_index(Indices const& is) {
-    static_assert(std::is_integral_v<typename Indices::value_type>,
+  static auto plain_index(range auto const& indices) {
+    using Indices = std::decay_t<decltype(indices)>;
+    static_assert(is_integral<typename Indices::value_type>,
                   "index range must hold integral type");
-    assert(is.size() == num_dimensions() &&
+    assert(indices.size() == num_dimensions() &&
            "number of indices does not match number of dimensions");
-    return IndexOrder::plain_index(size(), is);
+    return IndexOrder::plain_index(size(), indices);
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
-#endif
-  constexpr auto operator()(Is const... is) const {
-    return plain_index(is...);
+  constexpr auto operator()(integral auto const... indices) const {
+    return plain_index(indices...);
   }
   //----------------------------------------------------------------------------
   static constexpr auto indices() { return static_multidim{Resolution...}; }
@@ -132,45 +108,43 @@ class dynamic_multidim_size {
     return *this;
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Size>
-#else
-  template <typename... Size, enable_if<is_integral<Size...>> = true>
-#endif
-  explicit dynamic_multidim_size(Size... size)
+  explicit dynamic_multidim_size(integral auto const... size)
       : m_size{static_cast<size_t>(size)...} {}
   //----------------------------------------------------------------------------
   explicit dynamic_multidim_size(std::vector<size_t>&& size)
       : m_size(std::move(size)) {}
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <range Size>
-#else
-  template <typename Size, enable_if<is_range<Size>> = true>
-#endif
-  explicit dynamic_multidim_size(Size const& size)
+  explicit dynamic_multidim_size(range auto const& size)
       : m_size(begin(size), end(size)) {
+    using Size = std::decay_t<decltype(size)>;
     static_assert(std::is_integral_v<typename Size::value_type>,
                   "size range must hold integral type");
   }
   //----------------------------------------------------------------------------
   // comparisons
   //----------------------------------------------------------------------------
- public:
   template <typename OtherIndexing>
   auto operator==(dynamic_multidim_size<OtherIndexing> const& other) const {
-    if (num_dimensions() != other.num_dimensions()) { return false; }
+    if (num_dimensions() != other.num_dimensions()) {
+      return false;
+    }
     for (size_t i = 0; i < num_dimensions(); ++i) {
-      if (m_size[i] != other.size(i)) { return false; }
+      if (m_size[i] != other.size(i)) {
+        return false;
+      }
     }
     return true;
   }
   //----------------------------------------------------------------------------
   template <typename OtherIndexing>
   auto operator!=(dynamic_multidim_size<OtherIndexing> const& other) const {
-    if (num_dimensions() == other.num_dimensions()) { return false; }
+    if (num_dimensions() == other.num_dimensions()) {
+      return false;
+    }
     for (size_t i = 0; i < num_dimensions(); ++i) {
-      if (m_size[i] == other.size(i)) { return false; }
+      if (m_size[i] == other.size(i)) {
+        return false;
+      }
     }
     return true;
   }
@@ -190,21 +164,11 @@ class dynamic_multidim_size {
                            std::multiplies<size_t>{});
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Size>
-#else
-  template <typename... Size, enable_if<is_integral<Size...>> = true>
-#endif
-  void resize(Size const... size) {
+  void resize(integral auto const... size) {
     m_size = {static_cast<size_t>(size)...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <range Size>
-#else
-  template <typename Size, enable_if<is_range<Size>> = true>
-#endif
-  void resize(Size const& size) {
+  void resize(range auto const& size) {
     m_size = std::vector<size_t>(begin(size), end(size));
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -212,64 +176,44 @@ class dynamic_multidim_size {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   void resize(std::vector<size_t> const& size) { m_size = size; }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
-#endif
-  constexpr auto in_range(Is const... is) const {
-    assert(sizeof...(is) == num_dimensions());
-    return in_range(std::array{static_cast<size_t>(is)...});
+  constexpr auto in_range(integral auto const... indices) const {
+    assert(sizeof...(indices) == num_dimensions());
+    return in_range(std::array{static_cast<size_t>(indices)...});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <range Indices>
-#else
-  template <typename Indices, enable_if<is_range<Indices>> = true>
-#endif
-  constexpr auto in_range(Indices const& is) const {
+  constexpr auto in_range(range auto const& indices) const {
+    using Indices = std::decay_t<decltype(indices)>;
     static_assert(std::is_integral_v<typename Indices::value_type>,
                   "index range must hold integral type");
-    assert(is.size() == num_dimensions());
-    for (size_t i = 0; i < is.size(); ++i) {
-      if (is[i] >= size(i)) {
+    assert(indices.size() == num_dimensions());
+    for (size_t i = 0; i < indices.size(); ++i) {
+      if (indices[i] >= size(i)) {
         return false;
       }
     }
     return true;
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
-#endif
-  constexpr auto plain_index(Is const... is) const {
-    assert(sizeof...(is) == num_dimensions());
-    assert(in_range(is...));
-    return IndexOrder::plain_index(m_size, is...);
+  constexpr auto plain_index(integral auto const... indices) const {
+    assert(sizeof...(indices) == num_dimensions());
+    assert(in_range(indices...));
+    return IndexOrder::plain_index(m_size, indices...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <range Indices>
-#else
-  template <typename Indices, enable_if<is_range<Indices>> = true>
-#endif
-  constexpr auto plain_index(Indices const& is) const {
+  constexpr auto plain_index(range auto const& indices) const {
+    using Indices = std::decay_t<decltype(indices)>;
     static_assert(std::is_integral_v<typename Indices::value_type>,
                   "index range must hold integral type");
-    assert(is.size() == num_dimensions());
-    assert(in_range(is));
-    return IndexOrder::plain_index(m_size, is);
+    assert(indices.size() == num_dimensions());
+    assert(in_range(indices));
+    return IndexOrder::plain_index(m_size, indices);
   }
   //----------------------------------------------------------------------------
   constexpr auto multi_index(size_t const gi) const {
     return IndexOrder::multi_index(m_size, gi);
   }
   //----------------------------------------------------------------------------
-  constexpr auto indices() const {
-    return dynamic_multidim{m_size};
-  }
+  constexpr auto indices() const { return dynamic_multidim{m_size}; }
 };
 //==============================================================================
 // deduction guides

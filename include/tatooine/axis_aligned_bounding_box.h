@@ -178,15 +178,9 @@ struct axis_aligned_bounding_box
   ///    |              |
   ///    |              |
   /// x0 +--------------+ x1
-#ifndef __cpp_concepts
-  template <size_t _N = N, enable_if<(_N == 2)> = true>
-#endif
   constexpr auto is_rectangle_inside(vec<Real, 2> x0, vec<Real, 2> x1,
                                      vec<Real, 2> x2, vec<Real, 2> x3) const
-#ifdef __cpp_concepts
-      requires(N == 2)
-#endif
-  {
+      requires(N == 2) {
     auto const c = center();
     auto const e = extents() / 2;
 
@@ -235,15 +229,8 @@ struct axis_aligned_bounding_box
     return true;
   }
   //----------------------------------------------------------------------------
-#ifndef __cpp_concepts
-  template <size_t _N = N, enable_if<(_N == 2)> = true>
-#endif
   constexpr auto is_simplex_inside(vec<Real, 2> x0, vec<Real, 2> x1,
-                                   vec<Real, 2> x2) const
-#ifdef __cpp_concepts
-      requires(N == 2)
-#endif
-  {
+                                   vec<Real, 2> x2) const requires(N == 2) {
     auto const c = center();
     auto const e = extents() / 2;
     x0 -= c;
@@ -287,15 +274,8 @@ struct axis_aligned_bounding_box
   //----------------------------------------------------------------------------
   /// from here:
   /// https://gdbooks.gitbooks.io/3dcollisions/content/Chapter4/aabb-triangle.html
-#ifndef __cpp_concepts
-  template <size_t _N = N, enable_if<(_N == 3)> = true>
-#endif
   constexpr auto is_simplex_inside(vec<Real, 3> x0, vec<Real, 3> x1,
-                                   vec<Real, 3> x2) const
-#ifdef __cpp_concepts
-      requires(N == 3)
-#endif
-  {
+                                   vec<Real, 3> x2) const requires(N == 3) {
     auto const c = center();
     auto const e = extents() / 2;
 
@@ -363,16 +343,10 @@ struct axis_aligned_bounding_box
     }
     return true;
   }
-  //------------------  //----------------------------------------------------------------------------
-#ifndef __cpp_concepts
-  template <size_t _N = N, enable_if<(_N == 3)> = true>
-#endif
+  //----------------------------------------------------------------------------
   constexpr auto is_simplex_inside(vec<Real, 3> x0, vec<Real, 3> x1,
                                    vec<Real, 3> x2, vec<Real, 3> x3) const
-#ifdef __cpp_concepts
-      requires(N == 3)
-#endif
-  {
+      requires(N == 3) {
     auto const c = center();
     auto const e = extents() / 2;
 

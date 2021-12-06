@@ -10,15 +10,8 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-#ifdef __cpp_concepts
 template <arithmetic_or_complex T, size_t M, size_t N>
-#else
-template <typename T, size_t M, size_t N>
-#endif
 struct mat : tensor<T, M, N> {
-#ifndef __cpp_concepts
-  static_assert(is_arithmetic<T> || is_complex<T>);
-#endif
   //============================================================================
   // static methods
   //============================================================================
@@ -46,12 +39,8 @@ struct mat : tensor<T, M, N> {
   //----------------------------------------------------------------------------
   static auto constexpr ones() { return this_t{tag::fill<T>{1}}; }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <typename = void>
   requires (is_quadratic_mat())
-#else
-  template <typename = void, enable_if<is_quadratic_mat()> = true>
-#endif
   static auto constexpr eye() { return this_t{tag::eye}; }
   //----------------------------------------------------------------------------
   template <typename RandEng = std::mt19937_64>
@@ -73,6 +62,7 @@ struct mat : tensor<T, M, N> {
   //----------------------------------------------------------------------------
   constexpr mat(mat&& other) noexcept = default;
   //----------------------------------------------------------------------------
+  /// Copies any other tensor with same dimensions.
   template <typename Tensor, typename TensorReal>
   explicit constexpr mat(base_tensor<Tensor, TensorReal, M, N> const& other)
       : parent_t{other} {}
@@ -95,10 +85,10 @@ struct mat : tensor<T, M, N> {
     for_each(insert_row, rows...);
   }
   //----------------------------------------------------------------------------
+  /// Constructs an identity matrix.
   explicit constexpr mat(tag::eye_t /*flag*/) : parent_t{tag::zeros} {
     for (size_t i = 0; i < std::min(M, N); ++i) { at(i, i) = 1; }
   }
-
   //============================================================================
   // assign operators
   //============================================================================
@@ -136,11 +126,7 @@ struct mat : tensor<T, M, N> {
     return V;
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <convertible_to<T> ...Xs>
-#else
-  template <typename... Xs, enable_if<(is_convertible<Xs, T> && ...)> = true>
-#endif
   static auto constexpr vander(Xs&&... xs) {
     static_assert(sizeof...(xs) == num_columns());
     this_t V;
@@ -165,10 +151,13 @@ struct mat : tensor<T, M, N> {
   auto constexpr col(size_t i) const { return this->template slice<1>(i); }
 };
 //==============================================================================
-// deduction guide
+// deduction guides
 //==============================================================================
 template <size_t C, typename... Rows>
 mat(Rows const(&&... rows)[C]) -> mat<common_type<Rows...>, sizeof...(Rows), C>;
+//------------------------------------------------------------------------------
+template <typename Mat, typename T, std::size_t M, std::size_t N>
+mat(base_tensor<Mat, T, M, N>) -> mat<T, M, N>;
 //==============================================================================
 namespace reflection {
 template <typename T, size_t M, size_t N>

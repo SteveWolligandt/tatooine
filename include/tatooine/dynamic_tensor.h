@@ -14,81 +14,43 @@ struct is_dynamic_tensor_impl : std::false_type {};
 template <typename T>
 static constexpr auto is_dynamic_tensor = is_dynamic_tensor_impl<T>::value;
 //==============================================================================
-#ifdef __cpp_concepts
 template <arithmetic_or_complex T>
-#else
-template <typename T>
-#endif
 struct tensor<T> : dynamic_multidim_array<T> {
-#ifndef __cpp_concepts
-  static_assert(is_arithmetic<T> || is_complex<T>);
-#endif
   using this_t   = tensor<T>;
   using parent_t = dynamic_multidim_array<T>;
   using parent_t::parent_t;
   //============================================================================
   // factories
   //============================================================================
-#ifdef __cpp_concepts
-  template <integral... Size>
-#else
-  template <typename... Size, enable_if_integral<Size...> = true>
-#endif
-  static auto zeros(Size const... size) {
+  static auto zeros(integral auto const... size) {
     return this_t{tag::zeros, size...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <integral Size>
-#else
-  template <typename Size, enable_if_integral<Size>> = true>
-#endif
   static auto zeros(std::vector<Size> const& size) {
     return this_t{tag::zeros, size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <integral Size, size_t N>
-#else
-  template <typename Size, size_t N, enable_if_integral<Size> = true>
-#endif
   static auto zeros(std::array<Size, N> const& size) {
     return this_t{tag::zeros, size};
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Size>
-#else
-  template <typename... Size, enable_if_integral<Size...> = true>
-#endif
-  static auto ones(Size... size) {
+  static auto ones(integral auto... size) {
     return this_t{tag::ones, size...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <integral Size>
-#else
-  template <typename Size, enable_if_integral<Size> = true>
-#endif
   static auto ones(std::vector<Size> const& size) {
     return this_t{tag::ones, size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <integral Size, size_t N>
-#else
-  template <typename Size, size_t N, enable_if_integral<Size> = true>
-#endif
   static auto ones(std::array<Size, N> const& size) {
     return this_t{tag::ones, size};
   }
   //------------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <integral Size, typename RandEng = std::mt19937_64>
-#else
-  template <typename Size, typename RandEng = std::mt19937_64,
-            enable_if_integral<Size> = true>
-#endif
   static auto randu(T const min, T const max, std::vector<Size> const& size,
                     RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_t{
@@ -96,12 +58,7 @@ struct tensor<T> : dynamic_multidim_array<T> {
         size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <integral Size, typename RandEng = std::mt19937_64>
-#else
-  template <typename Size, typename RandEng = std::mt19937_64,
-            enable_if_integral<Size> = true>
-#endif
   static auto randu(std::vector<Size> const& size, T min = 0, T max = 1,
                     RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_t{
@@ -109,12 +66,7 @@ struct tensor<T> : dynamic_multidim_array<T> {
         size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <size_t N, integral Size, typename RandEng = std::mt19937_64>
-#else
-  template <size_t N, typename Size, typename RandEng = std::mt19937_64,
-            enable_if_integral<Size> = true>
-#endif
   static auto randu(T min, T max, std::array<Size, N> const& size,
                     RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_t{
@@ -122,12 +74,7 @@ struct tensor<T> : dynamic_multidim_array<T> {
         size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <size_t N, integral Size, typename RandEng = std::mt19937_64>
-#else
-  template <size_t N, typename Size, typename RandEng = std::mt19937_64,
-            enable_if_integral<Size> = true>
-#endif
   static auto randu(std::array<Size, N> const& size, T min = 0, T max = 1,
                     RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_t{
@@ -135,130 +82,70 @@ struct tensor<T> : dynamic_multidim_array<T> {
         size};
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <integral Size, typename RandEng>
-#else
-  template <typename Size, typename RandEng,
-            enable_if_integral<Size> = true>
-#endif
   static auto rand(random::uniform<T, RandEng> const& rand,
                    std::vector<Size> const&           size) {
     return this_t{rand, size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <size_t N, integral Size, typename RandEng>
-#else
-  template <size_t N, typename Size, typename RandEng,
-            enable_if_integral<Size> = true>
-#endif
   static auto rand(random::uniform<T, RandEng> const& rand,
                    std::array<Size, N> const&         size) {
     return this_t{rand, size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <typename RandEng, integral... Size>
-#else
-  template <typename RandEng, typename... Size,
-            enable_if_integral<Size...> = true>
-#endif
   static auto rand(random::uniform<T, RandEng> const& rand, Size... size) {
     return this_t{rand, std::vector{static_cast<size_t>(size)...}};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <integral Size, typename RandEng>
-#else
-  template <typename Size, typename RandEng,
-            enable_if_integral<Size> = true>
-#endif
   static auto rand(random::uniform<T, RandEng>&& rand,
                    std::vector<Size> const&      size) {
     return this_t{std::move(rand), size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <size_t N, integral Size, typename RandEng>
-#else
-  template <size_t N, typename Size, typename RandEng,
-            enable_if_integral<Size> = true>
-#endif
   static auto rand(random::uniform<T, RandEng>&& rand,
                    std::array<Size, N> const&    size) {
     return this_t{std::move(rand), size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <typename RandEng, integral... Size>
-#else
-  template <typename RandEng, typename... Size,
-            enable_if_integral<Size...> = true>
-#endif
   static auto rand(random::uniform<T, RandEng>&& rand, Size... size) {
     return this_t{std::move(rand), std::vector{static_cast<size_t>(size)...}};
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <integral Size, typename RandEng>
-#else
-  template <typename Size, typename RandEng,
-            enable_if_integral<Size> = true>
-#endif
   static auto rand(random::normal<T, RandEng> const& rand,
                    std::vector<Size> const&          size) {
     return this_t{rand, size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <size_t N, integral Size, typename RandEng>
-#else
-  template <size_t N, typename Size, typename RandEng,
-            enable_if_integral<Size> = true>
-#endif
   static auto rand(random::normal<T, RandEng> const& rand,
                    std::array<Size, N> const&        size) {
     return this_t{rand, size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <typename RandEng, integral... Size>
-#else
-  template <typename RandEng, typename... Size,
-            enable_if_integral<Size...> = true>
-#endif
   static auto rand(random::normal<T, RandEng> const& rand, Size... size) {
     return this_t{rand, std::vector{static_cast<size_t>(size)...}};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <integral Size, typename RandEng>
-#else
-  template <typename Size, typename RandEng,
-            enable_if_integral<Size> = true>
-#endif
   static auto rand(random::normal<T, RandEng>&& rand,
                    std::vector<Size> const&     size) {
     return this_t{std::move(rand), size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <size_t N, integral Size, typename RandEng>
-#else
-  template <size_t N, typename Size, typename RandEng,
-            enable_if_integral<Size> = true>
-#endif
   static auto rand(random::normal<T, RandEng>&& rand,
                    std::array<Size, N> const&   size) {
     return this_t{std::move(rand), size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <typename RandEng, integral... Size>
-#else
-  template <typename RandEng, typename... Size,
-            enable_if_integral<Size...> = true>
-#endif
   static auto rand(random::normal<T, RandEng>&& rand, Size... size) {
     return this_t{std::move(rand), std::vector{static_cast<size_t>(size)...}};
   }

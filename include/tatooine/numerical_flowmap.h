@@ -12,7 +12,7 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename V, template <typename, size_t> typename ODESolver,
+template <typename V, template <typename, std::size_t> typename ODESolver,
           template <typename> typename InterpolationKernel>
 struct numerical_flowmap {
   using this_t      = numerical_flowmap<V, ODESolver, InterpolationKernel>;
@@ -65,25 +65,25 @@ struct numerical_flowmap {
     return *this;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <std::convertible_to<V> W, arithmetic WReal, size_t N,
+  template <std::convertible_to<V> W, arithmetic WReal, std::size_t N,
             typename V_ = V>
   requires(!holds_field_pointer) explicit constexpr numerical_flowmap(
       vectorfield<W, WReal, N> const& w, bool const use_caching = true)
       : m_v{w.as_derived()}, m_use_caching{use_caching} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <std::convertible_to<V> W, arithmetic WReal, size_t N,
+  template <std::convertible_to<V> W, arithmetic WReal, std::size_t N,
             typename V_ = V>
   requires holds_field_pointer explicit constexpr numerical_flowmap(
       vectorfield<W, WReal, N> const* w, bool const use_caching = true)
       : m_v{&w->as_derived()}, m_use_caching{use_caching} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <arithmetic WReal, size_t N, typename V_ = V>
+  template <arithmetic WReal, std::size_t N, typename V_ = V>
   requires holds_field_pointer explicit constexpr numerical_flowmap(
       polymorphic::vectorfield<WReal, N> const* w,
       bool const                                use_caching = true)
       : m_v{w}, m_use_caching{use_caching} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <arithmetic WReal, size_t N, typename V_ = V>
+  template <arithmetic WReal, std::size_t N, typename V_ = V>
   requires holds_field_pointer explicit constexpr numerical_flowmap(
       polymorphic::vectorfield<WReal, N>* w, bool const use_caching = true)
       : m_v{w}, m_use_caching{use_caching} {}
@@ -93,7 +93,7 @@ struct numerical_flowmap {
       bool const use_caching = true)
       : m_v{nullptr}, m_use_caching{use_caching} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename W, typename WReal, size_t N, typename V_ = V>
+  template <typename W, typename WReal, std::size_t N, typename V_ = V>
   requires(!holds_field_pointer) constexpr numerical_flowmap(
       vectorfield<W, WReal, N> const& w, ode_solver_t const& ode_solver,
       bool const use_caching = true)
@@ -101,24 +101,32 @@ struct numerical_flowmap {
         m_ode_solver{ode_solver},
         m_use_caching{use_caching} {}
   //============================================================================
-  [[nodiscard]] constexpr auto evaluate(pos_t const& y0, real_t const t0,
+  template <std::size_t K>
+  [[nodiscard]] constexpr auto evaluate(mat<real_t, num_dimensions(), K> xs,
+                                        real_t const t0, real_t tau) const {
+    for (std::size_t i = 0; i < K; ++i) {
+      xs.col(i) = evaluate(pos_t{xs.col(i)}, t0, tau);
+    }
+    return xs;
+  }
+  //============================================================================
+  [[nodiscard]] constexpr auto evaluate(pos_t x, real_t const t0,
                                         real_t tau) const -> pos_t {
     if (tau == 0) {
-      return y0;
+      return x;
     }
     if (!m_use_caching) {
-      pos_t x        = y0;
-      auto  callback = [t0, &x, tau](const auto& y, auto const t) {
+      auto callback = [t0, &x, tau](const auto& y, auto const t) {
         if (t0 + tau == t) {
           x = y;
         }
       };
-      m_ode_solver.solve(vectorfield(), y0, t0, tau, callback);
+      m_ode_solver.solve(vectorfield(), x, t0, tau, callback);
       return x;
     }
     // use caching
     constexpr real_t security_eps   = 1e-7;
-    auto const&      integral_curve = cached_curve(y0, t0, tau);
+    auto const&      integral_curve = cached_curve(x, t0, tau);
     auto             t              = t0 + tau;
     if (tau < 0 &&
         t < integral_curve
@@ -145,9 +153,18 @@ struct numerical_flowmap {
     return integral_curve.template sampler<InterpolationKernel>()(t);
   }
   //----------------------------------------------------------------------------
-  [[nodiscard]] constexpr auto operator()(pos_t const& y0, real_t const t0,
-                                          real_t tau) const -> pos_t {
-    return evaluate(y0, t0, tau);
+  template <typename Mat, std::size_t K>
+  [[nodiscard]] constexpr auto operator()(
+      base_tensor<Mat, real_t, num_dimensions(), K> const& y0s, real_t const t0,
+      real_t const tau) const {
+    return evaluate(mat{y0s}, t0, tau);
+  }
+  //----------------------------------------------------------------------------
+  template <typename Vec>
+  [[nodiscard]] constexpr auto operator()(
+      base_tensor<Vec, real_t, num_dimensions()> const& y0, real_t const t0,
+      real_t const tau) const -> pos_t {
+    return evaluate(vec{y0}, t0, tau);
   }
   //----------------------------------------------------------------------------
   auto integral_curve(pos_t const& y0, real_t const t0,
@@ -310,44 +327,47 @@ struct numerical_flowmap {
 };
 
 //==============================================================================
-template <typename V, typename Real, size_t N>
+template <typename V, typename Real, std::size_t N>
 numerical_flowmap(vectorfield<V, Real, N> const&)
     -> numerical_flowmap<V const&, ode::vclibs::rungekutta43,
                          interpolation::cubic>;
 //-> numerical_flowmap<V, ode::boost::rungekuttafehlberg78,
 // interpolation::cubic>;
 //------------------------------------------------------------------------------
-template <typename V, typename Real, size_t N,
-          template <typename, size_t> typename ODESolver>
+template <typename V, typename Real, std::size_t N,
+          template <typename, std::size_t> typename ODESolver>
 numerical_flowmap(vectorfield<V, Real, N> const&, ODESolver<Real, N> const&)
     -> numerical_flowmap<V const&, ODESolver, interpolation::cubic>;
 //==============================================================================
 template <
-    // template <typename, size_t> typename ODESolver =
+    // template <typename, std::size_t> typename ODESolver =
     // ode::boost::rungekuttafehlberg78,
-    template <typename, size_t> typename ODESolver = ode::vclibs::rungekutta43,
+    template <typename, std::size_t>
+    typename ODESolver = ode::vclibs::rungekutta43,
     template <typename> typename InterpolationKernel = interpolation::cubic,
-    typename V, typename Real, size_t N>
+    typename V, typename Real, std::size_t N>
 auto flowmap(vectorfield<V, Real, N> const& v, tag::numerical_t /*tag*/) {
   return numerical_flowmap<V const&, ODESolver, InterpolationKernel>{v};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <
-    // template <typename, size_t> typename ODESolver =
+    // template <typename, std::size_t> typename ODESolver =
     // ode::boost::rungekuttafehlberg78,
-    template <typename, size_t> typename ODESolver = ode::vclibs::rungekutta43,
+    template <typename, std::size_t>
+    typename ODESolver = ode::vclibs::rungekutta43,
     template <typename> typename InterpolationKernel = interpolation::cubic,
-    typename V, typename Real, size_t N>
+    typename V, typename Real, std::size_t N>
 auto flowmap(vectorfield<V, Real, N> const& v) {
   return numerical_flowmap<V const&, ODESolver, InterpolationKernel>(v);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <
-    // template <typename, size_t> typename ODESolver =
+    // template <typename, std::size_t> typename ODESolver =
     // ode::boost::rungekuttafehlberg78,
-    template <typename, size_t> typename ODESolver = ode::vclibs::rungekutta43,
+    template <typename, std::size_t>
+    typename ODESolver = ode::vclibs::rungekutta43,
     template <typename> typename InterpolationKernel = interpolation::cubic,
-    typename Real, size_t N>
+    typename Real, std::size_t N>
 auto flowmap(polymorphic::vectorfield<Real, N> const& v) {
   return numerical_flowmap<polymorphic::vectorfield<Real, N> const*, ODESolver,
                            InterpolationKernel>(&v);
@@ -359,7 +379,7 @@ auto flowmap(polymorphic::vectorfield<Real, N> const& v) {
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename V, template <typename, size_t> typename ODESolver,
+template <typename V, template <typename, std::size_t> typename ODESolver,
           template <typename> typename InterpolationKernel,
           arithmetic EpsReal = typename V::real_t>
 auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
@@ -368,7 +388,7 @@ auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
       numerical_flowmap<V, ODESolver, InterpolationKernel>>{flowmap, epsilon};
 }
 //------------------------------------------------------------------------------
-template <typename V, template <typename, size_t> typename ODESolver,
+template <typename V, template <typename, std::size_t> typename ODESolver,
           template <typename> typename InterpolationKernel,
           std::floating_point EpsReal>
 auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
@@ -377,7 +397,7 @@ auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
       numerical_flowmap<V, ODESolver, InterpolationKernel>>{flowmap, epsilon};
 }
 //==============================================================================
-template <typename V, template <typename, size_t> typename ODESolver,
+template <typename V, template <typename, std::size_t> typename ODESolver,
           template <typename> typename InterpolationKernel,
           arithmetic EpsReal = typename std::decay_t<V>::real_t>
 auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
@@ -385,7 +405,7 @@ auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
   return diff(flowmap, tag::central, epsilon);
 }
 //------------------------------------------------------------------------------
-template <typename V, template <typename, size_t> typename ODESolver,
+template <typename V, template <typename, std::size_t> typename ODESolver,
           template <typename> typename InterpolationKernel,
           std::floating_point EpsReal>
 auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
@@ -395,8 +415,8 @@ auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
 //==============================================================================
 // typedefs
 //==============================================================================
-template <arithmetic Real, size_t N,
-          template <typename, size_t> typename ODESolver,
+template <arithmetic Real, std::size_t N,
+          template <typename, std::size_t> typename ODESolver,
           template <typename> typename InterpolationKernel>
 using numerical_flowmap_field_pointer =
     numerical_flowmap<polymorphic::vectorfield<Real, N>*, ODESolver,
@@ -407,7 +427,7 @@ using numerical_flowmap_field_pointer =
 template <typename T>
 struct is_numerical_flowmap : std::false_type {};
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-template <typename V, template <typename, size_t> typename ODESolver,
+template <typename V, template <typename, std::size_t> typename ODESolver,
           template <typename> typename InterpolationKernel>
 struct is_numerical_flowmap<
     numerical_flowmap<V, ODESolver, InterpolationKernel>> : std::true_type {};

@@ -9,11 +9,7 @@
 //==============================================================================
 namespace tatooine::color_scales {
 //==============================================================================
-#ifdef __cpp_concepts
 template <arithmetic Real>
-#else
-template <typename Real>
-#endif
 struct magma {
   using real_t  = Real;
   using this_t  = magma<Real>;

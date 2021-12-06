@@ -22,11 +22,7 @@ struct ray {
   ray(ray const&)     = default;
   ray(ray&&) noexcept = default;
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <floating_point OtherReal>
-#else
-  template <typename OtherReal, enable_if<is_floating_point<OtherReal>> = true>
-#endif
   ray(ray<OtherReal, N> const& other)
       : m_origin{other.m_origin}, m_direction{other.m_direction} {}
   //----------------------------------------------------------------------------

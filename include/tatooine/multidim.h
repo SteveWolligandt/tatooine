@@ -34,30 +34,17 @@ struct static_multidim {
       std::array<std::pair<size_t, size_t>, N> ranges)
       : m_ranges{ranges} {}
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <integral... Ts>
-#else
-  template <typename... Ts, enable_if<is_integral<Ts...>> = true>
-#endif
   explicit constexpr static_multidim(const std::pair<Ts, Ts>&... ranges)
       : m_ranges{std::make_pair(static_cast<size_t>(ranges.first),
                                 static_cast<size_t>(ranges.second))...} {}
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <integral... Ts>
-#else
-  template <typename... Ts, enable_if<is_integral<Ts...>> = true>
-#endif
   constexpr static_multidim(Ts const (&... ranges)[2])  // NOLINT
       : m_ranges{std::make_pair(static_cast<size_t>(ranges[0]),
                                 static_cast<size_t>(ranges[1]))...} {}
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Res>
-#else
-  template <typename... Res, enable_if<is_integral<Res...>> = true>
-#endif
-  explicit constexpr static_multidim(Res... res)
+  explicit constexpr static_multidim(integral auto const... res)
       : m_ranges{std::make_pair(static_cast<size_t>(0),
                                 static_cast<size_t>(res))...} {}
   //----------------------------------------------------------------------------
@@ -227,32 +214,19 @@ struct dynamic_multidim {
     for (size_t i = 0; i < N; ++i) { m_ranges[i].second = res[i]; }
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <integral... Ts>
-#else
-  template <typename... Ts, enable_if<is_integral<Ts...>> = true>
-#endif
   explicit constexpr dynamic_multidim(const std::pair<Ts, Ts>&... ranges)
       : m_ranges{std::make_pair(static_cast<size_t>(ranges.first),
                                 static_cast<size_t>(ranges.second))...} {}
 
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <integral... Ts>
-#else
-  template <typename... Ts, enable_if<is_integral<Ts...>> = true>
-#endif
   constexpr dynamic_multidim(Ts const (&... ranges)[2]) // NOLINT
       : m_ranges{std::make_pair(static_cast<size_t>(ranges[0]),
                                 static_cast<size_t>(ranges[1]))...} {}
 
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Res>
-#else
-  template <typename... Res, enable_if<is_integral<Res...>> = true>
-#endif
-  explicit constexpr dynamic_multidim(Res... res)
+  explicit constexpr dynamic_multidim(integral auto const... res)
       : m_ranges{std::make_pair(static_cast<size_t>(0),
                                 static_cast<size_t>(res))...} {}
 

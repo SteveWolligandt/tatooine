@@ -10,7 +10,7 @@ template <typename F, typename Tensor0, typename T0, typename Tensor1,
 constexpr auto binary_operation(F&& f, base_tensor<Tensor0, T0, N> const& lhs,
                                 base_tensor<Tensor1, T1, N> const& rhs) {
   using TOut         = typename std::result_of<decltype(f)(T0, T1)>::type;
-  vec<TOut, N> t_out = lhs;
+  auto t_out = vec<TOut, N>{lhs};
   t_out.binary_operation(std::forward<F>(f), rhs);
   return t_out;
 }
@@ -32,7 +32,7 @@ constexpr auto binary_operation(F&&                                      f,
                                 base_tensor<Tensor0, T0, Dims...> const& lhs,
                                 base_tensor<Tensor1, T1, Dims...> const& rhs) {
   using TOut = typename std::result_of<decltype(f)(T0, T1)>::type;
-  tensor<TOut, Dims...> t_out = lhs;
+  auto t_out = tensor<TOut, Dims...>{lhs};
   t_out.binary_operation(std::forward<F>(f), rhs);
   return t_out;
 }

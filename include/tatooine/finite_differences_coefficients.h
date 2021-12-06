@@ -8,11 +8,7 @@ namespace tatooine {
 //==============================================================================
 /// read here for more information:
 /// http://web.media.mit.edu/~crtaylor/calculator.html
-#ifdef __cpp_concepts
 template <floating_point... Xs>
-#else
-template <typename... Xs, enable_if<is_floating_point<Xs...> > = true>
-#endif
 auto finite_differences_coefficients(std::size_t const derivative_order,
                                      Xs... xs) {
   constexpr auto N    = sizeof...(xs);
@@ -26,12 +22,7 @@ auto finite_differences_coefficients(std::size_t const derivative_order,
 //------------------------------------------------------------------------------
 /// read here for more information:
 /// http://web.media.mit.edu/~crtaylor/calculator.html
-#ifdef __cpp_concepts
 template <typename Tensor, floating_point T, size_t N>
-#else
-template <typename Tensor, typename T, size_t N,
-          enable_if<is_floating_point<T> > = true>
-#endif
 auto finite_differences_coefficients(std::size_t const derivative_order,
                                      base_tensor<Tensor, T, N> const& v) {
   auto V              = mat<T, N, N>::vander(v);
@@ -43,11 +34,7 @@ auto finite_differences_coefficients(std::size_t const derivative_order,
 //------------------------------------------------------------------------------
 /// read here for more information:
 /// http://web.media.mit.edu/~crtaylor/calculator.html
-#ifdef __cpp_concepts
 template <floating_point T>
-#else
-template <typename T, enable_if_floating_point<T> = true>
-#endif
 auto finite_differences_coefficients(std::size_t const     derivative_order,
                                      std::vector<T> const& v) {
   auto V              = tensor<T>::vander(v, v.size());
