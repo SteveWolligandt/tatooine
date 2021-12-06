@@ -11,11 +11,7 @@
 //==============================================================================
 namespace tatooine::color_scales {
 //==============================================================================
-#ifdef __cpp_concepts
 template <floating_point Real>
-#else
-template <typename Real>
-#endif
 struct viridis  {
   using real_t  = Real;
   using this_t  = viridis<Real>;

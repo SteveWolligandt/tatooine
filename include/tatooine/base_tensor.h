@@ -1,25 +1,22 @@
 #ifndef TATOOINE_BASE_TENSOR_H
 #define TATOOINE_BASE_TENSOR_H
 //==============================================================================
-#ifdef __cpp_concepts
 #include <tatooine/concepts.h>
-#endif
-#include <tatooine/type_traits.h>
 #include <tatooine/crtp.h>
+#include <tatooine/einstein_notation.h>
 #include <tatooine/index_order.h>
 #include <tatooine/multidim_size.h>
 #include <tatooine/template_helper.h>
-#include <tatooine/einstein_notation.h>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/archive/text_iarchive.hpp>
+#include <tatooine/type_traits.h>
 
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
 #include <cassert>
 #include <type_traits>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Tensor, typename T, size_t FixedDim,
-          size_t... Dims>
+template <typename Tensor, typename T, size_t FixedDim, size_t... Dims>
 struct tensor_slice;
 //------------------------------------------------------------------------------
 template <typename Tensor, typename T, size_t... Dims>
@@ -87,8 +84,7 @@ struct base_tensor : crtp<Tensor> {
     return as_derived();
   }
   //----------------------------------------------------------------------------
-  template <typename F, typename OtherTensor,
-            typename OtherReal>
+  template <typename F, typename OtherTensor, typename OtherReal>
   auto binary_operation(
       F&& f, base_tensor<OtherTensor, OtherReal, Dims...> const& other)
       -> decltype(auto) {
@@ -118,7 +114,8 @@ struct base_tensor : crtp<Tensor> {
   auto constexpr at(Is const... /*is*/) const {
     static_assert(sizeof...(Is) == rank(),
                   "number of indices does not match rank");
-    return einstein_notation::indexed_tensor<Tensor const&, Is...>{as_derived()};
+    return einstein_notation::indexed_tensor<Tensor const&, Is...>{
+        as_derived()};
   }
   //----------------------------------------------------------------------------
   template <typename... Is,
@@ -137,48 +134,28 @@ struct base_tensor : crtp<Tensor> {
     return at(is...);
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
-#endif
-  auto constexpr at(Is const... is) const -> decltype(auto) {
+  auto constexpr at(integral auto const... is) const -> decltype(auto) {
     static_assert(sizeof...(is) == rank(),
                   "number of indices does not match number of dimensions");
     return as_derived().at(is...);
   }
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
-#endif
-  auto constexpr at(Is const... is) -> decltype(auto) {
+  auto constexpr at(integral auto const... is) -> decltype(auto) {
     static_assert(sizeof...(is) == rank(),
                   "number of indices does not match rank");
     return as_derived().at(is...);
   }
 
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
-#endif
-  constexpr decltype(auto) operator()(Is const... is) const {
+  constexpr decltype(auto) operator()(integral auto const... is) const {
     static_assert(sizeof...(is) == rank(),
                   "number of indices does not match number of dimensions");
     return at(is...);
   }
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
-#endif
-  constexpr decltype(auto) operator()(Is const... is) {
+  constexpr decltype(auto) operator()(integral auto const... is) {
     static_assert(sizeof...(is) == rank(),
                   "Number of indices does not match number of dimensions.");
     return at(is...);
@@ -230,12 +207,7 @@ struct base_tensor : crtp<Tensor> {
   }
 
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
-#endif
-  static constexpr auto array_index(Is const... is) {
+  static constexpr auto array_index(integral auto const... is) {
     static_assert(sizeof...(is) == rank(),
                   "number of indices does not match number of dimensions");
     return static_multidim_size<x_fastest, Dims...>::plain_idx(is...);
@@ -303,6 +275,7 @@ struct base_tensor : crtp<Tensor> {
     });
     return b;
   }
+
  private:
   friend class boost::serialization::access;
 };
@@ -360,21 +333,12 @@ struct is_quadratic_mat_impl<
 template <typename T>
 using enable_if_quadratic_mat = enable_if<is_quadratic_mat<T>>;
 //==============================================================================
-#ifdef __cpp_concepts
 template <arithmetic_or_complex T, size_t... Dims>
 struct tensor;
 template <arithmetic_or_complex T, size_t M, size_t N>
 struct mat;
 template <arithmetic_or_complex T, size_t N>
 struct vec;
-#else
-template <typename T, size_t... Dims>
-struct tensor;
-template <typename T, size_t M, size_t N>
-struct mat;
-template <typename T, size_t N>
-struct vec;
-#endif
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

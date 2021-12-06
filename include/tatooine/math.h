@@ -10,14 +10,12 @@ namespace tatooine {
 /// If all types are the same a const reference is returned.
 template <template <typename> typename Comparator, typename T0, typename T1,
           typename... TRest>
-#ifdef __cpp_concepts
 requires requires(
     T0&& a, T1&& b,
     Comparator<std::common_type_t<std::decay_t<T0>, std::decay_t<T1>>>&& comp) {
   { comp(a, b) }
   ->std::convertible_to<bool>;
 }
-#endif
 constexpr auto compare_variadic(T0&& a, T1&& b, TRest&&... rest)
     -> std::conditional_t<
         std::is_same_v<std::decay_t<T0>, std::decay_t<T1>> &&
@@ -51,22 +49,18 @@ constexpr auto compare_variadic(T0&& a, T1&& b, TRest&&... rest)
 }
 //------------------------------------------------------------------------------
 template <typename T0, typename T1, typename... TRest>
-#ifdef __cpp_concepts
 requires requires (T0&& a, T1&& b) {
   { a > b } -> std::convertible_to<bool>;
 }
-#endif
 constexpr auto max(T0&& a, T1&& b, TRest&&... rest) -> decltype(auto) {
   return compare_variadic<std::greater>(
       std::forward<T0>(a), std::forward<T1>(b), std::forward<TRest>(rest)...);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T0, typename T1, typename... TRest>
-#ifdef __cpp_concepts
 requires requires (T0&& a, T1&& b) {
   { a < b } -> std::convertible_to<bool>;
 }
-#endif
 constexpr auto min(T0&& a, T1&& b, TRest&&... rest) -> decltype(auto) {
   return compare_variadic<std::less>(
       std::forward<T0>(a), std::forward<T1>(b), std::forward<TRest>(rest)...);
@@ -94,12 +88,7 @@ constexpr auto max(std::array<T, N>const& arr) {
 return max(arr, std::make_index_sequence<N>{});
 }
 //------------------------------------------------------------------------------
-#ifdef __cpp_concepts
-template <integral Base, integral Exp>
-#else
-template <typename Base, typename Exp, enable_if<is_integral<Base, Exp>> = true>
-#endif
-constexpr auto ipow(Base const base, Exp const exp) {
+constexpr auto ipow(integral auto const base, integral auto const exp) {
   std::decay_t<decltype(base)> p = 1;
   for (std::decay_t<decltype(exp)> i = 0; i < exp; ++i) {
     p *= base;
@@ -107,12 +96,7 @@ constexpr auto ipow(Base const base, Exp const exp) {
   return p;
 }
 //------------------------------------------------------------------------------
-#ifdef __cpp_concepts
-template <integral Int>
-#else
-template <typename Int, enable_if<is_integral<Int>> = true>
-#endif
-constexpr Int factorial(Int const i) {
+constexpr auto factorial(integral auto const i) -> std::decay_t<decltype(i)> {
   if (i == 0) {
     return 1;
   }

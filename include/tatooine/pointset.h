@@ -199,14 +199,8 @@ struct pointset {
   auto vertex_positions() -> auto& { return m_vertex_positions; }
   auto vertex_positions() const -> auto const& { return m_vertex_positions; }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <arithmetic... Ts>
-  requires(sizeof...(Ts) == NumDimensions)
-#else
-  template <typename... Ts, enable_if<is_arithmetic<Ts...>> = true,
-            enable_if<sizeof...(Ts) == NumDimensions> = true>
-#endif
-      auto insert_vertex(Ts const... ts) {
+  auto insert_vertex(arithmetic auto const... ts)
+    requires(sizeof...(ts) == NumDimensions) {
     m_vertex_positions.push_back(pos_t{static_cast<Real>(ts)...});
     for (auto& [key, prop] : m_vertex_properties) {
       prop->push_back();
@@ -515,18 +509,9 @@ struct pointset {
     }
   }
   //----------------------------------------------------------------------------
-#ifndef __cpp_concepts
-  template <
-      size_t NumDimensions_ = NumDimensions,
-      enable_if<NumDimensions_ == NumDimensions(NumDimensions_ == 3 ||
-                                                NumDimensions_ == 2)> = true>
-#endif
   auto write_vtk(filesystem::path const& path,
-                 std::string const&      title = "Tatooine pointset") -> void
-#ifdef __cpp_concepts
-      requires(NumDimensions == 3 || NumDimensions == 2)
-#endif
-  {
+                 std::string const&      title = "Tatooine pointset")
+      -> void requires(NumDimensions == 3 || NumDimensions == 2) {
     vtk::legacy_file_writer writer(path, vtk::dataset_type::polydata);
     if (writer.is_open()) {
       writer.set_title(title);
@@ -667,21 +652,10 @@ struct pointset {
         *this, prop, radius};
   }
   //============================================================================
-  template <typename T
-#ifndef __cpp_concepts
-            ,
-            size_t NumDimensions_ = NumDimensions,
-            enable_if<NumDimensions_ == NumDimensions &&
-                      (NumDimensions_ == 3 || NumDimensions_ == 2)> = true
-#endif
-            >
+  template <typename T>
   auto moving_least_squares_sampler(vertex_property_t<T> const& prop,
                                     Real const radius = 1) const
-#ifdef __cpp_concepts
-      requires(NumDimensions == 3 || NumDimensions == 2)
-#endif
-
-  {
+      requires(NumDimensions == 3 || NumDimensions == 2) {
     return moving_least_squares_sampler_t<Real, NumDimensions, T>{*this, prop,
                                                                   radius};
   }

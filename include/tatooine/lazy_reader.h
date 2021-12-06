@@ -63,12 +63,7 @@ struct lazy_reader
     }
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Indices>
-#else
-  template <typename... Indices, enable_if<is_integral<Indices...>> = true>
-#endif
-  auto read_chunk(size_t const plain_chunk_index, Indices const... indices) const
+  auto read_chunk(size_t const plain_chunk_index, integral auto const... indices) const
       -> auto const& {
 #ifndef NDEBUG
     if (!this->in_range(indices...)) {
@@ -112,12 +107,7 @@ struct lazy_reader
   }
   //----------------------------------------------------------------------------
  public:
-#ifdef __cpp_concepts
-  template <integral... Indices>
-#else
-  template <typename... Indices, enable_if<is_integral<Indices...> > = true>
-#endif
-  auto at(Indices const... indices) const -> value_type const& {
+  auto at(integral auto const... indices) const -> value_type const& {
     auto const      plain_chunk_index =
         this->plain_chunk_index_from_global_indices(indices...);
     std::lock_guard lock{*m_mutexes[plain_chunk_index]};
@@ -132,33 +122,19 @@ struct lazy_reader
   }
 
  private:
-#ifdef __cpp_concepts
   template <integral Index, size_t N, size_t... Seq>
-#else
-  template <typename Index, size_t N, size_t... Seq,
-            enable_if<is_integral<Index>> = true>
-#endif
   auto at(std::array<Index, N> const& indices,
           std::index_sequence<Seq...> /*seq*/) const -> value_type const& {
     return at(indices[Seq]...);
   }
 
  public:
-#ifdef __cpp_concepts
   template <integral Index, size_t N>
-#else
-  template <typename Index, size_t N, enable_if<is_integral<Index>> = true>
-#endif
   auto at(std::array<Index, N> const& indices) const -> value_type const& {
     return at(indices, std::make_index_sequence<N>{});
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Indices>
-#else
-  template <typename... Indices, enable_if<is_integral<Indices...>> = true>
-#endif
-  auto operator()(Indices const... indices) const -> value_type const& {
+  auto operator()(integral auto const... indices) const -> value_type const& {
     assert(sizeof...(indices) == this->num_dimensions());
     return at(indices...);
   }
@@ -174,15 +150,8 @@ struct lazy_reader
     return true;
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <typename = void>
-  requires is_arithmetic<value_type>
-#else
-  template <typename V                           = value_type,
-            enable_if<is_arithmetic<value_type>> = true>
-#endif
-      auto is_chunk_filled_with_zeros(size_t const plain_chunk_index) const
-      -> bool {
+  auto is_chunk_filled_with_zeros(size_t const plain_chunk_index) const
+      -> bool requires is_arithmetic<value_type> {
     return is_chunk_filled_with_value(plain_chunk_index, 0);
   }
   //----------------------------------------------------------------------------

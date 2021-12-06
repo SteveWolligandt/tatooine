@@ -520,11 +520,7 @@ struct dataset : id_holder, attribute_creator<dataset<T>> {
     write(H5S_ALL, H5S_ALL, H5P_DEFAULT, data.data());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  //#ifdef __cpp_concepts
   //  template <range Range>
-  //#else
-  //  template <typename Range, enable_if_range<Range> = true>
-  //#endif
   //  auto write(Range&& r) -> void {
   //    write(std::vector(begin(r), end(r)));
   //  }
@@ -548,12 +544,7 @@ struct dataset : id_holder, attribute_creator<dataset<T>> {
           std::vector<hsize_t>(begin(size), end(size)));
   }
 //  //----------------------------------------------------------------------------
-//#ifdef __cpp_concepts
 //  template <typename IndexOrder, integral... Is>
-//#else
-//  template <typename IndexOrder, typename... Is,
-//            enable_if_arithmetic<Is...> = true>
-//#endif
 //  auto write(dynamic_multidim_array<T, IndexOrder> const& data, Is const...
 //  is)
 //      -> void {
@@ -563,12 +554,7 @@ struct dataset : id_holder, attribute_creator<dataset<T>> {
 //                      std::vector<hsize_t>(begin(s), end(s)));
 //  }
 //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <typename IndexOrder = x_fastest, integral... Is>
-#else
-  template <typename IndexOrder         = x_fastest, typename... Is,
-            enable_if_arithmetic<Is...> = true>
-#endif
   auto write(T const& data, Is const... is) -> void {
     write<IndexOrder>(&data, std::vector<hsize_t>{static_cast<hsize_t>(is)...},
                       std::vector<hsize_t>(sizeof...(Is), 1));
@@ -753,14 +739,9 @@ struct dataset : id_holder, attribute_creator<dataset<T>> {
     return arr;
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if_integral<Is...> = true>
-#endif
-  auto read(Is const... is) const {
-    std::vector<hsize_t> offset{static_cast<hsize_t>(is)...};
-    std::vector<hsize_t> count(sizeof...(Is), 1);
+  auto read(integral auto const... is) const {
+    auto offset = std::vector<hsize_t>{static_cast<hsize_t>(is)...};
+    auto count  = std::vector<hsize_t>(sizeof...(is), 1);
 
     auto ds = dataspace();
     ds.select_hyperslab(offset, count);
@@ -797,13 +778,8 @@ struct dataset_creator {
   auto as_id_holder() const -> auto const& {
     return *static_cast<IDHolder const*>(this);
   }
-#ifdef __cpp_concepts
-  template <typename T, typename IndexOrder = x_fastest, integral... Size>
-#else
-  template <typename T, typename IndexOrder = x_fastest, typename... Size,
-            enable_if_integral<Size...> = true>
-#endif
-  auto create_dataset(std::string const& name, Size const... size) {
+  template <typename T, typename IndexOrder = x_fastest>
+  auto create_dataset(std::string const& name, integral auto const... size) {
     return hdf5::dataset<T>{as_id_holder().id(), name, size...};
   }
   //----------------------------------------------------------------------------

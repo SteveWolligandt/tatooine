@@ -9,10 +9,11 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
   size_t width = 10, height = 10, depth = 10, num_splits = 3,
          max_num_particles = 500000, output_res_x = 200, output_res_y = 100,
          output_res_z = 100;
-  double t0 = 0, tau = 2, tau_step = 0.05, min_cond = 0.01,
+  double t0 = 0, tau = 2, tau_step = 0.05, r0 = 0.01,
          agranovsky_delta_t      = 0.1;
+  auto x0                        = tatooine::vec3{};
   bool write_ellipses            = true;
-  bool show_dimensions = false;
+  bool show_dimensions           = false;
   auto autonomous_particles_file = std::optional<tatooine::filesystem::path>{};
   auto velocity_file             = std::optional<tatooine::filesystem::path>{};
   // Declare the supported options.
@@ -31,9 +32,10 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
                                          "set initial time")(
       "tau", po::value<double>(), "set integration length tau")(
       "tau_step", po::value<double>(), "set stepsize for integrator")(
-      "min_cond", po::value<double>(),
+      "r0", po::value<double>(),
       "set minimal condition number of back calculation for advected "
       "particles")("agranovsky_delta_t", po::value<double>(), "time gaps")(
+      "x0", po::value<std::vector<double>>()->multitoken(), "x0")(
       "autonomous_particles_file", po::value<std::string>(),
       "already integrated particles")("velocity_file", po::value<std::string>(),
                                       "file with velocity data")(
@@ -152,17 +154,27 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
   } else {
     std::cout << "default integration length tau = " << tau << '\n';
   }
+  if (variables_map.count("x0") > 0) {
+    auto const x0_data = variables_map["x0"].as<std::vector<double>>();
+    auto       i       = std::size_t{};
+    for (auto c : x0_data) {
+      x0(i++) = c;
+    }
+    std::cout << "specified x0 = " << x0 << '\n';
+  } else {
+    std::cout << "default integration length tau = " << tau << '\n';
+  }
   if (variables_map.count("tau_step") > 0) {
     tau_step = variables_map["tau_step"].as<double>();
     std::cout << "specified step width tau_step = " << tau_step << '\n';
   } else {
     std::cout << "default step width tau_step = " << tau_step << '\n';
   }
-  if (variables_map.count("min_cond") > 0) {
-    min_cond = variables_map["min_cond"].as<double>();
-    std::cout << "specified min_cond = " << min_cond << '\n';
+  if (variables_map.count("r0") > 0) {
+    r0 = variables_map["r0"].as<double>();
+    std::cout << "specified r0 = " << r0 << '\n';
   } else {
-    std::cout << "default min_cond = " << min_cond << '\n';
+    std::cout << "default r0 = " << r0 << '\n';
   }
   if (variables_map.count("write_ellipses") > 0) {
     write_ellipses = variables_map["write_ellipses"].as<bool>();
@@ -181,8 +193,9 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
                 t0,
                 tau,
                 tau_step,
-                min_cond,
+                r0,
                 agranovsky_delta_t,
+                x0,
                 write_ellipses,
                 show_dimensions,
                 autonomous_particles_file,

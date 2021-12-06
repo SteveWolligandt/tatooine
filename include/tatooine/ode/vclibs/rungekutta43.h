@@ -8,67 +8,11 @@
 
 #include <boost/range/numeric.hpp>
 #include <vcode/odeint.hh>
-//==============================================================================
-template <typename Real, size_t N>
-struct VC::odeint::vector_operations_t<tatooine::vec<Real, N>> {
-  using vec_t = tatooine::vec<Real, N>;
-
-  //----------------------------------------------------------------------------
-  static constexpr bool isfinitenorm(vec_t const& v) {
-    for (auto c : v) {
-      if (!std::isfinite(c)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  //----------------------------------------------------------------------------
-  static constexpr Real norm2(vec_t const& x) {
-    static_assert(std::is_floating_point<Real>(), "require floating point");
-    return std::sqrt(sqr(x));
-  }
-
-  //----------------------------------------------------------------------------
-  static constexpr Real norm1(vec_t const& x) {
-    return tatooine::norm1(x);
-  }
-  //----------------------------------------------------------------------------
-  static constexpr Real norminf(vec_t const& x) {
-    return norm_inf(x);
-  }
-  //----------------------------------------------------------------------------
-  static constexpr auto abs(vec_t v) {
-    for (size_t i = 0; i < N; ++i) {
-      v(i) = std::abs(v(i));
-    }
-    return v;
-  }
-
-  //----------------------------------------------------------------------------
-  static constexpr auto max(vec_t const& x, vec_t const& y) {
-    vec_t v;
-    for (size_t i = 0; i < N; ++i) {
-      v(i) = std::max(x(i), y(i));
-    }
-    return v;
-  }
-};
-
+#include <tatooine/ode/vclibs/vectoroperations.h>
+#include <tatooine/ode/vclibs/parameters.h>
 //==============================================================================
 namespace tatooine::ode::vclibs {
 //==============================================================================
-static constexpr inline auto rk43          = VC::odeint::RK43;
-static constexpr inline auto out_of_domain = VC::odeint::OutOfDomain;
-static constexpr inline auto stopped       = VC::odeint::evstate_t::Stopped;
-static constexpr inline auto failed        = VC::odeint::evstate_t::Failed;
-static constexpr inline auto ok            = VC::odeint::evstate_t::OK;
-static constexpr inline auto abs_tol       = VC::odeint::AbsTol;
-static constexpr inline auto rel_tol       = VC::odeint::RelTol;
-static constexpr inline auto initial_step  = VC::odeint::InitialStep;
-static constexpr inline auto max_step      = VC::odeint::MaxStep;
-static constexpr inline auto max_num_steps = VC::odeint::MaxNumSteps;
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, arithmetic Real, size_t N, bool B = false>
 using maybe_t = typename VC::odeint::ode_t<N, Real, T, B>::maybe_vec;
 template <arithmetic Real, size_t N, bool B = false>
@@ -77,9 +21,8 @@ template <arithmetic Real, size_t N, bool B = false>
 using maybe_real_t = maybe_t<Real, Real, N, B>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename F, typename Real, size_t N>
-concept vc_stepper_evaluator =
-    std::regular_invocable<F, vec<Real, N>, Real>&& std::is_same_v<
-        maybe_vec_t<Real, N>, std::invoke_result_t<F, vec<Real, N>, Real>>;
+concept vc_stepper_evaluator = std::regular_invocable<F, vec<Real, N>, Real>&&
+    is_same<maybe_vec_t<Real, N>, std::invoke_result_t<F, vec<Real, N>, Real>>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Real, size_t N>
 struct rungekutta43 : solver<rungekutta43<Real, N>, Real, N> {

@@ -115,15 +115,17 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
   //============================================================================
  public:
   constexpr static auto half = Real(0.5);
-  using this_t               = autonomous_particle<Real, N>;
-  using real_t               = Real;
-  using vec_t                = vec<real_t, N>;
-  using mat_t                = mat<real_t, N, N>;
-  using pos_t                = vec_t;
-  using container_t          = std::vector<this_t>;
-  using ellipse_t            = geometry::hyper_ellipse<Real, N>;
-  using parent_t             = ellipse_t;
-  using sampler_t            = autonomous_particle_sampler<Real, N>;
+
+  using this_t      = autonomous_particle<Real, N>;
+  using real_t      = Real;
+  using vec_t       = vec<real_t, N>;
+  using mat_t       = mat<real_t, N, N>;
+  using pos_t       = vec_t;
+  using container_t = std::vector<this_t>;
+  using ellipse_t   = geometry::hyper_ellipse<Real, N>;
+  using parent_t    = ellipse_t;
+  using sampler_t   = autonomous_particle_sampler<Real, N>;
+  using parent_t::S;
   //============================================================================
   // members
   //============================================================================
@@ -171,12 +173,9 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
   //----------------------------------------------------------------------------
   auto nabla_phi1() const -> auto const& { return m_nabla_phi1; }
   //----------------------------------------------------------------------------
-  auto S1() -> auto& { return parent_t::S(); }
-  auto S1() const -> auto const& { return parent_t::S(); }
-  //----------------------------------------------------------------------------
   auto S0() const {
     auto sqrS =
-        *inv(nabla_phi1()) * S1() * S1() * *inv(transposed(nabla_phi1()));
+        *inv(nabla_phi1()) * S() * S() * *inv(transposed(nabla_phi1()));
     auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
     for (size_t i = 0; i < N; ++i) {
       eig_vals(i) = std::sqrt(eig_vals(i));
@@ -590,7 +589,6 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
       }
     }
 
-    std::cout << "num_threads: " << num_threads << '\n';
     auto finished_particles = container_t{};
 
     // {particles_to_be_advected, advected_particles, finished_particles}
@@ -600,7 +598,6 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
       auto const num_particles = particles.size();
 
       // distribute particles
-      std::cerr << "distributing particles...";
 #pragma omp parallel
       {
         auto const   thr_id = omp_get_thread_num();
@@ -612,10 +609,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
                   std::back_inserter(cont));
       }
       particles.clear();
-      std::cerr << "done\n";
 
       // advect particle pools
-      std::cerr << "advecting " << num_particles << " particles...";
 #pragma omp parallel
       {
         auto const thr_id          = omp_get_thread_num();
@@ -628,7 +623,6 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
                                       finished);
         }
       }
-      std::cerr << "done\n";
 
       // copy back data
       for (auto& ps : particles_per_thread) {
@@ -665,29 +659,33 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
     bool                    min_step_size_reached = false;
     static constexpr real_t min_tau_step          = 1e-8;
     static constexpr real_t max_cond_overshoot    = 1e-6;
-    auto const [eigvecs_S, eigvals_S]             = eigenvectors_sym(S1());
+    auto const [eigvecs_S, eigvals_S]             = eigenvectors_sym(S());
     auto const B = eigvecs_S * diag(eigvals_S);  // current main axes
 
-    mat_t       H, HHt, nabla_phi2, fmg2fmg1, cur_B;
+    mat_t H, HHt, nabla_phi2, fmg2fmg1, cur_B;
+    mat_t ghosts_forward, ghosts_backward, prev_ghosts_forward,
+        prev_ghosts_backward;
     auto        advected_ellipse = ellipse_t{*this};
     auto        current_radii    = vec_t{};
     auto        eig_HHt          = std::pair<mat_t, vec_t>{};
     auto        cond_HHt         = real_t(1);
     auto const& eigvecs_HHt      = eig_HHt.first;
     auto const& eigvals_HHt      = eig_HHt.second;
-    auto        ghosts           = std::array<vec_t, num_dimensions() * 2>{};
     for (size_t i = 0; i < num_dimensions(); ++i) {
-      ghosts[i * 2] = x();
-      ghosts[i * 2] += B.col(i);
-      ghosts[i * 2 + 1] = x();
-      ghosts[i * 2 + 1] -= B.col(i);
+      ghosts_forward.col(i) = x();
     }
-    auto t_advected    = t();
-    auto t_current     = t();
-    auto prev_center   = advected_ellipse.center();
-    auto prev_ghosts   = ghosts;
-    auto prev_cond_HHt = cond_HHt;
-    auto first         = true;
+    ghosts_backward = ghosts_forward;
+
+    ghosts_forward += B;
+    ghosts_backward -= B;
+
+    auto t_advected      = t();
+    auto t_current       = t();
+    auto prev_center     = advected_ellipse.center();
+    prev_ghosts_forward  = ghosts_forward;
+    prev_ghosts_backward = ghosts_backward;
+    auto prev_cond_HHt   = cond_HHt;
+    auto first           = true;
     if constexpr (is_cacheable<std::decay_t<decltype(phi)>>()) {
       phi.use_caching(false);
     }
@@ -695,7 +693,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
     while (cond_HHt < cond_split || t_advected < t_end) {
       if (!min_step_size_reached) {
         if (!first) {
-          prev_ghosts   = ghosts;
+          prev_ghosts_forward   = ghosts_forward;
+          prev_ghosts_backward   = ghosts_backward;
           prev_center   = advected_ellipse.center();
           prev_cond_HHt = cond_HHt;
           t_current     = t_advected;
@@ -714,43 +713,13 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
         advected_ellipse.center() =
             phi(advected_ellipse.center(), t_current, cur_tau);
 
-        for (size_t i = 0; i < num_dimensions(); ++i) {
-          ghosts[i * 2]     = phi(ghosts[i * 2], t_current, cur_tau);
-          ghosts[i * 2 + 1] = phi(ghosts[i * 2 + 1], t_current, cur_tau);
-          H.col(i)          = ghosts[i * 2] - ghosts[i * 2 + 1];
-        }
-        H *= half;
+        ghosts_forward  = phi(ghosts_forward, t_current, cur_tau);
+        ghosts_backward = phi(ghosts_backward, t_current, cur_tau);
+        H = (ghosts_forward - ghosts_backward) * half;
 
         HHt      = H * transposed(H);
         eig_HHt  = eigenvectors_sym(HHt);
         cond_HHt = eigvals_HHt(num_dimensions() - 1) / eigvals_HHt(0);
-        static std::mutex m;
-        if (eigvals_HHt(0) == 0) {
-          auto const l = std::lock_guard{m};
-          std::cerr << '\n';
-          std::cerr << "t1 = " << t_current << '\n';
-          std::cerr << "tau = " << cur_tau << '\n';
-          std::cerr << "B = " << B << '\n';
-          std::cerr << "S = " << this->S() << '\n';
-          std::cerr << "x1 = " << this->center() << '\n';
-          std::cerr << "x2 = " << advected_ellipse.center() << '\n';
-          std::cerr << "ghosts at t1 = \n";
-          for (size_t i = 0; i < num_dimensions(); ++i) {
-            std::cerr << "  " << prev_ghosts[i * 2] << '\n';
-            std::cerr << "  " << prev_ghosts[i * 2 + 1] << '\n';
-          }
-          std::cerr << "ghosts at t2 = \n";
-          for (size_t i = 0; i < num_dimensions(); ++i) {
-            std::cerr << "  " << ghosts[i * 2] << '\n';
-            std::cerr << "  " << ghosts[i * 2 + 1] << '\n';
-          }
-          std::cerr << "H = \n" << H << '\n';
-          std::cerr << "HHt = \n" << HHt << '\n';
-          std::cerr << "lambda = \n" << eigvals_HHt << '\n';
-          std::cerr << "sigma = \n" << eigvecs_HHt << '\n';
-          std::cerr << "cond = \n" << cond_HHt << '\n';
-          std::cerr << "=============\n";
-        }
 
         nabla_phi2 = H * *solve(diag(eigvals_S), transposed(eigvecs_S));
         fmg2fmg1   = nabla_phi2 * m_nabla_phi1;
@@ -798,7 +767,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
 
         if (!min_step_size_reached) {
           cond_HHt                  = prev_cond_HHt;
-          ghosts                    = prev_ghosts;
+          ghosts_forward            = prev_ghosts_forward;
+          ghosts_backward           = prev_ghosts_backward;
           t_advected                = t_current;
           advected_ellipse.center() = prev_center;
         }

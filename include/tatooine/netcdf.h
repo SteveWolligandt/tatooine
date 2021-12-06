@@ -98,12 +98,7 @@ class variable {
     return m_var.putVar(arr.data());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <range R>
-#else
-  template <typename R, enable_if<is_range<R>> = true>
-#endif
-  auto write(R r) { return write(std::vector(begin(r), end(r))); }
+  auto write(range auto const r) { return write(std::vector(begin(r), end(r))); }
   //----------------------------------------------------------------------------
   auto num_components() const {
     size_t c = 1;
@@ -235,12 +230,7 @@ class variable {
     return t;
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
-#endif
-  auto read_single(Is const... is) const {
+  auto read_single(integral auto const... is) const {
     assert(num_dimensions() == sizeof...(is));
     T               t;
     std::lock_guard lock{*m_mutex};
@@ -289,15 +279,10 @@ class variable {
     m_var.getVar(start_indices, counts, arr.data_ptr());
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <typename MemLoc, size_t... Resolution, integral...StartIndices>
-#else
-  template <typename MemLoc, size_t... Resolution, typename... StartIndices,
-            enable_if<is_integral<StartIndices...>> = true>
-#endif
+  template <typename MemLoc, size_t... Resolution>
   auto read_chunk(
       static_multidim_array<T, x_fastest, MemLoc, Resolution...>& arr,
-      StartIndices const... start_indices) const {
+      integral auto const... start_indices) const {
     static_assert(sizeof...(start_indices) == sizeof...(Resolution));
     assert(sizeof...(Resolution) == num_dimensions());
     std::lock_guard lock{*m_mutex};

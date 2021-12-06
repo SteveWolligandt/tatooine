@@ -161,11 +161,7 @@ struct cubic : polynomial<Real, 3> {
                  -2 * ft1 + 2 * ft0 + dft1_dt + dft0_dt} {}
 };
 //------------------------------------------------------------------------------
-#ifdef __cpp_concepts
 template <arithmetic Real, size_t N>
-#else
-template <typename Real, size_t N>
-#endif
 struct cubic<tensor<Real, N>> {
   //----------------------------------------------------------------------------
   // traits
@@ -314,11 +310,7 @@ struct quintic {
   constexpr auto&       polynomial() { return m_polynomial; }
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//#ifdef __cpp_concepts
 // template <arithmetic Real, size_t N>
-//#else
-// template <typename Real, size_t N>
-//#endif
 // struct quintic<tensor<Real, N>> {
 //  //----------------------------------------------------------------------------
 //  // traits

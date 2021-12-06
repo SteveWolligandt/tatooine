@@ -48,14 +48,9 @@ struct polynomial {
   constexpr polynomial(std::array<Real, Degree + 1> const& coeffs)
       : m_coefficients{coeffs} {}
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <typename OtherReal, size_t OtherDegree>
   requires(OtherDegree <= Degree)
-#else
-  template <typename OtherReal, size_t OtherDegree,
-            enable_if<(OtherDegree <= Degree)> = true>
-#endif
-      constexpr polynomial(polynomial<OtherReal, OtherDegree> const& other)
+  constexpr polynomial(polynomial<OtherReal, OtherDegree> const& other)
       : m_coefficients{make_array<Degree + 1>(Real(0))} {
     for (size_t i = 0; i < OtherDegree + 1; ++i) {
       m_coefficients[i] = other.coefficient(i);
@@ -65,30 +60,18 @@ struct polynomial {
   constexpr polynomial(std::array<Real, Degree + 1>&& coeffs)
       : m_coefficients{std::move(coeffs)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <arithmetic... Coeffs>
-  requires(sizeof...(Coeffs) == Degree + 1)
-#else
-  template <typename... Coeffs, enable_if_arithmetic<Coeffs...> = true,
-            enable_if<(sizeof...(Coeffs) == Degree + 1)> = true>
-#endif
-  constexpr polynomial(Coeffs const... coeffs)
-    : m_coefficients{static_cast<Real>(coeffs)...} {}
+  constexpr polynomial(arithmetic auto const... coeffs) requires(
+      sizeof...(coeffs) == Degree + 1)
+
+      : m_coefficients{static_cast<Real>(coeffs)...} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <arithmetic OtherReal>
-#else
-  template <typename OtherReal, enable_if<is_arithmetic<OtherReal>> = true>
-#endif
   constexpr polynomial(tensor<OtherReal, Degree + 1> const& coeffs)
       : m_coefficients{make_array<Real>(coeffs.data())} {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <arithmetic OtherReal>
-#else
-  template <typename OtherReal, enable_if<is_arithmetic<OtherReal>> = true>
-#endif
   constexpr polynomial(std::array<OtherReal, Degree + 1> const& coeffs)
       : m_coefficients{make_array<Real>(coeffs)} {
   }
@@ -130,24 +113,15 @@ struct polynomial {
     m_coefficients = std::move(coeffs);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <arithmetic OtherReal>
-#else
-  template <typename OtherReal, enable_if<is_arithmetic<OtherReal>> = true>
-#endif
   constexpr auto set_coefficients(
       std::array<OtherReal, Degree + 1> const& coeffs) -> void {
     m_coefficients = make_array<Real>(coeffs);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <arithmetic... Coeffs>
-  requires(sizeof...(Coeffs) == Degree + 1)
-#else
-  template <typename... Coeffs, enable_if<is_arithmetic<Coeffs...>> = true,
-            enable_if<(sizeof...(Coeffs) == Degree + 1)> = true>
-#endif
-      constexpr auto set_coefficients(Coeffs... coeffs) -> void {
+
+  constexpr auto set_coefficients(arithmetic auto const... coeffs)
+      -> void requires(sizeof...(coeffs) == Degree + 1) {
     m_coefficients = std::array<Real, Degree + 1>{static_cast<Real>(coeffs)...};
   }
   //----------------------------------------------------------------------------

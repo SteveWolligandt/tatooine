@@ -24,22 +24,12 @@ struct const_imag_complex_tensor
       : m_internal_tensor{internal_tensor.as_derived()} {}
 
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if_integral<Is...> = true>
-#endif
-  constexpr decltype(auto) operator()(Is const... is) const {
+  constexpr decltype(auto) operator()(integral auto const... is) const {
     static_assert(sizeof...(is) == rank());
     return m_internal_tensor(is...).imag();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if_integral<Is...> = true>
-#endif
-  constexpr decltype(auto) at(Is const... is) const {
+  constexpr decltype(auto) at(integral auto const... is) const {
     static_assert(sizeof...(is) == rank());
     return m_internal_tensor(is...).imag();
   }
@@ -67,47 +57,25 @@ struct imag_complex_tensor
       : m_internal_tensor{internal_tensor.as_derived()} {}
 
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if_integral<Is...>>
-  = true >
-#endif
-  constexpr auto operator()(Is const... is) const -> decltype(auto) {
+  constexpr auto operator()(integral auto const... is) const -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
     return m_internal_tensor(is...).imag();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if_integral<Is...> = true>
-#endif
-  constexpr auto operator()(Is const... is) -> decltype(auto) {
+  constexpr auto operator()(integral auto const... is) -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
     return m_internal_tensor(is...).imag();
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if_integral<Is...> = true>
-#endif
-  constexpr auto at(Is const... is) const -> decltype(auto) {
+  constexpr auto at(integral auto const... is) const -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
     return m_internal_tensor(is...).imag();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if_integral<Is...> = true>
-#endif
-  constexpr auto at(Is const... is) -> decltype(auto) {
+  constexpr auto at(integral auto const... is) -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
     return m_internal_tensor(is...).imag();
   }
-
   //----------------------------------------------------------------------------
   auto internal_tensor() -> auto& { return m_internal_tensor; }
   auto internal_tensor() const -> auto const& { return m_internal_tensor; }
@@ -143,22 +111,12 @@ struct const_real_complex_tensor
       : m_internal_tensor{internal_tensor.as_derived()} {}
 
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if_integral<Is...> = true>
-#endif
-  constexpr auto operator()(Is const... is) const -> decltype(auto) {
+  constexpr auto operator()(integral auto const... is) const -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
     return m_internal_tensor(is...).real();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if_integral<Is...> = true>
-#endif
-  constexpr auto at(Is const... is) const -> decltype(auto) {
+  constexpr auto at(integral auto const... is) const -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
     return m_internal_tensor(is...).real();
   }
@@ -185,42 +143,22 @@ struct real_complex_tensor
       : m_internal_tensor{internal_tensor.as_derived()} {}
 
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if_integral<Is...> = true>
-#endif
-  constexpr auto operator()(Is const... is) const -> decltype(auto) {
+  constexpr auto operator()(integral auto const... is) const -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
     return m_internal_tensor(is...).real();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if_integral<Is...> = true>
-#endif
-  constexpr auto operator()(Is const... is) -> decltype(auto) {
+  constexpr auto operator()(integral auto const... is) -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
     return m_internal_tensor(is...).real();
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if_integral<Is...> = true>
-#endif
-  constexpr auto at(Is const... is) const -> decltype(auto) {
+  constexpr auto at(integral auto const... is) const -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
     return m_internal_tensor(is...).real();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if_integral<Is...> = true>
-#endif
-  constexpr auto at(Is const... is) -> decltype(auto) {
+  constexpr auto at(integral auto const... is) -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
     return m_internal_tensor(is...).real();
   }

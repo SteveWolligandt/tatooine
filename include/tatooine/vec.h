@@ -8,15 +8,8 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-#ifdef __cpp_concepts
 template <arithmetic_or_complex T, size_t N>
-#else
-template <typename T, size_t N>
-#endif
 struct vec : tensor<T, N> {
-#ifndef __cpp_concepts
-  static_assert(is_arithmetic<T> || is_complex<T>);
-#endif
   using this_t   = vec<T, N>;
   using parent_t = tensor<T, N>;
   using parent_t::at;
@@ -25,18 +18,10 @@ struct vec : tensor<T, N> {
   using parent_t::operator();
 
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <typename... Ts>
-  requires((is_convertible<Ts, T> && ...)) &&
-      (parent_t::dimension(0) == sizeof...(Ts))
-#else
-  template <typename... Ts,
-            enable_if<(is_convertible<std::decay_t<Ts>, T> && ...)> = true,
-            enable_if<parent_t::dimension(0) == sizeof...(Ts)>      = true>
-#endif
-          constexpr vec(Ts const&... ts)
-      : parent_t{ts...} {
-  }
+      requires((is_convertible<Ts, T> && ...)) &&
+      (parent_t::dimension(0) == sizeof...(Ts)) constexpr vec(Ts const&... ts)
+      : parent_t{ts...} {}
 
   using iterator = typename parent_t::array_parent_t::container_t::iterator;
   using const_iterator =
@@ -60,22 +45,21 @@ struct vec : tensor<T, N> {
     return this_t{random::normal<T>{eng, mean, stddev}};
   }
   //----------------------------------------------------------------------------
-  constexpr vec(vec<T, N> const&) = default;
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  explicit constexpr vec(vec<T, N>&& other) noexcept
-      : parent_t{std::move(other)} {}
+  constexpr vec(vec const&)           = default;
+  constexpr vec(vec&& other) noexcept = default;
   //----------------------------------------------------------------------------
-  constexpr auto operator=(vec<T, N> const&) -> vec& = default;
+  constexpr auto operator=(vec const&) -> vec& = default;
+  constexpr auto operator=(vec&& other) noexcept -> vec& = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto operator=(vec<T, N>&& other) noexcept -> vec& {
-    parent_t::operator=(std::move(other));
+  template <typename OtherTensor, typename OtherReal>
+  explicit constexpr vec(base_tensor<OtherTensor, OtherReal, N> const& other)
+      : parent_t{other} {}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename OtherTensor, typename OtherReal>
+  constexpr auto operator=(base_tensor<OtherTensor, OtherReal, N> const& other)
+      -> vec& {
+    this->assign_other_tensor(other);
     return *this;
-  }
-  template <typename OtherTensor, typename OtherT>
-  constexpr vec(base_tensor<OtherTensor, OtherT, N> const& other) {
-    for (size_t i = 0; i < N; ++i) {
-      at(i) = other(i);
-    }
   }
   //----------------------------------------------------------------------------
   ~vec() = default;
@@ -85,83 +69,45 @@ struct vec : tensor<T, N> {
   auto end() const { return this->data().end(); }
   auto end() { return this->data().end(); }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <typename = void>
-  requires(N >= 1)
-#else
-  template <size_t _N = N, enable_if<(_N >= 1)> = true>
-#endif
-  constexpr auto x() const -> auto const& {
+  requires(N >= 1) constexpr auto x() const -> auto const& {
     return this->at(0);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <typename = void>
-  requires(N >= 1)
-#else
-  template <size_t _N = N, enable_if<(_N >= 1)> = true>
-#endif
-  constexpr auto x() -> auto& {
+  requires(N >= 1) constexpr auto x() -> auto& {
     return this->at(0);
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <typename = void>
-  requires(N >= 2)
-#else
-  template <size_t _N = N, enable_if<(_N >= 2)> = true>
-#endif
-  constexpr auto y() const -> auto const& {
+  requires(N >= 2) constexpr auto y() const -> auto const& {
     return this->at(1);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <typename = void>
-  requires(N >= 2)
-#else
-  template <size_t _N = N, enable_if<(_N >= 2)> = true>
-#endif
-  constexpr auto y() -> auto& {
+  requires(N >= 2) constexpr auto y() -> auto& {
     return this->at(1);
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <typename = void>
-  requires(N >= 3)
-#else
-  template <size_t _N = N, enable_if<(_N >= 3)> = true>
-#endif
-  constexpr auto z() const -> auto const& {
+  requires(N >= 3) constexpr auto z() const -> auto const& {
     return this->at(2);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <typename = void>
-  requires(N >= 3)
-#else
-  template <size_t _N = N, enable_if<(_N >= 3)> = true>
-#endif
-  constexpr auto z() -> auto& {
+  requires(N >= 3) constexpr auto z() -> auto& {
     return this->at(2);
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <typename = void>
   requires(N >= 4)
-#else
-  template <size_t _N = N, enable_if<(_N >= 4)> = true>
-#endif
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto w() const -> auto const& {
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      // - -
+      constexpr auto w() const -> auto const& {
     return this->at(3);
   }
-#ifdef __cpp_concepts
   template <typename = void>
-  requires(N >= 4)
-#else
-  template <size_t _N = N, enable_if<(_N >= 4)> = true>
-#endif
-  constexpr auto w() -> auto& {
+  requires(N >= 4) constexpr auto w() -> auto& {
     return this->at(3);
   }
 
@@ -187,6 +133,9 @@ auto end(vec<T, N> const& v) {
 //==============================================================================
 template <typename... Ts>
 vec(const Ts&...) -> vec<common_type<Ts...>, sizeof...(Ts)>;
+//------------------------------------------------------------------------------
+template <typename V, typename T, std::size_t N>
+vec(base_tensor<V, T, N> const&) -> vec<T, N>;
 //==============================================================================
 namespace reflection {
 template <typename T, size_t N>

@@ -1,4 +1,3 @@
-#ifdef __cpp_concepts
 #ifndef TATOOINE_CONCPETS_H
 #define TATOOINE_CONCPETS_H
 //==============================================================================
@@ -202,5 +201,4 @@ concept can_read = requires(Reader reader, Readable readable) {
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-#endif
 #endif

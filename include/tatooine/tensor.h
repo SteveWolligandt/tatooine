@@ -11,16 +11,9 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-#ifdef __cpp_concepts
 template <arithmetic_or_complex T, size_t... Dims>
-#else
-template <typename T, size_t... Dims>
-#endif
 struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,
                 static_multidim_array<T, x_fastest, tag::stack, Dims...> {
-#ifndef __cpp_concepts
-  static_assert(is_arithmetic<T> || is_complex<T>);
-#endif
   //============================================================================
   using this_t          = tensor<T, Dims...>;
   using tensor_parent_t = base_tensor<this_t, T, Dims...>;
@@ -41,8 +34,6 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,
   constexpr auto operator=(tensor&& other) noexcept -> tensor& = default;
   ~tensor()                                                    = default;
   //============================================================================
- public:
-  //----------------------------------------------------------------------------
   template <typename... Is>
   auto constexpr at(Is const... is) -> decltype(auto) {
     if constexpr (einstein_notation::is_index<Is...>) {
@@ -69,82 +60,39 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,
     return at(is...);
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <convertible_to<T>... Ts>
   requires (tensor_parent_t::rank() == 1) &&
            (tensor_parent_t::dimension(0) == sizeof...(Ts))
-#else
-  template <typename... Ts, size_t R = tensor_parent_t::rank(),
-            size_t D0 = tensor_parent_t::dimension(0),
-            enable_if<R == 1> = true,
-            enable_if<(is_convertible<Ts, T> && ...)> = true,
-            enable_if<D0 == sizeof...(Ts)> = true>
-#endif
   explicit constexpr tensor(Ts const&... ts) : array_parent_t{ts...} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <typename = void>
   requires is_arithmetic<T>
-#else
-  template <typename T_ = T, enable_if<is_arithmetic<T_>> = true>
-#endif
   explicit constexpr tensor(tag::zeros_t zeros) : array_parent_t{zeros} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <typename = void>
   requires is_arithmetic<T>
-#else
-  template <typename T_ = T, enable_if<is_arithmetic<T_>> = true>
-#endif
   explicit constexpr tensor(tag::ones_t ones) : array_parent_t{ones} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <typename FillReal>
   requires is_arithmetic<T>
-#else
-  template <typename FillReal, typename T_ = T, enable_if<is_arithmetic<T_>> = true>
-#endif
   explicit constexpr tensor(tag::fill<FillReal> f) : array_parent_t{f} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <typename RandomReal, typename Engine>
   requires is_arithmetic<T>
-#else
-  template <typename RandomReal, typename Engine,
-            typename T_ = T,
-            enable_if<is_arithmetic<T_>> = true>
-#endif
   explicit constexpr tensor(random::uniform<RandomReal, Engine>&& rand)
     : array_parent_t{std::move(rand)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <arithmetic RandomReal, typename Engine>
-#else
-  template <typename RandomReal, typename Engine,
-            enable_if<is_arithmetic<RandomReal>> = true>
-#endif
   explicit constexpr tensor(random::uniform<RandomReal, Engine>& rand)
       : array_parent_t{rand} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <arithmetic RandomReal, typename Engine>
   requires is_arithmetic<T>
-#else
-  template <typename RandomReal, typename Engine,
-            typename T_ = T,
-            enable_if<is_arithmetic<T_, RandomReal>> = true>
-#endif
   explicit constexpr tensor(random::normal<RandomReal, Engine>&& rand)
       : array_parent_t{std::move(rand)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <arithmetic RandomReal, typename Engine>
   requires is_arithmetic<T>
-#else
-  template <typename RandomReal, typename Engine,
-            typename T_ = T,
-            enable_if<is_arithmetic<T_, RandomReal>> = true>
-#endif
   explicit constexpr tensor(random::normal<RandomReal, Engine>& rand)
       : array_parent_t{rand} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

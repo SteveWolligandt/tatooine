@@ -76,14 +76,9 @@ struct field {
   //============================================================================
   // virtual methods
   //============================================================================
-#ifdef __cpp_concepts
   [[nodiscard]] constexpr virtual auto evaluate(pos_t const&,
                                                 real_t const) const
       -> tensor_t = 0;
-#else
-  [[nodiscard]] virtual auto evaluate(pos_t const&, real_t const) const
-      -> tensor_t = 0;
-#endif
   //============================================================================
   // methods
   //============================================================================
