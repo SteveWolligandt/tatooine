@@ -46,3 +46,6 @@
 [submodule "external/rapidxml"]
 	path = external/rapidxml
 	url = https://github.com/discord/rapidxml
+[submodule "external/gcem"]
+	path = external/gcem
+	url = https://github.com/kthohr/gcem.git

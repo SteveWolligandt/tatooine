@@ -108,7 +108,94 @@ struct autonomous_particle_sampler {
 };
 //==============================================================================
 template <typename Real, size_t N>
+struct autonomous_particle_split_setups;
+//==============================================================================
+template <typename Real>
+struct autonomous_particle_split_setups<Real, 2> {
+  using vec_t = vec<Real, 2>;
+  struct two_splits {
+    static auto constexpr split_cond = Real{2};
+    static auto constexpr sqrt2      = gcem::sqrt(real_t(2));
+
+    static constexpr auto radii = std::array{
+        sqrt2 / real_t(2), vec_t{Real(1) / Real(2), Real(1) / Real(4)}};
+    static constexpr auto offsets =
+        std::array{vec_t{0, Real(3) / 4}, vec_t{0, -Real(3) / 4}};
+  };
+  struct three_splits {
+    static auto constexpr split_cond     = Real(4);
+    static auto constexpr one            = Real(1);
+    static auto constexpr half           = Real(1) / Real(2);
+    static auto constexpr quarter        = Real(1) / Real(4);
+    static auto constexpr three_quarters = Real(3) / Real(4);
+    static constexpr auto radii          = std::array{
+        vec_t{one, half}, vec_t{half, quarter}, vec_t{half, quarter}};
+    static constexpr auto offsets = std::array{
+        vec_t{0, 0}, vec_t{0, three_quarters}, vec_t{0, -three_quarters}};
+  };
+
+  struct five_splits {
+    static auto constexpr sqrt5      = gcem::sqrt<Real>(5);
+    static auto constexpr split_cond = Real(6 + sqrt5 * 2);
+    static auto constexpr radii =
+        std::array{(sqrt5 + 3) / (sqrt5 * 2 + 2), 1 / (sqrt5 + 1)};
+  };
+
+  struct seven_splits {
+    static auto constexpr split_cond = 4.493959210 * 4.493959210;
+    static auto constexpr radii      = std::array{
+        real_t(.9009688678), real_t(.6234898004), real_t(.2225209338)};
+  };
+
+  struct centered_four {
+    static auto constexpr x5 = Real(0.4830517593887872);
+
+    static auto constexpr split_cond = Real{4};
+    static auto constexpr radii =
+        std::array{vec_t{x5, x5 / 2},
+                   vec_t{x5, x5 / 2},
+                   vec_t{x5, x5 / 2},
+                   vec_t{x5, x5 / 2},
+                   vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)},
+                   vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)}};
+    static auto constexpr offsets = std::array{
+        vec_t{-x5, -x5 / 2}, vec_t{x5, -x5 / 2},      vec_t{-x5, x5 / 2},
+        vec_t{x5, x5 / 2},   vec_t{0, real_t(3) / 4}, vec_t{0, -real_t(3) / 4}};
+  };
+};
+//==============================================================================
+template <typename Real>
+struct autonomous_particle_split_setups<Real, 3> {
+  using vec_t = vec<Real, 3>;
+  struct three_splits {
+    static auto constexpr split_cond = Real{4};
+    static constexpr auto radii      = std::array{
+        vec_t{Real(1), Real(1), Real(1) / Real(2)},
+        vec_t{Real(1) / Real(2), Real(1) / Real(2), Real(1) / Real(4)},
+        vec_t{Real(1) / Real(2), Real(1) / Real(2), Real(1) / Real(4)}};
+    static constexpr auto offsets =
+        std::array{vec_t{Real(0), Real(0), Real(0)},
+                   vec_t{Real(0), Real(0), Real(3) / Real(4)},
+                   vec_t{Real(0), Real(0), -Real(3) / Real(4)}};
+  };
+};
+template <typename B>
+concept split_behavior = requires {
+  //{ B::split_cond }      -> arithmetic;
+  //{ B::radii }           -> range;
+  //{ B::offsets }         -> range;
+  //{ B::radii.front() }   -> arithmetic;
+  //{ B::offsets.front() } -> arithmetic;
+  B::split_cond;
+  B::radii;
+  B::offsets;
+  B::radii.front();
+  B::offsets.front();
+};
+//==============================================================================
+template <typename Real, size_t N>
 struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
+  using split_setups = autonomous_particle_split_setups<Real, N>;
   static constexpr auto num_dimensions() { return N; }
   //============================================================================
   // TYPEDEFS
@@ -174,11 +261,10 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
   auto nabla_phi1() const -> auto const& { return m_nabla_phi1; }
   //----------------------------------------------------------------------------
   auto S0() const {
-    auto sqrS =
-        *inv(nabla_phi1()) * S() * S() * *inv(transposed(nabla_phi1()));
+    auto sqrS = *inv(nabla_phi1()) * S() * S() * *inv(transposed(nabla_phi1()));
     auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
     for (size_t i = 0; i < N; ++i) {
-      eig_vals(i) = std::sqrt(eig_vals(i));
+      eig_vals(i) = gcem::sqrt(eig_vals(i));
     }
     return eig_vecs * diag(eig_vals) * transposed(eig_vecs);
   }
@@ -187,267 +273,17 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
   //============================================================================
   // METHODS
   //============================================================================
-  // auto advect_with_2_splits(real_t const step_size, real_t const t_end,
-  //                          size_t const max_num_particles) const {
-  //  static real_t const sqrt2 = std::sqrt(real_t(2));
-  //  return advect(step_size, t_end, 2, max_num_particles,
-  //                std::array<real_t, 1>{sqrt2 / real_t(2)}, false);
-  //}
-  ////----------------------------------------------------------------------------
-  // auto advect_with_2_splits(real_t const step_size, real_t const t_end) const
-  // {
-  //  static real_t const sqrt2 = std::sqrt(real_t(2));
-  //  return advect(step_size, t_end, 2, 0,
-  //                std::array<real_t, 1>{sqrt2 / real_t(2)}, false);
-  //}
-  ////----------------------------------------------------------------------------
-  // static auto advect_with_2_splits(real_t const step_size, real_t const
-  // t_end,
-  //                                 size_t const        max_num_particles,
-  //                                 container_t particles) {
-  //  static real_t const sqrt2 = std::sqrt(real_t(2));
-  //  return advect(step_size, t_end, 2, max_num_particles,
-  //                std::array<real_t, 1>{sqrt2 / real_t(2)}, false,
-  //                std::move(particles));
-  //}
-  ////----------------------------------------------------------------------------
-  // static auto advect_with_2_splits(real_t const step_size, real_t const
-  // t_end,
-  //                                 container_t particles) {
-  //  static real_t const sqrt2 = std::sqrt(real_t(2));
-  //  return advect(step_size, t_end, 2, 0,
-  //                std::array<real_t, 1>{sqrt2 / real_t(2)}, false,
-  //                std::move(particles));
-  //}
-  //----------------------------------------------------------------------------
-  template <typename Flowmap>
-  auto advect_with_3_splits(Flowmap&& phi, real_t const step_size,
-                            real_t const t_end) const {
-    return advect_with_3_splits(std::forward<Flowmap>(phi), step_size, t_end, 0,
-                                container_t{*this});
-  }
-  //----------------------------------------------------------------------------
-  template <typename Flowmap>
-  auto advect_with_3_splits(Flowmap&& phi, real_t const step_size,
-                            real_t const t_end,
-                            size_t const max_num_particles) const {
-    return advect_with_3_splits(std::forward<Flowmap>(phi), step_size, t_end,
-                                max_num_particles, container_t{*this});
-  }
-  //----------------------------------------------------------------------------
-  template <typename Flowmap>
-  static auto advect_with_3_splits(Flowmap&& phi, real_t const step_size,
-                                   real_t const t_end, container_t particles) {
-    return advect_with_3_splits(std::forward<Flowmap>(phi), step_size, t_end, 0,
-                                std::move(particles));
-  }
-  //----------------------------------------------------------------------------
-  template <typename Flowmap>
-  static auto advect_with_3_splits(Flowmap&& phi, real_t const step_size,
-                                   real_t const t_end,
-                                   size_t const max_num_particles,
-                                   container_t  particles) {
-    [[maybe_unused]] static real_t const x5 = 0.4830517593887872;
-    if constexpr (N == 2) {
-      return advect(
-          phi, step_size, t_end, 4, max_num_particles,
-          std::array{vec_t{real_t(1), real_t(1) / real_t(2)},
-                     vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)},
-                     vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)}},
-          std::array{vec_t{0, 0}, vec_t{0, real_t(3) / 4},
-                     vec_t{0, -real_t(3) / 4}},
-          // std::array{vec_t{x5, x5 / 2}, vec_t{x5, x5 / 2}, vec_t{x5, x5 / 2},
-          //           vec_t{x5, x5 / 2},
-          //           vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)},
-          //           vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)}},
-          // std::array{vec_t{-x5, -x5 / 2}, vec_t{x5, -x5 / 2}, vec_t{-x5, x5 /
-          // 2},
-          //           vec_t{x5, x5 / 2}, vec_t{0, real_t(3) / 4},
-          //           vec_t{0, -real_t(3) / 4}},
-          std::move(particles));
-    } else if constexpr (N == 3) {
-      return advect(
-          phi, step_size, t_end, 4, max_num_particles,
-          std::array{vec_t{real_t(1),
-                           real_t(1),
-                           real_t(1) / real_t(2)},
-                     vec_t{real_t(1) / real_t(2),
-                           real_t(1) / real_t(2),
-                           real_t(1) / real_t(4)},
-                     vec_t{real_t(1) / real_t(2),
-                           real_t(1) / real_t(2),
-                           real_t(1) / real_t(4)}},
-          std::array{vec_t{real_t(0), real_t(0), real_t(0)},
-                     vec_t{real_t(0), real_t(0), real_t(3) / real_t(4)},
-                     vec_t{real_t(0), real_t(0), -real_t(3) / real_t(4)}},
-          // std::array{vec_t{x5, x5 / 2}, vec_t{x5, x5 / 2}, vec_t{x5, x5 / 2},
-          //           vec_t{x5, x5 / 2},
-          //           vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)},
-          //           vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)}},
-          // std::array{vec_t{-x5, -x5 / 2}, vec_t{x5, -x5 / 2}, vec_t{-x5, x5 /
-          // 2},
-          //           vec_t{x5, x5 / 2}, vec_t{0, real_t(3) / 4},
-          //           vec_t{0, -real_t(3) / 4}},
-          std::move(particles));
-    }
-  }
-  //----------------------------------------------------------------------------
-  template <typename Flowmap>
-  auto advect_with_3_splits(Flowmap&& phi, real_t const step_size,
-                            real_t const            t_end,
-                            filesystem::path const& path) const {
-    return advect_with_3_splits(std::forward<Flowmap>(phi), step_size, t_end, 0,
-                                container_t{*this}, path);
-  }
-  //----------------------------------------------------------------------------
-  template <typename Flowmap>
-  auto advect_with_3_splits(Flowmap&& phi, real_t const step_size,
-                            real_t const t_end, size_t const max_num_particles,
-                            filesystem::path const& path) const {
-    return advect_with_3_splits(std::forward<Flowmap>(phi), step_size, t_end,
-                                max_num_particles, container_t{*this}, path);
-  }
-  //----------------------------------------------------------------------------
-  template <typename Flowmap>
-  static auto advect_with_3_splits(Flowmap&& phi, real_t const step_size,
-                                   real_t const t_end, container_t particles,
-                                   filesystem::path const& path) {
-    return advect_with_3_splits(std::forward<Flowmap>(phi), step_size, t_end, 0,
-                                std::move(particles), path);
-  }
-  //----------------------------------------------------------------------------
-  template <typename Flowmap>
-  static auto advect_with_3_splits(Flowmap&& phi, real_t const step_size,
-                                   real_t const            t_end,
-                                   size_t const            max_num_particles,
-                                   container_t             particles,
-                                   filesystem::path const& path) {
-    [[maybe_unused]] static real_t const x5 = 0.4830517593887872;
-    if constexpr (N == 2) {
-      return advect(
-          phi, step_size, t_end, 4, max_num_particles,
-          std::array{vec_t{real_t(1), real_t(1) / real_t(2)},
-                     vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)},
-                     vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)}},
-          std::array{vec_t{0, 0}, vec_t{0, real_t(3) / 4},
-                     vec_t{0, -real_t(3) / 4}},
-          // std::array{vec_t{x5, x5 / 2}, vec_t{x5, x5 / 2}, vec_t{x5, x5 / 2},
-          //           vec_t{x5, x5 / 2},
-          //           vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)},
-          //           vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)}},
-          // std::array{vec_t{-x5, -x5 / 2}, vec_t{x5, -x5 / 2}, vec_t{-x5, x5 /
-          // 2},
-          //           vec_t{x5, x5 / 2}, vec_t{0, real_t(3) / 4},
-          //           vec_t{0, -real_t(3) / 4}},
-          std::move(particles), path);
-    } else if constexpr (N == 3) {
-      return advect(
-          phi, step_size, t_end, 4, max_num_particles,
-          std::array{
-              vec_t{real_t(1), real_t(0), real_t(1) / real_t(2)},
-              vec_t{real_t(1) / real_t(2), real_t(0), real_t(1) / real_t(4)},
-              vec_t{real_t(1) / real_t(2), real_t(0), real_t(1) / real_t(4)}},
-          std::array{vec_t{real_t(0), real_t(0), real_t(0)},
-                     vec_t{real_t(0), real_t(0), real_t(3) / real_t(4)},
-                     vec_t{real_t(0), real_t(0), -real_t(3) / real_t(4)}},
-          // std::array{vec_t{x5, x5 / 2}, vec_t{x5, x5 / 2}, vec_t{x5, x5 / 2},
-          //           vec_t{x5, x5 / 2},
-          //           vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)},
-          //           vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)}},
-          // std::array{vec_t{-x5, -x5 / 2}, vec_t{x5, -x5 / 2}, vec_t{-x5, x5 /
-          // 2},
-          //           vec_t{x5, x5 / 2}, vec_t{0, real_t(3) / 4},
-          //           vec_t{0, -real_t(3) / 4}},
-          std::move(particles), path);
-    }
-  }
-  ////----------------------------------------------------------------------------
-  // auto advect_with_5_splits(real_t const step_size, real_t const t_end,
-  //                          size_t const max_num_particles) const {
-  //  static real_t const sqrt5 = std::sqrt(real_t(5));
-  //  return advect(step_size, t_end, 6 + sqrt5 * 2, max_num_particles,
-  //                std::array{(sqrt5 + 3) / (sqrt5 * 2 + 2), 1 / (sqrt5 + 1)},
-  //                true);
-  //}
-  ////----------------------------------------------------------------------------
-  // auto advect_with_5_splits(real_t const step_size, real_t const t_end) const
-  // {
-  //  static real_t const sqrt5 = std::sqrt(real_t(5));
-  //  return advect(step_size, t_end, 6 + sqrt5 * 2, 0,
-  //                std::array{(sqrt5 + 3) / (sqrt5 * 2 + 2), 1 / (sqrt5 + 1)},
-  //                true);
-  //}
-  ////----------------------------------------------------------------------------
-  // static auto advect_with_5_splits(real_t const step_size, real_t const
-  // t_end,
-  //                                 size_t const        max_num_particles,
-  //                                 container_t particles) {
-  //  static real_t const sqrt5 = std::sqrt(real_t(5));
-  //  return advect(step_size, t_end, 6 + sqrt5 * 2, max_num_particles,
-  //                std::array{(sqrt5 + 3) / (sqrt5 * 2 + 2), 1 / (sqrt5 + 1)},
-  //                true, std::move(particles));
-  //}
-  ////----------------------------------------------------------------------------
-  // static auto advect_with_5_splits(real_t const step_size, real_t const
-  // t_end,
-  //                                 container_t particles) {
-  //  static real_t const sqrt5 = std::sqrt(real_t(5));
-  //  return advect(step_size, t_end, 6 + sqrt5 * 2, 0,
-  //                std::array{(sqrt5 + 3) / (sqrt5 * 2 + 2), 1 / (sqrt5 + 1)},
-  //                true, std::move(particles));
-  //}
-  ////----------------------------------------------------------------------------
-  // auto advect_with_7_splits(real_t const step_size, real_t const t_end,
-  //                          size_t const max_num_particles) const {
-  //  return advect(step_size, t_end, 4.493959210 * 4.493959210,
-  //  max_num_particles,
-  //                std::array{real_t(.9009688678), real_t(.6234898004),
-  //                           real_t(.2225209338)},
-  //                true);
-  //}
-  ////----------------------------------------------------------------------------
-  // auto advect_with_7_splits(real_t const step_size, real_t const t_end) const
-  // {
-  //  return advect(step_size, t_end, 4.493959210 * 4.493959210, 0,
-  //                std::array{real_t(.9009688678), real_t(.6234898004),
-  //                           real_t(.2225209338)},
-  //                true);
-  //}
-  ////----------------------------------------------------------------------------
-  // static auto advect_with_7_splits(real_t const step_size, real_t const
-  // t_end,
-  //                                 size_t const        max_num_particles,
-  //                                 container_t particles) {
-  //  return advect(step_size, t_end, 4.493959210 * 4.493959210,
-  //  max_num_particles,
-  //                std::array{real_t(.9009688678), real_t(.6234898004),
-  //                           real_t(.2225209338)},
-  //                true, std::move(particles));
-  //}
-  ////----------------------------------------------------------------------------
-  // static auto advect_with_7_splits(real_t const step_size, real_t const
-  // t_end,
-  //                                 container_t particles) {
-  //  return advect(step_size, t_end, 4.493959210 * 4.493959210, 0,
-  //                std::array{real_t(.9009688678), real_t(.6234898004),
-  //                           real_t(.2225209338)},
-  //                true, std::move(particles));
-  //}
-  //----------------------------------------------------------------------------
-  template <typename Flowmap>
+  template <split_behavior SplitBehavior = typename split_setups::three_splits,
+            typename Flowmap>
   auto advect(Flowmap& phi, real_t const step_size, real_t const t_end,
-              real_t const cond_split, size_t const max_num_particles,
-              range auto const radii, range auto const& offsets,
               filesystem::path const& path) const {
-    return advect(phi, step_size, t_end, cond_split, max_num_particles,
-                  radii, offsets, {*this}, path);
+    return advect(phi, step_size, t_end, {*this}, path);
   }
   //----------------------------------------------------------------------------
-  template <typename Flowmap>
+  template <split_behavior SplitBehavior = typename split_setups::three_splits,
+            typename Flowmap>
   static auto advect(Flowmap& phi, real_t const step_size, real_t const t_end,
-                     real_t const cond_split,
-                     size_t const max_num_particles, range auto const radii,
-                     range auto const& offsets, container_t const& particles,
+                     container_t const&      particles,
                      filesystem::path const& path) {
     // auto       finished_particles = container_t{};
     auto const num_threads =
@@ -517,10 +353,9 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
                     hdd_data[reader].read(i, cur_num_particles, particles);
                   }
                   for (auto const& particle : particles) {
-                    particle.advect_until_split(phi, step_size, t_end,
-                                                cond_split, radii, offsets,
-                                                *advected_particles[thr_id],
-                                                *finished_particles[thr_id]);
+                    particle.template advect_until_split<SplitBehavior>(
+                        phi, step_size, t_end, *advected_particles[thr_id],
+                        *finished_particles[thr_id]);
                     if (advected_particles[thr_id]->size() > 10000000) {
                       {
                         auto lock = std::lock_guard{mutex()};
@@ -568,19 +403,16 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
     return path;
   }
   //----------------------------------------------------------------------------
-  template <typename Flowmap>
-  auto advect(Flowmap& phi, real_t const step_size, real_t const t_end,
-              real_t const cond_split, size_t const max_num_particles,
-              range auto const radii, range auto const& offsets) const {
-    return advect(phi, step_size, t_end, cond_split, max_num_particles,
-                  radii, offsets, {*this});
+  template <split_behavior SplitBehavior = typename split_setups::three_splits,
+            typename Flowmap>
+  auto advect(Flowmap& phi, real_t const step_size, real_t const t_end) const {
+    return advect<SplitBehavior>(phi, step_size, t_end, {*this});
   }
   //----------------------------------------------------------------------------
-  template <typename Flowmap>
+  template <split_behavior SplitBehavior = typename split_setups::three_splits,
+            typename Flowmap>
   static auto advect(Flowmap& phi, real_t const step_size, real_t const t_end,
-                     real_t const cond_split,
-                     size_t const max_num_particles, range auto const radii,
-                     range auto const& offsets, container_t particles) {
+                     container_t particles) {
     auto num_threads = std::size_t{};
 #pragma omp parallel
     {
@@ -618,9 +450,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
         auto&      particles_at_t1 = *particles_per_thread[thr_id][1];
         auto&      finished        = *particles_per_thread[thr_id][2];
         for (auto const& particle : particles_at_t0) {
-          particle.advect_until_split(phi, step_size, t_end, cond_split,
-                                      radii, offsets, particles_at_t1,
-                                      finished);
+          particle.template advect_until_split<SplitBehavior>(
+              phi, step_size, t_end, particles_at_t1, finished);
         }
       }
 
@@ -639,22 +470,10 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
     return finished_particles;
   }
   //----------------------------------------------------------------------------
-  // template <typename Flowmap>
-  // auto advect_until_split(Flowmap& phi, real_t const step_size,
-  //                        real_t const t_end, real_t const cond_split,
-  //                        range auto const  radii,
-  //                        range auto const& offsets) const -> container_t {
-  //  auto advected = container_t{};
-  //  advect_until_split(phi, step_size, t_end, cond_split, radii, offsets,
-  //                     advected, advected);
-  //
-  //  return advected;
-  //}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename Flowmap>
+  template <split_behavior SplitBehavior = typename split_setups::three_splits,
+            typename Flowmap>
   auto advect_until_split(Flowmap phi, real_t step_size, real_t const t_end,
-                          real_t const cond_split, range auto const radii,
-                          range auto const& offsets, container_t& out,
+                          container_t& out,
                           container_t& finished_particles) const {
     bool                    min_step_size_reached = false;
     static constexpr real_t min_tau_step          = 1e-8;
@@ -690,14 +509,14 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
       phi.use_caching(false);
     }
 
-    while (cond_HHt < cond_split || t_advected < t_end) {
+    while (cond_HHt < SplitBehavior::split_cond || t_advected < t_end) {
       if (!min_step_size_reached) {
         if (!first) {
-          prev_ghosts_forward   = ghosts_forward;
-          prev_ghosts_backward   = ghosts_backward;
-          prev_center   = advected_ellipse.center();
-          prev_cond_HHt = cond_HHt;
-          t_current     = t_advected;
+          prev_ghosts_forward  = ghosts_forward;
+          prev_ghosts_backward = ghosts_backward;
+          prev_center          = advected_ellipse.center();
+          prev_cond_HHt        = cond_HHt;
+          t_current            = t_advected;
         } else {
           first = false;
         }
@@ -715,7 +534,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
 
         ghosts_forward  = phi(ghosts_forward, t_current, cur_tau);
         ghosts_backward = phi(ghosts_backward, t_current, cur_tau);
-        H = (ghosts_forward - ghosts_backward) * half;
+        H               = (ghosts_forward - ghosts_backward) * half;
 
         HHt      = H * transposed(H);
         eig_HHt  = eigenvectors_sym(HHt);
@@ -730,18 +549,18 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
       }
 
       if (t_advected == t_end &&
-          cond_HHt <= cond_split + max_cond_overshoot) {
+          cond_HHt <= SplitBehavior::split_cond + max_cond_overshoot) {
         finished_particles.emplace_back(x0(), t_advected, fmg2fmg1,
                                         advected_ellipse);
         return;
       }
 
-      if ((cond_HHt >= cond_split &&
-           cond_HHt <= cond_split + max_cond_overshoot) ||
+      if ((cond_HHt >= SplitBehavior::split_cond &&
+           cond_HHt <= SplitBehavior::split_cond + max_cond_overshoot) ||
           min_step_size_reached) {
-        for (size_t i = 0; i < size(radii); ++i) {
-          auto const new_eigvals    = current_radii * radii[i];
-          auto const offset2        = cur_B * offsets[i];
+        for (size_t i = 0; i < size(SplitBehavior::radii); ++i) {
+          auto const new_eigvals    = current_radii * SplitBehavior::radii[i];
+          auto const offset2        = cur_B * SplitBehavior::offsets[i];
           auto const offset0        = solve(fmg2fmg1, offset2);
           auto       offset_ellipse = ellipse_t{
               advected_ellipse.center() + offset2,
@@ -751,10 +570,11 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
         }
         return;
       }
-      if (cond_HHt > cond_split + max_cond_overshoot) {
-        // if (prev_cond_HHt < cond_split) {
+      if (cond_HHt > SplitBehavior::split_cond + max_cond_overshoot) {
+        // if (prev_cond_HHt < SplitBehavior::split_cond) {
         //  auto const _t =
-        //      (prev_cond_HHt - cond_split) / (prev_cond_HHt - cond_HHt);
+        //      (prev_cond_HHt - SplitBehavior::split_cond) / (prev_cond_HHt -
+        //      cond_HHt);
         //  assert(_t >= 0 && _t <= 1);
         //  step_size *= _t;
         //}
@@ -774,7 +594,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
         }
         //} else {
         //   auto const _t =
-        //      (prev_cond_HHt - cond_split) / (prev_cond_HHt - cond_HHt);
+        //      (prev_cond_HHt - SplitBehavior::split_cond) / (prev_cond_HHt -
+        //      cond_HHt);
         //   assert(_t >= 1);
         //   step_size *= _t;
       }

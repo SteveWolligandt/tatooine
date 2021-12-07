@@ -2,6 +2,8 @@
 #define TATOOINE_VTK_XML_DATA_ARRAY_H
 //==============================================================================
 #include <cstring>
+#include <cstdint>
+#include <tatooine/type_traits.h>
 #include <limits>
 #include <rapidxml.hpp>
 #include <string>
@@ -55,6 +57,60 @@ struct data_array {
       return type_t::float64;
     }
     return type_t::unknown;
+  }
+  //------------------------------------------------------------------------------
+  template <typename T>
+  static auto constexpr to_type() {
+    if constexpr (is_same<std::int8_t, T>) {
+      return type_t::int8;
+    } else if constexpr (is_same<T, std::uint8_t>) {
+      return type_t::uint8;
+    } else if constexpr (is_same<T, std::int16_t>) {
+      return type_t::int16;
+    } else if constexpr (is_same<T, std::uint16_t>) {
+      return type_t::uint16;
+    } else if constexpr (is_same<T, std::int32_t>) {
+      return type_t::int32;
+    } else if constexpr (is_same<T, std::uint32_t>) {
+      return type_t::uint32;
+    } else if constexpr (is_same<T, std::int64_t>) {
+      return type_t::int64;
+    } else if constexpr (is_same<T, std::uint64_t>) {
+      return type_t::uint64;
+    } else if constexpr (is_same<T, float>) {
+      return type_t::float32;
+    } else if constexpr (is_same<T, double>) {
+      return type_t::float64;
+    } else {
+      return type_t::unknown;
+    }
+  }
+  //------------------------------------------------------------------------------
+  static auto constexpr to_string(type_t const t) -> std::string_view {
+    switch (t) {
+      case type_t::int8:
+        return "Int8";
+      case type_t::uint8:
+        return "UInt8";
+      case type_t::int16:
+        return "Int16";
+      case type_t::uint16:
+        return "UInt16";
+      case type_t::int32:
+        return "Int32";
+      case type_t::uint32:
+        return "UInt32";
+      case type_t::int64:
+        return "Int64";
+      case type_t::uint64:
+        return "UInt64";
+      case type_t::float32:
+        return "Float32";
+      case type_t::float64:
+        return "Float64";
+      default:
+        return "UnknownType";
+    }
   }
   //==============================================================================
   enum class format_t { ascii, binary, appended, unknown };

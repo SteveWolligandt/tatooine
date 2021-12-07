@@ -134,7 +134,7 @@ constexpr auto reflect(vec<T0, 3> const& incidentVec,
 template <typename Tensor, typename TensorT, size_t... Dims>
 constexpr auto sqrt(base_tensor<Tensor, TensorT, Dims...> const& t) {
   return unary_operation(
-      [](auto const& component) { return std::sqrt(component); }, t);
+      [](auto const& component) { return gcem::sqrt(component); }, t);
 }
 //==============================================================================
 }  // namespace tatooine

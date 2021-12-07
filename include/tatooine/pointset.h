@@ -98,6 +98,10 @@ struct pointset {
       return m_pointset->m_vertex_positions.size() -
              m_pointset->m_invalid_vertices.size();
     }
+    auto data_container() const -> auto const& {
+      return m_mesh->m_vertex_positions;
+    }
+    auto data() const { return m_mesh->m_vertex_positions.data(); }
   };
   //----------------------------------------------------------------------------
   template <typename T>
