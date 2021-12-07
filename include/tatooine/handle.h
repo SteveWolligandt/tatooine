@@ -8,45 +8,45 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Child>
+template <typename Child, unsigned_integral Int = std::size_t>
 struct handle {
-  static constexpr std::size_t invalid_idx =
-      std::numeric_limits<std::size_t>::max();
+  using int_t = Int;
+  static constexpr auto invalid_idx = std::numeric_limits<Int>::max();
   //============================================================================
-  std::size_t i{};
+  Int i{};
   //============================================================================
   handle() : i{invalid_idx} {}
-  explicit handle(integral auto _i) : i{static_cast<std::size_t>(_i)} {}
+  explicit handle(integral auto const _i) : i{static_cast<Int>(_i)} {}
   handle(handle const&)     = default;
   handle(handle&&) noexcept = default;
   ~handle()                 = default;
 
   auto operator=(handle const&) -> handle& = default;
-  template <typename Int, enable_if_integral<Int> = true>
-  auto operator=(Int const i) -> handle& {
+  auto operator=(integral auto const i) -> handle& {
     this->i = i;
+    return *this;
   }
   auto operator=(handle&&) noexcept -> handle& = default;
-  auto operator==(handle<Child> const other) const {
+  auto operator==(handle<Child, Int> const other) const {
     return this->i == other.i;
   }
-  auto operator!=(handle<Child> const other) const {
+  auto operator!=(handle<Child, Int> const other) const {
     return this->i != other.i;
   }
-  auto operator<(handle<Child> const other) const { return this->i < other.i; }
-  auto operator<=(handle<Child> const other) const {
+  auto operator<(handle<Child, Int> const other) const {
+    return this->i < other.i;
+  }
+  auto operator<=(handle<Child, Int> const other) const {
     return this->i <= other.i;
   }
-  auto operator>(handle<Child> const other) const { return this->i > other.i; }
-  auto operator>=(handle<Child> const other) const {
+  auto operator>(handle<Child, Int> const other) const {
+    return this->i > other.i;
+  }
+  auto operator>=(handle<Child, Int> const other) const {
     return this->i >= other.i;
   }
   static constexpr auto invalid() {
-    return handle<Child>{handle<handle<Child>>::invalid_idx};
-  }
-  auto operator=(integral auto i_) -> handle& {
-    i = i_;
-    return *this;
+    return handle<Child, Int>{handle<handle<Child, Int>>::invalid_idx};
   }
   //============================================================================
   auto operator++() -> auto& {
@@ -70,61 +70,49 @@ struct handle {
     --i;
     return h;
   }
-  template <typename Int, enable_if_integral<Int> = true>
-  auto operator+=(Int i) {
-    this->i += i;
-  }
-  template <typename Int, enable_if_integral<Int> = true>
-  auto operator-=(Int i) {
-    this->i -= i;
-  }
-  template <typename Int, enable_if_integral<Int> = true>
-  auto operator*=(Int i) {
-    this->i *= i;
-  }
-  template <typename Int, enable_if_integral<Int> = true>
-  auto operator/=(Int i) {
-    this->i /= i;
-  }
+  auto operator+=(integral auto const i) { this->i += i; }
+  auto operator-=(integral auto const i) { this->i -= i; }
+  auto operator*=(integral auto const i) { this->i *= i; }
+  auto operator/=(integral auto const i) { this->i /= i; }
 };
 //==============================================================================
-template <typename Child, typename Int, enable_if_integral<Int> = true>
-auto operator+(handle<Child> const h, Int const i) {
+template <typename Child, unsigned_integral Int>
+auto operator+(handle<Child, Int> const h, integral auto const i) {
   return Child{h.i + i};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Child, typename Int, enable_if_integral<Int> = true>
-auto operator+(Int const i, handle<Child> const h) {
+template <typename Child, unsigned_integral Int>
+auto operator+(integral auto const i, handle<Child, Int> const h) {
   return Child{i + h.i};
 }
 //------------------------------------------------------------------------------
-template <typename Child, typename Int, enable_if_integral<Int> = true>
-auto operator-(handle<Child> const h, Int const i) {
+template <typename Child, unsigned_integral Int>
+auto operator-(handle<Child, Int> const h, integral auto const i) {
   return Child{h.i - i};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Child, typename Int, enable_if_integral<Int> = true>
-auto operator-(Int const i, handle<Child> const h) {
+template <typename Child, unsigned_integral Int>
+auto operator-(integral auto const i, handle<Child, Int> const h) {
   return Child{i - h.i};
 }
 //------------------------------------------------------------------------------
-template <typename Child, typename Int, enable_if_integral<Int> = true>
-auto operator*(handle<Child> const h, Int const i) {
+template <typename Child, unsigned_integral Int>
+auto operator*(handle<Child, Int> const h, integral auto const i) {
   return Child{h.i * i};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Child, typename Int, enable_if_integral<Int> = true>
-auto operator*(Int const i, handle<Child> const h) {
+template <typename Child, unsigned_integral Int>
+auto operator*(integral auto const i, handle<Child, Int> const h) {
   return Child{i * h.i};
 }
 //------------------------------------------------------------------------------
-template <typename Child, typename Int, enable_if_integral<Int> = true>
-auto operator/(handle<Child> const h, Int const i) {
+template <typename Child, unsigned_integral Int>
+auto operator/(handle<Child, Int> const h, integral auto const i) {
   return Child{h.i / i};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Child, typename Int, enable_if_integral<Int> = true>
-auto operator/(Int const i, handle<Child> const h) {
+template <typename Child, unsigned_integral Int>
+auto operator/(integral auto const i, handle<Child, Int> const h) {
   return Child{i / h.i};
 }
 //==============================================================================

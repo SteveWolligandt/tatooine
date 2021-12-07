@@ -169,8 +169,6 @@ template <typename Real>
 auto discretize(hyper_ellipse<Real, 3> const& s, size_t num_subdivisions = 0) {
   using mesh_t        = tatooine::unstructured_triangular_grid<Real, 3>;
   using vh = typename mesh_t::vertex_handle;
-  // Real const  X = 0.525731112119133606;
-  // Real const  Z = 0.850650808352039932;
   Real const  X = 0.525731112119133606;
   Real const  Z = 0.850650808352039932;
   std::vector vertices{vec{-X, 0, Z}, vec{X, 0, Z},   vec{-X, 0, -Z},
@@ -212,11 +210,11 @@ auto discretize(hyper_ellipse<Real, 3> const& s, size_t num_subdivisions = 0) {
         }
         if (subdivided.find(edge) == end(subdivided)) {
           subdivided[edge] = size(vertices);
-          nvs[i++]         = size(vertices);
+          nvs[i++]         = vh{};
           vertices.push_back(normalize(
               (vertices[edge.first.i] + vertices[edge.second.i]) * 0.5));
         } else {
-          nvs[i++] = subdivided[edge];
+          nvs[i++] = vh{subdivided[edge]};
         }
       }
       subdivided_faces.emplace_back(std::array{v0, nvs[1], nvs[0]});

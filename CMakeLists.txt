@@ -92,6 +92,7 @@ target_include_directories(tatooine
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>"
     external/indicators/include
     external/vcode/include
+    external/gcem/include
     external/rapidxml)
 
 if (TATOOINE_STD_FILESYSTEM_AVAILABLE)

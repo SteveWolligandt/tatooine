@@ -1,9 +1,11 @@
 #ifndef TATOOINE_CONCPETS_H
 #define TATOOINE_CONCPETS_H
 //==============================================================================
-#include <concepts>
-#include <tatooine/type_traits.h>
 #include <tatooine/invocable_with_n_types.h>
+#include <tatooine/type_traits.h>
+
+#include <concepts>
+#include <ranges>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -15,13 +17,8 @@ concept forward_iterator = std::forward_iterator<T>;
 template <typename T>
 concept bidirectional_iterator = std::bidirectional_iterator<T>;
 //------------------------------------------------------------------------------
-template <typename Range>
-concept range = requires(Range const r) {
-  {r.begin()};
-  {r.end()};
-  {begin(r)};
-  {end(r)};
-};
+template <typename T>
+concept range = std::ranges::range<T>;
 
 //==============================================================================
 // typedefs

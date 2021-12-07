@@ -21,6 +21,7 @@
 #include <tatooine/rectilinear_grid.h>
 #include <tatooine/uniform_tree_hierarchy.h>
 #include <tatooine/vtk_legacy.h>
+#include <tatooine/vtk/xml/data_array.h>
 
 #include <boost/range/adaptor/transformed.hpp>
 #include <boost/range/algorithm/copy.hpp>
@@ -323,6 +324,10 @@ class unstructured_simplicial_grid
     auto size() const {
       return m_mesh->m_cell_indices.size() / num_vertices_per_simplex();
     }
+    auto data_container() const -> auto const& {
+      return m_mesh->m_cell_indices;
+    }
+    auto data() const { return m_mesh->m_cell_indices.data(); }
   };
   //----------------------------------------------------------------------------
   template <typename T>
@@ -810,11 +815,105 @@ if ( it == end(m_cell_properties)) {
     prop->resize(cells().size());
     return *prop;
   }
+  //----------------------------------------------------------------------------
   auto write_vtk(std::filesystem::path const& path,
                  std::string const&           title = "tatooine mesh") const {
     if constexpr (SimplexDim == 2 || SimplexDim == 3) {
       write_unstructured_triangular_grid_vtk(path, title);
     }
+  }
+  //----------------------------------------------------------------------------
+  auto write_vtp(filesystem::path const& path) const {
+    auto file = std::ofstream{path};
+    if (!file.is_open()) {
+      throw std::runtime_error{"Could not write " + path.string()};
+    }
+    auto offset = std::size_t{};
+    file << "<VTKFile type=\"PolyData\" version=\"0.1\" byte_order=\"LittleEndian\">\n";
+    file << "  <PolyData>\n";
+    file << "    <Piece NumberOfPoints=\"" << vertices().size()
+         << "\" NumberOfPolys=\"" << cells().size() << "\""
+         << ">\n";
+
+    // Points
+    file << "      <Points>\n";
+
+    file << "        "
+         << "<DataArray"
+         << " format=\"appended\""
+         << " offset=\"" << offset << "\""
+         << " type=\""
+         << vtk::xml::data_array::to_string(
+                vtk::xml::data_array::to_type<Real>())
+         << "\" NumberOfComponents=\"" << num_dimensions() << "\"/>\n";
+    auto const num_bytes_points = sizeof(Real) * num_dimensions() * vertices().size();
+    offset += num_bytes_points;
+
+    file << "      </Points>\n";
+
+    // Polys
+    file << "      <Polys>\n";
+    // Polys - connectivity
+    file << "        <DataArray format=\"appended\" offset=\"" << offset
+         << "\" type=\""
+         << vtk::xml::data_array::to_string(
+                vtk::xml::data_array::to_type<typename vertex_handle::int_t>())
+         << "\" Name=\"connectivity\"/>\n";
+    auto const num_bytes_polys_connectivity =
+        cells().size() * num_vertices_per_simplex() *
+        sizeof(typename vertex_handle::int_t);
+    offset += num_bytes_polys_connectivity;
+
+    // Polys - offsets
+    using polys_offset_int_t = std::int32_t;
+    file << "        <DataArray format=\"appended\" offset=\"" << offset
+         << "\" type=\""
+         << vtk::xml::data_array::to_string(
+                vtk::xml::data_array::to_type<polys_offset_int_t>())
+         << "\" Name=\"offsets\"/>\n";
+    auto const num_bytes_polys_offsets = sizeof(polys_offset_int_t) * cells().size();
+    offset += num_bytes_polys_offsets;
+
+    //// Polys - types
+    //file << "        <DataArray format=\"appended\" offset=\"" << offset
+    //     << "\" type=\"UInt8\" Name=\"types\"/>\n";
+    //auto const num_bytes_polys_types = sizeof(std::uint8_t) * cells().size();
+    //offset += num_bytes_polys_types;
+
+    file << "      </Polys>\n";
+
+    file << "    </Piece>\n";
+    file << "  </PolyData>\n";
+    file << "  <AppendedData encoding=\"raw\">\n_";
+    file.write(reinterpret_cast<char const*>(vertices().data()),
+               num_bytes_points);
+    file.write(reinterpret_cast<char const*>(cells().data()),
+               num_bytes_polys_connectivity);
+    {
+      auto offsets = std::vector<polys_offset_int_t>(
+          cells().size(), num_vertices_per_simplex());
+      for (std::size_t i = 1; i < size(offsets); ++i) {
+        offsets[i] += offsets[i - 1];
+      }
+      file.write(reinterpret_cast<char const*>(offsets.data()),
+                 num_bytes_polys_offsets);
+    }
+
+    //{
+    //  auto const types = [&] {
+    //    if constexpr (num_vertices_per_simplex() == 3) {
+    //      return std::vector<vtk::cell_type>(cells().size(),
+    //                                         vtk::cell_type::triangle);
+    //    } else if constexpr (num_vertices_per_simplex() == 4) {
+    //      return std::vector<vtk::cell_type>(cells().size(),
+    //                                         vtk::cell_type::tetra);
+    //    }
+    //  }();
+    //  file.write(reinterpret_cast<char const*>(types.data()),
+    //             num_bytes_polys_types);
+    //}
+    file << "\n  </AppendedData>\n";
+    file << "</VTKFile>";
   }
 
  private:
@@ -841,31 +940,35 @@ if ( it == end(m_cell_properties)) {
         writer.write_points(vertex_positions());
       }
 
-      //auto vertices_per_cell = std::vector<std::vector<size_t>> {};
-      //vertices_per_cell.reserve(cells().size());
-      //auto cell_types =
-      //    std::vector<vtk::cell_type>(cells().size(), vtk::cell_type::triangle);
-      //for (auto const c : cells()) {
+      // auto vertices_per_cell = std::vector<std::vector<size_t>> {};
+      // vertices_per_cell.reserve(cells().size());
+      // auto cell_types =
+      //    std::vector<vtk::cell_type>(cells().size(),
+      //    vtk::cell_type::triangle);
+      // for (auto const c : cells()) {
       //  auto const [v0, v1, v2] = at(c);
       //  vertices_per_cell.push_back(std::vector{v0.i, v1.i, v2.i});
       //}
-      //writer.write_cells(vertices_per_cell);
-      //writer.write_cell_types(cell_types);
+      // writer.write_cells(vertices_per_cell);
+      // writer.write_cell_types(cell_types);
       //
       //// write vertex_handle data
-      //writer.write_point_data(vertices().size());
-      //for (auto const& [name, prop] : vertex_properties()) {
+      // writer.write_point_data(vertices().size());
+      // for (auto const& [name, prop] : vertex_properties()) {
       //  if (prop->type() == typeid(vec<Real, 4>)) {
       //    auto const& casted_prop =
-      //        *dynamic_cast<vertex_property_t<vec<Real, 4>> const*>(prop.get());
+      //        *dynamic_cast<vertex_property_t<vec<Real, 4>>
+      //        const*>(prop.get());
       //    writer.write_scalars(name, casted_prop.data());
       //  } else if (prop->type() == typeid(vec<Real, 3>)) {
       //    auto const& casted_prop =
-      //        *dynamic_cast<vertex_property_t<vec<Real, 3>> const*>(prop.get());
+      //        *dynamic_cast<vertex_property_t<vec<Real, 3>>
+      //        const*>(prop.get());
       //    writer.write_scalars(name, casted_prop.data());
       //  } else if (prop->type() == typeid(vec<Real, 2>)) {
       //    auto const& casted_prop =
-      //        *dynamic_cast<vertex_property_t<vec<Real, 2>> const*>(prop.get());
+      //        *dynamic_cast<vertex_property_t<vec<Real, 2>>
+      //        const*>(prop.get());
       //    writer.write_scalars(name, casted_prop.data());
       //  } else if (prop->type() == typeid(Real)) {
       //    auto const& casted_prop =
@@ -921,8 +1024,8 @@ if ( it == end(m_cell_properties)) {
 
       writer.close();
       return true;
-    }       return false;
-
+    }
+    return false;
   }
   //----------------------------------------------------------------------------
  public:
@@ -940,7 +1043,7 @@ if ( it == end(m_cell_properties)) {
   auto read_vtk(std::filesystem::path const& path) {
     struct listener_t : vtk::legacy_file_listener {
       unstructured_simplicial_grid& mesh;
-      std::vector<int>           cells;
+      std::vector<int>              cells;
 
       explicit listener_t(unstructured_simplicial_grid& _mesh) : mesh(_mesh) {}
       auto add_cells(std::vector<int> const& cells) -> void {
@@ -967,7 +1070,8 @@ if ( it == end(m_cell_properties)) {
         if (t != vtk::dataset_type::unstructured_grid &&
             t != vtk::dataset_type::polydata) {
           throw std::runtime_error{
-              "[unstructured_simplicial_grid] need polydata or unstructured_grid "
+              "[unstructured_simplicial_grid] need polydata or "
+              "unstructured_grid "
               "when reading vtk legacy"};
         }
       }
@@ -1137,7 +1241,7 @@ unstructured_simplicial_grid(std::string const&)
 template <typename... Dims>
 unstructured_simplicial_grid(rectilinear_grid<Dims...> const& g)
     -> unstructured_simplicial_grid<typename rectilinear_grid<Dims...>::real_t,
-                                 sizeof...(Dims)>;
+                                    sizeof...(Dims)>;
 //==============================================================================
 // namespace detail {
 // template <typename MeshCont>
@@ -1181,17 +1285,18 @@ unstructured_simplicial_grid(rectilinear_grid<Dims...> const& g)
 //}  // namespace detail
 ////==============================================================================
 // template <typename Real>
-// auto write_vtk(std::vector<unstructured_simplicial_grid<Real, 3>> const& meshes,
-// std::string const& path,
+// auto write_vtk(std::vector<unstructured_simplicial_grid<Real, 3>> const&
+// meshes, std::string const& path,
 //               std::string const& title = "tatooine meshes") {
 //  detail::write_mesh_container_to_vtk(meshes, path, title);
 //}
 //------------------------------------------------------------------------------
-static constexpr inline auto constrained_delaunay_available(size_t const N) -> bool {
+static constexpr inline auto constrained_delaunay_available(size_t const N)
+    -> bool {
   if (N == 2) {
     return cdt_available();
-  }     return false;
-
+  }
+  return false;
 }
 //==============================================================================
 }  // namespace tatooine

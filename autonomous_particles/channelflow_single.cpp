@@ -127,8 +127,7 @@ auto main(int argc, char** argv) -> int {
         //              discrete_channelflow_domain.cell_extent_in_dim<1>(0),
         //              discrete_channelflow_domain.cell_extent_in_dim<2>(0))
     };
-    auto const advected_particles =
-        initial_part.advect_with_3_splits(phi, 0.01, args.tau);
+    auto const advected_particles = initial_part.advect(phi, 0.00001, args.tau);
     std::cerr << "number of advected particles: " << size(advected_particles)
               << '\n';
     //----------------------------------------------------------------------------
@@ -142,9 +141,10 @@ auto main(int argc, char** argv) -> int {
       all_advected_discretizations.push_back(
           discretize(p.initial_ellipse(), 2));
     }
-    write_vtk(all_initial_discretizations,
-              "channelflow_single_ellipsoids0.vtk");
-    write_vtk(all_advected_discretizations,
-              "channelflow_single_ellipsoids1.vtk");
+    all_initial_discretizations.front().write_vtp("channelflow_single_front.vtp");
+    //write_vtk(all_initial_discretizations,
+    //          "channelflow_single_ellipsoids0.vtk");
+    //write_vtk(all_advected_discretizations,
+    //          "channelflow_single_ellipsoids1.vtk");
   });
 }

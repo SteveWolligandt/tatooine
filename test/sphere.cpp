@@ -9,15 +9,15 @@ TEST_CASE("sphere_ray_intersection", "[sphere][intersection][ray]") {
   auto intersection = s.check_intersection(r);
   REQUIRE(intersection);
   REQUIRE(approx_equal(intersection->position, vec3{-1.0, 0.0, 0.0}));
-  discretize(s).write_vtk("discretized_sphere.vtk");
+  discretize(s).write_vtp("discretized_sphere.vtp");
 }
 //==============================================================================
 TEST_CASE("sphere_discretization", "[sphere][discretization]") {
-  sphere<double, 3> s1{1};
+  sphere<double, 3> s1{1.0};
   discretize(s1).write_vtk("discretized_sphere_r1.vtk");
-  sphere<double, 3> s2{2};
+  sphere<double, 3> s2{2.0};
   discretize(s2, 3).write_vtk("discretized_sphere_r2.vtk");
-  sphere<double, 3> s3{3, vec{4,4,4}};
+  sphere<double, 3> s3{3.0, vec3{4,4,4}};
   discretize(s3, 4).write_vtk("discretized_sphere_r3.vtk");
 }
 //==============================================================================
