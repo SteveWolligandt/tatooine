@@ -103,35 +103,20 @@ struct base_rectilinear_grid_vertex_property_sampler {
   //----------------------------------------------------------------------------
   /// data at specified indices is...
   /// CRTP-virtual method
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
-#endif
-  auto data_at(Is const... is) const -> decltype(auto) {
+  auto data_at(integral auto const... is) const -> decltype(auto) {
     static_assert(sizeof...(is) == num_dimensions(),
                   "Number of indices does not match number of dimensions.");
     return as_derived_sampler().data_at(is...);
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
-#endif
-  auto position_at(Is const... is) const {
+  auto position_at(integral auto const... is) const {
     static_assert(sizeof...(is) == num_dimensions(),
                   "Number of indices does not match number of dimensions.");
     return as_derived_sampler().position_at(is...);
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <size_t DimensionIndex, arithmetic X>
-#else
-  template <size_t DimensionIndex, typename X,
-            enable_if<is_arithmetic<X>> = true>
-#endif
-  auto cell_index(X const x) const -> decltype(auto) {
+  template <size_t DimensionIndex>
+  auto cell_index(arithmetic auto const x) const -> decltype(auto) {
     return as_derived_sampler().template cell_index<DimensionIndex>(x);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -261,14 +246,9 @@ struct base_rectilinear_grid_vertex_property_sampler {
     }
   }
   //------------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <size_t... Is, arithmetic... Xs>
-#else
-  template <size_t... Is, typename... Xs,
-            enable_if<is_arithmetic<Xs...>> = true>
-#endif
+  template <size_t... Is>
   constexpr auto sample(std::index_sequence<Is...> /*seq*/,
-                        Xs const... xs) const {
+                        arithmetic auto const... xs) const {
     return interpolate_cell(cell_index<Is>(xs)...);
   }
 };
@@ -324,44 +304,23 @@ struct rectilinear_grid_vertex_property_sampler
   //----------------------------------------------------------------------------
   auto grid() const -> auto const& { return m_property.grid(); }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-  requires(sizeof...(Is) == GridVertexProperty::grid_t::num_dimensions())
-#else
-  template <typename... Is, enable_if<is_integral<Is...>> = true,
-            enable_if<(sizeof...(Is) ==
-                       GridVertexProperty::grid_t::num_dimensions())> = true>
-#endif
-      auto data_at(Is const... is) const -> decltype(auto) {
+  auto data_at(integral auto const... is) const
+      -> decltype(auto) requires(sizeof...(is) ==
+                                 GridVertexProperty::grid_t::num_dimensions()) {
     return m_property(is...);
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
-#endif
-  auto position_at(Is const... is) const {
+  auto position_at(integral auto const... is) const {
     static_assert(sizeof...(is) == num_dimensions(),
                   "Number of indices does not match number of dimensions.");
     return grid().position_at(is...);
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <size_t DimensionIndex, arithmetic X>
-#else
-  template <size_t DimensionIndex, typename X,
-            enable_if<is_arithmetic<X>> = true>
-#endif
-  auto cell_index(X const x) const -> decltype(auto) {
+  template <size_t DimensionIndex>
+  auto cell_index(arithmetic auto const x) const -> decltype(auto) {
     return grid().template cell_index<DimensionIndex>(x);
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <arithmetic... Xs>
-#else
-  template <typename... Xs, enable_if<is_arithmetic<Xs...>> = true>
-#endif
   auto evaluate(typename field_parent_t::pos_t const& x,
                 typename field_parent_t::real_t const /*t*/) const ->
       typename field_parent_t::tensor_t {
@@ -423,24 +382,14 @@ struct rectilinear_grid_vertex_property_sampler_view
   //------------------------------------------------------------------------------
   /// returns data of top rectilinear_grid_vertex_property_sampler at
   /// m_fixed_index and index list is...
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
-#endif
-  constexpr auto data_at(Is const... is) const -> decltype(auto) {
+  constexpr auto data_at(integral auto const... is) const -> decltype(auto) {
     static_assert(sizeof...(is) == num_dimensions(),
                   "Number of indices is not equal to number of dimensions.");
     return m_top_sampler.data_at(m_fixed_index, is...);
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <size_t DimensionIndex, arithmetic X>
-#else
-  template <size_t DimensionIndex, typename X,
-            enable_if<is_arithmetic<X>> = true>
-#endif
-  constexpr auto cell_index(X const x) const -> decltype(auto) {
+  template <size_t DimensionIndex>
+  constexpr auto cell_index(arithmetic auto const x) const -> decltype(auto) {
     return m_top_sampler.template cell_index<DimensionIndex>(x);
   }
 };

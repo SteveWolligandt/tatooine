@@ -75,15 +75,7 @@ struct unstructured_grid : pointset<Real, NumDimensions> {
     //----------------------------------------------------------------------------
     /// Checks if a point x is inside the cell.
     /// From here: https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html
-#ifndef __cpp_concepts
-    template <size_t N_ = NumDimensions, enable_if<N_ == 2> = true,
-              enable_if<N_ == NumDimensions> = true>
-#endif
-    auto is_inside(pos_t const& x) const
-#ifdef __cpp_concepts
-        requires(NumDimensions == 2)
-#endif
-    {
+    auto is_inside(pos_t const& x) const requires(NumDimensions == 2) {
       bool c = false;
       for (size_t i = 0, j = size() - 1; i < size(); j = i++) {
         auto const& xi = m_grid->at(at(i));
@@ -101,15 +93,8 @@ struct unstructured_grid : pointset<Real, NumDimensions> {
     /// This is an implementation of \"\a Barycentric \a coordinates \a for \a
     /// arbitrary  \a polygons \a in \a the \a plane\" by Hormann
     /// \cite Hormann2005BarycentricCF.
-#ifndef __cpp_concepts
-    template <size_t N_ = NumDimensions, enable_if<N_ == 2> = true,
-              enable_if<N_ == NumDimensions> = true>
-#endif
     auto barycentric_coordinates(pos_t const& query_point) const
-#ifdef __cpp_concepts
-        requires(NumDimensions == 2)
-#endif
-    {
+        requires(NumDimensions == 2) {
       // some typedefs and namespaces
       using namespace boost;
       using namespace boost::adaptors;
@@ -305,7 +290,7 @@ struct unstructured_grid : pointset<Real, NumDimensions> {
           return acc;
         }
       }
-      return T{Real(0)/Real(0)};
+      return T{Real(0) / Real(0)};
     }
   };
   using parent_t::at;

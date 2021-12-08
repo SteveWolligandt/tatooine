@@ -482,53 +482,27 @@ class legacy_file_writer {
   auto write_triangle_strips(
       std::vector<std::vector<size_t>> const &lines) -> void;
 
-#ifdef __cpp_concepts
-  template <arithmetic T>
-#else
-  template <typename T, enable_if_arithmetic<T> = true>
-#endif
-  auto write_x_coordinates(std::vector<T> const &x_coordinates) -> void {
+  auto write_coordinates(std::string_view             name,
+                         arithmetic_range auto const &coords) -> void {
+    using value_type = typename std::decay_t<decltype(coords)>::value_type;
     std::stringstream ss;
-    ss << "\nX_COORDINATES " << ' ' << x_coordinates.size() << ' '
-       << type_to_str<T>() << '\n';
+    ss << "\n"<<name<<" " << ' ' << size(coords) << ' '
+       << type_to_str<value_type>() << '\n';
     vtk::write_binary(m_file, ss.str());
-    T d;
-    for (auto const &c : x_coordinates) {
+    value_type d;
+    for (auto const &c : coords) {
       d = swap_endianess(c);
-      m_file.write((char *)(&d), sizeof(T));
+      m_file.write((char *)(&d), sizeof(value_type));
     }
   }
-#ifdef __cpp_concepts
-  template <arithmetic T>
-#else
-  template <typename T, enable_if_arithmetic<T> = true>
-#endif
-  auto write_y_coordinates(std::vector<T> const &y_coordinates) -> void {
-    std::stringstream ss;
-    ss << "\nY_COORDINATES " << ' ' << y_coordinates.size() << ' '
-       << type_to_str<T>() << '\n';
-    vtk::write_binary(m_file, ss.str());
-    T d;
-    for (auto const &c : y_coordinates) {
-      d = swap_endianess(c);
-      m_file.write((char *)(&d), sizeof(T));
-    }
+  auto write_x_coordinates(arithmetic_range auto const &coords) -> void {
+    write_coordinates("X_COORDINATES", coords);
   }
-#ifdef __cpp_concepts
-  template <arithmetic T>
-#else
-  template <typename T, enable_if_arithmetic<T> = true>
-#endif
-  auto write_z_coordinates(std::vector<T> const &z_coordinates) -> void {
-    std::stringstream ss;
-    ss << "\nZ_COORDINATES " << ' ' << z_coordinates.size() << ' '
-       << type_to_str<T>() << '\n';
-    vtk::write_binary(m_file, ss.str());
-    T d;
-    for (auto const &c : z_coordinates) {
-      d = swap_endianess(c);
-      m_file.write((char *)(&d), sizeof(T));
-    }
+  auto write_y_coordinates(arithmetic_range auto const &coords) -> void {
+    write_coordinates("Y_COORDINATES", coords);
+  }
+  auto write_z_coordinates(arithmetic_range auto const &coords) -> void {
+    write_coordinates("Z_COORDINATES", coords);
   }
   auto write_point_data(size_t i) -> void;
   auto write_cell_data(size_t i) -> void;
@@ -549,37 +523,21 @@ class legacy_file_writer {
   auto write_tensors(std::string const &               name,
                      std::vector<std::array<Real, 9>> &tensors) -> void;
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <typename Data>
   requires(is_double<Data> || is_float<Data> || is_int<Data>)
-#else
-  template <typename Data, enable_if<((is_double<Data> || is_float<Data> ||
-                                       is_int<Data>))> = true>
-#endif
       auto write_scalars(std::string const &name, std::vector<Data> const &data,
                          std::string const &lookup_table_name = "default")
           -> void;
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <typename Data>
   requires(is_double<Data> || is_float<Data> || is_int<Data>)
-#else
-  template <typename Data, enable_if<((is_double<Data>) || is_float<Data> ||
-                                      is_int<Data>)> = true>
-#endif
       auto write_scalars(std::string const &                   name,
                          std::vector<std::vector<Data>> const &data,
                          std::string const &lookup_table_name = "default")
           -> void;
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <typename Data, size_t N>
   requires(is_double<Data> || is_float<Data> || is_int<Data>)
-#else
-  template <
-      typename Data, size_t N,
-      enable_if<((is_double<Data> || is_float<Data> || is_int<Data>))> = true>
-#endif
       auto write_scalars(std::string const &                     name,
                          std::vector<std::array<Data, N>> const &data,
                          std::string const &lookup_table_name = "default")
@@ -596,14 +554,8 @@ class legacy_file_writer {
       }
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <typename Data, size_t N>
   requires(is_double<Data> || is_float<Data> || is_int<Data>)
-#else
-  template <
-      typename Data, size_t N,
-      enable_if<((is_double<Data> || is_float<Data> || is_int<Data>))> = true>
-#endif
       auto write_scalars(std::string const &              name,
                          std::vector<vec<Data, N>> const &data,
                          std::string const &lookup_table_name = "default")
@@ -621,14 +573,8 @@ class legacy_file_writer {
       }
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <typename Real, size_t N>
   requires(is_double<Real> || is_float<Real> || is_int<Real>)
-#else
-  template <
-      typename Real, size_t N,
-      enable_if<((is_double<Real> || is_float<Real> || is_int<Real>))> = true>
-#endif
       auto write_scalars(std::string const &                 name,
                          std::vector<tensor<Real, N>> const &data,
                          std::string const &lookup_table_name = "default")
@@ -802,13 +748,8 @@ auto legacy_file_writer::write_tensors(
   write_data<9>("TENSORS", name, tensors);
 }
 //-----------------------------------------------------------------------------
-#ifdef __cpp_concepts
 template <typename Data>
 requires(is_double<Data> || is_float<Data> || is_int<Data>)
-#else
-template <typename Data,
-          enable_if<((is_double<Data> || is_float<Data> || is_int<Data>))>>
-#endif
     auto legacy_file_writer::write_scalars(std::string const &      name,
                                            std::vector<Data> const &data,
                                            std::string const &lookup_table_name)
@@ -823,13 +764,8 @@ template <typename Data,
   }
 }
 //------------------------------------------------------------------------------
-#ifdef __cpp_concepts
 template <typename Data>
 requires(is_double<Data> || is_float<Data> || is_int<Data>)
-#else
-template <typename Data,
-          enable_if<((is_double<Data> || is_float<Data> || is_int<Data>))>>
-#endif
     auto legacy_file_writer::write_scalars(
         std::string const &name, std::vector<std::vector<Data>> const &data,
         std::string const &lookup_table_name) -> void {

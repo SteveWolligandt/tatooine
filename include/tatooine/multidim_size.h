@@ -27,14 +27,13 @@ struct static_multidim_size {
   //----------------------------------------------------------------------------
   static constexpr auto size(size_t const i) { return size()[i]; }
   //----------------------------------------------------------------------------
-  static constexpr auto in_range(integral auto const... indices) {
-    static_assert(sizeof...(indices) == num_dimensions(),
-                  "Number of indices does not match number of dimensions.");
+  static constexpr auto in_range(integral auto const... indices) requires(
+      sizeof...(indices) == num_dimensions()) {
     return ((indices >= 0) && ...) &&
            ((static_cast<size_t>(indices) < Resolution) && ...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  static constexpr auto in_range(range auto const& indices) {
+  static constexpr auto in_range(integral_range auto const& indices) {
     for (size_t i = 0; i < indices.size(); ++i) {
       if (indices[i] >= size(i)) {
         return false;
@@ -43,22 +42,17 @@ struct static_multidim_size {
     return true;
   }
   //----------------------------------------------------------------------------
-  static constexpr auto plain_index(integral auto const... indices) {
-    static_assert(sizeof...(indices) == num_dimensions(),
-                  "number of indices does not match number of dimensions");
+  static constexpr auto plain_index(integral auto const... indices) requires(
+      sizeof...(indices) == num_dimensions()) {
     return IndexOrder::plain_index(size(), indices...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  static auto plain_index(range auto const& indices) {
-    using Indices = std::decay_t<decltype(indices)>;
-    static_assert(is_integral<typename Indices::value_type>,
-                  "index range must hold integral type");
-    assert(indices.size() == num_dimensions() &&
-           "number of indices does not match number of dimensions");
+  static auto plain_index(integral_range auto const& indices) {
     return IndexOrder::plain_index(size(), indices);
   }
   //----------------------------------------------------------------------------
-  constexpr auto operator()(integral auto const... indices) const {
+  constexpr auto operator()(integral auto const... indices) const
+      requires(sizeof...(indices) == num_dimensions()) {
     return plain_index(indices...);
   }
   //----------------------------------------------------------------------------
@@ -114,12 +108,8 @@ class dynamic_multidim_size {
   explicit dynamic_multidim_size(std::vector<size_t>&& size)
       : m_size(std::move(size)) {}
   //----------------------------------------------------------------------------
-  explicit dynamic_multidim_size(range auto const& size)
-      : m_size(begin(size), end(size)) {
-    using Size = std::decay_t<decltype(size)>;
-    static_assert(std::is_integral_v<typename Size::value_type>,
-                  "size range must hold integral type");
-  }
+  explicit dynamic_multidim_size(integral_range auto const& size)
+      : m_size(begin(size), end(size)) {}
   //----------------------------------------------------------------------------
   // comparisons
   //----------------------------------------------------------------------------
@@ -168,7 +158,7 @@ class dynamic_multidim_size {
     m_size = {static_cast<size_t>(size)...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void resize(range auto const& size) {
+  void resize(integral_range auto const& size) {
     m_size = std::vector<size_t>(begin(size), end(size));
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -181,10 +171,7 @@ class dynamic_multidim_size {
     return in_range(std::array{static_cast<size_t>(indices)...});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto in_range(range auto const& indices) const {
-    using Indices = std::decay_t<decltype(indices)>;
-    static_assert(std::is_integral_v<typename Indices::value_type>,
-                  "index range must hold integral type");
+  constexpr auto in_range(integral_range auto const& indices) const {
     assert(indices.size() == num_dimensions());
     for (size_t i = 0; i < indices.size(); ++i) {
       if (indices[i] >= size(i)) {
@@ -200,10 +187,7 @@ class dynamic_multidim_size {
     return IndexOrder::plain_index(m_size, indices...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto plain_index(range auto const& indices) const {
-    using Indices = std::decay_t<decltype(indices)>;
-    static_assert(std::is_integral_v<typename Indices::value_type>,
-                  "index range must hold integral type");
+  constexpr auto plain_index(integral_range auto const& indices) const {
     assert(indices.size() == num_dimensions());
     assert(in_range(indices));
     return IndexOrder::plain_index(m_size, indices);
@@ -223,7 +207,7 @@ template <typename IndexOrder>
 dynamic_multidim_size(dynamic_multidim_size<IndexOrder> const&)
     -> dynamic_multidim_size<IndexOrder>;
 template <typename IndexOrder>
-dynamic_multidim_size(dynamic_multidim_size<IndexOrder> &&)
+dynamic_multidim_size(dynamic_multidim_size<IndexOrder>&&)
     -> dynamic_multidim_size<IndexOrder>;
 template <typename... Resolution>
 dynamic_multidim_size(Resolution...) -> dynamic_multidim_size<x_fastest>;

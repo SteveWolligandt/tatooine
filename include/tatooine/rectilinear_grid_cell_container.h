@@ -9,11 +9,7 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-#ifdef __cpp_concepts
 template <indexable_space... Dimensions>
-#else
-template <typename... Dimensions>
-#endif
 class rectilinear_grid;
 //==============================================================================
 template <typename... Dimensions>
@@ -31,22 +27,14 @@ struct rectilinear_grid_cell_container {
   //----------------------------------------------------------------------------
   rectilinear_grid_cell_container(rectilinear_grid<Dimensions...> const& g) : m_grid{g} {}
   //----------------------------------------------------------------------------
-//#ifdef __cpp_concepts
 //  template <size_t... DIs, integral Int>
-//#else
-//  template <size_t... DIs, typename Int, enable_if_integral<Int> = true>
-//#endif
 //  auto at(std::index_sequence<DIs...>,
 //          std::array<Int, num_dimensions()> const& is) const
 //      -> vec<real_t, num_dimensions()> {
 //    return pos_t{static_cast<real_t>(m_grid.template dimension<DIs>()[is[DIs]])...};
 //  }
 //  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-//#ifdef __cpp_concepts
 //  template <size_t... DIs, integral... Is>
-//#else
-//  template <size_t... DIs, typename... Is, enable_if_integral<Is...> = true>
-//#endif
 //  auto at(std::index_sequence<DIs...>, Is const... is) const
 //      -> vec<real_t, num_dimensions()> {
 //    static_assert(sizeof...(DIs) == sizeof...(is));
@@ -55,21 +43,13 @@ struct rectilinear_grid_cell_container {
 //  }
 //  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // public:
-//#ifdef __cpp_concepts
 //  template <integral... Is>
-//#else
-//  template <typename... Is, enable_if_integral<Is...> = true>
-//#endif
 //  auto at(Is const... is) const {
 //    static_assert(sizeof...(is) == num_dimensions());
 //    return at(seq_t{}, is...);
 //  }
 //  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-//#ifdef __cpp_concepts
 //  template <integral Int>
-//#else
-//  template <typename Int, enable_if_integral<Int> = true>
-//#endif
 //  auto at(std::array<Int, num_dimensions()> const& is) const {
 //    return at(seq_t{}, is);
 //  }
@@ -82,11 +62,7 @@ struct rectilinear_grid_cell_container {
 //    return at(seq_t{}, h.indices());
 //  }
 //  //----------------------------------------------------------------------------
-//#ifdef __cpp_concepts
 //  template <integral... Is>
-//#else
-//  template <typename... Is, enable_if_integral<Is...> = true>
-//#endif
 //  auto operator()(Is const... is) const {
 //    static_assert(sizeof...(is) == num_dimensions());
 //    return at(is...);
@@ -126,16 +102,9 @@ struct rectilinear_grid_cell_container {
   //----------------------------------------------------------------------------
  private:
   /// Sequential iteration implementation
-#ifdef __cpp_concepts
   template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
                 Iteration,
             size_t... Ds>
-#else
-  template <typename Iteration, size_t... Ds,
-            enable_if<is_invocable<Iteration,
-                                   decltype(((void)std::declval<Dimensions>(),
-                                             size_t{}))...> > = true>
-#endif
   auto iterate_indices(Iteration&& iteration, execution_policy::sequential_t,
                        std::index_sequence<Ds...>) const -> decltype(auto) {
     return for_loop(
@@ -146,15 +115,8 @@ struct rectilinear_grid_cell_container {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
   /// Sequential iteration
-#ifdef __cpp_concepts
   template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
                 Iteration>
-#else
-  template <typename Iteration,
-            enable_if<is_invocable<Iteration,
-                                   decltype(((void)std::declval<Dimensions>(),
-                                             size_t{}))...> > = true>
-#endif
   auto iterate_indices(Iteration&& iteration, execution_policy::sequential_t) const
       -> decltype(auto) {
     return iterate_indices(std::forward<Iteration>(iteration), execution_policy::sequential,
@@ -163,16 +125,9 @@ struct rectilinear_grid_cell_container {
   //----------------------------------------------------------------------------
  private:
   /// Parallel iteration implementation
-#ifdef __cpp_concepts
   template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
                 Iteration,
             size_t... Ds>
-#else
-  template <typename Iteration, size_t... Ds,
-            enable_if<is_invocable<Iteration,
-                                   decltype(((void)std::declval<Dimensions>(),
-                                             size_t{}))...> > = true>
-#endif
   auto iterate_indices(Iteration&& iteration, execution_policy::parallel_t,
                        std::index_sequence<Ds...>) const -> decltype(auto) {
     return for_loop(
@@ -183,15 +138,8 @@ struct rectilinear_grid_cell_container {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
   /// Parallel iteration
-#ifdef __cpp_concepts
   template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
                 Iteration>
-#else
-  template <typename Iteration,
-            enable_if<is_invocable<Iteration,
-                                   decltype(((void)std::declval<Dimensions>(),
-                                             size_t{}))...> > = true>
-#endif
   auto iterate_indices(Iteration&& iteration, execution_policy::parallel_t) const
       -> decltype(auto) {
     return iterate_indices(std::forward<Iteration>(iteration), execution_policy::parallel,
@@ -199,44 +147,25 @@ struct rectilinear_grid_cell_container {
   }
   //----------------------------------------------------------------------------
   /// Default iteration
-#ifdef __cpp_concepts
   template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
                 Iteration>
-#else
-  template <typename Iteration,
-            enable_if<is_invocable<Iteration,
-                                   decltype(((void)std::declval<Dimensions>(),
-                                             size_t{}))...> > = true>
-#endif
   auto iterate_indices(Iteration&& iteration) const -> decltype(auto) {
     return iterate_indices(std::forward<Iteration>(iteration), execution_policy::sequential,
                            std::make_index_sequence<num_dimensions()>{});
   }
 };
 //------------------------------------------------------------------------------
-//#ifdef __cpp_concepts
 //template <indexable_space... Dimensions>
-//#else
-//template <typename... Dimensions>
-//#endif
 //auto begin(rectilinear_grid_cell_container<Dimensions...> const& c) {
 //  return c.begin();
 //}
 ////------------------------------------------------------------------------------
-//#ifdef __cpp_concepts
 //template <indexable_space... Dimensions>
-//#else
-//template <typename... Dimensions>
-//#endif
 //auto end(rectilinear_grid_cell_container<Dimensions...> const& c) {
 //  return c.end();
 //}
 //------------------------------------------------------------------------------
-#ifdef __cpp_concepts
 template <indexable_space... Dimensions>
-#else
-template <typename... Dimensions>
-#endif
 auto size(rectilinear_grid_cell_container<Dimensions...> const& c) {
   return c.size();
 }
@@ -245,35 +174,19 @@ auto size(rectilinear_grid_cell_container<Dimensions...> const& c) {
 //==============================================================================
 namespace std::ranges {
 //==============================================================================
-//#ifdef __cpp_concepts
 //template <tatooine::indexable_space... Dimensions>
-//#else
-//template <typename... Dimensions>
-//#endif
 //constexpr auto begin(tatooine::rectilinear_grid_cell_container<Dimensions...>& r) {
 //  r.begin();
 //}
-//#ifdef __cpp_concepts
 //template <tatooine::indexable_space... Dimensions>
-//#else
-//template <typename... Dimensions>
-//#endif
 //constexpr auto end(tatooine::rectilinear_grid_cell_container<Dimensions...>& r) {
 //  r.end();
 //}
-//#ifdef __cpp_concepts
 //template <tatooine::indexable_space... Dimensions>
-//#else
-//template <typename... Dimensions>
-//#endif
 //constexpr auto begin(tatooine::rectilinear_grid_cell_container<Dimensions...> const& r) {
 //  r.begin();
 //}
-//#ifdef __cpp_concepts
 //template <tatooine::indexable_space... Dimensions>
-//#else
-//template <typename... Dimensions>
-//#endif
 //constexpr auto end(tatooine::rectilinear_grid_cell_container<Dimensions...> const& r) {
 //  r.end();
 //}

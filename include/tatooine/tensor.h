@@ -107,7 +107,7 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,
       base_tensor<OtherTensor, OtherT, Dims...> const& other) -> tensor& {
     // Check if the same matrix gets assigned as its transposed version. If yes
     // just swap components.
-    if constexpr (is_transposed_tensor_v<OtherTensor>) {
+    if constexpr (is_transposed_tensor<OtherTensor>) {
       if (this == &other.as_derived().internal_tensor()) {
         for (size_t col = 0; col < dimension(1) - 1; ++col) {
           for (size_t row = col + 1; row < dimension(0); ++row) {

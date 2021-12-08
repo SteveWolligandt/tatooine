@@ -6,10 +6,10 @@
 namespace tatooine {
 //==============================================================================
 template <typename T>
-struct is_transposed_tensor : std::false_type {};
+struct is_transposed_tensor_impl : std::false_type {};
 //------------------------------------------------------------------------------
 template <typename T>
-static constexpr auto is_transposed_tensor_v = is_transposed_tensor<T>::value;
+static constexpr auto is_transposed_tensor = is_transposed_tensor_impl<T>::value;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

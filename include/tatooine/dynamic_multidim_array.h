@@ -369,19 +369,13 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
     return m_data[plain_index(is...)];
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto at(range auto const& indices) -> auto& {
-    using Indices = std::decay_t<decltype(indices)>;
-    static_assert(is_integral<typename Indices::value_type>,
-                  "index range must hold integral type");
+  auto at(integral_range auto const& indices) -> auto& {
     assert(indices.size() == num_dimensions());
     assert(in_range(indices));
     return m_data[plain_index(indices)];
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto at(range auto const& indices) const -> auto const& {
-    using Indices = std::decay_t<decltype(indices)>;
-    static_assert(is_integral<typename Indices::value_type>,
-                  "index range must hold integral type");
+  auto at(integral_range auto const& indices) const -> auto const& {
     assert(indices.size() == num_dimensions());
     assert(in_range(indices));
     return m_data[plain_index(indices)];
@@ -406,19 +400,13 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
     return at(is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator()(range auto const& indices) -> auto& {
-    using Indices = std::decay_t<decltype(indices)>;
-    static_assert(is_integral<typename Indices::value_type>,
-                  "index range must hold integral type");
+  auto operator()(integral_range auto const& indices) -> auto& {
     assert(indices.size() == num_dimensions());
     assert(in_range(indices));
     return at(indices);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator()(range auto const& indices) const -> auto const& {
-    using Indices = std::decay_t<decltype(indices)>;
-    static_assert(is_integral<typename Indices::value_type>,
-                  "index range must hold integral type");
+  auto operator()(integral_range auto const& indices) const -> auto const& {
     assert(indices.size() == num_dimensions());
     assert(in_range(indices));
     return at(indices);

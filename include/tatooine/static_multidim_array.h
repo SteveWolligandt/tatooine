@@ -1,9 +1,7 @@
 #ifndef TATOOINE_STATIC_MULTIDIM_ARRAY_H
 #define TATOOINE_STATIC_MULTIDIM_ARRAY_H
 //==============================================================================
-#ifdef __cpp_concepts
 #include <tatooine/concepts.h>
-#endif
 #include <tatooine/index_order.h>
 #include <tatooine/linspace.h>
 #include <tatooine/make_array.h>
@@ -69,34 +67,23 @@ class static_multidim_array
     return this_t{tag::fill<std::decay_t<S>>{std::forward<S>(s)}};
   }
   //------------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <typename RandEng = std::mt19937_64>
-  requires arithmetic<T>
-#else
-  template <typename RandEng = std::mt19937_64, typename T_ = T,
-            enable_if_arithmetic<T_> = true>
-#endif
-      static auto randu(T min = 0, T max = 1,
-                        RandEng&& eng = RandEng{std::random_device{}()}) {
+  static auto randu(T min = 0, T max = 1,
+                    RandEng&& eng = RandEng{
+                        std::random_device{}()}) requires arithmetic<T> {
     return this_t{random::uniform{min, max, std::forward<RandEng>(eng)}};
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <typename RandEng = std::mt19937_64>
-  requires arithmetic<T>
-#else
-  template <typename RandEng = std::mt19937_64, typename T_ = T,
-            enable_if_arithmetic<T_> = true>
-#endif
-      static auto randn(T mean = 0, T stddev = 1,
-                        RandEng&& eng = RandEng{std::random_device{}()}) {
+  static auto randn(T mean = 0, T stddev = 1,
+                    RandEng&& eng = RandEng{
+                        std::random_device{}()}) requires arithmetic<T> {
     return this_t{random::normal{mean, stddev, std::forward<RandEng>(eng)}};
   }
   //============================================================================
   // members
   //============================================================================
- private:
-  container_t m_data;
+ private : container_t m_data;
   //============================================================================
   // ctors
   //============================================================================
@@ -133,12 +120,7 @@ class static_multidim_array
     return *this;
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <convertible_to<T>... Ts>
-#else
-  template <typename... Ts, enable_if<(is_convertible<Ts, T> && ...)> = true>
-#endif
-  explicit constexpr static_multidim_array(Ts&&... ts)
+  explicit constexpr static_multidim_array(convertible_to<T> auto&&... ts)
       : m_data{static_cast<T>(ts)...} {
     static_assert(sizeof...(ts) == num_components());
   }
@@ -149,25 +131,11 @@ class static_multidim_array
   explicit constexpr static_multidim_array(tag::fill<S> const& f)
       : m_data(init_data(static_cast<T>(f.value))) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <typename = void>
-  requires arithmetic<T>
-#else
-  template <typename T_ = T, enable_if_arithmetic<T_> = true>
-#endif
-      explicit constexpr static_multidim_array(tag::zeros_t /*z*/)
-      : m_data(init_data(0)) {
-  }
+  explicit constexpr static_multidim_array(tag::zeros_t /*z*/) requires
+      arithmetic<T> : m_data(init_data(0)) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <typename = void>
-  requires arithmetic<T>
-#else
-  template <typename T_ = T, enable_if_arithmetic<T_> = true>
-#endif
-      explicit constexpr static_multidim_array(tag::ones_t /*o*/)
-      : m_data(init_data(1)) {
-  }
+  explicit constexpr static_multidim_array(tag::ones_t /*o*/) requires
+      arithmetic<T> : m_data(init_data(1)) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   explicit static_multidim_array(std::vector<T> const& data)
       : m_data(begin(data), end(data)) {
@@ -178,81 +146,43 @@ class static_multidim_array
       std::array<T, num_components()> const& data)
       : m_data(data) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <typename = void>
-  requires std::is_same_v<MemLoc, tag::stack>
-#else
-  template <typename MemLoc_                        = MemLoc,
-            enable_if<is_same<MemLoc_, tag::stack>> = true>
-#endif
-      explicit constexpr static_multidim_array(
-          std::array<T, num_components()>&& data)
-      : m_data(std::move(data)) {
-  }
+  explicit constexpr static_multidim_array(
+      std::array<T, num_components()>&& data) requires
+      is_same<MemLoc, tag::stack> : m_data(std::move(data)) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <typename = void>
-  requires std::is_same_v<MemLoc, tag::heap>
-#else
-  template <typename MemLoc_                       = MemLoc,
-            enable_if<is_same<MemLoc_, tag::heap>> = true>
-#endif
-      explicit constexpr static_multidim_array(std::vector<T>&& data)
+  explicit constexpr static_multidim_array(
+      std::vector<T>&& data) requires is_same<MemLoc, tag::heap>
       : m_data(std::move(data)) {
     assert(num_components() == data.size());
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <typename RandomReal, typename Engine>
-  requires arithmetic<T>
-#else
-  template <typename RandomReal, typename Engine, typename T_ = T,
-            enable_if_arithmetic<T_> = true>
-#endif
-      explicit constexpr static_multidim_array(
-          random::uniform<RandomReal, Engine>& rand)
+  explicit constexpr static_multidim_array(
+      random::uniform<RandomReal, Engine>& rand) requires arithmetic<T>
       : static_multidim_array{} {
     this->unary_operation(
         [&](auto const& /*c*/) { return static_cast<T>(rand()); });
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <typename RandomReal, typename Engine>
-  requires arithmetic<T>
-#else
-  template <typename RandomReal, typename Engine, typename T_ = T,
-            enable_if_arithmetic<T_> = true>
-#endif
-      explicit constexpr static_multidim_array(
-          random::uniform<RandomReal, Engine>&& rand)
+  explicit constexpr static_multidim_array(
+      random::uniform<RandomReal, Engine>&& rand) requires arithmetic<T>
       : static_multidim_array{} {
     this->unary_operation(
         [&](auto const& /*c*/) { return static_cast<T>(rand()); });
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <typename RandomReal, typename Engine>
-  requires arithmetic<T>
-#else
-  template <typename RandomReal, typename Engine, typename T_ = T,
-            enable_if_arithmetic<T_> = true>
-#endif
-      explicit constexpr static_multidim_array(
-          random::normal<RandomReal, Engine>&& rand)
+  explicit constexpr static_multidim_array(
+      random::normal<RandomReal, Engine>&& rand) requires arithmetic<T>
       : static_multidim_array{} {
     this->unary_operation(
         [&](auto const& /*c*/) { return static_cast<T>(rand()); });
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
   template <typename RandomReal, typename Engine>
-  requires arithmetic<T>
-#else
-  template <typename RandomReal, typename Engine, typename T_ = T,
-            enable_if_arithmetic<T_> = true>
-#endif
-      explicit constexpr static_multidim_array(
-          random::normal<RandomReal, Engine>& rand)
+  explicit constexpr static_multidim_array(
+      random::normal<RandomReal, Engine>& rand) requires arithmetic<T>
       : static_multidim_array{} {
     this->unary_operation(
         [&](auto const& /*c*/) { return static_cast<T>(rand()); });
@@ -261,94 +191,49 @@ class static_multidim_array
   // methods
   //============================================================================
  public:
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if_integral<Is...> = true>
-#endif
-  [[nodiscard]] constexpr auto at(Is const... is) const -> const auto& {
+  [[nodiscard]] constexpr auto at(integral auto const... is) const -> const
+      auto& {
     static_assert(sizeof...(is) == num_dimensions());
     assert(in_range(is...));
     return m_data[plain_index(is...)];
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if_integral<Is...> = true>
-#endif
-  constexpr auto at(Is const... is) -> auto& {
+  constexpr auto at(integral auto const... is) -> auto& {
     static_assert(sizeof...(is) == num_dimensions());
     assert(in_range(is...));
     return m_data[plain_index(is...)];
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <range Indices>
-#else
-  template <typename Indices, enable_if<is_range<Indices>> = true>
-#endif
-  constexpr auto at(Indices const& indices) const -> auto const& {
-    static_assert(is_integral<typename Indices::value_type>,
-                  "index range must hold integral type");
+  constexpr auto at(integral_range auto const& indices) const -> auto const& {
     assert(indices.size() == num_dimensions());
     return m_data[plain_index(indices)];
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <range Indices>
-#else
-  template <typename Indices, enable_if<is_range<Indices>> = true>
-#endif
-  constexpr auto at(Indices const& indices) -> auto& {
-    static_assert(is_integral<typename Indices::value_type>,
-                  "index range must hold integral type");
+  constexpr auto at(integral_range auto const& indices) -> auto& {
     assert(indices.size() == num_dimensions());
     return m_data[plain_index(indices)];
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if_integral<Is...> = true>
-#endif
-  [[nodiscard]] constexpr auto operator()(Is const... is) const -> auto const& {
+  [[nodiscard]] constexpr auto operator()(integral auto const... is) const
+      -> auto const& {
     static_assert(sizeof...(is) == num_dimensions());
     assert(in_range(is...));
     return m_data[plain_index(is...)];
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if_integral<Is...> = true>
-#endif
-  constexpr auto operator()(Is const... is) -> auto& {
+  constexpr auto operator()(integral auto const... is) -> auto& {
     static_assert(sizeof...(is) == num_dimensions());
     assert(in_range(is...));
     return m_data[plain_index(is...)];
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <range Indices>
-#else
-  template <typename Indices, enable_if<is_range<Indices>> = true>
-#endif
-  constexpr auto operator()(Indices const& indices) const -> const auto& {
-    static_assert(is_integral<typename Indices::value_type>,
-                  "index range must hold integral type");
+  constexpr auto operator()(integral_range auto const& indices) const -> const
+      auto& {
     assert(indices.size() == num_dimensions());
     return m_data[plain_index(indices)];
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <range Indices>
-#else
-  template <typename Indices, enable_if<is_range<Indices>> = true>
-#endif
-  constexpr auto operator()(Indices const& indices) -> auto& {
-    static_assert(is_integral<typename Indices::value_type>,
-                  "index range must hold integral type");
+  constexpr auto operator()(integral_range auto const& indices) -> auto& {
     assert(indices.size() == num_dimensions());
     return m_data[plain_index(indices)];
   }
