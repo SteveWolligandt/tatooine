@@ -9,7 +9,7 @@ TEST_CASE("sphere_ray_intersection", "[sphere][intersection][ray]") {
   auto intersection = s.check_intersection(r);
   REQUIRE(intersection);
   REQUIRE(approx_equal(intersection->position, vec3{-1.0, 0.0, 0.0}));
-  discretize(s).write_vtp("discretized_sphere.vtp");
+  discretize(s,5).write_vtp("discretized_sphere.vtp");
 }
 //==============================================================================
 TEST_CASE("sphere_discretization", "[sphere][discretization]") {

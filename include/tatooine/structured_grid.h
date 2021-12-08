@@ -178,6 +178,8 @@ auto structured_grid<Real, NumDimensions, IndexOrder>::read(
 template <typename Real, std::size_t NumDimensions, typename IndexOrder>
 auto structured_grid<Real, NumDimensions, IndexOrder>::read_vts(
     filesystem::path const& path) -> void {
+  // TODO write binary data arrays with number of bytes at the beginning of each
+  // array
   struct listener_t : vtk::xml::listener {
     this_t& grid;
     listener_t(this_t& g) : grid{g} {}
