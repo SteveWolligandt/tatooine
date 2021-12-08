@@ -889,9 +889,15 @@ if ( it == end(m_cell_properties)) {
                num_bytes_points);
     file.write(reinterpret_cast<char const*>(cells().data()),
                num_bytes_polys_connectivity);
+    for (std::size_t i = 0; i < size(cells().data_container()); ++i) {
+      std::cerr << cells().data_container()[i] << '\n';
+    }
     {
       auto offsets = std::vector<polys_offset_int_t>(
           cells().size(), num_vertices_per_simplex());
+      for (std::size_t i = 0; i < size(offsets); ++i) {
+        std::cerr << offsets[i] << '\n';
+      }
       for (std::size_t i = 1; i < size(offsets); ++i) {
         offsets[i] += offsets[i - 1];
       }

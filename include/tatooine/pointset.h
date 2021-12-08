@@ -99,9 +99,9 @@ struct pointset {
              m_pointset->m_invalid_vertices.size();
     }
     auto data_container() const -> auto const& {
-      return m_mesh->m_vertex_positions;
+      return m_pointset->vertex_positions();
     }
-    auto data() const { return m_mesh->m_vertex_positions.data(); }
+    auto data() const { return data_container().data(); }
   };
   //----------------------------------------------------------------------------
   template <typename T>
