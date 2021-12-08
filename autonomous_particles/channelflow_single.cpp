@@ -137,14 +137,14 @@ auto main(int argc, char** argv) -> int {
     auto all_initial_discretizations =
         std::vector<unstructured_triangular_grid3>{};
     for (auto const& p : advected_particles) {
-      all_initial_discretizations.push_back(discretize(p, 2));
+      all_initial_discretizations.push_back(discretize(p));
       all_advected_discretizations.push_back(
-          discretize(p.initial_ellipse(), 2));
+          discretize(p.initial_ellipse()));
     }
     all_initial_discretizations.front().write_vtp("channelflow_single_front.vtp");
-    //write_vtk(all_initial_discretizations,
-    //          "channelflow_single_ellipsoids0.vtk");
-    //write_vtk(all_advected_discretizations,
-    //          "channelflow_single_ellipsoids1.vtk");
+    //write(all_initial_discretizations,
+    //          "channelflow_single_ellipsoids0.vtp");
+    //write(all_advected_discretizations,
+    //          "channelflow_single_ellipsoids1.vtp");
   });
 }

@@ -793,7 +793,7 @@ class unstructured_simplicial_grid
          << vtk::xml::data_array::to_string(
                 vtk::xml::data_array::to_type<header_type>())
          << "\">";
-    file << "<PolyData>";
+    file << "<PolyData>\n";
     file << "<Piece"
          << " NumberOfPoints=\"" << vertices().size() << "\""
          << " NumberOfPolys=\"" << cells().size() << "\""
@@ -803,17 +803,16 @@ class unstructured_simplicial_grid
          << ">\n";
 
     // Points
-    file << "<Points>\n";
-
+    file << "<Points>";
     file << "<DataArray"
          << " format=\"appended\""
          << " offset=\"" << offset << "\""
          << " type=\""
          << vtk::xml::data_array::to_string(
                 vtk::xml::data_array::to_type<Real>())
-         << "\" NumberOfComponents=\"" << num_dimensions() << "\"/>\n";
+         << "\" NumberOfComponents=\"" << num_dimensions() << "\"/>";
     auto const num_bytes_points = header_type(
-        sizeof(Real) * num_dimensions() * vertices().data_container().size());
+        sizeof(Real) * num_dimensions() * vertices().size());
     offset += num_bytes_points + sizeof(header_type);
 
     file << "</Points>\n";
@@ -841,33 +840,29 @@ class unstructured_simplicial_grid
         sizeof(polys_offset_int_t) * cells().size();
     offset += num_bytes_polys_offsets + sizeof(header_type);
     file << "</Polys>\n";
-
-    // file << "      <PointData>\n";
-    // file << "      </PointData>\n\n";
-    //
-    // file << "      <CellData>\n";
-    // file << "      </CellData>\n\n";
-    //
-    // file << "      <Verts>\n";
-    // file << "      </Verts>\n\n";
-    //
-    // file << "      <Lines>\n";
-    // file << "      </Lines>\n\n";
-    //
-    // file << "      <Strips>\n";
-    // file << "      </Strips>\n\n";
-
-    file << "</Piece>";
-    file << "</PolyData>";
-
+    file << "</Piece>\n";
+    file << "</PolyData>\n";
     file << "<AppendedData encoding=\"raw\">_";
     // Writing vertex data to appended data section
     auto arr_size = header_type{};
 
-    arr_size = num_bytes_points;
-    file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
-    file.write(reinterpret_cast<char const*>(vertices().data()),
-               num_bytes_points);
+    {
+      auto point_data =
+          std::vector<polys_connectivity_int_t>(vertices().size());
+      std::ranges::copy(
+          vertices() |
+              std::views::transform([this](auto const v) { return at(v); }),
+          begin(point_data));
+      arr_size = num_bytes_polys_connectivity;
+      arr_size = num_bytes_points;
+      file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
+      file.write(reinterpret_cast<char const*>(point_data.data()),
+                 num_bytes_points);
+      std::cout << "points\n";
+      for (auto const x : point_data) {
+        std::cout << x << '\n';
+      }
+    }
 
     // Writing polys connectivity data to appended data section
     {
@@ -882,6 +877,10 @@ class unstructured_simplicial_grid
       file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
       file.write(reinterpret_cast<char const*>(connectivity_data.data()),
                  num_bytes_polys_connectivity);
+      std::cout << "connectivity_data\n";
+      for (auto const x : connectivity_data) {
+        std::cout << x << '\n';
+      }
     }
 
     // Writing polys offsets to appended data section
@@ -892,6 +891,10 @@ class unstructured_simplicial_grid
         offsets[i] += offsets[i - 1];
       }
       arr_size = num_bytes_polys_offsets;
+      std::cout << "offsets\n";
+      for (auto const x : offsets) {
+        std::cout << x << '\n';
+      }
       file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
       file.write(reinterpret_cast<char const*>(offsets.data()),
                  num_bytes_polys_offsets);
