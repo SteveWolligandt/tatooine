@@ -824,101 +824,122 @@ if ( it == end(m_cell_properties)) {
   }
   //----------------------------------------------------------------------------
   auto write_vtp(filesystem::path const& path) const {
-    auto file = std::ofstream{path};
+    auto file = std::ofstream{path, std::ios::binary};
     if (!file.is_open()) {
       throw std::runtime_error{"Could not write " + path.string()};
     }
     auto offset = std::size_t{};
-    file << "<VTKFile type=\"PolyData\" version=\"0.1\" byte_order=\"LittleEndian\">\n";
-    file << "  <PolyData>\n";
-    file << "    <Piece NumberOfPoints=\"" << vertices().size()
-         << "\" NumberOfPolys=\"" << cells().size() << "\""
+    using header_type = std::uint64_t;
+    file << "<VTKFile"
+         << " type=\"PolyData\""
+         << " version=\"1.0\" "
+            "byte_order=\"LittleEndian\""
+         << " header_type=\""
+         << vtk::xml::data_array::to_string(
+                vtk::xml::data_array::to_type<header_type>())
+         << "\">";
+    file << "<PolyData>";
+    file << "<Piece"
+         << " NumberOfPoints=\"" << vertices().size() << "\""
+         << " NumberOfPolys=\"" << cells().size() << "\""
+         << " NumberOfVerts=\"0\""
+         << " NumberOfLines=\"0\""
+         << " NumberOfStrips=\"0\""
          << ">\n";
 
     // Points
-    file << "      <Points>\n";
+    file << "<Points>\n";
 
-    file << "        "
-         << "<DataArray"
+    file << "<DataArray"
          << " format=\"appended\""
          << " offset=\"" << offset << "\""
          << " type=\""
          << vtk::xml::data_array::to_string(
                 vtk::xml::data_array::to_type<Real>())
          << "\" NumberOfComponents=\"" << num_dimensions() << "\"/>\n";
-    auto const num_bytes_points = sizeof(Real) * num_dimensions() * vertices().size();
-    offset += num_bytes_points;
+    auto const num_bytes_points = header_type(
+        sizeof(Real) * num_dimensions() * vertices().data_container().size());
+    offset += num_bytes_points + sizeof(header_type);
 
-    file << "      </Points>\n";
+    file << "</Points>\n";
 
     // Polys
-    file << "      <Polys>\n";
+    file << "<Polys>\n";
     // Polys - connectivity
-    file << "        <DataArray format=\"appended\" offset=\"" << offset
-         << "\" type=\""
+    using polys_connectivity_int_t = std::int32_t;
+    file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
          << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<typename vertex_handle::int_t>())
+                vtk::xml::data_array::to_type<polys_connectivity_int_t>())
          << "\" Name=\"connectivity\"/>\n";
     auto const num_bytes_polys_connectivity =
         cells().size() * num_vertices_per_simplex() *
-        sizeof(typename vertex_handle::int_t);
-    offset += num_bytes_polys_connectivity;
+        sizeof(polys_connectivity_int_t);
+    offset += num_bytes_polys_connectivity + sizeof(header_type);
 
     // Polys - offsets
-    using polys_offset_int_t = std::int32_t;
-    file << "        <DataArray format=\"appended\" offset=\"" << offset
+    using polys_offset_int_t = polys_connectivity_int_t;
+    file << "<DataArray format=\"appended\" offset=\"" << offset
          << "\" type=\""
          << vtk::xml::data_array::to_string(
                 vtk::xml::data_array::to_type<polys_offset_int_t>())
          << "\" Name=\"offsets\"/>\n";
     auto const num_bytes_polys_offsets = sizeof(polys_offset_int_t) * cells().size();
-    offset += num_bytes_polys_offsets;
+    offset += num_bytes_polys_offsets + sizeof(header_type);
+    file << "</Polys>\n";
 
-    //// Polys - types
-    //file << "        <DataArray format=\"appended\" offset=\"" << offset
-    //     << "\" type=\"UInt8\" Name=\"types\"/>\n";
-    //auto const num_bytes_polys_types = sizeof(std::uint8_t) * cells().size();
-    //offset += num_bytes_polys_types;
+    //file << "      <PointData>\n";
+    //file << "      </PointData>\n\n";
+    //
+    //file << "      <CellData>\n";
+    //file << "      </CellData>\n\n";
+    //
+    //file << "      <Verts>\n";
+    //file << "      </Verts>\n\n";
+    //
+    //file << "      <Lines>\n";
+    //file << "      </Lines>\n\n";
+    //
+    //file << "      <Strips>\n";
+    //file << "      </Strips>\n\n";
 
-    file << "      </Polys>\n";
+    file << "</Piece>";
+    file << "</PolyData>";
 
-    file << "    </Piece>\n";
-    file << "  </PolyData>\n";
-    file << "  <AppendedData encoding=\"raw\">\n_";
+    file << "<AppendedData encoding=\"raw\">_";
+    // Writing vertex data to appended data section
+    auto arr_size = header_type{};
+
+    arr_size = num_bytes_points;
+    file.write(reinterpret_cast<char const*>(&arr_size),
+               sizeof(header_type));
     file.write(reinterpret_cast<char const*>(vertices().data()),
                num_bytes_points);
-    file.write(reinterpret_cast<char const*>(cells().data()),
-               num_bytes_polys_connectivity);
-    for (std::size_t i = 0; i < size(cells().data_container()); ++i) {
-      std::cerr << cells().data_container()[i] << '\n';
+    
+    // Writing polys connectivity data to appended data section
+    {
+      auto connectivity_data = std::vector<polys_connectivity_int_t>(
+          cells().size() * num_vertices_per_simplex());
+      std::ranges::copy(cells().data_container() | std::views::transform([](auto const x)->polys_connectivity_int_t{return x.i;}), begin(connectivity_data));
+      arr_size = num_bytes_polys_connectivity;
+      file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
+      file.write(reinterpret_cast<char const*>(connectivity_data.data()),
+                 num_bytes_polys_connectivity);
     }
+
+    // Writing polys offsets to appended data section
     {
       auto offsets = std::vector<polys_offset_int_t>(
           cells().size(), num_vertices_per_simplex());
-      for (std::size_t i = 0; i < size(offsets); ++i) {
-        std::cerr << offsets[i] << '\n';
-      }
       for (std::size_t i = 1; i < size(offsets); ++i) {
         offsets[i] += offsets[i - 1];
       }
+      arr_size = num_bytes_polys_offsets;
+      file.write(reinterpret_cast<char const*>(&arr_size),
+                 sizeof(header_type));
       file.write(reinterpret_cast<char const*>(offsets.data()),
                  num_bytes_polys_offsets);
     }
-
-    //{
-    //  auto const types = [&] {
-    //    if constexpr (num_vertices_per_simplex() == 3) {
-    //      return std::vector<vtk::cell_type>(cells().size(),
-    //                                         vtk::cell_type::triangle);
-    //    } else if constexpr (num_vertices_per_simplex() == 4) {
-    //      return std::vector<vtk::cell_type>(cells().size(),
-    //                                         vtk::cell_type::tetra);
-    //    }
-    //  }();
-    //  file.write(reinterpret_cast<char const*>(types.data()),
-    //             num_bytes_polys_types);
-    //}
-    file << "\n  </AppendedData>\n";
+    file << "</AppendedData>";
     file << "</VTKFile>";
   }
 
