@@ -9,11 +9,7 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-#ifdef __cpp_concepts
 template <indexable_space... Dimensions>
-#else
-template <typename... Dimensions>
-#endif
 class rectilinear_grid;
 //==============================================================================
 template <typename... Dimensions>
@@ -33,12 +29,7 @@ struct rectilinear_grid_vertex_container {
   rectilinear_grid_vertex_container(grid_t const& g) : m_grid{g} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if_integral<Is...> = true>
-#endif
-  auto at(Is const... is) const {
+  auto at(integral auto const... is) const {
     static_assert(sizeof...(is) == num_dimensions());
     return m_grid.vertex_at(is...);
   }
@@ -47,12 +38,7 @@ struct rectilinear_grid_vertex_container {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto operator[](handle const& h) const { return m_grid.vertex_at(h); }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if_integral<Is...> = true>
-#endif
-  auto operator()(Is const... is) const {
+  auto operator()(integral auto const... is) const {
     static_assert(sizeof...(is) == num_dimensions());
     return at(is...);
   }
@@ -90,16 +76,9 @@ struct rectilinear_grid_vertex_container {
   constexpr auto size() const { return size(seq_t{}); }
   //----------------------------------------------------------------------------
  private:
-#ifdef __cpp_concepts
   template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
                 Iteration,
             size_t... Ds>
-#else
-  template <typename Iteration, size_t... Ds,
-            enable_if<is_invocable<Iteration,
-                                   decltype(((void)std::declval<Dimensions>(),
-                                             size_t{}))...> > = true>
-#endif
   auto iterate_indices(Iteration&& iteration, execution_policy::sequential_t,
                        std::index_sequence<Ds...>) const -> decltype(auto) {
     return for_loop(
@@ -109,15 +88,8 @@ struct rectilinear_grid_vertex_container {
   }
   //----------------------------------------------------------------------------
  public:
-#ifdef __cpp_concepts
   template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
                 Iteration>
-#else
-  template <typename Iteration,
-            enable_if<is_invocable<Iteration,
-                                   decltype(((void)std::declval<Dimensions>(),
-                                             size_t{}))...> > = true>
-#endif
   auto iterate_indices(Iteration&& iteration,
                        execution_policy::sequential_t) const -> decltype(auto) {
     return iterate_indices(std::forward<Iteration>(iteration),
@@ -126,16 +98,9 @@ struct rectilinear_grid_vertex_container {
   }
   //----------------------------------------------------------------------------
  private:
-#ifdef __cpp_concepts
   template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
                 Iteration,
             size_t... Ds>
-#else
-  template <typename Iteration, size_t... Ds,
-            enable_if<is_invocable<Iteration,
-                                   decltype(((void)std::declval<Dimensions>(),
-                                             size_t{}))...> > = true>
-#endif
   auto iterate_indices(Iteration&& iteration, execution_policy::parallel_t,
                        std::index_sequence<Ds...>) const -> decltype(auto) {
     return for_loop(std::forward<Iteration>(iteration),
@@ -143,15 +108,8 @@ struct rectilinear_grid_vertex_container {
   }
   //----------------------------------------------------------------------------
  public:
-#ifdef __cpp_concepts
   template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
                 Iteration>
-#else
-  template <typename Iteration,
-            enable_if<is_invocable<Iteration,
-                                   decltype(((void)std::declval<Dimensions>(),
-                                             size_t{}))...> > = true>
-#endif
   auto iterate_indices(Iteration&& iteration,
                        execution_policy::parallel_t) const -> decltype(auto) {
     return iterate_indices(std::forward<Iteration>(iteration),
@@ -159,15 +117,8 @@ struct rectilinear_grid_vertex_container {
                            std::make_index_sequence<num_dimensions()>{});
   }
 //------------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
                 Iteration>
-#else
-  template <typename Iteration,
-            enable_if<is_invocable<Iteration,
-                                   decltype(((void)std::declval<Dimensions>(),
-                                             size_t{}))...> > = true>
-#endif
   auto iterate_indices(Iteration&& iteration) const -> decltype(auto) {
     return iterate_indices(std::forward<Iteration>(iteration),
                            execution_policy::sequential,
@@ -175,29 +126,17 @@ struct rectilinear_grid_vertex_container {
   }
 };
 //------------------------------------------------------------------------------
-#ifdef __cpp_concepts
 template <indexable_space... Dimensions>
-#else
-template <typename... Dimensions>
-#endif
 auto begin(rectilinear_grid_vertex_container<Dimensions...> const& c) {
   return c.begin();
 }
 //------------------------------------------------------------------------------
-#ifdef __cpp_concepts
 template <indexable_space... Dimensions>
-#else
-template <typename... Dimensions>
-#endif
 auto end(rectilinear_grid_vertex_container<Dimensions...> const& c) {
   return c.end();
 }
 //------------------------------------------------------------------------------
-#ifdef __cpp_concepts
 template <indexable_space... Dimensions>
-#else
-template <typename... Dimensions>
-#endif
 auto size(rectilinear_grid_vertex_container<Dimensions...> const& c) {
   return c.size();
 }

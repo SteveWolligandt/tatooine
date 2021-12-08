@@ -15,20 +15,11 @@ struct rectilinear_grid_vertex_handle {
  public:
   static constexpr auto num_dimensions() { return NumDimensions; }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if_integral<Is...> = true>
-#endif
-  constexpr rectilinear_grid_vertex_handle(Is const... is)
+  constexpr rectilinear_grid_vertex_handle(integral auto const... is)
       : m_indices{static_cast<size_t>(is)...} {
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <integral Int>
-#else
-  template <typename Int, enable_if_integral<Int> = true>
-#endif
   constexpr rectilinear_grid_vertex_handle(std::array<Int, num_dimensions()> const& is,
                                size_t const plain_index)
       : m_indices{begin(is), end(is)}, m_plain_index{plain_index} {

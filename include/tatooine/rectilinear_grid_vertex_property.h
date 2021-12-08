@@ -176,27 +176,13 @@ struct typed_rectilinear_grid_vertex_property_interface
     return at(is);
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-  requires(sizeof...(Is) == Grid::num_dimensions())
-#else
-  template <typename... Is, enable_if<is_integral<Is...>> = true,
-            enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
-#endif
-      constexpr auto
-      operator()(Is const... is) const -> decltype(auto) {
+  constexpr auto operator()(integral auto const... is) const
+      -> decltype(auto) requires(sizeof...(is) == Grid::num_dimensions()) {
     return at(std::array{static_cast<std::size_t>(is)...});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <integral... Is>
-  requires(sizeof...(Is) == Grid::num_dimensions())
-#else
-  template <typename... Is, enable_if<is_integral<Is...>> = true,
-            enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
-#endif
-      constexpr auto
-      operator()(Is const... is) -> decltype(auto) {
+  constexpr auto operator()(integral auto const... is)
+      -> decltype(auto) requires(sizeof...(is) == Grid::num_dimensions()) {
     return at(std::array{static_cast<std::size_t>(is)...});
   }
   //----------------------------------------------------------------------------
@@ -223,25 +209,13 @@ struct typed_rectilinear_grid_vertex_property_interface
   }
   //----------------------------------------------------------------------------
  public:
-#ifdef __cpp_concepts
-  template <integral... Is>
-  requires(sizeof...(Is) == Grid::num_dimensions())
-#else
-  template <typename... Is, enable_if<is_integral<Is...>> = true,
-            enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
-#endif
-      auto at(Is const... is) const -> decltype(auto) {
+  auto at(integral auto const... is) const
+      -> decltype(auto) requires(sizeof...(is) == Grid::num_dimensions()) {
     return at(std::array{static_cast<std::size_t>(is)...});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <integral... Is>
-  requires(sizeof...(Is) == Grid::num_dimensions())
-#else
-  template <typename... Is, enable_if<is_integral<Is...>> = true,
-            enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
-#endif
-      auto at(Is const... is) -> decltype(auto) {
+  auto at(integral auto const... is)
+      -> decltype(auto) requires(sizeof...(is) == Grid::num_dimensions()) {
     return at(std::array{static_cast<std::size_t>(is)...});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -251,14 +225,8 @@ struct typed_rectilinear_grid_vertex_property_interface
   virtual auto at(std::array<std::size_t, num_dimensions()> const& is)
       -> reference = 0;
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Size>
-  requires(sizeof...(Size) == Grid::num_dimensions())
-#else
-  template <typename... Size, enable_if<is_integral<Size...>> = true,
-            enable_if<(sizeof...(Size) == Grid::num_dimensions())> = true>
-#endif
-      auto resize(Size const... size) -> decltype(auto) {
+  auto resize(integral auto const... size)
+      -> decltype(auto) requires(sizeof...(size) == Grid::num_dimensions()) {
     return resize(std::array{static_cast<std::size_t>(size)...});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -266,17 +234,9 @@ struct typed_rectilinear_grid_vertex_property_interface
       -> void = 0;
   //----------------------------------------------------------------------------
 #if TATOOINE_PNG_AVAILABLE
-#ifndef __cpp_concepts
-  template <std::size_t _N = num_dimensions(),
-            enable_if<(_N == 2) &&
-                      ((is_vec<ValueType>) || is_arithmetic<ValueType>)> = true>
-#endif
-      auto write_png(filesystem::path const& path) const -> void
-#ifdef __cpp_concepts
-      requires(num_dimensions() == 2) &&
-      ((is_vec<ValueType>) || (is_arithmetic<ValueType>))
-#endif
-  {
+  auto write_png(filesystem::path const& path) const
+      -> void requires(num_dimensions() == 2) &&
+      ((is_vec<ValueType>) || (is_arithmetic<ValueType>)) {
     if constexpr (is_vec<ValueType>) {
       png::image<png::rgb_pixel> image{
           static_cast<png::uint_32>(this->grid().size(0)),
@@ -321,18 +281,10 @@ struct typed_rectilinear_grid_vertex_property_interface
       image.write(path.string());
     }
   }
-#ifndef __cpp_concepts
-  template <std::size_t _N = num_dimensions(),
-            enable_if<(_N == 2) &&
-                      ((is_vec<ValueType>) || is_arithmetic<ValueType>)> = true>
-#endif
-      auto write_png(filesystem::path const& path, ValueType const min = 0,
-                     ValueType const max = 1) const -> void
-#ifdef __cpp_concepts
-      requires(num_dimensions() == 2) &&
-      ((is_vec<ValueType>) || (is_arithmetic<ValueType>))
-#endif
-  {
+  auto write_png(filesystem::path const& path, ValueType const min = 0,
+                 ValueType const max = 1) const
+      -> void requires(num_dimensions() == 2) &&
+      ((is_vec<ValueType>) || (is_arithmetic<ValueType>)) {
     png::image<png::rgb_pixel> image{
         static_cast<png::uint_32>(this->grid().size(0)),
         static_cast<png::uint_32>(this->grid().size(1))};
@@ -371,20 +323,11 @@ struct typed_rectilinear_grid_vertex_property_interface
     }
     image.write(path.string());
   }
-#ifdef __cpp_concepts
   template <typename ColorScale>
-#else
-  template <typename ColorScale, std::size_t _N = num_dimensions(),
-            enable_if<(_N == 2), (is_floating_point<ValueType>)> = true>
-#endif
       auto write_png(filesystem::path const& path, ColorScale&& color_scale,
                      ValueType const min = 0, ValueType const max = 1) const
-      -> void
-#ifdef __cpp_concepts
-      requires(num_dimensions() == 2) &&
-      (is_floating_point<ValueType>)
-#endif
-  {
+      -> void requires(num_dimensions() == 2) &&
+      (is_floating_point<ValueType>) {
     png::image<png::rgb_pixel> image{
         static_cast<png::uint_32>(this->grid().size(0)),
         static_cast<png::uint_32>(this->grid().size(1))};
@@ -475,49 +418,23 @@ struct typed_vertex_property
     return typeid(Container);
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-  requires(sizeof...(Is) == Grid::num_dimensions())
-#else
-  template <typename... Is, enable_if<is_integral<Is...>> = true,
-            enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
-#endif
-      constexpr auto
-      operator()(Is const... is) const -> decltype(auto) {
+  constexpr auto operator()(integral auto const... is) const
+      -> decltype(auto) requires(sizeof...(is) == Grid::num_dimensions()) {
     return Container::at(is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <integral... Is>
-  requires(sizeof...(Is) == Grid::num_dimensions())
-#else
-  template <typename... Is, enable_if<is_integral<Is...>> = true,
-            enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
-#endif
-      constexpr auto
-      operator()(Is const... is) -> decltype(auto) {
+  constexpr auto operator()(integral auto const... is)
+      -> decltype(auto) requires(sizeof...(is) == Grid::num_dimensions()) {
     return Container::at(is...);
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-  requires(sizeof...(Is) == Grid::num_dimensions())
-#else
-  template <typename... Is, enable_if<is_integral<Is...>> = true,
-            enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
-#endif
-      auto at(Is const... is) const -> decltype(auto) {
+  auto at(integral auto const... is) const
+      -> decltype(auto) requires(sizeof...(is) == Grid::num_dimensions()) {
     return Container::at(is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <integral... Is>
-  requires(sizeof...(Is) == Grid::num_dimensions())
-#else
-  template <typename... Is, enable_if<is_integral<Is...>> = true,
-            enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
-#endif
-      auto at(Is const... is) -> decltype(auto) {
+  auto at(integral auto const... is)
+      -> decltype(auto) requires(sizeof...(is) == Grid::num_dimensions()) {
     return Container::at(is...);
   }
   //----------------------------------------------------------------------------
@@ -608,37 +525,20 @@ struct differentiated_typed_rectilinear_grid_vertex_property {
   //----------------------------------------------------------------------------
   // data access
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-  requires(sizeof...(Is) == Grid::num_dimensions())
-#else
-  template <typename... Is>
-#endif
-      constexpr auto
-      operator()(Is const... is) const -> value_type {
-#ifndef __cpp_concepts
-    static_assert(sizeof...(Is) == Grid::num_dimensions(),
-                  "Number of indices does not match number of dimensions.");
-    static_assert(is_integral<Is...>, "Not all index types are integral.");
-#endif
+  constexpr auto operator()(integral auto const... is) const -> value_type
+      requires(sizeof...(is) == Grid::num_dimensions()) {
     return at(is...);
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-  requires(sizeof...(Is) == Grid::num_dimensions())
-#else
-  template <typename... Is, enable_if<is_integral<Is...>> = true,
-            enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
-#endif
-      auto at(Is const... is) const -> value_type {
+  auto at(integral auto const... is) const -> value_type
+      requires(sizeof...(is) == Grid::num_dimensions()) {
     return at(std::make_index_sequence<Grid::num_dimensions()>{}, is...);
   }
   //----------------------------------------------------------------------------
- private:
-  template <std::size_t... Seq, typename... Is>
-  auto at(std::index_sequence<Seq...> /*seq*/, Is const... is) const
-      -> value_type {
+ private : template <std::size_t... Seq, typename... Is>
+           auto
+           at(std::index_sequence<Seq...> /*seq*/, Is const... is) const
+           -> value_type {
     value_type d{};
     (
         [&](auto const dim, auto const index) {

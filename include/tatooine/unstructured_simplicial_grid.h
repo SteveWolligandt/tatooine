@@ -20,8 +20,8 @@
 #include <tatooine/property.h>
 #include <tatooine/rectilinear_grid.h>
 #include <tatooine/uniform_tree_hierarchy.h>
-#include <tatooine/vtk_legacy.h>
 #include <tatooine/vtk/xml/data_array.h>
+#include <tatooine/vtk_legacy.h>
 
 #include <boost/range/adaptor/transformed.hpp>
 #include <boost/range/algorithm/copy.hpp>
@@ -56,7 +56,7 @@ struct unstructured_simplicial_grid_hierarchy {
 template <typename Mesh, typename Real, size_t NumDimensions, size_t SimplexDim>
 using unstructured_simplicial_grid_hierarchy_t =
     typename unstructured_simplicial_grid_hierarchy<Mesh, Real, NumDimensions,
-                                                 SimplexDim>::type;
+                                                    SimplexDim>::type;
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename Mesh, typename Real>
 struct unstructured_simplicial_grid_hierarchy<Mesh, Real, 3, 3> {
@@ -78,13 +78,13 @@ struct unstructured_simplicial_grid_parent : pointset<Real, NumDimensions> {
   using typename pointset<Real, NumDimensions>::vertex_handle;
   using hierarchy_t =
       unstructured_simplicial_grid_hierarchy_t<Mesh, Real, NumDimensions,
-                                            SimplexDim>;
+                                               SimplexDim>;
   using const_cell_at_return_type =
       unstructured_simplicial_grid_cell_at_return_type<vertex_handle const&,
-                                                    SimplexDim + 1>;
+                                                       SimplexDim + 1>;
   using cell_at_return_type =
       unstructured_simplicial_grid_cell_at_return_type<vertex_handle&,
-                                                    SimplexDim + 1>;
+                                                       SimplexDim + 1>;
 };
 //==============================================================================
 template <typename Mesh, typename Real>
@@ -92,7 +92,8 @@ struct unstructured_simplicial_grid_parent<Mesh, Real, 3, 2>
     : pointset<Real, 3>, ray_intersectable<Real, 3> {
   using real_t = Real;
   using typename pointset<real_t, 3>::vertex_handle;
-  using hierarchy_t = unstructured_simplicial_grid_hierarchy_t<Mesh, real_t, 3, 2>;
+  using hierarchy_t =
+      unstructured_simplicial_grid_hierarchy_t<Mesh, real_t, 3, 2>;
   using const_cell_at_return_type =
       unstructured_simplicial_grid_cell_at_return_type<vertex_handle const&, 3>;
   using cell_at_return_type =
@@ -172,9 +173,10 @@ class unstructured_simplicial_grid
  public:
   using this_t = unstructured_simplicial_grid<Real, NumDimensions, SimplexDim>;
   using parent_t =
-      unstructured_simplicial_grid_parent<this_t, Real, NumDimensions, SimplexDim>;
+      unstructured_simplicial_grid_parent<this_t, Real, NumDimensions,
+                                          SimplexDim>;
   friend struct unstructured_simplicial_grid_parent<this_t, Real, NumDimensions,
-                                                 SimplexDim>;
+                                                    SimplexDim>;
   using parent_t::at;
   using parent_t::num_dimensions;
   using typename parent_t::pos_t;
@@ -193,7 +195,7 @@ class unstructured_simplicial_grid
   using vertex_property_t = typename parent_t::template vertex_property_t<T>;
   using hierarchy_t =
       unstructured_simplicial_grid_hierarchy_t<this_t, Real, NumDimensions,
-                                            SimplexDim>;
+                                               SimplexDim>;
   static constexpr auto num_vertices_per_simplex() { return SimplexDim + 1; }
   static constexpr auto simplex_dimension() { return SimplexDim; }
   //----------------------------------------------------------------------------
@@ -201,7 +203,8 @@ class unstructured_simplicial_grid
   struct vertex_property_sampler_t : field<vertex_property_sampler_t<T>, Real,
                                            parent_t::num_dimensions(), T> {
    private:
-    using mesh_t = unstructured_simplicial_grid<Real, NumDimensions, SimplexDim>;
+    using mesh_t =
+        unstructured_simplicial_grid<Real, NumDimensions, SimplexDim>;
     using this_t = vertex_property_sampler_t<T>;
 
     mesh_t const&               m_mesh;
@@ -227,9 +230,10 @@ class unstructured_simplicial_grid
       auto cell_handles = m_mesh.hierarchy().nearby_cells(x);
       if (cell_handles.empty()) {
         std::stringstream ss;
-        ss << "[unstructured_simplicial_grid::vertex_property_sampler_t::sample]"
-              "\n"; ss
-        << "  out of domain: " << x;
+        ss << "[unstructured_simplicial_grid::vertex_property_sampler_t::"
+              "sample]"
+              "\n";
+        ss << "  out of domain: " << x;
         throw std::runtime_error{ss.str()};
       }
       for (auto t : cell_handles) {
@@ -283,7 +287,7 @@ class unstructured_simplicial_grid
         : m_index{other.m_index}, m_mesh{other.m_mesh} {}
 
    private:
-    cell_handle                      m_index;
+    cell_handle                         m_index;
     unstructured_simplicial_grid const* m_mesh;
 
     friend class boost::iterator_core_access;
@@ -370,14 +374,17 @@ class unstructured_simplicial_grid
   auto operator=(unstructured_simplicial_grid&& other) noexcept
       -> unstructured_simplicial_grid& = default;
   //----------------------------------------------------------------------------
-  explicit unstructured_simplicial_grid(std::filesystem::path const& path) { read(path); }
+  explicit unstructured_simplicial_grid(std::filesystem::path const& path) {
+    read(path);
+  }
   //----------------------------------------------------------------------------
   unstructured_simplicial_grid(std::initializer_list<pos_t>&& vertices)
       : parent_t{std::move(vertices)} {}
   explicit unstructured_simplicial_grid(
       std::vector<vec<Real, NumDimensions>> const& positions)
       : parent_t{positions} {}
-  explicit unstructured_simplicial_grid(std::vector<vec<Real, NumDimensions>>&& positions)
+  explicit unstructured_simplicial_grid(
+      std::vector<vec<Real, NumDimensions>>&& positions)
       : parent_t{std::move(positions)} {}
   //----------------------------------------------------------------------------
  private:
@@ -396,18 +403,10 @@ class unstructured_simplicial_grid
   }
 
  public:
-#ifdef __cpp_concepts
   template <indexable_space DimX, indexable_space DimY>
   requires(NumDimensions == 2) &&
-      (SimplexDim == 2)
-#else
-  template <
-      typename DimX, typename DimY, size_t NumDimensions_ = NumDimensions,
-      size_t SimplexDim_                               = SimplexDim,
-      enable_if<NumDimensions == NumDimensions_, SimplexDim == SimplexDim_,
-                NumDimensions_ == 2, SimplexDim_ == 2> = true>
-#endif
-          explicit unstructured_simplicial_grid(rectilinear_grid<DimX, DimY> const& g) {
+      (SimplexDim == 2) explicit unstructured_simplicial_grid(
+          rectilinear_grid<DimX, DimY> const& g) {
     auto const gv = g.vertices();
     for (auto v : gv) {
       insert_vertex(gv[v]);
@@ -430,20 +429,10 @@ class unstructured_simplicial_grid
     }
   }
 
-#ifdef __cpp_concepts
   template <indexable_space DimX, indexable_space DimY, indexable_space DimZ>
   requires(NumDimensions == 3) &&
-      (SimplexDim == 3)
-#else
-  template <
-      typename DimX, typename DimY, typename DimZ,
-      size_t NumDimensions_ = NumDimensions, size_t SimplexDim_ = SimplexDim,
-      enable_if<NumDimensions == NumDimensions_, SimplexDim == SimplexDim_,
-                NumDimensions_ == 3, SimplexDim_ == 3> = true>
-#endif
-          explicit unstructured_simplicial_grid(
-              rectilinear_grid<DimX, DimY, DimZ> const& g) {
-
+      (SimplexDim == 3) explicit unstructured_simplicial_grid(
+          rectilinear_grid<DimX, DimY, DimZ> const& g) {
     constexpr auto turned = [](size_t const ix, size_t const iy,
                                size_t const iz) -> bool {
       bool const xodd = ix % 2 == 0;
@@ -541,15 +530,9 @@ class unstructured_simplicial_grid
   }
   //----------------------------------------------------------------------------
  public:
-#ifdef __cpp_concepts
-  template <arithmetic... Ts>
-  requires(sizeof...(Ts) == NumDimensions)
-#else
-  template <typename... Ts, enable_if<is_arithmetic<Ts...>> = true,
-            enable_if<sizeof...(Ts) == NumDimensions> = true>
-#endif
-  auto insert_vertex(Ts const... ts) {
-    auto const vi = parent_t::insert_vertex(ts...);
+  auto insert_vertex(arithmetic auto const... comps) requires(
+      sizeof...(comps) == NumDimensions) {
+    auto const vi = parent_t::insert_vertex(comps...);
     // if (m_hierarchy != nullptr) {
     //  if (!m_hierarchy->insert_vertex(vi.i)) {
     //    build_hierarchy();
@@ -597,30 +580,16 @@ class unstructured_simplicial_grid
   auto cells() const { return cell_container{this}; }
   //----------------------------------------------------------------------------
 #ifdef TATOOINE_HAS_CGAL_SUPPORT
-#ifndef __cpp_concepts
-  template <size_t NumDimensions_ = NumDimensions,
-            enable_if<NumDimensions_ == 2 || NumDimensions_ == 3> = true>
-#endif
-      auto build_delaunay_mesh() -> void
-#ifdef __cpp_concepts
-      requires(NumDimensions == 2) ||
-      (NumDimensions == 3)
-#endif
-  {
+  auto build_delaunay_mesh() -> void requires(NumDimensions == 2) ||
+      (NumDimensions == 3) {
     build_delaunay_mesh(std::make_index_sequence<NumDimensions>{});
   }
 
  private:
-#ifdef __cpp_concepts
   template <size_t... Seq>
-  requires(NumDimensions == 2) ||
-      (NumDimensions == 3)
-#else
-  template <size_t... Seq, size_t NumDimensions_ = NumDimensions,
-            enable_if<NumDimensions_ == 2 || NumDimensions_ == 3> = true>
-#endif
-          auto build_delaunay_mesh(std::index_sequence<Seq...> /*seq*/)
-              -> void {
+      auto build_delaunay_mesh(std::index_sequence<Seq...> /*seq*/)
+          -> void requires(NumDimensions == 2) ||
+      (NumDimensions == 3) {
     m_cell_indices.clear();
     using kernel_t      = CGAL::Exact_predicates_inexact_constructions_kernel;
     using vertex_base_t = std::conditional_t<
@@ -661,35 +630,23 @@ class unstructured_simplicial_grid
 
 #if TATOOINE_CDT_AVAILABLE
  public:
-#ifndef __cpp_concepts
-  template <size_t NumDimensions_ = NumDimensions,
-            enable_if<NumDimensions_ == 2 || NumDimensions_ == 3> = true>
-#endif
-      auto build_delaunay_mesh(
-          std::vector<std::pair<vertex_handle, vertex_handle>> const&
-              constraints) -> void
-#ifdef __cpp_concepts
-      requires(NumDimensions == 2) ||
-      (NumDimensions == 3)
-#endif
-  {
+  auto build_delaunay_mesh(
+      std::vector<std::pair<vertex_handle, vertex_handle>> const& constraints)
+          -> void requires(NumDimensions == 2) ||
+      (NumDimensions == 3) {
     build_delaunay_mesh(constraints, std::make_index_sequence<NumDimensions>{});
   }
 
  private:
-#ifdef __cpp_concepts
   template <size_t... Seq>
   requires(NumDimensions == 2) /*|| (NumDimensions == 3)*/
-#else
-  template <size_t... Seq, size_t NumDimensions_ = NumDimensions,
-            enable_if<NumDimensions_ == 2 /*|| NumDimensions_ == 3*/> = true>
-#endif
       auto build_delaunay_mesh(
           std::vector<std::pair<vertex_handle, vertex_handle>> const&
               constraints,
           std::index_sequence<Seq...> /*seq*/) -> void {
     m_cell_indices.clear();
-    std::vector<CDT::Edge> edges; edges.reserve(size(constraints));
+    std::vector<CDT::Edge> edges;
+    edges.reserve(size(constraints));
     boost::transform(constraints, std::back_inserter(edges),
                      [](auto const& c) -> CDT::Edge {
                        return {c.first.i, c.second.i};
@@ -708,7 +665,7 @@ class unstructured_simplicial_grid
 
     triangulation.insertEdges(edges);
     triangulation.eraseSuperTriangle();
-    //triangulation.eraseOuterTrianglesAndHoles();
+    // triangulation.eraseOuterTrianglesAndHoles();
     for (auto const& tri : triangulation.triangles) {
       insert_cell(vertex_handle{tri.vertices[0]},
                   vertex_handle{tri.vertices[1]},
@@ -721,33 +678,31 @@ class unstructured_simplicial_grid
   template <typename T>
   auto cell_property(std::string const& name) -> auto& {
     auto it = m_cell_properties.find(name);
-if ( it == end(m_cell_properties)) {
+    if (it == end(m_cell_properties)) {
       return insert_cell_property<T>(name);
-    }       if (typeid(T) != it->second->type()) {
-        throw std::runtime_error{
-            "type of property \"" + name + "\"(" +
-            boost::core::demangle(it->second->type().name()) +
-            ") does not match specified type " + type_name<T>() + "."};
-      }
-      return *dynamic_cast<cell_property_t<T>*>(
-          m_cell_properties.at(name).get());
-
+    }
+    if (typeid(T) != it->second->type()) {
+      throw std::runtime_error{
+          "type of property \"" + name + "\"(" +
+          boost::core::demangle(it->second->type().name()) +
+          ") does not match specified type " + type_name<T>() + "."};
+    }
+    return *dynamic_cast<cell_property_t<T>*>(m_cell_properties.at(name).get());
   }
   //----------------------------------------------------------------------------
   template <typename T>
   auto cell_property(std::string const& name) const -> const auto& {
     auto it = m_cell_properties.find(name);
-if ( it == end(m_cell_properties)) {
+    if (it == end(m_cell_properties)) {
       throw std::runtime_error{"property \"" + name + "\" not found"};
-    }       if (typeid(T) != it->second->type()) {
-        throw std::runtime_error{
-            "type of property \"" + name + "\"(" +
-            boost::core::demangle(it->second->type().name()) +
-            ") does not match specified type " + type_name<T>() + "."};
-      }
-      return *dynamic_cast<cell_property_t<T>*>(
-          m_cell_properties.at(name).get());
-
+    }
+    if (typeid(T) != it->second->type()) {
+      throw std::runtime_error{
+          "type of property \"" + name + "\"(" +
+          boost::core::demangle(it->second->type().name()) +
+          ") does not match specified type " + type_name<T>() + "."};
+    }
+    return *dynamic_cast<cell_property_t<T>*>(m_cell_properties.at(name).get());
   }
   //----------------------------------------------------------------------------
   auto scalar_cell_property(std::string const& name) const -> auto const& {
@@ -828,7 +783,7 @@ if ( it == end(m_cell_properties)) {
     if (!file.is_open()) {
       throw std::runtime_error{"Could not write " + path.string()};
     }
-    auto offset = std::size_t{};
+    auto offset       = std::size_t{};
     using header_type = std::uint64_t;
     file << "<VTKFile"
          << " type=\"PolyData\""
@@ -871,36 +826,36 @@ if ( it == end(m_cell_properties)) {
          << vtk::xml::data_array::to_string(
                 vtk::xml::data_array::to_type<polys_connectivity_int_t>())
          << "\" Name=\"connectivity\"/>\n";
-    auto const num_bytes_polys_connectivity =
-        cells().size() * num_vertices_per_simplex() *
-        sizeof(polys_connectivity_int_t);
+    auto const num_bytes_polys_connectivity = cells().size() *
+                                              num_vertices_per_simplex() *
+                                              sizeof(polys_connectivity_int_t);
     offset += num_bytes_polys_connectivity + sizeof(header_type);
 
     // Polys - offsets
     using polys_offset_int_t = polys_connectivity_int_t;
-    file << "<DataArray format=\"appended\" offset=\"" << offset
-         << "\" type=\""
+    file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
          << vtk::xml::data_array::to_string(
                 vtk::xml::data_array::to_type<polys_offset_int_t>())
          << "\" Name=\"offsets\"/>\n";
-    auto const num_bytes_polys_offsets = sizeof(polys_offset_int_t) * cells().size();
+    auto const num_bytes_polys_offsets =
+        sizeof(polys_offset_int_t) * cells().size();
     offset += num_bytes_polys_offsets + sizeof(header_type);
     file << "</Polys>\n";
 
-    //file << "      <PointData>\n";
-    //file << "      </PointData>\n\n";
+    // file << "      <PointData>\n";
+    // file << "      </PointData>\n\n";
     //
-    //file << "      <CellData>\n";
-    //file << "      </CellData>\n\n";
+    // file << "      <CellData>\n";
+    // file << "      </CellData>\n\n";
     //
-    //file << "      <Verts>\n";
-    //file << "      </Verts>\n\n";
+    // file << "      <Verts>\n";
+    // file << "      </Verts>\n\n";
     //
-    //file << "      <Lines>\n";
-    //file << "      </Lines>\n\n";
+    // file << "      <Lines>\n";
+    // file << "      </Lines>\n\n";
     //
-    //file << "      <Strips>\n";
-    //file << "      </Strips>\n\n";
+    // file << "      <Strips>\n";
+    // file << "      </Strips>\n\n";
 
     file << "</Piece>";
     file << "</PolyData>";
@@ -910,16 +865,19 @@ if ( it == end(m_cell_properties)) {
     auto arr_size = header_type{};
 
     arr_size = num_bytes_points;
-    file.write(reinterpret_cast<char const*>(&arr_size),
-               sizeof(header_type));
+    file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
     file.write(reinterpret_cast<char const*>(vertices().data()),
                num_bytes_points);
-    
+
     // Writing polys connectivity data to appended data section
     {
       auto connectivity_data = std::vector<polys_connectivity_int_t>(
           cells().size() * num_vertices_per_simplex());
-      std::ranges::copy(cells().data_container() | std::views::transform([](auto const x)->polys_connectivity_int_t{return x.i;}), begin(connectivity_data));
+      std::ranges::copy(
+          cells().data_container() |
+              std::views::transform(
+                  [](auto const x) -> polys_connectivity_int_t { return x.i; }),
+          begin(connectivity_data));
       arr_size = num_bytes_polys_connectivity;
       file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
       file.write(reinterpret_cast<char const*>(connectivity_data.data()),
@@ -934,8 +892,7 @@ if ( it == end(m_cell_properties)) {
         offsets[i] += offsets[i - 1];
       }
       arr_size = num_bytes_polys_offsets;
-      file.write(reinterpret_cast<char const*>(&arr_size),
-                 sizeof(header_type));
+      file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
       file.write(reinterpret_cast<char const*>(offsets.data()),
                  num_bytes_polys_offsets);
     }

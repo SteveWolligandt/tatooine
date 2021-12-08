@@ -144,14 +144,8 @@ constexpr auto operator*(base_tensor<Tensor0, T0, M> const&    lhs,
   return product;
 }
 //------------------------------------------------------------------------------
-#ifdef __cpp_concepts
 template <typename LhsTensor, typename RhsTensor>
 requires is_dynamic_tensor<LhsTensor> && is_dynamic_tensor<RhsTensor>
-#else
-template <typename LhsTensor, typename RhsTensor,
-          enable_if<is_dynamic_tensor<LhsTensor>,
-                    is_dynamic_tensor<RhsTensor>> = true>
-#endif
 auto operator*(LhsTensor const& lhs, RhsTensor const& rhs)
     -> tensor<std::common_type_t<typename LhsTensor::value_type,
                                  typename RhsTensor::value_type>> {

@@ -46,36 +46,16 @@ struct spacetime_vectorfield
   //============================================================================
   // ctors
   //============================================================================
-#ifdef __cpp_concepts
-  template <typename = void>
-  requires is_pointer<V>
-#else
-  template <typename V_ = V, enable_if<is_pointer<V_>> = true>
-#endif
-      constexpr spacetime_vectorfield() : m_v{nullptr} {
-  }
+  constexpr spacetime_vectorfield() requires is_pointer<V> : m_v{nullptr} {}
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <typename = void>
-  requires is_pointer<V>
-#else
-  template <typename V_ = V, enable_if<is_pointer<V_>, is_same<V_, V>>>
-#endif
-      constexpr spacetime_vectorfield(
-          polymorphic::vectorfield<Real, N - 1> const* v)
-      : m_v{v} {
-  }
+  constexpr spacetime_vectorfield(
+      polymorphic::vectorfield<Real, N - 1> const* v) requires is_pointer<V>
+      : m_v{v} {}
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <std::convertible_to<V> W>
-  requires(!is_pointer<V>)
-#else
-  template <typename W, typename V_ = V,
-            enable_if<is_convertible<W, V_>, is_same<V_, V>> = true>
-#endif
-      constexpr spacetime_vectorfield(vectorfield<W, Real, N - 1> const& w)
-      : m_v{w.as_derived()} {
-  }
+  constexpr spacetime_vectorfield(
+      vectorfield<W, Real, N - 1> const& w) requires(!is_pointer<V>)
+      : m_v{w.as_derived()} {}
   //============================================================================
   // methods
   //============================================================================
@@ -106,39 +86,22 @@ struct spacetime_vectorfield
     return v().in_domain(spatial_position, temporal_position);
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <typename W>
-  requires is_pointer<V>
-#else
-  template <typename W, typename V_ = V,
-            enable_if<is_pointer<V_>, is_same<V_, V>> = true>
-#endif
-      void set_field(vectorfield<W, Real, N - 1> const& v) {
+  void set_field(vectorfield<W, Real, N - 1> const& v) requires is_pointer<V> {
     m_v = &v;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <typename = void>
-  requires is_pointer<V>
-#else
-  template <typename V_ = V, enable_if<is_pointer<V_>, is_same<V_, V>> = true>
-#endif
-      void set_field(polymorphic::vectorfield<Real, N - 1> const& v) {
+  void set_field(polymorphic::vectorfield<Real, N - 1> const& v) requires
+      is_pointer<V> {
     m_v = &v;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <typename = void>
-  requires is_pointer<V>
-#else
-  template <typename V_ = V, enable_if<is_pointer<V_>, is_same<V_, V>> = true>
-#endif
-      void set_field(polymorphic::vectorfield<Real, N - 1> const* v) {
+  void set_field(polymorphic::vectorfield<Real, N - 1> const* v) requires
+      is_pointer<V> {
     m_v = v;
   }
 
- private:
-  auto v() -> auto& {
+ private : auto v() -> auto& {
     if constexpr (holds_field_pointer) {
       return *m_v;
     } else {

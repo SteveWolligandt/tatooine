@@ -49,12 +49,7 @@ struct structured_grid : pointset<Real, NumDimensions>,
   //----------------------------------------------------------------------------
   structured_grid(filesystem::path const& path) { read(path); }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Size>
-#else
-  template <typename... Size, enable_if_integral<Size...> = true>
-#endif
-  structured_grid(Size const... size) {
+  structured_grid(integral auto const... size) {
     static auto constexpr num_indices = sizeof...(Size);
     static_assert(num_indices == num_dimensions(),
                   "Number of Indices does not match number of dimensions");
@@ -83,21 +78,9 @@ struct structured_grid : pointset<Real, NumDimensions>,
     }
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <arithmetic... Ts>
-  requires(sizeof...(Ts) == NumDimensions)
-#else
-  template <typename... Ts, enable_if<is_arithmetic<Ts...> > = true,
-            enable_if<sizeof...(Ts) == NumDimensions> = true>
-#endif
-      auto insert_vertex(Ts const... ts) = delete;
+  auto insert_vertex(arithmetic auto const... ts) = delete;
   //============================================================================
-#ifdef __cpp_concepts
-  template <integral... Indices>
-#else
-  template <typename... Indices, enable_if_integral<Indices...> = true>
-#endif
-  auto vertex_at(Indices const... is) const -> auto const& {
+  auto vertex_at(integral auto const... is) const -> auto const& {
     static auto constexpr num_indices = sizeof...(Indices);
     static_assert(num_indices == num_dimensions(),
                   "Number of Indices does not match number of dimensions");
@@ -105,12 +88,7 @@ struct structured_grid : pointset<Real, NumDimensions>,
         multidim_size_parent_t::plain_index(is...));
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Indices>
-#else
-  template <typename... Indices, enable_if_integral<Indices...> = true>
-#endif
-  auto vertex_at(Indices const... is) -> auto& {
+  auto vertex_at(integral auto const... is) -> auto& {
     static auto constexpr num_indices = sizeof...(Indices);
     static_assert(num_indices == num_dimensions(),
                   "Number of Indices does not match number of dimensions");
@@ -118,12 +96,7 @@ struct structured_grid : pointset<Real, NumDimensions>,
         multidim_size_parent_t::plain_index(is...));
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Size>
-#else
-  template <typename... Size, enable_if_integral<Size...> = true>
-#endif
-  auto resize(Size const... sizes) {
+  auto resize(integral auto const... sizes) {
     static auto constexpr num_indices = sizeof...(Size);
     static_assert(num_indices == num_dimensions(),
                   "Number of Indices does not match number of dimensions");
@@ -551,12 +524,7 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_t
   //----------------------------------------------------------------------------
   auto num_cell_handles() const { return size(m_cell_handles); }
   //----------------------------------------------------------------------------
-#ifndef __cpp_concepts
-  template <typename... Indices, enable_if_integral<Indices...> = true>
-#else
-  template <integral... Indices>
-#endif
-  constexpr auto is_cell_inside(Indices const... is) const {
+  constexpr auto is_cell_inside(integral auto const... is) const {
     if constexpr (NumDimensions == 2) {
       return is_cell_inside_2(is...);
     } else if constexpr (NumDimensions == 3) {
@@ -565,18 +533,9 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_t
   }
   //----------------------------------------------------------------------------
  private:
-#ifndef __cpp_concepts
-  template <size_t _NumDimensions            = NumDimensions,
-            enable_if<(_NumDimensions == 2)> = true, typename... Indices,
-            enable_if_integral<Indices...>   = true>
-#else
-  template <integral... Indices>
-#endif
   constexpr auto is_cell_inside_2(std::size_t const ix,
                                   std::size_t const iy) const
-#ifdef __cpp_concepts
       requires(NumDimensions == 2)
-#endif
   {
     auto const c  = center();
     auto const e  = extents() / 2;
@@ -606,15 +565,9 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_t
     return true;
   }
   //----------------------------------------------------------------------------
-#ifndef __cpp_concepts
-  template <size_t _NumDimensions            = NumDimensions,
-            enable_if<(_NumDimensions == 3)> = true>
-#endif
   constexpr auto is_cell_inside_3(std::size_t const ix, std::size_t const iy,
                                   std::size_t const iz) const
-#ifdef __cpp_concepts
       requires(NumDimensions == 3)
-#endif
   {
     auto const c = center();
     auto const e = extents() / 2;
@@ -715,12 +668,7 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_t
         new this_t{min, max, level, max_depth, grid()}};
   }
   //----------------------------------------------------------------------------
-#ifndef __cpp_concepts
-  template <typename... Indices, enable_if_integral<Indices...> = true>
-#else
-  template <integral... Indices>
-#endif
-  auto distribute_cell(Indices const... is) {
+  auto distribute_cell(integral auto const... is) {
     for (auto& child : children()) {
       child->insert_cell(is...);
     }

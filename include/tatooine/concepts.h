@@ -9,18 +9,6 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-// ranges etc.
-//==============================================================================
-template <typename T>
-concept forward_iterator = std::forward_iterator<T>;
-//------------------------------------------------------------------------------
-template <typename T>
-concept bidirectional_iterator = std::bidirectional_iterator<T>;
-//------------------------------------------------------------------------------
-template <typename T>
-concept range = std::ranges::range<T>;
-
-//==============================================================================
 // typedefs
 //==============================================================================
 template <typename T>
@@ -97,6 +85,34 @@ template <typename T>
 concept has_defined_pos_t = requires {
   typename T::pos_t;
 };
+//==============================================================================
+// ranges etc.
+//==============================================================================
+template <typename T>
+concept forward_iterator = std::forward_iterator<T>;
+//------------------------------------------------------------------------------
+template <typename T>
+concept bidirectional_iterator = std::bidirectional_iterator<T>;
+//------------------------------------------------------------------------------
+template <typename T>
+concept range = std::ranges::range<T>;
+//------------------------------------------------------------------------------
+template <typename T>
+concept arithmetic_range =
+    range<T> && arithmetic<typename std::decay_t<T>::value_type>;
+//------------------------------------------------------------------------------
+template <typename T>
+concept integral_range =
+    range<T> && integral<typename std::decay_t<T>::value_type>;
+//------------------------------------------------------------------------------
+template <typename T>
+concept floating_point_range =
+    range<T> && floating_point<typename std::decay_t<T>::value_type>;
+//------------------------------------------------------------------------------
+template <typename T, typename S>
+concept range_of_type =
+    range<T> && std::same_as<typename std::decay_t<T>::value_type, S>;
+
 //==============================================================================
 // indexable
 //==============================================================================

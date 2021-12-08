@@ -8,13 +8,8 @@
 //==============================================================================
 namespace tatooine::rendering {
 //==============================================================================
-#ifdef __cpp_concepts
 template <arithmetic DistOnRay, arithmetic CameraReal, arithmetic AABBReal,
           regular_invocable<vec<AABBReal, 3>> DomainCheck, typename Shader>
-#else
-template <typename DistOnRay, typename CameraReal, typename AABBReal,
-          typename DomainCheck, typename Shader>
-#endif
 auto direct_volume(camera<CameraReal> const&                     cam,
                    axis_aligned_bounding_box<AABBReal, 3> const& aabb,
                    DomainCheck&& domain_check, DistOnRay const distance_on_ray,
@@ -73,20 +68,10 @@ auto direct_volume(camera<CameraReal> const&                     cam,
   return rendered_image;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-//#ifdef __cpp_concepts
 // template <arithmetic TReal, arithmetic Min, arithmetic Max,
 //          arithmetic DistOnRay, arithmetic CameraReal, arithmetic AABBReal,
 //          typename S, typename SReal, regular_invocable<SReal>    ColorScale,
 //          regular_invocable<SReal> AlphaScale>
-//#else
-// template <typename TReal, typename Min, typename Max, typename DistOnRay,
-//          typename CameraReal, typename AABBReal, typename S, typename SReal,
-//          typename ColorScale, typename AlphaScale,
-//          enable_if_arithmetic<TReal, Min, Max, DistOnRay, CameraReal,
-//                               AABBReal>         = true,
-//          enable_if_invocable<ColorScale, SReal> = true,
-//          enable_if_invocable<AlphaScale, SReal> = true>
-//#endif
 // auto direct_volume(
 //    camera<CameraReal> const&                     cam,
 //    axis_aligned_bounding_box<AABBReal, 3> const& aabb,
@@ -102,20 +87,10 @@ auto direct_volume(camera<CameraReal> const&                     cam,
 //}
 //// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ///-
-//#ifdef __cpp_concepts
 // template <arithmetic Min, arithmetic Max, arithmetic DistOnRay,
 //          arithmetic CameraReal, typename Grid, typename ValueType,
 //          bool HasNonConstReference, regular_invocable<double> ColorScale,
 //          regular_invocable<double> AlphaScale>
-//#else
-// template <typename Min, typename Max, typename DistOnRay, typename
-// CameraReal,
-//          typename Grid, typename ValueType, bool HasNonConstReference,
-//          typename ColorScale, typename AlphaScale,
-//          enable_if_arithmetic<Min, Max, DistOnRay, CameraReal> = true,
-//          enable_if_invocable<ColorScale, double>               = true,
-//          enable_if_invocable<AlphaScale, double>               = true>
-//#endif
 // auto direct_volume(
 //    camera<CameraReal> const&                                         cam,
 //    typed_grid_vertex_property_interface<Grid, ValueType,
