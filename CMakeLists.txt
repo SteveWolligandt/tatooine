@@ -474,7 +474,8 @@ set(TATOOINE_MANDATORY_GIT_SUBMODULES
   external/rapidxml
   external/blaspp
   external/lapackpp
-  external/indicators)
+  external/indicators
+  external/gcem)
 foreach(SUBMODULE ${TATOOINE_MANDATORY_GIT_SUBMODULES})
   update_git_submodule(${SUBMODULE})
 endforeach()

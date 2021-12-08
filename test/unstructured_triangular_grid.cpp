@@ -6,14 +6,16 @@ namespace tatooine::test {
 TEST_CASE_METHOD(unstructured_triangular_grid3,
                  "unstructured_triangular_grid_vertex_add") {
   auto v0 = insert_vertex(0,0,0);
-  auto v1 = insert_vertex(1,2,3);
-
-  REQUIRE(at(v0)(0) == 0);
-  REQUIRE(at(v0)(1) == 0);
-  REQUIRE(at(v0)(2) == 0);
-  REQUIRE(at(v1)(0) == 1);
-  REQUIRE(at(v1)(1) == 2);
-  REQUIRE(at(v1)(2) == 3);
+  auto v1 = insert_vertex(1,0,0);
+  auto v2 = insert_vertex(0,1,0);
+  insert_cell(v0,v1,v2);
+  write_vtp("triangle_poly.vtp");
+  //REQUIRE(at(v0)(0) == 0);
+  //REQUIRE(at(v0)(1) == 0);
+  //REQUIRE(at(v0)(2) == 0);
+  //REQUIRE(at(v1)(0) == 1);
+  //REQUIRE(at(v1)(1) == 2);
+  //REQUIRE(at(v1)(2) == 3);
 }
 //==============================================================================
 }  // namespace tatooine::test
