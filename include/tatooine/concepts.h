@@ -110,7 +110,7 @@ concept floating_point_range =
     range<T> && floating_point<typename std::decay_t<T>::value_type>;
 //------------------------------------------------------------------------------
 template <typename T, typename S>
-concept range_of_type =
+concept range_of =
     range<T> && std::same_as<typename std::decay_t<T>::value_type, S>;
 
 //==============================================================================

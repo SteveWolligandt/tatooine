@@ -67,27 +67,30 @@ TEST_CASE_METHOD(pointset3, "pointset_delete_vertex",
   insert_vertex(3, 4, 5);
   insert_vertex(4, 5, 6);
   REQUIRE(vertices().size() == 4);
+  REQUIRE(vertices().data_container().size() == 4);
   remove(v0);
   REQUIRE(vertices().size() == 3);
+  REQUIRE(vertices().data_container().size() == 4);
   tidy_up();
   REQUIRE(vertices().size() == 3);
+  REQUIRE(vertices().data_container().size() == 3);
   SECTION("v0 now must be {2,3,4}") { REQUIRE(at(v0)(0) == 2); }
 }
 //==============================================================================
-TEST_CASE_METHOD(pointset3, "pointset_kd_tree", "[pointset][kdtree]") {
-  auto const v0 = insert_vertex(0, 0, 0);
-  auto const v1 = insert_vertex(1, 0, 0);
-  auto const v2 = insert_vertex(-1, 0, 0);
-
-  REQUIRE(nearest_neighbor(vec3{0.1, 0, 0}) == v0);
-  REQUIRE(nearest_neighbor(vec3{0.49999, 0, 0}) == v0);
-  REQUIRE(nearest_neighbor(vec3{0.500001, 0, 0}) == v1);
-  REQUIRE(nearest_neighbor(vec3{-0.500001, 0, 0}) == v2);
-  auto const nearest_0_5_2 = nearest_neighbors(vec3{0.5, 0, 0}, 2);
-  REQUIRE(size(nearest_0_5_2) == 2);
-  REQUIRE((nearest_0_5_2[0] == v0 || nearest_0_5_2[1] == v0));
-  REQUIRE((nearest_0_5_2[0] == v1 || nearest_0_5_2[1] == v1));
-}
+//TEST_CASE_METHOD(pointset3, "pointset_kd_tree", "[pointset][kdtree]") {
+//  auto const v0 = insert_vertex(0, 0, 0);
+//  auto const v1 = insert_vertex(1, 0, 0);
+//  auto const v2 = insert_vertex(-1, 0, 0);
+//
+//  REQUIRE(nearest_neighbor(vec3{0.1, 0, 0}) == v0);
+//  REQUIRE(nearest_neighbor(vec3{0.49999, 0, 0}) == v0);
+//  REQUIRE(nearest_neighbor(vec3{0.500001, 0, 0}) == v1);
+//  REQUIRE(nearest_neighbor(vec3{-0.500001, 0, 0}) == v2);
+//  auto const nearest_0_5_2 = nearest_neighbors(vec3{0.5, 0, 0}, 2);
+//  REQUIRE(size(nearest_0_5_2) == 2);
+//  REQUIRE((nearest_0_5_2[0] == v0 || nearest_0_5_2[1] == v0));
+//  REQUIRE((nearest_0_5_2[0] == v1 || nearest_0_5_2[1] == v1));
+//}
 //==============================================================================
 TEST_CASE_METHOD((pointset2), "pointset_inverse_distance_weighting_sampler",
                  "[pointset][inverse_distance_weighting_sampler]") {

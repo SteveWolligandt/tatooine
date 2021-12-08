@@ -229,11 +229,14 @@ struct pointset {
   }
   //----------------------------------------------------------------------------
   /// tidies up invalid vertices
-  void tidy_up() {
+  auto tidy_up() {
     for (auto const v : m_invalid_vertices) {
       // decrease deleted vertex indices;
-      for (auto& v_to_decrease : m_invalid_vertices)
-        if (v_to_decrease.i > v.i) --v_to_decrease.i;
+      for (auto& v_to_decrease : m_invalid_vertices) {
+        if (v_to_decrease.i > v.i) {
+          --v_to_decrease.i;
+        }
+      }
 
       m_vertex_positions.erase(m_vertex_positions.begin() + v.i);
       for (auto const& [key, prop] : m_vertex_properties) {
@@ -243,7 +246,7 @@ struct pointset {
     m_invalid_vertices.clear();
   }
   //----------------------------------------------------------------------------
-  void remove(vertex_handle v) {
+  auto remove(vertex_handle v) {
     if (is_valid(v) &&
         boost::find(m_invalid_vertices, v) == m_invalid_vertices.end())
       m_invalid_vertices.push_back(v);
@@ -603,11 +606,11 @@ struct pointset {
   /// Takes the raw output indices of flann without converting them into vertex
   /// handles.
   auto nearest_neighbors_raw(pos_t const& x, size_t const num_nearest_neighbors,
-                             flann::SearchParams const params = {}) const
-      -> std::pair<std::vector<int>, std::vector<Real>> {
-    flann::Matrix<Real> qm{const_cast<Real*>(x.data_ptr()), 1,
-                           num_dimensions()};
-    auto ret = std::pair{std::vector<int>{}, std::vector<Real>{}};
+                             flann::SearchParams const params = {}) const {
+    auto qm  = flann::Matrix<Real>{const_cast<Real*>(x.data_ptr()), 1,
+                                  num_dimensions()};
+    auto ret = std::pair{std::vector<std::vector<std::size_t>>{},
+                         std::vector<std::vector<Real>>{}};
     auto& [indices, distances] = ret;
     kd_tree().knnSearch(qm, indices, distances, num_nearest_neighbors, params);
     return ret;
@@ -617,11 +620,13 @@ struct pointset {
                          size_t const num_nearest_neighbors) const {
     auto const [indices, distances] =
         nearest_neighbors_raw(x, num_nearest_neighbors);
-    std::vector<vertex_handle> handles;
+    auto handles = std::vector<std::vector<vertex_handle>>{};
     handles.reserve(size(indices));
-    for (auto const i : indices) {
-      handles.emplace_back(static_cast<size_t>(i));
-    }
+    // TODO make it work
+    //for (auto const& i : indices) {
+    //
+    //  handles.emplace_back(static_cast<size_t>(i));
+    //}
     return handles;
   }
   //----------------------------------------------------------------------------
