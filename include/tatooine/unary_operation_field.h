@@ -98,38 +98,38 @@ constexpr auto make_unary_operation_field(
                                                  std::move(op)};
 }
 //==============================================================================
-template <typename Field, typename Real, typename Tensor, size_t N, typename Op>
-constexpr auto operator|(field<Field, Real, N, Tensor> const& field,
-                         Op const&                            op) {
-  return make_unary_operation_field(field, op);
-}
-//------------------------------------------------------------------------------
-template <typename Field, typename Real, typename Tensor, size_t N, typename Op>
-constexpr auto operator|(field<Field, Real, N, Tensor>&& field, Op const& op) {
-  return make_unary_operation_field(std::move(field.as_derived()), op);
-}
-//------------------------------------------------------------------------------
-template <typename Field, typename Real, typename Tensor, size_t N, typename Op>
-constexpr auto operator|(field<Field, Real, N, Tensor> const& field, Op&& op) {
-  return make_unary_operation_field(field.as_derived(), std::move(op));
-}
-//------------------------------------------------------------------------------
-template <typename Field, typename Real, typename Tensor, size_t N, typename Op>
-constexpr auto operator|(field<Field, Real, N, Tensor>&& field, Op&& op) {
-  return make_unary_operation_field(std::move(field.as_derived()),
-                                    std::move(op));
-}
-//------------------------------------------------------------------------------
-template <typename Real, size_t N, typename Tensor, typename Op>
-constexpr auto operator|(polymorphic::field<Real, N, Tensor>* field,
-                         Op const&                            op) {
-  return make_unary_operation_field(field, op);
-}
-//------------------------------------------------------------------------------
-template <typename Real, size_t N, typename Tensor, typename Op>
-constexpr auto operator|(polymorphic::field<Real, N, Tensor>* field, Op&& op) {
-  return make_unary_operation_field(field, std::move(op));
-}
+//template <typename Field, typename Real, typename Tensor, size_t N, typename Op>
+//constexpr auto operator|(field<Field, Real, N, Tensor> const& field,
+//                         Op const&                            op) {
+//  return make_unary_operation_field(field, op);
+//}
+////------------------------------------------------------------------------------
+//template <typename Field, typename Real, typename Tensor, size_t N, typename Op>
+//constexpr auto operator|(field<Field, Real, N, Tensor>&& field, Op const& op) {
+//  return make_unary_operation_field(std::move(field.as_derived()), op);
+//}
+////------------------------------------------------------------------------------
+//template <typename Field, typename Real, typename Tensor, size_t N, typename Op>
+//constexpr auto operator|(field<Field, Real, N, Tensor> const& field, Op&& op) {
+//  return make_unary_operation_field(field.as_derived(), std::move(op));
+//}
+////------------------------------------------------------------------------------
+//template <typename Field, typename Real, typename Tensor, size_t N, typename Op>
+//constexpr auto operator|(field<Field, Real, N, Tensor>&& field, Op&& op) {
+//  return make_unary_operation_field(std::move(field.as_derived()),
+//                                    std::move(op));
+//}
+////------------------------------------------------------------------------------
+//template <typename Real, size_t N, typename Tensor, typename Op>
+//constexpr auto operator|(polymorphic::field<Real, N, Tensor>* field,
+//                         Op const&                            op) {
+//  return make_unary_operation_field(field, op);
+//}
+////------------------------------------------------------------------------------
+//template <typename Real, size_t N, typename Tensor, typename Op>
+//constexpr auto operator|(polymorphic::field<Real, N, Tensor>* field, Op&& op) {
+//  return make_unary_operation_field(field, std::move(op));
+//}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

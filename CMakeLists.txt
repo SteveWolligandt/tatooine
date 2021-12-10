@@ -115,9 +115,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   target_compile_options(tatooine PUBLIC
     -Wall -Wextra -Wpedantic
-    -Wno-cpp
-    -Wno-inconsistent-missing-override
-    -Wno-c99-extensions)
+    -Wno-cpp)
 endif()
 
 
@@ -170,8 +168,7 @@ endif()
 # BLAS
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_subdirectory(external/blaspp)
-target_compile_options(blaspp PUBLIC
-  -Wno-unused-parameter -Wno-unused-private-field)
+target_compile_options(blaspp PUBLIC -Wno-unused-parameter)
 target_link_libraries(tatooine PUBLIC blaspp)
 list(APPEND TATOOINE_EXPORTING_TARGETS blaspp)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

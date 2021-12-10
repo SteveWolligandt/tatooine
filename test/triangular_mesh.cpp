@@ -5,6 +5,23 @@
 namespace tatooine::test {
 //==============================================================================
 TEST_CASE_METHOD(UnstructuredTriangularGrid3<double>,
+                 "unstructured_triangular_grid_remove_vertex",
+                 "[unstructured_triangular_grid][triangular_grid][remove][vertex]") {
+  using namespace boost;
+  auto v0 = insert_vertex(0, 0, 0);
+  auto v1 = insert_vertex(1, 0, 0);
+  auto v2 = insert_vertex(1, 1, 0);
+  auto v3 = insert_vertex(0, 1, 0);
+  auto c0 = insert_cell(v0, v1, v2);
+  auto c1 = insert_cell(v0, v2, v3);
+
+  remove(v1);
+
+  find(vertices(), v1) == false;
+  find(cells(), c0) == false;
+}
+//==============================================================================
+TEST_CASE_METHOD(UnstructuredTriangularGrid3<double>,
                  "unstructured_triangular_grid_io",
                  "[unstructured_triangular_grid][triangular_grid][io][IO]") {
   auto v0 = insert_vertex(0, 0, 0);
