@@ -2,8 +2,8 @@
 #define TATOOINE_POINTSET_H
 //==============================================================================
 #include <tatooine/available_libraries.h>
-
 #include <tatooine/iterator_facade.h>
+
 #include <boost/range/algorithm/find.hpp>
 #if TATOOINE_FLANN_AVAILABLE
 #include <flann/flann.hpp>
@@ -23,11 +23,16 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
+namespace detail::pointset {
 template <typename Real, size_t NumDimensions, typename T>
-struct moving_least_squares_sampler_t;
+struct moving_least_squares_sampler;
 //==============================================================================
 template <typename Real, size_t NumDimensions, typename T>
-struct inverse_distance_weighting_sampler_t;
+struct inverse_distance_weighting_sampler;
+//==============================================================================
+template <typename Real, std::size_t NumDimensions>
+struct vertex_container;
+}  // namespace detail::pointset
 //==============================================================================
 template <typename Real, size_t NumDimensions>
 struct pointset {
@@ -47,80 +52,8 @@ struct pointset {
     using handle<vertex_handle>::operator=;
   };
   //----------------------------------------------------------------------------
-  struct vertex_iterator : iterator_facade<vertex_iterator> {
-    struct sentinel_type{};
-    using value_type = vertex_handle;
-    vertex_iterator(vertex_handle const vh, pointset const* ps)
-        : m_vh{vh}, m_ps{ps} {}
-    vertex_iterator(vertex_iterator const& other)
-        : m_vh{other.m_vh}, m_ps{other.m_ps} {}
-
-   private:
-    vertex_handle   m_vh;
-    pointset const* m_ps;
-
-   public:
-    auto increment()  {
-      do {
-        ++m_vh;
-      } while (!m_ps->is_valid(m_vh));
-    }
-    auto decrement()  {
-      do {
-        --m_vh;
-      } while (!m_ps->is_valid(m_vh));
-    }
-
-    [[nodiscard]] auto equal(vertex_iterator const& other) const {
-      return m_vh == other.m_vh;
-    }
-    [[nodiscard]] auto dereference() const { return m_vh; }
-
-    constexpr auto at_end() const {
-      return m_vh.i == m_ps->vertex_positions().size();
-    }
-  };
-  //----------------------------------------------------------------------------
-  struct vertex_container {
-    using iterator = vertex_iterator;
-    //==========================================================================
-    pointset const* m_pointset;
-    //==========================================================================
-    auto begin() const {
-      vertex_iterator vi{vertex_handle{0}, m_pointset};
-      if (!m_pointset->is_valid(*vi)) {
-        ++vi;
-      }
-      return vi;
-    }
-    //--------------------------------------------------------------------------
-    static constexpr auto end() {
-      return typename vertex_iterator::sentinel_type{};
-    }
-    //--------------------------------------------------------------------------
-    auto size() const {
-      return m_pointset->vertex_positions().size() -
-             m_pointset->invalid_vertices().size();
-    }
-    auto data_container() const -> auto const& {
-      return m_pointset->vertex_positions();
-    }
-    auto data() const { return data_container().data(); }
-    auto operator[](std::size_t const i) const {
-      return m_pointset->at(vertex_handle{i});
-    }
-    auto operator[](std::size_t const i) {
-      return m_pointset->at(vertex_handle{i});
-    }
-    auto operator[](vertex_handle const i) const { return m_pointset->at(i); }
-    auto operator[](vertex_handle const i) { return m_pointset->at(i); }
-    auto at(std::size_t const i) const {
-      return m_pointset->at(vertex_handle{i});
-    }
-    auto at(std::size_t const i) { return m_pointset->at(vertex_handle{i}); }
-    auto at(vertex_handle const i) const { return m_pointset->at(i); }
-    auto at(vertex_handle const i) { return m_pointset->at(i); }
-  };
+  using vertex_container =
+      detail::pointset::vertex_container<Real, NumDimensions>;
   //----------------------------------------------------------------------------
   template <typename T>
   using vertex_property_t = vector_property_impl<vertex_handle, T>;
@@ -180,7 +113,7 @@ struct pointset {
       return *this;
     }
     m_vertex_properties.clear();
-    m_vertex_positions         = other.m_vertex_positions;
+    m_vertex_positions = other.m_vertex_positions;
     m_invalid_vertices = other.m_invalid_vertices;
     for (auto const& [name, prop] : other.m_vertex_properties) {
       m_vertex_properties.emplace(name, prop->clone());
@@ -205,13 +138,17 @@ struct pointset {
     return vertex_positions()[v.i];
   }
   //----------------------------------------------------------------------------
-  auto vertex_at(vertex_handle const v) -> auto& { return vertex_positions()[v.i]; }
+  auto vertex_at(vertex_handle const v) -> auto& {
+    return vertex_positions()[v.i];
+  }
   auto vertex_at(vertex_handle const v) const -> auto const& {
     return vertex_positions()[v.i];
   }
   //----------------------------------------------------------------------------
   auto vertex_at(size_t const i) -> auto& { return vertex_positions()[i]; }
-  auto vertex_at(size_t const i) const -> auto const& { return vertex_positions()[i]; }
+  auto vertex_at(size_t const i) const -> auto const& {
+    return vertex_positions()[i];
+  }
   //----------------------------------------------------------------------------
   auto operator[](vertex_handle const v) -> auto& { return at(v); }
   auto operator[](vertex_handle const v) const -> auto const& { return at(v); }
@@ -226,8 +163,8 @@ struct pointset {
   auto invalid_vertices() const -> auto const& { return m_invalid_vertices; }
   //----------------------------------------------------------------------------
  public:
-  auto insert_vertex(arithmetic auto const... ts)
-    requires(sizeof...(ts) == NumDimensions) {
+  auto insert_vertex(arithmetic auto const... ts) requires(sizeof...(ts) ==
+                                                           NumDimensions) {
     vertex_positions().push_back(pos_t{static_cast<Real>(ts)...});
     for (auto& [key, prop] : m_vertex_properties) {
       prop->push_back();
@@ -607,8 +544,8 @@ struct pointset {
   auto kd_tree() const -> auto& {
     if (m_kd_tree == nullptr) {
       flann::Matrix<Real> dataset{
-          const_cast<Real*>(vertex_positions().front().data_ptr()), vertices().size(),
-          num_dimensions()};
+          const_cast<Real*>(vertex_positions().front().data_ptr()),
+          vertices().size(), num_dimensions()};
       m_kd_tree = std::make_unique<flann_index_t>(
           dataset, flann::KDTreeSingleIndexParams{});
       m_kd_tree->buildIndex();
@@ -647,7 +584,7 @@ struct pointset {
     auto handles = std::vector<std::vector<vertex_handle>>{};
     handles.reserve(size(indices));
     // TODO make it work
-    //for (auto const& i : indices) {
+    // for (auto const& i : indices) {
     //
     //  handles.emplace_back(static_cast<size_t>(i));
     //}
@@ -659,9 +596,9 @@ struct pointset {
   auto nearest_neighbors_radius_raw(pos_t const& x, Real const radius,
                                     flann::SearchParams const params = {}) const
       -> std::pair<std::vector<int>, std::vector<Real>> {
-    flann::Matrix<Real> qm{const_cast<Real*>(x.data_ptr()),  // NOLINT
+    flann::Matrix<Real>           qm{const_cast<Real*>(x.data_ptr()),  // NOLINT
                            1, num_dimensions()};
-    std::vector<std::vector<int>>  indices;
+    std::vector<std::vector<int>> indices;
     std::vector<std::vector<Real>> distances;
     kd_tree().radiusSearch(qm, indices, distances, radius, params);
     return {std::move(indices.front()), std::move(distances.front())};
@@ -681,30 +618,116 @@ struct pointset {
   template <typename T>
   auto inverse_distance_weighting_sampler(vertex_property_t<T> const& prop,
                                           Real const radius = 1) const {
-    return inverse_distance_weighting_sampler_t<Real, NumDimensions, T>{
-        *this, prop, radius};
+    return detail::pointset::inverse_distance_weighting_sampler<
+        Real, NumDimensions, T>{*this, prop, radius};
   }
   //============================================================================
   template <typename T>
   auto moving_least_squares_sampler(vertex_property_t<T> const& prop,
                                     Real const radius = 1) const
       requires(NumDimensions == 3 || NumDimensions == 2) {
-    return moving_least_squares_sampler_t<Real, NumDimensions, T>{*this, prop,
-                                                                  radius};
+    return detail::pointset::moving_least_squares_sampler<Real, NumDimensions,
+                                                          T>{*this, prop,
+                                                             radius};
   }
+  friend struct detail::pointset::vertex_container<Real, NumDimensions>;
+};
+//==============================================================================
+namespace detail::pointset {
+//==============================================================================
+template <typename Real, std::size_t NumDimensions>
+struct vertex_container {
+  using pointset_t      = tatooine::pointset<Real, NumDimensions>;
+  using vertex_handle_t = typename pointset_t::vertex_handle;
+  struct iterator : iterator_facade<iterator> {
+    struct sentinel_type {};
+    iterator() = default;
+    iterator(vertex_handle_t const vh, pointset_t const* ps)
+        : m_vh{vh}, m_ps{ps} {}
+    iterator(iterator const& other) : m_vh{other.m_vh}, m_ps{other.m_ps} {}
+
+   private:
+    vertex_handle_t   m_vh{};
+    pointset_t const* m_ps = nullptr;
+
+   public:
+    constexpr auto increment() {
+      do {
+        ++m_vh;
+      } while (!m_ps->is_valid(m_vh));
+    }
+    constexpr auto decrement() {
+      do {
+        --m_vh;
+      } while (!m_ps->is_valid(m_vh));
+    }
+
+    [[nodiscard]] constexpr auto equal(iterator const& other) const {
+      return m_vh == other.m_vh;
+    }
+    [[nodiscard]] auto dereference() const { return m_vh; }
+
+    constexpr auto at_end() const {
+      return m_vh.i == m_ps->vertex_positions().size();
+    }
+  };
+  //==========================================================================
+ private:
+  pointset_t const* m_pointset;
+
+ public:
+  vertex_container(pointset_t const* ps) : m_pointset{ps} {}
+  vertex_container(vertex_container const&)     = default;
+  vertex_container(vertex_container&&) noexcept = default;
+  auto operator=(vertex_container const&) -> vertex_container& = default;
+  auto operator=(vertex_container&&) noexcept -> vertex_container& = default;
+  ~vertex_container()                                              = default;
+  //==========================================================================
+  auto begin() const {
+    iterator vi{vertex_handle_t{0}, m_pointset};
+    if (!m_pointset->is_valid(*vi)) {
+      ++vi;
+    }
+    return vi;
+  }
+  //--------------------------------------------------------------------------
+  static constexpr auto end() { return typename iterator::sentinel_type{}; }
+  //--------------------------------------------------------------------------
+  auto size() const {
+    return m_pointset->vertex_positions().size() -
+           m_pointset->invalid_vertices().size();
+  }
+  auto data_container() const -> auto const& {
+    return m_pointset->vertex_positions();
+  }
+  auto data() const { return data_container().data(); }
+  auto operator[](std::size_t const i) const {
+    return m_pointset->at(vertex_handle_t{i});
+  }
+  auto operator[](std::size_t const i) {
+    return m_pointset->at(vertex_handle_t{i});
+  }
+  auto operator[](vertex_handle_t const i) const { return m_pointset->at(i); }
+  auto operator[](vertex_handle_t const i) { return m_pointset->at(i); }
+  auto at(std::size_t const i) const {
+    return m_pointset->at(vertex_handle_t{i});
+  }
+  auto at(std::size_t const i) { return m_pointset->at(vertex_handle_t{i}); }
+  auto at(vertex_handle_t const i) const { return m_pointset->at(i); }
+  auto at(vertex_handle_t const i) { return m_pointset->at(i); }
 };
 //============================================================================
 template <typename Real, size_t NumDimensions, typename T>
-struct inverse_distance_weighting_sampler_t
-    : field<inverse_distance_weighting_sampler_t<Real, NumDimensions, T>, Real,
+struct inverse_distance_weighting_sampler
+    : field<inverse_distance_weighting_sampler<Real, NumDimensions, T>, Real,
             NumDimensions, T> {
   static_assert(flann_available(),
                 "Inverse Distance Weighting Sampler needs FLANN!");
-  using this_t   = inverse_distance_weighting_sampler_t<Real, NumDimensions, T>;
+  using this_t   = inverse_distance_weighting_sampler<Real, NumDimensions, T>;
   using parent_t = field<this_t, Real, NumDimensions, T>;
   using typename parent_t::pos_t;
   using typename parent_t::tensor_t;
-  using pointset_t        = pointset<Real, NumDimensions>;
+  using pointset_t        = tatooine::pointset<Real, NumDimensions>;
   using vertex_handle     = typename pointset_t::vertex_handle;
   using vertex_property_t = typename pointset_t::template vertex_property_t<T>;
   //==========================================================================
@@ -712,24 +735,24 @@ struct inverse_distance_weighting_sampler_t
   vertex_property_t const& m_property;
   Real                     m_radius = 1;
   //==========================================================================
-  inverse_distance_weighting_sampler_t(pointset_t const&        ps,
-                                       vertex_property_t const& property,
-                                       Real const               radius = 1)
+  inverse_distance_weighting_sampler(pointset_t const&        ps,
+                                     vertex_property_t const& property,
+                                     Real const               radius = 1)
       : m_pointset{ps}, m_property{property}, m_radius{radius} {}
   //--------------------------------------------------------------------------
-  inverse_distance_weighting_sampler_t(
-      inverse_distance_weighting_sampler_t const&) = default;
+  inverse_distance_weighting_sampler(
+      inverse_distance_weighting_sampler const&) = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  inverse_distance_weighting_sampler_t(
-      inverse_distance_weighting_sampler_t&&) noexcept = default;
+  inverse_distance_weighting_sampler(
+      inverse_distance_weighting_sampler&&) noexcept = default;
   //--------------------------------------------------------------------------
-  auto operator=(inverse_distance_weighting_sampler_t const&)
-      -> inverse_distance_weighting_sampler_t& = default;
+  auto operator=(inverse_distance_weighting_sampler const&)
+      -> inverse_distance_weighting_sampler& = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator=(inverse_distance_weighting_sampler_t&&) noexcept
-      -> inverse_distance_weighting_sampler_t& = default;
+  auto operator=(inverse_distance_weighting_sampler&&) noexcept
+      -> inverse_distance_weighting_sampler& = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  ~inverse_distance_weighting_sampler_t() = default;
+  ~inverse_distance_weighting_sampler() = default;
   //==========================================================================
   [[nodiscard]] auto evaluate(pos_t const& x, real_t const /*t*/) const
       -> tensor_t {
@@ -762,15 +785,14 @@ struct inverse_distance_weighting_sampler_t
 /// Weighted Least Squares and Moving Least Squares Methods for Scattered Data
 /// Approximation and Interpolation</em> \cite nealen2004LeastSquaresIntro.
 template <typename Real, typename T>
-struct moving_least_squares_sampler_t<Real, 2, T>
-    : field<moving_least_squares_sampler_t<Real, 2, T>, Real, 2,
-            T> {
+struct moving_least_squares_sampler<Real, 2, T>
+    : field<moving_least_squares_sampler<Real, 2, T>, Real, 2, T> {
   static_assert(flann_available(), "Moving Least Squares Sampler needs FLANN!");
-  using this_t   = moving_least_squares_sampler_t<Real, 2, T>;
+  using this_t   = moving_least_squares_sampler<Real, 2, T>;
   using parent_t = field<this_t, Real, 2, T>;
   using typename parent_t::pos_t;
   using typename parent_t::tensor_t;
-  using pointset_t        = pointset<Real, 2>;
+  using pointset_t        = tatooine::pointset<Real, 2>;
   using vertex_property_t = typename pointset_t::template vertex_property_t<T>;
   using vertex_handle     = typename pointset_t::vertex_handle;
   //==========================================================================
@@ -778,24 +800,23 @@ struct moving_least_squares_sampler_t<Real, 2, T>
   vertex_property_t const& m_property;
   Real                     m_radius = 1;
   //==========================================================================
-  moving_least_squares_sampler_t(pointset_t const&        ps,
-                                 vertex_property_t const& property,
-                                 Real const               radius = 1)
+  moving_least_squares_sampler(pointset_t const&        ps,
+                               vertex_property_t const& property,
+                               Real const               radius = 1)
       : m_pointset{ps}, m_property{property}, m_radius{radius} {}
   //--------------------------------------------------------------------------
-  moving_least_squares_sampler_t(moving_least_squares_sampler_t const&) =
-      default;
+  moving_least_squares_sampler(moving_least_squares_sampler const&) = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  moving_least_squares_sampler_t(moving_least_squares_sampler_t&&) noexcept =
+  moving_least_squares_sampler(moving_least_squares_sampler&&) noexcept =
       default;
   //--------------------------------------------------------------------------
-  auto operator=(moving_least_squares_sampler_t const&)
-      -> moving_least_squares_sampler_t& = default;
+  auto operator                        =(moving_least_squares_sampler const&)
+      -> moving_least_squares_sampler& = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator=(moving_least_squares_sampler_t&&) noexcept
-      -> moving_least_squares_sampler_t& = default;
+  auto operator=(moving_least_squares_sampler&&) noexcept
+      -> moving_least_squares_sampler& = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  ~moving_least_squares_sampler_t() = default;
+  ~moving_least_squares_sampler() = default;
   //==========================================================================
   [[nodiscard]] auto evaluate(pos_t const& q, Real const /*t*/) const
       -> tensor_t {
@@ -806,7 +827,7 @@ struct moving_least_squares_sampler_t<Real, 2, T>
       d /= m_radius;
       d = 1 - d;
     }
-    auto const  num_neighbors = size(indices);
+    auto const num_neighbors = size(indices);
 
     if (num_neighbors == 0) {
       if constexpr (is_arithmetic<tensor_t>) {
@@ -838,8 +859,8 @@ struct moving_least_squares_sampler_t<Real, 2, T>
 
     // build w
     auto weighting_function = [&](auto const d) {
-       return 1 / d - 1 / m_radius;
-       //return std::exp(-d * d);
+      return 1 / d - 1 / m_radius;
+      // return std::exp(-d * d);
     };
     for (size_t i = 0; i < num_neighbors; ++i) {
       w(i) = weighting_function(distances[i]);
@@ -922,15 +943,14 @@ struct moving_least_squares_sampler_t<Real, 2, T>
 /// Weighted Least Squares and Moving Least Squares Methods for Scattered Data
 /// Approximation and Interpolation</em> \cite nealen2004LeastSquaresIntro.
 template <typename Real, typename T>
-struct moving_least_squares_sampler_t<Real, 3, T>
-    : field<moving_least_squares_sampler_t<Real, 3, T>, Real, 3,
-            T> {
+struct moving_least_squares_sampler<Real, 3, T>
+    : field<moving_least_squares_sampler<Real, 3, T>, Real, 3, T> {
   static_assert(flann_available(), "Moving Least Squares Sampler needs FLANN!");
-  using this_t   = moving_least_squares_sampler_t<Real, 3, T>;
+  using this_t   = moving_least_squares_sampler<Real, 3, T>;
   using parent_t = field<this_t, Real, 3, T>;
   using typename parent_t::pos_t;
   using typename parent_t::tensor_t;
-  using pointset_t        = pointset<Real, 3>;
+  using pointset_t        = tatooine::pointset<Real, 3>;
   using vertex_handle     = typename pointset_t::vertex_handle;
   using vertex_property_t = typename pointset_t::template vertex_property_t<T>;
   //==========================================================================
@@ -938,24 +958,23 @@ struct moving_least_squares_sampler_t<Real, 3, T>
   vertex_property_t const& m_property;
   Real                     m_radius = 1;
   //==========================================================================
-  moving_least_squares_sampler_t(pointset_t const&        ps,
-                                 vertex_property_t const& property,
-                                 Real const               radius = 1)
+  moving_least_squares_sampler(pointset_t const&        ps,
+                               vertex_property_t const& property,
+                               Real const               radius = 1)
       : m_pointset{ps}, m_property{property}, m_radius{radius} {}
   //--------------------------------------------------------------------------
-  moving_least_squares_sampler_t(moving_least_squares_sampler_t const&) =
-      default;
+  moving_least_squares_sampler(moving_least_squares_sampler const&) = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  moving_least_squares_sampler_t(moving_least_squares_sampler_t&&) noexcept =
+  moving_least_squares_sampler(moving_least_squares_sampler&&) noexcept =
       default;
   //--------------------------------------------------------------------------
-  auto operator=(moving_least_squares_sampler_t const&)
-      -> moving_least_squares_sampler_t& = default;
+  auto operator                        =(moving_least_squares_sampler const&)
+      -> moving_least_squares_sampler& = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator=(moving_least_squares_sampler_t&&) noexcept
-      -> moving_least_squares_sampler_t& = default;
+  auto operator=(moving_least_squares_sampler&&) noexcept
+      -> moving_least_squares_sampler& = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  ~moving_least_squares_sampler_t() = default;
+  ~moving_least_squares_sampler() = default;
   //==========================================================================
   [[nodiscard]] auto evaluate(pos_t const& q, real_t const /*t*/) const
       -> tensor_t {
@@ -986,10 +1005,10 @@ struct moving_least_squares_sampler_t<Real, 3, T>
     }();
     // build w
     for (size_t i = 0; i < num_neighbors; ++i) {
-      //if (distances[i] == 0) {
+      // if (distances[i] == 0) {
       //  return m_property[vertex_handle{indices[i]}];
       //}
-      //w(i) = 1 / distances[i] - 1 / m_radius;
+      // w(i) = 1 / distances[i] - 1 / m_radius;
       w(i) = std::exp(-(m_radius - distances[i]) * (m_radius - distances[i]));
     }
     // build f
@@ -1109,26 +1128,28 @@ struct moving_least_squares_sampler_t<Real, 3, T>
   }
 };
 //==============================================================================
+}  // namespace detail::pointset
+//==============================================================================
 template <typename Real, size_t NumDimensions>
 auto vertices(pointset<Real, NumDimensions> const& ps) {
   return ps.vertices();
 }
 //------------------------------------------------------------------------------
-template <typename Real, size_t NumDimensions>
-auto begin(
-    typename pointset<Real, NumDimensions>::vertex_container const& verts) {
+ template <typename Real, size_t NumDimensions>
+ auto begin(
+    detail::pointset::vertex_container<Real, NumDimensions> const& verts) {
   return verts.begin();
 }
 //------------------------------------------------------------------------------
-template <typename Real, size_t NumDimensions>
-auto end(
-    typename pointset<Real, NumDimensions>::vertex_container const& verts) {
+ template <typename Real, size_t NumDimensions>
+ auto end(
+    detail::pointset::vertex_container<Real, NumDimensions> const& verts) {
   return verts.end();
 }
 //------------------------------------------------------------------------------
-template <typename Real, size_t NumDimensions>
-auto size(
-    typename pointset<Real, NumDimensions>::vertex_container const& verts) {
+ template <typename Real, size_t NumDimensions>
+ auto size(
+    detail::pointset::vertex_container<Real, NumDimensions> const& verts) {
   return verts.size();
 }
 //==============================================================================
@@ -1141,4 +1162,9 @@ using pointset5 = Pointset<5>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
+template <typename Real, size_t NumDimensions>
+inline constexpr bool std::ranges::enable_borrowed_range<
+    typename tatooine::detail::pointset::vertex_container<Real,
+                                                          NumDimensions>> =
+    true;
 #endif

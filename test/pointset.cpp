@@ -11,8 +11,8 @@ TEST_CASE_METHOD(pointset3, "pointset", "[pointset][ranges]") {
   auto  v1    = insert_vertex(2, 4, 6);
   auto  is0   = std::vector<std::size_t>{};
   constexpr auto  index      = [](auto const vh) { return vh.i; };
-  auto  index_view = std::views::transform(index);
-  std::ranges::copy(vertices() | index_view, std::back_inserter(is0));
+  using namespace std::views;
+  std::ranges::copy(vertices() | transform(index), std::back_inserter(is0));
   // remove(v0);
   // auto  is1    = std::vector<std::size_t>{};
   // std::ranges::copy(vertices() |

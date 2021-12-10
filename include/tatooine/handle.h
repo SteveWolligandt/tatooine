@@ -2,6 +2,7 @@
 #define TATOOINE_HANDLE_H
 //==============================================================================
 #include <tatooine/concepts.h>
+#include <tatooine/demangling.h>
 
 #include <cstdint>
 #include <ostream>
