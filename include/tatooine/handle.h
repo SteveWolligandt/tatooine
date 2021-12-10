@@ -129,6 +129,7 @@ template <typename Child, unsigned_integral Int>
 auto operator<<(std::ostream & stream, handle<Child, Int> const h) {
   return stream << type_name<Child>() << "[" << h.i << "]";
 }
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Child, unsigned_integral Int>
 auto constexpr index(handle<Child, Int> const h) {
   return h.index();
