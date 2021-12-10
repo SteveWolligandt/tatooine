@@ -1,5 +1,6 @@
 #include <tatooine/demangling.h>
 #include <tatooine/handle.h>
+#include <tatooine/pointset.h>
 #include <tatooine/iterator_facade.h>
 #include <tatooine/vec.h>
 
@@ -46,8 +47,15 @@ auto main() -> int {
     std::cout << i << '\n';
   }
   check_range(r);
+  check_iterator(r.begin());
+  auto ps = pointset2{};
+  check_range(ps.vertices());
+  check_iterator(ps.vertices().begin());
   auto square = [](auto const x) { return x * x; };
   std::ranges::copy(r | std::views::transform(square), std::back_inserter(v));
+  std::ranges::copy(
+      ps.vertices() | std::views::transform([](auto const v) { return v.i; }),
+      std::back_inserter(v));
   std::ranges::begin(r);
 
   for (auto i : v) {
