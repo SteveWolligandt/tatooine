@@ -133,16 +133,16 @@ struct pointset {
   //----------------------------------------------------------------------------
   auto vertex_properties() const -> auto const& { return m_vertex_properties; }
   //----------------------------------------------------------------------------
-  auto at(vertex_handle const v) -> auto& { return vertex_positions()[v.i]; }
+  auto at(vertex_handle const v) -> auto& { return vertex_positions()[v.index()]; }
   auto at(vertex_handle const v) const -> auto const& {
-    return vertex_positions()[v.i];
+    return vertex_positions()[v.index()];
   }
   //----------------------------------------------------------------------------
   auto vertex_at(vertex_handle const v) -> auto& {
-    return vertex_positions()[v.i];
+    return vertex_positions()[v.index()];
   }
   auto vertex_at(vertex_handle const v) const -> auto const& {
-    return vertex_positions()[v.i];
+    return vertex_positions()[v.index()];
   }
   //----------------------------------------------------------------------------
   auto vertex_at(size_t const i) -> auto& { return vertex_positions()[i]; }
@@ -194,14 +194,14 @@ struct pointset {
     for (auto const v : invalid_vertices()) {
       // decrease deleted vertex indices;
       for (auto& v_to_decrease : invalid_vertices()) {
-        if (v_to_decrease.i > v.i) {
-          --v_to_decrease.i;
+        if (v_to_decrease.index() > v.index()) {
+          --v_to_decrease;
         }
       }
 
-      vertex_positions().erase(begin(vertex_positions()) + v.i);
+      vertex_positions().erase(begin(vertex_positions()) + v.index());
       for (auto const& [key, prop] : m_vertex_properties) {
-        prop->erase(v.i);
+        prop->erase(v.index());
       }
     }
     invalid_vertices().clear();
@@ -303,7 +303,7 @@ struct pointset {
   //       in.pointlist[i * 3 + j] = at(v)(j);
   //     }
   //     in.pointmarkerlist[i]    = i;
-  //     in.pointattributelist[i] = v.i;
+  //     in.pointattributelist[i] = v.index();
   //     ++i;
   //   }
   // }
@@ -668,7 +668,7 @@ struct vertex_container {
     [[nodiscard]] auto dereference() const { return m_vh; }
 
     constexpr auto at_end() const {
-      return m_vh.i == m_ps->vertex_positions().size();
+      return m_vh.index() == m_ps->vertex_positions().size();
     }
   };
   //==========================================================================
