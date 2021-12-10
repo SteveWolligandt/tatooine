@@ -15,8 +15,10 @@ struct handle {
   using int_t                       = Int;
   static constexpr auto invalid_idx = std::numeric_limits<Int>::max();
   //============================================================================
+ private:
   Int i{};
   //============================================================================
+ public:
   constexpr handle() : i{invalid_idx} {}
   constexpr explicit handle(integral auto const _i) : i{static_cast<Int>(_i)} {}
   constexpr handle(handle const&)     = default;
@@ -79,6 +81,8 @@ struct handle {
   constexpr auto operator-=(integral auto const i) { this->i -= i; }
   constexpr auto operator*=(integral auto const i) { this->i *= i; }
   constexpr auto operator/=(integral auto const i) { this->i /= i; }
+
+  auto index() const { return i; }
 };
 //==============================================================================
 template <typename Child, unsigned_integral Int>
@@ -124,6 +128,10 @@ auto operator/(integral auto const i, handle<Child, Int> const h) {
 template <typename Child, unsigned_integral Int>
 auto operator<<(std::ostream & stream, handle<Child, Int> const h) {
   return stream << type_name<Child>() << "[" << h.i << "]";
+}
+template <typename Child, unsigned_integral Int>
+auto constexpr index(handle<Child, Int> const h) {
+  return h.index();
 }
 //==============================================================================
 }  // namespace tatooine

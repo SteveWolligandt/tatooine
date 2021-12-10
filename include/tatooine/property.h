@@ -140,26 +140,26 @@ struct vector_property_impl : vector_property<Handle> {
   //----------------------------------------------------------------------------
   /// Access the i'th element.
   auto at(Handle handle) -> auto& {
-    assert(handle.i < m_data.size());
-    return m_data.at(handle.i);
+    assert(handle.index() < m_data.size());
+    return m_data.at(handle.index());
   }
   //----------------------------------------------------------------------------
   /// Const access to the i'th element.
   auto at(Handle handle) const -> const auto& {
-    assert(handle.i < m_data.size());
-    return m_data.at(handle.i);
+    assert(handle.index() < m_data.size());
+    return m_data.at(handle.index());
   }
   //----------------------------------------------------------------------------
   /// Access the i'th element.
   auto operator[](Handle handle) -> auto& {
-    assert(handle.i < m_data.size());
-    return m_data[handle.i];
+    assert(handle.index() < m_data.size());
+    return m_data[handle.index()];
   }
   //----------------------------------------------------------------------------
   /// Const access to the i'th element.
   auto operator[](Handle handle) const -> const auto& {
-    assert(handle.i < m_data.size());
-    return m_data[handle.i];
+    assert(handle.index() < m_data.size());
+    return m_data[handle.index()];
   }
   //----------------------------------------------------------------------------
   [[nodiscard]] auto type() const -> const std::type_info& override { return typeid(T); }
@@ -305,26 +305,26 @@ struct deque_property_impl : deque_property<Handle> {
   //----------------------------------------------------------------------------
   /// Access the i'th element.
   auto at(Handle handle) -> auto& {
-    assert(handle.i < m_data.size());
-    return m_data.at(handle.i);
+    assert(handle.index() < m_data.size());
+    return m_data.at(handle.index());
   }
   //----------------------------------------------------------------------------
   /// Const access to the i'th element.
   auto at(Handle handle) const -> const auto& {
-    assert(handle.i < m_data.size());
-    return m_data.at(handle.i);
+    assert(handle.index() < m_data.size());
+    return m_data.at(handle.index());
   }
   //----------------------------------------------------------------------------
   /// Access the i'th element.
   auto operator[](Handle handle) -> auto& {
-    assert(handle.i < m_data.size());
-    return m_data[handle.i];
+    assert(handle.index() < m_data.size());
+    return m_data[handle.index()];
   }
   //----------------------------------------------------------------------------
   /// Const access to the i'th element.
   auto operator[](Handle handle) const -> const auto& {
-    assert(handle.i < m_data.size());
-    return m_data[handle.i];
+    assert(handle.index() < m_data.size());
+    return m_data[handle.index()];
   }
   //----------------------------------------------------------------------------
   [[nodiscard]] auto type() const -> const std::type_info& override { return typeid(T); }
