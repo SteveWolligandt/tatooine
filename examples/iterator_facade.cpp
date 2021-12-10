@@ -16,18 +16,21 @@ struct my_range {
     struct sentinel_type {};
     std::size_t m_vh{};
 
+    // CTORS
     iterator() = default;  // ITERATORS NEED TO BE DEFAULT-CONSTRUCTIBLE!!!
-    iterator(std::size_t const vh) : m_vh{vh} {}
+    explicit iterator(std::size_t const vh) : m_vh{vh} {}
     iterator(iterator const&)     = default;
     iterator(iterator&&) noexcept = default;
+    // Assign ops
     auto operator=(iterator const&) -> iterator& = default;
     auto operator=(iterator&&) noexcept -> iterator& = default;
+    // DTOR
     ~iterator()                                      = default;
 
     constexpr auto               increment() { ++m_vh; }
     constexpr auto               decrement() { --m_vh; }
     [[nodiscard]] auto           dereference() const { return m_vh; }
-    [[nodiscard]] constexpr bool equal_to(iterator other) const {
+    [[nodiscard]] constexpr auto equal_to(iterator other) const {
       return m_vh == other.m_vh;
     }
     [[nodiscard]] auto at_end() const { return m_vh == 100; }
