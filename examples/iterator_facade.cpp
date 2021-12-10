@@ -8,9 +8,9 @@
 #include <iostream>
 #include <ranges>
 #include <vector>
-
+//==============================================================================
 using namespace tatooine;
-
+//==============================================================================
 struct my_range {
   struct iterator : iterator_facade<iterator> {
     struct sentinel_type {};
@@ -35,28 +35,25 @@ struct my_range {
   auto                  begin() { return iterator{std::size_t{0}}; }
   static constexpr auto end() { return typename iterator::sentinel_type{}; }
 };
-
-constexpr auto check_iterator(std::input_or_output_iterator auto const& /*r*/) {
-}
-constexpr auto check_range(std::ranges::range auto const& /*r*/) {}
-
+//==============================================================================
+/// With this you can use rvalues with `operator|`
+template <>
+inline constexpr const bool std::ranges::enable_borrowed_range<my_range> = true;
+//==============================================================================
 auto main() -> int {
   auto v = std::vector<std::size_t>{};
   auto r = my_range{};
   for (auto i : r) {
     std::cout << i << '\n';
   }
-  check_range(r);
-  check_iterator(r.begin());
-  auto ps = pointset2{};
-  check_range(ps.vertices());
-  check_iterator(ps.vertices().begin());
   auto square = [](auto const x) { return x * x; };
-  std::ranges::copy(r | std::views::transform(square), std::back_inserter(v));
-  std::ranges::copy(
-      ps.vertices() | std::views::transform([](auto const v) { return v.i; }),
-      std::back_inserter(v));
-  std::ranges::begin(r);
+
+  using namespace std::ranges;
+
+  // use borrowed range
+  copy(my_range{} | views::transform(square), std::back_inserter(v));
+  copy(r | views::transform(square),
+       std::back_inserter(v));
 
   for (auto i : v) {
     std::cout << i << '\n';

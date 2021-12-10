@@ -12,12 +12,11 @@ TEST_CASE_METHOD(pointset3, "pointset_ranges", "[pointset][ranges]") {
   auto                  is0        = std::vector<std::size_t>{};
   constexpr auto  index      = [](auto const vh) { return vh.index(); };
   using namespace std::ranges;
-  using namespace std::views;
-  copy(vertices() | transform(index), std::back_inserter(is0));
+  copy(vertices() | views::transform(index), std::back_inserter(is0));
   remove(v0);
   auto is1 = std::vector<std::size_t>{};
-  auto get_index = [](auto const vh) { return index(vh); };
-  copy(vertices() | transform(get_index), std::back_inserter(is1));
+  auto get_index = [](auto const vh) { return vh.index(); };
+  copy(vertices() | views::transform(get_index), std::back_inserter(is1));
 
   REQUIRE(size(is0) == 2);
   REQUIRE(is0[0] == 0);
