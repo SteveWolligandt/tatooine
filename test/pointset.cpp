@@ -23,6 +23,45 @@ TEST_CASE_METHOD(pointset3, "pointset_ranges", "[pointset][ranges]") {
   REQUIRE(is0[1] == 1);
   REQUIRE(size(is1) == 1);
   REQUIRE(is1[0] == 1);
+}//==============================================================================
+TEST_CASE_METHOD(pointset2, "pointset_tidyup", "[pointset][tidyup]") {
+  [[maybe_unused]] auto v0         = insert_vertex(1, 2);
+  [[maybe_unused]] auto v1         = insert_vertex(2, 4);
+  [[maybe_unused]] auto v2         = insert_vertex(3, 6);
+  [[maybe_unused]] auto v3         = insert_vertex(4, 8);
+
+  REQUIRE(size(vertices()) == 4);
+  REQUIRE(size(vertex_position_data()) == 4);
+  REQUIRE(vertex_at(0)(0) == 1);
+  REQUIRE(vertex_at(0)(1) == 2);
+  REQUIRE(vertex_at(1)(0) == 2);
+  REQUIRE(vertex_at(1)(1) == 4);
+  REQUIRE(vertex_at(2)(0) == 3);
+  REQUIRE(vertex_at(2)(1) == 6);
+  REQUIRE(vertex_at(3)(0) == 4);
+  REQUIRE(vertex_at(3)(1) == 8);
+
+  remove(v1);
+  REQUIRE(size(vertices()) == 3);
+  REQUIRE(size(vertex_position_data()) == 4);
+  REQUIRE(vertex_at(0)(0) == 1);
+  REQUIRE(vertex_at(0)(1) == 2);
+  REQUIRE(vertex_at(1)(0) == 2);
+  REQUIRE(vertex_at(1)(1) == 4);
+  REQUIRE(vertex_at(2)(0) == 3);
+  REQUIRE(vertex_at(2)(1) == 6);
+  REQUIRE(vertex_at(3)(0) == 4);
+  REQUIRE(vertex_at(3)(1) == 8);
+
+  tidy_up();
+  REQUIRE(size(vertices()) == 3);
+  REQUIRE(size(vertex_position_data()) == 3);
+  REQUIRE(vertex_at(0)(0) == 1);
+  REQUIRE(vertex_at(0)(1) == 2);
+  REQUIRE(vertex_at(1)(0) == 3);
+  REQUIRE(vertex_at(1)(1) == 6);
+  REQUIRE(vertex_at(2)(0) == 4);
+  REQUIRE(vertex_at(2)(1) == 8);
 }
 //==============================================================================
 TEST_CASE_METHOD(pointset3, "pointset", "[pointset][general]") {

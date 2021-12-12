@@ -212,7 +212,7 @@ auto discretize(hyper_ellipse<Real, 3> const& s, size_t num_subdivisions = 0) {
           subdivided[edge] = size(vertices);
           nvs[i++]         = vh{};
           vertices.push_back(normalize(
-              (vertices[edge.first.i] + vertices[edge.second.i]) * 0.5));
+              (vertices[edge.first.index()] + vertices[edge.second.index()]) * 0.5));
         } else {
           nvs[i++] = vh{subdivided[edge]};
         }
