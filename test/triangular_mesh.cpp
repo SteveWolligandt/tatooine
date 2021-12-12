@@ -8,17 +8,38 @@ TEST_CASE_METHOD(UnstructuredTriangularGrid3<double>,
                  "unstructured_triangular_grid_remove_vertex",
                  "[unstructured_triangular_grid][triangular_grid][remove][vertex]") {
   using namespace std::ranges;
-  auto v0 = insert_vertex(0, 0, 0);
-  auto v1 = insert_vertex(1, 0, 0);
-  auto v2 = insert_vertex(1, 1, 0);
-  auto v3 = insert_vertex(0, 1, 0);
-  auto c0 = insert_cell(v0, v1, v2);
-  auto c1 = insert_cell(v0, v2, v3);
+  [[maybe_unused]] auto v0 = insert_vertex(0, 0, 0);
+  [[maybe_unused]] auto v1 = insert_vertex(1, 0, 0);
+  [[maybe_unused]] auto v2 = insert_vertex(1, 1, 0);
+  [[maybe_unused]] auto v3 = insert_vertex(0, 1, 0);
+  [[maybe_unused]] auto c0 = insert_cell(v0, v1, v2);
+  [[maybe_unused]] auto c1 = insert_cell(v0, v2, v3);
 
   remove(v1);
 
   REQUIRE(find(vertices(), v1) == end(vertices()));
   REQUIRE(find(cells(), c0) == end(cells()));
+}
+//==============================================================================
+TEST_CASE_METHOD(UnstructuredTriangularGrid2<double>,
+                 "unstructured_triangular_grid_cell_contains_vertex",
+                 "[unstructured_triangular_grid][triangular_grid][contains][vertex_in_cell]") {
+  using namespace std::ranges;
+  [[maybe_unused]] auto v0 = insert_vertex(0, 0);
+  [[maybe_unused]] auto v1 = insert_vertex(1, 0);
+  [[maybe_unused]] auto v2 = insert_vertex(1, 1);
+  [[maybe_unused]] auto v3 = insert_vertex(0, 1);
+  [[maybe_unused]] auto c0 = insert_cell(v0, v1, v2);
+  [[maybe_unused]] auto c1 = insert_cell(v0, v2, v3);
+
+  REQUIRE(contains(c0, v0));
+  REQUIRE(contains(c0, v1));
+  REQUIRE(contains(c0, v2));
+  REQUIRE_FALSE(contains(c0, v3));
+  REQUIRE(contains(c1, v0));
+  REQUIRE_FALSE(contains(c1, v1));
+  REQUIRE(contains(c1, v2));
+  REQUIRE(contains(c1, v3));
 }
 //==============================================================================
 TEST_CASE_METHOD(UnstructuredTriangularGrid2<double>,
@@ -44,6 +65,12 @@ TEST_CASE_METHOD(UnstructuredTriangularGrid2<double>,
   REQUIRE(vertex_at(2)(1) == 1);
   REQUIRE(vertex_at(3)(0) == 0);
   REQUIRE(vertex_at(3)(1) == 1);
+  REQUIRE(cell_index_data()[0] == 0);
+  REQUIRE(cell_index_data()[1] == 1);
+  REQUIRE(cell_index_data()[2] == 2);
+  REQUIRE(cell_index_data()[3] == 0);
+  REQUIRE(cell_index_data()[4] == 2);
+  REQUIRE(cell_index_data()[5] == 3);
   remove(v1);
   REQUIRE(size(vertices()) == 3);
   REQUIRE(size(cells()) == 1);
@@ -64,8 +91,6 @@ TEST_CASE_METHOD(UnstructuredTriangularGrid2<double>,
   REQUIRE(size(cell_index_data()) == 3);
   REQUIRE(vertex_at(0)(0) == 0);
   REQUIRE(vertex_at(0)(1) == 0);
-  REQUIRE(vertex_at(1)(0) == 1);
-  REQUIRE(vertex_at(1)(1) == 0);
   REQUIRE(vertex_at(1)(0) == 1);
   REQUIRE(vertex_at(1)(1) == 1);
   REQUIRE(vertex_at(2)(0) == 0);

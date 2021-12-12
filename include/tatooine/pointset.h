@@ -62,7 +62,7 @@ struct pointset {
   //============================================================================
  private:
   std::vector<pos_t>          m_vertex_position_data;
-  std::vector<vertex_handle>  m_invalid_vertices;
+  std::set<vertex_handle>     m_invalid_vertices;
   vertex_property_container_t m_vertex_properties;
 #if TATOOINE_FLANN_AVAILABLE
   mutable std::unique_ptr<flann_index_t> m_kd_tree;
@@ -210,13 +210,13 @@ protected:
   //----------------------------------------------------------------------------
   auto remove(vertex_handle const v) {
     if (is_valid(v) &&
-        boost::find(invalid_vertices(), v) == end(invalid_vertices())) {
-      invalid_vertices().push_back(v);
+        std::ranges::find(invalid_vertices(), v) == end(invalid_vertices())) {
+      invalid_vertices().insert(v);
     }
   }
   //----------------------------------------------------------------------------
   constexpr auto is_valid(vertex_handle const v) const -> bool {
-    return boost::find(invalid_vertices(), v) == end(invalid_vertices());
+    return std::ranges::find(invalid_vertices(), v) == end(invalid_vertices());
   }
 
   //----------------------------------------------------------------------------
@@ -224,7 +224,6 @@ protected:
     vertex_position_data().clear();
     vertex_position_data().shrink_to_fit();
     invalid_vertices().clear();
-    invalid_vertices().shrink_to_fit();
     for (auto& [key, val] : vertex_properties())
       val->clear();
   }

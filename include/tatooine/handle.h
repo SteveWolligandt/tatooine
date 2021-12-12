@@ -32,7 +32,7 @@ struct handle {
   }
   constexpr auto operator=(handle&&) noexcept -> handle& = default;
   constexpr auto operator==(integral auto const other) const {
-    return this->i == other;
+    return this->i == static_cast<Int>(other);
   }
   constexpr auto operator==(handle<Child, Int> const other) const {
     return this->i == other.i;
@@ -77,10 +77,10 @@ struct handle {
     --i;
     return h;
   }
-  constexpr auto operator+=(integral auto const i) { this->i += i; }
-  constexpr auto operator-=(integral auto const i) { this->i -= i; }
-  constexpr auto operator*=(integral auto const i) { this->i *= i; }
-  constexpr auto operator/=(integral auto const i) { this->i /= i; }
+  constexpr auto operator+=(integral auto const j) { i += j; }
+  constexpr auto operator-=(integral auto const j) { i -= j; }
+  constexpr auto operator*=(integral auto const j) { i *= j; }
+  constexpr auto operator/=(integral auto const j) { i /= j; }
 
   auto index() const { return i; }
 };
@@ -126,7 +126,7 @@ auto operator/(integral auto const i, handle<Child, Int> const h) {
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Child, unsigned_integral Int>
-auto operator<<(std::ostream & stream, handle<Child, Int> const h) {
+auto operator<<(std::ostream & stream, handle<Child, Int> const h) -> auto& {
   return stream << type_name<Child>() << "[" << h.index() << "]";
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
