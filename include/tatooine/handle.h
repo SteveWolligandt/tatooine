@@ -87,47 +87,47 @@ struct handle {
 //==============================================================================
 template <typename Child, unsigned_integral Int>
 auto operator+(handle<Child, Int> const h, integral auto const i) {
-  return Child{h.i + i};
+  return Child{h.index() + i};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Child, unsigned_integral Int>
 auto operator+(integral auto const i, handle<Child, Int> const h) {
-  return Child{i + h.i};
+  return Child{i + h.index()};
 }
 //------------------------------------------------------------------------------
 template <typename Child, unsigned_integral Int>
 auto operator-(handle<Child, Int> const h, integral auto const i) {
-  return Child{h.i - i};
+  return Child{h.index() - i};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Child, unsigned_integral Int>
 auto operator-(integral auto const i, handle<Child, Int> const h) {
-  return Child{i - h.i};
+  return Child{i - h.index()};
 }
 //------------------------------------------------------------------------------
 template <typename Child, unsigned_integral Int>
 auto operator*(handle<Child, Int> const h, integral auto const i) {
-  return Child{h.i * i};
+  return Child{h.index() * i};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Child, unsigned_integral Int>
 auto operator*(integral auto const i, handle<Child, Int> const h) {
-  return Child{i * h.i};
+  return Child{i * h.index()};
 }
 //------------------------------------------------------------------------------
 template <typename Child, unsigned_integral Int>
 auto operator/(handle<Child, Int> const h, integral auto const i) {
-  return Child{h.i / i};
+  return Child{h.index() / i};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Child, unsigned_integral Int>
 auto operator/(integral auto const i, handle<Child, Int> const h) {
-  return Child{i / h.i};
+  return Child{i / h.index()};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Child, unsigned_integral Int>
 auto operator<<(std::ostream & stream, handle<Child, Int> const h) {
-  return stream << type_name<Child>() << "[" << h.i << "]";
+  return stream << type_name<Child>() << "[" << h.index() << "]";
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Child, unsigned_integral Int>

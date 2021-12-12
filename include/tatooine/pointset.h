@@ -61,7 +61,7 @@ struct pointset {
       std::map<std::string, std::unique_ptr<vector_property<vertex_handle>>>;
   //============================================================================
  private:
-  std::vector<pos_t>          m_vertex_positions;
+  std::vector<pos_t>          m_vertex_position_data;
   std::vector<vertex_handle>  m_invalid_vertices;
   vertex_property_container_t m_vertex_properties;
 #if TATOOINE_FLANN_AVAILABLE
@@ -73,7 +73,7 @@ struct pointset {
   ~pointset() = default;
   //----------------------------------------------------------------------------
   pointset(std::initializer_list<pos_t>&& vertices)
-      : m_vertex_positions(std::move(vertices)) {}
+      : m_vertex_position_data(std::move(vertices)) {}
   //----------------------------------------------------------------------------
   // #ifdef USE_TRIANGLE
   //   pointset(const triangle::io& io) {
@@ -91,32 +91,33 @@ struct pointset {
   // }
   //----------------------------------------------------------------------------
   pointset(pointset const& other)
-      : m_vertex_positions(other.m_vertex_positions),
+      : m_vertex_position_data(other.m_vertex_position_data),
         m_invalid_vertices(other.m_invalid_vertices) {
-    m_vertex_properties.clear();
-    for (auto const& [name, prop] : other.m_vertex_properties)
-      m_vertex_properties.insert(std::pair{name, prop->clone()});
+    vertex_properties().clear();
+    for (auto const& [name, prop] : other.vertex_properties())
+      vertex_properties().insert(std::pair{name, prop->clone()});
   }
   //----------------------------------------------------------------------------
   pointset(pointset&& other) noexcept
-      : m_vertex_positions(std::move(other.m_vertex_positions)),
+      : m_vertex_position_data(std::move(other.m_vertex_position_data)),
         m_invalid_vertices(std::move(other.m_invalid_vertices)),
         m_vertex_properties(std::move(other.m_vertex_properties)) {}
   //----------------------------------------------------------------------------
-  pointset(std::vector<pos_t> const& vertices) : m_vertex_positions(vertices) {}
+  pointset(std::vector<pos_t> const& vertices)
+      : m_vertex_position_data(vertices) {}
   //----------------------------------------------------------------------------
   pointset(std::vector<pos_t>&& vertices)
-      : m_vertex_positions(std::move(vertices)) {}
+      : m_vertex_position_data(std::move(vertices)) {}
   //----------------------------------------------------------------------------
   auto operator=(pointset const& other) -> pointset& {
     if (&other == this) {
       return *this;
     }
-    m_vertex_properties.clear();
-    m_vertex_positions = other.m_vertex_positions;
-    m_invalid_vertices = other.m_invalid_vertices;
-    for (auto const& [name, prop] : other.m_vertex_properties) {
-      m_vertex_properties.emplace(name, prop->clone());
+    vertex_properties().clear();
+    m_vertex_position_data = other.m_vertex_position_data;
+    m_invalid_vertices     = other.m_invalid_vertices;
+    for (auto const& [name, prop] : other.vertex_properties()) {
+      vertex_properties().emplace(name, prop->clone());
     }
     return *this;
   }
@@ -131,23 +132,28 @@ struct pointset {
     return aabb;
   }
   //----------------------------------------------------------------------------
+ protected:
   auto vertex_properties() const -> auto const& { return m_vertex_properties; }
+  auto vertex_properties() -> auto& { return m_vertex_properties; }
   //----------------------------------------------------------------------------
-  auto at(vertex_handle const v) -> auto& { return vertex_positions()[v.index()]; }
-  auto at(vertex_handle const v) const -> auto const& {
-    return vertex_positions()[v.index()];
-  }
+ public:
+  auto at(vertex_handle const v) -> auto& {
+    return vertex_position_data()[v.index()];
+   }
+   auto at(vertex_handle const v) const -> auto const& {
+     return vertex_position_data()[v.index()];
+   }
   //----------------------------------------------------------------------------
   auto vertex_at(vertex_handle const v) -> auto& {
-    return vertex_positions()[v.index()];
+    return vertex_position_data()[v.index()];
   }
   auto vertex_at(vertex_handle const v) const -> auto const& {
-    return vertex_positions()[v.index()];
+    return vertex_position_data()[v.index()];
   }
   //----------------------------------------------------------------------------
-  auto vertex_at(size_t const i) -> auto& { return vertex_positions()[i]; }
+  auto vertex_at(size_t const i) -> auto& { return vertex_position_data()[i]; }
   auto vertex_at(size_t const i) const -> auto const& {
-    return vertex_positions()[i];
+    return vertex_position_data()[i];
   }
   //----------------------------------------------------------------------------
   auto operator[](vertex_handle const v) -> auto& { return at(v); }
@@ -155,52 +161,47 @@ struct pointset {
   //----------------------------------------------------------------------------
   auto vertices() const { return vertex_container{this}; }
   //----------------------------------------------------------------------------
-  auto vertex_positions() -> auto& { return m_vertex_positions; }
-  auto vertex_positions() const -> auto const& { return m_vertex_positions; }
+protected:
+  auto vertex_position_data() -> auto& { return m_vertex_position_data; }
+  auto vertex_position_data() const -> auto const& {
+    return m_vertex_position_data;
+  }
   //----------------------------------------------------------------------------
- protected:
   auto invalid_vertices() -> auto& { return m_invalid_vertices; }
   auto invalid_vertices() const -> auto const& { return m_invalid_vertices; }
   //----------------------------------------------------------------------------
  public:
   auto insert_vertex(arithmetic auto const... ts) requires(sizeof...(ts) ==
                                                            NumDimensions) {
-    vertex_positions().push_back(pos_t{static_cast<Real>(ts)...});
-    for (auto& [key, prop] : m_vertex_properties) {
+    vertex_position_data().push_back(pos_t{static_cast<Real>(ts)...});
+    for (auto& [key, prop] : vertex_properties()) {
       prop->push_back();
     }
-    return vertex_handle{size(vertex_positions()) - 1};
+    return vertex_handle{size(vertex_position_data()) - 1};
   }
   //----------------------------------------------------------------------------
   template <typename Vec, typename OtherReal>
   auto insert_vertex(base_tensor<Vec, OtherReal, NumDimensions> const& v) {
-    vertex_positions().push_back(pos_t{v});
-    for (auto& [key, prop] : m_vertex_properties) {
+    vertex_position_data().push_back(pos_t{v});
+    for (auto& [key, prop] : vertex_properties()) {
       prop->push_back();
     }
-    return vertex_handle{size(vertex_positions()) - 1};
+    return vertex_handle{size(vertex_position_data()) - 1};
   }
   //----------------------------------------------------------------------------
   auto insert_vertex(pos_t&& v) {
-    vertex_positions().emplace_back(std::move(v));
-    for (auto& [key, prop] : m_vertex_properties) {
+    vertex_position_data().emplace_back(std::move(v));
+    for (auto& [key, prop] : vertex_properties()) {
       prop->push_back();
     }
-    return vertex_handle{size(vertex_positions()) - 1};
+    return vertex_handle{size(vertex_position_data()) - 1};
   }
   //----------------------------------------------------------------------------
   /// tidies up invalid vertices
   auto tidy_up() {
     for (auto const v : invalid_vertices()) {
-      // decrease deleted vertex indices;
-      for (auto& v_to_decrease : invalid_vertices()) {
-        if (v_to_decrease.index() > v.index()) {
-          --v_to_decrease;
-        }
-      }
-
-      vertex_positions().erase(begin(vertex_positions()) + v.index());
-      for (auto const& [key, prop] : m_vertex_properties) {
+      vertex_position_data().erase(begin(vertex_position_data()) + v.index());
+      for (auto const& [key, prop] : vertex_properties()) {
         prop->erase(v.index());
       }
     }
@@ -220,11 +221,11 @@ struct pointset {
 
   //----------------------------------------------------------------------------
   auto clear_vertices() {
-    vertex_positions().clear();
-    vertex_positions().shrink_to_fit();
+    vertex_position_data().clear();
+    vertex_position_data().shrink_to_fit();
     invalid_vertices().clear();
     invalid_vertices().shrink_to_fit();
-    for (auto& [key, val] : m_vertex_properties)
+    for (auto& [key, val] : vertex_properties())
       val->clear();
   }
   auto clear() { clear_vertices(); }
@@ -246,8 +247,8 @@ struct pointset {
   }
   //----------------------------------------------------------------------------
   auto resize(size_t const s) {
-    vertex_positions().resize(s);
-    for (auto& [key, prop] : m_vertex_properties) {
+    vertex_position_data().resize(s);
+    for (auto& [key, prop] : vertex_properties()) {
       prop->resize(s);
     }
   }
@@ -329,8 +330,8 @@ struct pointset {
   //----------------------------------------------------------------------------
   template <typename T>
   auto vertex_property(std::string const& name) -> auto& {
-    if (auto it = m_vertex_properties.find(name);
-        it == end(m_vertex_properties)) {
+    if (auto it = vertex_properties().find(name);
+        it == end(vertex_properties())) {
       return insert_vertex_property<T>(name);
     } else {
       if (typeid(T) != it->second->type()) {
@@ -340,14 +341,14 @@ struct pointset {
             ") does not match specified type " + type_name<T>() + "."};
       }
       return *dynamic_cast<vertex_property_t<T>*>(
-          m_vertex_properties.at(name).get());
+          vertex_properties().at(name).get());
     }
   }
   //----------------------------------------------------------------------------
   template <typename T>
   auto vertex_property(std::string const& name) const -> const auto& {
-    if (auto it = m_vertex_properties.find(name);
-        it == end(m_vertex_properties)) {
+    if (auto it = vertex_properties().find(name);
+        it == end(vertex_properties())) {
       throw std::runtime_error{"property \"" + name + "\" not found"};
     } else {
       if (typeid(T) != it->second->type()) {
@@ -357,7 +358,7 @@ struct pointset {
             ") does not match specified type " + type_name<T>() + "."};
       }
       return *dynamic_cast<vertex_property_t<T>*>(
-          m_vertex_properties.at(name).get());
+          vertex_properties().at(name).get());
     }
   }
   //----------------------------------------------------------------------------
@@ -420,10 +421,10 @@ struct pointset {
   template <typename T>
   auto insert_vertex_property(std::string const& name, T const& value = T{})
       -> auto& {
-    auto [it, suc] = m_vertex_properties.insert(
+    auto [it, suc] = vertex_properties().insert(
         std::pair{name, std::make_unique<vertex_property_t<T>>(value)});
     auto prop = dynamic_cast<vertex_property_t<T>*>(it->second.get());
-    prop->resize(vertex_positions().size());
+    prop->resize(vertex_position_data().size());
     return *prop;
   }
   //----------------------------------------------------------------------------
@@ -487,9 +488,9 @@ struct pointset {
       std::vector<std::array<Real, 3>> points;
       std::vector<std::vector<size_t>> vertex_indices;
       vertex_indices.emplace_back();
-      points.reserve(vertex_positions().size());
+      points.reserve(vertex_position_data().size());
       size_t i = 0;
-      for (auto const& p : vertex_positions()) {
+      for (auto const& p : vertex_position_data()) {
         if constexpr (NumDimensions == 3) {
           points.push_back({p(0), p(1), p(2)});
         } else {
@@ -497,13 +498,13 @@ struct pointset {
         }
         vertex_indices.back().push_back(i++);
       }
-      if (!m_vertex_properties.empty()) {
+      if (!vertex_properties().empty()) {
         writer.write_point_data(points.size());
       }
 
-      for (auto const& [name, prop] : m_vertex_properties) {
+      for (auto const& [name, prop] : vertex_properties()) {
         std::vector<std::vector<Real>> data;
-        data.reserve(vertex_positions().size());
+        data.reserve(vertex_position_data().size());
 
         if (prop->type() == typeid(vec<Real, 4>)) {
           for (auto const& v4 :
@@ -544,7 +545,7 @@ struct pointset {
   auto kd_tree() const -> auto& {
     if (m_kd_tree == nullptr) {
       flann::Matrix<Real> dataset{
-          const_cast<Real*>(vertex_positions().front().data_ptr()),
+          const_cast<Real*>(vertex_position_data().front().data_ptr()),
           vertices().size(), num_dimensions()};
       m_kd_tree = std::make_unique<flann_index_t>(
           dataset, flann::KDTreeSingleIndexParams{});
@@ -668,7 +669,7 @@ struct vertex_container {
     [[nodiscard]] auto dereference() const { return m_vh; }
 
     constexpr auto at_end() const {
-      return m_vh.index() == m_ps->vertex_positions().size();
+      return m_vh.index() == m_ps->vertex_position_data().size();
     }
   };
   //==========================================================================
@@ -694,11 +695,11 @@ struct vertex_container {
   static constexpr auto end() { return typename iterator::sentinel_type{}; }
   //--------------------------------------------------------------------------
   auto size() const {
-    return m_pointset->vertex_positions().size() -
+    return m_pointset->vertex_position_data().size() -
            m_pointset->invalid_vertices().size();
   }
   auto data_container() const -> auto const& {
-    return m_pointset->vertex_positions();
+    return m_pointset->vertex_position_data();
   }
   auto data() const { return data_container().data(); }
   auto operator[](std::size_t const i) const {
@@ -1127,30 +1128,27 @@ struct moving_least_squares_sampler<Real, 3, T>
     }
   }
 };
+//------------------------------------------------------------------------------
+template <typename Real, size_t NumDimensions>
+auto begin(vertex_container<Real, NumDimensions> verts) {
+  return verts.begin();
+}
+//------------------------------------------------------------------------------
+template <typename Real, size_t NumDimensions>
+auto end(vertex_container<Real, NumDimensions> verts) {
+  return verts.end();
+}
+//------------------------------------------------------------------------------
+template <typename Real, size_t NumDimensions>
+auto size(vertex_container<Real, NumDimensions> verts) {
+  return verts.size();
+}
 //==============================================================================
 }  // namespace detail::pointset
 //==============================================================================
 template <typename Real, size_t NumDimensions>
 auto vertices(pointset<Real, NumDimensions> const& ps) {
   return ps.vertices();
-}
-//------------------------------------------------------------------------------
- template <typename Real, size_t NumDimensions>
- auto begin(
-    detail::pointset::vertex_container<Real, NumDimensions> const& verts) {
-  return verts.begin();
-}
-//------------------------------------------------------------------------------
- template <typename Real, size_t NumDimensions>
- auto end(
-    detail::pointset::vertex_container<Real, NumDimensions> const& verts) {
-  return verts.end();
-}
-//------------------------------------------------------------------------------
- template <typename Real, size_t NumDimensions>
- auto size(
-    detail::pointset::vertex_container<Real, NumDimensions> const& verts) {
-  return verts.size();
 }
 //==============================================================================
 template <size_t NumDimensions>

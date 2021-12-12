@@ -1,6 +1,11 @@
 option(TATOOINE_BUILD_TESTS "Tests shall be built?")
 if(${TATOOINE_BUILD_TESTS})
 update_git_submodule(external/catch2)
+
+set(CATCH_BUILD_TESTING OFF CACHE BOOL "Build SelfTest project")
+set(CATCH_ENABLE_WERROR OFF CACHE BOOL "Enable all warnings as errors")
+set(CATCH_INSTALL_DOCS OFF CACHE BOOL "Install documentation alongside library")
+set(CATCH_INSTALL_HELPERS OFF CACHE BOOL "Install contrib alongside library")
 add_subdirectory(external/catch2 EXCLUDE_FROM_ALL)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/external/catch2/contrib/")
 option(TATOOINE_TEST_USE_FAST_MATH
