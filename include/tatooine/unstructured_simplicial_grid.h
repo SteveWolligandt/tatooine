@@ -883,10 +883,6 @@ struct unstructured_simplicial_grid
       file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
       file.write(reinterpret_cast<char const*>(point_data.data()),
                  num_bytes_points);
-      std::cout << "points\n";
-      for (auto const x : point_data) {
-        std::cout << x << '\n';
-      }
     }
 
     // Writing polys connectivity data to appended data section
@@ -903,10 +899,6 @@ struct unstructured_simplicial_grid
       file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
       file.write(reinterpret_cast<char const*>(connectivity_data.data()),
                  num_bytes_polys_connectivity);
-      std::cout << "connectivity_data\n";
-      for (auto const x : connectivity_data) {
-        std::cout << x << '\n';
-      }
     }
 
     // Writing polys offsets to appended data section
@@ -917,10 +909,6 @@ struct unstructured_simplicial_grid
         offsets[i] += offsets[i - 1];
       }
       arr_size = num_bytes_polys_offsets;
-      std::cout << "offsets\n";
-      for (auto const x : offsets) {
-        std::cout << x << '\n';
-      }
       file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
       file.write(reinterpret_cast<char const*>(offsets.data()),
                  num_bytes_polys_offsets);
