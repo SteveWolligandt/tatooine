@@ -2,19 +2,18 @@
 #define TATOOINE_GEOMETRY_HYPER_ELLIPSE_H
 //==============================================================================
 #include <tatooine/reflection.h>
-#include <tatooine/unstructured_triangular_grid.h>
 #include <tatooine/tensor.h>
 #include <tatooine/transposed_tensor.h>
+#include <tatooine/unstructured_triangular_grid.h>
 //==============================================================================
-namespace tatooine {
-namespace geometry {
+namespace tatooine::geometry {
 //==============================================================================
-template <floating_point Real, size_t N>
+template <floating_point Real, std::size_t NumDimensions>
 struct hyper_ellipse {
-  using this_t = hyper_ellipse<Real, N>;
-  using vec_t  = vec<Real, N>;
+  using this_t = hyper_ellipse<Real, NumDimensions>;
+  using vec_t  = vec<Real, NumDimensions>;
   using pos_t  = vec_t;
-  using mat_t  = mat<Real, N, N>;
+  using mat_t  = mat<Real, NumDimensions, NumDimensions>;
 
  private:
   vec_t m_center = vec_t::zeros();
@@ -50,26 +49,29 @@ struct hyper_ellipse {
       : m_center{center}, m_S{S} {}
   //----------------------------------------------------------------------------
   /// Sets up a sphere with specified radii.
-  template <typename... Radii, enable_if_arithmetic<Radii...> = true>
-  constexpr hyper_ellipse(vec_t const& center, Radii const... radii)
+  constexpr hyper_ellipse(vec_t const& center, arithmetic auto const... radii)
       : m_center{center}, m_S{diag(vec{static_cast<Real>(radii)...})} {
-    static_assert(sizeof...(Radii) == N,
+    static_assert(sizeof...(radii) == NumDimensions,
+                  "Number of radii does not match number of dimensions.");
+  }
+  //----------------------------------------------------------------------------
+  /// Sets up a sphere with specified radii.
+  constexpr hyper_ellipse(arithmetic auto const... radii)
+      : m_center{pos_t::zeros()}, m_S{diag(vec{static_cast<Real>(radii)...})} {
+    static_assert(sizeof...(radii) == NumDimensions,
                   "Number of radii does not match number of dimensions.");
   }
   //----------------------------------------------------------------------------
   /// Fits an ellipse through specified points.
-  template <typename... Points, enable_if_vec<Points...> = true>
-  constexpr hyper_ellipse(Points const&... points) {
-    static_assert(sizeof...(Points) == N,
+  constexpr hyper_ellipse(auto const&... points) requires(
+      is_vec<std::decay_t<decltype(points)>>&&...) {
+    static_assert(sizeof...(points) == NumDimensions,
                   "Number of points does not match number of dimensions.");
     fit(points...);
   }
   //----------------------------------------------------------------------------
   /// Fits an ellipse through specified points
-  template <typename... Points, enable_if_vec<Points...> = true>
-  constexpr hyper_ellipse(mat_t const& H) {
-    fit(H);
-  }
+  constexpr hyper_ellipse(mat_t const& H) { fit(H); }
   //============================================================================
   auto S() const -> auto const& { return m_S; }
   auto S() -> auto& { return m_S; }
@@ -117,21 +119,22 @@ struct hyper_ellipse {
   //============================================================================
  private:
   /// Fits an ellipse through specified points
-  template <size_t... Is, typename... Points, enable_if_vec<Points...> = true>
-  constexpr auto fit(std::index_sequence<Is...> /*seq*/,
-                     Points const&... points) {
+  template <std::size_t... Is>
+  constexpr auto
+  fit(auto const&... points, std::index_sequence<Is...> /*seq*/) requires(
+      is_vec<std::decay_t<decltype(points)>>&&...) {
     auto H = mat_t{};
     ([&] { H.col(Is) = points; }(), ...);
     fit(H);
   }
   //----------------------------------------------------------------------------
  public:
-  /// Fits an ellipse through specified points
-  template <typename... Points, enable_if_vec<Points...> = true>
-  constexpr auto fit(Points const&... points) {
-    static_assert(sizeof...(Points) == N,
+   /// Fits an ellipse through specified points
+   constexpr auto fit(auto const&... points) requires(
+         is_vec<std::decay_t<decltype(points)>>&&...) {
+    static_assert(sizeof...(points) == NumDimensions,
                   "Number of points does not match number of dimensions.");
-    fit(std::make_index_sequence<N>{}, points...);
+    fit(std::make_index_sequence<NumDimensions>{}, points...);
   }
   //----------------------------------------------------------------------------
   /// Fits an ellipse through columns of H
@@ -153,7 +156,7 @@ struct hyper_ellipse {
   /// \returns main axes
   template <typename V, typename VReal>
   constexpr auto nearest_point_on_boundary(
-      base_tensor<V, VReal, N> const& x) const {
+      base_tensor<V, VReal, NumDimensions> const& x) const {
     return m_S * normalize(solve(m_S, x - m_center)) + m_center;
   }
   //----------------------------------------------------------------------------
@@ -166,88 +169,73 @@ struct hyper_ellipse {
 };
 //------------------------------------------------------------------------------
 template <typename Real>
-auto discretize(hyper_ellipse<Real, 3> const& s, size_t num_subdivisions = 0) {
-  using mesh_t        = tatooine::unstructured_triangular_grid<Real, 3>;
-  using vh = typename mesh_t::vertex_handle;
-  Real const  X = 0.525731112119133606;
-  Real const  Z = 0.850650808352039932;
-  std::vector vertices{vec{-X, 0, Z}, vec{X, 0, Z},   vec{-X, 0, -Z},
-                       vec{X, 0, -Z}, vec{0, Z, X},   vec{0, Z, -X},
-                       vec{0, -Z, X}, vec{0, -Z, -X}, vec{Z, X, 0},
-                       vec{-Z, X, 0}, vec{Z, -X, 0},  vec{-Z, -X, 0}};
-  auto        faces = std::vector<std::array<vh, 3>>{
-      {vh{0}, vh{4}, vh{1}},
-      {vh{0}, vh{9}, vh{4}},
-      {vh{9}, vh{5}, vh{4}},
-      {vh{4}, vh{5}, vh{8}},
-      {vh{4}, vh{8}, vh{1}},
-      {vh{8}, vh{10}, vh{1}},
-      {vh{8}, vh{3}, vh{10}},
-      {vh{5}, vh{3}, vh{8}},
-      {vh{5}, vh{2}, vh{3}},
-      {vh{2}, vh{7}, vh{3}},
-      {vh{7}, vh{10}, vh{3}},
-      {vh{7}, vh{6}, vh{10}},
-      {vh{7}, vh{11}, vh{6}},
-      {vh{11}, vh{0}, vh{6}},
-      {vh{0}, vh{1}, vh{6}},
-      {vh{6}, vh{1}, vh{10}},
-      {vh{9}, vh{0}, vh{11}},
-      {vh{9}, vh{11}, vh{2}},
-      {vh{9}, vh{2}, vh{5}},
-      {vh{7}, vh{2}, vh{11}}};
-  for (size_t i = 0; i < num_subdivisions; ++i) {
-    std::vector<std::array<vh, 3>> subdivided_faces;
-    using edge_t = std::pair<vh, vh>;
-    std::map<edge_t, size_t> subdivided;  // vh index on edge
-    for (auto& [v0, v1, v2] : faces) {
-      std::array edges{edge_t{v0, v1}, edge_t{v0, v2}, edge_t{v1, v2}};
-      std::array nvs{vh{0}, vh{0}, vh{0}};
-      size_t     i = 0;
+auto discretize(hyper_ellipse<Real, 3> const& s,
+                std::size_t                   num_subdivisions = 0) {
+  using grid_t            = tatooine::unstructured_triangular_grid<Real, 3>;
+  using vh                = typename grid_t::vertex_handle;
+  using edge_t            = std::pair<vh, vh>;
+  using cell_t            = std::array<vh, 3>;
+  using cell_list_t       = std::vector<cell_t>;
+  static constexpr auto X = Real(0.525731112119133606);
+  static constexpr auto Z = Real(0.850650808352039932);
+  auto g = grid_t{vec{-X, 0, Z}, vec{X, 0, Z},  vec{-X, 0, -Z}, vec{X, 0, -Z},
+                  vec{0, Z, X},  vec{0, Z, -X}, vec{0, -Z, X},  vec{0, -Z, -X},
+                  vec{Z, X, 0},  vec{-Z, X, 0}, vec{Z, -X, 0},  vec{-Z, -X, 0}};
+  auto cells = cell_list_t{
+      {vh{0}, vh{4}, vh{1}},  {vh{0}, vh{9}, vh{4}},  {vh{9}, vh{5}, vh{4}},
+      {vh{4}, vh{5}, vh{8}},  {vh{4}, vh{8}, vh{1}},  {vh{8}, vh{10}, vh{1}},
+      {vh{8}, vh{3}, vh{10}}, {vh{5}, vh{3}, vh{8}},  {vh{5}, vh{2}, vh{3}},
+      {vh{2}, vh{7}, vh{3}},  {vh{7}, vh{10}, vh{3}}, {vh{7}, vh{6}, vh{10}},
+      {vh{7}, vh{11}, vh{6}}, {vh{11}, vh{0}, vh{6}}, {vh{0}, vh{1}, vh{6}},
+      {vh{6}, vh{1}, vh{10}}, {vh{9}, vh{0}, vh{11}}, {vh{9}, vh{11}, vh{2}},
+      {vh{9}, vh{2}, vh{5}},  {vh{7}, vh{2}, vh{11}}};
+
+  for (std::size_t i = 0; i < num_subdivisions; ++i) {
+    auto subdivided_cells = cell_list_t{};
+    auto subdivided = std::map<edge_t, std::size_t>{};  // vh index on edge
+    for (auto& [v0, v1, v2] : cells) {
+      auto edges = std::array{edge_t{v0, v1}, edge_t{v0, v2}, edge_t{v1, v2}};
+      auto nvs   = cell_t{vh{0}, vh{0}, vh{0}};
+      auto i     = std::size_t{};
       for (auto& edge : edges) {
-        if (edge.first < edge.second) {
-          std::swap(edge.first, edge.second);
+        auto& [v0, v1] = edge;
+        if (v0 < v1) {
+          std::swap(v0, v1);
         }
         if (subdivided.find(edge) == end(subdivided)) {
-          subdivided[edge] = size(vertices);
-          nvs[i++]         = vh{};
-          vertices.push_back(normalize(
-              (vertices[edge.first.index()] + vertices[edge.second.index()]) * 0.5));
+          subdivided[edge] = size(vertices(g));
+          nvs[i++]         = g.insert_vertex(normalize((g[v0] + g[v1]) * 0.5));
         } else {
           nvs[i++] = vh{subdivided[edge]};
         }
       }
-      subdivided_faces.emplace_back(std::array{v0, nvs[1], nvs[0]});
-      subdivided_faces.emplace_back(std::array{nvs[0], nvs[2], v1});
-      subdivided_faces.emplace_back(std::array{nvs[1], v2, nvs[2]});
-      subdivided_faces.emplace_back(std::array{nvs[0], nvs[1], nvs[2]});
+      subdivided_cells.emplace_back(cell_t{v0, nvs[1], nvs[0]});
+      subdivided_cells.emplace_back(cell_t{nvs[0], nvs[2], v1});
+      subdivided_cells.emplace_back(cell_t{nvs[1], v2, nvs[2]});
+      subdivided_cells.emplace_back(cell_t{nvs[0], nvs[1], nvs[2]});
     }
-    faces = subdivided_faces;
+    cells = subdivided_cells;
   }
-  for (auto& v : vertices) {
-    v = s.S() * v + s.center();
+  for (auto v : g.vertices()) {
+    g[v] = s.S() * g[v] + s.center();
   }
-  mesh_t m;
-  for (auto& v : vertices) {
-    m.insert_vertex(std::move(v));
+  for (auto const& c : cells) {
+    g.insert_cell(c[0], c[1], c[2]);
   }
-  for (auto& f : faces) {
-    m.insert_cell(f[0], f[1], f[2]);
-  }
-  return m;
+  return g;
 }
 //==============================================================================
-}  // namespace geometry
+}  // namespace tatooine::geometry
 //==============================================================================
-namespace reflection {
-template <typename Real, size_t N>
+namespace tatooine::reflection {
+//==============================================================================
+template <typename Real, std::size_t NumDimensions>
 TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
-    (geometry::hyper_ellipse<Real, N>),
+    (geometry::hyper_ellipse<Real, NumDimensions>),
     TATOOINE_REFLECTION_INSERT_METHOD(center, center()),
     TATOOINE_REFLECTION_INSERT_METHOD(S, S()))
-}  // namespace reflection
 //==============================================================================
-}  // namespace tatooine
+}  // namespace tatooine::reflection
 //==============================================================================
 #include <tatooine/geometry/ellipse.h>
 #include <tatooine/geometry/ellipsoid.h>

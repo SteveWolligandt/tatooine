@@ -82,27 +82,32 @@ using tatooine::pointset;
 template <typename Mesh, typename Real, std::size_t NumDimensions,
           std::size_t SimplexDim>
 struct parent : pointset<Real, NumDimensions> {
+  using parent_t = pointset<Real, NumDimensions>;
   using typename pointset<Real, NumDimensions>::vertex_handle;
   using hierarchy_t = hierarchy<Mesh, Real, NumDimensions, SimplexDim>;
   using const_cell_at_return_type =
       cell_at_return_type_t<vertex_handle const&, SimplexDim + 1>;
   using cell_at_return_type =
       cell_at_return_type_t<vertex_handle&, SimplexDim + 1>;
+  using parent_t::parent_t;
 };
 //==============================================================================
 template <typename Mesh, typename Real>
 struct parent<Mesh, Real, 3, 2> : pointset<Real, 3>,
                                   ray_intersectable<Real, 3> {
-  using real_t = Real;
+  using parent_pointset_t          = pointset<Real, 3>;
+  using parent_ray_intersectable_t = ray_intersectable<Real, 3>;
+  using real_t                     = Real;
   using typename pointset<real_t, 3>::vertex_handle;
   using hierarchy_t = hierarchy<Mesh, real_t, 3, 2>;
   using const_cell_at_return_type =
       cell_at_return_type_t<vertex_handle const&, 3>;
   using cell_at_return_type = cell_at_return_type_t<vertex_handle&, 3>;
 
-  using typename ray_intersectable<real_t, 3>::ray_t;
-  using typename ray_intersectable<real_t, 3>::intersection_t;
-  using typename ray_intersectable<real_t, 3>::optional_intersection_t;
+  using parent_pointset_t::parent_pointset_t;
+  using typename parent_ray_intersectable_t::intersection_t;
+  using typename parent_ray_intersectable_t::optional_intersection_t;
+  using typename parent_ray_intersectable_t::ray_t;
   //----------------------------------------------------------------------------
   virtual ~parent() = default;
   auto as_grid() const -> auto const& {
@@ -293,7 +298,7 @@ struct unstructured_simplicial_grid
   //============================================================================
  private:
   std::vector<vertex_handle>           m_cell_index_data;
-  std::set<cell_handle>             m_invalid_cells;
+  std::set<cell_handle>                m_invalid_cells;
   cell_property_container_t            m_cell_properties;
   mutable std::unique_ptr<hierarchy_t> m_hierarchy;
 
@@ -341,9 +346,11 @@ struct unstructured_simplicial_grid
   //----------------------------------------------------------------------------
   unstructured_simplicial_grid(std::initializer_list<pos_t>&& vertices)
       : parent_t{std::move(vertices)} {}
+  //----------------------------------------------------------------------------
   explicit unstructured_simplicial_grid(
       std::vector<vec<Real, NumDimensions>> const& positions)
       : parent_t{positions} {}
+  //----------------------------------------------------------------------------
   explicit unstructured_simplicial_grid(
       std::vector<vec<Real, NumDimensions>>&& positions)
       : parent_t{std::move(positions)} {}
@@ -526,13 +533,12 @@ struct unstructured_simplicial_grid
   //----------------------------------------------------------------------------
   auto remove(vertex_handle const vh) {
     using namespace std::ranges;
-    if (is_valid(vh) &&
-        find(invalid_vertices(), vh) == end(invalid_vertices())) {
-      invalid_vertices().push_back(vh);
-    }
-    copy(cells() | views::filter(
-                       [this, vh](auto const ch) { return contains(ch, vh); }),
-         std::back_inserter(invalid_cells()));
+    parent_t::remove(vh);
+    auto cell_contains_vertex = [this, vh](auto const ch) {
+      return contains(ch, vh);
+    };
+    copy_if(cells(), std::inserter(invalid_cells(), end(invalid_cells())),
+            cell_contains_vertex);
   }
   //----------------------------------------------------------------------------
   auto remove(cell_handle const ch) {
@@ -554,22 +560,14 @@ struct unstructured_simplicial_grid
  private:
   template <std::size_t... Is>
   auto reindex_cells_vertex_handles(std::index_sequence<Is...> /*seq*/) {
-    auto offsets = std::vector<long>(size(vertex_position_data()));
+    auto dec     = [](auto i) { return ++i; };
+    auto offsets = std::vector<std::size_t>(size(vertex_position_data()), 0);
     for (auto const v : invalid_vertices()) {
-      for (std::size_t i = v.index(); i < size(offsets); ++i) {
-        --offsets[i];
-      }
+      auto i = begin(offsets) + v.index();
+      std::ranges::transform(i, end(offsets), i, dec);
     }
-    for (auto const c : cells()) {
-      auto vs = at(c);
-      (
-          [&] {
-            auto& v = std::get<Is>(vs);
-            if (is_valid(v)) {
-              v -= offsets[v.index()];
-            }
-          }(),
-          ...);
+    for (auto& i : m_cell_index_data) {
+      i -= offsets[i.index()];
     }
   }
   //----------------------------------------------------------------------------
@@ -577,11 +575,16 @@ struct unstructured_simplicial_grid
   auto tidy_up() {
     reindex_cells_vertex_handles(std::make_index_sequence<num_dimensions()>{});
     parent_t::tidy_up();
-    for (auto const c : invalid_vertices()) {
-      cell_index_data().erase(begin(cell_index_data()) + c.index());
+    auto correction = std::size_t{};
+    for (auto const c : invalid_cells()) {
+      auto cell_begin = begin(cell_index_data()) +
+                        c.index() * num_vertices_per_simplex() - correction;
+      cell_index_data().erase(cell_begin,
+                              cell_begin + num_vertices_per_simplex());
       for (auto const& [key, prop] : cell_properties()) {
         prop->erase(c.index());
       }
+      correction += num_vertices_per_simplex();
     }
     invalid_cells().clear();
   }
@@ -603,7 +606,7 @@ struct unstructured_simplicial_grid
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
   auto contains(cell_handle const ch, vertex_handle const vh) const {
-    return contains(ch, vh, std::make_index_sequence<num_dimensions()>{});
+    return contains(ch, vh, std::make_index_sequence<num_vertices_per_simplex()>{});
   }
   //----------------------------------------------------------------------------
 #ifdef TATOOINE_HAS_CGAL_SUPPORT
@@ -799,17 +802,19 @@ struct unstructured_simplicial_grid
   }
   //----------------------------------------------------------------------------
   auto write_vtk(std::filesystem::path const& path,
-                 std::string const&           title = "tatooine grid") const {
+                 std::string const&           title = "tatooine grid") {
     if constexpr (SimplexDim == 2 || SimplexDim == 3) {
+      tidy_up();
       write_unstructured_triangular_grid_vtk(path, title);
     }
   }
   //----------------------------------------------------------------------------
-  auto write_vtp(filesystem::path const& path) const {
+  auto write_vtp(filesystem::path const& path) {
     auto file = std::ofstream{path, std::ios::binary};
     if (!file.is_open()) {
       throw std::runtime_error{"Could not write " + path.string()};
     }
+    tidy_up();
     auto offset       = std::size_t{};
     using header_type = std::uint64_t;
     file << "<VTKFile"
@@ -883,10 +888,6 @@ struct unstructured_simplicial_grid
       file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
       file.write(reinterpret_cast<char const*>(point_data.data()),
                  num_bytes_points);
-      std::cout << "points\n";
-      for (auto const x : point_data) {
-        std::cout << x << '\n';
-      }
     }
 
     // Writing polys connectivity data to appended data section
@@ -903,10 +904,6 @@ struct unstructured_simplicial_grid
       file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
       file.write(reinterpret_cast<char const*>(connectivity_data.data()),
                  num_bytes_polys_connectivity);
-      std::cout << "connectivity_data\n";
-      for (auto const x : connectivity_data) {
-        std::cout << x << '\n';
-      }
     }
 
     // Writing polys offsets to appended data section
@@ -917,10 +914,6 @@ struct unstructured_simplicial_grid
         offsets[i] += offsets[i - 1];
       }
       arr_size = num_bytes_polys_offsets;
-      std::cout << "offsets\n";
-      for (auto const x : offsets) {
-        std::cout << x << '\n';
-      }
       file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
       file.write(reinterpret_cast<char const*>(offsets.data()),
                  num_bytes_polys_offsets);

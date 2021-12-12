@@ -15,12 +15,11 @@ struct ellipsoid : hyper_ellipse<Real, 3> {
 //==============================================================================
 ellipsoid()->ellipsoid<real_t>;
 //------------------------------------------------------------------------------
-template <typename Real0, typename Real1, typename Real2>
-ellipsoid(Real0 const, Real1 const, Real2 const)
-    -> ellipsoid<common_type<Real0, Real1, Real2>>;
+template <floating_point Real0, floating_point Real1, floating_point Real2>
+ellipsoid(Real0, Real1, Real2) -> ellipsoid<common_type<Real0, Real1, Real2>>;
 //------------------------------------------------------------------------------
-template <typename Real0, typename Real1, typename Real2>
-ellipsoid(vec<Real0, 3> const&, vec<Real1, 3> const&, vec<Real2, 3> const&)
+template <floating_point Real0, floating_point Real1, floating_point Real2>
+ellipsoid(vec<Real0, 3> &, vec<Real1, 3> &, vec<Real2, 3> &)
     -> ellipsoid<common_type<Real0, Real1, Real2>>;
 //==============================================================================
 }  // namespace tatooine::geometry
