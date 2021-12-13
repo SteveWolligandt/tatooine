@@ -20,7 +20,7 @@ auto x0               = vec2{};
 auto x1               = vec2{};
 auto x1_integrated    = vec2{};
 auto t0               = real_t{0};
-auto tau              = real_t{2};
+auto tau              = real_t{0};
 auto r0               = real_t{0.01};
 //==============================================================================
 auto render_ui() -> void;
@@ -144,7 +144,7 @@ auto x0_geometry              = std::unique_ptr<gl::indexeddata<vec2f>>{};
 auto x1_geometry              = std::unique_ptr<gl::indexeddata<vec2f>>{};
 auto update_x0(Vec2<size_t> const& mouse_pos) -> void {
   auto unprojected = win->camera_controller().unproject(
-      vec4{mouse_pos(0), mouse_pos(1), 0, 1});
+      vec4f{mouse_pos(0), mouse_pos(1), 0, 1});
   auto q                         = vec2{unprojected(0), unprojected(1)};
   auto active_it                 = begin(active_particles);
   active_particles               = std::vector<bool>(size(particles), false);
@@ -192,9 +192,10 @@ auto update_nearest() {
 }
 //==============================================================================
 struct listener_t : gl::window_listener {
-  Vec2<size_t> mouse_pos;
-  bool         left_down = false;
-  auto         on_cursor_moved(double x, double y) -> void override {
+  Vec2<size_t> mouse_pos{};
+  bool         left_down{false};
+
+  auto on_cursor_moved(double x, double y) -> void override {
     mouse_pos = {x, y};
 
     if (left_down) {
@@ -216,7 +217,7 @@ struct listener_t : gl::window_listener {
     left_down = true;
 
     auto unprojected = win->camera_controller().unproject(
-        vec4{mouse_pos(0), mouse_pos(1), 0, 1});
+        vec4f{mouse_pos(0), mouse_pos(1), 0, 1});
     auto q                 = vec2{unprojected(0), unprojected(1)};
     auto active_it         = begin(active_particles);
     bool q_inside_particle = false;
@@ -228,7 +229,7 @@ struct listener_t : gl::window_listener {
       ++active_it;
     }
     if (!q_inside_particle) {
-      update_x0(vec2{mouse_pos(0), mouse_pos(1)});
+      update_x0(mouse_pos);
       update_nearest();
       update_pathline_geometry();
     }
@@ -248,13 +249,13 @@ auto advect_particles() ->void {
   //particles.emplace_back(vec2{0.4, 0.2}, t0, r0);
   //particles.emplace_back(vec2{0.2, 0.4}, t0, r0);
   //particles.emplace_back(vec2{0.4, 0.4}, t0, r0);
-  particles = autonomous_particle2::advect(flowmap(v), 0.01, tau,
-                                                         particles);
+  particles = autonomous_particle2::advect(flowmap(v), 0.01, tau, particles);
   active_particles = std::vector<bool>(size(particles), false);
   std::transform(begin(particles), end(particles), std::back_inserter(samplers),
                  [](auto const& p) { return p.sampler(); });
   create_particle_geometry();
 }
+//==============================================================================
 auto main() -> int {
   win             = std::make_unique<rendering::first_person_window>();
   particle_shader = std::make_unique<particle_shader_t>();
@@ -307,12 +308,12 @@ auto render_particles() -> void {
   auto       active_it = begin(active_particles);
   for (auto const& p : particles) {
     auto const is_active = *(active_it++);
-    M(0, 0) = static_cast<float>(p.S1()(0, 0));
-    M(1, 0) = static_cast<float>(p.S1()(1, 0));
-    M(0, 1) = static_cast<float>(p.S1()(0, 1));
-    M(1, 1) = static_cast<float>(p.S1()(1, 1));
-    M(0, 3) = static_cast<float>(p.x1()(0));
-    M(1, 3) = static_cast<float>(p.x1()(1));
+    M(0, 0) = static_cast<float>(p.S()(0, 0));
+    M(1, 0) = static_cast<float>(p.S()(1, 0));
+    M(0, 1) = static_cast<float>(p.S()(0, 1));
+    M(1, 1) = static_cast<float>(p.S()(1, 1));
+    M(0, 3) = static_cast<float>(p.center(0));
+    M(1, 3) = static_cast<float>(p.center(1));
     particle_shader->set_modelview_matrix(V * M);
     if (is_active) {
       gl::line_width(3);

@@ -6,7 +6,7 @@ endif()
 #===============================================================================
 function(create_autonomous_particles_application CPP_FILE)
   set(TAT_AP_APP autonomous_particles.${CPP_FILE})
-  add_executable (${TAT_AP_APP} ${CPP_FILE}.cpp parse_args.cpp)
+  add_executable (${TAT_AP_APP} ${CPP_FILE}.cpp)
   target_link_libraries(${TAT_AP_APP} tatooine)
   target_compile_options(${TAT_AP_APP} PRIVATE
   -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture
@@ -33,6 +33,7 @@ endif()
 unset(TAT_AP_APP)
 endfunction()
 create_autonomous_particles_application(doublegyre_grid)
+create_autonomous_particles_application(doublegyre_single)
 create_autonomous_particles_application(channelflow_grid)
 create_autonomous_particles_application(channelflow_single)
 create_autonomous_particles_application(tornado_grid)

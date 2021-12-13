@@ -8,7 +8,7 @@
 //==============================================================================
 namespace tatooine::geometry {
 //==============================================================================
-template <floating_point Real, std::size_t NumDimensions>
+template <floating_point Real, size_t NumDimensions>
 struct hyper_ellipse {
   using this_t = hyper_ellipse<Real, NumDimensions>;
   using vec_t  = vec<Real, NumDimensions>;
@@ -45,7 +45,8 @@ struct hyper_ellipse {
       : m_center{center}, m_S{mat_t::eye() * radius} {}
   //----------------------------------------------------------------------------
   /// Sets up a sphere with specified radius and origin point.
-  constexpr hyper_ellipse(vec_t const& center, mat_t const& S)
+  constexpr hyper_ellipse(fixed_size_vec<NumDimensions> auto const& center,
+                          fixed_size_quadratic_mat<NumDimensions> auto const& S)
       : m_center{center}, m_S{S} {}
   //----------------------------------------------------------------------------
   /// Sets up a sphere with specified radii.
@@ -63,21 +64,25 @@ struct hyper_ellipse {
   }
   //----------------------------------------------------------------------------
   /// Fits an ellipse through specified points.
-  constexpr hyper_ellipse(auto const&... points) requires(
-      is_vec<std::decay_t<decltype(points)>>&&...) {
+  constexpr hyper_ellipse(fixed_size_vec<NumDimensions> auto const&... points) {
     static_assert(sizeof...(points) == NumDimensions,
                   "Number of points does not match number of dimensions.");
     fit(points...);
   }
   //----------------------------------------------------------------------------
   /// Fits an ellipse through specified points
-  constexpr hyper_ellipse(mat_t const& H) { fit(H); }
+  constexpr hyper_ellipse(fixed_size_quadratic_mat<NumDimensions> auto const& H) {
+    fit(H);
+  }
   //============================================================================
   auto S() const -> auto const& { return m_S; }
   auto S() -> auto& { return m_S; }
   //----------------------------------------------------------------------------
   auto center() const -> auto const& { return m_center; }
   auto center() -> auto& { return m_center; }
+  //----------------------------------------------------------------------------
+  auto center(std::size_t const i) const { return m_center(i); }
+  auto center(std::size_t const i) -> auto& { return m_center(i); }
   //----------------------------------------------------------------------------
   auto local_coordinate(pos_t const& x) const {
     return solve(S(), (x - center()));
@@ -119,19 +124,17 @@ struct hyper_ellipse {
   //============================================================================
  private:
   /// Fits an ellipse through specified points
-  template <std::size_t... Is>
-  constexpr auto
-  fit(auto const&... points, std::index_sequence<Is...> /*seq*/) requires(
-      is_vec<std::decay_t<decltype(points)>>&&...) {
+  template <size_t... Is>
+  constexpr auto fit(std::index_sequence<Is...> /*seq*/,
+                     fixed_size_vec<NumDimensions> auto const&... points) {
     auto H = mat_t{};
     ([&] { H.col(Is) = points; }(), ...);
     fit(H);
   }
   //----------------------------------------------------------------------------
  public:
-   /// Fits an ellipse through specified points
-   constexpr auto fit(auto const&... points) requires(
-         is_vec<std::decay_t<decltype(points)>>&&...) {
+  /// Fits an ellipse through specified points
+  constexpr auto fit(fixed_size_vec<NumDimensions> auto const&... points) {
     static_assert(sizeof...(points) == NumDimensions,
                   "Number of points does not match number of dimensions.");
     fit(std::make_index_sequence<NumDimensions>{}, points...);
@@ -139,7 +142,7 @@ struct hyper_ellipse {
   //----------------------------------------------------------------------------
   /// Fits an ellipse through columns of H
   /// \returns main axes
-  constexpr auto fit(mat_t const& H) {
+  constexpr auto fit(fixed_size_quadratic_mat<NumDimensions> auto const& H) {
     auto const HHt      = H * transposed(H);
     auto const [Q, Sig] = eigenvectors_sym(HHt);
     m_S                 = Q * sqrt(diag(Sig)) * transposed(Q);
@@ -240,4 +243,3 @@ TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
 #include <tatooine/geometry/ellipse.h>
 #include <tatooine/geometry/ellipsoid.h>
 //==============================================================================
-#endif
