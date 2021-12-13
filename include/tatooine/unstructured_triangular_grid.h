@@ -59,9 +59,9 @@ auto write_unstructured_triangular_grid_container_to_vtk(
       for (auto c : m.cells()) {
         faces.emplace_back();
         auto [v0, v1, v2] = m[c];
-        faces.back().push_back(cur_first + v0.i);
-        faces.back().push_back(cur_first + v1.i);
-        faces.back().push_back(cur_first + v2.i);
+        faces.back().push_back(cur_first + v0.index());
+        faces.back().push_back(cur_first + v1.index());
+        faces.back().push_back(cur_first + v2.index());
       }
       cur_first += m.vertices().size();
     }
@@ -161,14 +161,14 @@ auto write_unstructured_triangular_grid_container_to_vtp(
     {
       auto connectivity_data = std::vector<polys_connectivity_int_t>(
           g.cells().size() * g.num_vertices_per_simplex());
-      std::ranges::copy(
-          g.cells().data_container() |
-              std::views::transform(
-                  [](auto const x) -> polys_connectivity_int_t { return x.i; }),
-          begin(connectivity_data));
-      arr_size = g.cells().size() *
-                                              g.num_vertices_per_simplex() *
-                                              sizeof(polys_connectivity_int_t);
+      std::ranges::copy(g.cells().data_container() |
+                            std::views::transform(
+                                [](auto const x) -> polys_connectivity_int_t {
+                                  return x.index();
+                                }),
+                        begin(connectivity_data));
+      arr_size = g.cells().size() * g.num_vertices_per_simplex() *
+                 sizeof(polys_connectivity_int_t);
       file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
       file.write(reinterpret_cast<char const*>(connectivity_data.data()),
                  arr_size);
