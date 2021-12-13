@@ -133,20 +133,17 @@ struct autonomous_particle_split_setups<Real, 2> {
     static constexpr auto offsets = std::array{
         vec_t{0, 0}, vec_t{0, three_quarters}, vec_t{0, -three_quarters}};
   };
-
   struct five_splits {
     static auto constexpr sqrt5      = gcem::sqrt<Real>(5);
     static auto constexpr split_cond = Real(6 + sqrt5 * 2);
     static auto constexpr radii =
         std::array{(sqrt5 + 3) / (sqrt5 * 2 + 2), 1 / (sqrt5 + 1)};
   };
-
   struct seven_splits {
     static auto constexpr split_cond = 4.493959210 * 4.493959210;
     static auto constexpr radii      = std::array{
         real_t(.9009688678), real_t(.6234898004), real_t(.2225209338)};
   };
-
   struct centered_four {
     static auto constexpr x5 = Real(0.4830517593887872);
 
