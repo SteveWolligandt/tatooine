@@ -248,7 +248,7 @@ auto advect_particles() ->void {
   //particles.emplace_back(vec2{0.4, 0.2}, t0, r0);
   //particles.emplace_back(vec2{0.2, 0.4}, t0, r0);
   //particles.emplace_back(vec2{0.4, 0.4}, t0, r0);
-  particles = autonomous_particle2::advect_with_3_splits(flowmap(v), 0.01, tau,
+  particles = autonomous_particle2::advect(flowmap(v), 0.01, tau,
                                                          particles);
   active_particles = std::vector<bool>(size(particles), false);
   std::transform(begin(particles), end(particles), std::back_inserter(samplers),
