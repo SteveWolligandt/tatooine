@@ -15,7 +15,7 @@ struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
   using typename parent_t::real_t;
   using typename parent_t::tensor_t;
   //============================================================================
-  static constexpr Real pi = M_PI;
+  static constexpr auto pi = std::numbers::pi_v<Real>;
   //============================================================================
   Real m_epsilon, m_omega, m_A;
   bool m_infinite_domain  = false;
@@ -33,13 +33,13 @@ struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
   //------------------------------------------------------------------------------
   ~doublegyre() override = default;
   //----------------------------------------------------------------------------
-  [[nodiscard]] auto constexpr evaluate(pos_t const& x, Real const t) const
+  [[nodiscard]] constexpr auto evaluate(pos_t const& x, Real const t) const
       -> tensor_t {
     if (!m_infinite_domain && (x(0) < 0 || x(0) > 2 || x(1) < 0 || x(1) > 1)) {
       return parent_t::ood_tensor();
     }
     Real const a  = m_epsilon * gcem::sin(m_omega * t);
-    Real const b  = 1.0 - 2.0 * a;
+    Real const b  = 1 - 2 * a;
     Real const f  = a * x(0) * x(0) + b * x(0);
     Real const df = 2 * a * x(0) + b;
 

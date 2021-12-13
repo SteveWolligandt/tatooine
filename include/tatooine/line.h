@@ -536,15 +536,15 @@ struct line {
   static auto write(std::vector<line<Real, N>> const& line_set,
                     std::string const&                file) -> void;
   //----------------------------------------------------------------------------
-  auto write_vtk(std::string const& path,
+  auto write_vtk(filesystem::path const& path,
                  std::string const& title = "tatooine line") const -> void {
-    vtk::legacy_file_writer writer(path, vtk::dataset_type::polydata);
+    auto writer = vtk::legacy_file_writer{path, vtk::dataset_type::polydata};
     if (writer.is_open()) {
       writer.set_title(title);
       writer.write_header();
 
       // write points
-      std::vector<std::array<Real, 3>> ps;
+      auto ps = std::vector<std::array<Real, 3>>{};
       ps.reserve(this->num_vertices());
       for (auto const& v : vertices()) {
         auto const& p = at(v);
@@ -557,7 +557,7 @@ struct line {
       writer.write_points(ps);
 
       // write lines
-      std::vector<std::vector<size_t>> line_seq(
+      auto line_seq = std::vector<std::vector<size_t>>(
           1, std::vector<size_t>(this->num_vertices()));
       boost::iota(line_seq.front(), 0);
       if (this->is_closed()) {
@@ -696,6 +696,14 @@ line(base_tensor<Tensors, Reals, N>&&... vertices)
 //==============================================================================
 // typedefs
 //==============================================================================
+template <typename T>
+using Line2  = line<T, 2>;
+template <typename T>
+using Line3  = line<T, 3>;
+template <typename T>
+using Line4  = line<T, 4>;
+template <typename T>
+using Line5  = line<T, 5>;
 template <size_t N>
 using Line  = line<real_t, N>;
 using line2 = Line<2>;

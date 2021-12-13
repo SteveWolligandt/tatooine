@@ -13,7 +13,7 @@ using namespace tatooine;
 auto main(int argc, char** argv) -> int {
   indeterminate_progress_bar([&](auto indicator) {
     indicator.set_text("Parsing Arguments");
-    auto args_opt = parse_args(argc, argv);
+    auto args_opt = parse_args<3>(argc, argv);
     if (!args_opt) {
       return;
     }
@@ -120,14 +120,32 @@ auto main(int argc, char** argv) -> int {
     phi.use_caching(false);
     //----------------------------------------------------------------------------
     indicator.set_text("Advecting autonomous particles");
-    auto const initial_part = autonomous_particle3{
-        args.x0, args.t0,
-          args.r0
-        //tatooine::min(discrete_channelflow_domain.cell_extent_in_dim<0>(0),
-        //              discrete_channelflow_domain.cell_extent_in_dim<1>(0),
-        //              discrete_channelflow_domain.cell_extent_in_dim<2>(0))
-    };
-    auto const advected_particles = initial_part.advect(phi, 0.00001, args.tau);
+    auto const initial_part = autonomous_particle3{args.x0, args.t0, args.r0};
+    auto const advected_particles = [&] {
+      switch (args.split_behavior) {
+          //  case split_behavior_t::two_splits:
+          //    return initial_part
+          //        .advect<autonomous_particle3::split_setups::two_splits>(
+          //            phi, args.step_width, args.tau);
+        default:
+        case split_behavior_t::three_splits:
+          return initial_part
+              .advect<autonomous_particle3::split_setups::three_splits>(
+                  phi, args.step_width, args.tau);
+          // case split_behavior_t::five_splits:
+          //   return initial_part
+          //       .advect<autonomous_particle3::split_setups::five_splits>(
+          //           phi, args.step_width, args.tau);
+          // case split_behavior_t::seven_splits:
+          //   return initial_part
+          //       .advect<autonomous_particle3::split_setups::seven_splits>(
+          //           phi, args.step_width, args.tau);
+          // case split_behavior_t::centered_four:
+          //   return initial_part
+          //       .advect<autonomous_particle3::split_setups::centered_four>(
+          //           phi, args.step_width, args.tau);
+      }
+    }();
     std::cerr << "number of advected particles: " << size(advected_particles)
               << '\n';
     //----------------------------------------------------------------------------
@@ -137,14 +155,14 @@ auto main(int argc, char** argv) -> int {
     auto all_initial_discretizations =
         std::vector<unstructured_triangular_grid3>{};
     for (auto const& p : advected_particles) {
-      all_initial_discretizations.push_back(discretize(p));
-      all_advected_discretizations.push_back(
-          discretize(p.initial_ellipse()));
+      all_initial_discretizations.push_back(discretize(p.initial_ellipse(), 2));
+      all_advected_discretizations.push_back(discretize(p, 2));
     }
-    all_initial_discretizations.front().write_vtp("channelflow_single_front.vtp");
-    //write(all_initial_discretizations,
-    //          "channelflow_single_ellipsoids0.vtp");
-    //write(all_advected_discretizations,
-    //          "channelflow_single_ellipsoids1.vtp");
+    all_initial_discretizations.front().write_vtp(
+        "channelflow_single_front.vtp");
+    write_vtk(all_initial_discretizations,
+              "channelflow_single_ellipsoids0.vtk");
+    write_vtk(all_advected_discretizations,
+              "channelflow_single_ellipsoids1.vtk");
   });
 }

@@ -16,10 +16,11 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Tensor, typename T, size_t FixedDim, size_t... Dims>
+template <typename Tensor, typename T, std::size_t FixedDim,
+          std::size_t... Dims>
 struct tensor_slice;
 //------------------------------------------------------------------------------
-template <typename Tensor, typename T, size_t... Dims>
+template <typename Tensor, typename T, std::size_t... Dims>
 struct base_tensor : crtp<Tensor> {
   using value_type = T;
   using tensor_t   = Tensor;
@@ -39,11 +40,11 @@ struct base_tensor : crtp<Tensor> {
   }
   //------------------------------------------------------------------------------
   static constexpr auto dimensions() {
-    return std::array<size_t, rank()>{Dims...};
+    return std::array{Dims...};
   }
   //------------------------------------------------------------------------------
-  static constexpr auto dimension(size_t const i) {
-    return template_helper::getval<size_t>(i, Dims...);
+  static constexpr auto dimension(std::size_t const i) {
+    return dimensions()[i];
   }
   //------------------------------------------------------------------------------
   static constexpr auto is_tensor() -> bool { return true; }
@@ -162,8 +163,8 @@ struct base_tensor : crtp<Tensor> {
   }
 
   //----------------------------------------------------------------------------
-  template <size_t FixedDim, size_t... Is>
-  constexpr auto slice(size_t fixed_index, std::index_sequence<Is...>)
+  template <std::size_t FixedDim, std::size_t... Is>
+  constexpr auto slice(std::size_t fixed_index, std::index_sequence<Is...>)
       -> decltype(auto) {
     if constexpr (rank() > 1) {
       static_assert(
@@ -177,8 +178,8 @@ struct base_tensor : crtp<Tensor> {
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <size_t FixedDim>
-  constexpr auto slice(size_t fixed_index) -> decltype(auto) {
+  template <std::size_t FixedDim>
+  constexpr auto slice(std::size_t fixed_index) -> decltype(auto) {
     if constexpr (rank() > 1) {
       static_assert(
           FixedDim < rank(),
@@ -190,8 +191,9 @@ struct base_tensor : crtp<Tensor> {
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <size_t FixedDim, size_t... Is>
-  constexpr auto slice(size_t fixed_index, std::index_sequence<Is...>) const {
+  template <std::size_t FixedDim, std::size_t... Is>
+  constexpr auto slice(std::size_t fixed_index,
+                       std::index_sequence<Is...>) const {
     static_assert(FixedDim < rank(),
                   "fixed dimensions must be in range of number of dimensions");
     return tensor_slice<Tensor const, T, FixedDim,
@@ -199,8 +201,8 @@ struct base_tensor : crtp<Tensor> {
         &as_derived(), fixed_index};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <size_t FixedDim>
-  [[nodiscard]] constexpr auto slice(size_t fixed_index) const {
+  template <std::size_t FixedDim>
+  [[nodiscard]] constexpr auto slice(std::size_t fixed_index) const {
     static_assert(FixedDim < rank(),
                   "fixed dimensions must be in range of number of dimensions");
     return slice<FixedDim>(fixed_index, std::make_index_sequence<rank() - 1>{});
@@ -290,8 +292,9 @@ template <typename T>
 struct is_tensor_impl<T, std::void_t<decltype(std::decay_t<T>::is_tensor())>>
     : std::integral_constant<bool, std::decay_t<T>::is_tensor()> {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename... Ts>
-using enable_if_tensor = enable_if<is_tensor<Ts>...>;
+template <typename T, std::size_t... Dimensions>
+concept fixed_size_tensor = is_tensor<T> && T::dimensions() ==
+                              std::array{Dimensions...};
 //------------------------------------------------------------------------------
 template <typename T, typename Void = void>
 struct is_vec_impl : std::false_type {};
@@ -303,8 +306,8 @@ template <typename T>
 struct is_vec_impl<T, std::void_t<decltype(std::decay_t<T>::is_vec())>>
     : std::integral_constant<bool, std::decay_t<T>::is_vec()> {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename... Ts>
-using enable_if_vec = enable_if<is_vec<Ts>...>;
+template <typename T, std::size_t N>
+concept fixed_size_vec = is_vec<T> && T::dimension(0) == N;
 //==============================================================================
 template <typename T, typename Void = void>
 struct is_mat_impl : std::false_type {};
@@ -316,8 +319,18 @@ template <typename T>
 struct is_mat_impl<T, std::void_t<decltype(std::decay_t<T>::is_mat())>>
     : std::integral_constant<bool, std::decay_t<T>::is_mat()> {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename... Ts>
-using enable_if_mat = enable_if<is_mat<Ts>...>;
+template <typename T, std::size_t M, std::size_t N>
+concept fixed_size_mat = is_mat<T> &&
+                         T::dimension(0) == M &&
+                         T::dimension(1) == N;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T, std::size_t N>
+concept fixed_num_cols_mat = is_mat<T> &&
+                             T::dimension(1) == N;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T, std::size_t M>
+concept fixed_num_rows_mat = is_mat<T> &&
+                             T::dimension(0) == M;
 //==============================================================================
 template <typename T, typename Void = void>
 struct is_quadratic_mat_impl : std::false_type {};
@@ -330,14 +343,14 @@ struct is_quadratic_mat_impl<
     T, std::void_t<decltype(std::decay_t<T>::is_quadratic_mat())>>
     : std::integral_constant<bool, std::decay_t<T>::is_quadratic_mat()> {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T>
-using enable_if_quadratic_mat = enable_if<is_quadratic_mat<T>>;
+template <typename T, std::size_t N>
+concept fixed_size_quadratic_mat = is_quadratic_mat<T> && T::dimension(0) == N;
 //==============================================================================
-template <arithmetic_or_complex T, size_t... Dims>
+template <arithmetic_or_complex T, std::size_t... Dims>
 struct tensor;
-template <arithmetic_or_complex T, size_t M, size_t N>
+template <arithmetic_or_complex T, std::size_t M, std::size_t N>
 struct mat;
-template <arithmetic_or_complex T, size_t N>
+template <arithmetic_or_complex T, std::size_t N>
 struct vec;
 //==============================================================================
 }  // namespace tatooine

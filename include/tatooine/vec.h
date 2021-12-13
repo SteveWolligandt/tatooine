@@ -19,8 +19,9 @@ struct vec : tensor<T, N> {
 
   //----------------------------------------------------------------------------
   template <typename... Ts>
-      requires((is_convertible<Ts, T> && ...)) &&
-      (parent_t::dimension(0) == sizeof...(Ts)) constexpr vec(Ts const&... ts)
+  requires((is_convertible<Ts, T> && ...)) &&
+          (parent_t::dimension(0) == sizeof...(Ts))
+  constexpr vec(Ts const&... ts)
       : parent_t{ts...} {}
 
   using iterator = typename parent_t::array_parent_t::container_t::iterator;
