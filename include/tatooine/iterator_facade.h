@@ -108,10 +108,10 @@ concept iter_sentinel_arg = std::same_as<T, typename Iter::sentinel_type>;
 ///
 /// It automatically infers `value_type` (see infer_value_type),
 /// `difference_type` (see infer_difference_type), `iterator_category`,
-/// `reference` and `pointer` in the std::iterator_traits by not specifying
-/// anything. Alternatively `value_type` can be explicitely specified in the
-/// iterator implementation. `difference_type` can be implicitely specified by
-/// implementing a `distance_to` method.
+/// `reference` and `pointer` in the std::iterator_traits. Alternatively
+/// `value_type` can be explicitely specified in the iterator implementation.
+/// `difference_type` can be implicitely specified by implementing a
+/// `distance_to` method.
 ///
 /// The implementation needs at least the methods `dereference`, `increment`,
 /// `equal` and a default constructor.

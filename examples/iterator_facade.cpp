@@ -32,8 +32,8 @@ struct my_range {
 
     constexpr auto increment() { ++m_vh; }
     constexpr auto decrement() { --m_vh; }
-    constexpr auto dereference() const { return m_vh; }
-    constexpr auto equal(iterator other) const { return m_vh == other.m_vh; }
+    [[nodiscard]] constexpr auto dereference() const { return m_vh; }
+    [[nodiscard]] constexpr auto equal(iterator other) const { return m_vh == other.m_vh; }
     [[nodiscard]] constexpr auto at_end() const { return m_vh == 10; }
   };
   static constexpr auto begin() { return iterator{std::size_t{0}}; }
