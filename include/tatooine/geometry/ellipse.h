@@ -28,32 +28,6 @@ ellipse(vec<Real0, 3> const&, vec<Real1, 3> const&)
 //==============================================================================
 }  // namespace tatooine::geometry
 //==============================================================================
-#include <tatooine/line.h>
-//==============================================================================
-namespace tatooine::geometry {
-//==============================================================================
-template <typename Real>
-auto discretize(hyper_ellipse<Real, 2> const& e, size_t const num_vertices) {
-  using namespace boost;
-  using namespace adaptors;
-  linspace<Real> radial{0.0, M_PI * 2, num_vertices};
-  radial.pop_back();
-
-  line<Real, 2> discretization;
-  auto          radian_to_cartesian = [](auto const t) {
-    return vec{std::cos(t), std::sin(t)};
-  };
-  auto out_it = std::back_inserter(discretization);
-  copy(radial | transformed(radian_to_cartesian), out_it);
-  discretization.set_closed(true);
-  for (auto const v : discretization.vertices()) {
-    discretization[v] = e.S() * discretization[v] + e.center();
-  }
-  return discretization;
-}
-//==============================================================================
-}  // namespace tatooine::geometry
-//==============================================================================
 namespace tatooine::reflection {
 //==============================================================================
 template <typename Real>

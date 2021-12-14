@@ -97,7 +97,33 @@ concept declares_single_pass = bool(T::single_pass_iterator);
 template <typename T, typename Iter>
 concept iter_sentinel_arg = std::same_as<T, typename Iter::sentinel_type>;
 //==============================================================================
-/// from https://vector-of-bool.github.io/2020/06/13/cpp20-iter-facade.html
+/// \brief C++20 implementation of an iterator facade.
+///
+/// Code is taken from here:
+/// https://vector-of-bool.github.io/2020/06/13/cpp20-iter-facade.html
+///
+/// iterator_facade uses <a
+/// href="https://en.wikipedia.org/wiki/Curiously_recurring_template_pattern">CRTP</a>
+/// for inheritance.
+///
+/// It automatically infers `value_type` (see infer_value_type),
+/// `difference_type` (see infer_difference_type), `iterator_category`,
+/// `reference` and `pointer` in the std::iterator_traits by not specifying
+/// anything. Alternatively `value_type` can be explicitely specified in the
+/// iterator implementation. `difference_type` can be implicitely specified by
+/// implementing a `distance_to` method.
+///
+/// The implementation needs at least the methods `dereference`, `increment`,
+/// `equal` and a default constructor.
+///
+/// One can also use <a
+/// href="https://en.wikipedia.org/wiki/Sentinel_value">sentinels</a> by
+/// specifying the type `sentinel_type` in the iterator implementation. With
+/// this your iterator implementation needs to specify an `equal` method.
+///
+/// This is an example of how implement an iterator class with help of
+/// iterator_facade:
+/// \include iterator_facade.cpp
 template <typename Derived>
 class iterator_facade {
  public:
@@ -246,7 +272,6 @@ struct std::iterator_traits<Iter> {
   using pointer         = decltype(_it.operator->());
   using value_type      = tatooine::infer_value_type_t<Iter>;
   using difference_type = tatooine::infer_difference_type_t<Iter>;
-
   using iterator_category = conditional_t<
       tatooine::meets_random_access<Iter>,
       // We meet the requirements of random-access:
@@ -266,4 +291,5 @@ struct std::iterator_traits<Iter> {
   // Just set this to the iterator_category, for now
   using iterator_concept = iterator_category;
 };
+
 #endif
