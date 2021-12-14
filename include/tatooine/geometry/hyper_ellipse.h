@@ -3,6 +3,7 @@
 //==============================================================================
 #include <tatooine/reflection.h>
 #include <tatooine/tensor.h>
+#include <tatooine/line.h>
 #include <tatooine/transposed_tensor.h>
 #include <tatooine/unstructured_triangular_grid.h>
 //==============================================================================
@@ -169,63 +170,89 @@ struct hyper_ellipse {
   constexpr auto is_inside(pos_t const& x) const {
     return squared_euclidean_length(solve(m_S, x - m_center)) <= 1;
   }
+  //----------------------------------------------------------------------------
+  auto discretize(std::size_t const num_vertices ==
+                  33) requires(NumDimensions == 2) {
+    using namespace std::ranges;
+    auto radial = linspace<Real> {0.0, M_PI * 2, num_vertices};
+    radial.pop_back();
+
+    auto discretization = line<Real, 2> {};
+    auto          radian_to_cartesian = [](auto const t) {
+      return vec{std::cos(t), std::sin(t)};
+    };
+    auto out_it = std::back_inserter(discretization);
+    copy(radial | views::transform(radian_to_cartesian), out_it);
+    discretization.set_closed(true);
+    for (auto const v : discretization.vertices()) {
+      discretization[v] = e.S() * discretization[v] + e.center();
+    }
+    return discretization;
+  }
+  //----------------------------------------------------------------------------
+  auto discretize(std::size_t const num_subdivisions = 0) requires(
+      NumDimensions == 3) {
+    using grid_t            = tatooine::unstructured_triangular_grid<Real, 3>;
+    using vh                = typename grid_t::vertex_handle;
+    using edge_t            = std::pair<vh, vh>;
+    using cell_t            = std::array<vh, 3>;
+    using cell_list_t       = std::vector<cell_t>;
+    static constexpr auto X = Real(0.525731112119133606);
+    static constexpr auto Z = Real(0.850650808352039932);
+    auto                  g =
+        grid_t{vec{-X, 0, Z}, vec{X, 0, Z},  vec{-X, 0, -Z}, vec{X, 0, -Z},
+               vec{0, Z, X},  vec{0, Z, -X}, vec{0, -Z, X},  vec{0, -Z, -X},
+               vec{Z, X, 0},  vec{-Z, X, 0}, vec{Z, -X, 0},  vec{-Z, -X, 0}};
+    auto cells = cell_list_t{
+        {vh{0}, vh{4}, vh{1}},  {vh{0}, vh{9}, vh{4}},  {vh{9}, vh{5}, vh{4}},
+        {vh{4}, vh{5}, vh{8}},  {vh{4}, vh{8}, vh{1}},  {vh{8}, vh{10}, vh{1}},
+        {vh{8}, vh{3}, vh{10}}, {vh{5}, vh{3}, vh{8}},  {vh{5}, vh{2}, vh{3}},
+        {vh{2}, vh{7}, vh{3}},  {vh{7}, vh{10}, vh{3}}, {vh{7}, vh{6}, vh{10}},
+        {vh{7}, vh{11}, vh{6}}, {vh{11}, vh{0}, vh{6}}, {vh{0}, vh{1}, vh{6}},
+        {vh{6}, vh{1}, vh{10}}, {vh{9}, vh{0}, vh{11}}, {vh{9}, vh{11}, vh{2}},
+        {vh{9}, vh{2}, vh{5}},  {vh{7}, vh{2}, vh{11}}};
+
+    for (std::size_t i = 0; i < num_subdivisions; ++i) {
+      auto subdivided_cells = cell_list_t{};
+      auto subdivided = std::map<edge_t, std::size_t>{};  // vh index on edge
+      for (auto& [v0, v1, v2] : cells) {
+        auto edges = std::array{edge_t{v0, v1}, edge_t{v0, v2}, edge_t{v1, v2}};
+        auto nvs   = cell_t{vh{0}, vh{0}, vh{0}};
+        auto i     = std::size_t{};
+        for (auto& edge : edges) {
+          auto& [v0, v1] = edge;
+          if (v0 < v1) {
+            std::swap(v0, v1);
+          }
+          if (subdivided.find(edge) == end(subdivided)) {
+            subdivided[edge] = size(vertices(g));
+            nvs[i++] = g.insert_vertex(normalize((g[v0] + g[v1]) * 0.5));
+          } else {
+            nvs[i++] = vh{subdivided[edge]};
+          }
+        }
+        subdivided_cells.emplace_back(cell_t{v0, nvs[1], nvs[0]});
+        subdivided_cells.emplace_back(cell_t{nvs[0], nvs[2], v1});
+        subdivided_cells.emplace_back(cell_t{nvs[1], v2, nvs[2]});
+        subdivided_cells.emplace_back(cell_t{nvs[0], nvs[1], nvs[2]});
+      }
+      cells = subdivided_cells;
+    }
+    for (auto v : g.vertices()) {
+      g[v] = s.S() * g[v] + s.center();
+    }
+    for (auto const& c : cells) {
+      g.insert_cell(c[0], c[1], c[2]);
+    }
+    return g;
+  }
 };
 //------------------------------------------------------------------------------
-template <typename Real>
-auto discretize(hyper_ellipse<Real, 3> const& s,
-                std::size_t                   num_subdivisions = 0) {
-  using grid_t            = tatooine::unstructured_triangular_grid<Real, 3>;
-  using vh                = typename grid_t::vertex_handle;
-  using edge_t            = std::pair<vh, vh>;
-  using cell_t            = std::array<vh, 3>;
-  using cell_list_t       = std::vector<cell_t>;
-  static constexpr auto X = Real(0.525731112119133606);
-  static constexpr auto Z = Real(0.850650808352039932);
-  auto g = grid_t{vec{-X, 0, Z}, vec{X, 0, Z},  vec{-X, 0, -Z}, vec{X, 0, -Z},
-                  vec{0, Z, X},  vec{0, Z, -X}, vec{0, -Z, X},  vec{0, -Z, -X},
-                  vec{Z, X, 0},  vec{-Z, X, 0}, vec{Z, -X, 0},  vec{-Z, -X, 0}};
-  auto cells = cell_list_t{
-      {vh{0}, vh{4}, vh{1}},  {vh{0}, vh{9}, vh{4}},  {vh{9}, vh{5}, vh{4}},
-      {vh{4}, vh{5}, vh{8}},  {vh{4}, vh{8}, vh{1}},  {vh{8}, vh{10}, vh{1}},
-      {vh{8}, vh{3}, vh{10}}, {vh{5}, vh{3}, vh{8}},  {vh{5}, vh{2}, vh{3}},
-      {vh{2}, vh{7}, vh{3}},  {vh{7}, vh{10}, vh{3}}, {vh{7}, vh{6}, vh{10}},
-      {vh{7}, vh{11}, vh{6}}, {vh{11}, vh{0}, vh{6}}, {vh{0}, vh{1}, vh{6}},
-      {vh{6}, vh{1}, vh{10}}, {vh{9}, vh{0}, vh{11}}, {vh{9}, vh{11}, vh{2}},
-      {vh{9}, vh{2}, vh{5}},  {vh{7}, vh{2}, vh{11}}};
-
-  for (std::size_t i = 0; i < num_subdivisions; ++i) {
-    auto subdivided_cells = cell_list_t{};
-    auto subdivided = std::map<edge_t, std::size_t>{};  // vh index on edge
-    for (auto& [v0, v1, v2] : cells) {
-      auto edges = std::array{edge_t{v0, v1}, edge_t{v0, v2}, edge_t{v1, v2}};
-      auto nvs   = cell_t{vh{0}, vh{0}, vh{0}};
-      auto i     = std::size_t{};
-      for (auto& edge : edges) {
-        auto& [v0, v1] = edge;
-        if (v0 < v1) {
-          std::swap(v0, v1);
-        }
-        if (subdivided.find(edge) == end(subdivided)) {
-          subdivided[edge] = size(vertices(g));
-          nvs[i++]         = g.insert_vertex(normalize((g[v0] + g[v1]) * 0.5));
-        } else {
-          nvs[i++] = vh{subdivided[edge]};
-        }
-      }
-      subdivided_cells.emplace_back(cell_t{v0, nvs[1], nvs[0]});
-      subdivided_cells.emplace_back(cell_t{nvs[0], nvs[2], v1});
-      subdivided_cells.emplace_back(cell_t{nvs[1], v2, nvs[2]});
-      subdivided_cells.emplace_back(cell_t{nvs[0], nvs[1], nvs[2]});
-    }
-    cells = subdivided_cells;
-  }
-  for (auto v : g.vertices()) {
-    g[v] = s.S() * g[v] + s.center();
-  }
-  for (auto const& c : cells) {
-    g.insert_cell(c[0], c[1], c[2]);
-  }
-  return g;
+template <typename Real, std::size_t NumDimensions>
+requires(NumDimensions == 2 || NumDimensions == 3)
+auto discretize(hyper_ellipse<Real, NumDimensions> const& s,
+                std::size_t const n = 0) {
+  return s.discretize(n);
 }
 //==============================================================================
 }  // namespace tatooine::geometry

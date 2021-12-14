@@ -5,7 +5,7 @@
 #include <tatooine/reflection.h>
 #include <tatooine/type_traits.h>
 
-#include <boost/iterator/iterator_facade.hpp>
+#include <tatooine/iterator_facade.h>
 #include <cstddef>
 #include <functional>
 #include <ostream>

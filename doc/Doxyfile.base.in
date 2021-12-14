@@ -3,6 +3,7 @@ OUTPUT_DIRECTORY       = @CMAKE_CURRENT_BINARY_DIR@
 INPUT                  = @PROJECT_SOURCE_DIR@/include/ \
                          @PROJECT_SOURCE_DIR@/flowexplorer/include \
                          @PROJECT_SOURCE_DIR@/doc/pages/
+EXAMPLE_PATH           = @PROJECT_SOURCE_DIR@/examples/
 RECURSIVE              = YES
 MARKDOWN_SUPPORT       = YES
 
