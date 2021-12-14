@@ -9,11 +9,10 @@
 //==============================================================================
 using namespace tatooine;
 //==============================================================================
-/// Range that uses iterators that inherit from iterator_facade.
+// Range that uses iterators that inherit from iterator_facade.
 struct my_range {
-  /// Iterator implementation.
-  ///
-  /// It uses a sentinel as end.
+  // Iterator implementation.
+  // It uses a sentinel as end.
   struct iterator : iterator_facade<iterator> {
     struct sentinel_type {};
     std::size_t m_vh{};
@@ -31,16 +30,18 @@ struct my_range {
     ~iterator() = default;
 
     constexpr auto increment() { ++m_vh; }
-    constexpr auto decrement() { --m_vh; }
+    constexpr auto               decrement() { --m_vh; }
     [[nodiscard]] constexpr auto dereference() const { return m_vh; }
-    [[nodiscard]] constexpr auto equal(iterator other) const { return m_vh == other.m_vh; }
+    [[nodiscard]] constexpr auto equal(iterator other) const {
+      return m_vh == other.m_vh;
+    }
     [[nodiscard]] constexpr auto at_end() const { return m_vh == 10; }
   };
   static constexpr auto begin() { return iterator{std::size_t{0}}; }
   static constexpr auto end() { return typename iterator::sentinel_type{}; }
 };
 //==============================================================================
-/// With this you can use rvalues with `operator|`
+// With this you can use rvalues with `operator|`
 template <>
 inline constexpr const bool std::ranges::enable_borrowed_range<my_range> = true;
 //==============================================================================
