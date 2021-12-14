@@ -1,5 +1,6 @@
 #include <tatooine/autonomous_particle.h>
 #include <tatooine/chrono.h>
+#include <tatooine/trace_flow.h>
 #include <tatooine/progress_bars.h>
 #include <tatooine/vtk_legacy.h>
 
@@ -60,8 +61,10 @@ auto main(int argc, char** argv) -> int {
             discrete_channelflow_domain.extent_of_dimension<2>(i));
       }
       std::cout << "min cell extent: " << min_cell_extent << '\n';
-      return;
 
+
+
+      return;
     }
 
     indicator.set_text("Allocating data for velocity");
@@ -71,8 +74,21 @@ auto main(int argc, char** argv) -> int {
         &discrete_channelflow_domain.vec3_vertex_property("velocity"));
 
     indicator.set_text("Creating sampler");
+    repeat_for_infinite<1, 2>(discrete_velocity);
     auto       w = discrete_velocity.linear_sampler();
     auto const v = make_infinite<1, 2>(w);
+    std::cout << "num_repeated_dimensions: " << v.num_repeated_dimensions << '\n';
+    std::cout << "repeated_dimensions: [" << v.repeated_dimensions[0] ;
+    for (std::size_t i =1 ; i < v.num_repeated_dimensions; ++i) {
+      std::cout << ", "<< v.repeated_dimensions[i];
+    }
+    std::cout << "]\n";
+    std::cout << "num_non_repeated_dimensions: " << v.num_non_repeated_dimensions << '\n';
+    std::cout << "non_repeated_dimensions: [" << v.non_repeated_dimensions[0] ;
+    for (std::size_t i =1 ; i < v.num_non_repeated_dimensions; ++i) {
+      std::cout << ", "<< v.non_repeated_dimensions[i];
+    }
+    std::cout << "]\n";
 
     indicator.set_text("Loading x-velocity");
     {
@@ -132,58 +148,35 @@ auto main(int argc, char** argv) -> int {
       dataset.read(mem_space.id(), data_space.id(), H5P_DEFAULT,
                    discrete_velocity.data().front().data_ptr());
     }
+
+
+      //for (std::size_t z = 0; z < discrete_channelflow_domain.size<2>();++z){
+      //for (std::size_t y = 0; y < discrete_channelflow_domain.size<1>();++y) {
+      //  if (discrete_velocity(0, y, z).x() != 0 ||
+      //      discrete_velocity(0, y, z).y() != 0 ||
+      //      discrete_velocity(0, y, z).z() != 0) {
+      //    std::cout << "boingsi\n";
+      //  }
+      //}
+      //}
+
     indicator.set_text("Creating slabs for infinite domain");
-    repeat_for_infinite<1, 2>(discrete_velocity);
 
     //----------------------------------------------------------------------------
     // indicator.set_text("Building numerical flowmap");
     auto phi = flowmap(v);
     phi.use_caching(false);
     //----------------------------------------------------------------------------
-    indicator.set_text("Advecting autonomous particles");
-    auto const initial_part = autonomous_particle3{args.x0, args.t0, args.r0};
-    auto const advected_particles = [&] {
-      switch (args.split_behavior) {
-          //  case split_behavior_t::two_splits:
-          //    return initial_part
-          //        .advect<autonomous_particle3::split_behaviors::two_splits>(
-          //            phi, args.step_width, args.tau);
-        default:
-        case split_behavior_t::three_splits:
-          return initial_part
-              .advect<autonomous_particle3::split_behaviors::three_splits>(
-                  phi, args.step_width, args.tau);
-          // case split_behavior_t::five_splits:
-          //   return initial_part
-          //       .advect<autonomous_particle3::split_behaviors::five_splits>(
-          //           phi, args.step_width, args.tau);
-          // case split_behavior_t::seven_splits:
-          //   return initial_part
-          //       .advect<autonomous_particle3::split_behaviors::seven_splits>(
-          //           phi, args.step_width, args.tau);
-          // case split_behavior_t::centered_four:
-          //   return initial_part
-          //       .advect<autonomous_particle3::split_behaviors::centered_four>(
-          //           phi, args.step_width, args.tau);
-      }
-    }();
-    std::cerr << "number of advected particles: " << size(advected_particles)
-              << '\n';
-    //----------------------------------------------------------------------------
-    indicator.set_text("Writing Autonomous Particles Results");
-    auto all_advected_discretizations =
-        std::vector<unstructured_triangular_grid3>{};
-    auto all_initial_discretizations =
-        std::vector<unstructured_triangular_grid3>{};
-    for (auto const& p : advected_particles) {
-      all_initial_discretizations.push_back(discretize(p.initial_ellipse(), 2));
-      all_advected_discretizations.push_back(discretize(p, 2));
+    indicator.set_text("Advecting path lines");
+    auto pathlines = std::vector<line3> {};
+    auto const bb = discrete_channelflow_domain.bounding_box();
+    for (std::size_t i = 0; i < 100; ++i) {
+      auto x0 = bb.random_point();
+      x0.y()  = 0;
+      pathlines.push_back(trace_flow(v, x0, args.t0, args.tau));
     }
-    all_initial_discretizations.front().write_vtp(
-        "channelflow_single_front.vtp");
-    write_vtp(all_initial_discretizations,
-              "channelflow_single_ellipsoids0.vtp");
-    write_vtp(all_advected_discretizations,
-              "channelflow_single_ellipsoids1.vtp");
+    //----------------------------------------------------------------------------
+    indicator.set_text("Writing path lines");
+    write_vtk(pathlines, "channelflow_pathlines.vtk");
   });
 }

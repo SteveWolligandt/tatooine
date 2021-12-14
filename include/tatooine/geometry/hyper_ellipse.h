@@ -171,27 +171,27 @@ struct hyper_ellipse {
     return squared_euclidean_length(solve(m_S, x - m_center)) <= 1;
   }
   //----------------------------------------------------------------------------
-  auto discretize(std::size_t const num_vertices ==
-                  33) requires(NumDimensions == 2) {
+  auto discretize(std::size_t const num_vertices = 33) const
+    requires(NumDimensions == 2) {
     using namespace std::ranges;
-    auto radial = linspace<Real> {0.0, M_PI * 2, num_vertices};
+    auto radial = linspace<Real>{0.0, M_PI * 2, num_vertices};
     radial.pop_back();
 
-    auto discretization = line<Real, 2> {};
-    auto          radian_to_cartesian = [](auto const t) {
+    auto discretization      = line<Real, 2>{};
+    auto radian_to_cartesian = [](auto const t) {
       return vec{std::cos(t), std::sin(t)};
     };
     auto out_it = std::back_inserter(discretization);
     copy(radial | views::transform(radian_to_cartesian), out_it);
     discretization.set_closed(true);
     for (auto const v : discretization.vertices()) {
-      discretization[v] = e.S() * discretization[v] + e.center();
+      discretization[v] = S() * discretization[v] + center();
     }
     return discretization;
   }
   //----------------------------------------------------------------------------
-  auto discretize(std::size_t const num_subdivisions = 0) requires(
-      NumDimensions == 3) {
+  auto discretize(std::size_t const num_subdivisions = 2) const
+    requires(NumDimensions == 3) {
     using grid_t            = tatooine::unstructured_triangular_grid<Real, 3>;
     using vh                = typename grid_t::vertex_handle;
     using edge_t            = std::pair<vh, vh>;
@@ -239,7 +239,7 @@ struct hyper_ellipse {
       cells = subdivided_cells;
     }
     for (auto v : g.vertices()) {
-      g[v] = s.S() * g[v] + s.center();
+      g[v] = S() * g[v] + center();
     }
     for (auto const& c : cells) {
       g.insert_cell(c[0], c[1], c[2]);

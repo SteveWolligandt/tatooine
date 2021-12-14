@@ -25,10 +25,8 @@ struct infinite_rectilinear_grid_vertex_property_sampler
 
  private:
   static constexpr auto non_repeated_dimensions__() {
-    auto constexpr num_non_repeated =
-        parent_t::num_dimensions() - sizeof...(RepeatedDims);
     auto constexpr rs = repeated_dimensions;
-    auto non          = std::array<std::size_t, num_non_repeated>{};
+    auto non          = std::array<std::size_t, num_non_repeated_dimensions>{};
     auto idx          = std::size_t(0);
     for (std::size_t i = 0; i < parent_t::num_dimensions(); ++i) {
       bool b = true;
@@ -47,6 +45,10 @@ struct infinite_rectilinear_grid_vertex_property_sampler
   }
 
  public:
+  static auto constexpr num_non_repeated_dimensions =
+      parent_t::num_dimensions() - sizeof...(RepeatedDims);
+  static auto constexpr num_repeated_dimensions =
+      parent_t::num_dimensions() - num_non_repeated_dimensions;
   static constexpr auto repeated_dimensions     = std::array{RepeatedDims...};
   static constexpr auto non_repeated_dimensions = non_repeated_dimensions__();
   template <std::size_t... i>
@@ -67,38 +69,28 @@ struct infinite_rectilinear_grid_vertex_property_sampler
     return x;
   }
   auto clamp_pos(pos_t const& x) const {
-    return clamp_pos(x, std::make_index_sequence<2>{});
+    return clamp_pos(x, std::make_index_sequence<parent_t::num_dimensions()>{});
   }
   [[nodiscard]] auto evaluate(pos_t const& x, real_t const t) const
       -> tensor_t {
-    if (!is_inside(x)) {
-      return parent_t::ood_tensor();
-    }
-    return m_sampler(clamp_pos(x), t);
+    if (is_inside(x)) { return m_sampler(clamp_pos(x), t); }
+    return parent_t::ood_tensor();
   }
   //----------------------------------------------------------------------------
   template <std::size_t... i>
   auto constexpr is_inside(pos_t const& x, std::index_sequence<i...>) const
       -> bool {
-    bool inside = true;
-    (
-        [&] {
-          auto constexpr dim = non_repeated_dimensions[i];
-          auto const front   = m_sampler.grid().template front<dim>();
-          auto const back    = m_sampler.grid().template back<dim>();
-          if (x(dim) < front) {
-            inside = false;
-          }
-          if (x(dim) > back) {
-            inside = false;
-          }
-        }(),
-        ...);
+    auto inside = ([&] {
+      auto constexpr dim = non_repeated_dimensions[i];
+      auto const front   = m_sampler.grid().template front<dim>();
+      auto const back    = m_sampler.grid().template back<dim>();
+      return x(dim) >= front && x(dim) <= back;
+    }() && ...);
     return inside;
   }
   auto constexpr is_inside(pos_t const& x) const -> bool {
     return is_inside(
-        x, std::make_index_sequence<non_repeated_dimensions.size()>{});
+        x, std::make_index_sequence<num_non_repeated_dimensions>{});
   }
 };
 //------------------------------------------------------------------------------

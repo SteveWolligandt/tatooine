@@ -20,7 +20,7 @@ namespace tatooine {
 //==============================================================================
 /// \brief      Indexing and lookup map from
 /// http://paulbourke.net/geometry/polygonise/
-template <indexable_space XDomain, indexable_space YDomain,
+template <rectilinear_grid_dimension XDomain, rectilinear_grid_dimension YDomain,
           invocable<size_t const, size_t const,
                     vec<typename grid<XDomain, YDomain>::real_t, 2> const&>
               GetScalars>
@@ -151,8 +151,8 @@ auto isolines(
       isolevel);
 }
 //------------------------------------------------------------------------------
-template <typename Field, typename FieldReal, indexable_space XDomain,
-          indexable_space YDomain, arithmetic TReal = FieldReal>
+template <typename Field, typename FieldReal, rectilinear_grid_dimension XDomain,
+          rectilinear_grid_dimension YDomain, arithmetic TReal = FieldReal>
 auto isolines(field<Field, FieldReal, 2> const& sf,
               grid<XDomain, YDomain> const& g, arithmetic auto const isolevel,
               TReal const t = 0) {

@@ -9,7 +9,7 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <indexable_space... Dimensions>
+template <rectilinear_grid_dimension... Dimensions>
 class rectilinear_grid;
 //==============================================================================
 template <typename... Dimensions>
@@ -126,17 +126,17 @@ struct rectilinear_grid_vertex_container {
   }
 };
 //------------------------------------------------------------------------------
-template <indexable_space... Dimensions>
+template <rectilinear_grid_dimension... Dimensions>
 auto begin(rectilinear_grid_vertex_container<Dimensions...> const& c) {
   return c.begin();
 }
 //------------------------------------------------------------------------------
-template <indexable_space... Dimensions>
+template <rectilinear_grid_dimension... Dimensions>
 auto end(rectilinear_grid_vertex_container<Dimensions...> const& c) {
   return c.end();
 }
 //------------------------------------------------------------------------------
-template <indexable_space... Dimensions>
+template <rectilinear_grid_dimension... Dimensions>
 auto size(rectilinear_grid_vertex_container<Dimensions...> const& c) {
   return c.size();
 }

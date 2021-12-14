@@ -151,26 +151,6 @@ struct is_indexable_impl<T,
 template <typename... Ts>
 static constexpr auto is_indexable = (is_indexable_impl<Ts>::value && ...);
 //------------------------------------------------------------------------------
-//template <typename T, typename = void>
-//struct is_indexable_space_impl: std::false_type{};
-//template <typename T>
-//struct is_indexable_space_impl<
-//  std::decay_t<T>::iterator,
-//  decltype(std::declval<T>().at(size_t{})),
-//  decltype(std::declval<T>()[size_t{}]),
-//  decltype(std::declval<T>().size()),
-//    { t.size() } -> convertible_to_integral;
-//    { size(t)  } -> convertible_to_integral;
-//    { t.front()  } -> convertible_to_floating_point;
-//    { t.back()  } -> convertible_to_floating_point;
-//    { t.begin()  } -> forward_iterator;
-//    { begin(t)  } -> forward_iterator;
-//    { t.end()  } -> forward_iterator;
-//    { end(t)  } -> forward_iterator;
-//>: std::true_type{};
-//template <typename T>
-//static constexpr is_indexable_space = is_indexable_space_impl<T>::value
-//------------------------------------------------------------------------------
 template <typename T, typename = void>
 struct is_dereferencable_impl : std::false_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

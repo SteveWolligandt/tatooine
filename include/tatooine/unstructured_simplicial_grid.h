@@ -373,7 +373,7 @@ struct unstructured_simplicial_grid
   }
 
  public:
-  template <indexable_space DimX, indexable_space DimY>
+  template <rectilinear_grid_dimension DimX, rectilinear_grid_dimension DimY>
   requires(NumDimensions == 2) &&
       (SimplexDim == 2) explicit unstructured_simplicial_grid(
           rectilinear_grid<DimX, DimY> const& g) {
@@ -399,7 +399,8 @@ struct unstructured_simplicial_grid
     }
   }
 
-  template <indexable_space DimX, indexable_space DimY, indexable_space DimZ>
+  template <rectilinear_grid_dimension DimX, rectilinear_grid_dimension DimY,
+            rectilinear_grid_dimension DimZ>
   requires(NumDimensions == 3) &&
       (SimplexDim == 3) explicit unstructured_simplicial_grid(
           rectilinear_grid<DimX, DimY, DimZ> const& g) {
@@ -541,9 +542,7 @@ struct unstructured_simplicial_grid
             cell_contains_vertex);
   }
   //----------------------------------------------------------------------------
-  auto remove(cell_handle const ch) {
-    invalid_cells().insert(ch);
-  }
+  auto remove(cell_handle const ch) { invalid_cells().insert(ch); }
   //----------------------------------------------------------------------------
   template <typename... Handles>
   auto insert_cell(Handles const... handles) {
@@ -606,7 +605,8 @@ struct unstructured_simplicial_grid
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
   auto contains(cell_handle const ch, vertex_handle const vh) const {
-    return contains(ch, vh, std::make_index_sequence<num_vertices_per_simplex()>{});
+    return contains(ch, vh,
+                    std::make_index_sequence<num_vertices_per_simplex()>{});
   }
   //----------------------------------------------------------------------------
 #ifdef TATOOINE_HAS_CGAL_SUPPORT
@@ -1311,7 +1311,9 @@ struct cell_container {
                m_grid->num_vertices_per_simplex() -
            m_grid->invalid_cells().size();
   }
-  auto data_container() const -> auto const& { return m_grid->cell_index_data(); }
+  auto data_container() const -> auto const& {
+    return m_grid->cell_index_data();
+  }
   auto data() const { return m_grid->cell_index_data().data(); }
   auto operator[](std::size_t const i) const { return m_grid->at(handle_t{i}); }
   auto operator[](std::size_t const i) { return m_grid->at(handle_t{i}); }

@@ -1,5 +1,5 @@
-#ifndef TATOOINE_TRACE_PATHLINE_H
-#define TATOOINE_TRACE_PATHLINE_H
+#ifndef TATOOINE_TRACE_FLOW_H
+#define TATOOINE_TRACE_FLOW_H
 //==============================================================================
 #include <tatooine/line.h>
 #include <tatooine/ode/vclibs/rungekutta43.h>

@@ -4,12 +4,11 @@
 #include <tatooine/concepts.h>
 #include <tatooine/for_loop.h>
 #include <tatooine/rectilinear_grid.h>
-//#include <tatooine/grid_cell_handle.h>
-//#include <tatooine/grid_cell_iterator.h>
+#include <tatooine/rectilinear_grid_dimension.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <indexable_space... Dimensions>
+template <rectilinear_grid_dimension... Dimensions>
 class rectilinear_grid;
 //==============================================================================
 template <typename... Dimensions>
@@ -155,17 +154,17 @@ struct rectilinear_grid_cell_container {
   }
 };
 //------------------------------------------------------------------------------
-//template <indexable_space... Dimensions>
+//template <rectilinear_grid_dimension... Dimensions>
 //auto begin(rectilinear_grid_cell_container<Dimensions...> const& c) {
 //  return c.begin();
 //}
 ////------------------------------------------------------------------------------
-//template <indexable_space... Dimensions>
+//template <rectilinear_grid_dimension... Dimensions>
 //auto end(rectilinear_grid_cell_container<Dimensions...> const& c) {
 //  return c.end();
 //}
 //------------------------------------------------------------------------------
-template <indexable_space... Dimensions>
+template <rectilinear_grid_dimension... Dimensions>
 auto size(rectilinear_grid_cell_container<Dimensions...> const& c) {
   return c.size();
 }
@@ -174,19 +173,19 @@ auto size(rectilinear_grid_cell_container<Dimensions...> const& c) {
 //==============================================================================
 namespace std::ranges {
 //==============================================================================
-//template <tatooine::indexable_space... Dimensions>
+//template <tatooine::rectilinear_grid_dimension... Dimensions>
 //constexpr auto begin(tatooine::rectilinear_grid_cell_container<Dimensions...>& r) {
 //  r.begin();
 //}
-//template <tatooine::indexable_space... Dimensions>
+//template <tatooine::rectilinear_grid_dimension... Dimensions>
 //constexpr auto end(tatooine::rectilinear_grid_cell_container<Dimensions...>& r) {
 //  r.end();
 //}
-//template <tatooine::indexable_space... Dimensions>
+//template <tatooine::rectilinear_grid_dimension... Dimensions>
 //constexpr auto begin(tatooine::rectilinear_grid_cell_container<Dimensions...> const& r) {
 //  r.begin();
 //}
-//template <tatooine::indexable_space... Dimensions>
+//template <tatooine::rectilinear_grid_dimension... Dimensions>
 //constexpr auto end(tatooine::rectilinear_grid_cell_container<Dimensions...> const& r) {
 //  r.end();
 //}
