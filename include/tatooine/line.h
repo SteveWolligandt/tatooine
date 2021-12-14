@@ -697,13 +697,13 @@ line(base_tensor<Tensors, Reals, N>&&... vertices)
 // typedefs
 //==============================================================================
 template <typename T>
-using Line2  = line<T, 2>;
+using Line2 = line<T, 2>;
 template <typename T>
-using Line3  = line<T, 3>;
+using Line3 = line<T, 3>;
 template <typename T>
-using Line4  = line<T, 4>;
+using Line4 = line<T, 4>;
 template <typename T>
-using Line5  = line<T, 5>;
+using Line5 = line<T, 5>;
 template <size_t N>
 using Line  = line<real_t, N>;
 using line2 = Line<2>;

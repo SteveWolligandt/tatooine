@@ -21,8 +21,8 @@ namespace tatooine {
 /// \brief      Indexing and lookup map from
 /// http://paulbourke.net/geometry/polygonise/
 template <
-    indexable_space XDomain, indexable_space YDomain, indexable_space ZDomain,
-    arithmetic Isolevel,
+    rectilinear_grid_dimension XDomain, rectilinear_grid_dimension YDomain,
+    rectilinear_grid_dimension ZDomain, arithmetic Isolevel,
     invocable<size_t const, size_t const, size_t const,
               vec<typename grid<XDomain, YDomain, ZDomain>::real_t, 3> const&>
         GetScalars>
@@ -30,7 +30,7 @@ auto isosurface(GetScalars&&                           get_scalars,
                 grid<XDomain, YDomain, ZDomain> const& g,
                 Isolevel const                         isolevel) {
   using real_t = typename grid<XDomain, YDomain, ZDomain>::real_t;
-  using pos_t = vec<real_t, 3>;
+  using pos_t  = vec<real_t, 3>;
   unstructured_triangular_grid<real_t, 3> iso_volume;
 
 #if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
@@ -86,58 +86,58 @@ auto isosurface(GetScalars&&                           get_scalars,
     // Find the vertices where the surface intersects the cube
     if (marchingcubes_lookup::edge_table[cube_index] & 1) {
       real_t const s = (isolevel - s0) / (s1 - s0);
-      vertlist[0]  = p[0] * (1 - s) + p[1] * s;
+      vertlist[0]    = p[0] * (1 - s) + p[1] * s;
     }
     if (marchingcubes_lookup::edge_table[cube_index] & 2) {
       real_t const s = (isolevel - s1) / (s2 - s1);
-      vertlist[1]  = p[1] * (1 - s) + p[2] * s;
+      vertlist[1]    = p[1] * (1 - s) + p[2] * s;
     }
     if (marchingcubes_lookup::edge_table[cube_index] & 4) {
       real_t const s = (isolevel - s2) / (s3 - s2);
-      vertlist[2]  = p[2] * (1 - s) + p[3] * s;
+      vertlist[2]    = p[2] * (1 - s) + p[3] * s;
     }
     if (marchingcubes_lookup::edge_table[cube_index] & 8) {
       real_t const s = (isolevel - s3) / (s0 - s3);
-      vertlist[3]  = p[3] * (1 - s) + p[0] * s;
+      vertlist[3]    = p[3] * (1 - s) + p[0] * s;
     }
     if (marchingcubes_lookup::edge_table[cube_index] & 16) {
       real_t const s = (isolevel - s4) / (s5 - s4);
-      vertlist[4]  = p[4] * (1 - s) + p[5] * s;
+      vertlist[4]    = p[4] * (1 - s) + p[5] * s;
     }
     if (marchingcubes_lookup::edge_table[cube_index] & 32) {
       real_t const s = (isolevel - s5) / (s6 - s5);
-      vertlist[5]  = p[5] * (1 - s) + p[6] * s;
+      vertlist[5]    = p[5] * (1 - s) + p[6] * s;
     }
     if (marchingcubes_lookup::edge_table[cube_index] & 64) {
       real_t const s = (isolevel - s6) / (s7 - s6);
-      vertlist[6]  = p[6] * (1 - s) + p[7] * s;
+      vertlist[6]    = p[6] * (1 - s) + p[7] * s;
     }
     if (marchingcubes_lookup::edge_table[cube_index] & 128) {
       real_t const s = (isolevel - s7) / (s4 - s7);
-      vertlist[7]  = p[7] * (1 - s) + p[4] * s;
+      vertlist[7]    = p[7] * (1 - s) + p[4] * s;
     }
     if (marchingcubes_lookup::edge_table[cube_index] & 256) {
       real_t const s = (isolevel - s0) / (s4 - s0);
-      vertlist[8]  = p[0] * (1 - s) + p[4] * s;
+      vertlist[8]    = p[0] * (1 - s) + p[4] * s;
     }
     if (marchingcubes_lookup::edge_table[cube_index] & 512) {
       real_t const s = (isolevel - s1) / (s5 - s1);
-      vertlist[9]  = p[1] * (1 - s) + p[5] * s;
+      vertlist[9]    = p[1] * (1 - s) + p[5] * s;
     }
     if (marchingcubes_lookup::edge_table[cube_index] & 1024) {
       real_t const s = (isolevel - s2) / (s6 - s2);
-      vertlist[10] = p[2] * (1 - s) + p[6] * s;
+      vertlist[10]   = p[2] * (1 - s) + p[6] * s;
     }
     if (marchingcubes_lookup::edge_table[cube_index] & 2048) {
       real_t const s = (isolevel - s3) / (s7 - s3);
-      vertlist[11] = p[3] * (1 - s) + p[7] * s;
+      vertlist[11]   = p[3] * (1 - s) + p[7] * s;
     }
 
 #if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
     {
       std::lock_guard lock{mutex};
 #endif
-       //create the triangle
+      // create the triangle
       for (size_t i = 0; marchingcubes_lookup::tri_table[cube_index][i] != -1;
            i += 3) {
         iso_volume.insert_face(
@@ -153,17 +153,20 @@ auto isosurface(GetScalars&&                           get_scalars,
 #endif
   };
 #if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
-  for_loop(process_cube,execution_policy::parallel, g.size(0) - 1, g.size(1) - 1, g.size(2) - 1);
+  for_loop(process_cube, execution_policy::parallel, g.size(0) - 1,
+           g.size(1) - 1, g.size(2) - 1);
 #else
-  for_loop(process_cube,execution_policy::sequential, g.size(0) - 1, g.size(1) - 1, g.size(2) - 1);
+  for_loop(process_cube, execution_policy::sequential, g.size(0) - 1,
+           g.size(1) - 1, g.size(2) - 1);
 #endif
   return iso_volume;
 }
 //------------------------------------------------------------------------------
-template <arithmetic Real, typename Indexing, arithmetic BBReal, arithmetic Isolevel>
+template <arithmetic Real, typename Indexing, arithmetic BBReal,
+          arithmetic Isolevel>
 auto isosurface(dynamic_multidim_array<Real, Indexing> const& data,
                 axis_aligned_bounding_box<BBReal, 3> const&   bb,
-                Isolevel const                                  isolevel) {
+                Isolevel const                                isolevel) {
   assert(data.num_dimensions() == 3);
   return isosurface(
       [&](auto ix, auto iy, auto iz, auto const& /*ps*/) -> auto const& {
@@ -190,15 +193,16 @@ auto isosurface(
       isolevel);
 }
 //------------------------------------------------------------------------------
-template <typename Field, arithmetic FieldReal, indexable_space XDomain,
-          indexable_space YDomain, indexable_space ZDomain,
-          arithmetic TReal, arithmetic Isolevel>
+template <
+    typename Field, arithmetic FieldReal, rectilinear_grid_dimension XDomain,
+    rectilinear_grid_dimension YDomain, rectilinear_grid_dimension ZDomain,
+    arithmetic TReal, arithmetic Isolevel>
 auto isosurface(field<Field, FieldReal, 3> const&      sf,
                 grid<XDomain, YDomain, ZDomain> const& g,
                 Isolevel const isolevel, TReal const t = 0) {
   return isosurface([&](auto /*ix*/, auto /*iy*/, auto /*iz*/,
-                                   auto const& pos) { return sf(pos, t); },
-                               g, isolevel);
+                        auto const& pos) { return sf(pos, t); },
+                    g, isolevel);
 }
 //==============================================================================
 }  // namespace tatooine

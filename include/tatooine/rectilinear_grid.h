@@ -8,15 +8,16 @@
 #include <tatooine/concepts.h>
 #include <tatooine/filesystem.h>
 #include <tatooine/for_loop.h>
-#include <tatooine/rectilinear_grid_cell_container.h>
-#include <tatooine/rectilinear_grid_vertex_container.h>
-#include <tatooine/rectilinear_grid_vertex_property.h>
 #include <tatooine/hdf5.h>
 #include <tatooine/interpolation.h>
 #include <tatooine/lazy_reader.h>
 #include <tatooine/linspace.h>
 #include <tatooine/netcdf.h>
 #include <tatooine/random.h>
+#include <tatooine/rectilinear_grid_cell_container.h>
+#include <tatooine/rectilinear_grid_dimension.h>
+#include <tatooine/rectilinear_grid_vertex_container.h>
+#include <tatooine/rectilinear_grid_vertex_property.h>
 #include <tatooine/tags.h>
 #include <tatooine/template_helper.h>
 #include <tatooine/vec.h>
@@ -28,9 +29,7 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-/// When using GCC you have to specify Dimensions types by hand. This is a known
-/// GCC bug (80438)
-template <indexable_space... Dimensions>
+template <rectilinear_grid_dimension... Dimensions>
 class rectilinear_grid {
   static_assert(sizeof...(Dimensions) > 0,
                 "Grid needs at least one dimension.");
@@ -114,7 +113,7 @@ class rectilinear_grid {
   /// https://stackoverflow.com/questions/46848129/variadic-deduction-guide-not-taken-by-g-taken-by-clang-who-is-correct
   template <typename... Dimensions_>
   requires(sizeof...(Dimensions_) == sizeof...(Dimensions)) &&
-      (indexable_space<std::decay_t<Dimensions_>> && ...)
+      (rectilinear_grid_dimension<std::decay_t<Dimensions_>> && ...)
           constexpr rectilinear_grid(Dimensions_&&... dimensions)
       : m_dimensions{std::forward<Dimensions_>(dimensions)...} {
     static_assert(sizeof...(Dimensions_) == num_dimensions(),
@@ -434,7 +433,7 @@ class rectilinear_grid {
   }
   //----------------------------------------------------------------------------
   template <size_t I>
-  constexpr auto cell_extent_in_dim(std::size_t const i) const {
+  constexpr auto extent_of_dimension(std::size_t const i) const {
     return at<I>(i+1) - at<I>(i);
   }
   //----------------------------------------------------------------------------
@@ -444,7 +443,7 @@ class rectilinear_grid {
       dimension<I>().push_back();
     } else {
       dimension<I>().push_back(back<I>() +
-                               cell_extent_in_dim<I>(size<I>() - 2));
+                               extent_of_dimension<I>(size<I>() - 2));
     }
   }
   //----------------------------------------------------------------------------
@@ -1003,7 +1002,7 @@ class rectilinear_grid {
   //----------------------------------------------------------------------------
  private:
   template <size_t... Is>
-  auto add_dimension(indexable_space auto&& additional_dimension,
+  auto add_dimension(rectilinear_grid_dimension auto&& additional_dimension,
                      std::index_sequence<Is...> /*seq*/) const {
     return rectilinear_grid<Dimensions...,
                             std::decay_t<decltype(additional_dimension)>>{
@@ -1012,7 +1011,7 @@ class rectilinear_grid {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
-  auto add_dimension(indexable_space auto&& additional_dimension) const {
+  auto add_dimension(rectilinear_grid_dimension auto&& additional_dimension) const {
     return add_dimension(
         std::forward<decltype(additional_dimension)>(additional_dimension),
         seq_t{});
@@ -2116,7 +2115,7 @@ auto operator<<(std::ostream& out, rectilinear_grid<Dimensions...> const& g)
     -> auto& {
   return g.print(out);
 }
-template <indexable_space... Dimensions>
+template <rectilinear_grid_dimension... Dimensions>
 auto vertices(rectilinear_grid<Dimensions...> const& g) {
   return g.vertices();
 }
@@ -2143,14 +2142,14 @@ rectilinear_grid(Size const...)
 //==============================================================================
 // operators
 //==============================================================================
-template <indexable_space... Dimensions, indexable_space AdditionalDimension>
+template <rectilinear_grid_dimension... Dimensions, rectilinear_grid_dimension AdditionalDimension>
 auto operator+(rectilinear_grid<Dimensions...> const& rectilinear_grid,
                AdditionalDimension&&                  additional_dimension) {
   return rectilinear_grid.add_dimension(
       std::forward<AdditionalDimension>(additional_dimension));
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <indexable_space... Dimensions, indexable_space AdditionalDimension>
+template <rectilinear_grid_dimension... Dimensions, rectilinear_grid_dimension AdditionalDimension>
 auto operator+(AdditionalDimension&&                  additional_dimension,
                rectilinear_grid<Dimensions...> const& rectilinear_grid) {
   return rectilinear_grid.add_dimension(
@@ -2159,7 +2158,7 @@ auto operator+(AdditionalDimension&&                  additional_dimension,
 //==============================================================================
 // typedefs
 //==============================================================================
-template <indexable_space IndexableSpace, size_t N>
+template <rectilinear_grid_dimension IndexableSpace, size_t N>
 struct rectilinear_grid_creator {
  private:
   template <typename... Args, size_t... Seq>
@@ -2178,11 +2177,11 @@ struct rectilinear_grid_creator {
   using type = decltype(create());
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <indexable_space IndexableSpace, size_t N>
+template <rectilinear_grid_dimension IndexableSpace, size_t N>
 using rectilinear_grid_creator_t =
     typename rectilinear_grid_creator<IndexableSpace, N>::type;
 //==============================================================================
-template <arithmetic Real, size_t N>
+template <floating_point Real, size_t N>
 using uniform_rectilinear_grid = rectilinear_grid_creator_t<linspace<Real>, N>;
 template <size_t N>
 using UniformRectilinearGrid    = uniform_rectilinear_grid<real_t, N>;

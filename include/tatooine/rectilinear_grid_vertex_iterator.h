@@ -12,7 +12,7 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <indexable_space... Dimensions>
+template <rectilinear_grid_dimension... Dimensions>
 class rectilinear_grid;
 //==============================================================================
 template <typename... Dimensions>
@@ -125,7 +125,7 @@ struct rectilinear_grid_vertex_iterator
   }
 };
 //==============================================================================
-template <indexable_space... Dimensions>
+template <rectilinear_grid_dimension... Dimensions>
 auto next(rectilinear_grid_vertex_iterator<Dimensions...> it, size_t num = 1) {
   for (size_t i = 0; i < num; ++i) {
     ++it;

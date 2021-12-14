@@ -121,24 +121,6 @@ concept indexable = requires(T const t, std::size_t i) {
   { t[i] };
   { t.at(i) };
 };
-//------------------------------------------------------------------------------
-template <typename T>
-concept indexable_space =
-  has_defined_iterator<std::decay_t<T>> &&
-  requires (T const t, std::size_t i) {
-    { t[i] } -> convertible_to_floating_point;
-    { t.at(i) } -> convertible_to_floating_point;
-  } &&
-  requires (T const t) {
-    { t.size() } -> convertible_to_integral;
-    { size(t)  } -> convertible_to_integral;
-    { t.front()  } -> convertible_to_floating_point;
-    { t.back()  } -> convertible_to_floating_point;
-    { t.begin()  } -> forward_iterator;
-    { begin(t)  } -> forward_iterator;
-    { t.end()  } -> forward_iterator;
-    { end(t)  } -> forward_iterator;
-  };
 //==============================================================================
 // methods
 //==============================================================================

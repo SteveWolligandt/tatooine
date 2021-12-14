@@ -21,7 +21,7 @@ template <std::size_t N>
 struct args_t {
   size_t width, height, depth, num_splits, max_num_particles, output_res_x,
       output_res_y, output_res_z;
-  double t0, tau, tau_step, r0, agranovsky_delta_t, step_width;
+  double t0, tau, r0, agranovsky_delta_t, step_width;
   tatooine::Vec<N> x0;
   bool write_ellipses_to_netcdf;
   bool show_dimensions;
@@ -37,7 +37,7 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t<N>> {
   size_t width = 10, height = 10, depth = 10, num_splits = 3,
          max_num_particles = 500000, output_res_x = 200, output_res_y = 100,
          output_res_z = 100;
-  double t0 = 0, tau = 2, tau_step = 0.05, r0 = 0.01,
+  double t0 = 0, tau = 2, r0 = 0.01,
          agranovsky_delta_t      = 0.1, step_width = 0.01;
   auto x0                        = tatooine::Vec<N>{};
   bool write_ellipses            = true;
@@ -60,7 +60,6 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t<N>> {
       "set maximum number of particles")("t0", po::value<double>(),
                                          "set initial time")(
       "tau", po::value<double>(), "set integration length tau")(
-      "tau_step", po::value<double>(), "set stepsize for integrator")(
       "r0", po::value<double>(),
       "set minimal condition number of back calculation for advected "
       "particles")("agranovsky_delta_t", po::value<double>(), "time gaps")(
@@ -203,12 +202,6 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t<N>> {
   } else {
     std::cout << "default integration length tau = " << tau << '\n';
   }
-  if (variables_map.count("tau_step") > 0) {
-    tau_step = variables_map["tau_step"].as<double>();
-    std::cout << "specified step width tau_step = " << tau_step << '\n';
-  } else {
-    std::cout << "default step width tau_step = " << tau_step << '\n';
-  }
   if (variables_map.count("r0") > 0) {
     r0 = variables_map["r0"].as<double>();
     std::cout << "specified r0 = " << r0 << '\n';
@@ -234,7 +227,6 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t<N>> {
                 output_res_z,
                 t0,
                 tau,
-                tau_step,
                 r0,
                 agranovsky_delta_t,
                 step_width,

@@ -36,31 +36,31 @@ constexpr auto cos_angle(base_tensor<Tensor0, T0, N> const& v0,
 template <typename Tensor, typename TensorT, size_t... Dims>
 constexpr auto abs(base_tensor<Tensor, TensorT, Dims...> const& t) {
   return unary_operation(
-      [](auto const& component) { return std::abs(component); }, t);
+      [](auto const& component) { return gcem::abs(component); }, t);
 }
 //------------------------------------------------------------------------------
 /// Returns the angle of two normalized vectors.
 template <typename Tensor0, typename Tensor1, typename T0, typename T1,
           size_t N>
-auto angle(base_tensor<Tensor0, T0, N> const& v0,
+constexpr auto angle(base_tensor<Tensor0, T0, N> const& v0,
            base_tensor<Tensor1, T1, N> const& v1) {
-  return std::acos(cos_angle(v0, v1));
+  return gcem::acos(cos_angle(v0, v1));
 }
 //------------------------------------------------------------------------------
 /// Returns the angle of two normalized vectors.
 template <typename Tensor0, typename Tensor1, typename T0, typename T1,
           size_t N>
-auto min_angle(base_tensor<Tensor0, T0, N> const& v0,
+constexpr auto min_angle(base_tensor<Tensor0, T0, N> const& v0,
                base_tensor<Tensor1, T1, N> const& v1) {
-  return std::min(angle(v0, v1), angle(v0, -v1));
+  return gcem::min(angle(v0, v1), angle(v0, -v1));
 }
 //------------------------------------------------------------------------------
 /// Returns the angle of two normalized vectors.
 template <typename Tensor0, typename Tensor1, typename T0, typename T1,
           size_t N>
-auto max_angle(base_tensor<Tensor0, T0, N> const& v0,
+constexpr auto max_angle(base_tensor<Tensor0, T0, N> const& v0,
                base_tensor<Tensor1, T1, N> const& v1) {
-  return std::max(angle(v0, v1), angle(v0, -v1));
+  return gcem::max(angle(v0, v1), angle(v0, -v1));
 }
 //------------------------------------------------------------------------------
 /// Returns the cosine of the angle three points.
@@ -75,30 +75,30 @@ constexpr auto cos_angle(base_tensor<Tensor0, T0, N> const& v0,
 /// Returns the cosine of the angle three points.
 template <typename Tensor0, typename Tensor1, typename Tensor2, typename T0,
           typename T1, typename T2, size_t N>
-auto angle(base_tensor<Tensor0, T0, N> const& v0,
+constexpr auto angle(base_tensor<Tensor0, T0, N> const& v0,
            base_tensor<Tensor1, T1, N> const& v1,
            base_tensor<Tensor2, T2, N> const& v2) {
-  return std::acos(cos_angle(v0, v1, v2));
+  return gcem::acos(cos_angle(v0, v1, v2));
 }
 //------------------------------------------------------------------------------
 template <typename Tensor, typename T, size_t... Dims>
 constexpr auto min(base_tensor<Tensor, T, Dims...> const& t) {
   T m = std::numeric_limits<T>::max();
-  t.for_indices([&](auto const... is) { m = std::min(m, t(is...)); });
+  t.for_indices([&](auto const... is) { m = gcem::min(m, t(is...)); });
   return m;
 }
 //------------------------------------------------------------------------------
 template <typename Tensor, typename T, size_t... Dims>
 constexpr auto max(base_tensor<Tensor, T, Dims...> const& t) {
   T m = -std::numeric_limits<T>::max();
-  t.for_indices([&](auto const... is) { m = std::max(m, t(is...)); });
+  t.for_indices([&](auto const... is) { m = gcem::max(m, t(is...)); });
   return m;
 }
 //------------------------------------------------------------------------------
 template <typename Tensor, typename T, size_t N>
 constexpr auto normalize(base_tensor<Tensor, T, N> const& t_in) -> vec<T, N> {
   auto const l = euclidean_length(t_in);
-  if (std::abs(l) < 1e-13) {
+  if (gcem::abs(l) < 1e-13) {
     return vec<T, N>::zeros();
   }
   return t_in / l;
