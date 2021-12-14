@@ -121,7 +121,7 @@ concept iter_sentinel_arg = std::same_as<T, typename Iter::sentinel_type>;
 /// specifying the type `sentinel_type` in the iterator implementation. With
 /// this your iterator implementation needs to specify an `equal` method.
 ///
-/// This is an example of how implement an iterator class with help of
+/// This is an example of how to implement an iterator class with help of
 /// iterator_facade:
 /// \include iterator_facade.cpp
 template <typename Derived>
