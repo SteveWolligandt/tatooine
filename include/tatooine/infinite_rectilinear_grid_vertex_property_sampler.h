@@ -53,23 +53,23 @@ struct infinite_rectilinear_grid_vertex_property_sampler
   static constexpr auto non_repeated_dimensions = non_repeated_dimensions__();
   template <std::size_t... i>
   auto clamp_pos(pos_t x, std::index_sequence<i...>) const {
-    (
-        [&] {
-          auto const front  = m_sampler.grid().template front<i>();
-          auto const back   = m_sampler.grid().template back<i>();
-          auto const extent = back - front;
-          while (x(i) < front) {
-            x(i) += extent;
-          }
-          while (x(i) > back) {
-            x(i) -= extent;
-          }
-        }(),
-        ...);
+    ([&] {
+     auto constexpr dim = repeated_dimensions[i];
+      auto const front  = m_sampler.grid().template front<dim>();
+      auto const back   = m_sampler.grid().template back<dim>();
+      auto const extent = back - front;
+      if (x(dim) < front) {
+        x(dim) += gcem::ceil((front - x(dim)) / extent) * extent;
+      }
+      if (x(dim) > back) {
+        x(dim) -= extent;
+        x(dim) -= gcem::ceil((x(dim) - back) / extent) * extent;
+      }
+    }(), ...);
     return x;
   }
   auto clamp_pos(pos_t const& x) const {
-    return clamp_pos(x, std::make_index_sequence<parent_t::num_dimensions()>{});
+    return clamp_pos(x, std::make_index_sequence<num_repeated_dimensions>{});
   }
   [[nodiscard]] auto evaluate(pos_t const& x, real_t const t) const
       -> tensor_t {
@@ -80,13 +80,12 @@ struct infinite_rectilinear_grid_vertex_property_sampler
   template <std::size_t... i>
   auto constexpr is_inside(pos_t const& x, std::index_sequence<i...>) const
       -> bool {
-    auto inside = ([&] {
+    return ([&] {
       auto constexpr dim = non_repeated_dimensions[i];
       auto const front   = m_sampler.grid().template front<dim>();
       auto const back    = m_sampler.grid().template back<dim>();
-      return x(dim) >= front && x(dim) <= back;
+      return front <= x(dim) && x(dim) <= back;
     }() && ...);
-    return inside;
   }
   auto constexpr is_inside(pos_t const& x) const -> bool {
     return is_inside(

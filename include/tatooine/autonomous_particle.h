@@ -633,6 +633,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
           std::cout << "===========================\n";
           std::cout << "center(): \n" << center() << '\n';
           std::cout << "S: \n" << S() << "\n\n";
+          std::cout << "eigvals_S: " << eigvals_S << '\n';
+          std::cout << "eigvecs_S: \n" << eigvecs_S << '\n';
 
           std::cout << "advected_ellipse.center(): \n"
                     << advected_ellipse.center() << '\n';
