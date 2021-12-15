@@ -9,6 +9,7 @@
 #include <tatooine/reflection.h>
 #include <tatooine/tags.h>
 #include <tatooine/tensor.h>
+#include <tatooine/particle.h>
 //==============================================================================
 namespace tatooine::detail::autonomous_particle {
 //==============================================================================
@@ -460,8 +461,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
   static auto advect_particle_pools(std::size_t const num_threads,
                                     Flowmap&& phi, real_t const step_size,
                                     real_t const      t_end,
-                                    auto&             particles_per_thread,
-                                    std::atomic_bool& stop) {
+                                    auto&             particles_per_thread) {
 #pragma omp parallel
     {
       auto const thr_id          = omp_get_thread_num();
@@ -469,16 +469,9 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
       auto&      particles_at_t1 = *particles_per_thread[thr_id][1];
       auto&      finished        = *particles_per_thread[thr_id][2];
       for (auto const& particle : particles_at_t0) {
-        //try {
           particle.template advect_until_split<SplitBehavior>(
               std::forward<Flowmap>(phi), step_size, t_end, particles_at_t1,
               finished);
-        //} catch (...) {
-        //  stop = true;
-        //}
-        if (stop) {
-          break;
-        }
       }
     }
   }
@@ -514,7 +507,6 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
       typename Flowmap>
   static auto advect(Flowmap&& phi, real_t const step_size, real_t const t_end,
                      container_t particles) {
-    std::atomic_bool stop        = false;
     auto const       num_threads = this_t::num_threads();
 
     auto finished_particles = container_t{};
@@ -522,12 +514,12 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
     // {particles_to_be_advected, advected_particles, finished_particles}
     auto particles_per_thread =
         std::vector<std::array<aligned<container_t>, 3>>(num_threads);
-    while (!stop && particles.size() > 0) {
+    while (particles.size() > 0) {
       distribute_particles_to_thread_containers(num_threads, particles,
                                                 particles_per_thread);
       advect_particle_pools<SplitBehavior>(
           num_threads, std::forward<Flowmap>(phi), step_size, t_end,
-          particles_per_thread, stop);
+          particles_per_thread);
       gather_particles(particles, finished_particles, particles_per_thread);
     }
     return finished_particles;
@@ -550,8 +542,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
       typename Flowmap>
   auto advect_until_split(Flowmap phi, real_t step_size, real_t const t_end,
                           container_t&            splitted_particles,
-                          container_t&            finished_particles,
-                          std::atomic_bool const& stop = false) const {
+                          container_t&            finished_particles) const {
     if constexpr (is_cacheable<std::decay_t<decltype(phi)>>()) {
       phi.use_caching(false);
     }
@@ -593,7 +584,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
     // repeat as long as particle's ellipse is not wide enough or t_end is not
     // reached
     auto t_advected      = t();
-    while (!stop || sqr_cond_H < split_sqr_cond || t_advected < t_end) {
+    while (sqr_cond_H < split_sqr_cond || t_advected < t_end) {
       if (!min_step_size_reached) {
         // backup state before advection
         prev_ghosts_forward  = ghosts_forward;
@@ -679,18 +670,9 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
               eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt)};
 
 
-        //auto const [eigvecs_S, eigvals_S]             = eigenvectors_sym(S());
-        //auto const B = eigvecs_S * diag(eigvals_S);  // current main axes
-
-          if (stop) {
-            finished_particles.emplace_back(offset_ellipse, t_advected,
-                                            x0() + offset0,
-                                            assembled_nabla_phi);
-          } else {
-            splitted_particles.emplace_back(offset_ellipse, t_advected,
-                                            x0() + offset0,
-                                            assembled_nabla_phi);
-          }
+          splitted_particles.emplace_back(offset_ellipse, t_advected,
+                                          x0() + offset0,
+                                          assembled_nabla_phi);
         }
         return;
       }
@@ -708,11 +690,6 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
           ghosts_backward           = prev_ghosts_backward;
           t_advected                = t_prev;
           advected_ellipse.center() = prev_center;
-        }
-        if (stop) {
-          finished_particles.emplace_back(advected_ellipse, t_advected, x0(),
-                                          assembled_nabla_phi);
-          return;
         }
       }
     }
