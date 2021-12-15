@@ -135,11 +135,11 @@ auto main(int argc, char** argv) -> int {
     indicator.set_text("Creating slabs for infinite domain");
     repeat_for_infinite<1, 2>(discrete_velocity);
 
-    //----------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     // indicator.set_text("Building numerical flowmap");
     auto phi = flowmap(v);
     phi.use_caching(false);
-    //----------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     indicator.set_text("Advecting autonomous particles");
     auto const initial_part = autonomous_particle3{args.x0, args.t0, args.r0};
     auto const advected_particles = [&] {
@@ -169,7 +169,7 @@ auto main(int argc, char** argv) -> int {
     }();
     std::cerr << "number of advected particles: " << size(advected_particles)
               << '\n';
-    //----------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     indicator.set_text("Writing Autonomous Particles Results");
     auto all_advected_discretizations =
         std::vector<unstructured_triangular_grid3>{};

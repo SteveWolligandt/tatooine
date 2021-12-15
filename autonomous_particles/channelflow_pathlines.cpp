@@ -74,7 +74,6 @@ auto main(int argc, char** argv) -> int {
         &discrete_channelflow_domain.vec3_vertex_property("velocity"));
 
     indicator.set_text("Creating sampler");
-    repeat_for_infinite<1, 2>(discrete_velocity);
     auto       w = discrete_velocity.linear_sampler();
     auto const v = make_infinite<1, 2>(w);
     std::cout << "num_repeated_dimensions: " << v.num_repeated_dimensions << '\n';
@@ -83,7 +82,8 @@ auto main(int argc, char** argv) -> int {
       std::cout << ", "<< v.repeated_dimensions[i];
     }
     std::cout << "]\n";
-    std::cout << "num_non_repeated_dimensions: " << v.num_non_repeated_dimensions << '\n';
+    std::cout << "num_non_repeated_dimensions: "
+              << v.num_non_repeated_dimensions << '\n';
     std::cout << "non_repeated_dimensions: [" << v.non_repeated_dimensions[0] ;
     for (std::size_t i =1 ; i < v.num_non_repeated_dimensions; ++i) {
       std::cout << ", "<< v.non_repeated_dimensions[i];
@@ -161,21 +161,23 @@ auto main(int argc, char** argv) -> int {
       //}
 
     indicator.set_text("Creating slabs for infinite domain");
+    repeat_for_infinite<1, 2>(discrete_velocity);
 
-    //----------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     // indicator.set_text("Building numerical flowmap");
     auto phi = flowmap(v);
     phi.use_caching(false);
-    //----------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     indicator.set_text("Advecting path lines");
     auto pathlines = std::vector<line3> {};
     auto const bb = discrete_channelflow_domain.bounding_box();
     for (std::size_t i = 0; i < 100; ++i) {
       auto x0 = bb.random_point();
       x0.y()  = 0;
+
       pathlines.push_back(trace_flow(v, x0, args.t0, args.tau));
     }
-    //----------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     indicator.set_text("Writing path lines");
     write_vtk(pathlines, "channelflow_pathlines.vtk");
   });
