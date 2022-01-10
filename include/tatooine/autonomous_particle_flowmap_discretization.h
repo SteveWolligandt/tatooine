@@ -202,21 +202,21 @@ struct autonomous_particle_flowmap_discretization {
   }
   //----------------------------------------------------------------------------
   template <typename Tag>
-  auto hierarchy_mutex(Tag) const -> auto & {
-    if constexpr (is_same<tag::forward_t, Tag>) {
-      return m_centers0_mutex;
-    } else if constexpr (is_same<tag::backward_t, Tag>) {
-      return m_centers1_mutex;
-    }
+  auto hierarchy_mutex(tag::forward_t) const -> auto & {
+    return m_centers0_mutex;
   }
   //----------------------------------------------------------------------------
   template <typename Tag>
-  auto hierarchy(Tag) const -> auto const& {
-    if constexpr (is_same<tag::forward_t, Tag>) {
-      return hierarchy0();
-    } else if constexpr (is_same<tag::backward_t, Tag>) {
-      return hierarchy1();
-    }
+  auto hierarchy_mutex(tag::backward_t) const -> auto & {
+    return m_centers1_mutex;
+  }
+  //----------------------------------------------------------------------------
+  auto hierarchy(tag::forward_t) const -> auto const& {
+    return hierarchy0();
+  }
+  //----------------------------------------------------------------------------
+  auto hierarchy(tag::backward_t) const -> auto const& {
+    return hierarchy1();
   }
   //============================================================================
   auto num_particles() const -> std::size_t {
@@ -253,12 +253,9 @@ struct autonomous_particle_flowmap_discretization {
   template <typename Tag, size_t... VertexSeq>
   [[nodiscard]] auto sample(pos_t const& x, Tag const tag,
                             std::index_sequence<VertexSeq...> /*seq*/) const {
-    auto         shortest_distance = std::numeric_limits<real_t>::infinity();
-    //auto         file              = hdf5::file{*m_path};
-    //auto         particles_on_disk = file.dataset<particle_t>("finished");
-    sampler_t    nearest_sampler;
-    auto const& h = hierarchy(tag);
-    auto         nn = typename pointset<Real, NumDimensions>::vertex_handle{};
+    sampler_t   nearest_sampler;
+    auto const& h  = hierarchy(tag);
+    auto        nn = typename pointset<Real, NumDimensions>::vertex_handle{};
     {
       auto l = std::lock_guard{hierarchy_mutex(tag)};
       nn     = h->nearest_neighbor(x);
