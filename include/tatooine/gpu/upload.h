@@ -126,7 +126,7 @@ auto upload_tex3d(const dynamic_multidim_array<Tensor>& data) requires
 }
 //==============================================================================
 template <typename GPUReal = float, floating_point Real,
-          rectilinear_grid_dimension XDomain, bool HasNonConstReference>
+          detail::rectilinear_grid::dimension XDomain, bool HasNonConstReference>
 auto upload(typed_grid_vertex_property_interface<rectilinear_grid<XDomain>, Real,
                                                  HasNonConstReference> const&
                 grid_vertex_property) {
@@ -144,7 +144,7 @@ auto upload(typed_grid_vertex_property_interface<rectilinear_grid<XDomain>, Real
 }
 //------------------------------------------------------------------------------
 template <typename GPUReal = float, floating_point Real,
-          rectilinear_grid_dimension XDomain, rectilinear_grid_dimension YDomain,
+          detail::rectilinear_grid::dimension XDomain, detail::rectilinear_grid::dimension YDomain,
           bool HasNonConstReference>
 auto upload(typed_grid_vertex_property_interface<rectilinear_grid<XDomain, YDomain>, Real,
                                                  HasNonConstReference> const&
@@ -164,8 +164,8 @@ auto upload(typed_grid_vertex_property_interface<rectilinear_grid<XDomain, YDoma
 }
 //------------------------------------------------------------------------------
 template <typename GPUReal = float, floating_point Real,
-          rectilinear_grid_dimension XDomain, rectilinear_grid_dimension YDomain,
-          rectilinear_grid_dimension ZDomain, bool HasNonConstReference>
+          detail::rectilinear_grid::dimension XDomain, detail::rectilinear_grid::dimension YDomain,
+          detail::rectilinear_grid::dimension ZDomain, bool HasNonConstReference>
 auto upload(typed_grid_vertex_property_interface<
             rectilinear_grid<XDomain, YDomain, ZDomain>, Real, HasNonConstReference> const&
                 grid_vertex_property) {
@@ -185,7 +185,7 @@ auto upload(typed_grid_vertex_property_interface<
 }
 //==============================================================================
 template <typename GPUReal = float, floating_point Real,
-          rectilinear_grid_dimension XDomain, bool HasNonConstReference>
+          detail::rectilinear_grid::dimension XDomain, bool HasNonConstReference>
 auto upload(typed_grid_vertex_property_interface<rectilinear_grid<XDomain>, vec<Real, 2>,
                                                  HasNonConstReference> const&
                 grid_vertex_property) {
@@ -205,7 +205,7 @@ auto upload(typed_grid_vertex_property_interface<rectilinear_grid<XDomain>, vec<
 }
 //------------------------------------------------------------------------------
 template <typename GPUReal = float, floating_point Real,
-          rectilinear_grid_dimension XDomain, rectilinear_grid_dimension YDomain,
+          detail::rectilinear_grid::dimension XDomain, detail::rectilinear_grid::dimension YDomain,
           bool HasNonConstReference>
 auto upload(
     typed_grid_vertex_property_interface<rectilinear_grid<XDomain, YDomain>, vec<Real, 2>,
@@ -226,8 +226,8 @@ auto upload(
 }
 //------------------------------------------------------------------------------
 template <typename GPUReal = float, floating_point Real,
-          rectilinear_grid_dimension XDomain, rectilinear_grid_dimension YDomain,
-          rectilinear_grid_dimension ZDomain, bool HasNonConstReference>
+          detail::rectilinear_grid::dimension XDomain, detail::rectilinear_grid::dimension YDomain,
+          detail::rectilinear_grid::dimension ZDomain, bool HasNonConstReference>
 auto upload(typed_grid_vertex_property_interface<
             rectilinear_grid<XDomain, YDomain, ZDomain>, vec<Real, 2>,
             HasNonConstReference> const& grid_vertex_property) {
@@ -249,7 +249,7 @@ auto upload(typed_grid_vertex_property_interface<
 }
 //==============================================================================
 template <typename GPUReal = float, floating_point Real,
-          rectilinear_grid_dimension XDomain, bool HasNonConstReference>
+          detail::rectilinear_grid::dimension XDomain, bool HasNonConstReference>
 auto upload(typed_grid_vertex_property_interface<rectilinear_grid<XDomain>, vec<Real, 3>,
                                                  HasNonConstReference> const&
                 grid_vertex_property) {
@@ -270,7 +270,7 @@ auto upload(typed_grid_vertex_property_interface<rectilinear_grid<XDomain>, vec<
 }
 //------------------------------------------------------------------------------
 template <typename GPUReal = float, floating_point Real,
-          rectilinear_grid_dimension XDomain, rectilinear_grid_dimension YDomain,
+          detail::rectilinear_grid::dimension XDomain, detail::rectilinear_grid::dimension YDomain,
           bool HasNonConstReference>
 auto upload(typed_grid_vertex_property_interface<
             rectilinear_grid<XDomain, YDomain>, vec<Real, 3>, HasNonConstReference> const&
@@ -293,8 +293,8 @@ auto upload(typed_grid_vertex_property_interface<
 }
 //------------------------------------------------------------------------------
 template <typename GPUReal = float, floating_point Real,
-          rectilinear_grid_dimension XDomain, rectilinear_grid_dimension YDomain,
-          rectilinear_grid_dimension ZDomain, bool HasNonConstReference>
+          detail::rectilinear_grid::dimension XDomain, detail::rectilinear_grid::dimension YDomain,
+          detail::rectilinear_grid::dimension ZDomain, bool HasNonConstReference>
 auto upload(typed_grid_vertex_property_interface<
             rectilinear_grid<XDomain, YDomain, ZDomain>, vec<Real, 3>,
             HasNonConstReference> const& grid_vertex_property) {
@@ -317,7 +317,7 @@ auto upload(typed_grid_vertex_property_interface<
 }
 //==============================================================================
 template <typename GPUReal = float, floating_point Real,
-          rectilinear_grid_dimension XDomain, bool HasNonConstReference>
+          detail::rectilinear_grid::dimension XDomain, bool HasNonConstReference>
 auto upload(typed_grid_vertex_property_interface<rectilinear_grid<XDomain>, vec<Real, 4>,
                                                  HasNonConstReference> const&
                 grid_vertex_property) {
@@ -339,7 +339,7 @@ auto upload(typed_grid_vertex_property_interface<rectilinear_grid<XDomain>, vec<
 }
 //------------------------------------------------------------------------------
 template <typename GPUReal = float, floating_point Real,
-          rectilinear_grid_dimension XDomain, rectilinear_grid_dimension YDomain,
+          detail::rectilinear_grid::dimension XDomain, detail::rectilinear_grid::dimension YDomain,
           bool HasNonConstReference>
 auto upload(typed_grid_vertex_property_interface<
             rectilinear_grid<XDomain, YDomain>, vec<Real, 4>, HasNonConstReference> const&
@@ -363,8 +363,8 @@ auto upload(typed_grid_vertex_property_interface<
 }
 //------------------------------------------------------------------------------
 template <typename GPUReal = float, floating_point Real,
-          rectilinear_grid_dimension XDomain, rectilinear_grid_dimension YDomain,
-          rectilinear_grid_dimension ZDomain, bool HasNonConstReference>
+          detail::rectilinear_grid::dimension XDomain, detail::rectilinear_grid::dimension YDomain,
+          detail::rectilinear_grid::dimension ZDomain, bool HasNonConstReference>
 auto upload(typed_grid_vertex_property_interface<
             rectilinear_grid<XDomain, YDomain, ZDomain>, vec<Real, 4>,
             HasNonConstReference> const& grid_vertex_property) {

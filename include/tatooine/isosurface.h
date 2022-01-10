@@ -21,8 +21,9 @@ namespace tatooine {
 /// \brief      Indexing and lookup map from
 /// http://paulbourke.net/geometry/polygonise/
 template <
-    rectilinear_grid_dimension XDomain, rectilinear_grid_dimension YDomain,
-    rectilinear_grid_dimension ZDomain, arithmetic Isolevel,
+    detail::rectilinear_grid::dimension XDomain,
+    detail::rectilinear_grid::dimension YDomain,
+    detail::rectilinear_grid::dimension ZDomain, arithmetic Isolevel,
     invocable<size_t const, size_t const, size_t const,
               vec<typename grid<XDomain, YDomain, ZDomain>::real_t, 3> const&>
         GetScalars>
@@ -193,10 +194,11 @@ auto isosurface(
       isolevel);
 }
 //------------------------------------------------------------------------------
-template <
-    typename Field, arithmetic FieldReal, rectilinear_grid_dimension XDomain,
-    rectilinear_grid_dimension YDomain, rectilinear_grid_dimension ZDomain,
-    arithmetic TReal, arithmetic Isolevel>
+template <typename Field, arithmetic FieldReal,
+          detail::rectilinear_grid::dimension XDomain,
+          detail::rectilinear_grid::dimension YDomain,
+          detail::rectilinear_grid::dimension ZDomain, arithmetic TReal,
+          arithmetic Isolevel>
 auto isosurface(field<Field, FieldReal, 3> const&      sf,
                 grid<XDomain, YDomain, ZDomain> const& g,
                 Isolevel const isolevel, TReal const t = 0) {

@@ -295,7 +295,7 @@ namespace tatooine {
 //==============================================================================
 #ifdef __cpp_concpets
 template <typename V, arithmetic VReal, std::size_t NumDims, typename Tensor,
-          rectilinear_grid_dimension... SpatialDimensions, arithmetc T>
+          detail::rectilinear_grid::dimension... SpatialDimensions, arithmetc T>
 #else
 template <typename V, typename VReal, std::size_t NumDims, typename Tensor,
           typename... SpatialDimensions, typename T,
@@ -328,8 +328,8 @@ auto sample_to_raw(
 //------------------------------------------------------------------------------
 #ifdef __cpp_concpets
 template <typename V, arithmetic VReal, arithmetic TReal, std::size_t NumDims,
-          typename Tensor, rectilinear_grid_dimension... SpatialDimensions,
-          rectilinear_grid_dimension TemporalDimension>
+          typename Tensor, detail::rectilinear_grid::dimension... SpatialDimensions,
+          detail::rectilinear_grid::dimension TemporalDimension>
 #else
 template <typename V, typename VReal, typename TReal, std::size_t NumDims,
           typename Tensor, typename... SpatialDimensions,
@@ -366,7 +366,7 @@ auto sample_to_raw(
 //------------------------------------------------------------------------------
 #ifdef __cpp_concpets
 template <arithmetic VReal, arithmetic TReal, std::size_t NumDims,
-          typename Tensor, rectilinear_grid_dimension... SpatialDimensions>
+          typename Tensor, detail::rectilinear_grid::dimension... SpatialDimensions>
 #else
 template <typename VReal, typename TReal, std::size_t NumDims, typename Tensor,
           typename... SpatialDimensions,
@@ -390,7 +390,7 @@ auto sample_to_vector(
 //------------------------------------------------------------------------------
 #ifdef __cpp_concpets
 template <arithmetic VReal, arithmetic TReal, std::size_t NumDims,
-          typename Tensor, rectilinear_grid_dimension... SpatialDimensions,
+          typename Tensor, detail::rectilinear_grid::dimension... SpatialDimensions,
           typename ExecutionPolicy>
 #else
 template <typename VReal, typename TReal, std::size_t NumDims, typename Tensor,
@@ -428,7 +428,7 @@ auto discretize(polymorphic::field<VReal, NumDims, Tensor> const& f,
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concpets
 template <arithmetic VReal, arithmetic TReal, std::size_t NumDims,
-          typename Tensor, rectilinear_grid_dimension... SpatialDimensions>
+          typename Tensor, detail::rectilinear_grid::dimension... SpatialDimensions>
 #else
 template <typename VReal, typename TReal, std::size_t NumDims, typename Tensor,
           typename... SpatialDimensions,
@@ -443,7 +443,7 @@ auto discretize(polymorphic::field<VReal, NumDims, Tensor> const& f,
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concpets
 template <arithmetic VReal, std::size_t NumDims, typename Tensor,
-          rectilinear_grid_dimension... SpatialDimensions>
+          detail::rectilinear_grid::dimension... SpatialDimensions>
 #else
 template <typename VReal, std::size_t NumDims, typename Tensor,
           typename... SpatialDimensions, enable_if_arithmetic<VReal> = true>
@@ -457,7 +457,7 @@ auto discretize(polymorphic::field<VReal, NumDims, Tensor> const& f,
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concpets
 template <arithmetic VReal, std::size_t NumDims, typename Tensor,
-          typename ExecutionPolicy, rectilinear_grid_dimension... SpatialDimensions>
+          typename ExecutionPolicy, detail::rectilinear_grid::dimension... SpatialDimensions>
 #else
 template <typename VReal, std::size_t NumDims, typename Tensor,
           typename ExecutionPolicy, typename... SpatialDimensions,

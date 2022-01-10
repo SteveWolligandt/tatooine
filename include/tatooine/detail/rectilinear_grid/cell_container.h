@@ -1,30 +1,34 @@
-#ifndef TATOOINE_RECTILINEAR_GRID_CELL_CONTAINER_H
-#define TATOOINE_RECTILINEAR_GRID_CELL_CONTAINER_H
+#ifndef TATOOINE_DETAIL_RECTILINEAR_GRID_CELL_CONTAINER_H
+#define TATOOINE_DETAIL_RECTILINEAR_GRID_CELL_CONTAINER_H
 //==============================================================================
 #include <tatooine/concepts.h>
 #include <tatooine/for_loop.h>
 #include <tatooine/rectilinear_grid.h>
-#include <tatooine/rectilinear_grid_dimension.h>
+#include <tatooine/detail/rectilinear_grid/dimension.h>
 //==============================================================================
 namespace tatooine {
-//==============================================================================
-template <rectilinear_grid_dimension... Dimensions>
+template <detail::rectilinear_grid::dimension... Dimensions>
 class rectilinear_grid;
+}
+//==============================================================================
+namespace tatooine::detail::rectilinear_grid {
 //==============================================================================
 template <typename... Dimensions>
-struct rectilinear_grid_cell_container {
+struct cell_container {
+  using grid_t = tatooine::rectilinear_grid<Dimensions...>;
+
  private:
-  rectilinear_grid<Dimensions...> const& m_grid;
+  grid_t const& m_grid;
 
  public:
-  //using iterator          = rectilinear_grid_cell_iterator<Dimensions...>;
+  //using iterator          = cell_iterator<Dimensions...>;
   //using const_iterator    = iterator;
-  //using handle    = rectilinear_grid_cell_handle<Dimensions...>;
-  //using pos_t = typename rectilinear_grid<Dimensions...>::pos_t;
-  using seq_t = typename rectilinear_grid<Dimensions...>::seq_t;
+  //using handle    = cell_handle<Dimensions...>;
+  //using pos_t = typename grid_t::pos_t;
+  using seq_t = typename grid_t::seq_t;
   static constexpr auto num_dimensions() { return sizeof...(Dimensions); }
   //----------------------------------------------------------------------------
-  rectilinear_grid_cell_container(rectilinear_grid<Dimensions...> const& g) : m_grid{g} {}
+  explicit cell_container(grid_t const& g) : m_grid{g} {}
   //----------------------------------------------------------------------------
 //  template <size_t... DIs, integral Int>
 //  auto at(std::index_sequence<DIs...>,
@@ -104,10 +108,12 @@ struct rectilinear_grid_cell_container {
   template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
                 Iteration,
             size_t... Ds>
-  auto iterate_indices(Iteration&& iteration, execution_policy::sequential_t,
-                       std::index_sequence<Ds...>) const -> decltype(auto) {
-    return for_loop(
-        std::forward<Iteration>(iteration), execution_policy::sequential,
+  auto iterate_indices(Iteration&&                    iteration,
+                       execution_policy::sequential_t exec,
+                       std::index_sequence<Ds...> /*seq*/) const
+      -> decltype(auto) {
+    return tatooine::for_loop(
+        std::forward<Iteration>(iteration), exec,
         std::pair{size_t(0),
                   static_cast<size_t>(m_grid.template size<Ds>() - 1)}...);
   }
@@ -116,9 +122,9 @@ struct rectilinear_grid_cell_container {
   /// Sequential iteration
   template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
                 Iteration>
-  auto iterate_indices(Iteration&& iteration, execution_policy::sequential_t) const
+  auto iterate_indices(Iteration&& iteration, execution_policy::sequential_t exec) const
       -> decltype(auto) {
-    return iterate_indices(std::forward<Iteration>(iteration), execution_policy::sequential,
+    return iterate_indices(std::forward<Iteration>(iteration), exec,
                            std::make_index_sequence<num_dimensions()>{});
   }
   //----------------------------------------------------------------------------
@@ -127,10 +133,10 @@ struct rectilinear_grid_cell_container {
   template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
                 Iteration,
             size_t... Ds>
-  auto iterate_indices(Iteration&& iteration, execution_policy::parallel_t,
-                       std::index_sequence<Ds...>) const -> decltype(auto) {
-    return for_loop(
-        std::forward<Iteration>(iteration), execution_policy::parallel,
+  auto iterate_indices(Iteration&& iteration, execution_policy::parallel_t exec,
+                       std::index_sequence<Ds...> /*seq*/) const -> decltype(auto) {
+    return tatooine::for_loop(
+        std::forward<Iteration>(iteration), exec,
         std::pair{size_t(0),
                   static_cast<size_t>(m_grid.template size<Ds>() - 1)}...);
   }
@@ -139,9 +145,9 @@ struct rectilinear_grid_cell_container {
   /// Parallel iteration
   template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
                 Iteration>
-  auto iterate_indices(Iteration&& iteration, execution_policy::parallel_t) const
+  auto iterate_indices(Iteration&& iteration, execution_policy::parallel_t exec) const
       -> decltype(auto) {
-    return iterate_indices(std::forward<Iteration>(iteration), execution_policy::parallel,
+    return iterate_indices(std::forward<Iteration>(iteration), exec,
                            std::make_index_sequence<num_dimensions()>{});
   }
   //----------------------------------------------------------------------------
@@ -154,42 +160,21 @@ struct rectilinear_grid_cell_container {
   }
 };
 //------------------------------------------------------------------------------
-//template <rectilinear_grid_dimension... Dimensions>
-//auto begin(rectilinear_grid_cell_container<Dimensions...> const& c) {
+//template <dimension... Dimensions>
+//auto begin(cell_container<Dimensions...> const& c) {
 //  return c.begin();
 //}
 ////------------------------------------------------------------------------------
-//template <rectilinear_grid_dimension... Dimensions>
-//auto end(rectilinear_grid_cell_container<Dimensions...> const& c) {
+//template <dimension... Dimensions>
+//auto end(cell_container<Dimensions...> const& c) {
 //  return c.end();
 //}
 //------------------------------------------------------------------------------
-template <rectilinear_grid_dimension... Dimensions>
-auto size(rectilinear_grid_cell_container<Dimensions...> const& c) {
+template <dimension... Dimensions>
+auto size(cell_container<Dimensions...> const& c) {
   return c.size();
 }
 //==============================================================================
 }  // namespace tatooine
-//==============================================================================
-namespace std::ranges {
-//==============================================================================
-//template <tatooine::rectilinear_grid_dimension... Dimensions>
-//constexpr auto begin(tatooine::rectilinear_grid_cell_container<Dimensions...>& r) {
-//  r.begin();
-//}
-//template <tatooine::rectilinear_grid_dimension... Dimensions>
-//constexpr auto end(tatooine::rectilinear_grid_cell_container<Dimensions...>& r) {
-//  r.end();
-//}
-//template <tatooine::rectilinear_grid_dimension... Dimensions>
-//constexpr auto begin(tatooine::rectilinear_grid_cell_container<Dimensions...> const& r) {
-//  r.begin();
-//}
-//template <tatooine::rectilinear_grid_dimension... Dimensions>
-//constexpr auto end(tatooine::rectilinear_grid_cell_container<Dimensions...> const& r) {
-//  r.end();
-//}
-//==============================================================================
-}  // namespace std::ranges
 //==============================================================================
 #endif

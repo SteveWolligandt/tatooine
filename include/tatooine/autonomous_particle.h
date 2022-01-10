@@ -10,184 +10,8 @@
 #include <tatooine/reflection.h>
 #include <tatooine/tags.h>
 #include <tatooine/tensor.h>
-//==============================================================================
-namespace tatooine::detail::autonomous_particle {
-//==============================================================================
-template <floating_point Real, std::size_t NumDimensions>
-struct sampler {
-  //============================================================================
-  // TYPEDEFS
-  //============================================================================
-  using vec_t     = vec<Real, NumDimensions>;
-  using pos_t     = vec_t;
-  using mat_t     = mat<Real, NumDimensions, NumDimensions>;
-  using ellipse_t = geometry::hyper_ellipse<Real, NumDimensions>;
-
- private:
-  //============================================================================
-  // MEMBERS
-  //============================================================================
-  ellipse_t m_ellipse0, m_ellipse1;
-  mat_t     m_nabla_phi, m_nabla_phi_inv;
-
- public:
-  //============================================================================
-  // CTORS
-  //============================================================================
-  sampler(sampler const&)     = default;
-  sampler(sampler&&) noexcept = default;
-  //============================================================================
-  auto operator=(sampler const&) -> sampler& = default;
-  auto operator=(sampler&&) noexcept -> sampler& = default;
-  //============================================================================
-  sampler()  = default;
-  ~sampler() = default;
-  //----------------------------------------------------------------------------
-  sampler(ellipse_t const& e0, ellipse_t const& e1, mat_t const& nabla_phi)
-      : m_ellipse0{e0},
-        m_ellipse1{e1},
-        m_nabla_phi{nabla_phi},
-        m_nabla_phi_inv{*inv(nabla_phi)} {}
-  //============================================================================
-  // GETTERS / SETTERS
-  //============================================================================
-  auto ellipse(tag::forward_t /*tag*/) const -> auto const& {
-    return m_ellipse0;
-  }
-  auto ellipse(tag::backward_t /*tag*/) const -> auto const& {
-    return m_ellipse1;
-  }
-  auto ellipse0() const -> auto const& { return m_ellipse0; }
-  auto ellipse1() const -> auto const& { return m_ellipse1; }
-  //============================================================================
-  // METHODS
-  //============================================================================
-  auto sample_forward(pos_t const& x) const {
-    return ellipse1().center() + nabla_phi() * (x - ellipse0().center());
-  }
-  auto operator()(pos_t const& x, tag::forward_t /*tag*/) const {
-    return sample_forward(x);
-  }
-  auto sample(pos_t const& x, tag::forward_t /*tag*/) const {
-    return sample_forward(x);
-  }
-  auto sample_backward(pos_t const& x) const {
-    return ellipse0().center() + m_nabla_phi_inv * (x - ellipse1().center());
-  }
-  auto sample(pos_t const& x, tag::backward_t /*tag*/) const {
-    return sample_backward(x);
-  }
-  auto operator()(pos_t const& x, tag::backward_t /*tag*/) const {
-    return sample_backward(x);
-  }
-  auto is_inside0(pos_t const& x) const { return m_ellipse0.is_inside(x); }
-  auto is_inside(pos_t const& x, tag::forward_t /*tag*/) const {
-    return is_inside0(x);
-  }
-  auto is_inside1(pos_t const& x) const { return m_ellipse1.is_inside(x); }
-  auto is_inside(pos_t const& x, tag::backward_t /*tag*/) const {
-    return is_inside1(x);
-  }
-  auto center(tag::forward_t /*tag*/) const -> auto const& {
-    return m_ellipse0.center();
-  }
-  auto center(tag::backward_t /*tag*/) const -> auto const& {
-    return m_ellipse1.center();
-  }
-  auto distance_sqr(pos_t const& x, tag::forward_t tag) const {
-    return tatooine::length(nabla_phi() * (x - center(tag)));
-  }
-  auto distance_sqr(pos_t const& x, tag::backward_t tag) const {
-    return tatooine::length(solve(nabla_phi(), (x - center(tag))));
-  }
-  auto distance(pos_t const& x, auto const tag) const {
-    return gcem::sqrt(distance_sqr(x, tag));
-  }
-  auto nabla_phi() const -> auto const& { return m_nabla_phi; }
-  auto nabla_phi_inv() const -> auto const& { return m_nabla_phi_inv; }
-};
-//==============================================================================
-template <floating_point Real, std::size_t NumDimensions>
-struct split_behaviors;
-//==============================================================================
-template <floating_point Real>
-struct split_behaviors<Real, 2> {
-  static auto constexpr one            = Real(1);
-  static auto constexpr half           = one / Real(2);
-  static auto constexpr quarter        = one / Real(4);
-  static auto constexpr three_quarters = 3 * quarter;
-  static auto constexpr sqrt5          = gcem::sqrt<Real>(5);
-  using vec_t                          = vec<Real, 2>;
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  struct two_splits {
-    static auto constexpr sqrt2    = gcem::sqrt(real_t(2));
-    static auto constexpr sqr_cond = 2;
-    static auto constexpr half     = Real(1) / Real(2);
-    static auto constexpr quarter  = Real(1) / Real(4);
-    static constexpr auto radii =
-        std::array{vec_t{1 / sqrt2, half}, vec_t{1 / sqrt2, half}};
-    static constexpr auto offsets = std::array{vec_t{0, -half}, vec_t{0, half}};
-  };
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  struct three_splits {
-    static auto constexpr sqr_cond = Real(4);
-    static constexpr auto radii    = std::array{
-        vec_t{half, quarter}, vec_t{one, half}, vec_t{half, quarter}};
-    static constexpr auto offsets = std::array{
-        vec_t{0, -three_quarters}, vec_t{0, 0}, vec_t{0, three_quarters}};
-  };
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  struct five_splits {
-    static auto constexpr sqr_cond = Real(6 + sqrt5 * 2);
-    static auto constexpr radii    = std::array{
-        vec_t{1, 1 / (sqrt5 + 1)}, vec_t{1, (sqrt5 + 3) / (sqrt5 * 2 + 2)},
-        vec_t{1, 1}, vec_t{1, (sqrt5 + 3) / (sqrt5 * 2 + 2)},
-        vec_t{1, 1 / (sqrt5 + 1)}};
-    static auto constexpr offsets = std::array{
-        vec_t{0, 0}, vec_t{0, 0}, vec_t{0, 0}, vec_t{0, 0}, vec_t{0, 0}};
-  };
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  struct seven_splits {
-    static auto constexpr sqr_cond = 4.493959210 * 4.493959210;
-    static auto constexpr radii    = std::array{
-        real_t(.9009688678), real_t(.6234898004), real_t(.2225209338)};
-  };
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  struct centered_four {
-    static auto constexpr x5       = Real(0.4830517593887872);
-    static auto constexpr sqr_cond = Real{4};
-    static auto constexpr radii =
-        std::array{vec_t{x5, x5 / 2},
-                   vec_t{x5, x5 / 2},
-                   vec_t{x5, x5 / 2},
-                   vec_t{x5, x5 / 2},
-                   vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)},
-                   vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)}};
-    static auto constexpr offsets = std::array{
-        vec_t{-x5, -x5 / 2}, vec_t{x5, -x5 / 2},      vec_t{-x5, x5 / 2},
-        vec_t{x5, x5 / 2},   vec_t{0, real_t(3) / 4}, vec_t{0, -real_t(3) / 4}};
-  };
-};
-//==============================================================================
-template <floating_point Real>
-struct split_behaviors<Real, 3> {
-  static auto constexpr half           = 1 / Real(2);
-  static auto constexpr quarter        = 1 / Real(4);
-  static auto constexpr three_quarters = 3 * quarter;
-  using vec_t                          = vec<Real, 3>;
-  struct three_splits {
-    static auto constexpr sqr_cond = Real{4};
-    static constexpr auto radii =
-        std::array{vec_t{half, half, quarter}, vec_t{1, 1, half},
-                   vec_t{half, half, quarter}};
-    static constexpr auto offsets =
-        std::array{vec_t{0, 0, -three_quarters}, vec_t{0, 0, 0},
-                   vec_t{0, 0, three_quarters}};
-  };
-};
-//==============================================================================
-}  // namespace tatooine::detail::autonomous_particle
-//==============================================================================
+#include <tatooine/detail/autonomous_particle/sampler.h>
+#include <tatooine/detail/autonomous_particle/split_behavior.h>
 namespace tatooine {
 //==============================================================================
 template <typename B>
@@ -211,14 +35,13 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   constexpr static auto half = 1 / Real(2);
 
   using this_t            = autonomous_particle<Real, NumDimensions>;
-  using simple_particle_t = particle<Real, NumDimensions>;
-  using real_t            = Real;
-  using vec_t             = vec<real_t, NumDimensions>;
-  using mat_t             = mat<real_t, NumDimensions, NumDimensions>;
-  using pos_t             = vec_t;
-  using container_t       = std::vector<this_t>;
-  using simple_particle_container_t =
-      std::vector<particle<Real, NumDimensions>>;
+  using simple_particle_t           = particle<Real, NumDimensions>;
+  using real_t                      = Real;
+  using vec_t                       = vec<real_t, NumDimensions>;
+  using mat_t                       = mat<real_t, NumDimensions, NumDimensions>;
+  using pos_t                       = vec_t;
+  using container_t                 = std::vector<this_t>;
+  using simple_particle_container_t = std::vector<simple_particle>;
   using ellipse_t   = geometry::hyper_ellipse<Real, NumDimensions>;
   using parent_t    = ellipse_t;
   using sampler_t   = detail::autonomous_particle::sampler<Real, NumDimensions>;
@@ -244,10 +67,10 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   autonomous_particle(autonomous_particle const& other)     = default;
   autonomous_particle(autonomous_particle&& other) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator               =(autonomous_particle const& other)
-      -> autonomous_particle& = default;
-  auto operator               =(autonomous_particle&& other) noexcept
-      -> autonomous_particle& = default;
+  auto operator=(autonomous_particle const& other)
+    -> autonomous_particle& = default;
+  auto operator=(autonomous_particle&& other) noexcept
+    -> autonomous_particle& = default;
   //----------------------------------------------------------------------------
   ~autonomous_particle() = default;
   //----------------------------------------------------------------------------
@@ -270,7 +93,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //----------------------------------------------------------------------------
   auto x() -> auto& { return parent_t::center(); }
   auto x() const -> auto const& { return parent_t::center(); }
-  auto x(std::size_t i) const { return parent_t::center()(i); }
+  auto x(std::size_t const i) const { return parent_t::center()(i); }
   //----------------------------------------------------------------------------
   auto t() -> auto& { return m_t; }
   auto t() const { return m_t; }

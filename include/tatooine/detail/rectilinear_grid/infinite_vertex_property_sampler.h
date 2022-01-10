@@ -1,21 +1,28 @@
+#include <tatooine/detail/rectilinear_grid/vertex_property_sampler.h>
 #include <tatooine/field.h>
-#include <tatooine/rectilinear_grid_vertex_property_sampler.h>
 #include <tatooine/variadic_helpers.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
+template <detail::rectilinear_grid::dimension... Dims>
+class rectilinear_grid;
+//==============================================================================
+}
+//==============================================================================
+namespace tatooine::detail::rectilinear_grid {
+//==============================================================================
 template <typename VertexPropSampler, std::size_t... RepeatedDims>
-struct infinite_rectilinear_grid_vertex_property_sampler
-    : field<infinite_rectilinear_grid_vertex_property_sampler<VertexPropSampler,
-                                                              RepeatedDims...>,
-            typename VertexPropSampler::real_t,
-            VertexPropSampler::num_dimensions(),
-            typename VertexPropSampler::tensor_t> {
+struct infinite_vertex_property_sampler
+    : field<
+          infinite_vertex_property_sampler<VertexPropSampler, RepeatedDims...>,
+          typename VertexPropSampler::real_t,
+          VertexPropSampler::num_dimensions(),
+          typename VertexPropSampler::tensor_t> {
   VertexPropSampler const& m_sampler;
-  infinite_rectilinear_grid_vertex_property_sampler(
-      VertexPropSampler const& sampler)
+  infinite_vertex_property_sampler(VertexPropSampler const& sampler)
       : m_sampler{sampler} {}
-  using parent_t = field<infinite_rectilinear_grid_vertex_property_sampler,
+
+  using parent_t = field<infinite_vertex_property_sampler,
                          typename VertexPropSampler::real_t,
                          VertexPropSampler::num_dimensions(),
                          typename VertexPropSampler::tensor_t>;
@@ -53,19 +60,21 @@ struct infinite_rectilinear_grid_vertex_property_sampler
   static constexpr auto non_repeated_dimensions = non_repeated_dimensions__();
   template <std::size_t... i>
   auto clamp_pos(pos_t x, std::index_sequence<i...>) const {
-    ([&] {
-     auto constexpr dim = repeated_dimensions[i];
-      auto const front  = m_sampler.grid().template front<dim>();
-      auto const back   = m_sampler.grid().template back<dim>();
-      auto const extent = back - front;
-      if (x(dim) < front) {
-        x(dim) += gcem::ceil((front - x(dim)) / extent) * extent;
-      }
-      if (x(dim) > back) {
-        x(dim) -= extent;
-        x(dim) -= gcem::ceil((x(dim) - back) / extent) * extent;
-      }
-    }(), ...);
+    (
+        [&] {
+          auto constexpr dim = repeated_dimensions[i];
+          auto const front   = m_sampler.grid().template front<dim>();
+          auto const back    = m_sampler.grid().template back<dim>();
+          auto const extent  = back - front;
+          if (x(dim) < front) {
+            x(dim) += gcem::ceil((front - x(dim)) / extent) * extent;
+          }
+          if (x(dim) > back) {
+            x(dim) -= extent;
+            x(dim) -= gcem::ceil((x(dim) - back) / extent) * extent;
+          }
+        }(),
+        ...);
     return x;
   }
   auto clamp_pos(pos_t const& x) const {
@@ -73,7 +82,9 @@ struct infinite_rectilinear_grid_vertex_property_sampler
   }
   [[nodiscard]] auto evaluate(pos_t const& x, real_t const t) const
       -> tensor_t {
-    if (is_inside(x)) { return m_sampler(clamp_pos(x), t); }
+    if (is_inside(x)) {
+      return m_sampler(clamp_pos(x), t);
+    }
     return parent_t::ood_tensor();
   }
   //----------------------------------------------------------------------------
@@ -88,36 +99,36 @@ struct infinite_rectilinear_grid_vertex_property_sampler
     }() && ...);
   }
   auto constexpr is_inside(pos_t const& x) const -> bool {
-    return is_inside(
-        x, std::make_index_sequence<num_non_repeated_dimensions>{});
+    return is_inside(x,
+                     std::make_index_sequence<num_non_repeated_dimensions>{});
   }
 };
 //------------------------------------------------------------------------------
 template <std::size_t... RepeatedDims, typename GridVertexProperty>
-auto make_infinite(rectilinear_grid_vertex_property_sampler<
-                   GridVertexProperty, interpolation::linear,
-                   interpolation::linear> const& v) {
-  return infinite_rectilinear_grid_vertex_property_sampler<
-      rectilinear_grid_vertex_property_sampler<
-          GridVertexProperty, interpolation::linear, interpolation::linear>,
+auto make_infinite(
+    vertex_property_sampler<GridVertexProperty, interpolation::linear,
+                            interpolation::linear> const& v) {
+  return infinite_vertex_property_sampler<
+      vertex_property_sampler<GridVertexProperty, interpolation::linear,
+                              interpolation::linear>,
       RepeatedDims...>{v};
 }
 //------------------------------------------------------------------------------
 template <std::size_t... RepeatedDims, typename GridVertexProperty>
-auto make_infinite(rectilinear_grid_vertex_property_sampler<
-                   GridVertexProperty, interpolation::linear,
-                   interpolation::linear, interpolation::linear> const& v) {
-  return infinite_rectilinear_grid_vertex_property_sampler<
-      rectilinear_grid_vertex_property_sampler<
-          GridVertexProperty, interpolation::linear, interpolation::linear,
-          interpolation::linear>,
+auto make_infinite(
+    vertex_property_sampler<GridVertexProperty, interpolation::linear,
+                            interpolation::linear, interpolation::linear> const&
+        v) {
+  return infinite_vertex_property_sampler<
+      vertex_property_sampler<GridVertexProperty, interpolation::linear,
+                              interpolation::linear, interpolation::linear>,
       RepeatedDims...>{v};
 }
 //------------------------------------------------------------------------------
 template <std::size_t... DimsToRepeat, typename Dim0, typename Dim1,
           typename ValueType>
-auto repeat_for_infinite(typed_rectilinear_grid_vertex_property_interface<
-                         rectilinear_grid<Dim0, Dim1>, ValueType, true>& prop) {
+auto repeat_for_infinite(typed_vertex_property_interface<
+                         tatooine::rectilinear_grid<Dim0, Dim1>, ValueType, true>& prop) {
   auto const s = prop.grid().size();
   // borders
   if constexpr (sizeof...(DimsToRepeat) == 0 ||
@@ -145,8 +156,8 @@ auto repeat_for_infinite(typed_rectilinear_grid_vertex_property_interface<
 template <std::size_t... DimsToRepeat, typename Dim0, typename Dim1,
           typename Dim2, typename ValueType>
 auto repeat_for_infinite(
-    typed_rectilinear_grid_vertex_property_interface<
-        rectilinear_grid<Dim0, Dim1, Dim2>, ValueType, true>& prop) {
+    typed_vertex_property_interface<tatooine::rectilinear_grid<Dim0, Dim1, Dim2>,
+                                    ValueType, true>& prop) {
   auto const s = prop.grid().size();
   // planes
   if constexpr (sizeof...(DimsToRepeat) == 0 ||

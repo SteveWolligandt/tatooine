@@ -20,14 +20,15 @@ namespace tatooine {
 //==============================================================================
 /// \brief      Indexing and lookup map from
 /// http://paulbourke.net/geometry/polygonise/
-template <rectilinear_grid_dimension XDomain, rectilinear_grid_dimension YDomain,
+template <detail::rectilinear_grid::dimension XDomain,
+          detail::rectilinear_grid::dimension YDomain,
           invocable<size_t const, size_t const,
                     vec<typename grid<XDomain, YDomain>::real_t, 2> const&>
               GetScalars>
 auto isolines(GetScalars&& get_scalars, grid<XDomain, YDomain> const& g,
               arithmetic auto const isolevel) {
-  using real_t = typename grid<XDomain, YDomain>::real_t;
-  using pos_t = vec<real_t, 2>;
+  using real_t     = typename grid<XDomain, YDomain>::real_t;
+  using pos_t      = vec<real_t, 2>;
   using edge_set_t = std::vector<line<real_t, 2>>;
   edge_set_t isolines;
 
@@ -36,24 +37,16 @@ auto isolines(GetScalars&& get_scalars, grid<XDomain, YDomain> const& g,
 #endif
   auto process_cube = [&](auto ix, auto iy) {
     std::vector<pos_t> iso_positions;
-    std::array p{g(ix,     iy),
-                 g(ix + 1, iy),
-                 g(ix + 1, iy + 1),
-                 g(ix,     iy + 1)};
+    std::array p{g(ix, iy), g(ix + 1, iy), g(ix + 1, iy + 1), g(ix, iy + 1)};
 
-    std::array s{get_scalars(ix,     iy,     p[0]),
-                 get_scalars(ix + 1, iy,     p[1]),
+    std::array s{get_scalars(ix, iy, p[0]), get_scalars(ix + 1, iy, p[1]),
                  get_scalars(ix + 1, iy + 1, p[2]),
-                 get_scalars(ix,     iy + 1, p[3])};
-    if (s[0] > isolevel &&
-        s[1] > isolevel &&
-        s[2] > isolevel &&
+                 get_scalars(ix, iy + 1, p[3])};
+    if (s[0] > isolevel && s[1] > isolevel && s[2] > isolevel &&
         s[3] > isolevel) {
       return;
     }
-    if (s[0] < isolevel &&
-        s[1] < isolevel &&
-        s[2] < isolevel &&
+    if (s[0] < isolevel && s[1] < isolevel && s[2] < isolevel &&
         s[3] < isolevel) {
       return;
     }
@@ -104,9 +97,11 @@ auto isolines(GetScalars&& get_scalars, grid<XDomain, YDomain> const& g,
     }
   };
 #ifdef NDEBUG
-  for_loop(process_cube, execution_policy::parallel, g.size(0) - 1, g.size(1) - 1);
+  for_loop(process_cube, execution_policy::parallel, g.size(0) - 1,
+           g.size(1) - 1);
 #else
-  for_loop(process_cube, execution_policy::sequential, g.size(0) - 1, g.size(1) - 1);
+  for_loop(process_cube, execution_policy::sequential, g.size(0) - 1,
+           g.size(1) - 1);
 #endif
   return merge_lines(isolines);
 }
@@ -125,7 +120,7 @@ auto isolines(typed_grid_vertex_property_interface<
 template <arithmetic Real, typename Indexing, arithmetic BBReal>
 auto isolines(dynamic_multidim_array<Real, Indexing> const& data,
               axis_aligned_bounding_box<BBReal, 2> const&   bb,
-              arithmetic auto const                        isolevel) {
+              arithmetic auto const                         isolevel) {
   assert(data.num_dimensions() == 2);
   return isolines(
       [&](auto ix, auto iy, auto const& /*ps*/) -> auto const& {
@@ -151,8 +146,10 @@ auto isolines(
       isolevel);
 }
 //------------------------------------------------------------------------------
-template <typename Field, typename FieldReal, rectilinear_grid_dimension XDomain,
-          rectilinear_grid_dimension YDomain, arithmetic TReal = FieldReal>
+template <typename Field, typename FieldReal,
+          detail::rectilinear_grid::dimension XDomain,
+          detail::rectilinear_grid::dimension YDomain,
+          arithmetic                          TReal = FieldReal>
 auto isolines(field<Field, FieldReal, 2> const& sf,
               grid<XDomain, YDomain> const& g, arithmetic auto const isolevel,
               TReal const t = 0) {

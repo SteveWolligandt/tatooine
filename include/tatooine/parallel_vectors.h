@@ -250,9 +250,10 @@ auto constexpr turned(size_t const ix, size_t const iy, size_t const iz)
 /// \param getv function for getting value for V field
 /// \param getw function for getting value for W field
 template <typename Real, typename GetV, typename GetW,
-          rectilinear_grid_dimension XDomain,
-          rectilinear_grid_dimension YDomain,
-          rectilinear_grid_dimension ZDomain, invocable<vec<Real, 3>>... Preds>
+          detail::rectilinear_grid::dimension XDomain,
+          detail::rectilinear_grid::dimension YDomain,
+          detail::rectilinear_grid::dimension ZDomain,
+          invocable<vec<Real, 3>>... Preds>
 auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
                            rectilinear_grid<XDomain, YDomain, ZDomain> const& g,
                            Preds&&... preds) -> std::vector<line<Real, 3>> {

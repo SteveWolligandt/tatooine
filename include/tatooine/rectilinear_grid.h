@@ -14,10 +14,11 @@
 #include <tatooine/linspace.h>
 #include <tatooine/netcdf.h>
 #include <tatooine/random.h>
-#include <tatooine/rectilinear_grid_cell_container.h>
-#include <tatooine/rectilinear_grid_dimension.h>
-#include <tatooine/rectilinear_grid_vertex_container.h>
-#include <tatooine/rectilinear_grid_vertex_property.h>
+#include <tatooine/detail/rectilinear_grid/cell_container.h>
+#include <tatooine/detail/rectilinear_grid/dimension.h>
+#include <tatooine/detail/rectilinear_grid/vertex_container.h>
+#include <tatooine/detail/rectilinear_grid/vertex_property.h>
+#include <tatooine/detail/rectilinear_grid/creator.h>
 #include <tatooine/tags.h>
 #include <tatooine/template_helper.h>
 #include <tatooine/vec.h>
@@ -29,7 +30,7 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <rectilinear_grid_dimension... Dimensions>
+template <detail::rectilinear_grid::dimension... Dimensions>
 class rectilinear_grid {
   static_assert(sizeof...(Dimensions) > 0,
                 "Grid needs at least one dimension.");
@@ -46,19 +47,20 @@ class rectilinear_grid {
 
   using dimensions_t = std::tuple<std::decay_t<Dimensions>...>;
 
-  using vertex_container = rectilinear_grid_vertex_container<Dimensions...>;
-  using vertex_handle    = rectilinear_grid_vertex_handle<sizeof...(Dimensions)>;
-  using cell_container   = rectilinear_grid_cell_container<Dimensions...>;
+  using vertex_container = detail::rectilinear_grid::vertex_container<Dimensions...>;
+  using vertex_handle    = detail::rectilinear_grid::vertex_handle<sizeof...(Dimensions)>;
+  using cell_container   = detail::rectilinear_grid::cell_container<Dimensions...>;
 
   // general property types
-  using vertex_property_t = rectilinear_grid_vertex_property<this_t>;
+  using vertex_property_t = detail::rectilinear_grid::vertex_property<this_t>;
   template <typename ValueType, bool HasNonConstReference>
   using typed_vertex_property_interface_t =
-      typed_rectilinear_grid_vertex_property_interface<this_t, ValueType,
+      detail::rectilinear_grid::typed_vertex_property_interface<this_t, ValueType,
                                            HasNonConstReference>;
   template <typename Container>
   using typed_vertex_property_t =
-      typed_vertex_property<this_t, typename Container::value_type, Container>;
+      detail::rectilinear_grid::typed_vertex_property<
+          this_t, typename Container::value_type, Container>;
   template <typename F>
   using invoke_result_with_indices =
       std::invoke_result_t<F, decltype(((void)std::declval<Dimensions>(),
@@ -113,7 +115,7 @@ class rectilinear_grid {
   /// https://stackoverflow.com/questions/46848129/variadic-deduction-guide-not-taken-by-g-taken-by-clang-who-is-correct
   template <typename... Dimensions_>
   requires(sizeof...(Dimensions_) == sizeof...(Dimensions)) &&
-      (rectilinear_grid_dimension<std::decay_t<Dimensions_>> && ...)
+      (detail::rectilinear_grid::dimension<std::decay_t<Dimensions_>> && ...)
           constexpr rectilinear_grid(Dimensions_&&... dimensions)
       : m_dimensions{std::forward<Dimensions_>(dimensions)...} {
     static_assert(sizeof...(Dimensions_) == num_dimensions(),
@@ -960,7 +962,7 @@ class rectilinear_grid {
   }
   //----------------------------------------------------------------------------
   /// \return number of dimensions for one dimension dim
-  // constexpr auto edges() const { return rectilinear_grid_edge_container{this}; }
+  // constexpr auto edges() const { return detail::rectilinear_grid::edge_container{this}; }
 
   //----------------------------------------------------------------------------
   auto vertices() const { return vertex_container{*this}; }
@@ -1002,7 +1004,7 @@ class rectilinear_grid {
   //----------------------------------------------------------------------------
  private:
   template <size_t... Is>
-  auto add_dimension(rectilinear_grid_dimension auto&& additional_dimension,
+  auto add_dimension(detail::rectilinear_grid::dimension auto&& additional_dimension,
                      std::index_sequence<Is...> /*seq*/) const {
     return rectilinear_grid<Dimensions...,
                             std::decay_t<decltype(additional_dimension)>>{
@@ -1011,7 +1013,7 @@ class rectilinear_grid {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
-  auto add_dimension(rectilinear_grid_dimension auto&& additional_dimension) const {
+  auto add_dimension(detail::rectilinear_grid::dimension auto&& additional_dimension) const {
     return add_dimension(
         std::forward<decltype(additional_dimension)>(additional_dimension),
         seq_t{});
@@ -1242,15 +1244,6 @@ class rectilinear_grid {
   auto mat4_vertex_property(std::string const& name) -> auto& {
     return vertex_property<mat4, HasNonConstReference>(name);
   }
-  //----------------------------------------------------------------------------
-  // template <invocable<decltype(((void)std::declval<Dimensions>(),
-  //                              std::declval<size_t>()))...>
-  //              F>
-  // auto insert_vertex_property(std::string const& name, F&& f) -> auto& {
-  //  return create_vertex_property<
-  //      typed_rectilinear_grid_vertex_property_lambda<this_t, std::decay_t<F>>>(
-  //      name, std::forward<F>(f));
-  //}
   //----------------------------------------------------------------------------
   template <typename T, typename GlobalIndexOrder = x_fastest,
             typename LocalIndexOrder = GlobalIndexOrder>
@@ -2115,20 +2108,16 @@ auto operator<<(std::ostream& out, rectilinear_grid<Dimensions...> const& g)
     -> auto& {
   return g.print(out);
 }
-template <rectilinear_grid_dimension... Dimensions>
+template <detail::rectilinear_grid::dimension... Dimensions>
 auto vertices(rectilinear_grid<Dimensions...> const& g) {
   return g.vertices();
 }
 //==============================================================================
 // deduction guides
 //==============================================================================
-template <typename... Dimensions>
+template <detail::rectilinear_grid::dimension... Dimensions>
 rectilinear_grid(Dimensions&&...)
     -> rectilinear_grid<std::decay_t<Dimensions>...>;
-// additional, for g++
-template <typename Dim0, typename... Dims>
-rectilinear_grid(Dim0&&, Dims&&...)
-    -> rectilinear_grid<std::decay_t<Dim0>, std::decay_t<Dims>...>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Real, size_t N, size_t... Seq>
 rectilinear_grid(axis_aligned_bounding_box<Real, N> const& bb,
@@ -2142,14 +2131,14 @@ rectilinear_grid(Size const...)
 //==============================================================================
 // operators
 //==============================================================================
-template <rectilinear_grid_dimension... Dimensions, rectilinear_grid_dimension AdditionalDimension>
+template <detail::rectilinear_grid::dimension... Dimensions, detail::rectilinear_grid::dimension AdditionalDimension>
 auto operator+(rectilinear_grid<Dimensions...> const& rectilinear_grid,
                AdditionalDimension&&                  additional_dimension) {
   return rectilinear_grid.add_dimension(
       std::forward<AdditionalDimension>(additional_dimension));
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <rectilinear_grid_dimension... Dimensions, rectilinear_grid_dimension AdditionalDimension>
+template <detail::rectilinear_grid::dimension... Dimensions, detail::rectilinear_grid::dimension AdditionalDimension>
 auto operator+(AdditionalDimension&&                  additional_dimension,
                rectilinear_grid<Dimensions...> const& rectilinear_grid) {
   return rectilinear_grid.add_dimension(
@@ -2158,31 +2147,8 @@ auto operator+(AdditionalDimension&&                  additional_dimension,
 //==============================================================================
 // typedefs
 //==============================================================================
-template <rectilinear_grid_dimension IndexableSpace, size_t N>
-struct rectilinear_grid_creator {
- private:
-  template <typename... Args, size_t... Seq>
-  static constexpr auto create(std::index_sequence<Seq...> /*seq*/,
-                               Args&&... args) {
-    return rectilinear_grid<decltype((static_cast<void>(Seq),
-                                      IndexableSpace{}))...>{
-        std::forward<Args>(args)...};
-  }
-  template <typename... Args>
-  static constexpr auto create(Args&&... args) {
-    return create(std::make_index_sequence<N>{}, std::forward<Args>(args)...);
-  }
-
- public:
-  using type = decltype(create());
-};
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <rectilinear_grid_dimension IndexableSpace, size_t N>
-using rectilinear_grid_creator_t =
-    typename rectilinear_grid_creator<IndexableSpace, N>::type;
-//==============================================================================
 template <floating_point Real, size_t N>
-using uniform_rectilinear_grid = rectilinear_grid_creator_t<linspace<Real>, N>;
+using uniform_rectilinear_grid = detail::rectilinear_grid::creator_t<linspace<Real>, N>;
 template <size_t N>
 using UniformRectilinearGrid    = uniform_rectilinear_grid<real_t, N>;
 using uniform_rectilinear_grid2 = UniformRectilinearGrid<2>;
@@ -2192,7 +2158,7 @@ using uniform_rectilinear_grid5 = UniformRectilinearGrid<5>;
 //------------------------------------------------------------------------------
 template <arithmetic Real, size_t N>
 using nonuniform_rectilinear_grid =
-    rectilinear_grid_creator_t<std::vector<Real>, N>;
+    detail::rectilinear_grid::creator_t<std::vector<Real>, N>;
 template <size_t N>
 using NonuniformRectilinearGrid    = nonuniform_rectilinear_grid<real_t, N>;
 using nonuniform_rectilinear_grid2 = NonuniformRectilinearGrid<2>;
@@ -2212,5 +2178,5 @@ using static_nonuniform_rectilinear_grid5 = NonuniformRectilinearGrid<5>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-#include <tatooine/infinite_rectilinear_grid_vertex_property_sampler.h>
+#include <tatooine/detail/rectilinear_grid/infinite_vertex_property_sampler.h>
 #endif

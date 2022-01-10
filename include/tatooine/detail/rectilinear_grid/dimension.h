@@ -1,10 +1,12 @@
-#ifndef TATOOINE_RECTILINEAR_GRID_DIMENSION_H
-#define TATOOINE_RECTILINEAR_GRID_DIMENSION_H
+#ifndef TATOOINE_DETAIL_RECTILINEAR_GRID_DIMENSION_H
+#define TATOOINE_DETAIL_RECTILINEAR_GRID_DIMENSION_H
 //==============================================================================
-namespace tatooine {
+#include <tatooine/concepts.h>
+//==============================================================================
+namespace tatooine::detail::rectilinear_grid {
 //==============================================================================
 template <typename T>
-concept rectilinear_grid_dimension = floating_point_range<T>;
+concept dimension = floating_point_range<T>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
