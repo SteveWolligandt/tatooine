@@ -25,8 +25,8 @@ TEST_CASE("grid_ctor_raw_size", "[rectilinear_grid][ctor][raw_size]") {
 }
 //==============================================================================
 TEST_CASE("grid_copy_constructor", "[rectilinear_grid][copy][constructor]") {
-  auto const dim0       = std::array{0, 1, 2};
-  auto const dim1       = std ::array{0, 1, 2};
+  auto const dim0       = std::array{0.0, 1.0, 2.0};
+  auto const dim1       = std::array{0.0, 1.0, 2.0};
   auto       g0         = rectilinear_grid{dim0, dim1};
   auto&      prop       = g0.insert_scalar_vertex_property("prop");
   auto const some_value = 100;
@@ -39,8 +39,8 @@ TEST_CASE("grid_copy_constructor", "[rectilinear_grid][copy][constructor]") {
 }
 //==============================================================================
 TEST_CASE("grid_vertex_indexing", "[rectilinear_grid][vertex][indexing]") {
-  auto const dim0 = std::array{0, 1, 2};
-  auto const dim1 = std::vector{0, 1, 2};
+  auto const dim0 = std::array{0.0, 1.0, 2.0};
+  auto const dim1 = std::vector{0.0, 1.0, 2.0};
   auto const dim2 = linspace{0.0, 1.0, 11};
   auto const g    = rectilinear_grid{dim0, dim1, dim2};
   auto const v000 = g.vertex_at(0, 0, 0);
@@ -65,7 +65,7 @@ TEST_CASE("grid_vertex_iterator", "[rectilinear_grid][vertex][iterator]") {
 //==============================================================================
 TEST_CASE("grid_cell_index", "[rectilinear_grid][cell_index]") {
   auto const dim0            = std::array{0.0, 1.2, 1.3};
-  auto const dim1            = std::vector{0, 1, 2, 4};
+  auto const dim1            = std::vector{0.0, 1.0, 2.0, 4.0};
   auto const dim2            = linspace{0.0, 2.0, 3};
   auto const dim3            = linspace{0.0, 1.0, 25};
   auto       g               = rectilinear_grid{dim0, dim1, dim2, dim3};
@@ -218,8 +218,8 @@ TEST_CASE("grid_vertex_prop_cubic", "[rectilinear_grid][sampler][cubic]") {
 }
 //==============================================================================
 TEST_CASE("grid_chunked_vertex_property", "[rectilinear_grid][vertex][chunked][property]") {
-  auto const dim0 = std::array{0, 1, 2};
-  auto const dim1 = std::vector{0, 1, 2};
+  auto const dim0 = std::array{0.0, 1.0, 2.0};
+  auto const dim1 = std::vector{0.0, 1.0, 2.0};
   auto const dim2 = linspace{0.0, 2.0, 3};
   auto       g    = rectilinear_grid{dim0, dim1, dim2};
 

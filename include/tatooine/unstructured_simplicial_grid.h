@@ -373,7 +373,8 @@ struct unstructured_simplicial_grid
   }
 
  public:
-  template <rectilinear_grid_dimension DimX, rectilinear_grid_dimension DimY>
+  template <detail::rectilinear_grid::dimension DimX,
+            detail::rectilinear_grid::dimension DimY>
   requires(NumDimensions == 2) &&
       (SimplexDim == 2) explicit unstructured_simplicial_grid(
           rectilinear_grid<DimX, DimY> const& g) {
@@ -399,8 +400,9 @@ struct unstructured_simplicial_grid
     }
   }
 
-  template <rectilinear_grid_dimension DimX, rectilinear_grid_dimension DimY,
-            rectilinear_grid_dimension DimZ>
+  template <detail::rectilinear_grid::dimension DimX,
+            detail::rectilinear_grid::dimension DimY,
+            detail::rectilinear_grid::dimension DimZ>
   requires(NumDimensions == 3) &&
       (SimplexDim == 3) explicit unstructured_simplicial_grid(
           rectilinear_grid<DimX, DimY, DimZ> const& g) {
@@ -1245,8 +1247,8 @@ struct unstructured_simplicial_grid
     return bb;
   }
 };
-//==============================================================================unstructured_simplicial_grid()->unstructured_simplicial_grid<double,
-// 3>;
+//==============================================================================
+//unstructured_simplicial_grid()->unstructured_simplicial_grid<double, 3>;
 unstructured_simplicial_grid(std::string const&)
     ->unstructured_simplicial_grid<double, 3>;
 template <typename... Dims>

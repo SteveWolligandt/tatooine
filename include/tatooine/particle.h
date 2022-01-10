@@ -37,9 +37,9 @@ struct particle {
   //----------------------------------------------------------------------------
   particle() = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  particle(pos_t const& x0, real_t const t0);
+  particle(pos_t const& x0, real_t t0);
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  particle(pos_t const& x0, pos_t const& x1, real_t const t1);
+  particle(pos_t const& x0, pos_t const& x1, real_t t1);
   //----------------------------------------------------------------------------
   // getters / setters
   //----------------------------------------------------------------------------

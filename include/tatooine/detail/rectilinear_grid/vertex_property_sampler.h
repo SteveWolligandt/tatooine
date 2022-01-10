@@ -12,63 +12,63 @@
 
 #include <vector>
 //==============================================================================
-namespace tatooine {
+namespace tatooine::detail::rectilinear_grid {
 //==============================================================================
 template <typename Derived, typename Real, size_t N, typename Tensor>
 struct field;
 //------------------------------------------------------------------------------
 template <typename GridVertexProperty,
           template <typename> typename... InterpolationKernels>
-struct rectilinear_grid_vertex_property_sampler;
+struct vertex_property_sampler;
 //==============================================================================
 template <typename TopSampler, typename Real, typename ValueType,
           template <typename> typename... InterpolationKernels>
-struct rectilinear_grid_vertex_property_sampler_view;
+struct vertex_property_sampler_view;
 //==============================================================================
 template <typename DerivedSampler, typename Real, typename ValueType,
           template <typename> typename... InterpolationKernels>
-struct base_rectilinear_grid_vertex_property_sampler_at;
+struct base_vertex_property_sampler_at;
 //------------------------------------------------------------------------------
 template <typename DerivedSampler, typename Real, typename ValueType,
           template <typename> typename InterpolationKernel0,
           template <typename> typename InterpolationKernel1,
           template <typename> typename... TailInterpolationKernels>
-struct base_rectilinear_grid_vertex_property_sampler_at<
+struct base_vertex_property_sampler_at<
     DerivedSampler, Real, ValueType, InterpolationKernel0, InterpolationKernel1,
     TailInterpolationKernels...> {
-  using value_type = rectilinear_grid_vertex_property_sampler_view<
-      DerivedSampler, Real, ValueType, InterpolationKernel1,
-      TailInterpolationKernels...>;
+  using value_type =
+      vertex_property_sampler_view<DerivedSampler, Real, ValueType,
+                                   InterpolationKernel1,
+                                   TailInterpolationKernels...>;
 };
 //------------------------------------------------------------------------------
 template <typename DerivedSampler, typename Real, typename ValueType,
           template <typename> typename InterpolationKernel>
-struct base_rectilinear_grid_vertex_property_sampler_at<
-    DerivedSampler, Real, ValueType, InterpolationKernel> {
+struct base_vertex_property_sampler_at<DerivedSampler, Real, ValueType,
+                                       InterpolationKernel> {
   using value_type = std::decay_t<ValueType>&;
 };
 //==============================================================================
 template <typename DerivedSampler, typename Real, typename ValueType,
           template <typename> typename... InterpolationKernels>
-using base_sampler_at_t =
-    typename base_rectilinear_grid_vertex_property_sampler_at<
-        DerivedSampler, Real, ValueType, InterpolationKernels...>::value_type;
+using base_sampler_at_t = typename base_vertex_property_sampler_at<
+    DerivedSampler, Real, ValueType, InterpolationKernels...>::value_type;
 //==============================================================================
 /// CRTP inheritance class for grid_vertex_property_sampler and
 /// grid_vertex_property_sampler_view
 template <typename DerivedSampler, typename Real, typename ValueType,
           template <typename> typename HeadInterpolationKernel,
           template <typename> typename... TailInterpolationKernels>
-struct base_rectilinear_grid_vertex_property_sampler {
+struct base_vertex_property_sampler {
   template <typename, typename, typename, template <typename> typename,
             template <typename> typename...>
-  friend struct base_rectilinear_grid_vertex_property_sampler;
+  friend struct base_vertex_property_sampler;
   //----------------------------------------------------------------------------
   // typedefs
   //----------------------------------------------------------------------------
-  using this_t = base_rectilinear_grid_vertex_property_sampler<
-      DerivedSampler, Real, ValueType, HeadInterpolationKernel,
-      TailInterpolationKernels...>;
+  using this_t = base_vertex_property_sampler<DerivedSampler, Real, ValueType,
+                                              HeadInterpolationKernel,
+                                              TailInterpolationKernels...>;
   using indexing_t =
       base_sampler_at_t<this_t, Real, ValueType, HeadInterpolationKernel,
                         TailInterpolationKernels...>;
@@ -122,7 +122,7 @@ struct base_rectilinear_grid_vertex_property_sampler {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// indexing of data.
   /// if num_dimensions() == 1 returns actual data otherwise returns a
-  /// rectilinear_grid_vertex_property_sampler_view with i as fixed index
+  /// vertex_property_sampler_view with i as fixed index
   auto at(size_t const i) const -> decltype(auto) {
     if constexpr (num_dimensions() > 1) {
       return indexing_t{*this, i};
@@ -255,30 +255,25 @@ struct base_rectilinear_grid_vertex_property_sampler {
 //==============================================================================
 template <typename GridVertexProperty,
           template <typename> typename... InterpolationKernels>
-struct rectilinear_grid_vertex_property_sampler
-    : base_rectilinear_grid_vertex_property_sampler<
-          rectilinear_grid_vertex_property_sampler<GridVertexProperty,
-                                                   InterpolationKernels...>,
+struct vertex_property_sampler
+    : base_vertex_property_sampler<
+          vertex_property_sampler<GridVertexProperty, InterpolationKernels...>,
           typename GridVertexProperty::real_t,
           typename GridVertexProperty::value_type, InterpolationKernels...>,
-      field<rectilinear_grid_vertex_property_sampler<GridVertexProperty,
-                                                     InterpolationKernels...>,
-            typename GridVertexProperty::real_t,
-            sizeof...(InterpolationKernels),
-            typename GridVertexProperty::value_type> {
+      tatooine::field<
+          vertex_property_sampler<GridVertexProperty, InterpolationKernels...>,
+          typename GridVertexProperty::real_t, sizeof...(InterpolationKernels),
+          typename GridVertexProperty::value_type> {
   static_assert(sizeof...(InterpolationKernels) ==
                 GridVertexProperty::num_dimensions());
   using property_t = GridVertexProperty;
-  using this_t =
-      rectilinear_grid_vertex_property_sampler<property_t,
-                                               InterpolationKernels...>;
-  using real_t     = typename GridVertexProperty::real_t;
+  using this_t = vertex_property_sampler<property_t, InterpolationKernels...>;
+  using real_t = typename GridVertexProperty::real_t;
   using value_type = typename GridVertexProperty::value_type;
-  using parent_t =
-      base_rectilinear_grid_vertex_property_sampler<this_t, real_t, value_type,
-                                                    InterpolationKernels...>;
+  using parent_t   = base_vertex_property_sampler<this_t, real_t, value_type,
+                                                InterpolationKernels...>;
   using field_parent_t =
-      field<this_t, real_t, sizeof...(InterpolationKernels), value_type>;
+      tatooine::field<this_t, real_t, sizeof...(InterpolationKernels), value_type>;
   //============================================================================
   static constexpr size_t current_dimension_index() { return 0; }
   //----------------------------------------------------------------------------
@@ -292,13 +287,10 @@ struct rectilinear_grid_vertex_property_sampler
   property_t const& m_property;
   //============================================================================
  public:
-  rectilinear_grid_vertex_property_sampler(property_t const& prop)
-      : m_property{prop} {}
+  vertex_property_sampler(property_t const& prop) : m_property{prop} {}
   //----------------------------------------------------------------------------
-  rectilinear_grid_vertex_property_sampler(
-      rectilinear_grid_vertex_property_sampler const& other) = default;
-  rectilinear_grid_vertex_property_sampler(
-      rectilinear_grid_vertex_property_sampler&& other) noexcept = default;
+  vertex_property_sampler(vertex_property_sampler const& other)     = default;
+  vertex_property_sampler(vertex_property_sampler&& other) noexcept = default;
   //============================================================================
   auto property() const -> auto const& { return m_property; }
   //----------------------------------------------------------------------------
@@ -341,23 +333,21 @@ struct rectilinear_grid_vertex_property_sampler
 /// fixed index of the top grid_vertex_property_sampler
 template <typename TopSampler, typename Real, typename ValueType,
           template <typename> typename... InterpolationKernels>
-struct rectilinear_grid_vertex_property_sampler_view
-    : base_rectilinear_grid_vertex_property_sampler<
-          rectilinear_grid_vertex_property_sampler_view<
-              TopSampler, Real, ValueType, InterpolationKernels...>,
+struct vertex_property_sampler_view
+    : base_vertex_property_sampler<
+          vertex_property_sampler_view<TopSampler, Real, ValueType,
+                                       InterpolationKernels...>,
           Real, ValueType, InterpolationKernels...> {
   //============================================================================
   static constexpr auto data_is_changeable() {
     return TopSampler::data_is_changeable();
   }
-  using this_t =
-      rectilinear_grid_vertex_property_sampler_view<TopSampler, Real, ValueType,
-                                                    InterpolationKernels...>;
+  using this_t     = vertex_property_sampler_view<TopSampler, Real, ValueType,
+                                              InterpolationKernels...>;
   using real_t     = Real;
   using value_type = ValueType;
-  using parent_t =
-      base_rectilinear_grid_vertex_property_sampler<this_t, real_t, value_type,
-                                                    InterpolationKernels...>;
+  using parent_t   = base_vertex_property_sampler<this_t, real_t, value_type,
+                                                InterpolationKernels...>;
   //============================================================================
   static constexpr auto num_dimensions() {
     return TopSampler::num_dimensions() - 1;
@@ -370,8 +360,8 @@ struct rectilinear_grid_vertex_property_sampler_view
   TopSampler const& m_top_sampler;
   size_t            m_fixed_index;
   //============================================================================
-  rectilinear_grid_vertex_property_sampler_view(TopSampler const& top_sampler,
-                                                size_t const      fixed_index)
+  vertex_property_sampler_view(TopSampler const& top_sampler,
+                               size_t const      fixed_index)
       : m_top_sampler{top_sampler}, m_fixed_index{fixed_index} {}
   //============================================================================
   constexpr auto property() const -> auto const& {
@@ -380,7 +370,7 @@ struct rectilinear_grid_vertex_property_sampler_view
   //----------------------------------------------------------------------------
   auto grid() const -> auto const& { return m_top_sampler.grid(); }
   //------------------------------------------------------------------------------
-  /// returns data of top rectilinear_grid_vertex_property_sampler at
+  /// returns data of top vertex_property_sampler at
   /// m_fixed_index and index list is...
   constexpr auto data_at(integral auto const... is) const -> decltype(auto) {
     static_assert(sizeof...(is) == num_dimensions(),
@@ -402,14 +392,14 @@ struct differentiated_sampler {
   }
 
  private:
-  rectilinear_grid_vertex_property_sampler<
-      GridVertexProperty, InterpolationKernels...> const& m_sampler;
+  vertex_property_sampler<GridVertexProperty, InterpolationKernels...> const&
+      m_sampler;
 
  public:
-  differentiated_sampler(rectilinear_grid_vertex_property_sampler<
-                         GridVertexProperty, InterpolationKernels...> const&
-                             rectilinear_grid_vertex_property_sampler)
-      : m_sampler{rectilinear_grid_vertex_property_sampler} {}
+  differentiated_sampler(vertex_property_sampler<GridVertexProperty,
+                                                 InterpolationKernels...> const&
+                             vertex_property_sampler)
+      : m_sampler{vertex_property_sampler} {}
   //----------------------------------------------------------------------------
   template <typename Tensor, typename TensorReal>
   constexpr auto sample(
@@ -455,16 +445,15 @@ struct differentiated_sampler<GridVertexProperty, interpolation::linear,
   static constexpr auto num_dimensions() { return 2; }
 
  private:
-  rectilinear_grid_vertex_property_sampler<
-      GridVertexProperty, interpolation::linear, interpolation::linear> const&
-      m_sampler;
+  vertex_property_sampler<GridVertexProperty, interpolation::linear,
+                          interpolation::linear> const& m_sampler;
 
  public:
-  differentiated_sampler(rectilinear_grid_vertex_property_sampler<
-                         GridVertexProperty, interpolation::linear,
-                         interpolation::linear> const&
-                             rectilinear_grid_vertex_property_sampler)
-      : m_sampler{rectilinear_grid_vertex_property_sampler} {}
+  differentiated_sampler(
+      vertex_property_sampler<GridVertexProperty, interpolation::linear,
+                              interpolation::linear> const&
+          vertex_property_sampler)
+      : m_sampler{vertex_property_sampler} {}
   //----------------------------------------------------------------------------
  public:
   constexpr auto sample(arithmetic auto x, arithmetic auto y) const {
@@ -500,16 +489,16 @@ struct differentiated_sampler<GridVertexProperty, interpolation::linear,
   static constexpr auto num_dimensions() { return 3; }
 
  private:
-  rectilinear_grid_vertex_property_sampler<
-      GridVertexProperty, interpolation::linear, interpolation::linear,
-      interpolation::linear> const& m_sampler;
+  vertex_property_sampler<GridVertexProperty, interpolation::linear,
+                          interpolation::linear, interpolation::linear> const&
+      m_sampler;
 
  public:
-  differentiated_sampler(rectilinear_grid_vertex_property_sampler<
-                         GridVertexProperty, interpolation::linear,
-                         interpolation::linear, interpolation::linear> const&
-                             rectilinear_grid_vertex_property_sampler)
-      : m_sampler{rectilinear_grid_vertex_property_sampler} {}
+  differentiated_sampler(
+      vertex_property_sampler<
+          GridVertexProperty, interpolation::linear, interpolation::linear,
+          interpolation::linear> const& vertex_property_sampler)
+      : m_sampler{vertex_property_sampler} {}
   //----------------------------------------------------------------------------
  public:
   constexpr auto sample(arithmetic auto x, arithmetic auto y,
@@ -549,13 +538,13 @@ struct differentiated_sampler<GridVertexProperty, interpolation::linear,
 //==============================================================================
 template <typename GridVertexProperty,
           template <typename> typename... InterpolationKernels>
-auto diff(rectilinear_grid_vertex_property_sampler<
-          GridVertexProperty, InterpolationKernels...> const&
-              rectilinear_grid_vertex_property_sampler) {
+auto diff(
+    vertex_property_sampler<GridVertexProperty, InterpolationKernels...> const&
+        vertex_property_sampler) {
   return differentiated_sampler<GridVertexProperty, InterpolationKernels...>{
-      rectilinear_grid_vertex_property_sampler};
+      vertex_property_sampler};
 }
 //==============================================================================
-}  // namespace tatooine
+}  // namespace tatooine::detail::rectilinear_grid
 //==============================================================================
 #endif

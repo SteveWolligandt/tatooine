@@ -235,7 +235,7 @@ struct iterator : iterator_facade<iterator<Real>> {
   constexpr auto dereference() const { return m_lin->at(m_i); }
   constexpr auto increment() { ++m_i; }
   constexpr auto decrement() { --m_i; }
-  constexpr auto at_end() const {};
+  constexpr auto at_end() const { return m_i == m_lin->size(); }
 };
 //------------------------------------------------------------------------------
 template <floating_point Real>
