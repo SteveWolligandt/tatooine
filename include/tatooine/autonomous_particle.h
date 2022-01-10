@@ -41,7 +41,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   using mat_t                       = mat<real_t, NumDimensions, NumDimensions>;
   using pos_t                       = vec_t;
   using container_t                 = std::vector<this_t>;
-  using simple_particle_container_t = std::vector<simple_particle>;
+  using simple_particle_container_t = std::vector<simple_particle_t>;
   using ellipse_t   = geometry::hyper_ellipse<Real, NumDimensions>;
   using parent_t    = ellipse_t;
   using sampler_t   = detail::autonomous_particle::sampler<Real, NumDimensions>;
@@ -354,7 +354,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
       gather_particles(particles, finished_particles, finished_simple_particles,
                        particles_per_thread);
     }
-    return finished_particles;
+    return std::tuple{std::move(finished_particles),
+                      std::move(finished_simple_particles)};
   }
   //----------------------------------------------------------------------------
   /// Advectes the particle in the flowmap phi until either a split needs to be
@@ -367,8 +368,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   /// \param t_end End of time of advetion.
   /// \param splitted_particles Splitted particles (Their time is smaller than
   ///                           t_end.)
-  /// \param finished_particles Finished particles (Their time is equal to
-  ///                           t_end.)
+  /// \param finished_particles Finished particles (Their time is equal to /                           t_end.)
   template <
       split_behavior SplitBehavior = typename split_behaviors::three_splits,
       typename Flowmap>

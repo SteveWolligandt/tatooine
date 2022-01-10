@@ -15,6 +15,7 @@
 #include <tatooine/tensor.h>
 #include <tatooine/type_traits.h>
 #include <tatooine/vtk_legacy.h>
+#include <tatooine/vtk/xml/data_array.h>
 
 #include <fstream>
 #include <limits>
@@ -533,6 +534,114 @@ protected:
       }
       writer.close();
     }
+  }
+  auto write_vtp(filesystem::path const& path) {
+    auto file = std::ofstream{path, std::ios::binary};
+    if (!file.is_open()) {
+      throw std::runtime_error{"Could not write " + path.string()};
+    }
+    auto offset                    = std::size_t{};
+    using header_type              = std::uint64_t;
+    using polys_connectivity_int_t = std::int32_t;
+    using polys_offset_int_t       = polys_connectivity_int_t;
+    file << "<VTKFile"
+         << " type=\"PolyData\""
+         << " version=\"1.0\" "
+            "byte_order=\"LittleEndian\""
+         << " header_type=\""
+         << vtk::xml::data_array::to_string(
+                vtk::xml::data_array::to_type<header_type>())
+         << "\">";
+    file << "<PolyData>\n";
+    file << "<Piece"
+         << " NumberOfPoints=\"" << vertices().size() << "\""
+         << " NumberOfPolys=\"0\""
+         << " NumberOfVerts=\"" << vertices().size() << "\""
+         << " NumberOfLines=\"0\""
+         << " NumberOfStrips=\"0\""
+         << ">\n";
+
+    // Points
+    file << "<Points>";
+    file << "<DataArray"
+         << " format=\"appended\""
+         << " offset=\"" << offset << "\""
+         << " type=\""
+         << vtk::xml::data_array::to_string(
+                vtk::xml::data_array::to_type<real_t>())
+         << "\" NumberOfComponents=\"" << num_dimensions() << "\"/>";
+    auto const num_bytes_points =
+        header_type(sizeof(real_t) * num_dimensions() *
+                    vertices().data_container().size());
+    offset += num_bytes_points + sizeof(header_type);
+    file << "</Points>\n";
+
+    // Verts
+    file << "<Verts>\n";
+    // Verts - connectivity
+    file << "<DataArray format=\"appended\" offset=\"" << offset
+         << "\" type=\""
+         << vtk::xml::data_array::to_string(
+                vtk::xml::data_array::to_type<polys_connectivity_int_t>())
+         << "\" Name=\"connectivity\"/>\n";
+    auto const num_bytes_polys_connectivity =
+        vertices().size() *
+        sizeof(polys_connectivity_int_t);
+    offset += num_bytes_polys_connectivity + sizeof(header_type);
+
+    // Verts - offsets
+    file << "<DataArray format=\"appended\" offset=\"" << offset
+         << "\" type=\""
+         << vtk::xml::data_array::to_string(
+                vtk::xml::data_array::to_type<polys_offset_int_t>())
+         << "\" Name=\"offsets\"/>\n";
+    auto const num_bytes_polys_offsets =
+        sizeof(polys_offset_int_t) * vertices().size();
+    offset += num_bytes_polys_offsets + sizeof(header_type);
+    file << "</Verts>\n";
+    file << "</Piece>\n\n";
+    file << "</PolyData>\n";
+
+    file << "<AppendedData encoding=\"raw\">_";
+    // Writing vertex data to appended data section
+    auto arr_size = header_type{};
+
+    arr_size     = header_type(sizeof(real_t) * num_dimensions() *
+                               vertices().data_container().size());
+    file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
+    file.write(reinterpret_cast<char const*>(vertices().data()), arr_size);
+
+    // Writing polys connectivity data to appended data section
+    {
+      auto connectivity_data = std::vector<polys_connectivity_int_t>(
+          vertices().size());
+      std::ranges::copy(
+          vertices() | std::views::transform(
+                           [](auto const x) -> polys_connectivity_int_t {
+                             return x.index();
+                           }),
+          begin(connectivity_data));
+      arr_size = vertices().size() *
+                 sizeof(polys_connectivity_int_t);
+      file.write(reinterpret_cast<char const*>(&arr_size),
+                 sizeof(header_type));
+      file.write(reinterpret_cast<char const*>(connectivity_data.data()),
+                 arr_size);
+    }
+
+    // Writing polys offsets to appended data section
+    {
+      auto offsets = std::vector<polys_offset_int_t>(vertices().size(), 1);
+      for (std::size_t i = 1; i < size(offsets); ++i) {
+        offsets[i] += offsets[i - 1];
+      }
+      arr_size = sizeof(polys_offset_int_t) * vertices().size();
+      file.write(reinterpret_cast<char const*>(&arr_size),
+                 sizeof(header_type));
+      file.write(reinterpret_cast<char const*>(offsets.data()), arr_size);
+    }
+    file << "</AppendedData>";
+    file << "</VTKFile>";
   }
 #if TATOOINE_FLANN_AVAILABLE
   auto rebuild_kd_tree() {

@@ -65,10 +65,10 @@ auto main(int argc, char** argv) -> int {
     }
 
     indicator.set_text("Allocating data for velocity");
-    auto& discrete_velocity = *dynamic_cast<
-        typed_vertex_property<nonuniform_rectilinear_grid3, vec3,
-                              dynamic_multidim_array<vec3, x_fastest>>*>(
-        &discrete_channelflow_domain.vec3_vertex_property("velocity"));
+    auto& discrete_velocity =
+        *dynamic_cast<nonuniform_rectilinear_grid3::typed_vertex_property_t<
+            dynamic_multidim_array<vec3, x_fastest>>*>(
+            &discrete_channelflow_domain.vec3_vertex_property("velocity"));
 
     indicator.set_text("Creating sampler");
     auto       w = discrete_velocity.linear_sampler();
@@ -142,7 +142,7 @@ auto main(int argc, char** argv) -> int {
     //--------------------------------------------------------------------------
     indicator.set_text("Advecting autonomous particles");
     auto const initial_part = autonomous_particle3{args.x0, args.t0, args.r0};
-    auto const advected_particles = [&] {
+    auto const [advected_particles, advected_simple_particles] = [&] {
       switch (args.split_behavior) {
           //  case split_behavior_t::two_splits:
           //    return initial_part
@@ -169,6 +169,8 @@ auto main(int argc, char** argv) -> int {
     }();
     std::cerr << "number of advected particles: " << size(advected_particles)
               << '\n';
+    std::cerr << "number of advected simple particles: " << size(advected_simple_particles)
+              << '\n';
     //--------------------------------------------------------------------------
     indicator.set_text("Writing Autonomous Particles Results");
     auto all_advected_discretizations =
@@ -185,5 +187,9 @@ auto main(int argc, char** argv) -> int {
               "channelflow_single_ellipsoids0.vtp");
     write_vtp(all_advected_discretizations,
               "channelflow_single_ellipsoids1.vtp");
+    x0_to_pointset(advected_simple_particles)
+        .write_vtp("channelflow_simple_particles0.vtp");
+    x1_to_pointset(advected_simple_particles)
+        .write_vtp("channelflow_simple_particles1.vtp");
   });
 }
