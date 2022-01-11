@@ -241,7 +241,7 @@ auto eddy_detection(std::vector<std::string> const& ensemble_ids) {
                                                   threshold) {
                               double Q_time = 0;
                               for (size_t i = 0;
-                                   i < pathline.num_vertices() - 1; ++i) {
+                                   i < pathline.vertices().size() - 1; ++i) {
                                 typename decltype(pathline)::vertex_idx vi{i};
                                 typename decltype(pathline)::vertex_idx vj{i +
                                                                            1};

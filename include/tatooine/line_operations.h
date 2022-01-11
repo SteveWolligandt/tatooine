@@ -21,7 +21,7 @@ auto write_line_container_properties_to_vtk(Writer& writer, Names const& names,
           std::copy(begin(prop_data), end(prop_data),
                     std::back_inserter(prop_collector));
         } catch (...) {
-          for (size_t i = 0; i < l.num_vertices(); ++i) {
+          for (size_t i = 0; i < l.vertices().size(); ++i) {
             prop_collector.push_back(0.0 / 0.0);
           }
         }
@@ -38,7 +38,7 @@ void write_line_container_to_vtk(LineCont const& lines, std::string const& path,
   if (writer.is_open()) {
     size_t num_pts = 0;
     for (const auto& l : lines) {
-      num_pts += l.num_vertices();
+      num_pts += l.vertices().size();
     }
     std::vector<std::array<typename LineCont::value_type::real_t, 3>> points;
     std::vector<std::vector<size_t>>                                  line_seqs;
@@ -58,11 +58,11 @@ void write_line_container_to_vtk(LineCont const& lines, std::string const& path,
       }
 
       // add lines
-      boost::iota(line_seqs.emplace_back(l.num_vertices()), cur_first);
+      boost::iota(line_seqs.emplace_back(l.vertices().size()), cur_first);
       if (l.is_closed()) {
         line_seqs.back().push_back(cur_first);
       }
-      cur_first += l.num_vertices();
+      cur_first += l.vertices().size();
     }
 
     // write
@@ -244,7 +244,7 @@ auto merge(std::vector<line<Real, N>>& lines0,
       if (line0 != line1 && !line0->empty() && !line1->empty()) {
         // [line0front, ..., LINE0BACK] -> [LINE1FRONT, ..., line1back]
         if (approx_equal(line0->back_vertex(), line1->front_vertex(), eps)) {
-          for (size_t i = line0->num_vertices() - 2; i > 0; --i) {
+          for (size_t i = line0->vertices().size() - 2; i > 0; --i) {
             line1->push_front(line0->vertex_at(i));
           }
           line0->clear();
@@ -252,7 +252,7 @@ auto merge(std::vector<line<Real, N>>& lines0,
           // [line1front, ..., LINE1BACK] -> [LINE0FRONT, ..., line0back]
         } else if (approx_equal(line1->back_vertex(), line0->front_vertex(),
                                 eps)) {
-          for (size_t i = 1; i < line0->num_vertices(); ++i) {
+          for (size_t i = 1; i < line0->vertices().size(); ++i) {
             line1->push_back(line0->vertex_at(i));
           }
           line0->clear();
@@ -261,7 +261,7 @@ auto merge(std::vector<line<Real, N>>& lines0,
         } else if (approx_equal(line1->front_vertex(), line0->front_vertex(),
                                 eps)) {
           // -> [line1back, ..., LINE1FRONT] -> [LINE0FRONT, ..., line0back]
-          for (size_t i = line0->num_vertices() - 2; i > 0; --i) {
+          for (size_t i = line0->vertices().size() - 2; i > 0; --i) {
             line1->push_back(line0->vertex_at(i));
           }
           line0->clear();
@@ -270,7 +270,7 @@ auto merge(std::vector<line<Real, N>>& lines0,
         } else if (approx_equal(line0->back_vertex(), line1->back_vertex(),
                                 eps)) {
           // -> [line1front, ..., LINE1BACK] -> [LINE0BACK, ..., line0front]
-          for (size_t i = line0->num_vertices() - 2; i > 0; --i) {
+          for (size_t i = line0->vertices().size() - 2; i > 0; --i) {
             line1->push_back(line0->vertex_at(i));
           }
           line0->clear();
@@ -334,7 +334,7 @@ auto merge(std::vector<line<Real, N>> const& lines) {
 
     for (const auto& line_strip : line_strips) {
       merged_lines.emplace_back();
-      for (size_t i = 0; i < line_strip.num_vertices() - 1; i++) {
+      for (size_t i = 0; i < line_strip.vertices().size() - 1; i++) {
         merged_lines.back().push_back(line_strip.vertex_at(i));
       }
       if (&line_strip.front_vertex() == &line_strip.back_vertex()) {
@@ -354,8 +354,8 @@ auto intersections(const std::vector<line<Real, 2>>& lines0,
   std::vector<vec<Real, 2>> xs;
   for (auto const& l0 : lines0) {
     for (auto const& l1 : lines1) {
-      for (size_t i = 0; i < l0.num_vertices() - 1; ++i) {
-        for (size_t j = 0; j < l1.num_vertices() - 1; ++j) {
+      for (size_t i = 0; i < l0.vertices().size() - 1; ++i) {
+        for (size_t j = 0; j < l1.vertices().size() - 1; ++j) {
           auto const& p0  = l0.vertex_at(i);
           auto const& p1  = l0.vertex_at(i + 1);
           auto const& p2  = l1.vertex_at(j);

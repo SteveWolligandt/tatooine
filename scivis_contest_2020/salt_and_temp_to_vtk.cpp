@@ -58,7 +58,7 @@ int main(int , char const** argv) {
               << '\n';
     std::thread        monitor{[&] {
       while (!done) {
-        std::cerr << (double)(cnt) / (grid_out.num_vertices()*2) * 100
+        std::cerr << (double)(cnt) / (grid_out.vertices().size()*2) * 100
                   << "%             \r";
         std::this_thread::sleep_for(std::chrono::milliseconds{200});
       }

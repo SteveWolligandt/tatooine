@@ -27,7 +27,7 @@ class edgeset_test : public edgeset<double, 3> {
 TEST_CASE_METHOD(edgeset_test, "[edgeset] insertion", "[edgeset]") {
   using namespace boost;
 
-  REQUIRE(num_vertices() == 4);
+  REQUIRE(vertices().size() == 4);
   REQUIRE(num_edges() == 3);
 
   REQUIRE(num_edges(v0) == 1);
@@ -58,7 +58,7 @@ TEST_CASE_METHOD(edgeset_test, "[edgeset] removal", "[edgeset]") {
   remove(e1);
 
   SECTION("first removal before tidy up") {
-    REQUIRE(num_vertices() == 4);
+    REQUIRE(vertices().size() == 4);
     REQUIRE(num_edges() == 2);
 
     REQUIRE(num_edges(v0) == 1);
@@ -84,7 +84,7 @@ TEST_CASE_METHOD(edgeset_test, "[edgeset] removal", "[edgeset]") {
   // -> e1 becomes e2
   // -> e2 is out of bounds
   SECTION("first removal after tidy up") {
-    REQUIRE(num_vertices() == 4);
+    REQUIRE(vertices().size() == 4);
     REQUIRE(num_edges() == 2);
 
     REQUIRE(num_edges(v0) == 1);
@@ -107,7 +107,7 @@ TEST_CASE_METHOD(edgeset_test, "[edgeset] removal", "[edgeset]") {
 
   remove(e0);
   SECTION("second removal before tidy") {
-    REQUIRE(num_vertices() == 2);
+    REQUIRE(vertices().size() == 2);
     REQUIRE(num_edges() == 1);
 
     REQUIRE(num_edges(v2) == 1);
@@ -125,7 +125,7 @@ TEST_CASE_METHOD(edgeset_test, "[edgeset] removal", "[edgeset]") {
   // -> v0 becomes v2
   // -> v1 becomes v3
   SECTION("second removal after tidy") {
-    REQUIRE(num_vertices() == 2);
+    REQUIRE(vertices().size() == 2);
     REQUIRE(num_edges() == 1);
     REQUIRE(num_edges(v0) == 1);
     REQUIRE(num_edges(v1) == 1);
@@ -140,7 +140,7 @@ TEST_CASE_METHOD(edgeset_test, "[edgeset] vertex removal", "[edgeset]") {
   remove(v1);
 
   // SECTION("removal before tidy") {
-  REQUIRE(num_vertices() == 2);
+  REQUIRE(vertices().size() == 2);
   REQUIRE(num_edges() == 1);
 
   REQUIRE(num_edges(v0) == 0);
@@ -173,7 +173,7 @@ TEST_CASE_METHOD(edgeset_test, "[edgeset] vertex removal", "[edgeset]") {
   // -> e1 becomes e2
   // -> e2 is out of bounds
   // SECTION("first removal after tidy up") {
-  REQUIRE(num_vertices() == 2);
+  REQUIRE(vertices().size() == 2);
   REQUIRE(num_edges() == 1);
 
   REQUIRE(num_edges(v0) == 1);
@@ -188,7 +188,7 @@ TEST_CASE_METHOD(edgeset_test, "[edgeset] vertex removal", "[edgeset]") {
 
   remove(e0, false);
   // SECTION("edge removal before tidy up") {
-  REQUIRE(num_vertices() == 2);
+  REQUIRE(vertices().size() == 2);
   REQUIRE(num_edges() == 0);
 
   REQUIRE(num_edges(v0) == 0);
@@ -200,7 +200,7 @@ TEST_CASE_METHOD(edgeset_test, "[edgeset] vertex removal", "[edgeset]") {
 
   tidy_up();
   // SECTION("edge removal after tidy up") {
-  REQUIRE(num_vertices() == 2);
+  REQUIRE(vertices().size() == 2);
   REQUIRE(num_edges() == 0);
 
   REQUIRE(num_edges(v0) == 0);
@@ -217,7 +217,7 @@ TEST_CASE_METHOD(edgeset_test, "[edgeset] vertex removal2", "[edgeset]") {
   remove(v1);
   remove(e2, false);
   tidy_up();
-  REQUIRE(num_vertices() == 2);
+  REQUIRE(vertices().size() == 2);
   REQUIRE(num_edges() == 0);
 
   REQUIRE(num_edges(v0) == 0);
@@ -253,7 +253,7 @@ TEST_CASE("[edgeset] copy", "[edgeset]") {
 
   edgeset<double, 2> copy{es};
 
-  REQUIRE(es.num_vertices() == copy.num_vertices());
+  REQUIRE(es.vertices().size() == copy.num_vertices());
   REQUIRE(es.num_edges() == copy.num_edges());
   REQUIRE(copy.num_edges(v[0]) == 1);
   REQUIRE(copy.num_edges(v[1]) == 2);

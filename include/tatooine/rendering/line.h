@@ -44,7 +44,7 @@ struct line_shader : gl::shader {
 template <typename Real>
 auto to_gpu(line<Real, 3> const& l) {
   gl::indexeddata<vec3f> gpu_data;
-  gpu_data.vertexbuffer().resize(l.num_vertices());
+  gpu_data.vertexbuffer().resize(l.vertices().size());
   {
     auto gpu_mapping = gpu_data.vertexbuffer().wmap();
     for (auto const v : l.vertices()) {
@@ -52,10 +52,10 @@ auto to_gpu(line<Real, 3> const& l) {
       gpu_mapping[v.i] = x;
     }
   }
-  gpu_data.indexbuffer().resize((l.num_vertices() - 1) * 2);
+  gpu_data.indexbuffer().resize((l.vertices().size() - 1) * 2);
   {
     auto gpu_mapping = gpu_data.indexbuffer().wmap();
-    for (size_t i = 0; i < l.num_vertices() - 1; ++i) {
+    for (size_t i = 0; i < l.vertices().size() - 1; ++i) {
       gpu_mapping[i * 2]     = i;
       gpu_mapping[i * 2 + 1] = i + 1;
     }
@@ -69,8 +69,8 @@ auto to_gpu(std::vector<line<Real, 3>> const& lines) {
   size_t                    num_vertices = 0;
   size_t                    num_indices = 0;
   for (auto const& l : lines) {
-    num_vertices += l.num_vertices();
-    num_indices += (l.num_vertices() - 1) * 2;
+    num_vertices += l.vertices().size();
+    num_indices += (l.vertices().size() - 1) * 2;
   }
   gpu_data.vertexbuffer().resize(num_vertices);
   gpu_data.indexbuffer().resize(num_indices);
@@ -90,7 +90,7 @@ auto to_gpu(std::vector<line<Real, 3>> const& lines) {
     size_t i           = 0;
     size_t k = 0;
     for (auto const& l : lines) {
-      for (size_t j = 0; j < l.num_vertices() - 1; ++i, ++j) {
+      for (size_t j = 0; j < l.vertices().size() - 1; ++i, ++j) {
         gpu_mapping[k++] = i;
         gpu_mapping[k++] = i + 1;
       }

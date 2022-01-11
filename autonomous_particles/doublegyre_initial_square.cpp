@@ -304,9 +304,9 @@ auto render_loop(auto const dt) {
 }
 //==============================================================================
 auto build_ellipse_geometry() {
-  static constexpr auto num_vertices = 17 + 15;
-  ellipse_geom = std::make_unique<rendering::line_loop<vec2f>>(num_vertices);
-  auto ts      = linspace{0.0, 2 * M_PI, num_vertices + 1};
+  static constexpr auto vertices().size = 17 + 15;
+  ellipse_geom = std::make_unique<rendering::line_loop<vec2f>>(vertices().size);
+  auto ts      = linspace{0.0, 2 * M_PI, vertices().size + 1};
   {
     auto map    = ellipse_geom->vertexbuffer().wmap();
     auto map_it = begin(map);

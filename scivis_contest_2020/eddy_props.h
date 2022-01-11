@@ -95,7 +95,7 @@ auto eddy_props(V const& v, typename V::pos_t const& x,
     auto const t_range = ftau - btau;
     auto       Q_time  = [&](double const threshold) {
       double Q_time = 0;
-      for (size_t i = 0; i < pathline.num_vertices() - 1; ++i) {
+      for (size_t i = 0; i < pathline.vertices().size() - 1; ++i) {
         typename decltype(pathline)::vertex_idx vi{i};
         typename decltype(pathline)::vertex_idx vj{i + 1};
         auto const& t0 = pathline.parameterization_at(i);

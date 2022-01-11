@@ -173,11 +173,11 @@ auto render_topological_skeleton(
   // upload separatrices
   size_t                        line_cnt = 0;
   for (const auto& separatrix : skel.separatrices) {
-    for (size_t i = 0; i < separatrix.num_vertices(); ++i) {
+    for (size_t i = 0; i < separatrix.vertices().size(); ++i) {
       vbo_line_data.push_back({static_cast<float>(separatrix.vertex_at(i)(0)),
                                static_cast<float>(separatrix.vertex_at(i)(1))});
     }
-    for (size_t i = 0; i < separatrix.num_vertices() - 1; ++i) {
+    for (size_t i = 0; i < separatrix.vertices().size() - 1; ++i) {
       ibo_line_data.push_back(line_cnt);
       ibo_line_data.push_back(++line_cnt);
     }

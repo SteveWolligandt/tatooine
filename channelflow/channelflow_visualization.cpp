@@ -127,7 +127,7 @@ auto add_Q_cheng(Domain const& domain, File& channelflow_file, Vx const& velx,
            J(0, 1) * J(1, 0) - J(0, 2) * J(2, 0) - J(1, 2) * J(2, 1);
   };
   std::atomic_size_t cnt  = 0;
-  size_t const       max  = domain.num_vertices();
+  size_t const       max  = domain.vertices().size();
   bool               stop = false;
   tat::dynamic_multidim_array<double> Q_data{domain.size(0) - 1, domain.size(1),
                                              domain.size(2)};
@@ -289,7 +289,7 @@ auto calc_pv(DomainGrid const& domain_grid, Axis0 const& axis0,
               core.template add_vertex_property<double>("vely_pod0");
           auto& line_vely_122 =
               core.template add_vertex_property<double>("vely_122");
-          for (size_t i = 0; i < core.num_vertices(); ++i) {
+          for (size_t i = 0; i < core.vertices().size(); ++i) {
             vertex_handle v{i};
             line_Q[v]         = Q_sampler(core[v]);
             line_vely_pod0[v] = vely_pod0_sampler(core[v]);

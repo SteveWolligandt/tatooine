@@ -102,7 +102,7 @@ auto main(int argc, char** argv) -> int {
     auto const advected_particles =
         initial_particles.front().advect_with_3_splits(
             args.tau_step, args.t0 + args.tau, initial_particles);
-    mesh.vertex_data().reserve(mesh.num_vertices() + size(advected_particles));
+    mesh.vertex_data().reserve(mesh.vertices().size() + size(advected_particles));
     indicator.set_text("Writing discretized flowmap");
     for (auto const& p : advected_particles) {
       auto v          = mesh.insert_vertex(p.x0());
@@ -206,7 +206,7 @@ auto main(int argc, char** argv) -> int {
                        std::to_string(sampler_check_grid.size<2>()) + "]");
      //size_t              num_out_of_domain = 0;
      //std::vector<double> autonomous_particles_errors, regular_errors;
-    // autonomous_particles_errors.reserve(sampler_check_grid.num_vertices());
+    // autonomous_particles_errors.reserve(sampler_check_grid.vertices().size());
     // for (auto x : sampler_check_grid.vertices()) {
     //  try {
     //    auto const autonomous_particles_sampled_advection =
@@ -240,10 +240,10 @@ auto main(int argc, char** argv) -> int {
     //    << "number of advected particles: " << advected_particles.size() <<
     //    '\n'
     //    << "number of grid vertices: " << n * 2 * n << '\n'
-    //    << num_out_of_domain << " / " << sampler_check_grid.num_vertices()
+    //    << num_out_of_domain << " / " << sampler_check_grid.vertices().size()
     //    << " out of domain ("
     //    << (100 * num_out_of_domain /
-    //    (double)sampler_check_grid.num_vertices())
+    //    (double)sampler_check_grid.vertices().size())
     //    << "%)\n"
     //    << "average error autonomous particles: " << std::scientific
     //    << autonomous_particles_error << '\n'

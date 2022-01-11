@@ -12,7 +12,7 @@ auto add_velocity_magnitude(auto const& domain, auto& channelflow_file, auto con
         tat::vec{velx(ix, iy, iz), vely(ix, iy, iz), velz(ix, iy, iz)});
   };
   std::atomic_size_t cnt  = 0;
-  size_t const       max  = domain.num_vertices();
+  size_t const       max  = domain.vertices().size();
   bool               stop = false;
   std::cerr << "adding dataset to hdf5 file... ";
   auto vel_mag = channelflow_file.template create_dataset<double>(

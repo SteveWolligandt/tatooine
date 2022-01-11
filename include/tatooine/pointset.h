@@ -474,6 +474,8 @@ protected:
     if constexpr (NumDimensions == 2 || NumDimensions == 3) {
       if (path.extension() == ".vtk") {
         write_vtk(path);
+      } else if (path.extension() == ".vtp") {
+        write_vtp(path);
       }
     }
   }
@@ -542,8 +544,8 @@ protected:
     }
     auto offset                    = std::size_t{};
     using header_type              = std::uint64_t;
-    using polys_connectivity_int_t = std::int32_t;
-    using polys_offset_int_t       = polys_connectivity_int_t;
+    using verts_connectivity_int_t = std::int32_t;
+    using verts_offset_int_t       = verts_connectivity_int_t;
     file << "<VTKFile"
          << " type=\"PolyData\""
          << " version=\"1.0\" "
@@ -582,22 +584,22 @@ protected:
     file << "<DataArray format=\"appended\" offset=\"" << offset
          << "\" type=\""
          << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<polys_connectivity_int_t>())
+                vtk::xml::data_array::to_type<verts_connectivity_int_t>())
          << "\" Name=\"connectivity\"/>\n";
-    auto const num_bytes_polys_connectivity =
+    auto const num_bytes_verts_connectivity =
         vertices().size() *
-        sizeof(polys_connectivity_int_t);
-    offset += num_bytes_polys_connectivity + sizeof(header_type);
+        sizeof(verts_connectivity_int_t);
+    offset += num_bytes_verts_connectivity + sizeof(header_type);
 
     // Verts - offsets
     file << "<DataArray format=\"appended\" offset=\"" << offset
          << "\" type=\""
          << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<polys_offset_int_t>())
+                vtk::xml::data_array::to_type<verts_offset_int_t>())
          << "\" Name=\"offsets\"/>\n";
-    auto const num_bytes_polys_offsets =
-        sizeof(polys_offset_int_t) * vertices().size();
-    offset += num_bytes_polys_offsets + sizeof(header_type);
+    auto const num_bytes_verts_offsets =
+        sizeof(verts_offset_int_t) * vertices().size();
+    offset += num_bytes_verts_offsets + sizeof(header_type);
     file << "</Verts>\n";
     file << "</Piece>\n\n";
     file << "</PolyData>\n";
@@ -611,31 +613,31 @@ protected:
     file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
     file.write(reinterpret_cast<char const*>(vertices().data()), arr_size);
 
-    // Writing polys connectivity data to appended data section
+    // Writing verts connectivity data to appended data section
     {
-      auto connectivity_data = std::vector<polys_connectivity_int_t>(
+      auto connectivity_data = std::vector<verts_connectivity_int_t>(
           vertices().size());
       std::ranges::copy(
           vertices() | std::views::transform(
-                           [](auto const x) -> polys_connectivity_int_t {
+                           [](auto const x) -> verts_connectivity_int_t {
                              return x.index();
                            }),
           begin(connectivity_data));
       arr_size = vertices().size() *
-                 sizeof(polys_connectivity_int_t);
+                 sizeof(verts_connectivity_int_t);
       file.write(reinterpret_cast<char const*>(&arr_size),
                  sizeof(header_type));
       file.write(reinterpret_cast<char const*>(connectivity_data.data()),
                  arr_size);
     }
 
-    // Writing polys offsets to appended data section
+    // Writing verts offsets to appended data section
     {
-      auto offsets = std::vector<polys_offset_int_t>(vertices().size(), 1);
+      auto offsets = std::vector<verts_offset_int_t>(vertices().size(), 1);
       for (std::size_t i = 1; i < size(offsets); ++i) {
         offsets[i] += offsets[i - 1];
       }
-      arr_size = sizeof(polys_offset_int_t) * vertices().size();
+      arr_size = sizeof(verts_offset_int_t) * vertices().size();
       file.write(reinterpret_cast<char const*>(&arr_size),
                  sizeof(header_type));
       file.write(reinterpret_cast<char const*>(offsets.data()), arr_size);

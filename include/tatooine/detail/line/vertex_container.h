@@ -1,44 +1,51 @@
-#ifndef TATOOINE_LINE_VERTEX_CONTAINER_H
-#define TATOOINE_LINE_VERTEX_CONTAINER_H
+#ifndef TATOOINE_DETAIL_LINE_VERTEX_CONTAINER_H
+#define TATOOINE_DETAIL_LINE_VERTEX_CONTAINER_H
 //==============================================================================
-#include <tatooine/line_vertex_iterator.h>
+#include <tatooine/detail/line/vertex_iterator.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Real, size_t N>
+template <typename Real, std::size_t NumDimensions>
 struct line;
+//==============================================================================
+}  // namespace tatooine
+//==============================================================================
+namespace tatooine::detail::line {
 //============================================================================
-template <typename Real, size_t N, typename Handle>
-struct line_vertex_container {
+template <typename Real, std::size_t NumDimensions, typename Handle>
+struct vertex_container {
   //============================================================================
   // typedefs
   //============================================================================
-  using iterator       = line_vertex_iterator<Real, N, Handle>;
+  using iterator  = vertex_iterator<Real, NumDimensions, Handle>;
+  using line_type = tatooine::line<Real, NumDimensions>;
 
   //============================================================================
   // members
   //============================================================================
-  line<Real, N> const& m_line;
+  line_type const& m_line;
 
   //============================================================================
   // methods
   //============================================================================
   auto begin() const { return iterator{Handle{0}}; }
-  auto end()   const { return iterator{Handle{m_line.num_vertices()}}; }
+  auto end() const { return iterator{Handle{m_line.m_vertices.size()}}; }
   auto front() const { return Handle{0}; }
-  auto back()  const { return Handle{m_line.num_vertices() - 1}; }
+  auto back() const { return Handle{m_line.m_vertices.size() - 1}; }
+  auto size() const { return m_line.m_vertices.size(); }
+  auto data_container() const -> auto const& { return m_line.m_vertices; }
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-template <typename Real, size_t N, typename Handle>
-auto begin(line_vertex_container<Real, N, Handle> const& it) {
+template <typename Real, std::size_t NumDimensions, typename Handle>
+auto begin(vertex_container<Real, NumDimensions, Handle> const& it) {
   return it.begin();
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Real, size_t N, typename Handle>
-auto end(line_vertex_container<Real, N, Handle> const& it) {
+template <typename Real, std::size_t NumDimensions, typename Handle>
+auto end(vertex_container<Real, NumDimensions, Handle> const& it) {
   return it.begin();
 }
 //==============================================================================
-}  // namespace tatooine
+}  // namespace tatooine::detail::line
 //==============================================================================
 #endif

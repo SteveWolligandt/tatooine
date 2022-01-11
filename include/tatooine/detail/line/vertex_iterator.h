@@ -1,25 +1,26 @@
-#ifndef TATOOINE_LINE_VERTEX_ITERATOR_H
-#define TATOOINE_LINE_VERTEX_ITERATOR_H
+#ifndef TATOOINE_DETAIL_LINE_VERTEX_ITERATOR_H
+#define TATOOINE_DETAIL_LINE_VERTEX_ITERATOR_H
 //==============================================================================
 #include <boost/iterator/iterator_facade.hpp>
 //==============================================================================
-namespace tatooine {
+namespace tatooine::detail::line {
 //==============================================================================
-template <typename Real, size_t N, typename Handle>
-struct line_vertex_iterator
-    : boost::iterator_facade<line_vertex_iterator<Real, N, Handle>, Handle,
-                             boost::bidirectional_traversal_tag, Handle> {
+template <typename Real, size_t NumDimensions, typename Handle>
+struct vertex_iterator
+    : boost::iterator_facade<vertex_iterator<Real, NumDimensions, Handle>,
+                             Handle, boost::bidirectional_traversal_tag,
+                             Handle> {
   //============================================================================
   // typedefs
   //============================================================================
-  using this_t = line_vertex_iterator<Real, N, Handle>;
+  using this_t = vertex_iterator<Real, NumDimensions, Handle>;
 
   //============================================================================
   // ctors
   //============================================================================
-  line_vertex_iterator(Handle handle) : m_handle{handle} {}
+  vertex_iterator(Handle handle) : m_handle{handle} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  line_vertex_iterator(const line_vertex_iterator& other) = default;
+  vertex_iterator(const vertex_iterator& other) = default;
 
   //============================================================================
   // members
@@ -36,7 +37,7 @@ struct line_vertex_iterator
   auto increment() -> void { ++m_handle; }
   auto decrement() -> void { --m_handle; }
   //----------------------------------------------------------------------------
-  auto equal(const line_vertex_iterator& other) const {
+  auto equal(const vertex_iterator& other) const {
     return m_handle == other.m_handle;
   }
   //----------------------------------------------------------------------------
@@ -62,22 +63,24 @@ struct line_vertex_iterator
   }
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-template <typename Real, size_t N, typename Handle>
-auto next(const line_vertex_iterator<Real, N, Handle>& it, size_t inc = 1) {
+template <typename Real, size_t NumDimensions, typename Handle>
+auto next(const vertex_iterator<Real, NumDimensions, Handle>& it,
+          size_t                                              inc = 1) {
   return it.next(inc);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Real, size_t N, typename Handle>
-auto prev(const line_vertex_iterator<Real, N, Handle>& it, size_t dec = 1) {
+template <typename Real, size_t NumDimensions, typename Handle>
+auto prev(const vertex_iterator<Real, NumDimensions, Handle>& it,
+          size_t                                              dec = 1) {
   return it.prev(dec);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Real, size_t N, typename Handle>
-auto advance(line_vertex_iterator<Real, N, Handle>& it, size_t inc = 1)
+template <typename Real, size_t NumDimensions, typename Handle>
+auto advance(vertex_iterator<Real, NumDimensions, Handle>& it, size_t inc = 1)
     -> auto& {
   return it.advance(inc);
 }
 //==============================================================================
-}  // namespace tatooine
+}  // namespace tatooine::detail::line
 //==============================================================================
 #endif
