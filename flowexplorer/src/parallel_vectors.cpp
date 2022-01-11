@@ -47,7 +47,7 @@ auto parallel_vectors::calculate() -> void {
     }
     m_geometry.indexbuffer().push_back(i);
     m_geometry.indexbuffer().push_back(++i);
-    for (size_t j = 1; j < l.num_vertices() - 1; ++j) {
+    for (size_t j = 1; j < l.vertices().size() - 1; ++j) {
       m_geometry.indexbuffer().push_back(i);
       m_geometry.indexbuffer().push_back(++i);
     }

@@ -18,7 +18,7 @@ auto add_Q_pnorm(auto const& domain, auto& channelflow_file, auto const& velx,
     return (sqr_norm(Omega, 2) - sqr_norm(S, 2)) / 2;
   };
   std::atomic_size_t cnt  = 0;
-  size_t const       max  = domain.num_vertices();
+  size_t const       max  = domain.vertices().size();
   bool               stop = false;
   std::cerr << "adding dataset to hdf5 file... ";
   auto Q = channelflow_file.template create_dataset<double>(

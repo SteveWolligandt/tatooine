@@ -63,8 +63,8 @@ auto generate_and_write_pathlines(const V&                      v,
     file << "end_header\n";
     double dtau = tau / (num_samples - 1);
     for (const auto& pl : pathlines) {
-      file << pl.num_vertices() << ' ' << t0 << ' '
-           << dtau * (pl.num_vertices() - 1) << '\n';
+      file << pl.vertices().size() << ' ' << t0 << ' '
+           << dtau * (pl.vertices().size() - 1) << '\n';
 
       size_t cnt = 0;
       for (const auto& v : pl.vertices()) {

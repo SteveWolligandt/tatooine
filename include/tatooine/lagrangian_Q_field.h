@@ -92,7 +92,7 @@ class lagrangian_Q_field
     auto const t_range = m_ftau - m_btau;
     auto       Q_time  = [&](double const threshold) {
       double Q_time = 0;
-      for (size_t i = 0; i < pathline.num_vertices() - 1; ++i) {
+      for (size_t i = 0; i < pathline.vertices().size() - 1; ++i) {
         typename decltype(pathline)::vertex_idx vi{i};
         typename decltype(pathline)::vertex_idx vj{i + 1};
         auto const& t0 = pathline.parameterization_at(i);

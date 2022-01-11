@@ -45,7 +45,7 @@ TEST_CASE_METHOD(parameterized_surface_fixture, "parameterized_mesh") {
   }
   SECTION("Copy Constructor") {
     parameterized_mesh<double, 3> other{*this};
-    REQUIRE(other.num_vertices() == num_vertices());
+    REQUIRE(other.vertices().size() == num_vertices());
     REQUIRE(sample(0, 0)(0) == other(0, 0)(0));
     REQUIRE(sample(0, 0)(1) == other(0, 0)(1));
     REQUIRE(sample(0, 0)(2) == other(0, 0)(2));

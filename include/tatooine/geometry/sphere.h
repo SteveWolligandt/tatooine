@@ -138,17 +138,16 @@ sphere(Real0 radius, vec<Real1, N> const&)
 //------------------------------------------------------------------------------
 template <floating_point Real>
 auto discretize(sphere<Real, 2> const& s, size_t const num_vertices) {
-  using namespace boost;
-  using namespace adaptors;
-  linspace<Real> radial{0.0, M_PI * 2, num_vertices};
+  using namespace std::ranges;
+  auto radial = linspace<Real>{0.0, M_PI * 2, num_vertices + 1};
   radial.pop_back();
 
-  line<Real, 2> ellipse;
-  auto          radian_to_cartesian = [&s](auto const t) {
+  auto ellipse             = line<Real, 2>{};
+  auto radian_to_cartesian = [&s](auto const t) {
     return vec{std::cos(t) * s.radius(), std::sin(t) * s.radius()};
   };
   auto out_it = std::back_inserter(ellipse);
-  copy(radial | transformed(radian_to_cartesian), out_it);
+  copy(radial | views::transform(radian_to_cartesian), out_it);
   ellipse.set_closed(true);
   return ellipse;
 }
@@ -161,11 +160,11 @@ auto discretize(sphere<Real, 3> const& s, size_t num_subdivisions = 0) {
   // Real const  Z = 0.850650808352039932;
   Real const  X = 0.525731112119133606;
   Real const  Z = 0.850650808352039932;
-  std::vector vertices{vec{-X, 0, Z}, vec{X, 0, Z},   vec{-X, 0, -Z},
-                       vec{X, 0, -Z}, vec{0, Z, X},   vec{0, Z, -X},
-                       vec{0, -Z, X}, vec{0, -Z, -X}, vec{Z, X, 0},
-                       vec{-Z, X, 0}, vec{Z, -X, 0},  vec{-Z, -X, 0}};
-  std::vector<std::array<vertex_handle, 3>> faces{
+  auto        vertices =
+      std::vector{vec{-X, 0, Z}, vec{X, 0, Z},  vec{-X, 0, -Z}, vec{X, 0, -Z},
+                  vec{0, Z, X},  vec{0, Z, -X}, vec{0, -Z, X},  vec{0, -Z, -X},
+                  vec{Z, X, 0},  vec{-Z, X, 0}, vec{Z, -X, 0},  vec{-Z, -X, 0}};
+  auto faces = std::vector<std::array<vertex_handle, 3>>{
       {vertex_handle{0}, vertex_handle{4}, vertex_handle{1}},
       {vertex_handle{0}, vertex_handle{9}, vertex_handle{4}},
       {vertex_handle{9}, vertex_handle{5}, vertex_handle{4}},
@@ -189,10 +188,12 @@ auto discretize(sphere<Real, 3> const& s, size_t num_subdivisions = 0) {
   for (size_t i = 0; i < num_subdivisions; ++i) {
     std::vector<std::array<vertex_handle, 3>> subdivided_faces;
     using edge_t = std::pair<vertex_handle, vertex_handle>;
-    std::map<edge_t, size_t> subdivided;  // vertex_handle index on edge
+    auto subdivided =
+        std::map<edge_t, size_t>{};  // vertex_handle index on edge
     for (auto& [v0, v1, v2] : faces) {
-      std::array edges{edge_t{v0, v1}, edge_t{v0, v2}, edge_t{v1, v2}};
-      std::array nvs{vertex_handle{0}, vertex_handle{0}, vertex_handle{0}};
+      auto edges = std::array{edge_t{v0, v1}, edge_t{v0, v2}, edge_t{v1, v2}};
+      auto nvs =
+          std::array{vertex_handle{0}, vertex_handle{0}, vertex_handle{0}};
       size_t     i = 0;
       for (auto& edge : edges) {
         if (edge.first < edge.second) {
@@ -228,6 +229,7 @@ auto discretize(sphere<Real, 3> const& s, size_t num_subdivisions = 0) {
 }
 //==============================================================================
 using sphere2 = sphere<real_t, 2>;
+using circle = sphere<real_t, 2>;
 using sphere3 = sphere<real_t, 3>;
 using sphere4 = sphere<real_t, 4>;
 //==============================================================================

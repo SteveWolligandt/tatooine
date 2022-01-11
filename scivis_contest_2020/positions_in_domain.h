@@ -17,10 +17,10 @@ auto positions_in_domain(V const& v, Grid const& g) {
   std::vector<positions_t> xss(std::thread::hardware_concurrency());
   std::vector<indices_t>   xiss(std::thread::hardware_concurrency());
   for (auto& xs : xss) {
-    xs.vector.reserve(g.num_vertices() / 5);
+    xs.vector.reserve(g.vertices().size() / 5);
   }
   for (auto& xis : xiss) {
-    xis.vector.reserve(g.num_vertices() / 5);
+    xis.vector.reserve(g.vertices().size() / 5);
   }
   auto const         t = v.t_axis.front();
   std::atomic_size_t cnt;
@@ -43,7 +43,7 @@ auto positions_in_domain(V const& v, Grid const& g) {
         }, execution_policy::parallel);
       },
       [&] {
-        return static_cast<double>(cnt) / g.num_vertices();
+        return static_cast<double>(cnt) / g.vertices().size();
       },
       "collecting positions in domain");
   for (size_t i = 1; i < size(xss); ++i) {

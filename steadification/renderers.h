@@ -28,7 +28,7 @@ struct streamsurface_renderer
                                   const Real t0) {
     using namespace boost;
     vbo_data_vec vbo_data;
-    vbo_data.reserve(mesh.num_vertices());
+    vbo_data.reserve(mesh.vertices().size());
 
     const auto& uv_prop = mesh.template vertex_property<vec<Real, 2>>("uv");
     const auto& vf_prop = mesh.template vertex_property<vec<Real, 2>>("v");
@@ -104,7 +104,7 @@ struct line_renderer : gl::indexeddata<vec<float, N>> {
     ibo_data_vec ibo_data;
     size_t       j = 0;
     for (const auto& line : lines) {
-      for (size_t i = 0; i < line.num_vertices() - 1; ++i, ++j) {
+      for (size_t i = 0; i < line.vertices().size() - 1; ++i, ++j) {
         ibo_data.push_back(j);
         ibo_data.push_back(j + 1);
       }

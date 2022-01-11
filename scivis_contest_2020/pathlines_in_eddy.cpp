@@ -42,7 +42,7 @@ void collect_pathlines_in_eddy(
   auto& pathline_prop = pathline.template add_vertex_property<double>("prop");
 
   // for each vertex of the pathline calculate properties
-  for (size_t i = 0; i < pathline.num_vertices(); ++i) {
+  for (size_t i = 0; i < pathline.vertices().size(); ++i) {
     typename std::decay_t<decltype(pathline)>::vertex_idx vi{i};
     auto const& px = pathline.vertex_at(i);
     auto const& pt = pathline.parameterization_at(i);
@@ -69,7 +69,7 @@ void collect_pathlines_in_eddy(
     }
   }
 
-  if (pathline.num_vertices() > 1) {
+  if (pathline.vertices().size() > 1) {
     auto const lagrangian_eddy = pathline.integrate_property(pathline_prop);
 
     if (lagrangian_eddy > threshold) {

@@ -115,9 +115,9 @@ TEST_CASE_METHOD(line2, "line_resample", "[line][parameterization][resample]") {
 //            });
 //  integral_curve.update_interpolators();
 //
-//  for (size_t i = 0; i < integral_curve.num_vertices(); ++i) {
+//  for (size_t i = 0; i < integral_curve.vertices().size(); ++i) {
 //    CAPTURE(i);
-//    CAPTURE(integral_curve.num_vertices());
+//    CAPTURE(integral_curve.vertices().size());
 //    CAPTURE(integral_curve.parameterization_at(i));
 //    CAPTURE(integral_curve.vertex_at(i));
 //    CAPTURE(integral_curve.tangent_at(i));

@@ -226,7 +226,7 @@ struct numerical_flowmap {
     }();
     auto callback = [&integral_curve, &parameterization, &tangents, tau](
                         const auto& y, auto const t, const auto& dy) {
-      if (integral_curve.num_vertices() > 0 &&
+      if (integral_curve.vertices().size() > 0 &&
           std::abs(parameterization[integral_curve.vertices().back()] - t) <
               1e-13) {
         return;

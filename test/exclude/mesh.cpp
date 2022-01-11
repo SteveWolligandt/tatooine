@@ -134,15 +134,15 @@ TEST_CASE_METHOD((edgeset<double, 3>), "[edgeset] delete edge", "[edgeset]") {
   [[maybe_unused]] auto e4 = insert_edge(v3, v2);
 
   REQUIRE(num_edges() == 5);
-  REQUIRE(num_vertices() == 4);
+  REQUIRE(vertices().size() == 4);
 
   remove(e0);
   REQUIRE(num_edges() == 4);
-  REQUIRE(num_vertices() == 4);
+  REQUIRE(vertices().size() == 4);
 
   remove(e2);
   REQUIRE(num_edges() == 3);
-  REQUIRE(num_vertices() == 3);
+  REQUIRE(vertices().size() == 3);
 
   tidy_up();
   REQUIRE(m_points.size() == 3);
@@ -156,13 +156,13 @@ TEST_CASE_METHOD(mesh_test, "[mesh] remove face", "[mesh]") {
   using face   = mesh<double, 3>::face;
   remove(f0);
 
-  REQUIRE(num_vertices() == 3);
+  REQUIRE(vertices().size() == 3);
   REQUIRE(num_edges() == 3);
   REQUIRE(num_faces() == 1);
 
   tidy_up();
 
-  REQUIRE(num_vertices() == 3);
+  REQUIRE(vertices().size() == 3);
   REQUIRE(num_edges() == 3);
   REQUIRE(num_faces() == 1);
 
@@ -217,7 +217,7 @@ TEST_CASE("[mesh] copy", "[edgeset]") {
 
   mesh<double, 2> copy{m};
 
-  REQUIRE(m.num_vertices() == copy.num_vertices());
+  REQUIRE(m.vertices().size() == copy.num_vertices());
   REQUIRE(m.num_edges() == copy.num_edges());
   REQUIRE(m.num_faces() == copy.num_faces());
   REQUIRE(copy.num_edges(v[0]) == 2);

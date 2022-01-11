@@ -62,7 +62,7 @@ int main() {
   using vbo_t = gl::VertexBuffer<vec3f, vec2f>;
 
   gl::IndexBuffer ibo(mesh.num_faces() * 3);
-  vbo_t              vbo(mesh.num_vertices());
+  vbo_t              vbo(mesh.vertices().size());
 
   {
     auto   map = ibo.map();

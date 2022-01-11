@@ -1353,7 +1353,7 @@ auto size(cell_container<Real, NumDimensions, SimplexDim> cells) {
 //  if (writer.is_open()) {
 //    std::size_t num_pts = 0;
 //    std::size_t cur_first = 0;
-//    for (auto const& m : grids) { num_pts += m.num_vertices(); }
+//    for (auto const& m : grids) { num_pts += m.vertices().size(); }
 //    std::vector<std::array<typename MeshCont::value_type::real_t, 3>>
 //    points; std::vector<std::vector<std::size_t>> cells;
 //    points.reserve(num_pts); cells.reserve(grids.size());
