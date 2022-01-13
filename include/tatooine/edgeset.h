@@ -1,382 +1,216 @@
-#ifndef TATOOINE_EDGESET_H
-#define TATOOINE_EDGESET_H
-
-#include "pointset.h"
-
+#ifndef TATOOINE_UNSTRUCTURED_TRIANGULAR_GRID_H
+#define TATOOINE_UNSTRUCTURED_TRIANGULAR_GRID_H
+//==============================================================================
+#include <tatooine/unstructured_simplicial_grid.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-
 template <typename Real, size_t N>
-class edgeset : public pointset<Real, N> {
- public:
-  using this_t   = edgeset<Real, N>;
-  using parent_t = pointset<Real, N>;
-
-  using typename parent_t::handle;
-  using typename parent_t::pos_t;
-  using typename parent_t::vertex;
-
-  using parent_t::at;
-  using parent_t::operator[];
-  using parent_t::is_valid;
-  using parent_t::remove;
-
-  template <typename T>
-  using vertex_prop = typename parent_t::template vertex_prop<T>;
-  using parent_t::vertices;
-
-
-  //============================================================================
-  struct edge : handle {
-    edge() = default;
-    edge(size_t i) : handle{i} {}
-    edge(const edge&)            = default;
-    edge(edge&&)                 = default;
-    edge& operator=(const edge&) = default;
-    edge& operator=(edge&&)      = default;
-
-    bool operator==(const edge& other) const { return this->i == other.i; }
-    bool operator!=(const edge& other) const { return this->i != other.i; }
-    bool operator<(const edge& other) const { return this->i < other.i; }
-    static constexpr auto invalid() { return edge{handle::invalid_idx}; }
-  };
-
-  //============================================================================
-  struct edge_iterator
-      : public boost::iterator_facade<
-            edge_iterator, edge, boost::bidirectional_traversal_tag, edge> {
-    edge_iterator(edge _e, const edgeset* _es) : e{_e}, es{_es} {}
-    edge_iterator(const edge_iterator& other) : e{other.e}, es{other.es} {}
-
-   private:
-    edge           e;
-    const edgeset* es;
-    friend class boost::iterator_core_access;
-
-    void increment() {
-      do
-        ++e.i;
-      while (!es->is_valid(e));
+using edgeset = unstructured_simplicial_grid<Real, N, 1>;
+template <size_t N>
+using Edgeset = edgeset<real_t, N>;
+template <typename Real>
+using Edgeset2 = edgeset<Real, 2>;
+template <typename Real>
+using Edgeset3 = edgeset<Real, 3>;
+template <typename Real>
+using Edgeset4 = edgeset<Real, 4>;
+template <typename Real>
+using Edgeset5 = edgeset<Real, 5>;
+using edgeset2 = Edgeset<2>;
+using edgeset3 = Edgeset<3>;
+using edgeset4 = Edgeset<4>;
+using edgeset5 = Edgeset<5>;
+//==============================================================================
+template <typename T>
+struct is_edgeset_impl : std::false_type {};
+template <typename Real, std::size_t N>
+struct is_edgeset_impl<edgeset<Real, N>> : std::true_type {};
+template <typename T>
+static constexpr auto is_edgeset = is_edgeset_impl<T>::value;
+//==============================================================================
+namespace detail {
+//==============================================================================
+template <typename MeshCont>
+auto write_edgeset_container_to_vtk(
+    MeshCont const& grids, std::filesystem::path const& path,
+    std::string const& title = "tatooine edgeset") {
+  vtk::legacy_file_writer writer(path, vtk::dataset_type::polydata);
+  if (writer.is_open()) {
+    size_t num_pts   = 0;
+    size_t cur_first = 0;
+    for (auto const& m : grids) {
+      num_pts += m.vertices().size();
     }
-    void decrement() {
-      do
-        --e.i;
-      while (!es->is_valid(e));
-    }
+    std::vector<std::array<typename MeshCont::value_type::real_t, 3>> points;
+    std::vector<std::vector<size_t>>                                  faces;
+    points.reserve(num_pts);
+    faces.reserve(grids.size());
 
-    bool equal(const edge_iterator& other) const { return e.i == other.e.i; }
-    auto dereference() const { return e; }
-  };
+    for (auto const& m : grids) {
+      // add points
+      for (auto const& v : m.vertices()) {
+        points.push_back(std::array{m[v](0), m[v](1), m[v](2)});
+      }
 
-  //============================================================================
-  struct edge_container {
-    using iterator       = edge_iterator;
-    using const_iterator = edge_iterator;
-    const edgeset* m_edgeset;
-    auto           begin() const {
-      edge_iterator ei{edge{0}, m_edgeset};
-      while (!m_edgeset->is_valid(*ei)) ++ei;
-      return ei;
-    }
-    auto end() const {
-      return edge_iterator{edge{m_edgeset->m_edges.size()}, m_edgeset};
-    }
-  };
-
-  //============================================================================
-  template <typename T>
-  struct edge_prop : public property_type<T> {
-    // inherit all constructors
-    using property_type<T>::property_type;
-    auto&       at(edge e) { return property_type<T>::at(e.i); }
-    const auto& at(edge e) const { return property_type<T>::at(e.i); }
-    auto&       operator[](edge e) { return property_type<T>::operator[](e.i); }
-    const auto& operator[](edge e) const {
-      return property_type<T>::operator[](e.i);
-    }
-    std::unique_ptr<property> clone() const override {
-      return std::unique_ptr<edge_prop<T>>(new edge_prop<T>{*this});
-    }
-  };
-
-  //============================================================================
-  using vertex_edge_link_t = vertex_prop<std::vector<edge>>; 
-
-  //============================================================================
- protected:
-  std::vector<std::array<vertex, 2>>               m_edges;
-  std::vector<edge>                                m_invalid_edges;
-  std::map<std::string, std::unique_ptr<property>> m_edge_properties;
-  vertex_edge_link_t* m_edges_of_vertices = nullptr;
-
-  //============================================================================
- public:
-  edgeset() {
-      add_link_properties();
-  }
-
-  //----------------------------------------------------------------------------
-  edgeset(std::initializer_list<pos_t>&& vertices)
-      : parent_t(std::move(vertices)) {
-      add_link_properties();
-  }
-
-#ifdef USE_TRIANGLE
-  edgeset(const triangle::io& io) : parent_t(io) {
-    add_link_properties();
-  }
-#endif
-
-  // edgeset(const tetgenio& io) : parent_t{io} { add_link_properties(); }
-
- private:
-  //----------------------------------------------------------------------------
-  void add_link_properties() {
-    m_edges_of_vertices = dynamic_cast<vertex_prop<std::vector<edge>>*>(
-        &this->template add_vertex_property<std::vector<edge>>("v:edges"));
-  }
-
-  //----------------------------------------------------------------------------
-  auto find_link_properties() {
-    return dynamic_cast<vertex_prop<std::vector<edge>>*>(
-        &this->template vertex_property<std::vector<edge>>("v:edges"));
-  }
-
- public:
-  //----------------------------------------------------------------------------
-  edgeset(const edgeset& other)
-      : parent_t{other},
-        m_edges{other.m_edges},
-        m_invalid_edges{other.m_invalid_edges} {
-    m_edge_properties.clear();
-    for (const auto& [name, prop] : other.m_edge_properties)
-      m_edge_properties[name] = prop->clone();
-    m_edges_of_vertices = find_link_properties();
-  }
-
-  //----------------------------------------------------------------------------
-
-  edgeset(edgeset&& other)
-      : parent_t{std::move(other)},
-        m_edges{std::move(other.m_edges)},
-        m_invalid_edges{std::move(other.m_invalid_edges)},
-        m_edge_properties{std::move(other.m_edge_properties)},
-        m_edges_of_vertices{find_link_properties()} {}
-
-  //----------------------------------------------------------------------------
-
-  auto& operator=(const edgeset& other) {
-    parent_t::operator=(other);
-    m_edges           = other.m_edges;
-    m_invalid_edges   = other.m_invalid_edges;
-    for (const auto& [name, prop] : other.m_edge_properties)
-      m_edge_properties[name] = prop->clone();
-    m_edges_of_vertices = find_link_properties();
-    return *this;
-  }
-
-  //----------------------------------------------------------------------------
-
-  auto& operator=(edgeset&& other) {
-    parent_t::operator=(std::move(other));
-    m_edges           = std::move(other.m_edges);
-    m_invalid_edges   = std::move(other.m_invalid_edges);
-    m_edge_properties = std::move(other.m_edge_properties);
-    m_edges_of_vertices =
-      find_link_properties();
-    return *this;
-  }
-
-  //----------------------------------------------------------------------------
-  auto&       at(const edge& e) { return m_edges[e.i]; }
-  const auto& at(const edge& e) const { return m_edges[e.i]; }
-
-  //----------------------------------------------------------------------------
-  auto&       operator[](const edge& e) { return at(e); }
-  const auto& operator[](const edge& e) const { return at(e); }
-
-  //----------------------------------------------------------------------------
-  auto edges() const { return edge_container{this}; }
-
-  //----------------------------------------------------------------------------
-  auto&       edges(vertex v) { return m_edges_of_vertices->at(v); }
-  const auto& edges(vertex v) const { return m_edges_of_vertices->at(v); }
-
-  //----------------------------------------------------------------------------
-  auto&       vertices(edge e) { return at(e); }
-  const auto& vertices(edge e) const { return at(e); }
-
-  //----------------------------------------------------------------------------
-  auto insert_edge(size_t v0, size_t v1) {
-    return insert_edge(vertex{v0}, vertex{v1});
-  }
-
-  //----------------------------------------------------------------------------
-  auto insert_edge(vertex v0, vertex v1) {
-    std::array new_edge{v0, v1};
-    order_independent_edge_equal eq;
-    for (auto e : edges())
-      if (eq(at(e), new_edge)) return e;
-
-    edge e{m_edges.size()};
-    m_edges.push_back(new_edge);
-    for (auto v : vertices(e)) edges(v).push_back(e);
-    for (auto& [key, prop] : m_edge_properties) prop->push_back();
-    return e;
-  }
-
-  //----------------------------------------------------------------------------
-  void remove(vertex v) {
-    parent_t::remove(v);
-    for (auto e : edges(v)) remove(e);
-  }
-
-  //----------------------------------------------------------------------------
-  void remove(edge e, bool remove_orphaned_vertices = true) {
-    using namespace boost;
-    if (is_valid(e)) {
-      // remove edge link from vertices
-      for (auto v : vertices(e)) edges(v).erase(find(edges(v), e));
-
-      if (remove_orphaned_vertices)
-        for (auto v : vertices(e))
-          if (num_edges(v) == 0) remove(v);
-
-      if (find(m_invalid_edges, e) == m_invalid_edges.end())
-        m_invalid_edges.push_back(e);
-    }
-  }
-
-  //----------------------------------------------------------------------------
-  //! tidies up invalid vertices and edges
-  void tidy_up() {
-    using namespace boost;
-
-    // decrease edge-index of vertices whose indices are greater than an invalid
-    // edge-index
-    for (const auto invalid_e : m_invalid_edges)
-      for (const auto v : vertices())
-        for (auto& e : edges(v))
-          if (e.i >= invalid_e.i) --e.i;
-
-    // reindex edge's vertex indices
-    for (auto invalid_v : this->m_invalid_points)
-      for (auto e : edges())
-        for (auto& v : vertices(e))
-          if (v.i >= invalid_v.i) --v.i;
-
-    // erase actual edges
-    for (const auto invalid_e : m_invalid_edges) {
-      m_edges.erase(m_edges.begin() + invalid_e.i);
-      for (const auto& [key, prop] : m_edge_properties)
-        prop->erase(invalid_e.i);
-
-      // reindex deleted edge indices;
-      for (auto& e_to_reindex : m_invalid_edges)
-        if (e_to_reindex.i > invalid_e.i) --e_to_reindex.i;
+      // add faces
+      for (auto c : m.cells()) {
+        faces.emplace_back();
+        auto [v0, v1] = m[c];
+        faces.back().push_back(cur_first + v0.index());
+        faces.back().push_back(cur_first + v1.index());
+      }
+      cur_first += m.vertices().size();
     }
 
-    m_invalid_edges.clear();
-
-    // tidy up vertices
-    parent_t::tidy_up();
+    // write
+    writer.set_title(title);
+    writer.write_header();
+    writer.write_points(points);
+    writer.write_polygons(faces);
+    // writer.write_point_data(num_pts);
+    writer.close();
   }
-
-  //----------------------------------------------------------------------------
-  constexpr bool is_valid(edge e) const {
-    return boost::find(m_invalid_edges, e) == m_invalid_edges.end();
+}
+//==============================================================================
+auto write_edgeset_container_to_vtp(
+    range auto const& grids, std::filesystem::path const& path) {
+  auto file = std::ofstream{path, std::ios::binary};
+  if (!file.is_open()) {
+    throw std::runtime_error{"Could not write " + path.string()};
   }
+  auto offset                    = std::size_t{};
+  using header_type              = std::uint64_t;
+  using polys_connectivity_int_t = std::int32_t;
+  using polys_offset_int_t       = polys_connectivity_int_t;
+  file << "<VTKFile"
+       << " type=\"PolyData\""
+       << " version=\"1.0\" "
+          "byte_order=\"LittleEndian\""
+       << " header_type=\""
+       << vtk::xml::data_array::to_string(
+              vtk::xml::data_array::to_type<header_type>())
+       << "\">";
+  file << "<PolyData>\n";
+  for (auto const& g : grids) {
+    using real_t = typename std::decay_t<decltype(g)>::real_t;
+    file << "<Piece"
+         << " NumberOfPoints=\"" << g.vertices().size() << "\""
+         << " NumberOfPolys=\"" << g.cells().size() << "\""
+         << " NumberOfVerts=\"0\""
+         << " NumberOfLines=\"0\""
+         << " NumberOfStrips=\"0\""
+         << ">\n";
 
-  //----------------------------------------------------------------------------
-  void clear_edges() {
-    m_edges.clear();
-    m_edges.shrink_to_fit();
-    m_invalid_edges.clear();
-    m_invalid_edges.shrink_to_fit();
-    for (auto& [key, val] : m_edge_properties) val->clear();
+    // Points
+    file << "<Points>";
+    file << "<DataArray"
+         << " format=\"appended\""
+         << " offset=\"" << offset << "\""
+         << " type=\""
+         << vtk::xml::data_array::to_string(
+                vtk::xml::data_array::to_type<real_t>())
+         << "\" NumberOfComponents=\"" << g.num_dimensions() << "\"/>";
+    auto const num_bytes_points =
+        header_type(sizeof(real_t) * g.num_dimensions() *
+                    g.vertices().data_container().size());
+    offset += num_bytes_points + sizeof(header_type);
+    file << "</Points>\n";
+
+    // Polys
+    file << "<Polys>\n";
+    // Polys - connectivity
+    file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
+         << vtk::xml::data_array::to_string(
+                vtk::xml::data_array::to_type<polys_connectivity_int_t>())
+         << "\" Name=\"connectivity\"/>\n";
+    auto const num_bytes_polys_connectivity = g.cells().size() *
+                                              g.num_vertices_per_simplex() *
+                                              sizeof(polys_connectivity_int_t);
+    offset += num_bytes_polys_connectivity + sizeof(header_type);
+
+    // Polys - offsets
+    file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
+         << vtk::xml::data_array::to_string(
+                vtk::xml::data_array::to_type<polys_offset_int_t>())
+         << "\" Name=\"offsets\"/>\n";
+    auto const num_bytes_polys_offsets =
+        sizeof(polys_offset_int_t) * g.cells().size();
+    offset += num_bytes_polys_offsets + sizeof(header_type);
+    file << "</Polys>\n";
+    file << "</Piece>\n\n";
   }
+  file << "</PolyData>\n";
 
-  //----------------------------------------------------------------------------
-  void clear() {
-    parent_t::clear();
-    clear_edges();
-  }
+  file << "<AppendedData encoding=\"raw\">_";
+  // Writing vertex data to appended data section
+  auto arr_size = header_type{};
 
-  //----------------------------------------------------------------------------
-  auto num_edges() const { return m_edges.size() - m_invalid_edges.size(); }
+  for (auto const& g : grids) {
+    using real_t = typename std::decay_t<decltype(g)>::real_t;
+    arr_size = header_type(
+        sizeof(real_t) * g.num_dimensions() * g.vertices().data_container().size());
+    file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
+    file.write(reinterpret_cast<char const*>(g.vertices().data()),
+               arr_size);
 
-  //----------------------------------------------------------------------------
-  auto num_edges(vertex v) const { return edges(v).size(); }
-
-  //----------------------------------------------------------------------------
-  template <typename T>
-  auto& edge_property(const std::string& name) {
-    return *dynamic_cast<edge_prop<T>*>(m_edge_properties.at(name).get());
-  }
-
-  //----------------------------------------------------------------------------
-  template <typename T>
-  const auto& edge_property(const std::string& name) const {
-    return *dynamic_cast<edge_prop<T>*>(m_edge_properties.at(name).get());
-  }
-
-  //----------------------------------------------------------------------------
-  template <typename T>
-  auto& add_edge_property(const std::string& name, const T& value = T{}) {
-    auto [it, suc] = m_edge_properties.insert(
-        std::pair{name, std::make_unique<edge_prop<T>>(value)});
-    auto prop = dynamic_cast<edge_prop<T>*>(it->second.get());
-    prop->resize(m_edges.size());
-    return *prop;
-  }
-
-  //============================================================================
-  struct order_independent_edge_equal {
-    bool operator()(const std::array<vertex, 2>& lhs,
-                    const std::array<vertex, 2>& rhs) const {
-      return (lhs[0] == rhs[0] && lhs[1] == rhs[1]) ||
-             (lhs[0] == rhs[1] && lhs[1] == rhs[0]);
+    // Writing polys connectivity data to appended data section
+    {
+      auto connectivity_data = std::vector<polys_connectivity_int_t>(
+          g.cells().size() * g.num_vertices_per_simplex());
+      std::ranges::copy(g.cells().data_container() |
+                            std::views::transform(
+                                [](auto const x) -> polys_connectivity_int_t {
+                                  return x.index();
+                                }),
+                        begin(connectivity_data));
+      arr_size = g.cells().size() * g.num_vertices_per_simplex() *
+                 sizeof(polys_connectivity_int_t);
+      file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
+      file.write(reinterpret_cast<char const*>(connectivity_data.data()),
+                 arr_size);
     }
-  };
 
-  //----------------------------------------------------------------------------
-  struct order_independent_edge_compare {
-    bool operator()(const std::array<vertex, 2>& lhs,
-                    const std::array<vertex, 2>& rhs) const {
-      auto min_lhs = std::min(lhs[0], lhs[1]);
-      auto min_rhs = std::min(rhs[0], rhs[1]);
-      auto max_lhs = std::max(lhs[0], lhs[1]);
-      auto max_rhs = std::max(rhs[0], rhs[1]);
-      if (min_lhs == min_rhs)
-        return max_lhs < max_rhs;
-      else
-        return min_lhs < min_rhs;
+    // Writing polys offsets to appended data section
+    {
+      auto offsets = std::vector<polys_offset_int_t>(g.cells().size(),
+                                                     g.num_vertices_per_simplex());
+      for (std::size_t i = 1; i < size(offsets); ++i) {
+        offsets[i] += offsets[i - 1];
+      }
+      arr_size = sizeof(polys_offset_int_t) * g.cells().size();
+      file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
+      file.write(reinterpret_cast<char const*>(offsets.data()),
+                 arr_size);
     }
-  };
-
-  //----------------------------------------------------------------------------
-  struct order_dependent_edge_equal {
-    auto operator()(const std::array<vertex, 2>& lhs,
-                    const std::array<vertex, 2>& rhs) const {
-      return lhs[0] == rhs[0] && lhs[1] == rhs[1];
-    }
-  };
-
-  //----------------------------------------------------------------------------
-  struct order_dependent_edge_compare {
-    bool operator()(const std::array<vertex, 2>& lhs,
-                    const std::array<vertex, 2>& rhs) const {
-      if (lhs[0] == rhs[0])
-        return lhs[1] < rhs[1];
-      else
-        return lhs[0] < rhs[0];
-    }
-  };
-};
-
+  }
+  file << "</AppendedData>";
+  file << "</VTKFile>";
+}
+}  // namespace detail
+//==============================================================================
+auto write_vtk(range auto const& grids, std::filesystem::path const& path,
+               std::string const& title = "tatooine grids") requires
+    is_edgeset<typename std::decay_t<decltype(grids)>::value_type> {
+  detail::write_edgeset_container_to_vtk(grids, path, title);
+}
+//------------------------------------------------------------------------------
+auto write_vtp(range auto const&            grids,
+               std::filesystem::path const& path) requires
+    is_edgeset<typename std::decay_t<decltype(grids)>::value_type> {
+  detail::write_edgeset_container_to_vtp(grids, path);
+}
+//------------------------------------------------------------------------------
+auto write(range auto const& grids, std::filesystem::path const& path) requires
+    is_edgeset<typename std::decay_t<decltype(grids)>::value_type> {
+  auto const ext = path.extension();
+  if (ext == ".vtp") {
+    detail::write_edgeset_container_to_vtp(grids, path);
+  } else if (ext == ".vtk") {
+    detail::write_edgeset_container_to_vtk(grids, path);
+  }
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-
 #endif

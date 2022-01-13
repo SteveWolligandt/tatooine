@@ -14,8 +14,12 @@ template <floating_point Real>
 struct split_behaviors<Real, 2> {
   static auto constexpr one            = Real(1);
   static auto constexpr half           = one / Real(2);
+  static auto constexpr third          = one / Real(3);
   static auto constexpr quarter        = one / Real(4);
+  static auto constexpr sixth          = one / Real(6);
   static auto constexpr three_quarters = 3 * quarter;
+  static auto constexpr two_thirds     = 2 * third;
+  static auto constexpr three_sixths   = 3 * sixth;
   static auto constexpr sqrt5          = gcem::sqrt<Real>(5);
   using vec_t                          = vec<Real, 2>;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -35,6 +39,14 @@ struct split_behaviors<Real, 2> {
         vec_t{half, quarter}, vec_t{one, half}, vec_t{half, quarter}};
     static constexpr auto offsets = std::array{
         vec_t{0, -three_quarters}, vec_t{0, 0}, vec_t{0, three_quarters}};
+  };
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  struct three_in_square_splits {
+    static auto constexpr sqr_cond = Real(9);
+    static constexpr auto radii    = std::array{
+        vec_t{one, third}, vec_t{one, third}, vec_t{one, third}};
+    static constexpr auto offsets = std::array{
+        vec_t{0, -two_thirds}, vec_t{0, 0}, vec_t{0, two_thirds}};
   };
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   struct five_splits {

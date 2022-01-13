@@ -45,7 +45,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   using simple_particle_container_t = std::vector<simple_particle_t>;
   using ellipse_t   = geometry::hyper_ellipse<Real, NumDimensions>;
   using parent_t    = ellipse_t;
-  using sampler_t   = detail::autonomous_particle::sampler<Real, NumDimensions>;
+  using sampler_type   = detail::autonomous_particle::sampler<Real, NumDimensions>;
   using parent_t::center;
   using parent_t::discretize;
   using parent_t::S;
@@ -114,140 +114,140 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //============================================================================
   // METHODS
   //============================================================================
-  template <
-      split_behavior SplitBehavior = typename split_behaviors::three_splits,
-      typename Flowmap>
-  auto advect(Flowmap&& phi, real_t const step_size, real_t const t_end,
-              filesystem::path const& path) const {
-    return advect(std::forward<Flowmap>(phi), step_size, t_end, {*this}, path);
-  }
-  //----------------------------------------------------------------------------
-  template <
-      split_behavior SplitBehavior = typename split_behaviors::three_splits,
-      typename Flowmap>
-  static auto advect(Flowmap&& phi, real_t const step_size, real_t const t_end,
-                     container_t const&      particles,
-                     filesystem::path const& path) {
-    // auto       finished_particles = container_t{};
-    auto const num_threads =
-        static_cast<std::size_t>(std::thread::hardware_concurrency());
-    if (filesystem::exists(path)) {
-      filesystem::remove(path);
-    }
-    auto file = hdf5::file{path};
-    auto hdd_data =
-        std::array{file.create_dataset<typename container_t::value_type>(
-                       "ping", hdf5::unlimited),
-                   file.create_dataset<typename container_t::value_type>(
-                       "pong", hdf5::unlimited)};
-    auto finished = file.create_dataset<typename container_t::value_type>(
-        "finished", hdf5::unlimited);
-    std::size_t reader = 0;
-    std::size_t writer = 1;
-    hdd_data[reader].write(particles);
-
-    while (hdd_data[reader].dataspace().current_resolution()[0] > 0) {
-      auto const num_particles =
-          hdd_data[reader].dataspace().current_resolution()[0];
-      auto thread_ranges =
-          std::vector<aligned<std::pair<std::size_t, std::size_t>>>(
-              num_threads);
-      auto advected_particles = std::vector<aligned<container_t>>(num_threads);
-      auto finished_particles = std::vector<aligned<container_t>>(num_threads);
-      auto loaded_particles   = std::vector<aligned<container_t>>(num_threads);
-      std::size_t const num_particles_at_once = 10000000;
-      for (auto& l : loaded_particles) {
-        l->reserve(num_particles_at_once);
-      }
-      {
-        // distribute particles
-        auto thread_pool = std::vector<std::thread>{};
-        thread_pool.reserve(num_threads);
-        for (std::size_t i = 0; i < num_threads; ++i) {
-          thread_pool.emplace_back(
-              [&](auto const thr_id) {
-                std::size_t const begin = thr_id * num_particles / num_threads;
-                std::size_t const end =
-                    (thr_id + 1) * num_particles / num_threads;
-
-                *thread_ranges[thr_id] = std::pair{begin, end};
-              },
-              i);
-        }
-        for (auto& thread : thread_pool) {
-          thread.join();
-        }
-      }
-      {
-        // advect particle pools
-        auto thread_pool = std::vector<std::thread>{};
-        thread_pool.reserve(num_threads);
-        for (std::size_t i = 0; i < num_threads; ++i) {
-          thread_pool.emplace_back(
-              [&](auto const thr_id) {
-                auto const& range     = *thread_ranges[thr_id];
-                auto&       particles = *loaded_particles[thr_id];
-                std::size_t chunk_idx = 0;
-                for (std::size_t i = range.first; i < range.second;
-                     i += num_particles_at_once, ++chunk_idx) {
-                  auto const cur_num_particles =
-                      std::min(num_particles_at_once, range.second - i);
-                  particles.resize(cur_num_particles);
-                  {
-                    auto lock = std::lock_guard{mutex()};
-                    hdd_data[reader].read(i, cur_num_particles, particles);
-                  }
-                  for (auto const& particle : particles) {
-                    particle.template advect_until_split<SplitBehavior>(
-                        std::forward<Flowmap>(phi), step_size, t_end,
-                        *advected_particles[thr_id],
-                        *finished_particles[thr_id]);
-                    if (advected_particles[thr_id]->size() > 10000000) {
-                      {
-                        auto lock = std::lock_guard{mutex()};
-                        hdd_data[writer].push_back(*advected_particles[thr_id]);
-                      }
-                      advected_particles[thr_id]->clear();
-                    }
-                    if (finished_particles[thr_id]->size() > 10000000) {
-                      {
-                        auto lock = std::lock_guard{mutex()};
-                        finished.push_back(*finished_particles[thr_id]);
-                      }
-                      finished_particles[thr_id]->clear();
-                    }
-                    if (!advected_particles[thr_id]->empty()) {
-                      {
-                        auto lock = std::lock_guard{mutex()};
-                        hdd_data[writer].push_back(*advected_particles[thr_id]);
-                      }
-                      advected_particles[thr_id]->clear();
-                    }
-                    if (!finished_particles[thr_id]->empty()) {
-                      {
-                        auto lock = std::lock_guard{mutex()};
-                        finished.push_back(*finished_particles[thr_id]);
-                      }
-                      finished_particles[thr_id]->clear();
-                    }
-                  }
-                  particles.clear();
-                }
-              },
-              i);
-        }
-        for (auto& thread : thread_pool) {
-          thread.join();
-        }
-      }
-
-      reader = 1 - reader;
-      writer = 1 - writer;
-      hdd_data[writer].clear();
-    }
-    hdd_data[reader].clear();
-    return path;
-  }
+  //template <
+  //    split_behavior SplitBehavior = typename split_behaviors::three_splits,
+  //    typename Flowmap>
+  //auto advect(Flowmap&& phi, real_t const step_size, real_t const t_end,
+  //            filesystem::path const& path) const {
+  //  return advect(std::forward<Flowmap>(phi), step_size, t_end, {*this}, path);
+  //}
+  ////----------------------------------------------------------------------------
+  //template <
+  //    split_behavior SplitBehavior = typename split_behaviors::three_splits,
+  //    typename Flowmap>
+  //static auto advect(Flowmap&& phi, real_t const step_size, real_t const t_end,
+  //                   container_t const&      particles,
+  //                   filesystem::path const& path) {
+  //  // auto       finished_particles = container_t{};
+  //  auto const num_threads =
+  //      static_cast<std::size_t>(std::thread::hardware_concurrency());
+  //  if (filesystem::exists(path)) {
+  //    filesystem::remove(path);
+  //  }
+  //  auto file = hdf5::file{path};
+  //  auto hdd_data =
+  //      std::array{file.create_dataset<typename container_t::value_type>(
+  //                     "ping", hdf5::unlimited),
+  //                 file.create_dataset<typename container_t::value_type>(
+  //                     "pong", hdf5::unlimited)};
+  //  auto finished = file.create_dataset<typename container_t::value_type>(
+  //      "finished", hdf5::unlimited);
+  //  std::size_t reader = 0;
+  //  std::size_t writer = 1;
+  //  hdd_data[reader].write(particles);
+  //
+  //  while (hdd_data[reader].dataspace().current_resolution()[0] > 0) {
+  //    auto const num_particles =
+  //        hdd_data[reader].dataspace().current_resolution()[0];
+  //    auto thread_ranges =
+  //        std::vector<aligned<std::pair<std::size_t, std::size_t>>>(
+  //            num_threads);
+  //    auto advected_particles = std::vector<aligned<container_t>>(num_threads);
+  //    auto finished_particles = std::vector<aligned<container_t>>(num_threads);
+  //    auto loaded_particles   = std::vector<aligned<container_t>>(num_threads);
+  //    std::size_t const num_particles_at_once = 10000000;
+  //    for (auto& l : loaded_particles) {
+  //      l->reserve(num_particles_at_once);
+  //    }
+  //    {
+  //      // distribute particles
+  //      auto thread_pool = std::vector<std::thread>{};
+  //      thread_pool.reserve(num_threads);
+  //      for (std::size_t i = 0; i < num_threads; ++i) {
+  //        thread_pool.emplace_back(
+  //            [&](auto const thr_id) {
+  //              std::size_t const begin = thr_id * num_particles / num_threads;
+  //              std::size_t const end =
+  //                  (thr_id + 1) * num_particles / num_threads;
+  //
+  //              *thread_ranges[thr_id] = std::pair{begin, end};
+  //            },
+  //            i);
+  //      }
+  //      for (auto& thread : thread_pool) {
+  //        thread.join();
+  //      }
+  //    }
+  //    {
+  //      // advect particle pools
+  //      auto thread_pool = std::vector<std::thread>{};
+  //      thread_pool.reserve(num_threads);
+  //      for (std::size_t i = 0; i < num_threads; ++i) {
+  //        thread_pool.emplace_back(
+  //            [&](auto const thr_id) {
+  //              auto const& range     = *thread_ranges[thr_id];
+  //              auto&       particles = *loaded_particles[thr_id];
+  //              std::size_t chunk_idx = 0;
+  //              for (std::size_t i = range.first; i < range.second;
+  //                   i += num_particles_at_once, ++chunk_idx) {
+  //                auto const cur_num_particles =
+  //                    std::min(num_particles_at_once, range.second - i);
+  //                particles.resize(cur_num_particles);
+  //                {
+  //                  auto lock = std::lock_guard{mutex()};
+  //                  hdd_data[reader].read(i, cur_num_particles, particles);
+  //                }
+  //                for (auto const& particle : particles) {
+  //                  particle.template advect_until_split<SplitBehavior>(
+  //                      std::forward<Flowmap>(phi), step_size, t_end,
+  //                      *advected_particles[thr_id],
+  //                      *finished_particles[thr_id]);
+  //                  if (advected_particles[thr_id]->size() > 10000000) {
+  //                    {
+  //                      auto lock = std::lock_guard{mutex()};
+  //                      hdd_data[writer].push_back(*advected_particles[thr_id]);
+  //                    }
+  //                    advected_particles[thr_id]->clear();
+  //                  }
+  //                  if (finished_particles[thr_id]->size() > 10000000) {
+  //                    {
+  //                      auto lock = std::lock_guard{mutex()};
+  //                      finished.push_back(*finished_particles[thr_id]);
+  //                    }
+  //                    finished_particles[thr_id]->clear();
+  //                  }
+  //                  if (!advected_particles[thr_id]->empty()) {
+  //                    {
+  //                      auto lock = std::lock_guard{mutex()};
+  //                      hdd_data[writer].push_back(*advected_particles[thr_id]);
+  //                    }
+  //                    advected_particles[thr_id]->clear();
+  //                  }
+  //                  if (!finished_particles[thr_id]->empty()) {
+  //                    {
+  //                      auto lock = std::lock_guard{mutex()};
+  //                      finished.push_back(*finished_particles[thr_id]);
+  //                    }
+  //                    finished_particles[thr_id]->clear();
+  //                  }
+  //                }
+  //                particles.clear();
+  //              }
+  //            },
+  //            i);
+  //      }
+  //      for (auto& thread : thread_pool) {
+  //        thread.join();
+  //      }
+  //    }
+  //
+  //    reader = 1 - reader;
+  //    writer = 1 - writer;
+  //    hdd_data[writer].clear();
+  //  }
+  //  hdd_data[reader].clear();
+  //  return path;
+  //}
   //----------------------------------------------------------------------------
   template <
       split_behavior SplitBehavior = typename split_behaviors::three_splits,
@@ -380,8 +380,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     if constexpr (is_cacheable<std::decay_t<decltype(phi)>>()) {
       phi.use_caching(false);
     }
-    static constexpr real_t min_tau_step          = 1e-8;
-    static constexpr real_t max_cond_overshoot    = 1e-6;
+    static constexpr real_t min_tau_step          = 1e-10;
+    static constexpr real_t max_cond_overshoot    = 1e-8;
     bool                    min_step_size_reached = false;
     static constexpr auto   split_sqr_cond        = SplitBehavior::sqr_cond;
     static constexpr auto   split_radii           = SplitBehavior::radii;
@@ -389,8 +389,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     auto const [eigvecs_S, eigvals_S]             = eigenvectors_sym(S());
     auto const B = eigvecs_S * diag(eigvals_S);  // current main axes
 
-    mat_t H, HHt, advected_nabla_phi, assembled_nabla_phi, advected_B;
-    mat_t ghosts_forward, ghosts_backward, prev_ghosts_forward,
+    mat_t H, HHt, advected_nabla_phi, assembled_nabla_phi, advected_B,
+        ghosts_forward, ghosts_backward, prev_ghosts_forward,
         prev_ghosts_backward;
     auto        advected_ellipse = ellipse_t{*this};
     auto        current_radii    = vec_t{};
@@ -435,13 +435,13 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
         } else {
           t_advected += step_size;
         }
-        auto const cur_tau = t_advected - t_prev;
+        auto const cur_stepwidth = t_advected - t_prev;
 
         // advect center and ghosts
         advected_ellipse.center() =
-            phi(advected_ellipse.center(), t_advected, cur_tau);
-        ghosts_forward  = phi(ghosts_forward, t_advected, cur_tau);
-        ghosts_backward = phi(ghosts_backward, t_advected, cur_tau);
+            phi(advected_ellipse.center(), t_advected, cur_stepwidth);
+        ghosts_forward  = phi(ghosts_forward, t_advected, cur_stepwidth);
+        ghosts_backward = phi(ghosts_backward, t_advected, cur_stepwidth);
 
         // make computations
         H          = (ghosts_forward - ghosts_backward) * half;
@@ -506,7 +506,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   }
   //----------------------------------------------------------------------------
   auto sampler() const {
-    return sampler_t{initial_ellipse(), *this, m_nabla_phi};
+    return sampler_type{initial_ellipse(), *this, m_nabla_phi};
   }
 };
 //==============================================================================
