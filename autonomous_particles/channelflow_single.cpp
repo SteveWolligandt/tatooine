@@ -8,16 +8,24 @@
 
 #include "parse_args.h"
 //==============================================================================
-using namespace tatooine;
+namespace tatooine::autonomous_particles {
+auto channel_flow_single(args_t);
+}  // namespace tatooine::autonomous_particles
 //==============================================================================
 auto main(int argc, char** argv) -> int {
+  auto args_opt = parse_args<3>(argc, argv);
+  if (!args_opt) {
+    return;
+  }
+  auto args = *args_opt;
+  tatooine::autonomous_particles::channel_flow_single(args);
+}
+//==============================================================================
+namespace tatooine::autonomous_particles {
+//==============================================================================
+auto channel_flow_single(args_t) {
   indeterminate_progress_bar([&](auto indicator) {
     indicator.set_text("Parsing Arguments");
-    auto args_opt = parse_args<3>(argc, argv);
-    if (!args_opt) {
-      return;
-    }
-    auto args = *args_opt;
 
     indicator.set_text("Opening File");
     auto channelflow_154_file =
@@ -29,7 +37,7 @@ auto main(int argc, char** argv) -> int {
     indicator.set_text("Reading Axes");
     channelflow_154_file.dataset<double>("CartGrid/axis0")
         .read(discrete_channelflow_domain.dimension<0>());
-    //discrete_channelflow_domain.dimension<0>().pop_back();
+    // discrete_channelflow_domain.dimension<0>().pop_back();
     channelflow_154_file.dataset<double>("CartGrid/axis1")
         .read(discrete_channelflow_domain.dimension<1>());
     discrete_channelflow_domain.push_back<1>();
@@ -43,25 +51,24 @@ auto main(int argc, char** argv) -> int {
       auto min_cell_extent = std::numeric_limits<real_t>::infinity();
       for (std::size_t i = 0; i < discrete_channelflow_domain.size<0>() - 1;
            ++i) {
-        min_cell_extent = gcem::min(
-            min_cell_extent,
-            discrete_channelflow_domain.extent_of_dimension<0>(i));
+        min_cell_extent =
+            gcem::min(min_cell_extent,
+                      discrete_channelflow_domain.extent_of_dimension<0>(i));
       }
       for (std::size_t i = 0; i < discrete_channelflow_domain.size<1>() - 1;
            ++i) {
-        min_cell_extent = gcem::min(
-            min_cell_extent,
-            discrete_channelflow_domain.extent_of_dimension<1>(i));
+        min_cell_extent =
+            gcem::min(min_cell_extent,
+                      discrete_channelflow_domain.extent_of_dimension<1>(i));
       }
       for (std::size_t i = 0; i < discrete_channelflow_domain.size<2>() - 1;
            ++i) {
-        min_cell_extent = gcem::min(
-            min_cell_extent,
-            discrete_channelflow_domain.extent_of_dimension<2>(i));
+        min_cell_extent =
+            gcem::min(min_cell_extent,
+                      discrete_channelflow_domain.extent_of_dimension<2>(i));
       }
       std::cout << "min cell extent: " << min_cell_extent << '\n';
       return;
-
     }
 
     indicator.set_text("Allocating data for velocity");
@@ -141,36 +148,12 @@ auto main(int argc, char** argv) -> int {
     phi.use_caching(false);
     //--------------------------------------------------------------------------
     indicator.set_text("Advecting autonomous particles");
-    auto const initial_part = autonomous_particle3{args.x0, args.t0, args.r0};
-    auto const [advected_particles, advected_simple_particles] = [&] {
-      switch (args.split_behavior) {
-          //  case split_behavior_t::two_splits:
-          //    return initial_part
-          //        .advect<autonomous_particle3::split_behaviors::two_splits>(
-          //            phi, args.step_width, args.tau);
-        default:
-        case split_behavior_t::three_splits:
-          return initial_part
-              .advect<autonomous_particle3::split_behaviors::three_splits>(
-                  phi, args.step_width, args.tau);
-          // case split_behavior_t::five_splits:
-          //   return initial_part
-          //       .advect<autonomous_particle3::split_behaviors::five_splits>(
-          //           phi, args.step_width, args.tau);
-          // case split_behavior_t::seven_splits:
-          //   return initial_part
-          //       .advect<autonomous_particle3::split_behaviors::seven_splits>(
-          //           phi, args.step_width, args.tau);
-          // case split_behavior_t::centered_four:
-          //   return initial_part
-          //       .advect<autonomous_particle3::split_behaviors::centered_four>(
-          //           phi, args.step_width, args.tau);
-      }
-    }();
+    auto const [advected_particles, advected_simple_particles] = advect(
+        autonomous_particle3{args.x0, args.t0, args.r0}, args.split_behavior);
     std::cerr << "number of advected particles: " << size(advected_particles)
               << '\n';
-    std::cerr << "number of advected simple particles: " << size(advected_simple_particles)
-              << '\n';
+    std::cerr << "number of advected simple particles: "
+              << size(advected_simple_particles) << '\n';
     //--------------------------------------------------------------------------
     indicator.set_text("Writing Autonomous Particles Results");
     auto all_advected_discretizations =
@@ -193,3 +176,6 @@ auto main(int argc, char** argv) -> int {
         .write_vtp("channelflow_simple_particles1.vtp");
   });
 }
+//==============================================================================
+}  // namespace tatooine::autonomous_particles
+//==============================================================================

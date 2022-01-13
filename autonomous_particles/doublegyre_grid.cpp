@@ -16,20 +16,34 @@
 #include "parse_args.h"
 //#include "write_ellipses.h"
 //==============================================================================
-using namespace tatooine;
+namespace tatooine::autonomous_particles {
+auto doublegyre_grid(args_t<2> const& args) -> void;
+using autonomous_particle_flowmap_discretization =
+    tatooine::autonomous_particle_flowmap_discretization<
+        real_t, 2,
+        autonomous_particle<real_t,
+                            2>::split_behaviors::three_splits>;
+}
 //==============================================================================
 auto main(int argc, char** argv) -> int {
+  using namespace tatooine::autonomous_particles;
+  auto args_opt = parse_args<2>(argc, argv);
+  if (!args_opt) {
+    return 1;
+  }
+  auto args = *args_opt;
+  doublegyre_grid(args);
+}
+//==============================================================================
+namespace tatooine::autonomous_particles {
+//==============================================================================
+auto doublegyre_grid(args_t<2> const& args) -> void {
   std::stringstream report;
   report << "==============================================================="
             "=================\n"
          << "REPORT\n"
          << "==============================================================="
             "=================\n";
-  auto args_opt = parse_args(argc, argv);
-  if (!args_opt) {
-    return 1;
-  }
-  auto args = *args_opt;
   report << "t0: " << args.t0 << '\n' << "tau: " << args.tau << '\n';
 
   auto v = analytical::fields::numerical::doublegyre{};
@@ -113,19 +127,19 @@ auto main(int argc, char** argv) -> int {
     auto num_particles_after_advection = size_t{};
     {
       auto autonomous_disc = [&] {
-        if (args.autonomous_particles_file) {
-          return autonomous_particle_flowmap_discretization2{
-              *args.autonomous_particles_file};
-        } else {
-          return autonomous_particle_flowmap_discretization2{
-              phi,
-              args.t0,
-              args.tau,
-              args.tau_step,
-              rectilinear_grid{linspace{0.0, 2.0, args.width + 1},
-                               linspace{0.0, 1.0, args.height + 1}},
-          };
-        }
+        //if (args.autonomous_particles_file) {
+        //  return autonomous_particle_flowmap_discretization{
+        //      *args.autonomous_particles_file};
+        //} else {
+        return autonomous_particle_flowmap_discretization{
+            phi,
+            args.t0,
+            args.tau,
+            args.step_width,
+            rectilinear_grid{linspace{0.0, 2.0, args.width + 1},
+                             linspace{0.0, 1.0, args.height + 1}},
+        };
+        //}
       }();
       indicator.set_text(
           "Resampling autonomous particle flow map discretization");
@@ -172,20 +186,20 @@ auto main(int argc, char** argv) -> int {
       indicator.set_text("Writing results");
       { sampler_check_grid.write("doublegyre_grid_errors.vtk"); }
       //----------------------------------------------------------------------------
-      //indicator.set_text("Writing Autonomous Particles Results");
-      //{
-      //  std::vector<line2> all_advected_discretizations;
-      //  std::vector<line2> all_initial_discretizations;
-      //  for (auto const& sampler : autonomous_disc.samplers()) {
-      //    all_initial_discretizations.push_back(
-      //        discretize(sampler.ellipse0(), 100));
-      //    all_advected_discretizations.push_back(
-      //        discretize(sampler.ellipse1(), 100));
-      //  }
-      //  write_vtk(all_initial_discretizations, "doublegyre_grid_ellipses0.vtk");
-      //  write_vtk(all_advected_discretizations,
-      //            "doublegyre_grid_ellipses1.vtk");
-      //}
+       indicator.set_text("Writing Autonomous Particles Results");
+      {
+        std::vector<line2> all_advected_discretizations;
+        std::vector<line2> all_initial_discretizations;
+        for (auto const& sampler : autonomous_disc.samplers()) {
+          all_initial_discretizations.push_back(
+              discretize(sampler.ellipse0(), 100));
+          all_advected_discretizations.push_back(
+              discretize(sampler.ellipse1(), 100));
+        }
+        write(all_initial_discretizations, "doublegyre_grid_ellipses0.vtk");
+        write(all_advected_discretizations,
+                  "doublegyre_grid_ellipses1.vtk");
+      }
     }
     //----------------------------------------------------------------------------
     indicator.set_text("Discretizing flow map regularly");
@@ -262,8 +276,8 @@ auto main(int argc, char** argv) -> int {
       {
         size_t i = 0;
         for (auto const& step : agranovsky_disc.steps()) {
-          step.backward_grid().write_vtk("agranovsky_backward_" +
-                                         std::to_string(i++) + ".vtk");
+          step.backward_grid().write("agranovsky_backward_" +
+                                     std::to_string(i++) + ".vtk");
         }
       }
       indicator.set_text("Resampling agranovksy flow map discretization");
@@ -410,3 +424,6 @@ auto main(int argc, char** argv) -> int {
   });
   std::cerr << report.str();
 }
+//==============================================================================
+}  // namespace tatooine::autonomous_particles
+//==============================================================================

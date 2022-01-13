@@ -1,15 +1,13 @@
-#ifndef TATOOINE_LINE_OPERATIONS_H
-#define TATOOINE_LINE_OPERATIONS_H
+#ifndef TATOOINE_DETAIL_LINE_OPERATIONS_H
+#define TATOOINE_DETAIL_LINE_OPERATIONS_H
 //==============================================================================
 #include <tatooine/line.h>
 //==============================================================================
-namespace tatooine {
-//==============================================================================
-namespace detail {
+namespace tatooine::detail::line {
 //==============================================================================
 template <typename T, typename Writer, typename Names, typename Lines>
-auto write_line_container_properties_to_vtk(Writer& writer, Names const& names,
-                                            Lines const& lines) -> void {
+auto write_container_properties_to_vtk(Writer& writer, Names const& names,
+                                       Lines const& lines) -> void {
   std::vector<T> prop_collector;
   for (auto const& [name_to_search, type_to_search] : names) {
     prop_collector.clear();
@@ -21,7 +19,7 @@ auto write_line_container_properties_to_vtk(Writer& writer, Names const& names,
           std::copy(begin(prop_data), end(prop_data),
                     std::back_inserter(prop_collector));
         } catch (...) {
-          for (size_t i = 0; i < l.vertices().size(); ++i) {
+          for (std::size_t i = 0; i < l.vertices().size(); ++i) {
             prop_collector.push_back(0.0 / 0.0);
           }
         }
@@ -32,20 +30,21 @@ auto write_line_container_properties_to_vtk(Writer& writer, Names const& names,
 }
 //------------------------------------------------------------------------------
 template <typename LineCont>
-void write_line_container_to_vtk(LineCont const& lines, std::string const& path,
-                                 std::string const& title) {
+void write_line_container_to_vtk(LineCont const&         lines,
+                                 filesystem::path const& path,
+                                 std::string const&      title) {
   vtk::legacy_file_writer writer(path, vtk::dataset_type::polydata);
   if (writer.is_open()) {
-    size_t num_pts = 0;
+    std::size_t num_pts = 0;
     for (const auto& l : lines) {
       num_pts += l.vertices().size();
     }
     std::vector<std::array<typename LineCont::value_type::real_t, 3>> points;
-    std::vector<std::vector<size_t>>                                  line_seqs;
+    std::vector<std::vector<std::size_t>>                             line_seqs;
     points.reserve(num_pts);
     line_seqs.reserve(lines.size());
 
-    size_t cur_first = 0;
+    std::size_t cur_first = 0;
     for (const auto& l : lines) {
       // add points
       for (const auto& v : l.vertices()) {
@@ -79,14 +78,13 @@ void write_line_container_to_vtk(LineCont const& lines, std::string const& path,
         names.insert(std::pair{name, &prop->type()});
       }
     }
-    write_line_container_properties_to_vtk<double>(writer, names, lines);
+    write_container_properties_to_vtk<double>(writer, names, lines);
     writer.close();
   }
 }
 //------------------------------------------------------------------------------
 template <typename Lines, typename MaxDist /*, typename MinAngle*/>
-auto merge_line_container(Lines   lines,
-                          MaxDist max_dist /*, MinAngle min_angle*/) {
+auto merge_container(Lines lines, MaxDist max_dist /*, MinAngle min_angle*/) {
   using line_t = typename std::decay_t<Lines>::value_type;
   std::list<line_t> merged;
   merged.emplace_back(std::move(lines.back()));
@@ -177,63 +175,109 @@ auto filter_length(range auto const& lines, arithmetic auto const length) {
   return filtered;
 }
 //==============================================================================
-}  // namespace detail
+}  // namespace tatooine::detail::line
 //==============================================================================
-template <typename Real, size_t N>
-void write_vtk(const std::vector<line<Real, N>>& lines, const std::string& path,
+namespace tatooine {
+//==============================================================================
+template <typename Real, std::size_t NumDimensions>
+void write_vtk(const std::vector<line<Real, NumDimensions>>& lines,
+               const filesystem::path&                       path,
                const std::string& title = "tatooine lines") {
-  detail::write_line_container_to_vtk(lines, path, title);
+  detail::line::write_line_container_to_vtk(lines, path, title);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Real, size_t N>
-void write_vtk(const std::list<line<Real, N>>& lines, const std::string& path,
+template <typename Real, std::size_t NumDimensions>
+void write_vtk(const std::list<line<Real, NumDimensions>>& lines,
+               const filesystem::path&                     path,
                const std::string& title = "tatooine lines") {
-  detail::write_line_container_to_vtk(lines, path, title);
+  detail::line::write_line_container_to_vtk(lines, path, title);
+}
+template <typename Real, std::size_t NumDimensions>
+void write(const std::vector<line<Real, NumDimensions>>& lines,
+           const filesystem::path&                       path,
+           const std::string& title = "tatooine lines") {
+  auto const ext = path.extension();
+  if constexpr (NumDimensions == 2 || NumDimensions == 3) {
+    if (ext == ".vtk") {
+      write_vtk(lines, path);
+      return;
+      //} else if (ext == ".vtp") {
+      //  write_vtp(lines, path);
+      //  return;
+    }
+  }
+  throw std::runtime_error("Could not write lines. Unknown file extension: \"" +
+                           ext.string() + "\".");
+}
+template <typename Real, std::size_t NumDimensions>
+void write(const std::list<line<Real, NumDimensions>>& lines,
+           const filesystem::path&                     path,
+           const std::string& title = "tatooine lines") {
+  auto const ext = path.extension();
+  if constexpr (NumDimensions == 2 || NumDimensions == 3) {
+    if (ext == ".vtk") {
+      write_vtk(lines, path);
+      return;
+      //} else if (ext == ".vtp") {
+      //  write_vtp(lines, path);
+      //  return;
+    }
+  }
+  throw std::runtime_error("Could not write lines. Unknown file extension: \"" +
+                           ext.string() + "\".");
+}
+
+//------------------------------------------------------------------------------
+template <typename Real, std::size_t NumDimensions, typename MaxDist>
+auto merge(const std::vector<line<Real, NumDimensions>>& lines,
+           MaxDist                                       max_dist) {
+  return detail::line::merge_container(lines, max_dist);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Real, std::size_t NumDimensions, typename MaxDist>
+auto merge(const std::list<line<Real, NumDimensions>>& lines,
+           MaxDist                                     max_dist) {
+  return detail::line::merge_container(lines, max_dist);
 }
 //------------------------------------------------------------------------------
-template <typename Real, size_t N, typename MaxDist>
-auto merge(const std::vector<line<Real, N>>& lines, MaxDist max_dist) {
-  return detail::merge_line_container(lines, max_dist);
+template <typename Real, std::size_t NumDimensions, typename MaxDist>
+auto filter_length(const std::vector<line<Real, NumDimensions>>& lines,
+                   MaxDist                                       max_dist) {
+  return detail::line::filter_length(lines, max_dist);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Real, size_t N, typename MaxDist>
-auto merge(const std::list<line<Real, N>>& lines, MaxDist max_dist) {
-  return detail::merge_line_container(lines, max_dist);
-}
-//------------------------------------------------------------------------------
-template <typename Real, size_t N, typename MaxDist>
-auto filter_length(const std::vector<line<Real, N>>& lines, MaxDist max_dist) {
-  return detail::filter_length(lines, max_dist);
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Real, size_t N, typename MaxDist>
-auto filter_length(const std::list<line<Real, N>>& lines, MaxDist max_dist) {
-  return detail::filter_length(lines, max_dist);
+template <typename Real, std::size_t NumDimensions, typename MaxDist>
+auto filter_length(const std::list<line<Real, NumDimensions>>& lines,
+                   MaxDist                                     max_dist) {
+  return detail::line::filter_length(lines, max_dist);
 }
 ////------------------------------------------------------------------------------
-//template <typename Real, size_t N,
-//          template <typename> typename InterpolationKernel>
-//void write_vtk(
-//    const std::vector<parameterized_line<Real, N, InterpolationKernel>>& lines,
-//    const std::string& path, const std::string& title = "tatooine lines") {
-//  detail::write_line_container_to_vtk(lines, path, title);
-//}
-//// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-//template <typename Real, size_t N,
-//          template <typename> typename InterpolationKernel>
-//void write_vtk(
-//    const std::list<parameterized_line<Real, N, InterpolationKernel>>& lines,
-//    const std::string& path, const std::string& title = "tatooine lines") {
-//  detail::write_line_container_to_vtk(lines, path, title);
-//}
+// template <typename Real, std::size_t NumDimensions,
+//           template <typename> typename InterpolationKernel>
+// void write_vtk(
+//     const std::vector<parameterized_line<Real, NumDimensions,
+//     InterpolationKernel>>& lines, const filesystem::path& path, const
+//     std::string& title = "tatooine lines") {
+//   detail::line::write_line_container_to_vtk(lines, path, title);
+// }
+//// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+///-
+// template <typename Real, std::size_t NumDimensions,
+//           template <typename> typename InterpolationKernel>
+// void write_vtk(
+//     const std::list<parameterized_line<Real, NumDimensions,
+//     InterpolationKernel>>& lines, const filesystem::path& path, const
+//     std::string& title = "tatooine lines") {
+//   detail::line::write_line_container_to_vtk(lines, path, title);
+// }
 //==============================================================================
 /// \brief      merge line strips
-template <typename Real, size_t N>
-auto merge(std::vector<line<Real, N>>& lines0,
-           std::vector<line<Real, N>>& lines1) -> void {
+template <typename Real, std::size_t NumDimensions>
+auto merge(std::vector<line<Real, NumDimensions>>& lines0,
+           std::vector<line<Real, NumDimensions>>& lines1) -> void {
   Real const eps = 1e-7;
   // move line1 pairs to line0 pairs
-  size_t const size_before = size(lines0);
+  std::size_t const size_before = size(lines0);
   lines0.resize(size(lines0) + size(lines1));
   std::move(begin(lines1), end(lines1), next(begin(lines0), size_before));
   lines1.clear();
@@ -244,7 +288,7 @@ auto merge(std::vector<line<Real, N>>& lines0,
       if (line0 != line1 && !line0->empty() && !line1->empty()) {
         // [line0front, ..., LINE0BACK] -> [LINE1FRONT, ..., line1back]
         if (approx_equal(line0->back_vertex(), line1->front_vertex(), eps)) {
-          for (size_t i = line0->vertices().size() - 2; i > 0; --i) {
+          for (std::size_t i = line0->vertices().size() - 2; i > 0; --i) {
             line1->push_front(line0->vertex_at(i));
           }
           line0->clear();
@@ -252,7 +296,7 @@ auto merge(std::vector<line<Real, N>>& lines0,
           // [line1front, ..., LINE1BACK] -> [LINE0FRONT, ..., line0back]
         } else if (approx_equal(line1->back_vertex(), line0->front_vertex(),
                                 eps)) {
-          for (size_t i = 1; i < line0->vertices().size(); ++i) {
+          for (std::size_t i = 1; i < line0->vertices().size(); ++i) {
             line1->push_back(line0->vertex_at(i));
           }
           line0->clear();
@@ -261,7 +305,7 @@ auto merge(std::vector<line<Real, N>>& lines0,
         } else if (approx_equal(line1->front_vertex(), line0->front_vertex(),
                                 eps)) {
           // -> [line1back, ..., LINE1FRONT] -> [LINE0FRONT, ..., line0back]
-          for (size_t i = line0->vertices().size() - 2; i > 0; --i) {
+          for (std::size_t i = line0->vertices().size() - 2; i > 0; --i) {
             line1->push_back(line0->vertex_at(i));
           }
           line0->clear();
@@ -270,7 +314,7 @@ auto merge(std::vector<line<Real, N>>& lines0,
         } else if (approx_equal(line0->back_vertex(), line1->back_vertex(),
                                 eps)) {
           // -> [line1front, ..., LINE1BACK] -> [LINE0BACK, ..., line0front]
-          for (size_t i = line0->vertices().size() - 2; i > 0; --i) {
+          for (std::size_t i = line0->vertices().size() - 2; i > 0; --i) {
             line1->push_back(line0->vertex_at(i));
           }
           line0->clear();
@@ -296,11 +340,11 @@ auto merge(std::vector<line<Real, N>>& lines0,
   }
 }
 //----------------------------------------------------------------------------
-template <typename Real, size_t N>
+template <typename Real, std::size_t NumDimensions>
 auto line_segments_to_line_strips(
-    std::vector<line<Real, N>> const& unmerged_lines) {
-  auto merged_lines =
-      std::vector<std::vector<line<Real, N>>>(unmerged_lines.size());
+    std::vector<line<Real, NumDimensions>> const& unmerged_lines) {
+  auto merged_lines = std::vector<std::vector<line<Real, NumDimensions>>>(
+      unmerged_lines.size());
 
   auto unmerged_it = begin(unmerged_lines);
   for (auto& merged_line : merged_lines) {
@@ -309,13 +353,13 @@ auto line_segments_to_line_strips(
   }
 
   auto num_merge_steps =
-      static_cast<size_t>(std::ceil(std::log2(unmerged_lines.size())));
+      static_cast<std::size_t>(std::ceil(std::log2(unmerged_lines.size())));
 
-  for (size_t i = 0; i < num_merge_steps; i++) {
-    size_t offset = std::pow(2, i);
+  for (std::size_t i = 0; i < num_merge_steps; i++) {
+    std::size_t offset = std::pow(2, i);
 
 #pragma omp parallel for
-    for (size_t j = 0; j < unmerged_lines.size(); j += offset * 2) {
+    for (std::size_t j = 0; j < unmerged_lines.size(); j += offset * 2) {
       auto left  = j;
       auto right = j + offset;
       if (right < unmerged_lines.size()) {
@@ -326,15 +370,15 @@ auto line_segments_to_line_strips(
   return merged_lines.front();
 }
 //------------------------------------------------------------------------------
-template <typename Real, size_t N>
-auto merge(std::vector<line<Real, N>> const& lines) {
-  std::vector<line<Real, N>> merged_lines;
+template <typename Real, std::size_t NumDimensions>
+auto merge(std::vector<line<Real, NumDimensions>> const& lines) {
+  std::vector<line<Real, NumDimensions>> merged_lines;
   if (!lines.empty()) {
     auto line_strips = line_segments_to_line_strips(lines);
 
     for (const auto& line_strip : line_strips) {
       merged_lines.emplace_back();
-      for (size_t i = 0; i < line_strip.vertices().size() - 1; i++) {
+      for (std::size_t i = 0; i < line_strip.vertices().size() - 1; i++) {
         merged_lines.back().push_back(line_strip.vertex_at(i));
       }
       if (&line_strip.front_vertex() == &line_strip.back_vertex()) {
@@ -354,8 +398,8 @@ auto intersections(const std::vector<line<Real, 2>>& lines0,
   std::vector<vec<Real, 2>> xs;
   for (auto const& l0 : lines0) {
     for (auto const& l1 : lines1) {
-      for (size_t i = 0; i < l0.vertices().size() - 1; ++i) {
-        for (size_t j = 0; j < l1.vertices().size() - 1; ++j) {
+      for (std::size_t i = 0; i < l0.vertices().size() - 1; ++i) {
+        for (std::size_t j = 0; j < l1.vertices().size() - 1; ++j) {
           auto const& p0  = l0.vertex_at(i);
           auto const& p1  = l0.vertex_at(i + 1);
           auto const& p2  = l1.vertex_at(j);

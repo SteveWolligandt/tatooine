@@ -2052,8 +2052,10 @@ class rectilinear_grid {
           "axis" + std::to_string(Is);
       auto dim = f.create_dataset<dim_type>(
           "rectilinear_grid/axis" + std::to_string(Is), size<Is>());
-      dim.write(std::vector<dim_type>(begin(dimension<Is>()),
-                                      end(dimension<Is>())));
+      auto dim_as_vec = std::vector<dim_type>{};
+      dim_as_vec.reserve(dimension<Is>().size());
+      std::ranges::copy(dimension<Is>(), std::back_inserter(dim_as_vec));
+      dim.write(dim_as_vec);
     }(), ...);
 
     for (const auto& [name, prop] : this->m_vertex_properties) {

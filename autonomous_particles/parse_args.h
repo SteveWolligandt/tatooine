@@ -7,27 +7,21 @@
 #include <tatooine/vec.h>
 #include <boost/program_options.hpp>
 #include <iostream>
+#include "split_behavior.h"
 //==============================================================================
-enum class split_behavior_t {
-  two_splits,
-  three_splits,
-  five_splits,
-  seven_splits,
-  centered_four,
-  unknown
-};
+namespace tatooine::autonomous_particles {
 //==============================================================================
 template <std::size_t N>
 struct args_t {
   size_t width, height, depth, num_splits, max_num_particles, output_res_x,
       output_res_y, output_res_z;
-  double t0, tau, r0, agranovsky_delta_t, step_width;
+  double           t0, tau, r0, agranovsky_delta_t, step_width;
   tatooine::Vec<N> x0;
-  bool write_ellipses_to_netcdf;
-  bool show_dimensions;
+  bool             write_ellipses_to_netcdf;
+  bool             show_dimensions;
   std::optional<tatooine::filesystem::path> autonomous_particles_file,
       velocity_file;
-  split_behavior_t split_behavior; 
+  split_behavior_t split_behavior;
 };
 //------------------------------------------------------------------------------
 template <std::size_t N>
@@ -37,14 +31,14 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t<N>> {
   size_t width = 10, height = 10, depth = 10, num_splits = 3,
          max_num_particles = 500000, output_res_x = 200, output_res_y = 100,
          output_res_z = 100;
-  double t0 = 0, tau = 2, r0 = 0.01,
-         agranovsky_delta_t      = 0.1, step_width = 0.01;
+  double t0 = 0, tau = 2, r0 = 0.01, agranovsky_delta_t = 0.1,
+         step_width              = 0.01;
   auto x0                        = tatooine::Vec<N>{};
   bool write_ellipses            = true;
   bool show_dimensions           = false;
   auto autonomous_particles_file = std::optional<tatooine::filesystem::path>{};
   auto velocity_file             = std::optional<tatooine::filesystem::path>{};
-  auto split_behavior                = split_behavior_t::three_splits;
+  auto split_behavior            = split_behavior_t::three_splits;
   // Declare the supported options.
   auto desc = po::options_description{"Allowed options"};
   desc.add_options()("help", "produce help message")(
@@ -187,8 +181,7 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t<N>> {
   }
   if (variables_map.count("step_width") > 0) {
     step_width = variables_map["step_width"].as<double>();
-    std::cout << "specified step_width = " << step_width
-              << '\n';
+    std::cout << "specified step_width = " << step_width << '\n';
   } else {
     std::cout << "default step width = " << tau << '\n';
   }
@@ -234,12 +227,13 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t<N>> {
                 write_ellipses,
                 show_dimensions,
                 autonomous_particles_file,
-                velocity_file, split_behavior};
+                velocity_file,
+                split_behavior};
 }
 #include <boost/algorithm/string.hpp>
 
 auto operator>>(std::istream& in, split_behavior_t& algorithm) -> auto& {
-  auto token = std::string {};
+  auto token = std::string{};
   in >> token;
 
   boost::to_upper(token);
@@ -250,6 +244,9 @@ auto operator>>(std::istream& in, split_behavior_t& algorithm) -> auto& {
   } else if (token == "THREE_SPLITS") {
     algorithm = split_behavior_t::three_splits;
     std::cout << "three splits\n";
+  } else if (token == "THREE_IN_SQUARE_SPLITS") {
+    algorithm = split_behavior_t::three_in_square_splits;
+    std::cout << "three in square splits\n";
   } else if (token == "FIVE_SPLITS") {
     algorithm = split_behavior_t::five_splits;
     std::cout << "five splits\n";
@@ -265,4 +262,5 @@ auto operator>>(std::istream& in, split_behavior_t& algorithm) -> auto& {
 
   return in;
 }
+}  // namespace tatooine::autonomous_particles
 #endif

@@ -33,7 +33,6 @@ struct vertex_property_sampler;
 //============================================================================
 template <typename Real, std::size_t NumDimensions>
 struct line {
-  struct empty_exception : std::exception {};
   //============================================================================
   using this_t          = line<Real, NumDimensions>;
   using real_t          = Real;
@@ -870,6 +869,6 @@ std::vector<line<Real, NumDimensions>> line<Real, NumDimensions>::filter(Pred&& 
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-#include <tatooine/line_operations.h>
+#include <tatooine/detail/line/operations.h>
 #include <tatooine/detail/line/vertex_property_sampler.h>
 #endif

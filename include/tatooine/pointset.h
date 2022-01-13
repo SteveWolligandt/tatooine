@@ -14,8 +14,8 @@
 #include <tatooine/property.h>
 #include <tatooine/tensor.h>
 #include <tatooine/type_traits.h>
-#include <tatooine/vtk_legacy.h>
 #include <tatooine/vtk/xml/data_array.h>
+#include <tatooine/vtk_legacy.h>
 
 #include <fstream>
 #include <limits>
@@ -25,20 +25,20 @@
 namespace tatooine {
 //==============================================================================
 namespace detail::pointset {
-template <typename Real, size_t NumDimensions, typename T>
+template <typename Real, std::size_t NumDimensions, typename T>
 struct moving_least_squares_sampler;
 //==============================================================================
-template <typename Real, size_t NumDimensions, typename T>
+template <typename Real, std::size_t NumDimensions, typename T>
 struct inverse_distance_weighting_sampler;
 //==============================================================================
 template <typename Real, std::size_t NumDimensions>
 struct vertex_container;
 }  // namespace detail::pointset
 //==============================================================================
-template <typename Real, size_t NumDimensions>
+template <typename Real, std::size_t NumDimensions>
 struct pointset {
-  // static constexpr size_t triangle_dims = 2;
-  // static constexpr size_t tetgen_dims = 3;
+  // static constexpr std::size_t triangle_dims = 2;
+  // static constexpr std::size_t tetgen_dims = 3;
   static constexpr auto num_dimensions() { return NumDimensions; }
   using real_t = Real;
   using this_t = pointset<Real, NumDimensions>;
@@ -140,10 +140,10 @@ struct pointset {
  public:
   auto at(vertex_handle const v) -> auto& {
     return vertex_position_data()[v.index()];
-   }
-   auto at(vertex_handle const v) const -> auto const& {
-     return vertex_position_data()[v.index()];
-   }
+  }
+  auto at(vertex_handle const v) const -> auto const& {
+    return vertex_position_data()[v.index()];
+  }
   //----------------------------------------------------------------------------
   auto vertex_at(vertex_handle const v) -> auto& {
     return vertex_position_data()[v.index()];
@@ -152,8 +152,8 @@ struct pointset {
     return vertex_position_data()[v.index()];
   }
   //----------------------------------------------------------------------------
-  auto vertex_at(size_t const i) -> auto& { return vertex_position_data()[i]; }
-  auto vertex_at(size_t const i) const -> auto const& {
+  auto vertex_at(std::size_t const i) -> auto& { return vertex_position_data()[i]; }
+  auto vertex_at(std::size_t const i) const -> auto const& {
     return vertex_position_data()[i];
   }
   //----------------------------------------------------------------------------
@@ -162,7 +162,7 @@ struct pointset {
   //----------------------------------------------------------------------------
   auto vertices() const { return vertex_container{this}; }
   //----------------------------------------------------------------------------
-protected:
+ protected:
   auto vertex_position_data() -> auto& { return m_vertex_position_data; }
   auto vertex_position_data() const -> auto const& {
     return m_vertex_position_data;
@@ -246,7 +246,7 @@ protected:
     return duplicates;
   }
   //----------------------------------------------------------------------------
-  auto resize(size_t const s) {
+  auto resize(std::size_t const s) {
     vertex_position_data().resize(s);
     for (auto& [key, prop] : vertex_properties()) {
       prop->resize(s);
@@ -259,10 +259,10 @@ protected:
   //  requires (NumDimensions == triangle_dims>>
   //  auto to_triangle_io() const {
   //    triangle::io in;
-  //    size_t       i    = 0;
+  //    std::size_t       i    = 0;
   //    in.pointlist      = new triangle::Real[in.numberofpoints *
   //    triangle_dims]; for (auto v : vertices()) {
-  //      for (size_t j = 0; j < triangle_dims; ++j) {
+  //      for (std::size_t j = 0; j < triangle_dims; ++j) {
   //        in.pointlist[i++] = at(v)(j);
   //      }
   //    }
@@ -275,11 +275,11 @@ protected:
   //  requires (NumDimensions == triangle_dims)
   //  auto to_triangle_io(vertex_cont_t const& vertices) const {
   //    triangle::io in;
-  //    size_t       i    = 0;
+  //    std::size_t       i    = 0;
   //    in.numberofpoints = vertices().size();
   //    in.pointlist      = new triangle::Real[in.numberofpoints *
   //    triangle_dims]; for (auto v : vertices()) {
-  //      for (size_t j = 0; j < triangle_dims; ++j) {
+  //      for (std::size_t j = 0; j < triangle_dims; ++j) {
   //        in.pointlist[i++] = at(v)(j);
   //      }
   //    }
@@ -292,7 +292,7 @@ protected:
   // template <typename = void>
   // requires (NumDimensions == tetgen_dims)
   // void to_tetgen_io(tetgenio& in) const {
-  //   size_t i           = 0;
+  //   std::size_t i           = 0;
   //   in.numberofpoints  = vertices().size();
   //   in.pointlist       = new tetgen::Real[in.numberofpoints * tetgen_dims];
   //   in.pointmarkerlist = new int[in.numberofpoints];
@@ -300,7 +300,7 @@ protected:
   //   in.pointattributelist =
   //       new tetgen::Real[in.numberofpoints * in.numberofpointattributes];
   //   for (auto v : vertices()) {
-  //     for (size_t j = 0; j < tetgen_dims; ++j) {
+  //     for (std::size_t j = 0; j < tetgen_dims; ++j) {
   //       in.pointlist[i * 3 + j] = at(v)(j);
   //     }
   //     in.pointmarkerlist[i]    = i;
@@ -314,7 +314,7 @@ protected:
   // template <typename vertex_cont_t>
   // auto to_tetgen_io(vertex_cont_t const& vertices) const {
   //   tetgenio io;
-  //   size_t       i    = 0;
+  //   std::size_t       i    = 0;
   //   io.numberofpoints = vertices.size();
   //   io.pointlist      = new tetgen_real_t[io.numberofpoints * 3];
   //   for (auto v : vertices) {
@@ -470,38 +470,51 @@ protected:
     return insert_vertex_property<mat4>(name, value);
   }
   //----------------------------------------------------------------------------
-  auto write(filesystem::path const& path) {
+  auto write(filesystem::path const& path) const {
+    auto const ext = path.extension();
     if constexpr (NumDimensions == 2 || NumDimensions == 3) {
-      if (path.extension() == ".vtk") {
+      if (ext == ".vtk") {
         write_vtk(path);
-      } else if (path.extension() == ".vtp") {
+        return;
+      } else if (ext == ".vtp") {
         write_vtp(path);
+        return;
       }
     }
+    throw std::runtime_error(
+        "Could not write pointset. Unknown file extension: \"" + ext.string() +
+        "\".");
   }
   //----------------------------------------------------------------------------
   auto write_vtk(filesystem::path const& path,
-                 std::string const&      title = "Tatooine pointset")
+                 std::string const&      title = "Tatooine pointset") const
       -> void requires(NumDimensions == 3 || NumDimensions == 2) {
+    using namespace std::ranges;
     vtk::legacy_file_writer writer(path, vtk::dataset_type::polydata);
     if (writer.is_open()) {
       writer.set_title(title);
       writer.write_header();
-      std::vector<std::array<Real, 3>> points;
-      std::vector<std::vector<size_t>> vertex_indices;
-      vertex_indices.emplace_back();
-      points.reserve(vertex_position_data().size());
-      size_t i = 0;
-      for (auto const& p : vertex_position_data()) {
-        if constexpr (NumDimensions == 3) {
-          points.push_back({p(0), p(1), p(2)});
-        } else {
-          points.push_back({p(0), p(1), 0});
-        }
-        vertex_indices.back().push_back(i++);
+
+      if constexpr (NumDimensions == 2) {
+        auto three_dims = [](vec<Real, 2> const& v2) {
+          return vec<Real, 3>{v2(0), v2(1), 0};
+        };
+        std::vector<vec<Real, 3>> v3s(vertices().size());
+        auto three_dimensional = views::transform(three_dims);
+        copy(vertex_position_data() | three_dimensional, begin(v3s));
+        writer.write_points(v3s);
+
+      } else if constexpr (NumDimensions == 3) {
+        writer.write_points(vertex_position_data());
       }
+
+      auto vertex_indices = std::vector<std::vector<std::size_t>>(
+          1, std::vector<std::size_t>(vertices().size()));
+      copy(views::iota(std::size_t(0), vertices().size()),
+           vertex_indices.front().begin());
+      writer.write_vertices(vertex_indices);
       if (!vertex_properties().empty()) {
-        writer.write_point_data(points.size());
+        writer.write_point_data(vertices().size());
       }
 
       for (auto const& [name, prop] : vertex_properties()) {
@@ -537,113 +550,116 @@ protected:
       writer.close();
     }
   }
-  auto write_vtp(filesystem::path const& path) {
+  //----------------------------------------------------------------------------
+  auto write_vtp(filesystem::path const& path) const {
     auto file = std::ofstream{path, std::ios::binary};
     if (!file.is_open()) {
       throw std::runtime_error{"Could not write " + path.string()};
     }
+    // tidy_up();
     auto offset                    = std::size_t{};
     using header_type              = std::uint64_t;
-    using verts_connectivity_int_t = std::int32_t;
+    using verts_connectivity_int_t = std::int64_t;
     using verts_offset_int_t       = verts_connectivity_int_t;
+    auto const num_bytes_points =
+        header_type(sizeof(Real) * 3 * vertices().size());
+    auto const num_bytes_verts_connectivity = vertices().size() *
+                                              sizeof(verts_connectivity_int_t);
+    auto const num_bytes_verts_offsets =
+        sizeof(verts_offset_int_t) * vertices().size();
     file << "<VTKFile"
          << " type=\"PolyData\""
-         << " version=\"1.0\" "
-            "byte_order=\"LittleEndian\""
+         << " version=\"1.0\""
+         << " byte_order=\"LittleEndian\""
          << " header_type=\""
          << vtk::xml::data_array::to_string(
                 vtk::xml::data_array::to_type<header_type>())
-         << "\">";
-    file << "<PolyData>\n";
-    file << "<Piece"
+         << "\">\n"
+         << "<PolyData>\n"
+         << "<Piece"
          << " NumberOfPoints=\"" << vertices().size() << "\""
          << " NumberOfPolys=\"0\""
          << " NumberOfVerts=\"" << vertices().size() << "\""
          << " NumberOfLines=\"0\""
          << " NumberOfStrips=\"0\""
-         << ">\n";
-
-    // Points
-    file << "<Points>";
-    file << "<DataArray"
+         << ">\n"
+         // Points
+         << "<Points>"
+         << "<DataArray"
          << " format=\"appended\""
          << " offset=\"" << offset << "\""
          << " type=\""
          << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<real_t>())
-         << "\" NumberOfComponents=\"" << num_dimensions() << "\"/>";
-    auto const num_bytes_points =
-        header_type(sizeof(real_t) * num_dimensions() *
-                    vertices().data_container().size());
+                vtk::xml::data_array::to_type<Real>())
+         << "\" NumberOfComponents=\"3\"/>"
+         << "</Points>\n";
     offset += num_bytes_points + sizeof(header_type);
-    file << "</Points>\n";
-
     // Verts
-    file << "<Verts>\n";
-    // Verts - connectivity
-    file << "<DataArray format=\"appended\" offset=\"" << offset
-         << "\" type=\""
+    file << "<Verts>\n"
+         // Verts - connectivity
+         << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
          << vtk::xml::data_array::to_string(
                 vtk::xml::data_array::to_type<verts_connectivity_int_t>())
          << "\" Name=\"connectivity\"/>\n";
-    auto const num_bytes_verts_connectivity =
-        vertices().size() *
-        sizeof(verts_connectivity_int_t);
     offset += num_bytes_verts_connectivity + sizeof(header_type);
-
     // Verts - offsets
-    file << "<DataArray format=\"appended\" offset=\"" << offset
-         << "\" type=\""
+    file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
          << vtk::xml::data_array::to_string(
                 vtk::xml::data_array::to_type<verts_offset_int_t>())
          << "\" Name=\"offsets\"/>\n";
-    auto const num_bytes_verts_offsets =
-        sizeof(verts_offset_int_t) * vertices().size();
     offset += num_bytes_verts_offsets + sizeof(header_type);
-    file << "</Verts>\n";
-    file << "</Piece>\n\n";
-    file << "</PolyData>\n";
-
-    file << "<AppendedData encoding=\"raw\">_";
+    file << "</Verts>\n"
+         << "</Piece>\n"
+         << "</PolyData>\n"
+         << "<AppendedData encoding=\"raw\">\n_";
     // Writing vertex data to appended data section
-    auto arr_size = header_type{};
 
-    arr_size     = header_type(sizeof(real_t) * num_dimensions() *
-                               vertices().data_container().size());
-    file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
-    file.write(reinterpret_cast<char const*>(vertices().data()), arr_size);
+    using namespace std::ranges;
+    {
+      file.write(reinterpret_cast<char const*>(&num_bytes_points),
+                 sizeof(header_type));
+      if constexpr (NumDimensions == 2) {
+        auto point_data      = std::vector<vec<Real, 3>>(vertices().size());
+        auto position        = [this](auto const v) -> auto& { return at(v); };
+        constexpr auto to_3d = [](auto const& p) {
+          return vec{p.x(), p.y(), Real(0)};
+        };
+        copy(vertices() | views::transform(position) | views::transform(to_3d),
+             begin(point_data));
+        file.write(reinterpret_cast<char const*>(point_data.data()),
+                   num_bytes_points);
+      } else if constexpr (NumDimensions == 3) {
+        file.write(reinterpret_cast<char const*>(vertices().data()),
+                   num_bytes_points);
+      }
+    }
 
     // Writing verts connectivity data to appended data section
     {
       auto connectivity_data = std::vector<verts_connectivity_int_t>(
           vertices().size());
-      std::ranges::copy(
-          vertices() | std::views::transform(
-                           [](auto const x) -> verts_connectivity_int_t {
-                             return x.index();
-                           }),
-          begin(connectivity_data));
-      arr_size = vertices().size() *
-                 sizeof(verts_connectivity_int_t);
-      file.write(reinterpret_cast<char const*>(&arr_size),
+      copy(views::iota(0, vertices().size()),
+           begin(connectivity_data));
+      file.write(reinterpret_cast<char const*>(&num_bytes_verts_connectivity),
                  sizeof(header_type));
       file.write(reinterpret_cast<char const*>(connectivity_data.data()),
-                 arr_size);
+                 num_bytes_verts_connectivity);
     }
 
     // Writing verts offsets to appended data section
     {
-      auto offsets = std::vector<verts_offset_int_t>(vertices().size(), 1);
+      auto offsets = std::vector<verts_offset_int_t>(
+          vertices().size(), 1);
       for (std::size_t i = 1; i < size(offsets); ++i) {
         offsets[i] += offsets[i - 1];
-      }
-      arr_size = sizeof(verts_offset_int_t) * vertices().size();
-      file.write(reinterpret_cast<char const*>(&arr_size),
+      };
+      file.write(reinterpret_cast<char const*>(&num_bytes_verts_offsets),
                  sizeof(header_type));
-      file.write(reinterpret_cast<char const*>(offsets.data()), arr_size);
+      file.write(reinterpret_cast<char const*>(offsets.data()),
+                 num_bytes_verts_offsets);
     }
-    file << "</AppendedData>";
-    file << "</VTKFile>";
+    file << "\n</AppendedData>\n"
+         << "</VTKFile>";
   }
 #if TATOOINE_FLANN_AVAILABLE
   auto rebuild_kd_tree() {
@@ -672,12 +688,12 @@ protected:
     std::vector<std::vector<Real>> distances;
     flann::SearchParams            params;
     kd_tree().knnSearch(qm, indices, distances, 1, params);
-    return vertex_handle{static_cast<size_t>(indices.front().front())};
+    return vertex_handle{static_cast<std::size_t>(indices.front().front())};
   }
   //----------------------------------------------------------------------------
   /// Takes the raw output indices of flann without converting them into vertex
   /// handles.
-  auto nearest_neighbors_raw(pos_t const& x, size_t const num_nearest_neighbors,
+  auto nearest_neighbors_raw(pos_t const& x, std::size_t const num_nearest_neighbors,
                              flann::SearchParams const params = {}) const {
     auto qm  = flann::Matrix<Real>{const_cast<Real*>(x.data_ptr()), 1,
                                   num_dimensions()};
@@ -689,7 +705,7 @@ protected:
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto nearest_neighbors(pos_t const& x,
-                         size_t const num_nearest_neighbors) const {
+                         std::size_t const num_nearest_neighbors) const {
     auto const [indices, distances] =
         nearest_neighbors_raw(x, num_nearest_neighbors);
     auto handles = std::vector<std::vector<vertex_handle>>{};
@@ -697,7 +713,7 @@ protected:
     // TODO make it work
     // for (auto const& i : indices) {
     //
-    //  handles.emplace_back(static_cast<size_t>(i));
+    //  handles.emplace_back(static_cast<std::size_t>(i));
     //}
     return handles;
   }
@@ -720,7 +736,7 @@ protected:
     std::vector<vertex_handle> handles;
     handles.reserve(size(indices));
     for (auto const i : indices) {
-      handles.emplace_back(static_cast<size_t>(i));
+      handles.emplace_back(static_cast<std::size_t>(i));
     }
     return handles;
   }
@@ -828,7 +844,7 @@ struct vertex_container {
   auto at(vertex_handle_t const i) { return m_pointset->at(i); }
 };
 //============================================================================
-template <typename Real, size_t NumDimensions, typename T>
+template <typename Real, std::size_t NumDimensions, typename T>
 struct inverse_distance_weighting_sampler
     : field<inverse_distance_weighting_sampler<Real, NumDimensions, T>, Real,
             NumDimensions, T> {
@@ -973,15 +989,15 @@ struct moving_least_squares_sampler<Real, 2, T>
       return 1 / d - 1 / m_radius;
       // return std::exp(-d * d);
     };
-    for (size_t i = 0; i < num_neighbors; ++i) {
+    for (std::size_t i = 0; i < num_neighbors; ++i) {
       w(i) = weighting_function(distances[i]);
     }
     // build F
-    for (size_t i = 0; i < num_neighbors; ++i) {
+    for (std::size_t i = 0; i < num_neighbors; ++i) {
       if constexpr (num_components<T> == 1) {
         F(i) = m_property[vertex_handle{indices[i]}];
       } else {
-        for (size_t j = 0; j < num_components<T>; ++j) {
+        for (std::size_t j = 0; j < num_components<T>; ++j) {
           F(i, j) = m_property[vertex_handle{indices[i]}](j);
         }
       }
@@ -989,46 +1005,46 @@ struct moving_least_squares_sampler<Real, 2, T>
     // build B
     // linear terms of polynomial
     if (num_neighbors >= 3) {
-      for (size_t i = 0; i < num_neighbors; ++i) {
+      for (std::size_t i = 0; i < num_neighbors; ++i) {
         B(i, 1) = m_pointset.vertex_at(indices[i]).x() - q.x();
       }
-      for (size_t i = 0; i < num_neighbors; ++i) {
+      for (std::size_t i = 0; i < num_neighbors; ++i) {
         B(i, 2) = m_pointset.vertex_at(indices[i]).y() - q.y();
       }
     }
     // quadratic terms of polynomial
     if (num_neighbors >= 6) {
-      for (size_t i = 0; i < num_neighbors; ++i) {
+      for (std::size_t i = 0; i < num_neighbors; ++i) {
         B(i, 3) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
                   (m_pointset.vertex_at(indices[i]).x() - q.x());
       }
-      for (size_t i = 0; i < num_neighbors; ++i) {
+      for (std::size_t i = 0; i < num_neighbors; ++i) {
         B(i, 4) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
                   (m_pointset.vertex_at(indices[i]).y() - q.y());
       }
-      for (size_t i = 0; i < num_neighbors; ++i) {
+      for (std::size_t i = 0; i < num_neighbors; ++i) {
         B(i, 5) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
                   (m_pointset.vertex_at(indices[i]).y() - q.y());
       }
     }
     // cubic terms of polynomial
     if (num_neighbors >= 10) {
-      for (size_t i = 0; i < num_neighbors; ++i) {
+      for (std::size_t i = 0; i < num_neighbors; ++i) {
         B(i, 6) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
                   (m_pointset.vertex_at(indices[i]).x() - q.x()) *
                   (m_pointset.vertex_at(indices[i]).x() - q.x());
       }
-      for (size_t i = 0; i < num_neighbors; ++i) {
+      for (std::size_t i = 0; i < num_neighbors; ++i) {
         B(i, 7) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
                   (m_pointset.vertex_at(indices[i]).x() - q.x()) *
                   (m_pointset.vertex_at(indices[i]).y() - q.y());
       }
-      for (size_t i = 0; i < num_neighbors; ++i) {
+      for (std::size_t i = 0; i < num_neighbors; ++i) {
         B(i, 8) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
                   (m_pointset.vertex_at(indices[i]).y() - q.y()) *
                   (m_pointset.vertex_at(indices[i]).y() - q.y());
       }
-      for (size_t i = 0; i < num_neighbors; ++i) {
+      for (std::size_t i = 0; i < num_neighbors; ++i) {
         B(i, 9) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
                   (m_pointset.vertex_at(indices[i]).y() - q.y()) *
                   (m_pointset.vertex_at(indices[i]).y() - q.y());
@@ -1041,7 +1057,7 @@ struct moving_least_squares_sampler<Real, 2, T>
     } else {
       T    ret{};
       auto C = solve(BtW * B, BtW * F);
-      for (size_t i = 0; i < num_components<T>; ++i) {
+      for (std::size_t i = 0; i < num_components<T>; ++i) {
         ret(i) = C(0, i);
       }
       return ret;
@@ -1115,7 +1131,7 @@ struct moving_least_squares_sampler<Real, 3, T>
       return tensor<Real>::ones(1, 1);
     }();
     // build w
-    for (size_t i = 0; i < num_neighbors; ++i) {
+    for (std::size_t i = 0; i < num_neighbors; ++i) {
       // if (distances[i] == 0) {
       //  return m_property[vertex_handle{indices[i]}];
       //}
@@ -1123,11 +1139,11 @@ struct moving_least_squares_sampler<Real, 3, T>
       w(i) = std::exp(-(m_radius - distances[i]) * (m_radius - distances[i]));
     }
     // build f
-    for (size_t i = 0; i < num_neighbors; ++i) {
+    for (std::size_t i = 0; i < num_neighbors; ++i) {
       if constexpr (num_components<T> == 1) {
         F(i, 0) = m_property[vertex_handle{indices[i]}];
       } else {
-        for (size_t j = 0; j < num_components<T>; ++j) {
+        for (std::size_t j = 0; j < num_components<T>; ++j) {
           F(i, j) = m_property[vertex_handle{indices[i]}](j);
         }
       }
@@ -1135,91 +1151,91 @@ struct moving_least_squares_sampler<Real, 3, T>
     // build B
     // linear terms of polynomial
     if (num_neighbors >= 4) {
-      for (size_t i = 0; i < num_neighbors; ++i) {
+      for (std::size_t i = 0; i < num_neighbors; ++i) {
         B(i, 1) = m_pointset.vertex_at(indices[i]).x() - q.x();
       }
-      for (size_t i = 0; i < num_neighbors; ++i) {
+      for (std::size_t i = 0; i < num_neighbors; ++i) {
         B(i, 2) = m_pointset.vertex_at(indices[i]).y() - q.y();
       }
-      for (size_t i = 0; i < num_neighbors; ++i) {
+      for (std::size_t i = 0; i < num_neighbors; ++i) {
         B(i, 3) = m_pointset.vertex_at(indices[i]).z() - q.z();
       }
     }
     // quadratic terms of polynomial
     if (num_neighbors >= 10) {
-      for (size_t i = 0; i < num_neighbors; ++i) {
+      for (std::size_t i = 0; i < num_neighbors; ++i) {
         B(i, 4) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
                   (m_pointset.vertex_at(indices[i]).x() - q.x());
       }
-      for (size_t i = 0; i < num_neighbors; ++i) {
+      for (std::size_t i = 0; i < num_neighbors; ++i) {
         B(i, 5) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
                   (m_pointset.vertex_at(indices[i]).y() - q.y());
       }
-      for (size_t i = 0; i < num_neighbors; ++i) {
+      for (std::size_t i = 0; i < num_neighbors; ++i) {
         B(i, 6) = (m_pointset.vertex_at(indices[i]).z() - q.z()) *
                   (m_pointset.vertex_at(indices[i]).z() - q.z());
       }
-      for (size_t i = 0; i < num_neighbors; ++i) {
+      for (std::size_t i = 0; i < num_neighbors; ++i) {
         B(i, 7) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
                   (m_pointset.vertex_at(indices[i]).y() - q.y());
       }
-      for (size_t i = 0; i < num_neighbors; ++i) {
+      for (std::size_t i = 0; i < num_neighbors; ++i) {
         B(i, 8) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
                   (m_pointset.vertex_at(indices[i]).z() - q.z());
       }
-      for (size_t i = 0; i < num_neighbors; ++i) {
+      for (std::size_t i = 0; i < num_neighbors; ++i) {
         B(i, 9) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
                   (m_pointset.vertex_at(indices[i]).z() - q.z());
       }
     }
     // cubic terms of polynomial
     if (num_neighbors >= 20) {
-      for (size_t i = 0; i < num_neighbors; ++i) {
+      for (std::size_t i = 0; i < num_neighbors; ++i) {
         B(i, 10) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
                    (m_pointset.vertex_at(indices[i]).x() - q.x()) *
                    (m_pointset.vertex_at(indices[i]).x() - q.x());
       }
-      for (size_t i = 0; i < num_neighbors; ++i) {
+      for (std::size_t i = 0; i < num_neighbors; ++i) {
         B(i, 11) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
                    (m_pointset.vertex_at(indices[i]).y() - q.y()) *
                    (m_pointset.vertex_at(indices[i]).y() - q.y());
       }
-      for (size_t i = 0; i < num_neighbors; ++i) {
+      for (std::size_t i = 0; i < num_neighbors; ++i) {
         B(i, 12) = (m_pointset.vertex_at(indices[i]).z() - q.z()) *
                    (m_pointset.vertex_at(indices[i]).z() - q.z()) *
                    (m_pointset.vertex_at(indices[i]).z() - q.z());
       }
-      for (size_t i = 0; i < num_neighbors; ++i) {
+      for (std::size_t i = 0; i < num_neighbors; ++i) {
         B(i, 13) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
                    (m_pointset.vertex_at(indices[i]).x() - q.x()) *
                    (m_pointset.vertex_at(indices[i]).y() - q.y());
       }
-      for (size_t i = 0; i < num_neighbors; ++i) {
+      for (std::size_t i = 0; i < num_neighbors; ++i) {
         B(i, 14) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
                    (m_pointset.vertex_at(indices[i]).x() - q.x()) *
                    (m_pointset.vertex_at(indices[i]).z() - q.z());
       }
-      for (size_t i = 0; i < num_neighbors; ++i) {
+      for (std::size_t i = 0; i < num_neighbors; ++i) {
         B(i, 15) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
                    (m_pointset.vertex_at(indices[i]).y() - q.y()) *
                    (m_pointset.vertex_at(indices[i]).y() - q.y());
       }
-      for (size_t i = 0; i < num_neighbors; ++i) {
+      for (std::size_t i = 0; i < num_neighbors; ++i) {
         B(i, 16) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
                    (m_pointset.vertex_at(indices[i]).y() - q.y()) *
                    (m_pointset.vertex_at(indices[i]).z() - q.z());
       }
-      for (size_t i = 0; i < num_neighbors; ++i) {
+      for (std::size_t i = 0; i < num_neighbors; ++i) {
         B(i, 17) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
                    (m_pointset.vertex_at(indices[i]).z() - q.z()) *
                    (m_pointset.vertex_at(indices[i]).z() - q.z());
       }
-      for (size_t i = 0; i < num_neighbors; ++i) {
+      for (std::size_t i = 0; i < num_neighbors; ++i) {
         B(i, 18) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
                    (m_pointset.vertex_at(indices[i]).z() - q.z()) *
                    (m_pointset.vertex_at(indices[i]).z() - q.z());
       }
-      for (size_t i = 0; i < num_neighbors; ++i) {
+      for (std::size_t i = 0; i < num_neighbors; ++i) {
         B(i, 19) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
                    (m_pointset.vertex_at(indices[i]).y() - q.y()) *
                    (m_pointset.vertex_at(indices[i]).z() - q.z());
@@ -1231,7 +1247,7 @@ struct moving_least_squares_sampler<Real, 3, T>
     } else {
       T    ret{};
       auto C = solve(BtW * B, BtW * F);
-      for (size_t i = 0; i < num_components<T>; ++i) {
+      for (std::size_t i = 0; i < num_components<T>; ++i) {
         ret(i) = C(0, i);
       }
       return ret;
@@ -1239,29 +1255,29 @@ struct moving_least_squares_sampler<Real, 3, T>
   }
 };
 //------------------------------------------------------------------------------
-template <typename Real, size_t NumDimensions>
+template <typename Real, std::size_t NumDimensions>
 auto begin(vertex_container<Real, NumDimensions> verts) {
   return verts.begin();
 }
 //------------------------------------------------------------------------------
-template <typename Real, size_t NumDimensions>
+template <typename Real, std::size_t NumDimensions>
 auto end(vertex_container<Real, NumDimensions> verts) {
   return verts.end();
 }
 //------------------------------------------------------------------------------
-template <typename Real, size_t NumDimensions>
+template <typename Real, std::size_t NumDimensions>
 auto size(vertex_container<Real, NumDimensions> verts) {
   return verts.size();
 }
 //==============================================================================
 }  // namespace detail::pointset
 //==============================================================================
-template <typename Real, size_t NumDimensions>
+template <typename Real, std::size_t NumDimensions>
 auto vertices(pointset<Real, NumDimensions> const& ps) {
   return ps.vertices();
 }
 //==============================================================================
-template <size_t NumDimensions>
+template <std::size_t NumDimensions>
 using Pointset  = pointset<real_t, NumDimensions>;
 using pointset2 = Pointset<2>;
 using pointset3 = Pointset<3>;
@@ -1270,7 +1286,7 @@ using pointset5 = Pointset<5>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-template <typename Real, size_t NumDimensions>
+template <typename Real, std::size_t NumDimensions>
 inline constexpr bool std::ranges::enable_borrowed_range<
     typename tatooine::detail::pointset::vertex_container<Real,
                                                           NumDimensions>> =

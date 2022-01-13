@@ -55,7 +55,7 @@ using cell_at_return_type_t =
 template <typename Mesh, typename Real, std::size_t NumDimensions,
           std::size_t SimplexDim>
 struct hierarchy_impl {
-  using type = void;
+  using type = int;
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename Mesh, typename Real, std::size_t NumDimensions,
@@ -803,107 +803,251 @@ struct unstructured_simplicial_grid
     return *prop;
   }
   //----------------------------------------------------------------------------
+  auto write(filesystem::path const& path) const {
+    auto const ext = path.extension();
+    if constexpr (NumDimensions == 2 || NumDimensions == 3) {
+      if (ext == ".vtk") {
+        write_vtk(path);
+        return;
+      } else if (ext == ".vtp") {
+        write_vtp(path);
+        return;
+      }
+    }
+    throw std::runtime_error(
+        "Could not write unstructured_simplicial_grid. Unknown file extension: "
+        "\"" +
+        ext.string() + "\".");
+  }
+  //----------------------------------------------------------------------------
   auto write_vtk(std::filesystem::path const& path,
-                 std::string const&           title = "tatooine grid") {
+                 std::string const&           title = "tatooine grid") const {
     if constexpr (SimplexDim == 2 || SimplexDim == 3) {
-      tidy_up();
+      // tidy_up();
       write_unstructured_triangular_grid_vtk(path, title);
     }
   }
   //----------------------------------------------------------------------------
-  auto write_vtp(filesystem::path const& path) {
+  auto write_vtp(filesystem::path const& path) const
+      requires((NumDimensions == 2 || NumDimensions == 3) &&
+               (SimplexDim == 1 || SimplexDim == 2)) {
+    if constexpr (SimplexDim == 1) {
+      write_vtp_edges(path);
+    } else if constexpr (SimplexDim == 2) {
+      write_vtp_triangular(path);
+    }
+  }
+ private:
+  auto write_vtp_edges(filesystem::path const& path) const
+      requires((NumDimensions == 2 || NumDimensions == 3) && SimplexDim == 1) {
     auto file = std::ofstream{path, std::ios::binary};
     if (!file.is_open()) {
       throw std::runtime_error{"Could not write " + path.string()};
     }
-    tidy_up();
-    auto offset       = std::size_t{};
-    using header_type = std::uint64_t;
+    auto offset                    = std::size_t{};
+    using header_type              = std::uint64_t;
+    using lines_connectivity_int_t = std::int64_t;
+    using lines_offset_int_t       = lines_connectivity_int_t;
+    auto const num_bytes_points =
+        header_type(sizeof(Real) * 3 * vertices().size());
+    auto const num_bytes_lines_connectivity = cells().size() *
+                                              num_vertices_per_simplex() *
+                                              sizeof(lines_connectivity_int_t);
+    auto const num_bytes_lines_offsets =
+        sizeof(lines_offset_int_t) * cells().size();
     file << "<VTKFile"
          << " type=\"PolyData\""
-         << " version=\"1.0\" "
-            "byte_order=\"LittleEndian\""
+         << " version=\"1.0\""
+         << " byte_order=\"LittleEndian\""
          << " header_type=\""
          << vtk::xml::data_array::to_string(
                 vtk::xml::data_array::to_type<header_type>())
-         << "\">";
-    file << "<PolyData>\n";
-    file << "<Piece"
+         << "\">\n"
+         << "<PolyData>\n"
+         << "<Piece"
          << " NumberOfPoints=\"" << vertices().size() << "\""
-         << " NumberOfPolys=\"" << cells().size() << "\""
+         << " NumberOfPolys=\"0\""
          << " NumberOfVerts=\"0\""
-         << " NumberOfLines=\"0\""
+         << " NumberOfLines=\"" << cells().size() << "\""
          << " NumberOfStrips=\"0\""
-         << ">\n";
-
-    // Points
-    file << "<Points>";
-    file << "<DataArray"
+         << ">\n"
+         // Points
+         << "<Points>"
+         << "<DataArray"
          << " format=\"appended\""
          << " offset=\"" << offset << "\""
          << " type=\""
          << vtk::xml::data_array::to_string(
                 vtk::xml::data_array::to_type<Real>())
-         << "\" NumberOfComponents=\"" << num_dimensions() << "\"/>";
-    auto const num_bytes_points =
-        header_type(sizeof(Real) * num_dimensions() * vertices().size());
+         << "\" NumberOfComponents=\"3\"/>"
+         << "</Points>\n";
     offset += num_bytes_points + sizeof(header_type);
-
-    file << "</Points>\n";
-
-    // Polys
-    file << "<Polys>\n";
-    // Polys - connectivity
-    using polys_connectivity_int_t = std::int32_t;
+    // Lines
+    file << "<Lines>\n"
+         // Lines - connectivity
+         << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
+         << vtk::xml::data_array::to_string(
+                vtk::xml::data_array::to_type<lines_connectivity_int_t>())
+         << "\" Name=\"connectivity\"/>\n";
+    offset += num_bytes_lines_connectivity + sizeof(header_type);
+    // Lines - offsets
     file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
          << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<polys_connectivity_int_t>())
-         << "\" Name=\"connectivity\"/>\n";
+                vtk::xml::data_array::to_type<lines_offset_int_t>())
+         << "\" Name=\"offsets\"/>\n";
+    offset += num_bytes_lines_offsets + sizeof(header_type);
+    file << "</Lines>\n"
+         << "</Piece>\n"
+         << "</PolyData>\n"
+         << "<AppendedData encoding=\"raw\">\n_";
+    // Writing vertex data to appended data section
+
+    using namespace std::ranges;
+    {
+      file.write(reinterpret_cast<char const*>(&num_bytes_points),
+                 sizeof(header_type));
+      if constexpr (NumDimensions == 2) {
+        auto point_data      = std::vector<vec<Real, 3>>(vertices().size());
+        auto position        = [this](auto const v) -> auto& { return at(v); };
+        constexpr auto to_3d = [](auto const& p) {
+          return vec{p.x(), p.y(), Real(0)};
+        };
+        copy(vertices() | views::transform(position) | views::transform(to_3d),
+             begin(point_data));
+        file.write(reinterpret_cast<char const*>(point_data.data()),
+                   num_bytes_points);
+      } else if constexpr (NumDimensions == 3) {
+        file.write(reinterpret_cast<char const*>(vertices().data()),
+                   num_bytes_points);
+      }
+    }
+
+    // Writing lines connectivity data to appended data section
+    {
+      auto connectivity_data = std::vector<lines_connectivity_int_t>(
+          cells().size() * num_vertices_per_simplex());
+      auto index = [](auto const x) -> lines_connectivity_int_t {
+        return x.index();
+      };
+      copy(cells().data_container() | views::transform(index),
+           begin(connectivity_data));
+      file.write(reinterpret_cast<char const*>(&num_bytes_lines_connectivity),
+                 sizeof(header_type));
+      file.write(reinterpret_cast<char const*>(connectivity_data.data()),
+                 num_bytes_lines_connectivity);
+    }
+
+    // Writing lines offsets to appended data section
+    {
+      auto offsets = std::vector<lines_offset_int_t>(
+          cells().size(), num_vertices_per_simplex());
+      for (std::size_t i = 1; i < size(offsets); ++i) {
+        offsets[i] += offsets[i - 1];
+      };
+      file.write(reinterpret_cast<char const*>(&num_bytes_lines_offsets),
+                 sizeof(header_type));
+      file.write(reinterpret_cast<char const*>(offsets.data()),
+                 num_bytes_lines_offsets);
+    }
+    file << "\n</AppendedData>\n"
+         << "</VTKFile>";
+  }
+  //----------------------------------------------------------------------------
+  auto write_vtp_triangular(filesystem::path const& path) const
+      requires((NumDimensions == 2 || NumDimensions == 3) && SimplexDim == 2) {
+    auto file = std::ofstream{path, std::ios::binary};
+    if (!file.is_open()) {
+      throw std::runtime_error{"Could not write " + path.string()};
+    }
+    auto offset                    = std::size_t{};
+    using header_type              = std::uint64_t;
+    using polys_connectivity_int_t = std::int64_t;
+    using polys_offset_int_t       = polys_connectivity_int_t;
+    auto const num_bytes_points =
+        header_type(sizeof(Real) * 3 * vertices().size());
     auto const num_bytes_polys_connectivity = cells().size() *
                                               num_vertices_per_simplex() *
                                               sizeof(polys_connectivity_int_t);
+    auto const num_bytes_polys_offsets =
+        sizeof(polys_offset_int_t) * cells().size();
+    file << "<VTKFile"
+         << " type=\"PolyData\""
+         << " version=\"1.0\""
+         << " byte_order=\"LittleEndian\""
+         << " header_type=\""
+         << vtk::xml::data_array::to_string(
+                vtk::xml::data_array::to_type<header_type>())
+         << "\">\n"
+         << "<PolyData>\n"
+         << "<Piece"
+         << " NumberOfPoints=\"" << vertices().size() << "\""
+         << " NumberOfPolys=\"" << cells().size() << "\""
+         << " NumberOfVerts=\"0\""
+         << " NumberOfLines=\"0\""
+         << " NumberOfStrips=\"0\""
+         << ">\n"
+         // Points
+         << "<Points>"
+         << "<DataArray"
+         << " format=\"appended\""
+         << " offset=\"" << offset << "\""
+         << " type=\""
+         << vtk::xml::data_array::to_string(
+                vtk::xml::data_array::to_type<Real>())
+         << "\" NumberOfComponents=\"3\"/>"
+         << "</Points>\n";
+    offset += num_bytes_points + sizeof(header_type);
+    // Polys
+    file << "<Polys>\n"
+         // Polys - connectivity
+         << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
+         << vtk::xml::data_array::to_string(
+                vtk::xml::data_array::to_type<polys_connectivity_int_t>())
+         << "\" Name=\"connectivity\"/>\n";
     offset += num_bytes_polys_connectivity + sizeof(header_type);
-
     // Polys - offsets
-    using polys_offset_int_t = polys_connectivity_int_t;
     file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
          << vtk::xml::data_array::to_string(
                 vtk::xml::data_array::to_type<polys_offset_int_t>())
          << "\" Name=\"offsets\"/>\n";
-    auto const num_bytes_polys_offsets =
-        sizeof(polys_offset_int_t) * cells().size();
     offset += num_bytes_polys_offsets + sizeof(header_type);
-    file << "</Polys>\n";
-    file << "</Piece>\n";
-    file << "</PolyData>\n";
-    file << "<AppendedData encoding=\"raw\">_";
+    file << "</Polys>\n"
+         << "</Piece>\n"
+         << "</PolyData>\n"
+         << "<AppendedData encoding=\"raw\">\n_";
     // Writing vertex data to appended data section
-    auto arr_size = header_type{};
 
+    using namespace std::ranges;
     {
-      auto point_data = std::vector<pos_t>(vertices().size());
-      using namespace std::ranges;
-      auto position = [this](auto const v) -> auto& { return at(v); };
-      copy(vertices() | views::transform(position), begin(point_data));
-      arr_size = num_bytes_polys_connectivity;
-      arr_size = num_bytes_points;
-      file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
-      file.write(reinterpret_cast<char const*>(point_data.data()),
-                 num_bytes_points);
+      file.write(reinterpret_cast<char const*>(&num_bytes_points),
+                 sizeof(header_type));
+      if constexpr (NumDimensions == 2) {
+        auto point_data      = std::vector<vec<Real, 3>>(vertices().size());
+        auto position        = [this](auto const v) -> auto& { return at(v); };
+        constexpr auto to_3d = [](auto const& p) {
+          return vec{p.x(), p.y(), Real(0)};
+        };
+        copy(vertices() | views::transform(position) | views::transform(to_3d),
+             begin(point_data));
+        file.write(reinterpret_cast<char const*>(point_data.data()),
+                   num_bytes_points);
+      } else if constexpr (NumDimensions == 3) {
+        file.write(reinterpret_cast<char const*>(vertices().data()),
+                   num_bytes_points);
+      }
     }
 
     // Writing polys connectivity data to appended data section
     {
       auto connectivity_data = std::vector<polys_connectivity_int_t>(
           cells().size() * num_vertices_per_simplex());
-      std::ranges::copy(cells().data_container() |
-                            std::views::transform(
-                                [](auto const x) -> polys_connectivity_int_t {
-                                  return x.index();
-                                }),
-                        begin(connectivity_data));
-      arr_size = num_bytes_polys_connectivity;
-      file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
+      auto index = [](auto const x) -> polys_connectivity_int_t {
+        return x.index();
+      };
+      copy(cells().data_container() | views::transform(index),
+           begin(connectivity_data));
+      file.write(reinterpret_cast<char const*>(&num_bytes_polys_connectivity),
+                 sizeof(header_type));
       file.write(reinterpret_cast<char const*>(connectivity_data.data()),
                  num_bytes_polys_connectivity);
     }
@@ -914,25 +1058,24 @@ struct unstructured_simplicial_grid
           cells().size(), num_vertices_per_simplex());
       for (std::size_t i = 1; i < size(offsets); ++i) {
         offsets[i] += offsets[i - 1];
-      }
-      arr_size = num_bytes_polys_offsets;
-      file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
+      };
+      file.write(reinterpret_cast<char const*>(&num_bytes_polys_offsets),
+                 sizeof(header_type));
       file.write(reinterpret_cast<char const*>(offsets.data()),
                  num_bytes_polys_offsets);
     }
-    file << "</AppendedData>";
-    file << "</VTKFile>";
+    file << "\n</AppendedData>\n"
+         << "</VTKFile>";
   }
-
- private:
+  //----------------------------------------------------------------------------
   template <std::size_t SimplexDim_     = SimplexDim,
             enable_if<SimplexDim_ == 2> = true>
   auto write_unstructured_triangular_grid_vtk(std::filesystem::path const& path,
                                               std::string const& title) const
       -> bool {
-    using boost::copy;
-    using boost::adaptors::transformed;
-    vtk::legacy_file_writer writer(path, vtk::dataset_type::unstructured_grid);
+    using namespace std::ranges;
+    auto writer =
+        vtk::legacy_file_writer{path, vtk::dataset_type::unstructured_grid};
     if (writer.is_open()) {
       writer.set_title(title);
       writer.write_header();
@@ -941,7 +1084,7 @@ struct unstructured_simplicial_grid
           return vec<Real, 3>{v2(0), v2(1), 0};
         };
         std::vector<vec<Real, 3>> v3s(vertices().size());
-        auto                      three_dimensional = transformed(three_dims);
+        auto three_dimensional = views::transform(three_dims);
         copy(vertex_position_data() | three_dimensional, begin(v3s));
         writer.write_points(v3s);
 
@@ -949,43 +1092,43 @@ struct unstructured_simplicial_grid
         writer.write_points(vertex_position_data());
       }
 
-      // auto vertices_per_cell = std::vector<std::vector<std::size_t>> {};
-      // vertices_per_cell.reserve(cells().size());
-      // auto cell_types =
-      //    std::vector<vtk::cell_type>(cells().size(),
-      //    vtk::cell_type::triangle);
-      // for (auto const c : cells()) {
-      //  auto const [v0, v1, v2] = at(c);
-      //  vertices_per_cell.push_back(std::vector{v0.index(), v1.index(),
-      //  v2.index()});
-      //}
-      // writer.write_cells(vertices_per_cell);
-      // writer.write_cell_types(cell_types);
-      //
-      //// write vertex_handle data
-      // writer.write_point_data(vertices().size());
-      // for (auto const& [name, prop] : vertex_properties()) {
-      //  if (prop->type() == typeid(vec<Real, 4>)) {
-      //    auto const& casted_prop =
-      //        *dynamic_cast<vertex_property_t<vec<Real, 4>>
-      //        const*>(prop.get());
-      //    writer.write_scalars(name, casted_prop.data());
-      //  } else if (prop->type() == typeid(vec<Real, 3>)) {
-      //    auto const& casted_prop =
-      //        *dynamic_cast<vertex_property_t<vec<Real, 3>>
-      //        const*>(prop.get());
-      //    writer.write_scalars(name, casted_prop.data());
-      //  } else if (prop->type() == typeid(vec<Real, 2>)) {
-      //    auto const& casted_prop =
-      //        *dynamic_cast<vertex_property_t<vec<Real, 2>>
-      //        const*>(prop.get());
-      //    writer.write_scalars(name, casted_prop.data());
-      //  } else if (prop->type() == typeid(Real)) {
-      //    auto const& casted_prop =
-      //        *dynamic_cast<vertex_property_t<Real> const*>(prop.get());
-      //    writer.write_scalars(name, casted_prop.data());
-      //  }
-      //}
+       auto vertices_per_cell = std::vector<std::vector<std::size_t>> {};
+       vertices_per_cell.reserve(cells().size());
+       auto cell_types =
+          std::vector<vtk::cell_type>(cells().size(),
+          vtk::cell_type::triangle);
+       for (auto const c : cells()) {
+        auto const [v0, v1, v2] = at(c);
+        vertices_per_cell.push_back(std::vector{v0.index(), v1.index(),
+        v2.index()});
+      }
+       writer.write_cells(vertices_per_cell);
+       writer.write_cell_types(cell_types);
+
+      // write vertex_handle data
+       writer.write_point_data(vertices().size());
+       for (auto const& [name, prop] : vertex_properties()) {
+        if (prop->type() == typeid(vec<Real, 4>)) {
+          auto const& casted_prop =
+              *dynamic_cast<vertex_property_t<vec<Real, 4>>
+              const*>(prop.get());
+          writer.write_scalars(name, casted_prop.data());
+        } else if (prop->type() == typeid(vec<Real, 3>)) {
+          auto const& casted_prop =
+              *dynamic_cast<vertex_property_t<vec<Real, 3>>
+              const*>(prop.get());
+          writer.write_scalars(name, casted_prop.data());
+        } else if (prop->type() == typeid(vec<Real, 2>)) {
+          auto const& casted_prop =
+              *dynamic_cast<vertex_property_t<vec<Real, 2>>
+              const*>(prop.get());
+          writer.write_scalars(name, casted_prop.data());
+        } else if (prop->type() == typeid(Real)) {
+          auto const& casted_prop =
+              *dynamic_cast<vertex_property_t<Real> const*>(prop.get());
+          writer.write_scalars(name, casted_prop.data());
+        }
+      }
 
       writer.close();
       return true;
@@ -1248,7 +1391,7 @@ struct unstructured_simplicial_grid
   }
 };
 //==============================================================================
-//unstructured_simplicial_grid()->unstructured_simplicial_grid<double, 3>;
+// unstructured_simplicial_grid()->unstructured_simplicial_grid<double, 3>;
 unstructured_simplicial_grid(std::string const&)
     ->unstructured_simplicial_grid<double, 3>;
 template <typename... Dims>
@@ -1406,7 +1549,5 @@ template <typename Real, std::size_t NumDimensions, std::size_t SimplexDim>
 inline constexpr bool std::ranges::enable_borrowed_range<
     typename tatooine::detail::unstructured_simplicial_grid::cell_container<
         Real, NumDimensions, SimplexDim>> = true;
-#include <tatooine/unstructured_tetrahedral_grid.h>
-#include <tatooine/unstructured_triangular_grid.h>
 //==============================================================================
 #endif
