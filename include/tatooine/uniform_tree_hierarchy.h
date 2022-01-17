@@ -166,11 +166,11 @@ struct uniform_tree_hierarchy<unstructured_simplicial_grid<Real, NumDims, Simple
 
   using typename parent_t::vec_t;
   using vertex_handle = typename mesh_t::vertex_handle;
-  using cell_handle   = typename mesh_t::cell_handle;
+  using simplex_handle   = typename mesh_t::simplex_handle;
 
   mesh_t const*              m_mesh;
   std::vector<vertex_handle> m_vertex_handles;
-  std::vector<cell_handle>   m_cell_handles;
+  std::vector<simplex_handle>   m_simplex_handles;
   //============================================================================
   uniform_tree_hierarchy()                                  = default;
   uniform_tree_hierarchy(uniform_tree_hierarchy const&)     = default;
@@ -201,10 +201,10 @@ struct uniform_tree_hierarchy<unstructured_simplicial_grid<Real, NumDims, Simple
  public:
   auto mesh() const -> auto const& { return *m_mesh; }
   auto constexpr holds_vertices() const { return !m_vertex_handles.empty(); }
-  auto constexpr holds_cells() const { return !m_cell_handles.empty(); }
+  auto constexpr holds_simplices() const { return !m_simplex_handles.empty(); }
   //----------------------------------------------------------------------------
   auto num_vertex_handles() const { return size(m_vertex_handles); }
-  auto num_cell_handles() const { return size(m_cell_handles); }
+  auto num_simplex_handles() const { return size(m_simplex_handles); }
   //----------------------------------------------------------------------------
   auto insert_vertex(vertex_handle const v) -> bool {
     if (!is_inside(mesh().vertex_at(v))) {
@@ -229,32 +229,32 @@ struct uniform_tree_hierarchy<unstructured_simplicial_grid<Real, NumDims, Simple
   //------------------------------------------------------------------------------
  private:
   template <size_t... Is>
-  auto insert_cell(cell_handle const c, std::index_sequence<Is...> /*seq*/)
+  auto insert_simplex(simplex_handle const c, std::index_sequence<Is...> /*seq*/)
       -> bool {
     auto const vs = mesh()[c];
     if (!is_simplex_inside(mesh()[std::get<Is>(vs)]...)) {
       return false;
     }
-    if (holds_cells()) {
+    if (holds_simplices()) {
       if (is_at_max_depth()) {
-        m_cell_handles.push_back(c);
+        m_simplex_handles.push_back(c);
       } else {
         split_and_distribute();
-        distribute_cell(c);
+        distribute_simplex(c);
       }
     } else {
       if (is_splitted()) {
-        distribute_cell(c);
+        distribute_simplex(c);
       } else {
-        m_cell_handles.push_back(c);
+        m_simplex_handles.push_back(c);
       }
     }
     return true;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
-  auto insert_cell(cell_handle const c) -> bool {
-    return insert_cell(
+  auto insert_simplex(simplex_handle const c) -> bool {
+    return insert_simplex(
         c, std::make_index_sequence<mesh_t::num_vertices_per_simplex()>{});
   }
   //----------------------------------------------------------------------------
@@ -263,9 +263,9 @@ struct uniform_tree_hierarchy<unstructured_simplicial_grid<Real, NumDims, Simple
       distribute_vertex(m_vertex_handles.front());
       m_vertex_handles.clear();
     }
-    if (!m_cell_handles.empty()) {
-      distribute_cell(m_cell_handles.front());
-      m_cell_handles.clear();
+    if (!m_simplex_handles.empty()) {
+      distribute_simplex(m_simplex_handles.front());
+      m_simplex_handles.clear();
     }
   }
   //------------------------------------------------------------------------------
@@ -281,53 +281,53 @@ struct uniform_tree_hierarchy<unstructured_simplicial_grid<Real, NumDims, Simple
     }
   }
   //----------------------------------------------------------------------------
-  auto distribute_cell(cell_handle const c) {
+  auto distribute_simplex(simplex_handle const c) {
     for (auto& child : children()) {
-      child->insert_cell(c);
+      child->insert_simplex(c);
     }
   }
   //============================================================================
   auto collect_possible_intersections(
       ray<Real, NumDims> const& r,
-      std::set<cell_handle>&               possible_collisions) const -> void {
+      std::set<simplex_handle>&               possible_collisions) const -> void {
     if (parent_t::check_intersection(r)) {
       if (is_splitted()) {
         for (auto const& child : children()) {
           child->collect_possible_intersections(r, possible_collisions);
         }
       } else {
-        std::copy(begin(m_cell_handles), end(m_cell_handles),
+        std::copy(begin(m_simplex_handles), end(m_simplex_handles),
                   std::inserter(possible_collisions, end(possible_collisions)));
       }
     }
   }
   //----------------------------------------------------------------------------
   auto collect_possible_intersections(ray<Real, NumDims> const& r) const {
-    std::set<cell_handle> possible_collisions;
+    std::set<simplex_handle> possible_collisions;
     collect_possible_intersections(r, possible_collisions);
     return possible_collisions;
   }
   //----------------------------------------------------------------------------
-  auto collect_nearby_cells(vec<Real, NumDims> const& pos,
-                            std::set<cell_handle>& cells) const -> void {
+  auto collect_nearby_simplices(vec<Real, NumDims> const& pos,
+                            std::set<simplex_handle>& simplices) const -> void {
     if (is_inside(pos)) {
       if (is_splitted()) {
         for (auto const& child : children()) {
-          child->collect_nearby_cells(pos, cells);
+          child->collect_nearby_simplices(pos, simplices);
         }
       } else {
-        if (!m_cell_handles.empty()) {
-          std::copy(begin(m_cell_handles), end(m_cell_handles),
-                    std::inserter(cells, end(cells)));
+        if (!m_simplex_handles.empty()) {
+          std::copy(begin(m_simplex_handles), end(m_simplex_handles),
+                    std::inserter(simplices, end(simplices)));
         }
       }
     }
   }
   //----------------------------------------------------------------------------
-  auto nearby_cells(vec<Real, NumDims> const& pos) const {
-    std::set<cell_handle> cells;
-    collect_nearby_cells(pos, cells);
-    return cells;
+  auto nearby_simplices(vec<Real, NumDims> const& pos) const {
+    std::set<simplex_handle> simplices;
+    collect_nearby_simplices(pos, simplices);
+    return simplices;
   }
 };
 //==============================================================================

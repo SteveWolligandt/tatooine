@@ -13,8 +13,6 @@
 #endif
 
 #include <tatooine/axis_aligned_bounding_box.h>
-#include <tatooine/celltree.h>
-#include <tatooine/kdtree.h>
 #include <tatooine/packages.h>
 #include <tatooine/pointset.h>
 #include <tatooine/property.h>
@@ -34,23 +32,23 @@ namespace detail::unstructured_simplicial_grid {
 //==============================================================================
 template <typename VertexHandle, std::size_t NumVerticesPerSimplex,
           std::size_t I = 0, typename... Ts>
-struct cell_at_return_type_impl {
+struct simplex_at_return_type_impl {
   using type =
-      typename cell_at_return_type_impl<VertexHandle, NumVerticesPerSimplex,
-                                        I + 1, Ts..., VertexHandle>::type;
+      typename simplex_at_return_type_impl<VertexHandle, NumVerticesPerSimplex,
+                                           I + 1, Ts..., VertexHandle>::type;
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename VertexHandle, std::size_t NumVerticesPerSimplex,
           typename... Ts>
-struct cell_at_return_type_impl<VertexHandle, NumVerticesPerSimplex,
-                                NumVerticesPerSimplex, Ts...> {
+struct simplex_at_return_type_impl<VertexHandle, NumVerticesPerSimplex,
+                                   NumVerticesPerSimplex, Ts...> {
   using type = std::tuple<Ts...>;
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename VertexHandle, std::size_t NumVerticesPerSimplex>
-using cell_at_return_type_t =
-    typename cell_at_return_type_impl<VertexHandle,
-                                      NumVerticesPerSimplex>::type;
+using simplex_at_return_type_t =
+    typename simplex_at_return_type_impl<VertexHandle,
+                                         NumVerticesPerSimplex>::type;
 //==============================================================================
 template <typename Mesh, typename Real, std::size_t NumDimensions,
           std::size_t SimplexDim>
@@ -85,10 +83,10 @@ struct parent : pointset<Real, NumDimensions> {
   using parent_t = pointset<Real, NumDimensions>;
   using typename pointset<Real, NumDimensions>::vertex_handle;
   using hierarchy_t = hierarchy<Mesh, Real, NumDimensions, SimplexDim>;
-  using const_cell_at_return_type =
-      cell_at_return_type_t<vertex_handle const&, SimplexDim + 1>;
-  using cell_at_return_type =
-      cell_at_return_type_t<vertex_handle&, SimplexDim + 1>;
+  using const_simplex_at_return_type =
+      simplex_at_return_type_t<vertex_handle const&, SimplexDim + 1>;
+  using simplex_at_return_type =
+      simplex_at_return_type_t<vertex_handle&, SimplexDim + 1>;
   using parent_t::parent_t;
 };
 //==============================================================================
@@ -100,9 +98,9 @@ struct parent<Mesh, Real, 3, 2> : pointset<Real, 3>,
   using real_t                     = Real;
   using typename pointset<real_t, 3>::vertex_handle;
   using hierarchy_t = hierarchy<Mesh, real_t, 3, 2>;
-  using const_cell_at_return_type =
-      cell_at_return_type_t<vertex_handle const&, 3>;
-  using cell_at_return_type = cell_at_return_type_t<vertex_handle&, 3>;
+  using const_simplex_at_return_type =
+      simplex_at_return_type_t<vertex_handle const&, 3>;
+  using simplex_at_return_type = simplex_at_return_type_t<vertex_handle&, 3>;
 
   using parent_pointset_t::parent_pointset_t;
   using typename parent_ray_intersectable_t::intersection_t;
@@ -123,10 +121,10 @@ struct parent<Mesh, Real, 3, 2> : pointset<Real, 3>,
     if (!grid.m_hierarchy) {
       grid.build_hierarchy();
     }
-    auto const possible_cells =
+    auto const possible_simplices =
         grid.m_hierarchy->collect_possible_intersections(r);
-    for (auto const cell_handle : possible_cells) {
-      auto const [vi0, vi1, vi2] = grid.cell_at(cell_handle);
+    for (auto const simplex_handle : possible_simplices) {
+      auto const [vi0, vi1, vi2] = grid.simplex_at(simplex_handle);
       auto const& v0             = grid.at(vi0);
       auto const& v1             = grid.at(vi1);
       auto const& v2             = grid.at(vi2);
@@ -171,7 +169,7 @@ struct parent<Mesh, Real, 3, 2> : pointset<Real, 3>,
 };
 //==============================================================================
 template <typename Real, std::size_t NumDimensions, std::size_t SimplexDim>
-struct cell_container;
+struct simplex_container;
 //==============================================================================
 }  // namespace detail::unstructured_simplicial_grid
 //==============================================================================
@@ -199,8 +197,8 @@ struct unstructured_simplicial_grid
   using parent_t::vertex_properties;
   using parent_t::vertices;
 
-  using typename parent_t::cell_at_return_type;
-  using typename parent_t::const_cell_at_return_type;
+  using typename parent_t::const_simplex_at_return_type;
+  using typename parent_t::simplex_at_return_type;
 
   template <typename T>
   using vertex_property_t = typename parent_t::template vertex_property_t<T>;
@@ -236,8 +234,8 @@ struct unstructured_simplicial_grid
     [[nodiscard]] auto evaluate(pos_t const& x,
                                 std::index_sequence<VertexSeq...> /*seq*/) const
         -> T {
-      auto cell_handles = m_grid.hierarchy().nearby_cells(x);
-      if (cell_handles.empty()) {
+      auto simplex_handles = m_grid.hierarchy().nearby_simplices(x);
+      if (simplex_handles.empty()) {
         std::stringstream ss;
         ss << "[unstructured_simplicial_grid::vertex_property_sampler_t::"
               "sample]"
@@ -245,8 +243,8 @@ struct unstructured_simplicial_grid
         ss << "  out of domain: " << x;
         throw std::runtime_error{ss.str()};
       }
-      for (auto t : cell_handles) {
-        auto const            vs = m_grid.cell_at(t);
+      for (auto t : simplex_handles) {
+        auto const            vs = m_grid.simplex_at(t);
         static constexpr auto NV = num_vertices_per_simplex();
         auto                  A  = mat<Real, NV, NV>::ones();
         auto                  b  = vec<Real, NV>::ones();
@@ -282,44 +280,48 @@ struct unstructured_simplicial_grid
     }
   };
   //----------------------------------------------------------------------------
-  struct cell_handle : handle<cell_handle> {
-    using handle<cell_handle>::handle;
+  struct simplex_handle : handle<simplex_handle> {
+    using handle<simplex_handle>::handle;
   };
-  using cell_container =
-      detail::unstructured_simplicial_grid::cell_container<Real, NumDimensions,
-                                                           SimplexDim>;
-  friend struct detail::unstructured_simplicial_grid::cell_container<
+  using simplex_container =
+      detail::unstructured_simplicial_grid::simplex_container<
+          Real, NumDimensions, SimplexDim>;
+  friend struct detail::unstructured_simplicial_grid::simplex_container<
       Real, NumDimensions, SimplexDim>;
   //----------------------------------------------------------------------------
   template <typename T>
-  using cell_property_t = vector_property_impl<cell_handle, T>;
-  using cell_property_container_t =
-      std::map<std::string, std::unique_ptr<vector_property<cell_handle>>>;
+  using simplex_property_t = vector_property_impl<simplex_handle, T>;
+  using simplex_property_container_t =
+      std::map<std::string, std::unique_ptr<vector_property<simplex_handle>>>;
   //============================================================================
  private:
-  std::vector<vertex_handle>           m_cell_index_data;
-  std::set<cell_handle>                m_invalid_cells;
-  cell_property_container_t            m_cell_properties;
+  std::vector<vertex_handle>           m_simplex_index_data;
+  std::set<simplex_handle>             m_invalid_simplices;
+  simplex_property_container_t         m_simplex_properties;
   mutable std::unique_ptr<hierarchy_t> m_hierarchy;
 
  protected:
-  auto cell_index_data() const -> auto const& { return m_cell_index_data; }
-  auto cell_index_data() -> auto& { return m_cell_index_data; }
+  auto simplex_index_data() const -> auto const& {
+    return m_simplex_index_data;
+  }
+  auto simplex_index_data() -> auto& { return m_simplex_index_data; }
 
-  auto invalid_cells() const -> auto const& { return m_invalid_cells; }
-  auto invalid_cells() -> auto& { return m_invalid_cells; }
+  auto invalid_simplices() const -> auto const& { return m_invalid_simplices; }
+  auto invalid_simplices() -> auto& { return m_invalid_simplices; }
 
-  auto cell_properties() const -> auto const& { return m_cell_properties; }
-  auto cell_properties() -> auto& { return m_cell_properties; }
+  auto simplex_properties() const -> auto const& {
+    return m_simplex_properties;
+  }
+  auto simplex_properties() -> auto& { return m_simplex_properties; }
 
  public:
   //============================================================================
   constexpr unstructured_simplicial_grid() = default;
   //============================================================================
   unstructured_simplicial_grid(unstructured_simplicial_grid const& other)
-      : parent_t{other}, m_cell_index_data{other.m_cell_index_data} {
-    for (auto const& [key, prop] : other.cell_properties()) {
-      cell_properties().insert(std::pair{key, prop->clone()});
+      : parent_t{other}, m_simplex_index_data{other.m_simplex_index_data} {
+    for (auto const& [key, prop] : other.simplex_properties()) {
+      simplex_properties().insert(std::pair{key, prop->clone()});
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -329,10 +331,10 @@ struct unstructured_simplicial_grid
   auto operator=(unstructured_simplicial_grid const& other)
       -> unstructured_simplicial_grid& {
     parent_t::operator=(other);
-    cell_properties().clear();
-    m_cell_index_data = other.m_cell_index_data;
-    for (auto const& [key, prop] : other.cell_properties()) {
-      cell_properties().insert(std::pair{key, prop->clone()});
+    simplex_properties().clear();
+    m_simplex_index_data = other.m_simplex_index_data;
+    for (auto const& [key, prop] : other.simplex_properties()) {
+      simplex_properties().insert(std::pair{key, prop->clone()});
     }
     return *this;
   }
@@ -382,15 +384,15 @@ struct unstructured_simplicial_grid
     for (auto v : gv) {
       insert_vertex(gv[v]);
     }
-    auto const gc = g.cells();
+    auto const gc = g.simplices();
     auto const s0 = g.size(0);
     gc.iterate_indices([&](auto const i, auto const j) {
       auto const le_bo = vertex_handle{i + j * s0};
       auto const ri_bo = vertex_handle{(i + 1) + j * s0};
       auto const le_to = vertex_handle{i + (j + 1) * s0};
       auto const ri_to = vertex_handle{(i + 1) + (j + 1) * s0};
-      insert_cell(le_bo, ri_bo, le_to);
-      insert_cell(ri_bo, ri_to, le_to);
+      insert_simplex(le_bo, ri_bo, le_to);
+      insert_simplex(ri_bo, ri_to, le_to);
     });
     for (auto const& [name, prop] : g.vertex_properties()) {
       copy_prop<mat4d, mat3d, mat2d, mat4f, mat3f, mat2f, vec4d, vec3d, vec2d,
@@ -426,7 +428,7 @@ struct unstructured_simplicial_grid
     for (auto v : gv) {
       insert_vertex(gv[v]);
     }
-    auto const gc   = g.cells();
+    auto const gc   = g.simplices();
     auto const s0   = g.size(0);
     auto const s1   = g.size(1);
     auto const s0s1 = s0 * s1;
@@ -441,27 +443,27 @@ struct unstructured_simplicial_grid
       auto const ri_to_ba =
           vertex_handle{(ix + 1) + (iy + 1) * s0 + (iz + 1) * s0s1};
       if (turned(ix, iy, iz)) {
-        insert_cell(le_bo_fr, ri_bo_ba, ri_to_fr,
-                    le_to_ba);  // inner
-        insert_cell(le_bo_fr, ri_bo_fr, ri_to_fr,
-                    ri_bo_ba);  // right front
-        insert_cell(le_bo_fr, ri_to_fr, le_to_fr,
-                    le_to_ba);  // left front
-        insert_cell(ri_to_fr, ri_bo_ba, ri_to_ba,
-                    le_to_ba);  // right back
-        insert_cell(le_bo_fr, le_bo_ba, ri_bo_ba,
-                    le_to_ba);  // left back
+        insert_simplex(le_bo_fr, ri_bo_ba, ri_to_fr,
+                       le_to_ba);  // inner
+        insert_simplex(le_bo_fr, ri_bo_fr, ri_to_fr,
+                       ri_bo_ba);  // right front
+        insert_simplex(le_bo_fr, ri_to_fr, le_to_fr,
+                       le_to_ba);  // left front
+        insert_simplex(ri_to_fr, ri_bo_ba, ri_to_ba,
+                       le_to_ba);  // right back
+        insert_simplex(le_bo_fr, le_bo_ba, ri_bo_ba,
+                       le_to_ba);  // left back
       } else {
-        insert_cell(le_to_fr, ri_bo_fr, le_bo_ba,
-                    ri_to_ba);  // inner
-        insert_cell(le_bo_fr, ri_bo_fr, le_to_fr,
-                    le_bo_ba);  // left front
-        insert_cell(ri_bo_fr, ri_to_fr, le_to_fr,
-                    ri_to_ba);  // right front
-        insert_cell(le_to_fr, le_to_ba, ri_to_ba,
-                    le_bo_ba);  // left back
-        insert_cell(ri_bo_fr, ri_bo_ba, ri_to_ba,
-                    le_bo_ba);  // right back
+        insert_simplex(le_to_fr, ri_bo_fr, le_bo_ba,
+                       ri_to_ba);  // inner
+        insert_simplex(le_bo_fr, ri_bo_fr, le_to_fr,
+                       le_bo_ba);  // left front
+        insert_simplex(ri_bo_fr, ri_to_fr, le_to_fr,
+                       ri_to_ba);  // right front
+        insert_simplex(le_to_fr, le_to_ba, ri_to_ba,
+                       le_bo_ba);  // left back
+        insert_simplex(ri_bo_fr, ri_bo_ba, ri_to_ba,
+                       le_bo_ba);  // right back
       }
     });
     for (auto const& [name, prop] : g.vertex_properties()) {
@@ -472,34 +474,41 @@ struct unstructured_simplicial_grid
     }
   }
   //============================================================================
-  auto operator[](cell_handle t) const -> auto { return cell_at(t.index()); }
-  auto operator[](cell_handle t) -> auto { return cell_at(t.index()); }
+  auto operator[](simplex_handle t) const -> auto {
+    return simplex_at(t.index());
+  }
+  auto operator[](simplex_handle t) -> auto { return simplex_at(t.index()); }
   //----------------------------------------------------------------------------
-  auto at(cell_handle t) const -> auto { return cell_at(t.index()); }
-  auto at(cell_handle t) -> auto { return cell_at(t.index()); }
+  auto at(simplex_handle t) const -> auto { return simplex_at(t.index()); }
+  auto at(simplex_handle t) -> auto { return simplex_at(t.index()); }
   //----------------------------------------------------------------------------
-  auto cell_at(cell_handle t) const -> auto { return cell_at(t.index()); }
-  auto cell_at(cell_handle t) -> auto { return cell_at(t.index()); }
+  auto simplex_at(simplex_handle t) const -> auto {
+    return simplex_at(t.index());
+  }
+  auto simplex_at(simplex_handle t) -> auto { return simplex_at(t.index()); }
   //----------------------------------------------------------------------------
   template <std::size_t... Seq>
-  auto cell_at(std::size_t const i) const {
-    return cell_at(i, std::make_index_sequence<num_vertices_per_simplex()>{});
+  auto simplex_at(std::size_t const i) const {
+    return simplex_at(i,
+                      std::make_index_sequence<num_vertices_per_simplex()>{});
   }
   template <std::size_t... Seq>
-  auto cell_at(std::size_t const i) {
-    return cell_at(i, std::make_index_sequence<num_vertices_per_simplex()>{});
+  auto simplex_at(std::size_t const i) {
+    return simplex_at(i,
+                      std::make_index_sequence<num_vertices_per_simplex()>{});
   }
   //----------------------------------------------------------------------------
  private:
   template <std::size_t... Seq>
-  auto cell_at(std::size_t const i, std::index_sequence<Seq...> /*seq*/) const
-      -> const_cell_at_return_type {
-    return {cell_index_data()[i * num_vertices_per_simplex() + Seq]...};
+  auto simplex_at(std::size_t const i,
+                  std::index_sequence<Seq...> /*seq*/) const
+      -> const_simplex_at_return_type {
+    return {simplex_index_data()[i * num_vertices_per_simplex() + Seq]...};
   }
   template <std::size_t... Seq>
-  auto cell_at(std::size_t const i, std::index_sequence<Seq...> /*seq*/)
-      -> cell_at_return_type {
-    return {cell_index_data()[i * num_vertices_per_simplex() + Seq]...};
+  auto simplex_at(std::size_t const i, std::index_sequence<Seq...> /*seq*/)
+      -> simplex_at_return_type {
+    return {simplex_index_data()[i * num_vertices_per_simplex() + Seq]...};
   }
   //----------------------------------------------------------------------------
  public:
@@ -537,76 +546,80 @@ struct unstructured_simplicial_grid
   auto remove(vertex_handle const vh) {
     using namespace std::ranges;
     parent_t::remove(vh);
-    auto cell_contains_vertex = [this, vh](auto const ch) {
+    auto simplex_contains_vertex = [this, vh](auto const ch) {
       return contains(ch, vh);
     };
-    copy_if(cells(), std::inserter(invalid_cells(), end(invalid_cells())),
-            cell_contains_vertex);
+    copy_if(simplices(),
+            std::inserter(invalid_simplices(), end(invalid_simplices())),
+            simplex_contains_vertex);
   }
   //----------------------------------------------------------------------------
-  auto remove(cell_handle const ch) { invalid_cells().insert(ch); }
+  auto remove(simplex_handle const ch) { invalid_simplices().insert(ch); }
   //----------------------------------------------------------------------------
   template <typename... Handles>
-  auto insert_cell(Handles const... handles) {
+  auto insert_simplex(Handles const... handles) requires(
+      is_same<Handles, vertex_handle>&&...) {
     static_assert(sizeof...(Handles) == num_vertices_per_simplex(),
                   "wrong number of vertices for simplex");
-    (cell_index_data().push_back(handles), ...);
-    for (auto& [key, prop] : cell_properties()) {
+    (simplex_index_data().push_back(handles), ...);
+    for (auto& [key, prop] : simplex_properties()) {
       prop->push_back();
     }
-    return cell_handle{cells().size() - 1};
+    return simplex_handle{simplices().size() - 1};
   }
   //----------------------------------------------------------------------------
   /// tidies up invalid vertices
- private:
-  template <std::size_t... Is>
-  auto reindex_cells_vertex_handles(std::index_sequence<Is...> /*seq*/) {
+ private
+     : template <std::size_t... Is>
+       auto
+       reindex_simplices_vertex_handles(std::index_sequence<Is...> /*seq*/) {
     auto dec     = [](auto i) { return ++i; };
     auto offsets = std::vector<std::size_t>(size(vertex_position_data()), 0);
     for (auto const v : invalid_vertices()) {
       auto i = begin(offsets) + v.index();
       std::ranges::transform(i, end(offsets), i, dec);
     }
-    for (auto& i : m_cell_index_data) {
+    for (auto& i : m_simplex_index_data) {
       i -= offsets[i.index()];
     }
   }
   //----------------------------------------------------------------------------
  public:
   auto tidy_up() {
-    reindex_cells_vertex_handles(std::make_index_sequence<num_dimensions()>{});
+    reindex_simplices_vertex_handles(
+        std::make_index_sequence<num_dimensions()>{});
     parent_t::tidy_up();
     auto correction = std::size_t{};
-    for (auto const c : invalid_cells()) {
-      auto cell_begin = begin(cell_index_data()) +
-                        c.index() * num_vertices_per_simplex() - correction;
-      cell_index_data().erase(cell_begin,
-                              cell_begin + num_vertices_per_simplex());
-      for (auto const& [key, prop] : cell_properties()) {
+    for (auto const c : invalid_simplices()) {
+      auto simplex_begin = begin(simplex_index_data()) +
+                           c.index() * num_vertices_per_simplex() - correction;
+      simplex_index_data().erase(simplex_begin,
+                                 simplex_begin + num_vertices_per_simplex());
+      for (auto const& [key, prop] : simplex_properties()) {
         prop->erase(c.index());
       }
       correction += num_vertices_per_simplex();
     }
-    invalid_cells().clear();
+    invalid_simplices().clear();
   }
   //----------------------------------------------------------------------------
   auto clear() {
     parent_t::clear();
-    cell_index_data().clear();
+    simplex_index_data().clear();
   }
   //----------------------------------------------------------------------------
-  auto cells() const { return cell_container{this}; }
+  auto simplices() const { return simplex_container{this}; }
   //----------------------------------------------------------------------------
  private:
   template <std::size_t... Is>
-  auto contains(cell_handle const ch, vertex_handle const vh,
+  auto contains(simplex_handle const ch, vertex_handle const vh,
                 std::index_sequence<Is...> /*seq*/) const {
-    auto cells_vertices = at(ch);
-    return ((std::get<Is>(cells_vertices) == vh) || ...);
+    auto simplices_vertices = at(ch);
+    return ((std::get<Is>(simplices_vertices) == vh) || ...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
-  auto contains(cell_handle const ch, vertex_handle const vh) const {
+  auto contains(simplex_handle const ch, vertex_handle const vh) const {
     return contains(ch, vh,
                     std::make_index_sequence<num_vertices_per_simplex()>{});
   }
@@ -622,7 +635,7 @@ struct unstructured_simplicial_grid
       auto build_delaunay_mesh(std::index_sequence<Seq...> /*seq*/)
           -> void requires(NumDimensions == 2) ||
       (NumDimensions == 3) {
-    cell_index_data().clear();
+    simplex_index_data().clear();
     using kernel_t      = CGAL::Exact_predicates_inexact_constructions_kernel;
     using vertex_base_t = std::conditional_t<
         NumDimensions == 2,
@@ -647,14 +660,14 @@ struct unstructured_simplicial_grid
     if constexpr (NumDimensions == 2) {
       for (auto it = triangulation.finite_faces_begin();
            it != triangulation.finite_faces_end(); ++it) {
-        insert_cell(vertex_handle{it->vertex(0)->info()},
-                    vertex_handle{it->vertex(Seq + 1)->info()}...);
+        insert_simplex(vertex_handle{it->vertex(0)->info()},
+                       vertex_handle{it->vertex(Seq + 1)->info()}...);
       }
     } else if constexpr (NumDimensions == 3) {
-      for (auto it = triangulation.finite_cells_begin();
-           it != triangulation.finite_cells_end(); ++it) {
-        insert_cell(vertex_handle{it->vertex(0)->info()},
-                    vertex_handle{it->vertex(Seq + 1)->info()}...);
+      for (auto it = triangulation.finite_simplices_begin();
+           it != triangulation.finite_simplices_end(); ++it) {
+        insert_simplex(vertex_handle{it->vertex(0)->info()},
+                       vertex_handle{it->vertex(Seq + 1)->info()}...);
       }
     }
   }
@@ -676,7 +689,7 @@ struct unstructured_simplicial_grid
           std::vector<std::pair<vertex_handle, vertex_handle>> const&
               constraints,
           std::index_sequence<Seq...> /*seq*/) -> void {
-    cell_index_data().clear();
+    simplex_index_data().clear();
     std::vector<CDT::Edge> edges;
     edges.reserve(size(constraints));
     boost::transform(constraints, std::back_inserter(edges),
@@ -699,19 +712,19 @@ struct unstructured_simplicial_grid
     triangulation.eraseSuperTriangle();
     // triangulation.eraseOuterTrianglesAndHoles();
     for (auto const& tri : triangulation.triangles) {
-      insert_cell(vertex_handle{tri.vertices[0]},
-                  vertex_handle{tri.vertices[1]},
-                  vertex_handle{tri.vertices[2]});
+      insert_simplex(vertex_handle{tri.vertices[0]},
+                     vertex_handle{tri.vertices[1]},
+                     vertex_handle{tri.vertices[2]});
     }
   }
 #endif
   //----------------------------------------------------------------------------
  public:
   template <typename T>
-  auto cell_property(std::string const& name) -> auto& {
-    auto it = cell_properties().find(name);
-    if (it == end(cell_properties())) {
-      return insert_cell_property<T>(name);
+  auto simplex_property(std::string const& name) -> auto& {
+    auto it = simplex_properties().find(name);
+    if (it == end(simplex_properties())) {
+      return insert_simplex_property<T>(name);
     }
     if (typeid(T) != it->second->type()) {
       throw std::runtime_error{
@@ -719,13 +732,14 @@ struct unstructured_simplicial_grid
           boost::core::demangle(it->second->type().name()) +
           ") does not match specified type " + type_name<T>() + "."};
     }
-    return *dynamic_cast<cell_property_t<T>*>(cell_properties().at(name).get());
+    return *dynamic_cast<simplex_property_t<T>*>(
+        simplex_properties().at(name).get());
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  auto cell_property(std::string const& name) const -> const auto& {
-    auto it = cell_properties().find(name);
-    if (it == end(cell_properties())) {
+  auto simplex_property(std::string const& name) const -> const auto& {
+    auto it = simplex_properties().find(name);
+    if (it == end(simplex_properties())) {
       throw std::runtime_error{"property \"" + name + "\" not found"};
     }
     if (typeid(T) != it->second->type()) {
@@ -734,72 +748,73 @@ struct unstructured_simplicial_grid
           boost::core::demangle(it->second->type().name()) +
           ") does not match specified type " + type_name<T>() + "."};
     }
-    return *dynamic_cast<cell_property_t<T>*>(cell_properties().at(name).get());
+    return *dynamic_cast<simplex_property_t<T>*>(
+        simplex_properties().at(name).get());
   }
   //----------------------------------------------------------------------------
-  auto scalar_cell_property(std::string const& name) const -> auto const& {
-    return cell_property<tatooine::real_t>(name);
+  auto scalar_simplex_property(std::string const& name) const -> auto const& {
+    return simplex_property<tatooine::real_t>(name);
   }
   //----------------------------------------------------------------------------
-  auto scalar_cell_property(std::string const& name) -> auto& {
-    return cell_property<tatooine::real_t>(name);
+  auto scalar_simplex_property(std::string const& name) -> auto& {
+    return simplex_property<tatooine::real_t>(name);
   }
   //----------------------------------------------------------------------------
-  auto vec2_cell_property(std::string const& name) const -> auto const& {
-    return cell_property<vec2>(name);
+  auto vec2_simplex_property(std::string const& name) const -> auto const& {
+    return simplex_property<vec2>(name);
   }
   //----------------------------------------------------------------------------
-  auto vec2_cell_property(std::string const& name) -> auto& {
-    return cell_property<vec2>(name);
+  auto vec2_simplex_property(std::string const& name) -> auto& {
+    return simplex_property<vec2>(name);
   }
   //----------------------------------------------------------------------------
-  auto vec3_cell_property(std::string const& name) const -> auto const& {
-    return cell_property<vec3>(name);
+  auto vec3_simplex_property(std::string const& name) const -> auto const& {
+    return simplex_property<vec3>(name);
   }
   //----------------------------------------------------------------------------
-  auto vec3_cell_property(std::string const& name) -> auto& {
-    return cell_property<vec3>(name);
+  auto vec3_simplex_property(std::string const& name) -> auto& {
+    return simplex_property<vec3>(name);
   }
   //----------------------------------------------------------------------------
-  auto vec4_cell_property(std::string const& name) const -> auto const& {
-    return cell_property<vec4>(name);
+  auto vec4_simplex_property(std::string const& name) const -> auto const& {
+    return simplex_property<vec4>(name);
   }
   //----------------------------------------------------------------------------
-  auto vec4_cell_property(std::string const& name) -> auto& {
-    return cell_property<vec4>(name);
+  auto vec4_simplex_property(std::string const& name) -> auto& {
+    return simplex_property<vec4>(name);
   }
   //----------------------------------------------------------------------------
-  auto mat2_cell_property(std::string const& name) const -> auto const& {
-    return cell_property<mat2>(name);
+  auto mat2_simplex_property(std::string const& name) const -> auto const& {
+    return simplex_property<mat2>(name);
   }
   //----------------------------------------------------------------------------
-  auto mat2_cell_property(std::string const& name) -> auto& {
-    return cell_property<mat2>(name);
+  auto mat2_simplex_property(std::string const& name) -> auto& {
+    return simplex_property<mat2>(name);
   }
   //----------------------------------------------------------------------------
-  auto mat3_cell_property(std::string const& name) const -> auto const& {
-    return cell_property<mat3>(name);
+  auto mat3_simplex_property(std::string const& name) const -> auto const& {
+    return simplex_property<mat3>(name);
   }
   //----------------------------------------------------------------------------
-  auto mat3_cell_property(std::string const& name) -> auto& {
-    return cell_property<mat3>(name);
+  auto mat3_simplex_property(std::string const& name) -> auto& {
+    return simplex_property<mat3>(name);
   }
   //----------------------------------------------------------------------------
-  auto mat4_cell_property(std::string const& name) const -> auto const& {
-    return cell_property<mat4>(name);
+  auto mat4_simplex_property(std::string const& name) const -> auto const& {
+    return simplex_property<mat4>(name);
   }
   //----------------------------------------------------------------------------
-  auto mat4_cell_property(std::string const& name) -> auto& {
-    return cell_property<mat4>(name);
+  auto mat4_simplex_property(std::string const& name) -> auto& {
+    return simplex_property<mat4>(name);
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  auto insert_cell_property(std::string const& name, T const& value = T{})
+  auto insert_simplex_property(std::string const& name, T const& value = T{})
       -> auto& {
-    auto [it, suc] = cell_properties().insert(
-        std::pair{name, std::make_unique<cell_property_t<T>>(value)});
-    auto prop = dynamic_cast<cell_property_t<T>*>(it->second.get());
-    prop->resize(cells().size());
+    auto [it, suc] = simplex_properties().insert(
+        std::pair{name, std::make_unique<simplex_property_t<T>>(value)});
+    auto prop = dynamic_cast<simplex_property_t<T>*>(it->second.get());
+    prop->resize(simplices().size());
     return *prop;
   }
   //----------------------------------------------------------------------------
@@ -837,9 +852,10 @@ struct unstructured_simplicial_grid
       write_vtp_triangular(path);
     }
   }
- private:
-  auto write_vtp_edges(filesystem::path const& path) const
-      requires((NumDimensions == 2 || NumDimensions == 3) && SimplexDim == 1) {
+
+ private : auto write_vtp_edges(filesystem::path const& path) const
+           requires((NumDimensions == 2 || NumDimensions == 3) &&
+                    SimplexDim == 1) {
     auto file = std::ofstream{path, std::ios::binary};
     if (!file.is_open()) {
       throw std::runtime_error{"Could not write " + path.string()};
@@ -850,11 +866,11 @@ struct unstructured_simplicial_grid
     using lines_offset_int_t       = lines_connectivity_int_t;
     auto const num_bytes_points =
         header_type(sizeof(Real) * 3 * vertices().size());
-    auto const num_bytes_lines_connectivity = cells().size() *
+    auto const num_bytes_lines_connectivity = simplices().size() *
                                               num_vertices_per_simplex() *
                                               sizeof(lines_connectivity_int_t);
     auto const num_bytes_lines_offsets =
-        sizeof(lines_offset_int_t) * cells().size();
+        sizeof(lines_offset_int_t) * simplices().size();
     file << "<VTKFile"
          << " type=\"PolyData\""
          << " version=\"1.0\""
@@ -868,7 +884,7 @@ struct unstructured_simplicial_grid
          << " NumberOfPoints=\"" << vertices().size() << "\""
          << " NumberOfPolys=\"0\""
          << " NumberOfVerts=\"0\""
-         << " NumberOfLines=\"" << cells().size() << "\""
+         << " NumberOfLines=\"" << simplices().size() << "\""
          << " NumberOfStrips=\"0\""
          << ">\n"
          // Points
@@ -925,11 +941,11 @@ struct unstructured_simplicial_grid
     // Writing lines connectivity data to appended data section
     {
       auto connectivity_data = std::vector<lines_connectivity_int_t>(
-          cells().size() * num_vertices_per_simplex());
+          simplices().size() * num_vertices_per_simplex());
       auto index = [](auto const x) -> lines_connectivity_int_t {
         return x.index();
       };
-      copy(cells().data_container() | views::transform(index),
+      copy(simplices().data_container() | views::transform(index),
            begin(connectivity_data));
       file.write(reinterpret_cast<char const*>(&num_bytes_lines_connectivity),
                  sizeof(header_type));
@@ -940,7 +956,7 @@ struct unstructured_simplicial_grid
     // Writing lines offsets to appended data section
     {
       auto offsets = std::vector<lines_offset_int_t>(
-          cells().size(), num_vertices_per_simplex());
+          simplices().size(), num_vertices_per_simplex());
       for (std::size_t i = 1; i < size(offsets); ++i) {
         offsets[i] += offsets[i - 1];
       };
@@ -965,11 +981,11 @@ struct unstructured_simplicial_grid
     using polys_offset_int_t       = polys_connectivity_int_t;
     auto const num_bytes_points =
         header_type(sizeof(Real) * 3 * vertices().size());
-    auto const num_bytes_polys_connectivity = cells().size() *
+    auto const num_bytes_polys_connectivity = simplices().size() *
                                               num_vertices_per_simplex() *
                                               sizeof(polys_connectivity_int_t);
     auto const num_bytes_polys_offsets =
-        sizeof(polys_offset_int_t) * cells().size();
+        sizeof(polys_offset_int_t) * simplices().size();
     file << "<VTKFile"
          << " type=\"PolyData\""
          << " version=\"1.0\""
@@ -981,7 +997,7 @@ struct unstructured_simplicial_grid
          << "<PolyData>\n"
          << "<Piece"
          << " NumberOfPoints=\"" << vertices().size() << "\""
-         << " NumberOfPolys=\"" << cells().size() << "\""
+         << " NumberOfPolys=\"" << simplices().size() << "\""
          << " NumberOfVerts=\"0\""
          << " NumberOfLines=\"0\""
          << " NumberOfStrips=\"0\""
@@ -1040,11 +1056,11 @@ struct unstructured_simplicial_grid
     // Writing polys connectivity data to appended data section
     {
       auto connectivity_data = std::vector<polys_connectivity_int_t>(
-          cells().size() * num_vertices_per_simplex());
+          simplices().size() * num_vertices_per_simplex());
       auto index = [](auto const x) -> polys_connectivity_int_t {
         return x.index();
       };
-      copy(cells().data_container() | views::transform(index),
+      copy(simplices().data_container() | views::transform(index),
            begin(connectivity_data));
       file.write(reinterpret_cast<char const*>(&num_bytes_polys_connectivity),
                  sizeof(header_type));
@@ -1055,7 +1071,7 @@ struct unstructured_simplicial_grid
     // Writing polys offsets to appended data section
     {
       auto offsets = std::vector<polys_offset_int_t>(
-          cells().size(), num_vertices_per_simplex());
+          simplices().size(), num_vertices_per_simplex());
       for (std::size_t i = 1; i < size(offsets); ++i) {
         offsets[i] += offsets[i - 1];
       };
@@ -1083,7 +1099,7 @@ struct unstructured_simplicial_grid
         auto three_dims = [](vec<Real, 2> const& v2) {
           return vec<Real, 3>{v2(0), v2(1), 0};
         };
-        std::vector<vec<Real, 3>> v3s(vertices().size());
+        auto v3s               = std::vector<vec<Real, 3>>(vertices().size());
         auto three_dimensional = views::transform(three_dims);
         copy(vertex_position_data() | three_dimensional, begin(v3s));
         writer.write_points(v3s);
@@ -1092,36 +1108,32 @@ struct unstructured_simplicial_grid
         writer.write_points(vertex_position_data());
       }
 
-       auto vertices_per_cell = std::vector<std::vector<std::size_t>> {};
-       vertices_per_cell.reserve(cells().size());
-       auto cell_types =
-          std::vector<vtk::cell_type>(cells().size(),
-          vtk::cell_type::triangle);
-       for (auto const c : cells()) {
+      auto vertices_per_simplex = std::vector<std::vector<std::size_t>>{};
+      vertices_per_simplex.reserve(simplices().size());
+      auto cell_types = std::vector<vtk::cell_type>(simplices().size(),
+                                                    vtk::cell_type::triangle);
+      for (auto const c : simplices()) {
         auto const [v0, v1, v2] = at(c);
-        vertices_per_cell.push_back(std::vector{v0.index(), v1.index(),
-        v2.index()});
+        vertices_per_simplex.push_back(
+            std::vector{v0.index(), v1.index(), v2.index()});
       }
-       writer.write_cells(vertices_per_cell);
-       writer.write_cell_types(cell_types);
+      writer.write_cells(vertices_per_simplex);
+      writer.write_cell_types(cell_types);
 
       // write vertex_handle data
-       writer.write_point_data(vertices().size());
-       for (auto const& [name, prop] : vertex_properties()) {
+      writer.write_point_data(vertices().size());
+      for (auto const& [name, prop] : vertex_properties()) {
         if (prop->type() == typeid(vec<Real, 4>)) {
           auto const& casted_prop =
-              *dynamic_cast<vertex_property_t<vec<Real, 4>>
-              const*>(prop.get());
+              *dynamic_cast<vertex_property_t<vec<Real, 4>> const*>(prop.get());
           writer.write_scalars(name, casted_prop.data());
         } else if (prop->type() == typeid(vec<Real, 3>)) {
           auto const& casted_prop =
-              *dynamic_cast<vertex_property_t<vec<Real, 3>>
-              const*>(prop.get());
+              *dynamic_cast<vertex_property_t<vec<Real, 3>> const*>(prop.get());
           writer.write_scalars(name, casted_prop.data());
         } else if (prop->type() == typeid(vec<Real, 2>)) {
           auto const& casted_prop =
-              *dynamic_cast<vertex_property_t<vec<Real, 2>>
-              const*>(prop.get());
+              *dynamic_cast<vertex_property_t<vec<Real, 2>> const*>(prop.get());
           writer.write_scalars(name, casted_prop.data());
         } else if (prop->type() == typeid(Real)) {
           auto const& casted_prop =
@@ -1149,16 +1161,16 @@ struct unstructured_simplicial_grid
       writer.write_header();
       writer.write_points(vertex_position_data());
 
-      std::vector<std::vector<std::size_t>> vertices_per_cell;
-      vertices_per_cell.reserve(cells().size());
-      std::vector<vtk::cell_type> cell_types(cells().size(),
-                                             vtk::cell_type::tetra);
-      for (auto const t : cells()) {
+      auto vertices_per_simplex = std::vector<std::vector<std::size_t>>{};
+      vertices_per_simplex.reserve(simplices().size());
+      auto cell_types = std::vector<vtk::cell_type>(simplices().size(),
+                                                    vtk::cell_type::tetra);
+      for (auto const t : simplices()) {
         auto const [v0, v1, v2, v3] = at(t);
-        vertices_per_cell.push_back(
+        vertices_per_simplex.push_back(
             std::vector{v0.index(), v1.index(), v2.index(), v3.index()});
       }
-      writer.write_cells(vertices_per_cell);
+      writer.write_cells(vertices_per_simplex);
       writer.write_cell_types(cell_types);
 
       // write vertex_handle data
@@ -1198,13 +1210,13 @@ struct unstructured_simplicial_grid
   auto read_vtk(std::filesystem::path const& path) {
     struct listener_t : vtk::legacy_file_listener {
       unstructured_simplicial_grid& grid;
-      std::vector<int>              cells;
+      std::vector<int>              simplices;
 
       explicit listener_t(unstructured_simplicial_grid& _grid) : grid{_grid} {}
-      auto add_cells(std::vector<int> const& cells) -> void {
+      auto add_simplices(std::vector<int> const& simplices) -> void {
         std::size_t i = 0;
-        while (i < size(cells)) {
-          auto const num_vertices = cells[i++];
+        while (i < size(simplices)) {
+          auto const num_vertices = simplices[i++];
           if (num_vertices != num_vertices_per_simplex()) {
             throw std::runtime_error{
                 "Number of vertices in file does not match number of vertices "
@@ -1212,15 +1224,15 @@ struct unstructured_simplicial_grid
           }
           for (std::size_t j = 0; j < static_cast<std::size_t>(num_vertices);
                ++j) {
-            grid.cell_index_data().push_back(vertex_handle{cells[i++]});
+            grid.simplex_index_data().push_back(vertex_handle{simplices[i++]});
           }
-          for (auto& [key, prop] : grid.cell_properties()) {
+          for (auto& [key, prop] : grid.simplex_properties()) {
             prop->push_back();
           }
         }
       }
-      auto on_cells(std::vector<int> const& cells) -> void override {
-        add_cells(cells);
+      auto on_simplices(std::vector<int> const& simplices) -> void override {
+        add_simplices(simplices);
       }
       auto on_dataset_type(vtk::dataset_type t) -> void override {
         if (t != vtk::dataset_type::unstructured_grid &&
@@ -1259,7 +1271,7 @@ struct unstructured_simplicial_grid
         }
       }
       auto on_polygons(std::vector<int> const& ps) -> void override {
-        add_cells(ps);
+        add_simplices(ps);
       }
       auto on_scalars(std::string const& data_name,
                       std::string const& /*lookup_table_name*/,
@@ -1304,31 +1316,36 @@ struct unstructured_simplicial_grid
           }
         } else if (data == vtk::reader_data::cell_data) {
           if (num_comps == 1) {
-            auto& prop = grid.template insert_cell_property<double>(data_name);
-            for (auto c = cell_handle{0}; c < cell_handle{prop.size()}; ++c) {
+            auto& prop =
+                grid.template insert_simplex_property<double>(data_name);
+            for (auto c = simplex_handle{0}; c < simplex_handle{prop.size()};
+                 ++c) {
               prop[c] = scalars[c.index()];
             }
           } else if (num_comps == 2) {
-            auto& prop =
-                grid.template insert_cell_property<vec<double, 2>>(data_name);
+            auto& prop = grid.template insert_simplex_property<vec<double, 2>>(
+                data_name);
 
-            for (auto c = cell_handle{0}; c < cell_handle{prop.size()}; ++c) {
+            for (auto c = simplex_handle{0}; c < simplex_handle{prop.size()};
+                 ++c) {
               for (std::size_t j = 0; j < num_comps; ++j) {
                 prop[c][j] = scalars[c.index() * num_comps + j];
               }
             }
           } else if (num_comps == 3) {
-            auto& prop =
-                grid.template insert_cell_property<vec<double, 3>>(data_name);
-            for (auto c = cell_handle{0}; c < cell_handle{prop.size()}; ++c) {
+            auto& prop = grid.template insert_simplex_property<vec<double, 3>>(
+                data_name);
+            for (auto c = simplex_handle{0}; c < simplex_handle{prop.size()};
+                 ++c) {
               for (std::size_t j = 0; j < num_comps; ++j) {
                 prop[c][j] = scalars[c.index() * num_comps + j];
               }
             }
           } else if (num_comps == 4) {
-            auto& prop =
-                grid.template insert_cell_property<vec<double, 4>>(data_name);
-            for (auto c = cell_handle{0}; c < cell_handle{prop.size()}; ++c) {
+            auto& prop = grid.template insert_simplex_property<vec<double, 4>>(
+                data_name);
+            for (auto c = simplex_handle{0}; c < simplex_handle{prop.size()};
+                 ++c) {
               for (std::size_t j = 0; j < num_comps; ++j) {
                 prop[c][j] = scalars[c.index() * num_comps + j];
               }
@@ -1342,8 +1359,9 @@ struct unstructured_simplicial_grid
     f.read();
   }
   //----------------------------------------------------------------------------
-  constexpr auto is_valid(cell_handle t) const {
-    return std::ranges::find(invalid_cells(), t) == end(invalid_cells());
+  constexpr auto is_valid(simplex_handle t) const {
+    return std::ranges::find(invalid_simplices(), t) ==
+           end(invalid_simplices());
   }
   //----------------------------------------------------------------------------
   auto build_hierarchy() const {
@@ -1353,8 +1371,8 @@ struct unstructured_simplicial_grid
       for (auto v : vertices()) {
         h.insert_vertex(v);
       }
-      for (auto c : cells()) {
-        h.insert_cell(c);
+      for (auto c : simplices()) {
+        h.insert_simplex(c);
       }
     }
   }
@@ -1402,10 +1420,10 @@ unstructured_simplicial_grid(rectilinear_grid<Dims...> const& g)
 namespace detail::unstructured_simplicial_grid {
 //==============================================================================
 template <typename Real, std::size_t NumDimensions, std::size_t SimplexDim>
-struct cell_container {
+struct simplex_container {
   using grid_t =
       tatooine::unstructured_simplicial_grid<Real, NumDimensions, SimplexDim>;
-  using handle_t = typename grid_t::cell_handle;
+  using handle_t = typename grid_t::simplex_handle;
   //----------------------------------------------------------------------------
   struct iterator : iterator_facade<iterator> {
     struct sentinel_type {};
@@ -1435,7 +1453,7 @@ struct cell_container {
     [[nodiscard]] auto dereference() const { return m_ch; }
 
     constexpr auto at_end() const {
-      return m_ch.index() == m_ps->cell_index_data().size();
+      return m_ch.index() == m_ps->simplex_index_data().size();
     }
   };
   //--------------------------------------------------------------------------
@@ -1452,14 +1470,14 @@ struct cell_container {
   auto end() const { return iterator{handle_t{size()}, m_grid}; }
   //--------------------------------------------------------------------------
   auto size() const {
-    return m_grid->cell_index_data().size() /
+    return m_grid->simplex_index_data().size() /
                m_grid->num_vertices_per_simplex() -
-           m_grid->invalid_cells().size();
+           m_grid->invalid_simplices().size();
   }
   auto data_container() const -> auto const& {
-    return m_grid->cell_index_data();
+    return m_grid->simplex_index_data();
   }
-  auto data() const { return m_grid->cell_index_data().data(); }
+  auto data() const { return m_grid->simplex_index_data().data(); }
   auto operator[](std::size_t const i) const { return m_grid->at(handle_t{i}); }
   auto operator[](std::size_t const i) { return m_grid->at(handle_t{i}); }
   auto operator[](handle_t const i) const { return m_grid->at(i); }
@@ -1471,18 +1489,18 @@ struct cell_container {
 };
 //------------------------------------------------------------------------------
 template <typename Real, size_t NumDimensions, std::size_t SimplexDim>
-auto begin(cell_container<Real, NumDimensions, SimplexDim> cells) {
-  return cells.begin();
+auto begin(simplex_container<Real, NumDimensions, SimplexDim> simplices) {
+  return simplices.begin();
 }
 //------------------------------------------------------------------------------
 template <typename Real, size_t NumDimensions, std::size_t SimplexDim>
-auto end(cell_container<Real, NumDimensions, SimplexDim> cells) {
-  return cells.end();
+auto end(simplex_container<Real, NumDimensions, SimplexDim> simplices) {
+  return simplices.end();
 }
 //------------------------------------------------------------------------------
 template <typename Real, size_t NumDimensions, std::size_t SimplexDim>
-auto size(cell_container<Real, NumDimensions, SimplexDim> cells) {
-  return cells.size();
+auto size(simplex_container<Real, NumDimensions, SimplexDim> simplices) {
+  return simplices.size();
 }
 //==============================================================================
 }  // namespace detail::unstructured_simplicial_grid
@@ -1498,8 +1516,8 @@ auto size(cell_container<Real, NumDimensions, SimplexDim> cells) {
 //    std::size_t cur_first = 0;
 //    for (auto const& m : grids) { num_pts += m.vertices().size(); }
 //    std::vector<std::array<typename MeshCont::value_type::real_t, 3>>
-//    points; std::vector<std::vector<std::size_t>> cells;
-//    points.reserve(num_pts); cells.reserve(grids.size());
+//    points; std::vector<std::vector<std::size_t>> simplices;
+//    points.reserve(num_pts); simplices.reserve(grids.size());
 //
 //    for (auto const& m : grids) {
 //      // add points
@@ -1507,12 +1525,12 @@ auto size(cell_container<Real, NumDimensions, SimplexDim> cells) {
 //        points.push_back(std::array{m[v](0), m[v](1), m[v](2)});
 //      }
 //
-//      // add cells
-//      for (auto t : m.cells()) {
-//        cells.emplace_back();
-//        cells.back().push_back(cur_first + m[t][0].index());
-//        cells.back().push_back(cur_first + m[t][1].index());
-//        cells.back().push_back(cur_first + m[t][2].index());
+//      // add simplices
+//      for (auto t : m.simplices()) {
+//        simplices.emplace_back();
+//        simplices.back().push_back(cur_first + m[t][0].index());
+//        simplices.back().push_back(cur_first + m[t][1].index());
+//        simplices.back().push_back(cur_first + m[t][2].index());
 //      }
 //      cur_first += m.num_vertices();
 //    }
@@ -1521,7 +1539,7 @@ auto size(cell_container<Real, NumDimensions, SimplexDim> cells) {
 //    writer.set_title(title);
 //    writer.write_header();
 //    writer.write_points(points);
-//    writer.write_polygons(cells);
+//    writer.write_polygons(simplices);
 //    //writer.write_point_data(num_pts);
 //    writer.close();
 //  }
@@ -1547,7 +1565,7 @@ static constexpr inline auto constrained_delaunay_available(
 //==============================================================================
 template <typename Real, std::size_t NumDimensions, std::size_t SimplexDim>
 inline constexpr bool std::ranges::enable_borrowed_range<
-    typename tatooine::detail::unstructured_simplicial_grid::cell_container<
+    typename tatooine::detail::unstructured_simplicial_grid::simplex_container<
         Real, NumDimensions, SimplexDim>> = true;
 //==============================================================================
 #endif

@@ -5,10 +5,24 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Real, size_t N>
-using edgeset = unstructured_simplicial_grid<Real, N, 1>;
-template <size_t N>
-using Edgeset = edgeset<real_t, N>;
+template <typename Real, std::size_t NumDimensions>
+struct edgeset : unstructured_simplicial_grid<Real, NumDimensions, 2> {
+  using this_t   = edgeset<Real, NumDimensions>;
+  using parent_t = unstructured_simplicial_grid<Real, NumDimensions, 2>;
+  using parent_t::parent_t;
+  using typename parent_t::vertex_handle;
+  using edge_handle = typename parent_t::simplex_handle;
+  template <typename... Handles>
+  auto insert_edge(Handles const... handles) requires(
+      is_same<Handles, vertex_handle>&&...) {
+    return insert_simplex(handles...);
+  }
+  auto edge_at(edge_handle const h) { return simplex_at(h); }
+  auto edge_at(edge_handle const h) const { return simplex_at(h); }
+  auto edges() { return this->simplices(); }
+};
+template <std::size_t NumDimensions>
+using Edgeset = edgeset<real_t, NumDimensions>;
 template <typename Real>
 using Edgeset2 = edgeset<Real, 2>;
 template <typename Real>
@@ -24,8 +38,8 @@ using edgeset5 = Edgeset<5>;
 //==============================================================================
 template <typename T>
 struct is_edgeset_impl : std::false_type {};
-template <typename Real, std::size_t N>
-struct is_edgeset_impl<edgeset<Real, N>> : std::true_type {};
+template <typename Real, std::size_t NumDimensions>
+struct is_edgeset_impl<edgeset<Real, NumDimensions>> : std::true_type {};
 template <typename T>
 static constexpr auto is_edgeset = is_edgeset_impl<T>::value;
 //==============================================================================
@@ -37,13 +51,13 @@ auto write_edgeset_container_to_vtk(
     std::string const& title = "tatooine edgeset") {
   vtk::legacy_file_writer writer(path, vtk::dataset_type::polydata);
   if (writer.is_open()) {
-    size_t num_pts   = 0;
-    size_t cur_first = 0;
+    std::size_t num_pts   = 0;
+    std::size_t cur_first = 0;
     for (auto const& m : grids) {
       num_pts += m.vertices().size();
     }
     std::vector<std::array<typename MeshCont::value_type::real_t, 3>> points;
-    std::vector<std::vector<size_t>>                                  faces;
+    std::vector<std::vector<std::size_t>>                             faces;
     points.reserve(num_pts);
     faces.reserve(grids.size());
 
@@ -73,8 +87,8 @@ auto write_edgeset_container_to_vtk(
   }
 }
 //==============================================================================
-auto write_edgeset_container_to_vtp(
-    range auto const& grids, std::filesystem::path const& path) {
+auto write_edgeset_container_to_vtp(range auto const&            grids,
+                                    std::filesystem::path const& path) {
   auto file = std::ofstream{path, std::ios::binary};
   if (!file.is_open()) {
     throw std::runtime_error{"Could not write " + path.string()};
@@ -148,11 +162,10 @@ auto write_edgeset_container_to_vtp(
 
   for (auto const& g : grids) {
     using real_t = typename std::decay_t<decltype(g)>::real_t;
-    arr_size = header_type(
-        sizeof(real_t) * g.num_dimensions() * g.vertices().data_container().size());
+    arr_size     = header_type(sizeof(real_t) * g.num_dimensions() *
+                               g.vertices().data_container().size());
     file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
-    file.write(reinterpret_cast<char const*>(g.vertices().data()),
-               arr_size);
+    file.write(reinterpret_cast<char const*>(g.vertices().data()), arr_size);
 
     // Writing polys connectivity data to appended data section
     {
@@ -173,15 +186,14 @@ auto write_edgeset_container_to_vtp(
 
     // Writing polys offsets to appended data section
     {
-      auto offsets = std::vector<polys_offset_int_t>(g.cells().size(),
-                                                     g.num_vertices_per_simplex());
+      auto offsets = std::vector<polys_offset_int_t>(
+          g.cells().size(), g.num_vertices_per_simplex());
       for (std::size_t i = 1; i < size(offsets); ++i) {
         offsets[i] += offsets[i - 1];
       }
       arr_size = sizeof(polys_offset_int_t) * g.cells().size();
       file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
-      file.write(reinterpret_cast<char const*>(offsets.data()),
-                 arr_size);
+      file.write(reinterpret_cast<char const*>(offsets.data()), arr_size);
     }
   }
   file << "</AppendedData>";
