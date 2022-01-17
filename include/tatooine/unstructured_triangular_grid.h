@@ -5,10 +5,30 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Real, size_t N>
-using unstructured_triangular_grid = unstructured_simplicial_grid<Real, N, 2>;
-template <size_t N>
-using UnstructuredTriangularGrid = unstructured_triangular_grid<real_t, N>;
+template <typename Real, std::size_t NumDimensions>
+struct unstructured_triangular_grid : unstructured_simplicial_grid<Real, NumDimensions, 2> {
+  using this_t = unstructured_triangular_grid<Real, NumDimensions>;
+  using parent_t = unstructured_simplicial_grid<Real, NumDimensions, 2>;
+  using parent_t::parent_t;
+  using typename parent_t::vertex_handle;
+  using triangle_handle = typename parent_t::simplex_handle;
+  template <typename... Handles>
+  auto insert_triangle(Handles const... handles) requires(
+      is_same<Handles, vertex_handle>&&...) {
+    return insert_simplex(handles...);
+  }
+  auto triangle_at(triangle_handle const h) {
+    return simplex_at(h)
+  }
+  auto triangle_at(triangle_handle const h) const {
+    return simplex_at(h)
+  }
+  auto triangles() {
+    return this->simplices();
+  }
+};
+template <std::size_t NumDimensions>
+using UnstructuredTriangularGrid = unstructured_triangular_grid<real_t, NumDimensions>;
 template <typename Real>
 using UnstructuredTriangularGrid2   = unstructured_triangular_grid<Real, 2>;
 template <typename Real>
@@ -24,9 +44,9 @@ using unstructured_triangular_grid5 = UnstructuredTriangularGrid<5>;
 //==============================================================================
 template <typename T>
 struct is_unstructured_triangular_grid_impl : std::false_type{};
-template <typename Real, std::size_t N>
+template <typename Real, std::size_t NumDimensions>
 struct is_unstructured_triangular_grid_impl<
-    unstructured_triangular_grid<Real, N>> : std::true_type{};
+    unstructured_triangular_grid<Real, NumDimensions>> : std::true_type{};
 template <typename T>
 static constexpr auto is_unstructured_triangular_grid =
     is_unstructured_triangular_grid_impl<T>::value;
@@ -39,13 +59,13 @@ auto write_unstructured_triangular_grid_container_to_vtk(
     std::string const& title = "tatooine grids") {
   vtk::legacy_file_writer writer(path, vtk::dataset_type::polydata);
   if (writer.is_open()) {
-    size_t num_pts   = 0;
-    size_t cur_first = 0;
+    std::size_t num_pts   = 0;
+    std::size_t cur_first = 0;
     for (auto const& m : grids) {
       num_pts += m.vertices().size();
     }
     std::vector<std::array<typename MeshCont::value_type::real_t, 3>> points;
-    std::vector<std::vector<size_t>>                                  faces;
+    std::vector<std::vector<std::size_t>>                                  faces;
     points.reserve(num_pts);
     faces.reserve(grids.size());
 
