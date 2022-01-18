@@ -6,19 +6,18 @@
 namespace tatooine {
 //==============================================================================
 template <typename Real, std::size_t NumDimensions>
-struct edgeset : unstructured_simplicial_grid<Real, NumDimensions, 2> {
+struct edgeset : unstructured_simplicial_grid<Real, NumDimensions, 1> {
   using this_t   = edgeset<Real, NumDimensions>;
-  using parent_t = unstructured_simplicial_grid<Real, NumDimensions, 2>;
+  using parent_t = unstructured_simplicial_grid<Real, NumDimensions, 1>;
   using parent_t::parent_t;
   using typename parent_t::vertex_handle;
   using edge_handle = typename parent_t::simplex_handle;
   template <typename... Handles>
-  auto insert_edge(Handles const... handles) requires(
-      is_same<Handles, vertex_handle>&&...) {
-    return insert_simplex(handles...);
+  auto insert_edge(vertex_handle const v0, vertex_handle const v1)  {
+    return this->insert_simplex(v0, v1);
   }
-  auto edge_at(edge_handle const h) { return simplex_at(h); }
-  auto edge_at(edge_handle const h) const { return simplex_at(h); }
+  auto edge_at(edge_handle const h) { return this->simplex_at(h); }
+  auto edge_at(edge_handle const h) const { return this->simplex_at(h); }
   auto edges() { return this->simplices(); }
 };
 template <std::size_t NumDimensions>
