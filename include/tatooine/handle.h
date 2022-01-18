@@ -125,9 +125,14 @@ auto operator/(integral auto const i, handle<Child, Int> const h) {
   return Child{i / h.index()};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//template <typename Child, unsigned_integral Int>
+//auto operator<<(std::ostream & stream, handle<Child, Int> const h) -> auto& {
+//  return stream << type_name<Child>() << "[" << h.index() << "]";
+//}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Child, unsigned_integral Int>
 auto operator<<(std::ostream & stream, handle<Child, Int> const h) -> auto& {
-  return stream << type_name<Child>() << "[" << h.index() << "]";
+  return stream << h.index();
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Child, unsigned_integral Int>
