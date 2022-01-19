@@ -1,11 +1,12 @@
 #include <tatooine/autonomous_particle.h>
+#include <tatooine/analytical/fields/doublegyre.h>
 
 #include <vector>
 //==============================================================================
 using namespace tatooine;
 using namespace detail::autonomous_particle;
 //==============================================================================
-auto build_vertices_of_edgeset() {
+auto build_example_vertices_of_edgeset() {
   auto edges = edgeset2{};
   //  centers are taken from autonomous_particles
   edges.insert_vertex(0, 0);
@@ -38,31 +39,7 @@ auto build_vertices_of_edgeset() {
   return std::pair{std::move(edges), std::move(map)};
 }
 //==============================================================================
-auto build_center_list() {
-  auto l = std::vector<center_of>{};
-  l.emplace_back(0, 2);
-  l.emplace_back(1, 1);
-  l.emplace_back(2, 5);
-  l.emplace_back(3, 3);
-  l.emplace_back(4, 4);
-  l.emplace_back(5, 5);
-  l.emplace_back(6, 6);
-  l.emplace_back(7, 7);
-  l.emplace_back(8, 10);
-  l.emplace_back(9, 9);
-  l.emplace_back(10, 10);
-  l.emplace_back(11, 11);
-  l.emplace_back(12, 12);
-  l.emplace_back(13, 15);
-  l.emplace_back(14, 14);
-  l.emplace_back(15, 15);
-  l.emplace_back(16, 16);
-  l.emplace_back(17, 18);
-  l.emplace_back(18, 0);
-  return l;
-}
-//==============================================================================
-auto build_hierachy_pair_list() {
+auto build_example_hierachy_pair_list() {
   auto l = std::vector<hierarchy_pair>{};
   l.emplace_back(0, 18);
   l.emplace_back(1, 0);
@@ -86,6 +63,39 @@ auto build_hierachy_pair_list() {
   return l;
 }
 //==============================================================================
+auto build_artificial_example() {
+  auto const hpl = build_example_hierachy_pair_list();
+  auto [es, map]              = build_example_vertices_of_edgeset();
+  return std::tuple{std::move(hpl), std::move(es), std::move(map)};
+}
+//==============================================================================
+auto build_doublegyre_example() {
+  auto v              = analytical::fields::numerical::doublegyre{};
+  auto uuid_generator = std::atomic_uint64_t{};
+  auto p = autonomous_particle2{vec2{1.0, 0.5}, 0, 0.1, uuid_generator};
+  auto const [ps, sps, hpl] = p.advect(flowmap(v), 0.001, 5, uuid_generator);
+  auto es0 = edgeset2{};
+  auto es1 = edgeset2{};
+  auto map = std::unordered_map<std::size_t, edgeset2::vertex_handle>{};
+  for (auto const& p : ps) {
+    map[p.id()] = es0.insert_vertex(p.initial_ellipse().center());
+    es1.insert_vertex(p.center());
+  }
+
+  auto all_advected_discretizations=std::vector<line2> {};
+  auto all_initial_discretizations = std::vector<line2> {};
+  for (auto const& p : ps) {
+    all_initial_discretizations.push_back(
+        discretize(p.initial_ellipse(), 100));
+    all_advected_discretizations.push_back(
+        discretize(p, 100));
+  }
+  write(all_initial_discretizations, "post_triangulation_doublegyre_ellipses0.vtk");
+  write(all_advected_discretizations,
+            "post_triangulation_doublegyre_ellipses1.vtk");
+  return std::tuple{std::move(hpl), std::move(es0), std::move(es1), std::move(map)};
+}
+//==============================================================================
 template <typename Real, std::size_t NumDimensions>
 auto print(hierarchy<Real, NumDimensions> const& h, std::string const& tab = "")
     -> void {
@@ -106,13 +116,17 @@ auto print(hierarchy<Real, NumDimensions> const& h, std::string const& tab = "")
 }
 //==============================================================================
 auto main() -> int {
-  auto center_list         = build_center_list();
-  auto const hierarchy_pair_list = build_hierachy_pair_list();
-  auto [edges, map]              = build_vertices_of_edgeset();
-  auto center_vertices           = transform_center_list<real_t, 2>(center_list, map);
-  auto h = hierarchy{hierarchy_pair_list, center_vertices, edges};
+  auto [hierarchy_pair_list, edges0, edges1, map] =
+    //build_artificial_example();
+    build_doublegyre_example();
+  auto h = hierarchy{hierarchy_pair_list, map, edges0};
 
   print(h);
-  process_top(edges, h);
-  edges.write("post.vtp");
+  process_top(edges0, h);
+  for (auto e : edges0.edges()) {
+    auto [v0, v1] = edges0[e];
+    edges1.insert_edge(v0, v1);
+  }
+  edges0.write("post0.vtp");
+  edges1.write("post1.vtp");
 }
