@@ -13,13 +13,8 @@ template <typename Real, std::size_t NumDimensions>
 using vertex = typename tatooine::edgeset<Real, NumDimensions>::vertex_handle;
 //==============================================================================
 struct hierarchy_pair {
-  std::size_t id;
-  std::size_t parent;
-};
-//==============================================================================
-struct center_of {
-  std::size_t id;
-  std::size_t center;
+  std::uint64_t id;
+  std::uint64_t parent;
 };
 //------------------------------------------------------------------------------
 auto trace_center_vertex(std::size_t                     id,
@@ -42,38 +37,44 @@ struct hierarchy {
 
  public:
   //============================================================================
-  hierarchy(std::size_t const id_, vertex_type const center_)
-      : id{id_}, center{center_} {}
+  hierarchy(std::size_t const id_)
+      : id{id_} {}
   //----------------------------------------------------------------------------
   /// as child node
-  hierarchy(std::size_t const id_, vertex_type const center_,
-            std::vector<hierarchy_pair> const& hps,
-            std::vector<vertex_type> const& centers, edgeset_type const& edges)
-      : hierarchy{id_, center_} {
+  hierarchy(std::size_t const id_, std::vector<hierarchy_pair> const& hps,
+            std::unordered_map<std::size_t, vertex_type> const& centers,
+            edgeset_type const&                                 edges)
+      : hierarchy{id_} {
     build(hps, centers, edges);
     if (!leafs.empty()) {
       sort_leafs(edges);
+      center = leafs[leafs.size() / 2].center;
     }
   }
   //----------------------------------------------------------------------------
   /// as top node
-  hierarchy(std::vector<hierarchy_pair> const& hps,
-            std::vector<vertex_type> const& centers, edgeset_type const& edges) {
+  hierarchy(std::vector<hierarchy_pair> const&                  hps,
+            std::unordered_map<std::size_t, vertex_type> const& centers,
+            edgeset_type const&                                 edges) {
     for (auto const& hp : hps) {
       // search for top nodes
       if (hp.id == hp.parent) {
-        leafs.emplace_back(hp.parent, centers[hp.parent], hps, centers, edges);
+        leafs.emplace_back(hp.parent, hps, centers, edges);
       }
     }
   }
   //----------------------------------------------------------------------------
  private:
-  auto build(std::vector<hierarchy_pair> const& hps,
-             std::vector<vertex_type> const& centers, edgeset_type const& edges) -> void {
+  auto build(std::vector<hierarchy_pair> const&                  hps,
+             std::unordered_map<std::size_t, vertex_type> const& centers,
+             edgeset_type const& edges) -> void {
     for (auto const& hp : hps) {
       if (id == hp.parent && hp.parent != hp.id) {
-        leafs.emplace_back(hp.id, centers[hp.id], hps, centers, edges);
+        leafs.emplace_back(hp.id, hps, centers, edges);
       }
+    }
+    if (leafs.empty()) {
+      center = centers.at(id);
     }
   }
   //----------------------------------------------------------------------------
@@ -123,14 +124,15 @@ auto get_front(hierarchy<Real, NumDimensions> const& h,
   }
   auto const split_dir = edges[h.leafs[1].center] - edges[h.leafs[0].center];
   auto       front     = std::vector<vertex<Real, NumDimensions>>{};
-  if (std::abs(cos_angle(offset_dir, split_dir)) < 0.3) {
+  if (std::abs(cos_angle(offset_dir, split_dir)) <
+      std::cos(50.0 * M_PI / 180.0)) {
     // copy all if center-center direction is perpendicular split direction
     for (auto const& l : h.leafs) {
       copy(get_front(l, edges, other_center, offset_dir),
            std::back_inserter(front));
     }
   } else {
-    // copy only nearest particle to front
+    // copy only nearest particle to front if center-center direction is parallel
     if (squared_euclidean_distance(other_center,
                                    edges[h.leafs.front().center]) <
         squared_euclidean_distance(other_center,
@@ -149,8 +151,8 @@ template <typename Real, std::size_t NumDimensions>
 auto connect_fronts(std::vector<vertex<Real, NumDimensions>> front0,
                     std::vector<vertex<Real, NumDimensions>> front1,
                     edgeset<Real, NumDimensions>&            edges) -> void {
-  if (squared_euclidean_distance(edges[front0.front()], edges[front1.front()]) >
-      squared_euclidean_distance(edges[front0.front()], edges[front1.back()])) {
+  if (dot(edges[front0.back()] - edges[front0.front()],
+          edges[front1.back()] - edges[front1.front()]) < 0) {
     std::ranges::reverse(front1);
   }
 
@@ -222,33 +224,6 @@ auto total_num_particles(std::vector<hierarchy_pair> const& hps) {
     num = std::max(num, hp.id);
   }
   return num + 1;
-}
-//------------------------------------------------------------------------------
-auto total_num_particles(std::vector<center_of> const& centers) {
-  std::size_t num = 0;
-  for (auto const& c : centers) {
-    num = std::max(num, c.id);
-  }
-  return num + 1;
-}
-//------------------------------------------------------------------------------
-template <typename Real, std::size_t NumDimensions>
-auto transform_center_list(
-    std::vector<center_of>& center_list,
-    std::unordered_map<std::size_t, vertex<Real, NumDimensions>> const& map) {
-  auto const num_parts       = total_num_particles(center_list);
-  auto       center_vertices = std::vector<vertex<Real, NumDimensions>>(num_parts);
-  auto       centers         = std::vector<std::size_t>(num_parts);
-  for (auto const& c : center_list) {
-    centers[c.id] = c.center;
-  }
-  center_list.clear();
-  center_list.shrink_to_fit();
-
-  for (std::size_t i = 0; i < num_parts; ++i) {
-    center_vertices[i] = map.at(trace_center_vertex(i, centers));
-  }
-  return center_vertices;
 }
 //==============================================================================
 }  // namespace tatooine::detail::autonomous_particle
