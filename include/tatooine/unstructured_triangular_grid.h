@@ -15,13 +15,13 @@ struct unstructured_triangular_grid : unstructured_simplicial_grid<Real, NumDime
   template <typename... Handles>
   auto insert_triangle(Handles const... handles) requires(
       is_same<Handles, vertex_handle>&&...) {
-    return insert_simplex(handles...);
+    return this->insert_simplex(handles...);
   }
   auto triangle_at(triangle_handle const h) {
-    return simplex_at(h)
+    return this->simplex_at(h);
   }
   auto triangle_at(triangle_handle const h) const {
-    return simplex_at(h)
+    return this->simplex_at(h);
   }
   auto triangles() {
     return this->simplices();

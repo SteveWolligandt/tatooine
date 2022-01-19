@@ -1,2 +1,0 @@
-/usr/bin/ar qc libimgui_node_editor.a CMakeFiles/imgui_node_editor.dir/home/steve/libs/tatooine2/flowexplorer/external/imgui-node-editor/crude_json.cpp.o CMakeFiles/imgui_node_editor.dir/home/steve/libs/tatooine2/flowexplorer/external/imgui-node-editor/imgui_canvas.cpp.o CMakeFiles/imgui_node_editor.dir/home/steve/libs/tatooine2/flowexplorer/external/imgui-node-editor/imgui_node_editor_api.cpp.o CMakeFiles/imgui_node_editor.dir/home/steve/libs/tatooine2/flowexplorer/external/imgui-node-editor/imgui_node_editor.cpp.o
-/usr/bin/ranlib libimgui_node_editor.a
