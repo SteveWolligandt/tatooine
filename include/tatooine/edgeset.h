@@ -1,5 +1,5 @@
-#ifndef TATOOINE_UNSTRUCTURED_TRIANGULAR_GRID_H
-#define TATOOINE_UNSTRUCTURED_TRIANGULAR_GRID_H
+#ifndef TATOOINE_EDGESET_H
+#define TATOOINE_EDGESET_H
 //==============================================================================
 #include <tatooine/unstructured_simplicial_grid.h>
 //==============================================================================

@@ -12,6 +12,7 @@
 #include <tatooine/tensor.h>
 #include <tatooine/detail/autonomous_particle/sampler.h>
 #include <tatooine/detail/autonomous_particle/split_behavior.h>
+#include <tatooine/detail/autonomous_particle/post_triangulation.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
