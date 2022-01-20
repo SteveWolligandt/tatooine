@@ -64,6 +64,14 @@ struct hierarchy {
     }
   }
   //----------------------------------------------------------------------------
+  auto find_by_id(std::uint64_t const& id) const -> auto const& {
+    for (auto const& l : leafs) {
+      if (id == l.id) {
+        return l;
+      }
+    }
+    return *this;
+  }
  private:
   auto build(std::vector<hierarchy_pair> const&                  hps,
              std::unordered_map<std::size_t, vertex_type> const& centers,
@@ -187,34 +195,39 @@ auto connect_fronts(std::vector<vertex<Real, NumDimensions>> front0,
   edges.insert_edge(*it0, *it1);
 }
 //------------------------------------------------------------------------------
+/// Triangulates two particles
 template <typename Real, std::size_t NumDimensions>
-auto process_child(edgeset<Real, NumDimensions>&         edges,
-                   hierarchy<Real, NumDimensions> const& h) -> void {
+auto triangulate(edgeset<Real, NumDimensions>&         edges,
+                 hierarchy<Real, NumDimensions> const& h0,
+                 hierarchy<Real, NumDimensions> const& h1) -> void {
+  connect_fronts(get_front(h0, edges, edges[h1.center],
+                           edges[h0.center] - edges[h1.center]),
+                 get_front(h1, edges, edges[h0.center],
+                           edges[h1.center] - edges[h0.center]),
+                 edges);
+}
+//------------------------------------------------------------------------------
+/// Triangulates one single initial particle.
+template <typename Real, std::size_t NumDimensions>
+auto triangulate_initial(edgeset<Real, NumDimensions>&         edges,
+                         hierarchy<Real, NumDimensions> const& h) -> void {
   using namespace std::ranges;
   if (!h.leafs.empty()) {
     for (auto const& l : h.leafs) {
-      process_child(edges, l);
+      triangulate_initial(edges, l);
     }
-    connect_fronts(
-        get_front(h.leafs[0], edges, edges[h.leafs[1].center],
-                  edges[h.leafs[0].center] - edges[h.leafs[1].center]),
-        get_front(h.leafs[1], edges, edges[h.leafs[0].center],
-                  edges[h.leafs[1].center] - edges[h.leafs[0].center]),
-        edges);
-    connect_fronts(
-        get_front(h.leafs[2], edges, edges[h.leafs[1].center],
-                  edges[h.leafs[2].center] - edges[h.leafs[1].center]),
-        get_front(h.leafs[1], edges, edges[h.leafs[2].center],
-                  edges[h.leafs[1].center] - edges[h.leafs[2].center]),
-        edges);
+    triangulate(edges, h.leafs[0], h.leafs[1]);
+    triangulate(edges, h.leafs[2], h.leafs[1]);
   }
 }
 //------------------------------------------------------------------------------
+/// Triangulates set of initial particles. Not connecting initial particles with
+/// each other.
 template <typename Real, std::size_t NumDimensions>
-auto process_top(edgeset<Real, NumDimensions>&         edgeset,
+auto triangulate(edgeset<Real, NumDimensions>&         edgeset,
                  hierarchy<Real, NumDimensions> const& h) -> void {
   for (auto const& top_leaf : h.leafs) {
-    process_child(edgeset, top_leaf);
+    triangulate_initial(edgeset, top_leaf);
   }
 }
 //==============================================================================
