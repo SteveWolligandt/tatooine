@@ -82,7 +82,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   autonomous_particle(std::uint64_t const id)
       : m_nabla_phi{mat_t::eye()}, m_id{id} {}
   autonomous_particle(std::atomic_uint64_t& uuid_generator)
-      : autonomous_particle{++uuid_generator} {}
+      : autonomous_particle{uuid_generator++} {}
   //----------------------------------------------------------------------------
   autonomous_particle(ellipse_t const& ell, real_t const t,
                       std::uint64_t const id)
@@ -94,7 +94,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //----------------------------------------------------------------------------
   autonomous_particle(ellipse_t const& ell, real_t const t,
                       std::atomic_uint64_t& uuid_generator)
-      : autonomous_particle{ell, t, ++uuid_generator} {}
+      : autonomous_particle{ell, t, uuid_generator++} {}
   //----------------------------------------------------------------------------
   autonomous_particle(pos_t const& x, real_t const t, real_t const r,
                       std::uint64_t const id)
@@ -102,7 +102,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //----------------------------------------------------------------------------
   autonomous_particle(pos_t const& x, real_t const t, real_t const r,
                       std::atomic_uint64_t& uuid_generator)
-      : autonomous_particle{x, t, r, ++uuid_generator} {}
+      : autonomous_particle{x, t, r, uuid_generator++} {}
   //----------------------------------------------------------------------------
   autonomous_particle(ellipse_t const& ell, real_t const t, pos_t const& x0,
                       mat_t const& nabla_phi, std::uint64_t const id)
@@ -111,7 +111,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   autonomous_particle(ellipse_t const& ell, real_t const t, pos_t const& x0,
                       mat_t const&          nabla_phi,
                       std::atomic_uint64_t& uuid_generator)
-      : autonomous_particle{ell, t, x0, nabla_phi, ++uuid_generator} {}
+      : autonomous_particle{ell, t, x0, nabla_phi, uuid_generator++} {}
   //============================================================================
   // GETTERS / SETTERS
   //============================================================================
@@ -280,17 +280,28 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //   return path;
   // }
   //----------------------------------------------------------------------------
+  /// Advects single particle.
   template <
       split_behavior SplitBehavior = typename split_behaviors::three_splits,
       typename Flowmap>
   auto advect(Flowmap&& phi, real_t const step_size, real_t const t_end,
               std::atomic_uint64_t& uuid_generator) const {
+    using namespace detail::autonomous_particle;
     auto hierarchy_mutex = std::mutex{};
-    auto hpl             = std::vector{hierarchy_pair{m_id, m_id}};
-    auto [ps, sps] =
+    auto hierarchy_pairs = std::vector{hierarchy_pair{m_id, m_id}};
+    auto [advected_particles, advected_simple_particles] =
         advect<SplitBehavior>(std::forward<Flowmap>(phi), step_size, t_end,
-                              {*this}, hpl, hierarchy_mutex, uuid_generator);
-    return std::tuple{std::move(ps), std::move(sps), std::move(hpl)};
+                              {*this}, hierarchy_pairs, hierarchy_mutex,
+                              uuid_generator);
+    auto edges = edgeset<Real, NumDimensions>{};
+    auto map   = std::unordered_map<
+        std::size_t, typename edgeset<Real, NumDimensions>::vertex_handle>{};
+    for (auto const& p : advected_particles) {
+      map[p.id()] = edges.insert_vertex(p.initial_ellipse().center());
+    }
+    triangulate(edges, hierarchy{hierarchy_pairs, map, edges});
+    return std::tuple{std::move(advected_particles),
+                      std::move(advected_simple_particles), std::move(edges)};
   }
   //----------------------------------------------------------------------------
   static auto num_threads() {
@@ -323,13 +334,11 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   }
   //----------------------------------------------------------------------------
   template <split_behavior SplitBehavior, typename Flowmap>
-  static auto advect_particle_pools(std::size_t const num_threads,
-                                    Flowmap&& phi, real_t const step_size,
-                                    real_t const t_end,
-                                    auto&        particles_per_thread,
-                                    std::vector<hierarchy_pair>& hpl,
-                                    std::mutex&           hierarchy_mutex,
-                                    std::atomic_uint64_t& uuid_generator) {
+  static auto advect_particle_pools(
+      std::size_t const num_threads, Flowmap&& phi, real_t const step_size,
+      real_t const t_end, auto& particles_per_thread,
+      std::vector<hierarchy_pair>& hierarchy_pairs, std::mutex& hierarchy_mutex,
+      std::atomic_uint64_t& uuid_generator) {
 #pragma omp parallel
     {
       auto const thr_id = omp_get_thread_num();
@@ -338,7 +347,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
       for (auto const& particle : particles_at_t0) {
         particle.template advect_until_split<SplitBehavior>(
             std::forward<Flowmap>(phi), step_size, t_end, particles_at_t1,
-            finished, simple_particles, hpl, hierarchy_mutex, uuid_generator);
+            finished, simple_particles, hierarchy_pairs, hierarchy_mutex,
+            uuid_generator);
       }
     }
   }
@@ -373,20 +383,66 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   template <
       split_behavior SplitBehavior = typename split_behaviors::three_splits,
       typename Flowmap>
-  static auto advect(Flowmap&& phi, real_t const step_size, real_t const t_end,
-                     container_t           particles,
-                     std::atomic_uint64_t& uuid_generator) {
-    auto hpl = std::vector<hierarchy_pair>{};
-    hpl.reserve(particles.size());
-    for (auto const& p : particles) {
-      hpl.emplace_back(p.id(), p.id());
+  static auto advect(Flowmap&& phi, real_t const step_size, real_t const t0,
+                     real_t const                                         t_end,
+                     uniform_rectilinear_grid<Real, NumDimensions> const& g) {
+    using namespace detail::autonomous_particle;
+    auto particles                     = container_t{};
+    auto initial_particle_distribution = g.copy_without_properties();
+    auto uuid_generator                = std::atomic_uint64_t{0};
+    for (std::size_t i = 0; i < NumDimensions; ++i) {
+      auto const spacing = initial_particle_distribution.dimension(i).spacing();
+      initial_particle_distribution.dimension(i).pop_front();
+      initial_particle_distribution.dimension(i).front() -= spacing / 2;
+      initial_particle_distribution.dimension(i).back() -= spacing / 2;
     }
+    initial_particle_distribution.vertices().iterate_indices(
+        [&](auto const... is) {
+          particles.emplace_back(
+              initial_particle_distribution.vertex_at(is...), t0,
+              initial_particle_distribution.dimension(0).spacing() / 2,
+              uuid_generator);
+        });
     auto hierarchy_mutex = std::mutex{};
-    auto [ps, sps] = advect(std::forward<Flowmap>(flowmap), step_size, t_end,
-                             particles, hpl, hierarchy_mutex, uuid_generator);
-    return std::tuple{std::move(ps), std::move(sps),
-                      std::move(hpl)};
+    auto hierarchy_pairs = std::vector<hierarchy_pair>{};
+    hierarchy_pairs.reserve(particles.size());
+    for (auto const& p : particles) {
+      hierarchy_pairs.emplace_back(p.id(), p.id());
+    }
+    auto [advected_particles, advected_simple_particles] =
+        advect(std::forward<Flowmap>(phi), step_size, t_end, particles,
+               hierarchy_pairs, hierarchy_mutex, uuid_generator);
+    
+    auto edges = edgeset<Real, NumDimensions>{};
+    auto map   = std::unordered_map<
+        std::size_t, typename edgeset<Real, NumDimensions>::vertex_handle>{};
+    for (auto const& p : advected_particles) {
+      map[p.id()] = edges.insert_vertex(p.initial_ellipse().center());
+    }
+    auto const h = hierarchy{hierarchy_pairs, map, edges};
+    triangulate(edges, h);
+
+    auto const s = initial_particle_distribution.size();
+    for (std::size_t j = 0; j < s[1]; ++j) {
+      for (std::size_t i = 0; i < s[0] - 1; ++i) {
+        auto const id0 = i + j * s[0];
+        auto const id1 = (i+1) + j * s[0];
+        triangulate(edges, h.find_by_id(id0), h.find_by_id(id1));
+      }
+    }
+    for (std::size_t i = 0; i < s[0]; ++i) {
+      for (std::size_t j = 0; j < s[1] - 1; ++j) {
+        auto const id0 = i + j * s[0];
+        auto const id1 = i + (j+1) * s[0];
+        triangulate(edges, h.find_by_id(id0), h.find_by_id(id1));
+      }
+    }
+
+    return std::tuple{std::move(advected_particles),
+                      std::move(advected_simple_particles),
+                      std::move(edges)};
   }
+  //----------------------------------------------------------------------------
   /// Advects all particles in particles container in the flowmap phi until
   /// time `t_end` is reached.
   ///
@@ -400,9 +456,10 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
       split_behavior SplitBehavior = typename split_behaviors::three_splits,
       typename Flowmap>
   static auto advect(Flowmap&& phi, real_t const step_size, real_t const t_end,
-                     container_t particles, std::vector<hierarchy_pair>& hpl,
-                     std::mutex&           hierarchy_mutex,
-                     std::atomic_uint64_t& uuid_generator) {
+                     container_t                  particles,
+                     std::vector<hierarchy_pair>& hierarchy_pairs,
+                     std::mutex&                  hierarchy_mutex,
+                     std::atomic_uint64_t&        uuid_generator) {
     auto const num_threads = this_t::num_threads();
 
     auto finished_particles        = container_t{};
@@ -418,7 +475,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
                                                 particles_per_thread);
       advect_particle_pools<SplitBehavior>(
           num_threads, std::forward<Flowmap>(phi), step_size, t_end,
-          particles_per_thread, hpl, hierarchy_mutex, uuid_generator);
+          particles_per_thread, hierarchy_pairs, hierarchy_mutex,
+          uuid_generator);
       gather_particles(particles, finished_particles, finished_simple_particles,
                        particles_per_thread);
     }
@@ -445,7 +503,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
                           container_t&                 splitted_particles,
                           container_t&                 finished_particles,
                           simple_particle_container_t& simple_particles,
-                          std::vector<hierarchy_pair>& hpl,
+                          std::vector<hierarchy_pair>& hierarchy_pairs,
                           std::mutex&                  hierarchy_mutex,
                           std::atomic_uint64_t&        uuid_generator) const {
     if constexpr (is_cacheable<std::decay_t<decltype(phi)>>()) {
@@ -556,7 +614,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
                                           x0() + offset0, assembled_nabla_phi,
                                           ++uuid_generator);
           auto lock = std::lock_guard{hierarchy_mutex};
-          hpl.emplace_back(splitted_particles.back().m_id, m_id);
+          hierarchy_pairs.emplace_back(splitted_particles.back().m_id, m_id);
         }
         return;
       }
