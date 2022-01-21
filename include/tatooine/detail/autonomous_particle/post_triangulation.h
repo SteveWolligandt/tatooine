@@ -131,7 +131,7 @@ auto get_front(hierarchy<Real, NumDimensions> const& h,
   }
   auto const split_dir = edges[h.leafs[1].center] - edges[h.leafs[0].center];
   auto       front     = std::vector<vertex<Real, NumDimensions>>{};
-  auto constexpr angle_threshold = Real(50);
+  auto constexpr angle_threshold = Real(20);
   auto constexpr radians = gcem::cos(angle_threshold * M_PI / Real(180));
   auto const offset_dir = other_center - edges[h.center];
   auto ca = cos_angle(offset_dir, split_dir);

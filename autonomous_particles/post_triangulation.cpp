@@ -75,7 +75,7 @@ auto doublegyre_example() {
   auto uuid_generator = std::atomic_uint64_t{};
   auto const [advected_particles, advected_simple_particles, edges] =
       autonomous_particle2::advect(
-          flowmap(v), 0.01, 0, 1.5,
+          flowmap(v), 0.01, 0, 5,
           rectilinear_grid{linspace{0.8, 1.2, 21},
                            linspace{0.4, 0.6, 11}});
 
