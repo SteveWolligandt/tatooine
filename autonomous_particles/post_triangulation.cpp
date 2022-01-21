@@ -63,10 +63,11 @@ auto build_example_hierachy_pair_list() {
   return l;
 }
 //==============================================================================
-auto build_artificial_example() {
-  auto const hpl = build_example_hierachy_pair_list();
-  auto [es, map]              = build_example_vertices_of_edgeset();
-  return std::tuple{std::move(hpl), std::move(es), std::move(map)};
+auto artificial_example() {
+  auto const hierarchy_pairs = build_example_hierachy_pair_list();
+  auto [edges, map]              = build_example_vertices_of_edgeset();
+  triangulate(edges, hierarchy{hierarchy_pairs, map, edges});
+  edges.write("post_triangulation_artificial.vtp");
 }
 //==============================================================================
 auto doublegyre_example() {
@@ -74,7 +75,7 @@ auto doublegyre_example() {
   auto uuid_generator = std::atomic_uint64_t{};
   auto const [advected_particles, advected_simple_particles, edges] =
       autonomous_particle2::advect(
-          flowmap(v), 0.001, 0, 2,
+          flowmap(v), 0.01, 0, 1.5,
           rectilinear_grid{linspace{0.8, 1.2, 21},
                            linspace{0.4, 0.6, 11}});
 
@@ -113,4 +114,5 @@ auto print(hierarchy<Real, NumDimensions> const& h, std::string const& tab = "")
 //==============================================================================
 auto main() -> int {
   doublegyre_example();
+  //artificial_example();
 }
