@@ -1,6 +1,7 @@
 #ifndef TATOOINE_UNSTRUCTURED_GRID_H
 #define TATOOINE_UNSTRUCTURED_GRID_H
 //==============================================================================
+#include <tatooine/edgeset.h>
 #include <tatooine/pointset.h>
 
 #include <boost/range.hpp>
@@ -8,7 +9,7 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Real, size_t NumDimensions>
+template <typename Real, std::size_t NumDimensions>
 struct unstructured_grid : pointset<Real, NumDimensions> {
  public:
   using this_t   = unstructured_grid;
@@ -26,12 +27,13 @@ struct unstructured_grid : pointset<Real, NumDimensions> {
                                vertex_handle> {
     using this_t = cell_vertex_iterator;
     using grid_t = unstructured_grid;
-    cell_vertex_iterator(std::vector<size_t>::const_iterator it) : m_it{it} {}
+    cell_vertex_iterator(std::vector<std::size_t>::const_iterator it)
+        : m_it{it} {}
     cell_vertex_iterator(cell_vertex_iterator const& other)
         : m_it{other.m_it} {}
 
    private:
-    std::vector<size_t>::const_iterator m_it;
+    std::vector<std::size_t>::const_iterator m_it;
 
     friend class boost::iterator_core_access;
 
@@ -59,17 +61,18 @@ struct unstructured_grid : pointset<Real, NumDimensions> {
     // [number of vertices of cell n-1, [vertex indices of cell n-1],
     // number of vertices of cell n-1 (this is for getting the last cell
     // index)
-    grid_t const*                       m_grid;
-    std::vector<size_t>::const_iterator m_cell_begin;
+    grid_t const*                            m_grid;
+    std::vector<std::size_t>::const_iterator m_cell_begin;
 
    public:
-    cell(grid_t const* grid, std::vector<size_t>::const_iterator cell_begin)
+    cell(grid_t const*                            grid,
+         std::vector<std::size_t>::const_iterator cell_begin)
         : m_grid{grid}, m_cell_begin{cell_begin} {}
     auto size() const { return *m_cell_begin; }
-    auto at(size_t const i) const {
+    auto at(std::size_t const i) const {
       return vertex_handle{*next(m_cell_begin, i + 1)};
     }
-    auto operator[](size_t const i) const { return at(i); }
+    auto operator[](std::size_t const i) const { return at(i); }
     auto begin() const { return const_iterator{next(m_cell_begin)}; }
     auto end() const { return const_iterator{next(m_cell_begin, size() + 1)}; }
     //----------------------------------------------------------------------------
@@ -77,7 +80,7 @@ struct unstructured_grid : pointset<Real, NumDimensions> {
     /// From here: https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html
     auto is_inside(pos_t const& x) const requires(NumDimensions == 2) {
       bool c = false;
-      for (size_t i = 0, j = size() - 1; i < size(); j = i++) {
+      for (std::size_t i = 0, j = size() - 1; i < size(); j = i++) {
         auto const& xi = m_grid->at(at(i));
         auto const& xj = m_grid->at(at(j));
         if (((xi(1) > x(1)) != (xj(1) > x(1))) &&
@@ -113,11 +116,11 @@ struct unstructured_grid : pointset<Real, NumDimensions> {
       auto       direction_to_vertices      = pos_list(num_vertices, {0, 0});
 
       //------------------------------------------------------------------------
-      auto previous_index = [num_vertices](auto const i) -> size_t {
+      auto previous_index = [num_vertices](auto const i) -> std::size_t {
         return i == 0 ? num_vertices - 1 : i - 1;
       };
       //------------------------------------------------------------------------
-      auto next_index = [num_vertices](auto const i) -> size_t {
+      auto next_index = [num_vertices](auto const i) -> std::size_t {
         return i == num_vertices - 1 ? 0 : i + 1;
       };
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -126,7 +129,7 @@ struct unstructured_grid : pointset<Real, NumDimensions> {
       // Creates a meta functor that iterates and calls its underlying function
       // f.
       auto indexed_with_neighbors = [&](auto&& f) -> decltype(auto) {
-        return [&f, i = size_t(0), &previous_index,
+        return [&f, i = std::size_t(0), &previous_index,
                 &next_index]() mutable -> decltype(auto) {
           decltype(auto) ret_val = f(previous_index(i), i, next_index(i));
           ++i;
@@ -137,7 +140,7 @@ struct unstructured_grid : pointset<Real, NumDimensions> {
       // Creates a meta functor that iterates and calls its underlying function
       // f.
       auto indexed = [&](auto&& f) -> decltype(auto) {
-        return [&f, i = size_t(0)]() mutable -> decltype(auto) {
+        return [&f, i = std::size_t(0)]() mutable -> decltype(auto) {
           decltype(auto) return_value = f(i);
           ++i;
           return return_value;
@@ -182,7 +185,7 @@ struct unstructured_grid : pointset<Real, NumDimensions> {
 
       // compute distance to vertex and check if query_point is on a vertex
       // or on an edge
-      for (size_t i = 0; i < num_vertices; ++i) {
+      for (std::size_t i = 0; i < num_vertices; ++i) {
         auto const next_idx      = next_index(i);
         distances_to_vertices[i] = length(direction_to_vertices[i]);
         if (std::abs(distances_to_vertices[i]) <= eps) {
@@ -284,7 +287,7 @@ struct unstructured_grid : pointset<Real, NumDimensions> {
         if (cell.is_inside(x)) {
           auto b   = cell.barycentric_coordinates(x);
           T    acc = 0;
-          for (size_t i = 0; i < b.size(); ++i) {
+          for (std::size_t i = 0; i < b.size(); ++i) {
             acc += b[i] * property()[cell[i]];
           }
           return acc;
@@ -300,16 +303,44 @@ struct unstructured_grid : pointset<Real, NumDimensions> {
 
  private:
   //------------------------------------------------------------------------------
-  std::vector<size_t> m_cell_indices{};
-  size_t              m_num_cells = 0;
+  std::vector<std::size_t> m_cell_indices{};
+  std::size_t              m_num_cells = 0;
 
  public:
   unstructured_grid() { m_cell_indices.push_back(0); }
+  explicit unstructured_grid(edgeset<Real, NumDimensions>&& edges)
+      : parent_t{std::move(edges)} {
+    m_cell_indices.push_back(0);
+    auto edges_per_vertex =
+        std::unordered_map<vertex_handle,
+                           std::unordered_set<typename edgeset<
+                               Real, NumDimensions>::edge_handle>> {}
+    for (auto e : edges.edges()) {
+      auto [v0, v1] = edges[e];
+      edges_per_vertex[v0].insert(e);
+      edges_per_vertex[v1].insert(e);
+    }
+    for (auto v:vertices()) {
+      auto const& es = edges_per_vertex.at(v);
+      if (es.size() >= 2) {
+        for (auto e1_it = begin(es), e1_it != end(es); ++e1_it) {
+          auto const e1           = *e1_it;
+          auto const [e1v0, e1v1] = edges[e1];
+          for (auto e0_it = next(e1_it), e0_it != end(es); ++e0_it) {
+            auto const e0           = *e0_it;
+            auto const [e0v0, e0v1] = edges[e0];
+          }
+        }
+      }
+    }
+  }
   //------------------------------------------------------------------------------
   auto cells() const { return cell_container{this}; }
   //------------------------------------------------------------------------------
   template <typename... Handles>
-  auto insert_cell(Handles const... handles) {
+  auto insert_cell(Handles const... handles) requires(
+      (sizeof...(Handles) > 2) &&
+      ((is_integral<Handles> || is_same<Handles, vertex_handle>)&&...)) {
     m_cell_indices.back() = sizeof...(handles);
     (
         [this](auto const h) {
@@ -390,7 +421,7 @@ struct unstructured_grid : pointset<Real, NumDimensions> {
         writer.write_points(vertex_data());
       }
 
-      std::vector<std::vector<size_t>> vertices_per_cell;
+      std::vector<std::vector<std::size_t>> vertices_per_cell;
       // vertices_per_cell.reserve(cells().size());
       std::vector<vtk::cell_type> cell_types(cells().size(),
                                              vtk::cell_type::polygon);
@@ -429,11 +460,11 @@ struct unstructured_grid : pointset<Real, NumDimensions> {
   }
 };
 //==============================================================================
-template <size_t NumDimensions>
+template <std::size_t NumDimensions>
 using UnstructuredGrid = unstructured_grid<real_t, NumDimensions>;
-template <size_t NumDimensions>
+template <std::size_t NumDimensions>
 using UnstructuredGridF = unstructured_grid<float, NumDimensions>;
-template <size_t NumDimensions>
+template <std::size_t NumDimensions>
 using UnstructuredGridD   = unstructured_grid<double, NumDimensions>;
 using unstructured_grid2  = UnstructuredGrid<2>;
 using unstructured_grid2f = UnstructuredGridF<2>;

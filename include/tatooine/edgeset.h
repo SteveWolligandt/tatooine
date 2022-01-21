@@ -18,7 +18,16 @@ struct edgeset : unstructured_simplicial_grid<Real, NumDimensions, 1> {
   }
   auto edge_at(edge_handle const h) { return this->simplex_at(h); }
   auto edge_at(edge_handle const h) const { return this->simplex_at(h); }
-  auto edges() { return this->simplices(); }
+  auto edges() const { return this->simplices(); }
+  auto are_connected(vertex_handle const v0, vertex_handle const v1) const {
+    for (auto e : edges()) {
+      auto [ev0, ev1] = this->at(e);
+      if ((ev0 == v0 && ev1 == v1) || (ev0 == v1 && ev1 == v0)) {
+        return true;
+      }
+    }
+    return false;
+  }
 };
 template <std::size_t NumDimensions>
 using Edgeset = edgeset<real_t, NumDimensions>;

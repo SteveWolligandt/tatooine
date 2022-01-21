@@ -297,7 +297,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     auto map   = std::unordered_map<
         std::size_t, typename edgeset<Real, NumDimensions>::vertex_handle>{};
     for (auto const& p : advected_particles) {
-      map[p.id()] = edges.insert_vertex(p.initial_ellipse().center());
+      map[p.id()] = edges.insert_vertex(p.center());
     }
     triangulate(edges, hierarchy{hierarchy_pairs, map, edges});
     return std::tuple{std::move(advected_particles),
@@ -417,7 +417,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     auto map   = std::unordered_map<
         std::size_t, typename edgeset<Real, NumDimensions>::vertex_handle>{};
     for (auto const& p : advected_particles) {
-      map[p.id()] = edges.insert_vertex(p.initial_ellipse().center());
+      map[p.id()] = edges.insert_vertex(p.center());
     }
     auto const h = hierarchy{hierarchy_pairs, map, edges};
     triangulate(edges, h);
