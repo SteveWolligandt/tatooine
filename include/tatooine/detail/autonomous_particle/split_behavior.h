@@ -3,6 +3,7 @@
 //==============================================================================
 #include <tatooine/concepts.h>
 #include <tatooine/math.h>
+#include <tatooine/vec.h>
 #include <array>
 //==============================================================================
 namespace tatooine::detail::autonomous_particle {
@@ -20,54 +21,145 @@ struct split_behaviors<Real, 2> {
   static auto constexpr three_quarters = 3 * quarter;
   static auto constexpr two_thirds     = 2 * third;
   static auto constexpr three_sixths   = 3 * sixth;
+  static auto constexpr sqrt2          = gcem::sqrt<Real>(2);
   static auto constexpr sqrt5          = gcem::sqrt<Real>(5);
   using vec_t                          = vec<Real, 2>;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   struct two_splits {
-    static auto constexpr sqrt2    = gcem::sqrt(real_t(2));
-    static auto constexpr sqr_cond = 2;
+    static auto constexpr split_cond = sqrt2;
     static auto constexpr half     = Real(1) / Real(2);
     static auto constexpr quarter  = Real(1) / Real(4);
-    static constexpr auto radii =
-        std::array{vec_t{1 / sqrt2, half}, vec_t{1 / sqrt2, half}};
-    static constexpr auto offsets = std::array{vec_t{0, -half}, vec_t{0, half}};
+    static constexpr auto radii = std::array{
+        vec_t{1 / sqrt2, half},
+        vec_t{1 / sqrt2, half}
+    };
+    static constexpr auto offsets = std::array{
+        vec_t{0, -half},
+        vec_t{0, half}
+    };
   };
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   struct three_splits {
-    static auto constexpr sqr_cond = Real(4);
+    // (oOo)
+    static auto constexpr split_cond = Real(2);
     static constexpr auto radii    = std::array{
-        vec_t{half, quarter}, vec_t{one, half}, vec_t{half, quarter}};
-    static constexpr auto offsets = std::array{
-        vec_t{0, -three_quarters}, vec_t{0, 0}, vec_t{0, three_quarters}};
+        vec_t{half, quarter},
+        vec_t{one, half},
+        vec_t{half, quarter}};
+    static constexpr auto offsets  = std::array{
+        vec_t{0, -three_quarters},
+        vec_t{0, 0},
+        vec_t{0, three_quarters}};
   };
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   struct three_in_square_splits {
-    static auto constexpr sqr_cond = Real(9);
+    // (OOO)
+    static auto constexpr split_cond = Real(3);
     static constexpr auto radii    = std::array{
-        vec_t{one, third}, vec_t{one, third}, vec_t{one, third}};
+        vec_t{one, third},
+        vec_t{one, third},
+        vec_t{one, third}};
     static constexpr auto offsets = std::array{
-        vec_t{0, -two_thirds}, vec_t{0, 0}, vec_t{0, two_thirds}};
+        vec_t{0, -two_thirds},
+        vec_t{0, 0},
+        vec_t{0, two_thirds}};
   };
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   struct five_splits {
-    static auto constexpr sqr_cond = Real(6 + sqrt5 * 2);
-    static auto constexpr radii    = std::array{
-        vec_t{1, 1 / (sqrt5 + 1)}, vec_t{1, (sqrt5 + 3) / (sqrt5 * 2 + 2)},
-        vec_t{1, 1}, vec_t{1, (sqrt5 + 3) / (sqrt5 * 2 + 2)},
-        vec_t{1, 1 / (sqrt5 + 1)}};
+    // (.oOo.)
+    static auto constexpr r1 = one + sqrt5;  // larger radius when splitting
+    static auto constexpr r2 = one;          // smaller radius when splitting
+    static auto constexpr r3 = one / (one + sqrt5);  // outer radius
+    static auto constexpr x3 = r1 - r3;              // outer offset
+    static auto constexpr r4 =
+        half * sqrt5 - one / (one + sqrt5);  // middle radius
+    static auto constexpr x4 =
+        one + half * sqrt5 - one / (one + sqrt5);  // middle offset
+
+    static auto constexpr split_cond = r1;
+    static auto constexpr radii      = std::array{
+        vec_t{r3, r3 / r1},
+        vec_t{r4, r4 / r1},
+        vec_t{r2, r2 / r1},
+        vec_t{r4, r4 / r1},
+        vec_t{r3, r3 / r1},
+    };
     static auto constexpr offsets = std::array{
-        vec_t{0, 0}, vec_t{0, 0}, vec_t{0, 0}, vec_t{0, 0}, vec_t{0, 0}};
+        vec_t{0, x3 / r1},
+        vec_t{0, x4 / r1},
+        vec_t{0, 0},
+        vec_t{0, -x4 / r1},
+        vec_t{0, -x3 / r1},
+    };
   };
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  struct seven_splits {
-    static auto constexpr sqr_cond = 4.493959210 * 4.493959210;
+  struct three_and_four_splits {
+    static auto constexpr r01 = Real(2);
+    static auto constexpr r02 = Real(1);
+
+    static auto constexpr x1 = Real(0);
+    static auto constexpr y1 = Real(0);
+    static auto constexpr r1 = Real(1);
+
+    static auto constexpr x2 = 3 * half;
+    static auto constexpr y2 = Real(0);
+    static auto constexpr r2 = half;
+
+    static auto constexpr x4 = Real(1.077350269);
+    static auto constexpr y4 = Real(0.5977169814);
+    static auto constexpr r4 = Real(0.2320508081);
+
+    static auto constexpr split_cond = r01 / r02;
+
     static auto constexpr radii    = std::array{
-        real_t(.9009688678), real_t(.6234898004), real_t(.2225209338)};
+        vec_t{r1, r1/r01},
+        vec_t{r2, r2/r01},
+        vec_t{r2, r2/r01},
+        vec_t{r4, r4/r01},
+        vec_t{r4, r4/r01},
+        vec_t{r4, r4/r01},
+        vec_t{r4, r4/r01},
+    };
+    static auto constexpr offsets  = std::array{
+        vec_t{0, 0},
+        vec_t{ y2,  x2/r01},
+        vec_t{ y2, -x2/r01},
+        vec_t{ y4,  x4/r01},
+        vec_t{ y4, -x4/r01},
+        vec_t{-y4,  x4/r01},
+        vec_t{-y4, -x4/r01},
+    };
+  };
+  struct seven_splits {
+    static auto constexpr rr = Real(4.493959210);
+    static auto constexpr rr1 = Real(0.9009688678);
+    static auto constexpr rr2 = Real(0.6234898004);
+
+    static auto constexpr split_cond = rr;
+
+    static auto constexpr radii = std::array{
+        vec_t{1, 1 / rr},
+        vec_t{(1 / rr), (1 / rr) / rr},
+        vec_t{(1 / rr), (1 / rr) / rr},
+        vec_t{rr1, rr1 / rr},
+        vec_t{rr1, rr1 / rr},
+        vec_t{rr2, rr2 / rr},
+        vec_t{rr2, rr2 / rr},
+    };
+    static auto constexpr offsets = std::array{
+        vec_t{0, 0},
+        vec_t{0, (1 + 2 * rr1 + 2 * rr2 + (1 / rr)) / rr},
+        vec_t{0, (-1 - 2 * rr1 - 2 * rr2 - (1 / rr)) / rr},
+        vec_t{0, (1 + rr1) / rr},
+        vec_t{0, (-1 - rr1) / rr},
+        vec_t{0, (1 + 2 * rr1 + rr2) / rr},
+        vec_t{0, (-1 - 2 * rr1 - rr2) / rr},
+    };
   };
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   struct centered_four {
     static auto constexpr x5       = Real(0.4830517593887872);
-    static auto constexpr sqr_cond = Real{4};
+    static auto constexpr split_cond = Real(2);
     static auto constexpr radii =
         std::array{vec_t{x5, x5 / 2},
                    vec_t{x5, x5 / 2},
@@ -88,7 +180,7 @@ struct split_behaviors<Real, 3> {
   static auto constexpr three_quarters = 3 * quarter;
   using vec_t                          = vec<Real, 3>;
   struct three_splits {
-    static auto constexpr sqr_cond = Real{4};
+    static auto constexpr split_cond = Real(2);
     static constexpr auto radii =
         std::array{vec_t{half, half, quarter}, vec_t{1, 1, half},
                    vec_t{half, half, quarter}};
