@@ -76,7 +76,7 @@ auto doublegyre_example() {
   auto initial_grid = rectilinear_grid{linspace{0.8, 1.2, 21},
                                        linspace{0.4, 0.6, 11}};
   auto const [advected_particles, advected_simple_particles, edges] =
-      autonomous_particle2::advect_with_five_splits(flowmap(v), 0.01, 0, 1.5,
+      autonomous_particle2::advect_with_five_splits(flowmap(v), 0.01, 0, 5,
                                                     initial_grid);
 
   auto all_advected_discretizations = std::vector<line2>{};
@@ -85,10 +85,10 @@ auto doublegyre_example() {
   all_initial_discretizations.reserve(size(advected_particles));
 
   auto advected_discretized = [](auto const& p) {
-    return discretize(p, 100);
+    return discretize(p, 64);
   };
   auto initial_discretized  = [](auto const& p) {
-    return discretize(p.initial_ellipse(), 100);
+    return discretize(p.initial_ellipse(), 64);
   };
 
   using namespace std::ranges;
