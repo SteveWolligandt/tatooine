@@ -18,7 +18,7 @@ namespace tatooine {
 //==============================================================================
 template <typename B>
 concept split_behavior = requires {
-  floating_point<decltype(B::sqr_cond)>;
+  floating_point<decltype(B::split_cond)>;
   range<decltype(B::radii)>;
   range<decltype(B::offsets)>;
   is_vec<typename decltype(B::radii)::value_type>;
@@ -34,6 +34,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   // TYPEDEFS
   //============================================================================
  public:
+  //----------------------------------------------------------------------------
   constexpr static auto half = 1 / Real(2);
 
   using this_t                      = autonomous_particle<Real, NumDimensions>;
@@ -56,6 +57,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   // members
   //============================================================================
  private:
+  //----------------------------------------------------------------------------
   pos_t         m_x0;
   real_t        m_t;
   mat_t         m_nabla_phi;
@@ -69,19 +71,20 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   // CTORS
   //============================================================================
  public:
+  //----------------------------------------------------------------------------
   autonomous_particle(autonomous_particle const& other)     = default;
   autonomous_particle(autonomous_particle&& other) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator               =(autonomous_particle const& other)
+  auto operator=(autonomous_particle const& other)
       -> autonomous_particle& = default;
-  auto operator               =(autonomous_particle&& other) noexcept
+  auto operator=(autonomous_particle&& other) noexcept
       -> autonomous_particle& = default;
   //----------------------------------------------------------------------------
   ~autonomous_particle() = default;
   //----------------------------------------------------------------------------
-  autonomous_particle(std::uint64_t const id)
+  explicit autonomous_particle(std::uint64_t const id)
       : m_nabla_phi{mat_t::eye()}, m_id{id} {}
-  autonomous_particle(std::atomic_uint64_t& uuid_generator)
+  explicit autonomous_particle(std::atomic_uint64_t& uuid_generator)
       : autonomous_particle{uuid_generator++} {}
   //----------------------------------------------------------------------------
   autonomous_particle(ellipse_t const& ell, real_t const t,
@@ -281,6 +284,41 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   // }
   //----------------------------------------------------------------------------
   /// Advects single particle.
+  template <typename Flowmap>
+  auto advect_with_three_splits(Flowmap&& phi, real_t const step_size,
+                                real_t const          t_end,
+                                std::atomic_uint64_t& uuid_generator) const {
+    return advect<typename split_behaviors::three_splits>(
+        std::forward<Flowmap>(phi), step_size, t_end, uuid_generator);
+  }
+  //----------------------------------------------------------------------------
+  /// Advects single particle.
+  template <typename Flowmap>
+  auto advect_with_three_and_four_splits(
+      Flowmap&& phi, real_t const step_size, real_t const t_end,
+      std::atomic_uint64_t& uuid_generator) const {
+    return advect<typename split_behaviors::three_and_four_splits>(
+        std::forward<Flowmap>(phi), step_size, t_end, uuid_generator);
+  }
+  //----------------------------------------------------------------------------
+  /// Advects single particle.
+  template <typename Flowmap>
+  auto advect_with_five_splits(Flowmap&& phi, real_t const step_size,
+                               real_t const          t_end,
+                               std::atomic_uint64_t& uuid_generator) const {
+    return advect<typename split_behaviors::five_splits>(
+        std::forward<Flowmap>(phi), step_size, t_end, uuid_generator);
+  }
+  //----------------------------------------------------------------------------
+  /// Advects single particle.
+  template <typename Flowmap>
+  auto advect_with_seven_splits(Flowmap&& phi, real_t const step_size,
+                                real_t const          t_end,
+                                std::atomic_uint64_t& uuid_generator) const {
+    return advect<typename split_behaviors::seven_splits>(
+        std::forward<Flowmap>(phi), step_size, t_end, uuid_generator);
+  }
+  //----------------------------------------------------------------------------
   template <
       split_behavior SplitBehavior = typename split_behaviors::three_splits,
       typename Flowmap>
@@ -304,6 +342,155 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
                       std::move(advected_simple_particles), std::move(edges)};
   }
   //----------------------------------------------------------------------------
+  template <typename Flowmap>
+  static auto advect_with_three_splits(
+      Flowmap&& phi, real_t const step_size, real_t const t0,
+      real_t const                                         t_end,
+      uniform_rectilinear_grid<Real, NumDimensions> const& g) {
+    return advect<typename split_behaviors::three_splits>(
+        std::forward<Flowmap>(phi), step_size, t0, t_end, g);
+  }
+  //----------------------------------------------------------------------------
+  template <typename Flowmap>
+  static auto advect_with_three_and_four_splits(
+      Flowmap&& phi, real_t const step_size, real_t const t0,
+      real_t const                                         t_end,
+      uniform_rectilinear_grid<Real, NumDimensions> const& g) {
+    return advect<typename split_behaviors::three_and_four_splits>(
+        std::forward<Flowmap>(phi), step_size, t0, t_end, g);
+  }
+  //----------------------------------------------------------------------------
+  template <typename Flowmap>
+  static auto advect_with_five_splits(
+      Flowmap&& phi, real_t const step_size, real_t const t0,
+      real_t const                                         t_end,
+      uniform_rectilinear_grid<Real, NumDimensions> const& g) {
+    return advect<typename split_behaviors::five_splits>(
+        std::forward<Flowmap>(phi), step_size, t0, t_end, g);
+  }
+  //----------------------------------------------------------------------------
+  template <typename Flowmap>
+  static auto advect_with_seven_splits(
+      Flowmap&& phi, real_t const step_size, real_t const t0,
+      real_t const                                         t_end,
+      uniform_rectilinear_grid<Real, NumDimensions> const& g) {
+    return advect<typename split_behaviors::seven_splits>(
+        std::forward<Flowmap>(phi), step_size, t0, t_end, g);
+  }
+  //----------------------------------------------------------------------------
+  /// Advects all particles in particles container in the flowmap phi until
+  /// time `t_end` is reached.
+  ///
+  /// The split behavior is defined in the type SplitBehavior.
+  /// \param phi Flow map of a vector field.
+  /// \param step_size Step size of advection. (This is independent of the
+  ///                  numerical integrators's step width.)
+  /// \param t_end End of time of advetion.
+  /// \param particles Particles to be advected.
+  template <
+      split_behavior SplitBehavior = typename split_behaviors::three_splits,
+      typename Flowmap>
+  static auto advect(Flowmap&& phi, real_t const step_size, real_t const t0,
+                     real_t const                                         t_end,
+                     uniform_rectilinear_grid<Real, NumDimensions> const& g) {
+    using namespace detail::autonomous_particle;
+    auto particles                     = container_t{};
+    auto initial_particle_distribution = g.copy_without_properties();
+    auto uuid_generator                = std::atomic_uint64_t{0};
+    for (std::size_t i = 0; i < NumDimensions; ++i) {
+      auto const spacing = initial_particle_distribution.dimension(i).spacing();
+      initial_particle_distribution.dimension(i).pop_front();
+      initial_particle_distribution.dimension(i).front() -= spacing / 2;
+      initial_particle_distribution.dimension(i).back() -= spacing / 2;
+    }
+    initial_particle_distribution.vertices().iterate_indices(
+        [&](auto const... is) {
+          particles.emplace_back(
+              initial_particle_distribution.vertex_at(is...), t0,
+              initial_particle_distribution.dimension(0).spacing() / 2,
+              uuid_generator);
+        });
+    auto hierarchy_mutex = std::mutex{};
+    auto hierarchy_pairs = std::vector<hierarchy_pair>{};
+    hierarchy_pairs.reserve(particles.size());
+    for (auto const& p : particles) {
+      hierarchy_pairs.emplace_back(p.id(), p.id());
+    }
+    auto [advected_particles, advected_simple_particles] =
+        advect<SplitBehavior>(std::forward<Flowmap>(phi), step_size, t_end,
+                              particles, hierarchy_pairs, hierarchy_mutex,
+                              uuid_generator);
+
+    auto edges = edgeset<Real, NumDimensions>{};
+    auto map   = std::unordered_map<
+        std::size_t, typename edgeset<Real, NumDimensions>::vertex_handle>{};
+    for (auto const& p : advected_particles) {
+      map[p.id()] = edges.insert_vertex(p.center());
+    }
+    auto const h = hierarchy{hierarchy_pairs, map, edges};
+    triangulate(edges, h);
+
+    auto const s = initial_particle_distribution.size();
+    for (std::size_t j = 0; j < s[1]; ++j) {
+      for (std::size_t i = 0; i < s[0] - 1; ++i) {
+        auto const id0 = i + j * s[0];
+        auto const id1 = (i + 1) + j * s[0];
+        triangulate(edges, h.find_by_id(id0), h.find_by_id(id1));
+      }
+    }
+    for (std::size_t i = 0; i < s[0]; ++i) {
+      for (std::size_t j = 0; j < s[1] - 1; ++j) {
+        auto const id0 = i + j * s[0];
+        auto const id1 = i + (j + 1) * s[0];
+        triangulate(edges, h.find_by_id(id0), h.find_by_id(id1));
+      }
+    }
+
+    return std::tuple{std::move(advected_particles),
+                      std::move(advected_simple_particles), std::move(edges)};
+  }
+  //----------------------------------------------------------------------------
+ private:
+  //----------------------------------------------------------------------------
+  /// Advects all particles in particles container in the flowmap phi until
+  /// time `t_end` is reached.
+  ///
+  /// The split behavior is defined in the type SplitBehavior.
+  /// \param phi Flow map of a vector field.
+  /// \param step_size Step size of advection. (This is independent of the
+  ///                  numerical integrators's step width.)
+  /// \param t_end End of time of advetion.
+  /// \param particles Particles to be advected.
+  template <split_behavior SplitBehavior, typename Flowmap>
+  static auto advect(Flowmap&& phi, real_t const step_size, real_t const t_end,
+                     container_t                  particles,
+                     std::vector<hierarchy_pair>& hierarchy_pairs,
+                     std::mutex&                  hierarchy_mutex,
+                     std::atomic_uint64_t&        uuid_generator) {
+    auto const num_threads = this_t::num_threads();
+
+    auto finished_particles        = container_t{};
+    auto finished_simple_particles = simple_particle_container_t{};
+
+    // {particles_to_be_advected, advected_particles, finished_particles}
+    auto particles_per_thread =
+        std::vector<aligned<std::tuple<container_t, container_t, container_t,
+                                       simple_particle_container_t>>>(
+            num_threads);
+    while (particles.size() > 0) {
+      distribute_particles_to_thread_containers(num_threads, particles,
+                                                particles_per_thread);
+      advect_particle_pools<SplitBehavior>(
+          num_threads, std::forward<Flowmap>(phi), step_size, t_end,
+          particles_per_thread, hierarchy_pairs, hierarchy_mutex,
+          uuid_generator);
+      gather_particles(particles, finished_particles, finished_simple_particles,
+                       particles_per_thread);
+    }
+    return std::tuple{std::move(finished_particles),
+                      std::move(finished_simple_particles)};
+  }
+  //----------------------------------------------------------------------------
   static auto num_threads() {
     auto num_threads = std::size_t{};
 #pragma omp parallel
@@ -315,17 +502,17 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     return num_threads;
   }
   //----------------------------------------------------------------------------
- private:
   static auto distribute_particles_to_thread_containers(
       std::size_t const num_threads, container_t& particles,
       auto& particles_per_thread) {
     using namespace std::ranges;
 #pragma omp parallel
     {
-      auto const        thr_id = omp_get_thread_num();
-      std::size_t const begin  = thr_id * size(particles) / num_threads;
-      std::size_t const end    = (thr_id + 1) * size(particles) / num_threads;
-      auto&             cont   = std::get<0>(*particles_per_thread[thr_id]);
+      auto const thr_id = omp_get_thread_num();
+      auto const begin  = std::size_t(thr_id * size(particles) / num_threads);
+      auto const end =
+          std::size_t((thr_id + 1) * size(particles) / num_threads);
+      auto& cont = std::get<0>(*particles_per_thread[thr_id]);
       cont.reserve(end - begin);
       copy(particles.begin() + begin, particles.begin() + end,
            std::back_inserter(cont));
@@ -371,118 +558,6 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   }
   //----------------------------------------------------------------------------
  public:
-  /// Advects all particles in particles container in the flowmap phi until
-  /// time `t_end` is reached.
-  ///
-  /// The split behavior is defined in the type SplitBehavior.
-  /// \param phi Flow map of a vector field.
-  /// \param step_size Step size of advection. (This is independent of the
-  ///                  numerical integrators's step width.)
-  /// \param t_end End of time of advetion.
-  /// \param particles Particles to be advected.
-  template <
-      split_behavior SplitBehavior = typename split_behaviors::three_splits,
-      typename Flowmap>
-  static auto advect(Flowmap&& phi, real_t const step_size, real_t const t0,
-                     real_t const                                         t_end,
-                     uniform_rectilinear_grid<Real, NumDimensions> const& g) {
-    using namespace detail::autonomous_particle;
-    auto particles                     = container_t{};
-    auto initial_particle_distribution = g.copy_without_properties();
-    auto uuid_generator                = std::atomic_uint64_t{0};
-    for (std::size_t i = 0; i < NumDimensions; ++i) {
-      auto const spacing = initial_particle_distribution.dimension(i).spacing();
-      initial_particle_distribution.dimension(i).pop_front();
-      initial_particle_distribution.dimension(i).front() -= spacing / 2;
-      initial_particle_distribution.dimension(i).back() -= spacing / 2;
-    }
-    initial_particle_distribution.vertices().iterate_indices(
-        [&](auto const... is) {
-          particles.emplace_back(
-              initial_particle_distribution.vertex_at(is...), t0,
-              initial_particle_distribution.dimension(0).spacing() / 2,
-              uuid_generator);
-        });
-    auto hierarchy_mutex = std::mutex{};
-    auto hierarchy_pairs = std::vector<hierarchy_pair>{};
-    hierarchy_pairs.reserve(particles.size());
-    for (auto const& p : particles) {
-      hierarchy_pairs.emplace_back(p.id(), p.id());
-    }
-    auto [advected_particles, advected_simple_particles] =
-        advect(std::forward<Flowmap>(phi), step_size, t_end, particles,
-               hierarchy_pairs, hierarchy_mutex, uuid_generator);
-    
-    auto edges = edgeset<Real, NumDimensions>{};
-    auto map   = std::unordered_map<
-        std::size_t, typename edgeset<Real, NumDimensions>::vertex_handle>{};
-    for (auto const& p : advected_particles) {
-      map[p.id()] = edges.insert_vertex(p.center());
-    }
-    auto const h = hierarchy{hierarchy_pairs, map, edges};
-    triangulate(edges, h);
-
-    auto const s = initial_particle_distribution.size();
-    for (std::size_t j = 0; j < s[1]; ++j) {
-      for (std::size_t i = 0; i < s[0] - 1; ++i) {
-        auto const id0 = i + j * s[0];
-        auto const id1 = (i+1) + j * s[0];
-        triangulate(edges, h.find_by_id(id0), h.find_by_id(id1));
-      }
-    }
-    for (std::size_t i = 0; i < s[0]; ++i) {
-      for (std::size_t j = 0; j < s[1] - 1; ++j) {
-        auto const id0 = i + j * s[0];
-        auto const id1 = i + (j+1) * s[0];
-        triangulate(edges, h.find_by_id(id0), h.find_by_id(id1));
-      }
-    }
-
-    return std::tuple{std::move(advected_particles),
-                      std::move(advected_simple_particles),
-                      std::move(edges)};
-  }
-  //----------------------------------------------------------------------------
-  /// Advects all particles in particles container in the flowmap phi until
-  /// time `t_end` is reached.
-  ///
-  /// The split behavior is defined in the type SplitBehavior.
-  /// \param phi Flow map of a vector field.
-  /// \param step_size Step size of advection. (This is independent of the
-  ///                  numerical integrators's step width.)
-  /// \param t_end End of time of advetion.
-  /// \param particles Particles to be advected.
-  template <
-      split_behavior SplitBehavior = typename split_behaviors::three_splits,
-      typename Flowmap>
-  static auto advect(Flowmap&& phi, real_t const step_size, real_t const t_end,
-                     container_t                  particles,
-                     std::vector<hierarchy_pair>& hierarchy_pairs,
-                     std::mutex&                  hierarchy_mutex,
-                     std::atomic_uint64_t&        uuid_generator) {
-    auto const num_threads = this_t::num_threads();
-
-    auto finished_particles        = container_t{};
-    auto finished_simple_particles = simple_particle_container_t{};
-
-    // {particles_to_be_advected, advected_particles, finished_particles}
-    auto particles_per_thread =
-        std::vector<aligned<std::tuple<container_t, container_t, container_t,
-                                       simple_particle_container_t>>>(
-            num_threads);
-    while (particles.size() > 0) {
-      distribute_particles_to_thread_containers(num_threads, particles,
-                                                particles_per_thread);
-      advect_particle_pools<SplitBehavior>(
-          num_threads, std::forward<Flowmap>(phi), step_size, t_end,
-          particles_per_thread, hierarchy_pairs, hierarchy_mutex,
-          uuid_generator);
-      gather_particles(particles, finished_particles, finished_simple_particles,
-                       particles_per_thread);
-    }
-    return std::tuple{std::move(finished_particles),
-                      std::move(finished_simple_particles)};
-  }
   //----------------------------------------------------------------------------
   /// Advectes the particle in the flowmap phi until either a split needs to be
   /// performed or time `t_end` is reached.
@@ -512,7 +587,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     static constexpr real_t min_tau_step          = 1e-10;
     static constexpr real_t max_cond_overshoot    = 1e-8;
     bool                    min_step_size_reached = false;
-    static constexpr auto   split_sqr_cond        = SplitBehavior::sqr_cond;
+    static constexpr auto   split_cond            = SplitBehavior::split_cond;
+    static constexpr auto   split_sqr_cond        = split_cond * split_cond;
     static constexpr auto   split_radii           = SplitBehavior::radii;
     static constexpr auto   split_offsets         = SplitBehavior::offsets;
     auto const [eigvecs_S, eigvals_S]             = eigenvectors_sym(S());
@@ -612,7 +688,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
 
           splitted_particles.emplace_back(offset_ellipse, t_advected,
                                           x0() + offset0, assembled_nabla_phi,
-                                          ++uuid_generator);
+                                          uuid_generator);
           auto lock = std::lock_guard{hierarchy_mutex};
           hierarchy_pairs.emplace_back(splitted_particles.back().m_id, m_id);
         }

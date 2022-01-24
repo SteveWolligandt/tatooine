@@ -65,7 +65,7 @@ auto build_example_hierachy_pair_list() {
 //==============================================================================
 auto artificial_example() {
   auto const hierarchy_pairs = build_example_hierachy_pair_list();
-  auto [edges, map]              = build_example_vertices_of_edgeset();
+  auto [edges, map]          = build_example_vertices_of_edgeset();
   triangulate(edges, hierarchy{hierarchy_pairs, map, edges});
   edges.write("post_triangulation_artificial.vtp");
 }
@@ -73,23 +73,34 @@ auto artificial_example() {
 auto doublegyre_example() {
   auto v              = analytical::fields::numerical::doublegyre{};
   auto uuid_generator = std::atomic_uint64_t{};
+  auto initial_grid = rectilinear_grid{linspace{0.8, 1.2, 21},
+                                       linspace{0.4, 0.6, 11}};
   auto const [advected_particles, advected_simple_particles, edges] =
-      autonomous_particle2::advect(
-          flowmap(v), 0.01, 0, 5,
-          rectilinear_grid{linspace{0.8, 1.2, 21},
-                           linspace{0.4, 0.6, 11}});
+      autonomous_particle2::advect_with_five_splits(flowmap(v), 0.01, 0, 1.5,
+                                                    initial_grid);
 
   auto all_advected_discretizations = std::vector<line2>{};
   auto all_initial_discretizations  = std::vector<line2>{};
-  for (auto const& p : advected_particles) {
-    all_initial_discretizations.push_back(
-        discretize(p.initial_ellipse(), 100));
-    all_advected_discretizations.push_back(
-        discretize(p, 100));
-  }
-  write(all_initial_discretizations, "post_triangulation_doublegyre_ellipses0.vtk");
+  all_advected_discretizations.reserve(size(advected_particles));
+  all_initial_discretizations.reserve(size(advected_particles));
+
+  auto advected_discretized = [](auto const& p) {
+    return discretize(p, 100);
+  };
+  auto initial_discretized  = [](auto const& p) {
+    return discretize(p.initial_ellipse(), 100);
+  };
+
+  using namespace std::ranges;
+  copy(advected_particles | views::transform(advected_discretized),
+       std::back_inserter(all_advected_discretizations));
+  copy(advected_particles | views::transform(initial_discretized),
+       std::back_inserter(all_initial_discretizations));
+
+  write(all_initial_discretizations,
+        "post_triangulation_doublegyre_ellipses0.vtk");
   write(all_advected_discretizations,
-            "post_triangulation_doublegyre_ellipses1.vtk");
+        "post_triangulation_doublegyre_ellipses1.vtk");
   edges.write("post_triangulation_doublegyre.vtp");
 }
 //==============================================================================
@@ -114,5 +125,5 @@ auto print(hierarchy<Real, NumDimensions> const& h, std::string const& tab = "")
 //==============================================================================
 auto main() -> int {
   doublegyre_example();
-  //artificial_example();
+  // artificial_example();
 }
