@@ -213,17 +213,7 @@ template <typename T>
 struct is_field_impl<T> : std::integral_constant<bool, T::is_field()> {};
 //------------------------------------------------------------------------------
 template <typename T>
-static constexpr bool is_field_v = is_field_impl<T>::value;
-//------------------------------------------------------------------------------
-template <typename T>
-static constexpr auto is_field(T&&) {
-  return is_field_v<std::decay_t<T>>;
-}
-//------------------------------------------------------------------------------
-template <typename T>
-static constexpr auto is_field() {
-  return is_field_v<T>;
-}
+static constexpr bool is_field = is_field_impl<T>::value;
 //==============================================================================
 template <typename T, typename = void>
 struct is_scalarfield_impl : std::false_type {};
@@ -233,37 +223,17 @@ struct is_scalarfield_impl<T>
     : std::integral_constant<bool, T::is_scalarfield()> {};
 //------------------------------------------------------------------------------
 template <typename T>
-static constexpr bool is_scalarfield_v = is_scalarfield_impl<T>::value;
-//------------------------------------------------------------------------------
-template <typename T>
-static constexpr auto is_scalarfield(T&&) {
-  return is_scalarfield_v<std::decay_t<T>>;
-}
-//------------------------------------------------------------------------------
-template <typename T>
-static constexpr auto is_scalarfield() {
-  return is_scalarfield_v<T>;
-}
+static constexpr bool is_scalarfield = is_scalarfield_impl<T>::value;
 //==============================================================================
 template <typename T, typename = void>
 struct is_vectorfield_impl : std::false_type {};
 //------------------------------------------------------------------------------
 template <typename T>
-static constexpr bool is_vectorfield_v = is_vectorfield_impl<T>::value;
+static constexpr bool is_vectorfield = is_vectorfield_impl<T>::value;
 //------------------------------------------------------------------------------
 template <typename T>
 struct is_vectorfield_impl<T>
     : std::integral_constant<bool, T::is_vectorfield()> {};
-//------------------------------------------------------------------------------
-template <typename T>
-static constexpr auto is_vectorfield(T&&) {
-  return is_vectorfield_v<std::decay_t<T>>;
-}
-//------------------------------------------------------------------------------
-template <typename T>
-static constexpr auto is_vectorfield() {
-  return is_vectorfield_v<T>;
-}
 //==============================================================================
 template <typename T, typename = void>
 struct is_matrixfield_impl : std::false_type {};
@@ -273,17 +243,7 @@ struct is_matrixfield_impl<T>
     : std::integral_constant<bool, T::is_matrixfield()> {};
 //------------------------------------------------------------------------------
 template <typename T>
-static constexpr auto is_matrixfield_v = is_matrixfield_impl<T>::value;
-//------------------------------------------------------------------------------
-template <typename T>
-static constexpr auto is_matrixfield(T&&) {
-  return is_matrixfield_v<std::decay_t<T>>;
-}
-//------------------------------------------------------------------------------
-template <typename T>
-static constexpr auto is_matrixfield() {
-  return is_matrixfield_v<T>;
-}
+static constexpr auto is_matrixfield = is_matrixfield_impl<T>::value;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

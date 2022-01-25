@@ -42,10 +42,10 @@ struct linspace {
  public:
   constexpr linspace() noexcept : m_min{Real(0)}, m_max{Real(0)}, m_size{0} {}
   //----------------------------------------------------------------------------
-  constexpr linspace(floating_point auto const min,
-                     floating_point auto const max, std::size_t size) noexcept
-      : m_min{std::min<Real>(min, max)},
-        m_max{std::max<Real>(min, max)},
+  constexpr linspace(arithmetic auto const min, arithmetic auto const max,
+                     std::size_t const size) noexcept
+      : m_min{static_cast<Real>(std::min<Real>(min, max))},
+        m_max{static_cast<Real>(std::max<Real>(min, max))},
         m_size{size} {}
   //----------------------------------------------------------------------------
   constexpr linspace(linspace const&)     = default;
@@ -156,10 +156,9 @@ auto back(linspace<Real>& l) -> auto& {
 //==============================================================================
 // deduction guides
 //==============================================================================
-template <floating_point Real0, floating_point Real1>
-linspace(Real0 const, Real1 const, std::size_t)
+template <arithmetic Real0, arithmetic Real1>
+linspace(Real0 const, Real1 const, std::size_t const)
     -> linspace<common_type<Real0, Real1>>;
-
 //==============================================================================
 // type traits
 //==============================================================================
