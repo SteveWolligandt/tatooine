@@ -439,12 +439,40 @@ auto for_loop(Iteration&& iteration, ExecutionPolicy pol,
   for_loop(std::forward<Iteration>(iteration), pol, sizes,
            std::make_index_sequence<N>{});
 }
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ///
 template <typename Iteration, std::size_t N>
 auto for_loop(Iteration&& iteration, std::array<size_t, N> const& sizes) {
   for_loop(std::forward<Iteration>(iteration), execution_policy::sequential,
            sizes);
+}
+//==============================================================================
+template <typename Int = std::size_t, integral... Ends>
+constexpr auto chunked_for_loop(
+    invocable<decltype(((void)std::declval<Ends>(), std::declval<Int>()))...> auto&&
+         iteration,
+    auto exec_policy, integral auto const chunk_size, Ends const... ends)
+    -> void requires(
+        is_same<execution_policy::parallel_t, decltype(exec_policy)> ||
+        is_same<execution_policy::sequential_t, decltype(exec_policy)>) {
+  for_loop(
+      [&](auto const... chunk_is) {
+        for_loop(
+            [&](auto const... inner_is) {
+              iteration((chunk_is * chunk_size + inner_is)...);
+            },
+            exec_policy,
+            std::min<Int>(chunk_size, chunk_is * chunk_size - ends)...);
+      },
+      ends / chunk_size...);
+}
+//------------------------------------------------------------------------------
+template <typename Int = std::size_t, integral... Ends>
+constexpr auto chunked_for_loop(
+    invocable<decltype((std::declval<Ends>(), std::declval<Int>()))...>auto && iteration,
+    integral auto const chunk_size, Ends const... ends) -> void {
+  chunked_for_loop(std::forward<decltype(iteration)>(iteration),
+                   execution_policy::sequential, chunk_size, ends...);
 }
 //==============================================================================
 /// dynamically-sized for loop

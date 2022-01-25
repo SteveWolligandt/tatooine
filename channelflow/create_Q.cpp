@@ -1,40 +1,26 @@
 #include <tatooine/field.h>
+#include <tatooine/for_loop.h>
 #include <tatooine/hdf5.h>
 //==============================================================================
-namespace tat = tatooine;
+using namespace tatooine;
 //==============================================================================
-static constexpr size_t chunk_size = 128;
+static constexpr auto chunk_size = std::size_t(128);
 //==============================================================================
 auto add_Q_pnorm(auto const& domain, auto& channelflow_file, auto const& velx,
                  auto const& vely, auto const& velz) {
   domain.update_diff_stencil_coefficients();
-  auto calc_Q = [&](auto const ix, auto const iy, auto const iz) {
-    tat::mat3 J;
-    J.col(0)              = diff(velx)(ix, iy, iz);
-    J.col(1)              = diff(vely)(ix, iy, iz);
-    J.col(2)              = diff(velz)(ix, iy, iz);
-    tat::mat3 const S     = (J + transposed(J)) / 2;
-    tat::mat3 const Omega = (J - transposed(J)) / 2;
-    return (sqr_norm(Omega, 2) - sqr_norm(S, 2)) / 2;
-  };
-  std::atomic_size_t cnt  = 0;
-  size_t const       max  = domain.vertices().size();
-  bool               stop = false;
-  std::cerr << "adding dataset to hdf5 file... ";
-  auto Q = channelflow_file.template create_dataset<double>(
-      "Q_pnorm", domain.size(0) - 1, domain.size(1), domain.size(2));
-  std::cerr << "done.\n";
+  auto       cnt  = std::atomic_size_t{0};
+  auto const max  = domain.vertices().size();
+  auto       stop = false;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   std::cerr << "allocating data... ";
-  tat::dynamic_multidim_array<double> Q_data{domain.size(0) - 1, domain.size(1),
-                                             domain.size(2)};
+  auto Q_pnorm_data = dynamic_multidim_array<double>{
+      domain.size(0), domain.size(1), domain.size(2)};
+  auto Q_cheng_data = dynamic_multidim_array<double>{
+      domain.size(0), domain.size(1), domain.size(2)};
   std::cerr << "done.\n";
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // std::cerr << "writing test data... ";
-  // Q.write(Q_data);
-  // std::cerr << "done.\n";
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  std::thread watcher{[&cnt, &stop, max] {
+  auto watcher = std::thread{[&cnt, &stop, max] {
     while (cnt < max && !stop) {
       std::cerr << "Calculating Q... " << std::setprecision(5)
                 << double(cnt) / max * 100 << "%                \r";
@@ -42,91 +28,68 @@ auto add_Q_pnorm(auto const& domain, auto& channelflow_file, auto const& velx,
     }
   }};
 
-  //iterate chunk-wise
-  for (size_t chunk_iz = 0; chunk_iz < domain.size(2) / chunk_size;
-       ++chunk_iz) {
-    for (size_t chunk_iy = 0; chunk_iy < domain.size(1) / chunk_size;
-         ++chunk_iy) {
-      for (size_t chunk_ix = 0; chunk_ix < domain.size(0) / chunk_size;
-           ++chunk_ix) {
-#pragma omp parallel for collapse(3)
-        for (size_t inner_iz = 0;
-             inner_iz < std::min<size_t>(
-                            chunk_size, chunk_iz * chunk_size - domain.size(2));
-             ++inner_iz) {
-          for (size_t inner_iy = 0;
-               inner_iy < std::min<size_t>(chunk_size, chunk_iy * chunk_size -
-                                                           domain.size(1));
-               ++inner_iy) {
-            for (size_t inner_ix = 0;
-                 inner_ix < std::min<size_t>(chunk_size, chunk_iz * chunk_size -
-                                                             domain.size(0));
-                 ++inner_ix) {
-              auto const ix = chunk_ix * chunk_size + inner_ix;
-              auto const iy = chunk_iy * chunk_size + inner_iy;
-              auto const iz = chunk_iz * chunk_size + inner_iz;
-              if (ix < domain.size(0) - 2) {
-                Q_data(ix, iy, iz) = calc_Q(ix, iy, iz);
-              }
-              ++cnt;
-            }
-          }
-        }
-        std::cerr << "chunk finished\n";
-      }
-    }
-  }
+  auto process_chunk = [&](auto const ix, auto const iy, auto const iz) {
+    auto J   = mat3{};
+    J.row(0) = diff(velx)(ix, iy, iz);
+    J.row(1) = diff(vely)(ix, iy, iz);
+    J.row(2) = diff(velz)(ix, iy, iz);
+
+    mat3 const S     = (J + transposed(J)) / 2;
+    mat3 const Omega = (J - transposed(J)) / 2;
+
+    auto qcr =
+        0.5 * (J(0, 0) + J(1, 1) + J(2, 2)) * (J(0, 0) + J(1, 1) + J(2, 2)) -
+        0.5 * (J(0, 0) * J(0, 0) + J(1, 1) * J(1, 1) + J(2, 2) * J(2, 2));
+    qcr -= J(0, 1) * J(1, 0) + J(0, 2) * J(2, 0) + J(1, 2) * J(2, 1);
+
+    Q_pnorm_data(ix, iy, iz) =
+        (squared_norm(Omega, 2) - squared_norm(S, 2)) / 2;
+    Q_cheng_data(ix, iy, iz) = qcr;
+    ++cnt;
+  };
+
+  chunked_for_loop(process_chunk, execution_policy::parallel, chunk_size,
+                   domain.size(0), domain.size(1), domain.size(2));
   stop = true;
   watcher.join();
   std::cerr << "Calculating Q... done.";
   std::cerr << "writing actual Q data... ";
-  Q.write(Q_data);
+  std::cerr << "adding dataset to hdf5 file... ";
+  auto Q_pnorm = channelflow_file.template create_dataset<double>(
+      "Q_pnorm", domain.size(0), domain.size(1), domain.size(2));
+  auto Q_cheng = channelflow_file.template create_dataset<double>(
+      "Q_cheng", domain.size(0), domain.size(1), domain.size(2));
+  Q_pnorm.write(Q_pnorm_data);
+  Q_cheng.write(Q_cheng_data);
   std::cerr << "done.\n";
 }
 //==============================================================================
-auto main() -> int {
-  tat::hdf5::file axis0_file{"/home/vcuser/channel_flow/axis0.h5"};
-  tat::hdf5::file axis1_file{"/home/vcuser/channel_flow/axis1.h5"};
-  tat::hdf5::file axis2_file{"/home/vcuser/channel_flow/axis2.h5"};
-  auto const      axis0 =
-      axis0_file.dataset<double>("CartGrid/axis0").read_as_vector();
+auto main(int argc, char** argv) -> int {
+  // open hdf5 files
+  auto       channelflow_file = hdf5::file{argv[1]};
+  auto const axis0 =
+      channelflow_file.dataset<double>("CartGrid/axis0").read_as_vector();
   auto const axis1 =
-      axis1_file.dataset<double>("CartGrid/axis1").read_as_vector();
+      channelflow_file.dataset<double>("CartGrid/axis1").read_as_vector();
   auto const axis2 =
-      axis2_file.dataset<double>("CartGrid/axis2").read_as_vector();
+      channelflow_file.dataset<double>("CartGrid/axis2").read_as_vector();
 
-  tat::grid full_domain{axis0, axis1, axis2};
+  auto full_domain = rectilinear_grid{axis0, axis1, axis2};
   full_domain.set_chunk_size_for_lazy_properties(chunk_size);
 
-  auto axis0_Q = axis0;
-  axis0_Q.pop_back();
-  tat::grid full_domain_Q{axis0_Q, axis1, axis2};
-  full_domain_Q.set_chunk_size_for_lazy_properties(chunk_size);
+  auto velx_dataset = channelflow_file.dataset<double>("velocity/xvel");
+  auto vely_dataset = channelflow_file.dataset<double>("velocity/yvel");
+  auto velz_dataset = channelflow_file.dataset<double>("velocity/zvel");
 
-  // open hdf5 files
-  tat::hdf5::file channelflow_122_full_file{
-      "/home/vcuser/channel_flow/dino_res_122000_full.h5"};
+  auto& velx = full_domain.insert_vertex_property(velx_dataset, "Vx");
+  auto& vely = full_domain.insert_vertex_property(vely_dataset, "Vy");
+  auto& velz = full_domain.insert_vertex_property(velz_dataset, "Vz");
+  //velx.limit_num_chunks_loaded();
+  //vely.limit_num_chunks_loaded();
+  //velz.limit_num_chunks_loaded();
+  //velx.set_max_num_chunks_loaded(30);
+  //vely.set_max_num_chunks_loaded(30);
+  //velz.set_max_num_chunks_loaded(30);
 
-  auto velx_122_full_dataset =
-      channelflow_122_full_file.dataset<double>("velocity/xvel");
-  auto vely_122_full_dataset =
-      channelflow_122_full_file.dataset<double>("velocity/yvel");
-  auto velz_122_full_dataset =
-      channelflow_122_full_file.dataset<double>("velocity/zvel");
-
-  auto& velx_122_full = full_domain.insert_lazy_vertex_property<tat::x_fastest>(
-      velx_122_full_dataset, "Vx_122");
-  auto& vely_122_full = full_domain.insert_lazy_vertex_property<tat::x_fastest>(
-      vely_122_full_dataset, "Vy_122");
-  auto& velz_122_full = full_domain.insert_lazy_vertex_property<tat::x_fastest>(
-      velz_122_full_dataset, "Vz_122");
-  velx_122_full.limit_num_chunks_loaded();
-  vely_122_full.limit_num_chunks_loaded();
-  velz_122_full.limit_num_chunks_loaded();
-  velx_122_full.set_max_num_chunks_loaded(30);
-  vely_122_full.set_max_num_chunks_loaded(30);
-  velz_122_full.set_max_num_chunks_loaded(30);
-
-  add_Q_pnorm(full_domain, channelflow_122_full_file, velx_122_full,
-              vely_122_full, velz_122_full);
+  add_Q_pnorm(full_domain, channelflow_file, velx, vely, velz);
 }

@@ -98,22 +98,17 @@ auto main() -> int {
   rectilinear_grid full_domain{axis0, axis1, axis2};
   full_domain.set_chunk_size_for_lazy_properties(256);
   std::cerr << "full_domain:\n" << full_domain << '\n';
-
-  auto axis0_Q = axis0;
-  axis0_Q.pop_back();
-  rectilinear_grid full_domain_Q{axis0_Q, axis1, axis2};
-  full_domain_Q.set_chunk_size_for_lazy_properties(256);
-  std::cerr << "full_domain_Q:\n" << full_domain_Q << '\n';
   std::cerr << "done!\n";
 
   std::cerr << "creating files ...";
-  hdf5::file channelflow_122_full_file{
-      "/home/vcuser/channel_flow/dino_res_122000_full.h5"};
   hdf5::file channelflow_154_full_file{
       "/home/vcuser/channel_flow/dino_res_154000.h5"};
   std::cerr << "done!\n";
 
   std::cerr << "loading data ...";
+  auto& velocity_y_154_full = full_domain.insert_vertex_property(
+      channelflow_154_full_file.dataset<double>("velocity/yvel"),
+      "velocity_y_154");
   auto& velocity_y_154_full = full_domain.insert_vertex_property(
       channelflow_154_full_file.dataset<double>("velocity/yvel"),
       "velocity_y_154");
