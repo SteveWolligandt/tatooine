@@ -16,10 +16,13 @@ struct hyper_ellipse {
   using pos_t  = vec_t;
   using mat_t  = mat<Real, NumDimensions, NumDimensions>;
 
+  //----------------------------------------------------------------------------
  private:
+  //----------------------------------------------------------------------------
   vec_t m_center = vec_t::zeros();
   mat_t m_S      = mat_t::eye();
 
+  //----------------------------------------------------------------------------
  public:
   //----------------------------------------------------------------------------
   /// defaults to unit hypersphere
@@ -124,6 +127,7 @@ struct hyper_ellipse {
   }
   //============================================================================
  private:
+  //----------------------------------------------------------------------------
   /// Fits an ellipse through specified points
   template <size_t... Is>
   constexpr auto fit(std::index_sequence<Is...> /*seq*/,
@@ -134,6 +138,7 @@ struct hyper_ellipse {
   }
   //----------------------------------------------------------------------------
  public:
+  //----------------------------------------------------------------------------
   /// Fits an ellipse through specified points
   constexpr auto fit(fixed_size_vec<NumDimensions> auto const&... points) {
     static_assert(sizeof...(points) == NumDimensions,
@@ -149,13 +154,6 @@ struct hyper_ellipse {
     m_S                 = Q * sqrt(diag(Sig)) * transposed(Q);
   }
   //============================================================================
-  /// Computes the main axes of the ellipse.
-  /// \returns main axes
-  constexpr auto main_axes() const {
-    auto const [Q, lambdas] = eigenvectors_sym(m_S);
-    return Q * diag(lambdas);
-  }
-  //----------------------------------------------------------------------------
   /// Computes the main axes of the ellipse.
   /// \returns main axes
   template <typename V, typename VReal>
@@ -245,6 +243,25 @@ struct hyper_ellipse {
       g.insert_cell(c[0], c[1], c[2]);
     }
     return g;
+  }
+  //----------------------------------------------------------------------------
+ public:
+  //----------------------------------------------------------------------------
+  /// Returns a the main axes of the hyper ellipse as a matrix and the lengths
+  /// of the axes as a vector.
+  auto main_axes() const {
+    return eigenvectors_sym(S());
+  }
+  //----------------------------------------------------------------------------
+  /// Returns a the radii of the hyper ellipse as a vector.
+  auto radii() const {
+    return eigenvalues_sym(S());
+  }
+  //----------------------------------------------------------------------------
+  /// Returns a the radii of the hyper ellipse as a vector.
+  auto base_coordinate_system() const {
+    auto const [axes, lengths] = main_axes();
+    return axes * diag(lengths);
   }
 };
 //------------------------------------------------------------------------------
