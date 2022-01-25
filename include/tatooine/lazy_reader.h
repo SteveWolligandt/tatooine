@@ -25,15 +25,15 @@ struct lazy_reader
  private:
   DataSet                     m_dataset;
   mutable std::vector<bool>   m_read;
-  size_t                      m_max_num_chunks_loaded   = 1024;
+  std::size_t                      m_max_num_chunks_loaded   = 1024;
   bool                        m_limit_num_chunks_loaded = false;
   mutable std::mutex          m_chunks_loaded_mutex;
-  mutable std::vector<size_t> m_chunks_loaded;
+  mutable std::vector<std::size_t> m_chunks_loaded;
   mutable std::vector<std::unique_ptr<std::mutex>> m_mutexes;
 
  public:
-  lazy_reader(DataSet const& file, std::vector<size_t> const& chunk_size)
-      : parent_t{std::vector<size_t>(chunk_size.size(), 0), chunk_size},
+  lazy_reader(DataSet const& file, std::vector<std::size_t> const& chunk_size)
+      : parent_t{std::vector<std::size_t>(chunk_size.size(), 0), chunk_size},
         m_dataset{file} {
     init(chunk_size);
   }
@@ -49,7 +49,7 @@ struct lazy_reader
   }
   //----------------------------------------------------------------------------
  private:
-  auto init(std::vector<size_t> const& chunk_size) -> void {
+  auto init(std::vector<std::size_t> const& chunk_size) -> void {
     auto s = m_dataset.size();
     this->resize(s, chunk_size);
     m_read.resize(this->num_chunks(), false);
@@ -63,7 +63,7 @@ struct lazy_reader
     }
   }
   //----------------------------------------------------------------------------
-  auto read_chunk(size_t const plain_chunk_index, integral auto const... indices) const
+  auto read_chunk(std::size_t const plain_chunk_index, integral auto const... indices) const
       -> auto const& {
 #ifndef NDEBUG
     if (!this->in_range(indices...)) {
@@ -83,7 +83,7 @@ struct lazy_reader
 
     if (this->chunk_at_is_null(plain_chunk_index) && !m_read[plain_chunk_index]) {
       {
-        std::lock_guard chunks_loaded_lock{m_chunks_loaded_mutex};
+        auto chunks_loaded_lock = std::lock_guard{m_chunks_loaded_mutex};
         m_chunks_loaded.push_back(plain_chunk_index);
         //if (m_limit_num_chunks_loaded &&
         //    num_chunks_loaded() > m_max_num_chunks_loaded) {
@@ -96,7 +96,7 @@ struct lazy_reader
       m_read[plain_chunk_index] = true;
       auto const offset         = this->global_indices_from_chunk_indices(
           this->chunk_indices_from_global_indices(indices...));
-      for (size_t i = 0; i < offset.size(); ++i) {
+      for (std::size_t i = 0; i < offset.size(); ++i) {
         assert(offset[i] + chunk.size()[i] <= this->size()[i]);
       }
       m_dataset.read(offset, chunk.size(), chunk);
@@ -110,7 +110,7 @@ struct lazy_reader
   auto at(integral auto const... indices) const -> value_type const& {
     auto const      plain_chunk_index =
         this->plain_chunk_index_from_global_indices(indices...);
-    std::lock_guard lock{*m_mutexes[plain_chunk_index]};
+    auto lock = std::lock_guard {*m_mutexes[plain_chunk_index]};
     auto const&       chunk = read_chunk(plain_chunk_index, indices...);
 
     if (chunk == nullptr) {
@@ -122,14 +122,14 @@ struct lazy_reader
   }
 
  private:
-  template <integral Index, size_t N, size_t... Seq>
+  template <integral Index, std::size_t N, std::size_t... Seq>
   auto at(std::array<Index, N> const& indices,
           std::index_sequence<Seq...> /*seq*/) const -> value_type const& {
     return at(indices[Seq]...);
   }
 
  public:
-  template <integral Index, size_t N>
+  template <integral Index, std::size_t N>
   auto at(std::array<Index, N> const& indices) const -> value_type const& {
     return at(indices, std::make_index_sequence<N>{});
   }
@@ -139,7 +139,7 @@ struct lazy_reader
     return at(indices...);
   }
   //----------------------------------------------------------------------------
-  auto is_chunk_filled_with_value(size_t const      plain_chunk_index,
+  auto is_chunk_filled_with_value(std::size_t const      plain_chunk_index,
                                   value_type const& value) const -> bool {
     auto const& chunk_data = chunk_at(plain_chunk_index)->data();
     for (auto const& v : chunk_data) {
@@ -150,12 +150,12 @@ struct lazy_reader
     return true;
   }
   //----------------------------------------------------------------------------
-  auto is_chunk_filled_with_zeros(size_t const plain_chunk_index) const
+  auto is_chunk_filled_with_zeros(std::size_t const plain_chunk_index) const
       -> bool requires is_arithmetic<value_type> {
     return is_chunk_filled_with_value(plain_chunk_index, 0);
   }
   //----------------------------------------------------------------------------
-  auto set_max_num_chunks_loaded(size_t const max_num_chunks_loaded) {
+  auto set_max_num_chunks_loaded(std::size_t const max_num_chunks_loaded) {
     //limit_num_chunks_loaded();
     //m_max_num_chunks_loaded = max_num_chunks_loaded;
   }
@@ -170,7 +170,7 @@ struct lazy_reader
   //----------------------------------------------------------------------------
   auto chunks_loaded() const -> auto const& { return m_chunks_loaded; }
   //----------------------------------------------------------------------------
-  auto chunk_is_loaded(size_t const plain_chunk_index) const {
+  auto chunk_is_loaded(std::size_t const plain_chunk_index) const {
     return std::find(begin(m_chunks_loaded), end(m_chunks_loaded),
                      plain_chunk_index) != end(m_chunks_loaded);
   }

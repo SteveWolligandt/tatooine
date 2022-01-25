@@ -33,8 +33,8 @@ class perspective_camera : public camera<Real> {
   //----------------------------------------------------------------------------
   // member variables
   //----------------------------------------------------------------------------
-  vec3   m_bottom_left;
-  vec3   m_plane_base_x, m_plane_base_y;
+  vec3 m_bottom_left;
+  vec3 m_plane_base_x, m_plane_base_y;
   Real m_fov;
 
  public:
@@ -46,8 +46,7 @@ class perspective_camera : public camera<Real> {
   perspective_camera(vec3 const& eye, vec3 const& lookat, vec3 const& up,
                      Real const fov, Real const near, Real const far,
                      size_t const res_x, size_t const res_y)
-      : parent_t{eye, lookat, up, near, far, res_x, res_y},
-        m_fov{fov} {
+      : parent_t{eye, lookat, up, near, far, res_x, res_y}, m_fov{fov} {
     setup();
   }
   //----------------------------------------------------------------------------
@@ -82,7 +81,8 @@ class perspective_camera : public camera<Real> {
   /// gets a ray through plane at pixel with coordinate [x,y].
   /// [0,0] is bottom left.
   /// ray goes through center of pixel
-  auto ray(Real const x, Real const y) const -> tatooine::ray<Real, 3> override {
+  auto ray(Real const x, Real const y) const
+      -> tatooine::ray<Real, 3> override {
     auto const view_plane_point =
         m_bottom_left + x * m_plane_base_x + y * m_plane_base_y;
     return {{eye()}, {view_plane_point - eye()}};
@@ -90,9 +90,9 @@ class perspective_camera : public camera<Real> {
   //============================================================================
  private:
   auto setup() -> void override {
-    vec3 const   view_dir = normalize(lookat() - eye());
-    vec3 const   u        = cross(view_dir, up());
-    vec3 const   v        = cross(u, view_dir);
+    vec3 const view_dir = normalize(lookat() - eye());
+    vec3 const u        = cross(view_dir, up());
+    vec3 const v        = cross(u, view_dir);
     Real const plane_half_width =
         std::tan(m_fov / Real(2) * Real(M_PI) / Real(180));
     Real const plane_half_height = plane_half_width / this->aspect_ratio();
