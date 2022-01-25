@@ -11,10 +11,10 @@ tatooine::detail::autonomous_particle::split_behaviors<Real, 2>:
     <td> \image html autonomous_particle/splits/2d/2splits.svg height=100px
 <tr><td>\ref tatooine::detail::autonomous_particle::split_behaviors<Real, 2>::three_splits "3 Splits"
     <td>\image html autonomous_particle/splits/2d/3splits.svg height=100px
-<tr><td>\ref tatooine::detail::autonomous_particle::split_behaviors<Real, 2>::three_in_square_splits "3 Splits in square"
-    <td>\image html autonomous_particle/splits/2d/3splits_alternative.svg height=100px
 <tr><td>\ref tatooine::detail::autonomous_particle::split_behaviors<Real, 2>::three_and_four_splits "3 and 4 Splits"
     <td>\image html autonomous_particle/splits/2d/7splits_alternative.svg height=100px
+<tr><td>\ref tatooine::detail::autonomous_particle::split_behaviors<Real, 2>::three_in_square_splits "3 Splits in square"
+    <td>\image html autonomous_particle/splits/2d/3splits_alternative.svg height=100px
 <tr><td>\ref tatooine::detail::autonomous_particle::split_behaviors<Real, 2>::five_splits "5 Splits"
     <td>\image html autonomous_particle/splits/2d/5splits.svg height=100px
 <tr><td>\ref tatooine::detail::autonomous_particle::split_behaviors<Real, 2>::seven_splits "7 Splits"

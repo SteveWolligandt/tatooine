@@ -41,6 +41,7 @@ create_autonomous_particles_application(channelflow_pathlines)
 create_autonomous_particles_application(tornado_grid)
 create_autonomous_particles_application(abcflow_grid)
 create_autonomous_particles_application(post_triangulation)
+create_autonomous_particles_application(holger)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # explorer
