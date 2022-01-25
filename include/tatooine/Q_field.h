@@ -30,17 +30,17 @@ class Q_field
   //============================================================================
  public:
   template <typename V_>
-  Q_field(V_&& v) : m_v{std::forward<V_>(v)} {}
+  explicit Q_field(V_&& v) : m_v{std::forward<V_>(v)} {}
 
-  Q_field(Q_field const&) = default;
-  Q_field(Q_field &&)noexcept = default;
+  Q_field(Q_field const&)     = default;
+  Q_field(Q_field&&) noexcept = default;
   auto operator=(Q_field const&) -> Q_field& = default;
   auto operator=(Q_field&&) noexcept -> Q_field& = default;
+  ~Q_field()                  = default;
 
   //============================================================================
   // methods
   //============================================================================
- public:
   constexpr auto evaluate(pos_t const& x, real_t const t) const -> tensor_t {
     auto J     = diff(m_v, 1e-7)(x, t);
     auto S     = (J + transposed(J)) / 2;
@@ -53,17 +53,15 @@ class Q_field
   }
 };
 //==============================================================================
-template <
-    typename V,
-    enable_if<is_vectorfield_v<std::decay_t<std::remove_pointer_t<V>>>> = true>
-auto Q(V&& v) {
+template <typename V>
+auto Q(
+    V&& v) requires is_vectorfield<std::decay_t<std::remove_pointer_t<V>>> {
   return Q_field<std::decay_t<V>>{std::forward<V>(v)};
 }
 //------------------------------------------------------------------------------
-template <
-    typename V,
-    enable_if<is_vectorfield_v<std::decay_t<std::remove_pointer_t<V>>>> = true>
-auto Q(V const& v) {
+template <typename V>
+auto Q(V const& v) requires is_vectorfield<
+    std::decay_t<std::remove_pointer_t<V>>> {
   return Q_field<V const&>{v};
 }
 //==============================================================================

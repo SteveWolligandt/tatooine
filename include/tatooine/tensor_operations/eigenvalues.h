@@ -61,9 +61,9 @@ constexpr auto eigenvalues_sym(base_tensor<Tensor, Real, 2, 2> const& A) {
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t N>
 constexpr auto eigenvalues_sym(base_tensor<Tensor, Real, N, N> const& A) {
-  auto W = vec<Real, N>{};
-  lapack::syev(::lapack::Job::NoVec, ::lapack::Uplo::Upper, mat<Real, N, N>{A},
-               W);
+  auto W  = vec<Real, N>{};
+  auto A2 = mat<Real, N, N>{A};
+  lapack::syev(::lapack::Job::NoVec, ::lapack::Uplo::Upper, A2, W);
   return W;
 }
 //------------------------------------------------------------------------------

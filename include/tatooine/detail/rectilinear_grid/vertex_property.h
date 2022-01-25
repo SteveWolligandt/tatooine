@@ -226,55 +226,9 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
       -> void = 0;
   //----------------------------------------------------------------------------
 #if TATOOINE_PNG_AVAILABLE
-  auto write_png(filesystem::path const& path) const
-      -> void requires(num_dimensions() == 2) &&
-      ((is_vec<ValueType>) || (is_arithmetic<ValueType>)) {
-    if constexpr (is_vec<ValueType>) {
-      png::image<png::rgb_pixel> image{
-          static_cast<png::uint_32>(this->grid().size(0)),
-          static_cast<png::uint_32>(this->grid().size(1))};
-      for (unsigned int y = 0; y < image.get_height(); ++y) {
-        for (png::uint_32 x = 0; x < image.get_width(); ++x) {
-          auto d = at(x, y);
-          if (std::isnan(d(0))) {
-            for (auto& c : d) {
-              c = 0;
-            }
-          } else {
-            for (auto& c : d) {
-              c = std::max<typename ValueType::value_type>(
-                  0, std::min<typename ValueType::value_type>(1, c));
-            }
-          }
-          image[image.get_height() - 1 - y][x].red   = d(0) * 255;
-          image[image.get_height() - 1 - y][x].green = d(1) * 255;
-          image[image.get_height() - 1 - y][x].blue  = d(2) * 255;
-        }
-      }
-      image.write(path.string());
-    } else if constexpr (is_arithmetic<ValueType>) {
-      png::image<png::rgb_pixel> image{
-          static_cast<png::uint_32>(this->grid().size(0)),
-          static_cast<png::uint_32>(this->grid().size(1))};
-      for (unsigned int y = 0; y < image.get_height(); ++y) {
-        for (png::uint_32 x = 0; x < image.get_width(); ++x) {
-          auto d = at(x, y);
-          if (std::isnan(d)) {
-            d = 0;
-          } else {
-            d = std::max<typename ValueType::value_type>(
-                0, std::min<typename ValueType::value_type>(1, d));
-          }
-          image[image.get_height() - 1 - y][x].red   = d * 255;
-          image[image.get_height() - 1 - y][x].green = d * 255;
-          image[image.get_height() - 1 - y][x].blue  = d * 255;
-        }
-      }
-      image.write(path.string());
-    }
-  }
-  auto write_png(filesystem::path const& path, ValueType const min = 0,
-                 ValueType const max = 1) const
+  auto write_png(filesystem::path const&              path,
+                 internal_value_type<ValueType>       min = 0,
+                 internal_value_type<ValueType> const max = 1) const
       -> void requires(num_dimensions() == 2) &&
       ((is_vec<ValueType>) || (is_arithmetic<ValueType>)) {
     png::image<png::rgb_pixel> image{
@@ -315,6 +269,7 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
     }
     image.write(path.string());
   }
+  //----------------------------------------------------------------------------
   template <typename ColorScale>
       auto write_png(filesystem::path const& path, ColorScale&& color_scale,
                      ValueType const min = 0, ValueType const max = 1) const
@@ -519,15 +474,15 @@ struct differentiated_typed_vertex_property {
     return at(std::make_index_sequence<Grid::num_dimensions()>{}, is...);
   }
   //----------------------------------------------------------------------------
- private : template <std::size_t... Seq, typename... Is>
-           auto
-           at(std::index_sequence<Seq...> /*seq*/, Is const... is) const
-           -> value_type {
-    value_type d{};
+ private:
+  template <std::size_t... Seq, typename... Is>
+  auto at(std::index_sequence<Seq...> /*seq*/, Is const... is) const
+      -> value_type {
+    auto d = value_type{};
     (
         [&](auto const dim, auto const index) {
-          constexpr std::size_t targeted_stencil_size = 7;
-          constexpr int         offset = targeted_stencil_size / 2;
+          constexpr auto targeted_stencil_size = std::size_t(7);
+          constexpr auto offset                = int(targeted_stencil_size / 2);
 
           auto       indices = std::array{static_cast<std::size_t>(is)...};
           auto const negative_offset = std::max<int>(-indices[dim], -offset);

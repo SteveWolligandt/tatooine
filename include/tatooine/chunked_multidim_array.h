@@ -41,7 +41,7 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
   using parent_t::size;
   //----------------------------------------------------------------------------
  private:
-  std::vector<size_t>                    m_internal_chunk_size;
+  std::vector<std::size_t>                    m_internal_chunk_size;
   dynamic_multidim_size<LocalIndexOrder> m_chunk_structure;
 
  protected:
@@ -66,10 +66,10 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
   }
   //----------------------------------------------------------------------------
   template <range Range>
-  chunked_multidim_array(Range&& data, std::vector<size_t> const& size,
-                         std::vector<size_t> const& chunk_size) {
+  chunked_multidim_array(Range&& data, std::vector<std::size_t> const& size,
+                         std::vector<std::size_t> const& chunk_size) {
     resize(size, chunk_size);
-    size_t i = 0;
+    std::size_t i = 0;
     for (auto const& d : data) {
       (*this)[i++] = d;
     }
@@ -77,7 +77,7 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
   //----------------------------------------------------------------------------
   template <can_read<this_t> Reader>
   chunked_multidim_array(Reader&&                   reader,
-                         std::vector<size_t> const& chunk_size) {
+                         std::vector<std::size_t> const& chunk_size) {
     m_internal_chunk_size = chunk_size;
     reader.read(*this);
   }
@@ -92,7 +92,7 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
     auto size_it       = begin(size);
     auto chunk_size_it = begin(m_internal_chunk_size);
     for (; size_it < end(size); ++size_it, ++chunk_size_it) {
-      *size_it = static_cast<size_t>(std::ceil(
+      *size_it = static_cast<std::size_t>(std::ceil(
           static_cast<double>(*size_it) / static_cast<double>(*chunk_size_it)));
     }
     m_chunk_structure.resize(size);
@@ -105,37 +105,37 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
            (is_integral<typename std::decay_t<ChunkSizeRange>::value_type>) {
     m_internal_chunk_size.resize(chunk_size.size());
     std::copy(begin(chunk_size), end(chunk_size), begin(m_internal_chunk_size));
-    size_t i = 0;
+    std::size_t i = 0;
     for (auto& s : m_internal_chunk_size) {
-      s = std::min<size_t>(s, size[i++]);
+      s = std::min<std::size_t>(s, size[i++]);
     }
     resize(std::forward<SizeRange>(size));
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto resize(integral auto const... sizes) -> void {
-    return resize(std::vector{static_cast<size_t>(sizes)...});
+    return resize(std::vector{static_cast<std::size_t>(sizes)...});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename Tensor, integral Int, size_t N>
+  template <typename Tensor, integral Int, std::size_t N>
   auto resize(base_tensor<Tensor, Int, N> const& v) -> void {
     assert(N == num_dimensions());
-    std::vector<size_t> s(num_dimensions());
-    for (size_t i = 0; i < N; ++i) {
+    std::vector<std::size_t> s(num_dimensions());
+    for (std::size_t i = 0; i < N; ++i) {
       s[i] = v(i);
     }
     return resize(s);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <integral Int, size_t N>
+  template <integral Int, std::size_t N>
   auto resize(std::array<Int, N> const& v) {
     assert(N == num_dimensions());
-    return resize(std::vector<size_t>(begin(v), end(v)));
+    return resize(std::vector<std::size_t>(begin(v), end(v)));
   }
   //----------------------------------------------------------------------------
  private:
-  template <size_t... Seq>
+  template <std::size_t... Seq>
   auto plain_internal_chunk_index_from_global_indices(
-      size_t plain_chunk_index, std::index_sequence<Seq...>,
+      std::size_t plain_chunk_index, std::index_sequence<Seq...>,
       integral auto const... is) const {
     assert(m_chunks[plain_chunk_index] != nullptr);
     assert(sizeof...(is) == m_chunks[plain_chunk_index]->num_dimensions());
@@ -145,7 +145,7 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
   auto plain_internal_chunk_index_from_global_indices(
-      size_t plain_chunk_index, integral auto const... is) const {
+      std::size_t plain_chunk_index, integral auto const... is) const {
     assert(m_chunks[plain_chunk_index] != nullptr);
     assert(sizeof...(is) == m_chunks[plain_chunk_index]->num_dimensions());
     return plain_internal_chunk_index_from_global_indices(
@@ -153,7 +153,7 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
   }
   //----------------------------------------------------------------------------
  private:
-  template <size_t... Seq>
+  template <std::size_t... Seq>
   auto plain_chunk_index_from_global_indices(
       std::index_sequence<Seq...> /*seq*/, integral auto const... is) const {
     assert(sizeof...(is) == num_dimensions());
@@ -168,10 +168,10 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
   }
   //----------------------------------------------------------------------------
  private:
-  template <size_t... Seq>
+  template <std::size_t... Seq>
   auto internal_chunk_indices_from_global_indices(
       std::index_sequence<Seq...>, integral auto const... is) const {
-    return std::array{static_cast<size_t>(is % m_internal_chunk_size[Seq])...};
+    return std::array{static_cast<std::size_t>(is % m_internal_chunk_size[Seq])...};
   }
   //----------------------------------------------------------------------------
  public:
@@ -185,18 +185,18 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
   // auto internal_chunk_indices_from_global_indices(
   //    std::vector<Int> is) const {
   //  assert(size(is) == num_dimensions());
-  //  for (size_t i = 0; i < num_dimensions(); ++i) {
+  //  for (std::size_t i = 0; i < num_dimensions(); ++i) {
   //    is[i] %= m_internal_chunk_size[i];
   //  }
   //  return is;
   //}
   //----------------------------------------------------------------------------
  private:
-  template <size_t... Seq>
+  template <std::size_t... Seq>
   auto chunk_indices_from_global_indices(std::index_sequence<Seq...>,
                                          integral auto const... is) const {
     return std::vector{
-        (static_cast<size_t>(is) / m_internal_chunk_size[Seq])...};
+        (static_cast<std::size_t>(is) / m_internal_chunk_size[Seq])...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
@@ -209,7 +209,7 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
   template <integral Int>
   auto chunk_indices_from_global_indices(std::vector<Int> is) const {
     assert(size(is) == num_dimensions());
-    for (size_t i = 0; i < num_dimensions(); ++i) {
+    for (std::size_t i = 0; i < num_dimensions(); ++i) {
       is[i] /= m_internal_chunk_size[i];
     }
     return is;
@@ -218,7 +218,7 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
   template <integral Int>
   auto global_indices_from_chunk_indices(std::vector<Int> is) const {
     assert(is.size() == num_dimensions());
-    for (size_t i = 0; i < num_dimensions(); ++i) {
+    for (std::size_t i = 0; i < num_dimensions(); ++i) {
       is[i] *= m_internal_chunk_size[i];
     }
     return is;
@@ -260,17 +260,17 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
   }
   //----------------------------------------------------------------------------
   auto create_all_chunks() const -> void {
-    for (size_t i = 0; i < num_chunks(); ++i) {
+    for (std::size_t i = 0; i < num_chunks(); ++i) {
       create_chunk_at(i);
     }
   }
   //----------------------------------------------------------------------------
-  auto create_chunk_at(size_t const               plain_chunk_index,
-                       std::vector<size_t> const& multi_indices) const
+  auto create_chunk_at(std::size_t const               plain_chunk_index,
+                       std::vector<std::size_t> const& multi_indices) const
       -> auto const& {
     assert(multi_indices.size() == num_dimensions());
-    std::vector<size_t> chunk_size = m_internal_chunk_size;
-    for (size_t i = 0; i < num_dimensions(); ++i) {
+    std::vector<std::size_t> chunk_size = m_internal_chunk_size;
+    for (std::size_t i = 0; i < num_dimensions(); ++i) {
       if (multi_indices[i] == m_chunk_structure.size(i) - 1) {
         chunk_size[i] = this->size(i) % chunk_size[i];
         if (chunk_size[i] == 0) {
@@ -282,7 +282,7 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
     return m_chunks[plain_chunk_index];
   }
   //----------------------------------------------------------------------------
-  auto create_chunk_at(size_t const plain_chunk_index) const -> auto const& {
+  auto create_chunk_at(std::size_t const plain_chunk_index) const -> auto const& {
     assert(plain_chunk_index < num_chunks());
     return create_chunk_at(plain_chunk_index,
                            m_chunk_structure.multi_index(plain_chunk_index));
@@ -296,7 +296,7 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
     return create_chunk_at(
         plain_chunk_index_from_chunk_indices(chunk_index0, chunk_index1,
                                              chunk_indices...),
-        std::vector<size_t>{chunk_index0, chunk_index1, chunk_indices...});
+        std::vector<std::size_t>{chunk_index0, chunk_index1, chunk_indices...});
   }
   //----------------------------------------------------------------------------
   auto destroy_chunk_at(integral auto const chunk_index0,
@@ -329,19 +329,19 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
   auto num_chunks() const { return m_chunks.size(); }
   //----------------------------------------------------------------------------
   auto chunk_size() const { return m_chunk_structure.size(); }
-  auto chunk_size(size_t i) const { return m_chunk_structure.size(i); }
+  auto chunk_size(std::size_t i) const { return m_chunk_structure.size(i); }
   //----------------------------------------------------------------------------
   auto internal_chunk_size() const { return m_internal_chunk_size; }
-  auto internal_chunk_size(size_t const i) const {
+  auto internal_chunk_size(std::size_t const i) const {
     return m_internal_chunk_size[i];
   }
   //----------------------------------------------------------------------------
-  auto operator[](size_t plain_index) -> T& {
+  auto operator[](std::size_t plain_index) -> T& {
     assert(plain_index < num_components());
     return at(multi_index(plain_index));
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator[](size_t plain_index) const -> T const& {
+  auto operator[](std::size_t plain_index) const -> T const& {
     assert(plain_index < num_components());
     return at(multi_index(plain_index));
   }
@@ -349,11 +349,11 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
   auto at(integral auto const... is) -> T& {
     assert(sizeof...(is) == num_dimensions());
     assert(in_range(is...));
-    size_t const plain_index = plain_chunk_index_from_global_indices(is...);
+    std::size_t const plain_index = plain_chunk_index_from_global_indices(is...);
     if (chunk_at_is_null(plain_index)) {
       create_chunk_at(plain_index);
     }
-    size_t const plain_internal_index =
+    std::size_t const plain_internal_index =
         plain_internal_chunk_index_from_global_indices(plain_index, is...);
     return (*m_chunks[plain_index])[plain_internal_index];
   }
@@ -361,24 +361,24 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
   auto at(integral auto const... is) const -> T const& {
     assert(sizeof...(is) == num_dimensions());
     assert(in_range(is...));
-    size_t const plain_index = plain_chunk_index_from_global_indices(is...);
+    std::size_t const plain_index = plain_chunk_index_from_global_indices(is...);
     if (chunk_at_is_null(plain_index)) {
       static constexpr T t{};
       return t;
     }
-    size_t const plain_internal_index =
+    std::size_t const plain_internal_index =
         plain_internal_chunk_index_from_global_indices(plain_index, is...);
     return (*m_chunks[plain_index])[plain_internal_index];
   }
   //----------------------------------------------------------------------------
-  template <typename Tensor, size_t N, integral S>
+  template <typename Tensor, std::size_t N, integral S>
   auto at(base_tensor<Tensor, S, N> const& is) -> T& {
     return invoke_unpacked(
         [this](auto const... is) -> decltype(auto) { return at(is...); },
         unpack(is));
   }
   //----------------------------------------------------------------------------
-  template <integral S, size_t N>
+  template <integral S, std::size_t N>
   auto at(std::array<S, N> const& is) -> T& {
     return invoke_unpacked(
         [this](auto const... is) -> decltype(auto) { return at(is...); },
@@ -389,7 +389,7 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
   auto at(std::vector<S> const& is) -> T& {
     assert(num_dimensions() == is.size());
     assert(in_range(is));
-    size_t const plain_chunk_index =
+    std::size_t const plain_chunk_index =
         m_chunk_structure.plain_index(chunk_indices_from_global_indices(is));
     if (!m_chunks[plain_chunk_index]) {
       create_chunk_at(plain_chunk_index);
@@ -403,16 +403,16 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
     assert(num_dimensions() == is.size());
     assert(in_range(is));
     auto global_is = is;
-    for (size_t i = 0; i < num_dimensions(); ++i) {
+    for (std::size_t i = 0; i < num_dimensions(); ++i) {
       global_is[i] /= is[i];
     }
-    size_t const plain_chunk_index = m_chunk_structure.plain_index(global_is);
+    std::size_t const plain_chunk_index = m_chunk_structure.plain_index(global_is);
     if (!m_chunks[plain_chunk_index]) {
       static const T t{};
       return t;
     }
     auto local_is = is;
-    for (size_t i = 0; i < num_dimensions(); ++i) {
+    for (std::size_t i = 0; i < num_dimensions(); ++i) {
       local_is[i] %= is[i];
     }
     return m_chunks[plain_chunk_index]->at(local_is);
@@ -428,22 +428,22 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
     return at(is...);
   }
   //----------------------------------------------------------------------------
-  template <typename Tensor, size_t N, integral S>
+  template <typename Tensor, std::size_t N, integral S>
   auto operator()(base_tensor<Tensor, S, N> const& is) -> T& {
     return at(is);
   }
   //----------------------------------------------------------------------------
-  template <integral S, size_t N>
+  template <integral S, std::size_t N>
   auto operator()(std::array<S, N> const& is) -> T& {
     return at(is);
   }
   //----------------------------------------------------------------------------
-  template <integral S, size_t N>
+  template <integral S, std::size_t N>
   auto operator()(std::array<S, N> const& is) const -> T const& {
     return at(is);
   }
   //----------------------------------------------------------------------------
-  template <integral S, size_t N>
+  template <integral S, std::size_t N>
   auto at(std::array<S, N> const& is) const -> T const& {
     return invoke_unpacked(
         [this](auto const... is) -> decltype(auto) { return at(is...); },
@@ -452,7 +452,7 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
   ////----------------------------------------------------------------------------
   // auto unchunk() const {
   //  std::vector<T> data(num_components());
-  //  for (size_t i = 0; i < num_components(); ++i) { data[i] = (*this)[i]; }
+  //  for (std::size_t i = 0; i < num_components(); ++i) { data[i] = (*this)[i]; }
   //  return data;
   //}
   ////----------------------------------------------------------------------------
@@ -462,8 +462,8 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
   //  constexpr auto      n = T::num_components();
   //  std::vector<real_t> data;
   //  data.reserve(num_components() * n);
-  //  for (size_t i = 0; i < num_components(); ++i) {
-  //    for (size_t j = 0; j < n; ++j) { data.push_back((*this)[i][j]); }
+  //  for (std::size_t i = 0; i < num_components(); ++i) {
+  //    for (std::size_t j = 0; j < n; ++j) { data.push_back((*this)[i][j]); }
   //  }
   //  return data;
   //}
@@ -536,17 +536,17 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
   /// together.
   template <typename Iteration>
   auto iterate_over_indices(Iteration&& iteration) const {
-    std::vector<std::pair<size_t, size_t>> outer_ranges(num_dimensions());
-    std::vector<std::pair<size_t, size_t>> inner_ranges(num_dimensions());
+    std::vector<std::pair<std::size_t, std::size_t>> outer_ranges(num_dimensions());
+    std::vector<std::pair<std::size_t, std::size_t>> inner_ranges(num_dimensions());
 
-    for (size_t i = 0; i < num_dimensions(); ++i) {
+    for (std::size_t i = 0; i < num_dimensions(); ++i) {
       outer_ranges[i] = {0, m_chunk_structure.size(i)};
     }
 
     // outer loop iterates over chunks
     for_loop(
         [&](auto const& outer_indices) {
-          for (size_t i = 0; i < num_dimensions(); ++i) {
+          for (std::size_t i = 0; i < num_dimensions(); ++i) {
             auto chunk_size = m_internal_chunk_size[i];
             if (outer_indices[i] == m_chunk_structure.size(i) - 1) {
               chunk_size = this->size(i) % chunk_size;
@@ -559,9 +559,9 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
           // inner loop iterates indices of current chunk
           for_loop(
               [&](auto const& inner_indices) {
-                std::vector<size_t> global_indices(num_dimensions());
+                std::vector<std::size_t> global_indices(num_dimensions());
 
-                for (size_t i = 0; i < num_dimensions(); ++i) {
+                for (std::size_t i = 0; i < num_dimensions(); ++i) {
                   global_indices[i] =
                       outer_indices[i] * m_internal_chunk_size[i] +
                       inner_indices[i];
