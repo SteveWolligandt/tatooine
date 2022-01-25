@@ -73,10 +73,10 @@ auto artificial_example() {
 auto doublegyre_example() {
   auto v              = analytical::fields::numerical::doublegyre{};
   auto uuid_generator = std::atomic_uint64_t{};
-  auto initial_grid = rectilinear_grid{linspace{0.8, 1.2, 21},
-                                       linspace{0.4, 0.6, 11}};
+  auto initial_grid = rectilinear_grid{linspace{0.8, 1.2, 5},
+                                       linspace{0.4, 0.6, 3}};
   auto const [advected_particles, advected_simple_particles, edges] =
-      autonomous_particle2::advect_with_five_splits(flowmap(v), 0.01, 0, 5,
+      autonomous_particle2::advect_with_two_splits(flowmap(v), 0.01, 0, 1,
                                                     initial_grid);
 
   auto all_advected_discretizations = std::vector<line2>{};

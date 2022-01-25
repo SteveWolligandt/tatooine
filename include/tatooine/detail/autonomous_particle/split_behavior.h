@@ -25,22 +25,20 @@ struct split_behaviors<Real, 2> {
   static auto constexpr sqrt5          = gcem::sqrt<Real>(5);
   using vec_t                          = vec<Real, 2>;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /// \image html autonomous_particle/2splits.svg
   struct two_splits {
     static auto constexpr split_cond = sqrt2;
-    static auto constexpr half     = Real(1) / Real(2);
-    static auto constexpr quarter  = Real(1) / Real(4);
     static constexpr auto radii = std::array{
-        vec_t{1 / sqrt2, half},
-        vec_t{1 / sqrt2, half}
-    };
+        vec_t{1 / sqrt2, 1 / sqrt2/sqrt2},
+        vec_t{1 / sqrt2, 1 / sqrt2/sqrt2}};
     static constexpr auto offsets = std::array{
-        vec_t{0, -half},
-        vec_t{0, half}
+        vec_t{0, sqrt2/2/sqrt2},
+        vec_t{0, -sqrt2/2/sqrt2}
     };
   };
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /// \image html autonomous_particle/3splits.svg
   struct three_splits {
-    // (oOo)
     static auto constexpr split_cond = Real(2);
     static constexpr auto radii    = std::array{
         vec_t{half, quarter},
@@ -52,8 +50,8 @@ struct split_behaviors<Real, 2> {
         vec_t{0, three_quarters}};
   };
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /// \image html autonomous_particle/3splits_alternative.svg
   struct three_in_square_splits {
-    // (OOO)
     static auto constexpr split_cond = Real(3);
     static constexpr auto radii    = std::array{
         vec_t{one, third},
@@ -65,8 +63,8 @@ struct split_behaviors<Real, 2> {
         vec_t{0, two_thirds}};
   };
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /// \image html autonomous_particle/5splits.svg
   struct five_splits {
-    // (.oOo.)
     static auto constexpr r1 = one + sqrt5;  // larger radius when splitting
     static auto constexpr r2 = one;          // smaller radius when splitting
     static auto constexpr r3 = one / (one + sqrt5);  // outer radius
@@ -93,6 +91,7 @@ struct split_behaviors<Real, 2> {
     };
   };
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /// \image html autonomous_particle/7splits_alternative.svg
   struct three_and_four_splits {
     static auto constexpr r01 = Real(2);
     static auto constexpr r02 = Real(1);
@@ -130,6 +129,8 @@ struct split_behaviors<Real, 2> {
         vec_t{-y4, -x4/r01},
     };
   };
+  //============================================================================
+  /// \image html autonomous_particle/7splits.svg
   struct seven_splits {
     static auto constexpr rr = Real(4.493959210);
     static auto constexpr rr1 = Real(0.9009688678);

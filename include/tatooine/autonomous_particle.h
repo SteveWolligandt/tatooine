@@ -285,6 +285,15 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //----------------------------------------------------------------------------
   /// Advects single particle.
   template <typename Flowmap>
+  auto advect_with_two_splits(Flowmap&& phi, real_t const step_size,
+                                real_t const          t_end,
+                                std::atomic_uint64_t& uuid_generator) const {
+    return advect<typename split_behaviors::two_splits>(
+        std::forward<Flowmap>(phi), step_size, t_end, uuid_generator);
+  }
+  //----------------------------------------------------------------------------
+  /// Advects single particle.
+  template <typename Flowmap>
   auto advect_with_three_splits(Flowmap&& phi, real_t const step_size,
                                 real_t const          t_end,
                                 std::atomic_uint64_t& uuid_generator) const {
@@ -340,6 +349,15 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     triangulate(edges, hierarchy{hierarchy_pairs, map, edges});
     return std::tuple{std::move(advected_particles),
                       std::move(advected_simple_particles), std::move(edges)};
+  }
+  //----------------------------------------------------------------------------
+  template <typename Flowmap>
+  static auto advect_with_two_splits(
+      Flowmap&& phi, real_t const step_size, real_t const t0,
+      real_t const                                         t_end,
+      uniform_rectilinear_grid<Real, NumDimensions> const& g) {
+    return advect<typename split_behaviors::two_splits>(
+        std::forward<Flowmap>(phi), step_size, t0, t_end, g);
   }
   //----------------------------------------------------------------------------
   template <typename Flowmap>
@@ -586,17 +604,18 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     }
     static constexpr real_t min_tau_step          = 1e-10;
     static constexpr real_t max_cond_overshoot    = 1e-8;
-    bool                    min_step_size_reached = false;
     static constexpr auto   split_cond            = SplitBehavior::split_cond;
     static constexpr auto   split_sqr_cond        = split_cond * split_cond;
     static constexpr auto   split_radii           = SplitBehavior::radii;
     static constexpr auto   split_offsets         = SplitBehavior::offsets;
-    auto const [eigvecs_S, eigvals_S]             = eigenvectors_sym(S());
+    auto const [eigvecs_S, eigvals_S]             = this->main_axes();
     auto const B = eigvecs_S * diag(eigvals_S);  // current main axes
+    auto const K = *solve(diag(eigvals_S), transposed(eigvecs_S));
 
     mat_t H, HHt, advected_nabla_phi, assembled_nabla_phi, advected_B,
         ghosts_forward, ghosts_backward, prev_ghosts_forward,
         prev_ghosts_backward;
+    auto        min_step_size_reached = false;
     auto        advected_ellipse = ellipse_t{*this};
     auto        current_radii    = vec_t{};
     auto        eig_HHt          = std::pair<mat_t, vec_t>{};
@@ -658,7 +677,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
           simple_particles.emplace_back(x0(), advected_ellipse.center(),
                                         t_advected);
         }
-        advected_nabla_phi = H * *solve(diag(eigvals_S), transposed(eigvecs_S));
+        advected_nabla_phi = H * K;
         assembled_nabla_phi = advected_nabla_phi * m_nabla_phi;
 
         current_radii        = sqrt(eigvals_HHt);
