@@ -1,0 +1,33 @@
+/**
+\page autonomous_particle_page Autonomous Particles for Divergence-free Flows
+
+\section autonomous_particle_page_split_behaviors Split Behaviors
+\subsection autonomous_particle_page_split_behaviors_2d 2D
+There are several split behaviors available in
+tatooine::detail::autonomous_particle::split_behaviors<Real, 2>:
+
+<table border=0px>
+<tr><td>\ref tatooine::detail::autonomous_particle::split_behaviors<Real, 2>::two_splits "2 Splits"
+    <td> \image html autonomous_particle/splits/2d/2splits.svg height=100px
+<tr><td>\ref tatooine::detail::autonomous_particle::split_behaviors<Real, 2>::three_splits "3 Splits"
+    <td>\image html autonomous_particle/splits/2d/3splits.svg height=100px
+<tr><td>\ref tatooine::detail::autonomous_particle::split_behaviors<Real, 2>::three_in_square_splits "3 Splits in square"
+    <td>\image html autonomous_particle/splits/2d/3splits_alternative.svg height=100px
+<tr><td>\ref tatooine::detail::autonomous_particle::split_behaviors<Real, 2>::three_and_four_splits "3 and 4 Splits"
+    <td>\image html autonomous_particle/splits/2d/7splits_alternative.svg height=100px
+<tr><td>\ref tatooine::detail::autonomous_particle::split_behaviors<Real, 2>::five_splits "5 Splits"
+    <td>\image html autonomous_particle/splits/2d/5splits.svg height=100px
+<tr><td>\ref tatooine::detail::autonomous_particle::split_behaviors<Real, 2>::seven_splits "7 Splits"
+    <td>\image html autonomous_particle/splits/2d/7splits.svg height=100px
+</table>
+
+
+\subsection autonomous_particle_page_split_behaviors_3d 3D
+There are several split behaviors available in
+tatooine::detail::autonomous_particle::split_behaviors<Real, 3>:
+
+<table border=0px>
+<tr><td>\ref tatooine::detail::autonomous_particle::split_behaviors<Real, 3>::three_splits "3 Splits"
+    <td>\image html autonomous_particle/splits/3d/3splits.png height=100px
+</table>
+*/
