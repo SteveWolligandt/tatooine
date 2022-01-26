@@ -75,7 +75,6 @@ auto main(int argc, char** argv) -> int {
       channelflow_file.dataset<double>("CartGrid/axis2").read_as_vector();
 
   auto full_domain = rectilinear_grid{axis0, axis1, axis2};
-  full_domain.set_chunk_size_for_lazy_properties(chunk_size);
 
   auto velx_dataset = channelflow_file.dataset<double>("velocity/xvel");
   auto vely_dataset = channelflow_file.dataset<double>("velocity/yvel");
@@ -84,12 +83,6 @@ auto main(int argc, char** argv) -> int {
   auto& velx = full_domain.insert_vertex_property(velx_dataset, "Vx");
   auto& vely = full_domain.insert_vertex_property(vely_dataset, "Vy");
   auto& velz = full_domain.insert_vertex_property(velz_dataset, "Vz");
-  //velx.limit_num_chunks_loaded();
-  //vely.limit_num_chunks_loaded();
-  //velz.limit_num_chunks_loaded();
-  //velx.set_max_num_chunks_loaded(30);
-  //vely.set_max_num_chunks_loaded(30);
-  //velz.set_max_num_chunks_loaded(30);
 
   add_Q_pnorm(full_domain, channelflow_file, velx, vely, velz);
 }
