@@ -9,8 +9,8 @@ using namespace detail::autonomous_particle;
 auto doublegyre_example() {
   auto v              = analytical::fields::numerical::doublegyre{};
   auto uuid_generator = std::atomic_uint64_t{};
-  auto initial_grid = rectilinear_grid{linspace{0.8, 1.2, 21},
-                                       linspace{0.4, 0.6, 11}};
+  auto initial_grid = rectilinear_grid{linspace{0.8, 1.2, 5},
+                                       linspace{0.4, 0.6, 3}};
   auto const [advected_particles, advected_simple_particles, edges] =
       autonomous_particle2::advect_with_three_splits(flowmap(v), 0.01, 0, 3,
                                                      initial_grid);
@@ -78,7 +78,7 @@ auto doublegyre_example() {
         "holger_doublegyre_ellipses1_circle.vtk");
   write(initial_circle_discretizations,
         "holger_doublegyre_ellipses0_circle.vtk");
-  centers.write("holger_directions.vtk");
+  centers.write("holger_directions.vtp");
 }
 //==============================================================================
 auto main() -> int {
