@@ -759,10 +759,6 @@ struct pointset {
   }
   friend struct detail::pointset::vertex_container<Real, NumDimensions>;
 };
-template <typename Real, std::size_t NumDimensions>
-auto vertices(pointset<Real, NumDimensions> const& ps) {
-  return ps.vertices();
-}
 //==============================================================================
 template <std::size_t NumDimensions>
 using Pointset  = pointset<real_t, NumDimensions>;

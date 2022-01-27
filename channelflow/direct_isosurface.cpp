@@ -76,7 +76,7 @@ auto setup_up_rotation(line3& up) {
 }
 //==============================================================================
 auto main() -> int {
-  auto const path = filesystem::path{"channelflow_velocity_y_154"};
+  auto const path = filesystem::path{"channelflow_Q_streamwise_velocity"};
   if (filesystem::exists(path)) {
     filesystem::remove_all(path);
   }
@@ -118,7 +118,7 @@ auto main() -> int {
   color_scales::viridis color_scale;
 
   std::cerr << "creating cameras ...";
-  std::size_t const width = 10000, height = 5000;
+  std::size_t const width = 1000, height = 500;
 
   auto full_domain_eye    = line3{};
   auto full_domain_lookat = line3{};
@@ -149,7 +149,7 @@ auto main() -> int {
   std::cerr << "data range: " << min_scalar << " - " << max_scalar
             << '\n';
   std::size_t       i          = 0;
-  std::size_t const num_frames = 100;
+  std::size_t const num_frames = 3;
   for (auto const t : linspace{0.0, 1.0, num_frames}) {
     std::cerr << "rendering " << i + 1 << " / " << num_frames << "...";
     auto full_domain_cam =
@@ -166,20 +166,19 @@ auto main() -> int {
             auto const& view_dir) {
           auto const normal  = normalize(gradient);
           auto const diffuse = std::abs(dot(view_dir, normal));
-          auto const streamwise_velocity = streamwise_velocity_sampler(x_iso);
-          auto const t =
-              (streamwise_velocity - medium_scalar) / (medium_scalar + max_scalar);
+          auto const vel     = streamwise_velocity_sampler(x_iso);
+          auto const t = (vel - medium_scalar) / (medium_scalar + max_scalar);
           auto const albedo = color_scale(t);
           auto const col    = albedo * diffuse * 0.8 + albedo * 0.2;
           return vec{col(0), col(1), col(2),
-                     std::clamp<double>((t+1)*(t+1)*(t+1), 0.0, 1.0)};
+                     std::clamp<double>(t * t * t * 4, 0.0, 1.0)};
         });
     std::cerr << "done!\n";
     std::cerr << "writing ...";
     std::stringstream str;
     str << std::setw(static_cast<std::size_t>(std::ceil(std::log10(num_frames))))
         << std::setfill('0') << i;
-    write_png(path / ("channelflow_velocity_y_154." + str.str() + ".png"),
+    write_png(path / ("direct_isosurface." + str.str() + ".png"),
               rendering_grid.vec3_vertex_property("rendered_isosurface"));
     std::cerr << "done!\n";
     ++i;
