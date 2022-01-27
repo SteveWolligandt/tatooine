@@ -608,11 +608,34 @@ struct pointset {
                 vtk::xml::data_array::to_type<verts_offset_int_t>())
          << "\" Name=\"offsets\"/>\n";
     offset += num_bytes_verts_offsets + sizeof(header_type);
-    file << "</Verts>\n"
-         << "</Piece>\n"
+    file << "</Verts>\n";
+
+    {
+      // Writing vertex data to appended data section
+      file << "<PointData>\n";
+      for (auto const& [name, prop] : vertex_properties()) {
+        offset += write_vertex_property_data_array_vtp<float, header_type>(
+            name, prop, file, offset);
+        offset += write_vertex_property_data_array_vtp<vec2f, header_type>(
+            name, prop, file, offset);
+        offset += write_vertex_property_data_array_vtp<vec3f, header_type>(
+            name, prop, file, offset);
+        offset += write_vertex_property_data_array_vtp<vec4f, header_type>(
+            name, prop, file, offset);
+        offset += write_vertex_property_data_array_vtp<double, header_type>(
+            name, prop, file, offset);
+        offset += write_vertex_property_data_array_vtp<vec2d, header_type>(
+            name, prop, file, offset);
+        offset += write_vertex_property_data_array_vtp<vec3d, header_type>(
+            name, prop, file, offset);
+        offset += write_vertex_property_data_array_vtp<vec4d, header_type>(
+            name, prop, file, offset);
+      }
+      file << "</PointData>\n";
+    }
+    file << "</Piece>\n"
          << "</PolyData>\n"
          << "<AppendedData encoding=\"raw\">\n_";
-    // Writing vertex data to appended data section
 
     using namespace std::ranges;
     {
@@ -638,7 +661,7 @@ struct pointset {
     {
       auto connectivity_data = std::vector<verts_connectivity_int_t>(
           vertices().size());
-      copy(views::iota(0, vertices().size()),
+      copy(views::iota(verts_connectivity_int_t(0), verts_connectivity_int_t(vertices().size())),
            begin(connectivity_data));
       file.write(reinterpret_cast<char const*>(&num_bytes_verts_connectivity),
                  sizeof(header_type));
@@ -658,9 +681,57 @@ struct pointset {
       file.write(reinterpret_cast<char const*>(offsets.data()),
                  num_bytes_verts_offsets);
     }
+    for (auto const& [name, prop] : vertex_properties()) {
+      write_vertex_property_appended_data_vtp<float, header_type>(prop, file);
+      write_vertex_property_appended_data_vtp<vec2f, header_type>(prop, file);
+      write_vertex_property_appended_data_vtp<vec3f, header_type>(prop, file);
+      write_vertex_property_appended_data_vtp<vec4f, header_type>(prop, file);
+      write_vertex_property_appended_data_vtp<double, header_type>(prop, file);
+      write_vertex_property_appended_data_vtp<vec2d, header_type>(prop, file);
+      write_vertex_property_appended_data_vtp<vec3d, header_type>(prop, file);
+      write_vertex_property_appended_data_vtp<vec4d, header_type>(prop, file);
+    }
     file << "\n</AppendedData>\n"
          << "</VTKFile>";
   }
+  //----------------------------------------------------------------------------
+  private:
+  //----------------------------------------------------------------------------
+   template <typename T, typename header_type>
+   auto write_vertex_property_data_array_vtp(auto const& name, auto const& prop,
+                                             auto& file, auto offset) const
+       -> std::size_t {
+     if (prop->type() == typeid(T)) {
+       file << "<DataArray"
+            << " Name=\"" << name << "\""
+            << " format=\"appended\""
+            << " offset=\"" << offset << "\""
+            << " type=\""
+            << vtk::xml::data_array::to_string(
+                   vtk::xml::data_array::to_type<internal_value_type<T>>())
+            << "\" NumberOfComponents=\""<<num_components<T><<"\"/>\n";
+       return vertices().size() * sizeof(T) + sizeof(header_type);
+     }
+     return 0;
+   }
+   //----------------------------------------------------------------------------
+   template <typename T, typename header_type>
+   auto write_vertex_property_appended_data_vtp(auto const& prop,
+                                                auto&       file) const {
+     if (prop->type() == typeid(T)) {
+       auto const num_bytes = header_type(
+           sizeof(internal_value_type<T>) * num_components<T> * vertices().size());
+       file.write(reinterpret_cast<char const*>(&num_bytes),
+                  sizeof(header_type));
+       file.write(
+           reinterpret_cast<char const*>(
+               dynamic_cast<vertex_property_t<T>*>(prop.get())->data().data()),
+           num_bytes);
+     }
+   }
+   //----------------------------------------------------------------------------
+  public:
+  //----------------------------------------------------------------------------
 #if TATOOINE_FLANN_AVAILABLE
   auto rebuild_kd_tree() {
     m_kd_tree.reset();
