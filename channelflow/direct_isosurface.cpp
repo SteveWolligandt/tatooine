@@ -81,7 +81,7 @@ auto main() -> int {
     filesystem::remove_all(path);
   }
   filesystem::create_directory(path);
-  // read full domain axes
+  // read domain axes
 
   std::cerr << "creating files ...";
   auto channelflow_file =
@@ -98,20 +98,20 @@ auto main() -> int {
   std::cerr << "done!\n";
 
   std::cerr << "creating grids ...";
-  auto full_domain = rectilinear_grid{axis0, axis1, axis2};
-  full_domain.set_chunk_size_for_lazy_properties(256);
-  std::cerr << "full_domain:\n" << full_domain << '\n';
+  auto discretized_domain = rectilinear_grid{axis0, axis1, axis2};
+  discretized_domain.set_chunk_size_for_lazy_properties(256);
+  std::cerr << "discretized_domain:\n" << discretized_domain << '\n';
   std::cerr << "done!\n";
 
   std::cerr << "loading data ...";
-  auto& scalar_field = full_domain.insert_vertex_property(
+  auto& scalar_field = discretized_domain.insert_vertex_property(
       channelflow_file.dataset<double>("Q_cheng"), "Q_cheng");
-  auto& streamwise_velocity = full_domain.insert_vertex_property(
+  auto& streamwise_velocity = discretized_domain.insert_vertex_property(
       channelflow_file.dataset<double>("velocity/yvel"), "velocity_y");
   std::cerr << "done!\n";
 
   std::cerr << "creating samplers ...";
-  auto scalar_sampler = scalar_field.linear_sampler();
+  auto scalar_sampler              = scalar_field.linear_sampler();
   auto streamwise_velocity_sampler = streamwise_velocity.linear_sampler();
   std::cerr << "done!\n";
 
@@ -120,48 +120,42 @@ auto main() -> int {
   std::cerr << "creating cameras ...";
   std::size_t const width = 1000, height = 500;
 
-  auto full_domain_eye    = line3{};
-  auto full_domain_lookat = line3{};
-  auto full_domain_up     = line3{};
+  auto eye    = line3{};
+  auto lookat = line3{};
+  auto up     = line3{};
 
-  setup_eye_rotation(full_domain_eye, full_domain);
-  setup_lookat_rotation(full_domain_lookat, full_domain);
-  setup_up_rotation(full_domain_up);
-  // setup_eye_flight(full_domain_eye, full_domain);
-  // setup_lookat_flight(full_domain_lookat, full_domain);
-  // setup_up_flight(full_domain_up);
+  setup_eye_rotation(eye, discretized_domain);
+  setup_lookat_rotation(lookat, discretized_domain);
+  setup_up_rotation(up);
+  // setup_eye_flight(eye, discretized_domain);
+  // setup_lookat_flight(lookat, discretized_domain);
+  // setup_up_flight(up);
 
-  auto full_domain_eye_sampler    = full_domain_eye.linear_sampler();
-  auto full_domain_up_sampler     = full_domain_up.linear_sampler();
-  auto full_domain_lookat_sampler = full_domain_lookat.linear_sampler();
+  auto eye_sampler    = eye.linear_sampler();
+  auto up_sampler     = up.linear_sampler();
+  auto lookat_sampler = lookat.linear_sampler();
   std::cerr << "done!\n";
 
   std::cerr << "calculating min and max scalars ...";
   auto min_scalar = std::numeric_limits<double>::max();
   auto max_scalar = -std::numeric_limits<double>::max();
 
-  full_domain.vertices().iterate_indices([&](auto const... is) {
+  discretized_domain.vertices().iterate_indices([&](auto const... is) {
     min_scalar = std::min(min_scalar, streamwise_velocity(is...));
     max_scalar = std::max(max_scalar, streamwise_velocity(is...));
   });
   auto const medium_scalar = (max_scalar + min_scalar) / 2;
   std::cerr << "done!\n";
-  std::cerr << "data range: " << min_scalar << " - " << max_scalar
-            << '\n';
+  std::cerr << "data range: " << min_scalar << " - " << max_scalar << '\n';
   std::size_t       i          = 0;
   std::size_t const num_frames = 3;
   for (auto const t : linspace{0.0, 1.0, num_frames}) {
     std::cerr << "rendering " << i + 1 << " / " << num_frames << "...";
-    auto full_domain_cam =
-        rendering::perspective_camera{full_domain_eye_sampler(t),
-                                      full_domain_lookat_sampler(t),
-                                      full_domain_up_sampler(t),
-                                      60,
-                                      width,
-                                      height};
-    auto isovalues = std::vector{5e6};
+    auto cam = rendering::perspective_camera{
+        eye_sampler(t), lookat_sampler(t), up_sampler(t), 60, width, height};
+    auto       isovalues      = std::vector{5e6};
     auto const rendering_grid = rendering::direct_isosurface(
-        full_domain_cam, scalar_sampler, isovalues,
+        cam, scalar_sampler, isovalues,
         [&](auto const x_iso, auto const isovalue, auto const& gradient,
             auto const& view_dir) {
           auto const normal  = normalize(gradient);
@@ -176,7 +170,8 @@ auto main() -> int {
     std::cerr << "done!\n";
     std::cerr << "writing ...";
     std::stringstream str;
-    str << std::setw(static_cast<std::size_t>(std::ceil(std::log10(num_frames))))
+    str << std::setw(
+               static_cast<std::size_t>(std::ceil(std::log10(num_frames))))
         << std::setfill('0') << i;
     write_png(path / ("direct_isosurface." + str.str() + ".png"),
               rendering_grid.vec3_vertex_property("rendered_isosurface"));
