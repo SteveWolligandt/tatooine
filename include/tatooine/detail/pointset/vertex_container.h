@@ -1,6 +1,8 @@
 #ifndef TATOOINE_DETAIL_POINTSET_VERTEX_CONTAINER_H
 #define TATOOINE_DETAIL_POINTSET_VERTEX_CONTAINER_H
 //==============================================================================
+#include <tatooine/pointset.h>
+//==============================================================================
 namespace tatooine::detail::pointset {
 //==============================================================================
 template <typename Real, std::size_t NumDimensions>
@@ -84,6 +86,11 @@ struct vertex_container {
   auto at(vertex_handle_t const i) const { return m_pointset->at(i); }
   auto at(vertex_handle_t const i) { return m_pointset->at(i); }
 };
+//==============================================================================
+template <typename Real, std::size_t NumDimensions>
+auto vertices(pointset<Real, NumDimensions> const& ps) {
+  return ps.vertices();
+}
 //------------------------------------------------------------------------------
 template <typename Real, std::size_t NumDimensions>
 auto begin(vertex_container<Real, NumDimensions> verts) {
