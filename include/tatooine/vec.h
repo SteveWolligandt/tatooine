@@ -16,32 +16,30 @@ struct vec : tensor<T, N> {
   using parent_t::dimension;
   using parent_t::parent_t;
   using parent_t::operator();
-
   //----------------------------------------------------------------------------
   template <typename... Ts>
   requires((is_convertible<Ts, T> && ...)) &&
-          (parent_t::dimension(0) == sizeof...(Ts))
-  constexpr vec(Ts const&... ts)
+      (parent_t::dimension(0) == sizeof...(Ts)) constexpr vec(Ts const&... ts)
       : parent_t{ts...} {}
 
   using iterator = typename parent_t::array_parent_t::container_t::iterator;
   using const_iterator =
       typename parent_t::array_parent_t::container_t::const_iterator;
   //============================================================================
-  static constexpr auto zeros() { return this_t{tag::fill<T>{0}}; }
+  static auto constexpr zeros() { return this_t{tag::fill<T>{0}}; }
   //----------------------------------------------------------------------------
-  static constexpr auto ones() { return this_t{tag::fill<T>{1}}; }
+  static auto constexpr ones() { return this_t{tag::fill<T>{1}}; }
   //----------------------------------------------------------------------------
-  static constexpr auto fill(T const& t) { return this_t{tag::fill<T>{t}}; }
+  static auto constexpr fill(T const& t) { return this_t{tag::fill<T>{t}}; }
   //----------------------------------------------------------------------------
   template <typename RandEng = std::mt19937_64>
-  static constexpr auto randu(T min = 0, T max = 1,
+  static auto constexpr randu(T min = 0, T max = 1,
                               RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_t{random::uniform{min, max, std::forward<RandEng>(eng)}};
   }
   //----------------------------------------------------------------------------
   template <typename RandEng = std::mt19937_64>
-  static constexpr auto randn(T mean = 0, T stddev = 1,
+  static auto constexpr randn(T mean = 0, T stddev = 1,
                               RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_t{random::normal<T>{eng, mean, stddev}};
   }
@@ -49,15 +47,15 @@ struct vec : tensor<T, N> {
   constexpr vec(vec const&)           = default;
   constexpr vec(vec&& other) noexcept = default;
   //----------------------------------------------------------------------------
-  constexpr auto operator=(vec const&) -> vec& = default;
-  constexpr auto operator=(vec&& other) noexcept -> vec& = default;
+  auto constexpr operator=(vec const&) -> vec& = default;
+  auto constexpr operator=(vec&& other) noexcept -> vec& = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename OtherTensor, typename OtherReal>
   explicit constexpr vec(base_tensor<OtherTensor, OtherReal, N> const& other)
       : parent_t{other} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename OtherTensor, typename OtherReal>
-  constexpr auto operator=(base_tensor<OtherTensor, OtherReal, N> const& other)
+  auto constexpr operator=(base_tensor<OtherTensor, OtherReal, N> const& other)
       -> vec& {
     this->assign_other_tensor(other);
     return *this;
@@ -70,47 +68,33 @@ struct vec : tensor<T, N> {
   auto end() const { return this->data().end(); }
   auto end() { return this->data().end(); }
   //----------------------------------------------------------------------------
-  template <typename = void>
-  requires(N >= 1) constexpr auto x() const -> auto const& {
-    return this->at(0);
+  auto constexpr x() const -> auto const& requires(N >= 1) { return at(0); }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto constexpr x() -> auto& requires(N >= 1) { return at(0); }
+  //----------------------------------------------------------------------------
+  auto constexpr y() const -> auto const& requires(N >= 2) { return at(1); }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto constexpr xy() const requires(N >= 2) { return vec<T, 2>{at(0), at(1)}; }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto constexpr yx() const requires(N >= 2) { return vec<T, 2>{at(1), at(0)}; }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto constexpr y() -> auto& requires(N >= 2) { return at(1); }
+  //----------------------------------------------------------------------------
+  auto constexpr xyz() const requires(N >= 3) {
+    return vec<T, 2>{at(0), at(1), at(2)};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename = void>
-  requires(N >= 1) constexpr auto x() -> auto& {
-    return this->at(0);
-  }
+  auto constexpr z() const -> auto const& requires(N >= 3) { return at(2); }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto constexpr z() -> auto& requires(N >= 3) { return at(2); }
   //----------------------------------------------------------------------------
-  template <typename = void>
-  requires(N >= 2) constexpr auto y() const -> auto const& {
-    return this->at(1);
+  auto constexpr xyzw() const requires(N >= 3) {
+    return vec<T, 2>{at(0), at(1), at(2), at(3)};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename = void>
-  requires(N >= 2) constexpr auto y() -> auto& {
-    return this->at(1);
-  }
-  //----------------------------------------------------------------------------
-  template <typename = void>
-  requires(N >= 3) constexpr auto z() const -> auto const& {
-    return this->at(2);
-  }
+  auto constexpr w() const -> auto const& requires(N >= 4) { return at(3); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename = void>
-  requires(N >= 3) constexpr auto z() -> auto& {
-    return this->at(2);
-  }
-  //----------------------------------------------------------------------------
-  template <typename = void>
-  requires(N >= 4)
-      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-      // - -
-      constexpr auto w() const -> auto const& {
-    return this->at(3);
-  }
-  template <typename = void>
-  requires(N >= 4) constexpr auto w() -> auto& {
-    return this->at(3);
-  }
+  auto constexpr w() -> auto& requires(N >= 4) { return at(3); }
 
   template <typename Archive>
   auto serialize(Archive& ar, unsigned int const /*version*/) -> void {

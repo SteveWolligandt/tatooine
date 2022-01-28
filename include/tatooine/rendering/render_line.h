@@ -7,91 +7,116 @@
 namespace tatooine::rendering {
 //==============================================================================
 template <typename Real>
-auto render_line(vec<Real, 2> x0, vec<Real, 2> x1,
+auto render_line(vec<Real, 2> p0, vec<Real, 2> p1,
                  uniform_rectilinear_grid<Real, 2> const& grid) {
+  auto        pixels                = std::vector<vec<long long, 2>>{};
   auto        nearest_neighbor_grid = uniform_rectilinear_grid<Real, 2>{};
-  auto const& ax0                   = grid.template dimension<0>();
-  auto        nn_ax0                = ax0;
-  nn_ax0.front() -= ax0.spacing() / 2;
-  nn_ax0.back() -= ax0.spacing() / 2;
-  nn_ax0.push_back();
-  auto const& ax1    = grid.template dimension<1>();
-  auto        nn_ax1 = ax1;
-  nn_ax1.front() -= ax1.spacing() / 2;
-  nn_ax1.back() -= ax1.spacing() / 2;
-  nn_ax1.push_back();
+  auto const& ax_x                  = grid.template dimension<0>();
+  auto        nn_ax_x               = ax_x;
+  nn_ax_x.front() -= ax_x.spacing() / 2;
+  nn_ax_x.back() -= ax_x.spacing() / 2;
+  nn_ax_x.push_back();
+  auto const& ax_y    = grid.template dimension<1>();
+  auto        nn_ax_y = ax_y;
+  nn_ax_y.front() -= ax_y.spacing() / 2;
+  nn_ax_y.back() -= ax_y.spacing() / 2;
+  nn_ax_y.push_back();
 
-  auto ix0 = vec<long long, 2>{};
-  auto ix1 = vec<long long, 2>{};
-  if (x0(0) <= nn_ax0.front()) {
-    ix0(0) = 0;
-  } else if (x0(0) >= nn_ax0.back()) {
-    ix0(0) = size(nn_ax0);
-  } else {
-    for (std::size_t i = 0; i < size(nn_ax0) - 1; ++i) {
-      if (nn_ax0[i] <= x0(0) && x0(0) <= nn_ax0[i + 1]) {
-        ix0(0) = i;
-        break;
-      }
-    }
-  }
-  if (x1(0) <= nn_ax0.front()) {
-    ix1(0) = 0;
-  } else if (x1(0) >= nn_ax0.back()) {
-    ix1(0) = size(nn_ax0);
-  } else {
-    for (std::size_t i = 0; i < size(nn_ax0) - 1; ++i) {
-      if (nn_ax0[i] <= x1(0) && x1(0) <= nn_ax0[i + 1]) {
-        ix1(0) = i;
-        break;
-      }
-    }
-  }
-  if (x0(1) <= nn_ax1.front()) {
-    ix0(1) = 0;
-  } else if (x0(1) >= nn_ax1.back()) {
-    ix0(1) = size(nn_ax1);
-  } else {
-    for (std::size_t i = 0; i < size(nn_ax1) - 1; ++i) {
-      if (nn_ax1[i] <= x0(1) && x0(1) <= nn_ax1[i + 1]) {
-        ix0(1) = i;
-        break;
-      }
-    }
-  }
-  if (x1(1) <= nn_ax1.front()) {
-    ix1(1) = 0;
-  } else if (x1(1) >= nn_ax1.back()) {
-    ix1(1) = size(nn_ax1);
-  } else {
-    for (std::size_t i = 0; i < size(nn_ax1) - 1; ++i) {
-      if (nn_ax1[i] <= x1(1) && x1(1) <= nn_ax1[i + 1]) {
-        ix1(1) = i;
-        break;
-      }
-    }
+  if ((p0.x() < nn_ax_x.front() && p1.x() < nn_ax_x.front()) ||
+      (p0.x() > nn_ax_x.back() && p1.x() > nn_ax_x.back()) ||
+      (p0.y() < nn_ax_y.front() && p1.y() < nn_ax_y.front()) ||
+      (p0.y() > nn_ax_y.back() && p1.y() > nn_ax_y.back())) {
+    return pixels;
   }
 
-  auto pixels = std::vector<vec<long long, 2>>{};
-  auto dx = std::abs<long long>(ix1(0) - ix0(0));
-  auto sx = ix0(0) < ix1(0) ? 1 : -1;
-  auto dy = -std::abs<long long>(ix1(1) - ix0(1));
-  auto sy = ix0(1) < ix1(1) ? 1 : -1;
+  auto get_t = [](auto const a, auto const b, auto const c) {
+    return (c - a) / (b - a);
+  };
+  // clamp p0.x()
+  if (p0.x() < nn_ax_x.front()) {
+    auto const t = get_t(p0.x(), p1.x(), nn_ax_x.front());
+    p0           = vec{nn_ax_x.front(), p0.y() * (1 - t) + p1.y() * t};
+  } else if (p0.x() > nn_ax_x.back()) {
+    auto const t =  get_t(p0.x(), p1.x(), nn_ax_x.back());
+    p0           = vec{nn_ax_x.back(), p0.y() * (1 - t) + p1.y() * t};
+  }
+  // clamp p1.x()
+  if (p1.x() <= nn_ax_x.front()) {
+    auto const t =  get_t(p0.x(), p1.x(), nn_ax_x.front());
+    p1           = vec{nn_ax_x.front(), p0.y() * (1 - t) + p1.y() * t};
+  } else if (p1.x() > nn_ax_x.back()) {
+    auto const t =  get_t(p0.x(), p1.x(), nn_ax_x.back());
+    p1           = vec{nn_ax_x.back(), p0.y() * (1 - t) + p1.y() * t};
+  }
+  // clamp p0.y()
+  if (p0.y() < nn_ax_y.front()) {
+    auto const t =  get_t(p0.y(), p1.y(), nn_ax_y.front());
+    p0           = vec{p0.x() * (1 - t) + p1.x() * t, nn_ax_y.front()};
+  } else if (p0.y() > nn_ax_y.back()) {
+    auto const t =  get_t(p0.y(), p1.y(), nn_ax_y.back());
+    p0           = vec{p0.x() * (1 - t) + p1.x() * t, nn_ax_y.back()};
+  }
+  // clamp p1.y()
+  if (p1.y() < nn_ax_y.front()) {
+    auto const t =  get_t(p0.y(), p1.y(), nn_ax_y.front());
+    p1           = vec{p0.x() * (1 - t) + p1.x() * t, nn_ax_y.front()};
+  } else if (p1.y() > nn_ax_y.back()) {
+    auto const t =  get_t(p0.y(), p1.y(), nn_ax_y.back());
+    p1           = vec{p0.x() * (1 - t) + p1.x() * t, nn_ax_y.back()};
+  }
+  auto ip0 = vec<long long, 2>{};
+  auto ip1 = vec<long long, 2>{};
+  // find ip0.x
+  for (std::size_t i = 0; i < size(nn_ax_x) - 1; ++i) {
+    if (nn_ax_x[i] <= p0.x() && p0.x() <= nn_ax_x[i + 1]) {
+      ip0.x() = i;
+      break;
+    }
+  }
+  // find ip1.x
+  for (std::size_t i = 0; i < size(nn_ax_x) - 1; ++i) {
+    if (nn_ax_x[i] <= p1.x() && p1.x() <= nn_ax_x[i + 1]) {
+      ip1.x() = i;
+      break;
+    }
+  }
+  // find ip0.y
+  for (std::size_t i = 0; i < size(nn_ax_y) - 1; ++i) {
+    if (nn_ax_y[i] <= p0.y() && p0.y() <= nn_ax_y[i + 1]) {
+      ip0.y() = i;
+      break;
+    }
+  }
+  // find ip1.y
+  for (std::size_t i = 0; i < size(nn_ax_y) - 1; ++i) {
+    if (nn_ax_y[i] <= p1.y() && p1.y() <= nn_ax_y[i + 1]) {
+      ip1.y() = i;
+      break;
+    }
+  }
+
+  //if (ip0.x() > ip1.x()) {
+  //  swap(ip0, ip1);
+  //}
+  auto dx  = std::abs<long long>(ip1.x() - ip0.x());
+  auto sx  = ip0.x() < ip1.x() ? 1 : -1;
+  auto dy  = -std::abs<long long>(ip1.y() - ip0.y());
+  auto sy  = ip0.y() < ip1.y() ? 1 : -1;
   auto err = dx + dy;
-  auto e2 = std::size_t(0); // error value e_xy
-  while (ix0(0) != ix1(0) || ix0(1) != ix1(1)) {
-    pixels.push_back(ix0);
-    auto const e2 = 2 * err;
+  auto e2  = (long long)(0);  // error value e_xy
+  while (ip0.x() != ip1.x() || ip0.y() != ip1.y()) {
+    pixels.push_back(ip0);
+    e2 = 2 * err;
     if (e2 > dy) {
       err += dy;
-      ix0(0) += sx;
-    } // e_xy+e_x > 0
+      ip0.x() += sx;
+    }  // e_xy+e_x > 0
     if (e2 < dx) {
       err += dx;
-      ix0(1) += sy;
-    } // e_xy+e_y < 0
+      ip0.y() += sy;
+    }  // e_xy+e_y < 0
   }
-  pixels.push_back(ix1);
+  pixels.push_back(ip1);
   return pixels;
 }
 //==============================================================================

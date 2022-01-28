@@ -204,9 +204,11 @@ auto main() -> int {
           break;
         }
         std::cerr << "rendering " << i + 1 << " / " << num_frames << "...\r";
-        auto cam = rendering::perspective_camera{
-            eye_sampler(t), lookat_sampler(t), up_sampler(t), 60, width,
-            height};
+        //auto cam = rendering::perspective_camera{
+        //    eye_sampler(t), lookat_sampler(t), up_sampler(t), 60, width,
+        //    height};
+        auto cam = rendering::orthographic_camera{
+            eye_sampler(t), lookat_sampler(t), up_sampler(t), -2, 2, -2, 2, -100, 100};
         auto       isovalues      = std::vector{5e6};
         auto const rendering_grid = rendering::direct_isosurface(
             cam, scalar_sampler, isovalues,
