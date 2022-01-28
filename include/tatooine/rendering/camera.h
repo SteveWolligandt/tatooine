@@ -119,16 +119,21 @@ struct camera : clonable<camera<Real>> {
   }
   //----------------------------------------------------------------------------
   auto near() const { return m_near; }
+  auto n() const {return near();}
   auto set_near(Real const near) {
     m_near = near;
     setup();
   }
   //----------------------------------------------------------------------------
   auto far() const { return m_far; }
+  auto f() const {return far();}
   auto set_far(Real const far) {
     m_far = far;
     setup();
   }
+  //----------------------------------------------------------------------------
+  auto depth() const { return f() - n(); }
+  auto d() const { return depth(); }
   //----------------------------------------------------------------------------
   auto transform_matrix() const -> mat4 {
     return look_at_matrix(m_eye, m_lookat, m_up);
@@ -142,11 +147,36 @@ struct camera : clonable<camera<Real>> {
     x(1) = (m_viewport(3) - x(1) - m_viewport(1)) / m_viewport(3) * 2 - 1;
     x(2) = 2 * x(2) - 1;
     x(3) = 1;
-    x    = solve(projection_matrix() * *inv(transform_matrix()), x);
+    x    = solve(projection_matrix() * view_matrix(), x);
     x(3) = 1.0 / x(3);
     x(0) = x(0) * x(3);
     x(1) = x(1) * x(3);
     x(2) = x(2) * x(3);
+    return x;
+  }
+  //----------------------------------------------------------------------------
+  auto project(vec3 const& x) const {
+    return project(vec4{x(0), x(1), x(2), 1});
+  }
+  //----------------------------------------------------------------------------
+  auto project(vec4 x) const {
+    x(0) = x(0) / x(3);
+    x(1) = x(1) / x(3);
+    x(2) = x(2) / x(3);
+    x(3) = 1;
+    auto const V = view_matrix();
+    auto const P = projection_matrix();
+    x            = V * x;
+    x            = P * x;
+
+    // [-1,1] to [0,1]
+    x(0) = (x(0) + 1) / 2;
+    x(1) = (x(1) + 1) / 2;
+    x(2) = (x(2) + 1) / 2;
+
+    // [0,1] to viewport
+    x(0) = x(0) * (m_viewport(2) - 1) + m_viewport(0);
+    x(1) = x(1) * (m_viewport(3) - 1) + m_viewport(1);
     return x;
   }
   //----------------------------------------------------------------------------

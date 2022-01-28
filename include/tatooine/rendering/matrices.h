@@ -86,13 +86,52 @@ constexpr auto orthographic_matrix(Real const l, Real const r, Real const b,
 template <typename Real>
 auto look_at_matrix(Vec3<Real> const& eye, Vec3<Real> const& center,
                     Vec3<Real> const& up = {0, 1, 0}) -> Mat4<Real> {
-  auto const D = normalize(eye - center);
-  auto const R = normalize(cross(up, D));
-  auto const U = cross(D, R);
-  return Mat4<Real>{{R(0), U(0), D(0), eye(0)},
-                    {R(1), U(1), D(1), eye(1)},
-                    {R(2), U(2), D(2), eye(2)},
-                    {Real(0), Real(0), Real(0), Real(1)}};
+  static auto constexpr z = Real(0);
+  static auto constexpr o = Real(1);
+  auto       f            = normalize(center - eye);
+  auto const r            = normalize(cross(f, up));
+  auto const u            = cross(f, r);
+  return Mat4<Real>{{r(0), u(0), -f(0), -dot(r, eye)},
+                    {r(1), u(1), -f(1), -dot(u, eye)},
+                    {r(2), u(2), -f(2), -dot(f, eye)},
+                    {z, z, z, o}};
+}
+//------------------------------------------------------------------------------
+template <typename Real>
+auto constexpr frustum_matrix(Real const l, Real const r,
+                       Real const b, Real const t,
+                       Real const n, Real const f) -> Mat4<Real> {
+  auto constexpr O = Real(0);
+  auto constexpr I = Real(1);
+
+  auto const iw  = 1 / (r - l);
+  auto const xs  = 2 * n * iw;
+  auto const xzs = (r + l) * iw;
+
+  auto const ih  = 1 / (t - b);
+  auto const ys  = 2 * n * ih;
+  auto const yzs = (t + b) * ih;
+
+  auto const ind   = 1 / (n - f);
+  auto const zs    = (f + n) * ind;
+  auto const zt    = 2 * f * n * ind;
+
+  return Mat4<Real>{{xs,  O, xzs,  O},
+                    { O, ys, yzs,  O},
+                    { O,  O,  zs, zt},
+                    { O,  O,  -I,  O}};
+}
+//------------------------------------------------------------------------------
+template <typename Real>
+auto constexpr perspective_matrix(Real const angle_of_view, Real const aspect_ratio,
+                           Real const n, Real const f) {
+  auto constexpr angle_scale = Real(1) / Real(2) * Real(M_PI) / Real(180);
+  auto const scale           = gcem::tan(angle_of_view * angle_scale) * n;
+  auto const r               = aspect_ratio * scale;
+  auto const l               = -r;
+  auto const t               = scale;
+  auto const b               = -t;
+  return frustum_matrix(l, r, b, t, n, f);
 }
 //==============================================================================
 }  // namespace tatooine::rendering

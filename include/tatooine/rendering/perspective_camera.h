@@ -26,6 +26,10 @@ class perspective_camera : public camera<Real> {
   using parent_t::lookat;
   using parent_t::near;
   using parent_t::up;
+  using parent_t::d;
+  using parent_t::aspect_ratio;
+  using parent_t::n;
+  using parent_t::f;
   using typename parent_t::mat4;
   using typename parent_t::vec3;
 
@@ -94,8 +98,8 @@ class perspective_camera : public camera<Real> {
     vec3 const u        = cross(view_dir, up());
     vec3 const v        = cross(u, view_dir);
     Real const plane_half_width =
-        std::tan(m_fov / Real(2) * Real(M_PI) / Real(180));
-    Real const plane_half_height = plane_half_width / this->aspect_ratio();
+        std::tan(fov() / Real(2) * Real(M_PI) / Real(180));
+    Real const plane_half_height = plane_half_width / aspect_ratio();
 
     m_bottom_left =
         eye() + view_dir - u * plane_half_width - v * plane_half_height;
@@ -109,17 +113,17 @@ class perspective_camera : public camera<Real> {
   }
   //----------------------------------------------------------------------------
   auto projection_matrix() const -> mat4 override {
-    static constexpr auto z = Real(0);
-    Real const            inv_tan_fov_2 =
-        1 / std::tan(m_fov / Real(2) * Real(M_PI) / Real(180) / 2);
-    return mat4{{inv_tan_fov_2 / this->aspect_ratio(), z, z, z},
-                {z, inv_tan_fov_2, z, z},
-                {z, z, -(far() + near()) / (far() - near()),
-                 -2 * far() * near() / (far() - near())},
-                {z, z, Real(-1), z}};
+    return perspective_matrix(fov(), aspect_ratio(), n(), f());
   }
   //----------------------------------------------------------------------------
-  void set_fov(Real const fov) {
+  auto fov() const { return m_fov; }
+  //----------------------------------------------------------------------------
+  auto fov_radians() const {
+    static Real constexpr degree_to_radian = Real(M_PI) / Real(180);
+    return m_fov* degree_to_radian;
+  }
+  //----------------------------------------------------------------------------
+  auto set_fov(Real const fov) -> void {
     m_fov = fov;
     setup();
   }
