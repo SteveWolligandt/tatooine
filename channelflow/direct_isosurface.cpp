@@ -8,6 +8,7 @@
 #include <tatooine/rectilinear_grid.h>
 #include <tatooine/rendering/direct_isosurface.h>
 #include <tatooine/rendering/perspective_camera.h>
+#include <tatooine/rendering/orthographic_camera.h>
 
 #include <iomanip>
 #include <csignal>
@@ -132,6 +133,7 @@ auto main() -> int {
 
   std::cerr << "creating cameras ...";
   std::size_t width = 1000, height = 500;
+  real_t ortho_scale = 2;
 
   auto eye    = line3{};
   auto lookat = line3{};
@@ -204,11 +206,21 @@ auto main() -> int {
           break;
         }
         std::cerr << "rendering " << i + 1 << " / " << num_frames << "...\r";
-        //auto cam = rendering::perspective_camera{
-        //    eye_sampler(t), lookat_sampler(t), up_sampler(t), 60, width,
+        auto cam = rendering::perspective_camera{
+            eye_sampler(t), lookat_sampler(t), up_sampler(t), 60, width,
+            height};
+        //auto       cam   = rendering::orthographic_camera<double>{
+        //    eye_sampler(t),
+        //    lookat_sampler(t),
+        //    up_sampler(t),
+        //    -ortho_scale * width / double(height),
+        //    ortho_scale * width / double(height),
+        //    ortho_scale,
+        //    ortho_scale,
+        //    -100,
+        //    100,
+        //    width,
         //    height};
-        auto cam = rendering::orthographic_camera{
-            eye_sampler(t), lookat_sampler(t), up_sampler(t), -2, 2, -2, 2, -100, 100};
         auto       isovalues      = std::vector{5e6};
         auto const rendering_grid = rendering::direct_isosurface(
             cam, scalar_sampler, isovalues,
@@ -271,6 +283,9 @@ auto main() -> int {
       } else if (cmd == "height") {
         std::cout << "setting height\n";
         height = number;
+      } else if (cmd == "ortho_scale") {
+        std::cout << "setting ortho_scale\n";
+        ortho_scale = number;
       } else {
         std::cout << "unknown command\n";
       }
