@@ -33,37 +33,37 @@ auto render_line(vec<Real, 2> p0, vec<Real, 2> p1,
     return (c - a) / (b - a);
   };
   // clamp p0.x()
-  //if (p0.x() < nn_ax_x.front()) {
-  //  auto const t = get_t(p0.x(), p1.x(), nn_ax_x.front());
-  //  p0           = vec{nn_ax_x.front(), p0.y() * (1 - t) + p1.y() * t};
-  //} else if (p0.x() > nn_ax_x.back()) {
-  //  auto const t =  get_t(p0.x(), p1.x(), nn_ax_x.back());
-  //  p0           = vec{nn_ax_x.back(), p0.y() * (1 - t) + p1.y() * t};
-  //}
-  //// clamp p1.x()
-  //if (p1.x() <= nn_ax_x.front()) {
-  //  auto const t =  get_t(p0.x(), p1.x(), nn_ax_x.front());
-  //  p1           = vec{nn_ax_x.front(), p0.y() * (1 - t) + p1.y() * t};
-  //} else if (p1.x() > nn_ax_x.back()) {
-  //  auto const t =  get_t(p0.x(), p1.x(), nn_ax_x.back());
-  //  p1           = vec{nn_ax_x.back(), p0.y() * (1 - t) + p1.y() * t};
-  //}
-  //// clamp p0.y()
-  //if (p0.y() < nn_ax_y.front()) {
-  //  auto const t =  get_t(p0.y(), p1.y(), nn_ax_y.front());
-  //  p0           = vec{p0.x() * (1 - t) + p1.x() * t, nn_ax_y.front()};
-  //} else if (p0.y() > nn_ax_y.back()) {
-  //  auto const t =  get_t(p0.y(), p1.y(), nn_ax_y.back());
-  //  p0           = vec{p0.x() * (1 - t) + p1.x() * t, nn_ax_y.back()};
-  //}
-  //// clamp p1.y()
-  //if (p1.y() < nn_ax_y.front()) {
-  //  auto const t =  get_t(p0.y(), p1.y(), nn_ax_y.front());
-  //  p1           = vec{p0.x() * (1 - t) + p1.x() * t, nn_ax_y.front()};
-  //} else if (p1.y() > nn_ax_y.back()) {
-  //  auto const t =  get_t(p0.y(), p1.y(), nn_ax_y.back());
-  //  p1           = vec{p0.x() * (1 - t) + p1.x() * t, nn_ax_y.back()};
-  //}
+  if (p0.x() < nn_ax_x.front()) {
+    auto const t = get_t(p0.x(), p1.x(), nn_ax_x.front());
+    p0           = vec{nn_ax_x.front(), p0.y() * (1 - t) + p1.y() * t};
+  } else if (p0.x() > nn_ax_x.back()) {
+    auto const t =  get_t(p0.x(), p1.x(), nn_ax_x.back());
+    p0           = vec{nn_ax_x.back(), p0.y() * (1 - t) + p1.y() * t};
+  }
+  // clamp p1.x()
+  if (p1.x() <= nn_ax_x.front()) {
+    auto const t =  get_t(p0.x(), p1.x(), nn_ax_x.front());
+    p1           = vec{nn_ax_x.front(), p0.y() * (1 - t) + p1.y() * t};
+  } else if (p1.x() > nn_ax_x.back()) {
+    auto const t =  get_t(p0.x(), p1.x(), nn_ax_x.back());
+    p1           = vec{nn_ax_x.back(), p0.y() * (1 - t) + p1.y() * t};
+  }
+  // clamp p0.y()
+  if (p0.y() < nn_ax_y.front()) {
+    auto const t =  get_t(p0.y(), p1.y(), nn_ax_y.front());
+    p0           = vec{p0.x() * (1 - t) + p1.x() * t, nn_ax_y.front()};
+  } else if (p0.y() > nn_ax_y.back()) {
+    auto const t =  get_t(p0.y(), p1.y(), nn_ax_y.back());
+    p0           = vec{p0.x() * (1 - t) + p1.x() * t, nn_ax_y.back()};
+  }
+  // clamp p1.y()
+  if (p1.y() < nn_ax_y.front()) {
+    auto const t =  get_t(p0.y(), p1.y(), nn_ax_y.front());
+    p1           = vec{p0.x() * (1 - t) + p1.x() * t, nn_ax_y.front()};
+  } else if (p1.y() > nn_ax_y.back()) {
+    auto const t =  get_t(p0.y(), p1.y(), nn_ax_y.back());
+    p1           = vec{p0.x() * (1 - t) + p1.x() * t, nn_ax_y.back()};
+  }
   auto ip0 = vec<long long, 2>{};
   auto ip1 = vec<long long, 2>{};
   // find ip0.x
