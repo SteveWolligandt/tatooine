@@ -13,11 +13,12 @@ auto main() -> int {
       [&](auto const... is) { rasterized_line(is...) = vec3::ones(); },
       execution_policy::parallel);
 
-  auto cam = rendering::perspective_camera{
-      vec3{0, 0, -3}, vec3{0, 0, 0}, 90.0, 1, 100, 1000, 1000};
-  //auto cam = rendering::orthographic_camera<double>{
-  //    vec3{1, 1, 1}, vec3{0, 0, 0}, -2, 2, -2, 2, -10, 10, 1000, 1000};
-  auto aabb = axis_aligned_bounding_box{vec3{-1, -1, -1}, vec3{1, 1, 1}};
+  //auto cam = rendering::perspective_camera{
+  //    vec3{3, 3, 3}, vec3{0, 0, 0}, 60.0, 1, 100, 1000, 1000};
+  auto cam = rendering::orthographic_camera<double>{
+      vec3{1, 1, 1}, vec3{0, 0, 0}, -1, 1, -1, 1, -10, 10, 1000, 1000};
+  auto aabb =
+      axis_aligned_bounding_box{vec3{-0.5, -0.5, -0.5}, vec3{0.5, 0.5, 0.5}};
 
   auto render = [&](vec4 const& x0, vec4 const& x1) {
     auto pixels   = rendering::render_line(cam.project(x0).xy(),

@@ -135,11 +135,11 @@ struct camera : clonable<camera<Real>> {
   auto depth() const { return f() - n(); }
   auto d() const { return depth(); }
   //----------------------------------------------------------------------------
-  auto transform_matrix() const -> mat4 {
+  auto transform_matrix() const -> mat4 { return *inv(view_matrix()); }
+  //----------------------------------------------------------------------------
+  auto view_matrix() const -> mat4 {
     return look_at_matrix(m_eye, m_lookat, m_up);
   }
-  //----------------------------------------------------------------------------
-  auto view_matrix() const -> mat4 { return *inv(transform_matrix()); }
   //----------------------------------------------------------------------------
   auto unproject(vec4 x) const {
     // Transformation of normalized coordinates between -1 and 1
@@ -159,25 +159,31 @@ struct camera : clonable<camera<Real>> {
     return project(vec4{x(0), x(1), x(2), 1});
   }
   //----------------------------------------------------------------------------
-  auto project(vec4 x) const {
-    x(0) = x(0) / x(3);
-    x(1) = x(1) / x(3);
-    x(2) = x(2) / x(3);
-    x(3) = 1;
-    auto const V = view_matrix();
-    auto const P = projection_matrix();
-    x            = V * x;
-    x            = P * x;
+  auto project(vec4 p) const {
+    p = projection_matrix() * view_matrix() * p;
+    p(0) = p(0) / p(3);
+    p(1) = p(1) / p(3);
+    p(2) = p(2) / p(3);
 
     // [-1,1] to [0,1]
-    x(0) = (x(0) + 1) / 2;
-    x(1) = (x(1) + 1) / 2;
-    x(2) = (x(2) + 1) / 2;
+    p(0) = (p(0) + 1) / 2;
+    p(1) = (p(1) + 1) / 2;
+    p(2) = (p(2) + 1) / 2;
 
     // [0,1] to viewport
-    x(0) = x(0) * (m_viewport(2) - 1) + m_viewport(0);
-    x(1) = x(1) * (m_viewport(3) - 1) + m_viewport(1);
-    return x;
+    p(0) = p(0) * (m_viewport(2) - 1) + m_viewport(0);
+    p(1) = p(1) * (m_viewport(3) - 1) + m_viewport(1);
+
+
+    //p.x() /= -p.z();
+    //p.x() = (p.x() + 1) / 2;
+    //p.x() *= m_viewport(2);
+    //
+    //p.y() /= -p.z();
+    //p.y() = (p.y() + 1) / 2;
+    //p.y() = 1 - p.y();
+    //p.y() *= m_viewport(3);
+    return p;
   }
   //----------------------------------------------------------------------------
   // interface methods
