@@ -1,24 +1,25 @@
+#include <tatooine/color_scales/cool_to_warm.h>
+#include <tatooine/color_scales/jet.h>
 #include <tatooine/color_scales/magma.h>
 #include <tatooine/color_scales/viridis.h>
-#include <tatooine/color_scales/jet.h>
-#include <tatooine/color_scales/cool_to_warm.h>
 #include <tatooine/field.h>
 #include <tatooine/hdf5.h>
 #include <tatooine/line.h>
 #include <tatooine/rectilinear_grid.h>
 #include <tatooine/rendering/direct_isosurface.h>
-#include <tatooine/rendering/perspective_camera.h>
 #include <tatooine/rendering/orthographic_camera.h>
+#include <tatooine/rendering/perspective_camera.h>
+#include <tatooine/rendering/render_line.h>
 
-#include <iomanip>
 #include <csignal>
-#include <cstdlib>
 #include <cstdio>
+#include <cstdlib>
+#include <iomanip>
 #include <sstream>
 //==============================================================================
 using namespace tatooine;
 //==============================================================================
-enum color_scale_enum {viridis, jet, cool_to_warm};
+enum color_scale_enum { viridis, jet, cool_to_warm };
 auto setup_eye_flight(line3& eye, auto const& domain) {
   auto& param = eye.parameterization();
 
@@ -88,11 +89,10 @@ auto sigint_handler(int s) -> void {
   got_sigint = true;
 
   std::cout << "\n>";
-  //std::cout << std::flush;
+  // std::cout << std::flush;
 }
 //==============================================================================
 auto main() -> int {
-  std::signal(SIGINT, sigint_handler);
   auto const path = filesystem::path{"channelflow_Q_streamwise_velocity"};
   std::cerr << "creating files ...";
   auto channelflow_file =
@@ -133,7 +133,7 @@ auto main() -> int {
 
   std::cerr << "creating cameras ...";
   std::size_t width = 1000, height = 500;
-  real_t ortho_scale = 2;
+  real_t      ortho_scale = 2;
 
   auto eye    = line3{};
   auto lookat = line3{};
@@ -151,24 +151,25 @@ auto main() -> int {
   auto lookat_sampler = lookat.linear_sampler();
   std::cerr << "done!\n";
 
-  std::cerr << "calculating min and max scalars ...";
-  auto min_scalar = std::numeric_limits<double>::max();
-  auto max_scalar = -std::numeric_limits<double>::max();
-
-  discretized_domain.vertices().iterate_indices([&](auto const... is) {
-    min_scalar = std::min(min_scalar, streamwise_velocity(is...));
-    max_scalar = std::max(max_scalar, streamwise_velocity(is...));
-  });
-  [[maybe_unused]] auto const medium_scalar = (max_scalar + min_scalar) / 2;
+  //std::cerr << "calculating min and max scalars ...";
+  //auto min_scalar = std::numeric_limits<double>::max();
+  //auto max_scalar = -std::numeric_limits<double>::max();
+  //
+  //discretized_domain.vertices().iterate_indices([&](auto const... is) {
+  //  min_scalar = std::min(min_scalar, streamwise_velocity(is...));
+  //  max_scalar = std::max(max_scalar, streamwise_velocity(is...));
+  //});
+  //[[maybe_unused]] auto const medium_scalar = (max_scalar + min_scalar) / 2;
   auto                        min_mapped    = real_t(13);
-  auto                        max_mapped    = real_t(20);
+  auto                        max_mapped    = real_t(27);
   std::cerr << "done!\n";
-  std::cerr << "data range: " << min_scalar << " - " << max_scalar << '\n';
+  //std::cerr << "data range: " << min_scalar << " - " << max_scalar << '\n';
   auto num_frames = std::size_t(5);
   auto run        = true;
   auto n          = real_t(1);
   auto m          = real_t(1);
   auto k          = real_t(0);
+  std::signal(SIGINT, sigint_handler);
   while (run) {
     std::cout << "> ";
     auto line = std::string{};
@@ -179,7 +180,7 @@ auto main() -> int {
     } else if (line.substr(0, line.find(" ")) == "color_scale") {
       auto line_stream = std::stringstream{line};
       auto cmd         = std::string{};
-      auto scale_name      = std::string{};
+      auto scale_name  = std::string{};
 
       line_stream >> cmd >> scale_name;
 
@@ -209,7 +210,7 @@ auto main() -> int {
         auto cam = rendering::perspective_camera{
             eye_sampler(t), lookat_sampler(t), up_sampler(t), 60, width,
             height};
-        //auto       cam   = rendering::orthographic_camera<double>{
+        // auto       cam   = rendering::orthographic_camera<double>{
         //    eye_sampler(t),
         //    lookat_sampler(t),
         //    up_sampler(t),
@@ -221,15 +222,16 @@ auto main() -> int {
         //    100,
         //    width,
         //    height};
-        auto       isovalues      = std::vector{5e6};
-        auto const rendering_grid = rendering::direct_isosurface(
+        auto isovalues      = std::vector{5e6};
+        auto rendering_grid = rendering::direct_isosurface(
             cam, scalar_sampler, isovalues,
             [&](auto const x_iso, auto const isovalue, auto const& gradient,
                 auto const& view_dir) {
               auto const normal  = normalize(gradient);
               auto const diffuse = std::abs(dot(view_dir, normal));
               auto const vel     = streamwise_velocity_sampler(x_iso);
-              auto const s = std::clamp<double>((vel - min_mapped) / (max_mapped - min_mapped), 0, 1);
+              auto const s       = std::clamp<double>(
+                  (vel - min_mapped) / (max_mapped - min_mapped), 0, 1);
               auto const albedo = [&] {
                 switch (current_color_scale) {
                   case color_scale_enum::jet:
@@ -245,12 +247,49 @@ auto main() -> int {
               return vec{col(0), col(1), col(2),
                          std::clamp<double>(std::pow(s, n) * m + k, 0.0, 1.0)};
             });
+        auto& rendered_isosurface =
+            rendering_grid.vec3_vertex_property("rendered_isosurface");
+        auto render = [&](vec4 const& x0, vec4 const& x1) {
+          auto pixels = rendering::render_line(
+              cam.project(x0).xy(), cam.project(x1).xy(), rendering_grid);
+          for (auto const& ix : pixels) {
+            rendered_isosurface(ix(0), ix(1)) = vec3::zeros();
+          }
+        };
+
+        auto const aabb = discretized_domain.bounding_box();
+        render(vec4{aabb.min(0), aabb.min(1), aabb.min(2), 1},
+               vec4{aabb.max(0), aabb.min(1), aabb.min(2), 1});
+        render(vec4{aabb.min(0), aabb.max(1), aabb.min(2), 1},
+               vec4{aabb.max(0), aabb.max(1), aabb.min(2), 1});
+        render(vec4{aabb.min(0), aabb.min(1), aabb.max(2), 1},
+               vec4{aabb.max(0), aabb.min(1), aabb.max(2), 1});
+        render(vec4{aabb.min(0), aabb.max(1), aabb.max(2), 1},
+               vec4{aabb.max(0), aabb.max(1), aabb.max(2), 1});
+
+        render(vec4{aabb.min(0), aabb.min(1), aabb.min(2), 1},
+               vec4{aabb.min(0), aabb.max(1), aabb.min(2), 1});
+        render(vec4{aabb.max(0), aabb.min(1), aabb.min(2), 1},
+               vec4{aabb.max(0), aabb.max(1), aabb.min(2), 1});
+        render(vec4{aabb.min(0), aabb.min(1), aabb.max(2), 1},
+               vec4{aabb.min(0), aabb.max(1), aabb.max(2), 1});
+        render(vec4{aabb.max(0), aabb.min(1), aabb.max(2), 1},
+               vec4{aabb.max(0), aabb.max(1), aabb.max(2), 1});
+
+        render(vec4{aabb.min(0), aabb.min(1), aabb.min(2), 1},
+               vec4{aabb.min(0), aabb.min(1), aabb.max(2), 1});
+        render(vec4{aabb.max(0), aabb.min(1), aabb.min(2), 1},
+               vec4{aabb.max(0), aabb.min(1), aabb.max(2), 1});
+        render(vec4{aabb.min(0), aabb.max(1), aabb.min(2), 1},
+               vec4{aabb.min(0), aabb.max(1), aabb.max(2), 1});
+        render(vec4{aabb.max(0), aabb.max(1), aabb.min(2), 1},
+               vec4{aabb.max(0), aabb.max(1), aabb.max(2), 1});
         std::stringstream str;
         str << std::setw(
                    static_cast<std::size_t>(std::ceil(std::log10(num_frames))))
             << std::setfill('0') << i;
         write_png(path / ("direct_isosurface." + str.str() + ".png"),
-                  rendering_grid.vec3_vertex_property("rendered_isosurface"));
+                  rendered_isosurface);
         ++i;
       }
       std::cerr << "rendering done!                      \n";

@@ -86,15 +86,16 @@ constexpr auto orthographic_matrix(Real const l, Real const r, Real const b,
 template <typename Real>
 auto look_at_matrix(Vec3<Real> const& eye, Vec3<Real> const& center,
                     Vec3<Real> const& up = {0, 1, 0}) -> Mat4<Real> {
-  static auto constexpr z = Real(0);
-  static auto constexpr o = Real(1);
-  auto       f            = normalize(center - eye);
-  auto const r            = normalize(cross(f, up));
-  auto const u            = cross(f, r);
-  return Mat4<Real>{{r(0), u(0), -f(0), -dot(r, eye)},
-                    {r(1), u(1), -f(1), -dot(u, eye)},
-                    {r(2), u(2), -f(2), -dot(f, eye)},
-                    {z, z, z, o}};
+  static auto constexpr O = Real(0);
+  static auto constexpr I = Real(1);
+
+  auto const zaxis = normalize(eye - center);
+  auto const xaxis = normalize(cross(up, zaxis));
+  auto const yaxis = cross(zaxis, xaxis);
+  return Mat4<Real>{{xaxis.x(), xaxis.y(), xaxis.z(), -dot(xaxis, eye)},
+                    {yaxis.x(), yaxis.y(), yaxis.z(), -dot(yaxis, eye)},
+                    {zaxis.x(), zaxis.y(), zaxis.z(), -dot(zaxis, eye)},
+                    {   O,    O,    O,           I}};
 }
 //------------------------------------------------------------------------------
 template <typename Real>
@@ -112,9 +113,9 @@ auto constexpr frustum_matrix(Real const l, Real const r,
   auto const ys  = 2 * n * ih;
   auto const yzs = (t + b) * ih;
 
-  auto const ind   = 1 / (n - f);
-  auto const zs    = (f + n) * ind;
-  auto const zt    = 2 * f * n * ind;
+  auto const ind   = 1 / (f - n);
+  auto const zs    = -(f + n) * ind;
+  auto const zt    = -2 * f * n * ind;
 
   return Mat4<Real>{{xs,  O, xzs,  O},
                     { O, ys, yzs,  O},
