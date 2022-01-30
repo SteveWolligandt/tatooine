@@ -4,8 +4,8 @@
 #include <tatooine/clonable.h>
 #include <tatooine/concepts.h>
 #include <tatooine/ray.h>
-#include <tatooine/vec.h>
 #include <tatooine/rendering/matrices.h>
+#include <tatooine/vec.h>
 
 #include <array>
 //==============================================================================
@@ -30,22 +30,23 @@ struct camera : clonable<camera<Real>> {
   // member variables
   //----------------------------------------------------------------------------
  private:
-  vec3         m_eye, m_lookat, m_up;
-  Real         m_near, m_far;
-  Vec4<size_t> m_viewport;
+  vec3              m_eye, m_lookat, m_up;
+  Real              m_near, m_far;
+  Vec4<std::size_t> m_viewport;
 
   //----------------------------------------------------------------------------
   // constructors / destructor
   //----------------------------------------------------------------------------
  public:
-  camera(vec3 const& eye, vec3 const& lookat, vec3 const& up, Real near,
-         Real far, size_t res_x, size_t res_y)
+  camera(vec3 const& eye, vec3 const& lookat, vec3 const& up, Real const near,
+         Real const far, std::size_t const res_x, std::size_t const res_y)
       : m_eye{eye},
         m_lookat{lookat},
         m_up{up},
         m_near{near},
         m_far{far},
-        m_viewport{0, 0, res_x, res_x} {}
+        m_viewport{0, 0, res_x, res_y} {}
+  //----------------------------------------------------------------------------
   virtual ~camera() = default;
   //----------------------------------------------------------------------------
   // object methods
@@ -57,7 +58,7 @@ struct camera : clonable<camera<Real>> {
   auto plane_height() const { return m_viewport(3); }
   //----------------------------------------------------------------------------
   auto aspect_ratio() const {
-    return static_cast<Real>(plane_width()) / static_cast<Real>(plane_height());
+    return static_cast<Real>(m_viewport(2)) / static_cast<Real>(m_viewport(3));
   }
   //----------------------------------------------------------------------------
   auto eye() const -> auto& { return m_eye; }
@@ -96,7 +97,8 @@ struct camera : clonable<camera<Real>> {
     setup();
   }
   //----------------------------------------------------------------------------
-  auto set_viewport(size_t bottom, size_t left, size_t width, size_t height) {
+  auto set_viewport(std::size_t const bottom, std::size_t const left,
+                    std::size_t const width, std::size_t const height) {
     m_viewport(0) = bottom;
     m_viewport(1) = left;
     m_viewport(2) = width;
@@ -104,7 +106,7 @@ struct camera : clonable<camera<Real>> {
     setup();
   }
   //----------------------------------------------------------------------------
-  auto set_resolution(size_t width, size_t height) {
+  auto set_resolution(std::size_t const width, std::size_t const height) {
     m_viewport(2) = width;
     m_viewport(3) = height;
     setup();
@@ -119,14 +121,14 @@ struct camera : clonable<camera<Real>> {
   }
   //----------------------------------------------------------------------------
   auto near() const { return m_near; }
-  auto n() const {return near();}
+  auto n() const { return near(); }
   auto set_near(Real const near) {
     m_near = near;
     setup();
   }
   //----------------------------------------------------------------------------
   auto far() const { return m_far; }
-  auto f() const {return far();}
+  auto f() const { return far(); }
   auto set_far(Real const far) {
     m_far = far;
     setup();
@@ -141,9 +143,10 @@ struct camera : clonable<camera<Real>> {
     return look_at_matrix(m_eye, m_lookat, m_up);
   }
   //----------------------------------------------------------------------------
+  /// Projects a screen coordinates to world coordinates.
   auto unproject(vec4 x) const {
     // Transformation of normalized coordinates between -1 and 1
-    x(0) = (x(0) - m_viewport(0)) / m_viewport(2) * 2 - 1;
+    x(0) = (x(0) - m_viewport(0)) / plane_width() * 2 - 1;
     x(1) = (m_viewport(3) - x(1) - m_viewport(1)) / m_viewport(3) * 2 - 1;
     x(2) = 2 * x(2) - 1;
     x(3) = 1;
@@ -155,34 +158,28 @@ struct camera : clonable<camera<Real>> {
     return x;
   }
   //----------------------------------------------------------------------------
+  /// Projects a world coordinate to screen coordinates.
   auto project(vec3 const& x) const {
     return project(vec4{x(0), x(1), x(2), 1});
   }
   //----------------------------------------------------------------------------
+  /// Projects a homogeneous world coordinate to screen coordinates.
   auto project(vec4 p) const {
-    p = projection_matrix() * view_matrix() * p;
+    p    = projection_matrix() * view_matrix() * p;
     p(0) = p(0) / p(3);
     p(1) = p(1) / p(3);
     p(2) = p(2) / p(3);
+    p(3) = 1;
 
     // [-1,1] to [0,1]
-    p(0) = (p(0) + 1) / 2;
-    p(1) = (p(1) + 1) / 2;
-    p(2) = (p(2) + 1) / 2;
+    p(0) = p(0) * Real(0.5) + Real(0.5);
+    p(1) = p(1) * Real(0.5) + Real(0.5);
+    p(2) = p(2) * Real(0.5) + Real(0.5);
 
     // [0,1] to viewport
     p(0) = p(0) * (m_viewport(2) - 1) + m_viewport(0);
     p(1) = p(1) * (m_viewport(3) - 1) + m_viewport(1);
 
-
-    //p.x() /= -p.z();
-    //p.x() = (p.x() + 1) / 2;
-    //p.x() *= m_viewport(2);
-    //
-    //p.y() /= -p.z();
-    //p.y() = (p.y() + 1) / 2;
-    //p.y() = 1 - p.y();
-    //p.y() *= m_viewport(3);
     return p;
   }
   //----------------------------------------------------------------------------
