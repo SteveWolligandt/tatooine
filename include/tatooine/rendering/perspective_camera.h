@@ -94,17 +94,18 @@ class perspective_camera : public camera<Real> {
   //============================================================================
  private:
   auto setup() -> void override {
-    vec3 const view_dir = normalize(lookat() - eye());
-    vec3 const u        = cross(view_dir, up());
-    vec3 const v        = cross(u, view_dir);
-    Real const plane_half_width =
-        std::tan(fov() / Real(2) * Real(M_PI) / Real(180));
-    Real const plane_half_height = plane_half_width / aspect_ratio();
+    auto constexpr angle_scale   = Real(1) / Real(2) * Real(M_PI) / Real(180);
+    auto const zaxis             = normalize(lookat() - eye());
+    auto const xaxis             = cross(zaxis, normalize(up()));
+    auto const yaxis             = cross(xaxis, zaxis);
+    auto const scale             = gcem::tan(fov() * angle_scale);
+    Real const plane_half_width  = scale * aspect_ratio();
+    Real const plane_half_height = scale;
 
     m_bottom_left =
-        eye() + view_dir - u * plane_half_width - v * plane_half_height;
-    m_plane_base_x = u * 2 * plane_half_width / (this->plane_width() - 1);
-    m_plane_base_y = v * 2 * plane_half_height / (this->plane_height() - 1);
+        eye() + zaxis - xaxis * plane_half_width - yaxis * plane_half_height;
+    m_plane_base_x = xaxis * 2 * plane_half_width / (this->plane_width() - 1);
+    m_plane_base_y = yaxis * 2 * plane_half_height / (this->plane_height() - 1);
   }
   //----------------------------------------------------------------------------
  public:
