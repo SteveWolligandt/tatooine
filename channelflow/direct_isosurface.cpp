@@ -219,26 +219,23 @@ auto main() -> int {
       rendered_lines_grid.vertices().iterate_indices(
           [&](auto const... is) { rendered_lines_mask(is...) = 0; });
       auto render = [&](vec4 const& x0, vec4 const& x1) {
-        auto pixels = rendering::render_line(
-            cam.project(x0).xy(), cam.project(x1).xy(), rendered_lines_grid);
-
-        auto const s_offset = double(1) / (size(pixels) - 1);
-        auto       j        = std::size_t(0);
-        for (auto const& ix : pixels) {
-          auto const s = s_offset * j++;
-          auto const x = x0 * (1 - s) + x1 * s;
-          if (rendered_lines_mask(ix(0), ix(1)) == 0) {
-            rendered_lines_pos(ix(0), ix(1)) = x.xyz();
-          } else {
-            auto const new_depth = euclidean_distance(x.xyz(), eye_sampler(t));
-            auto const old_depth = euclidean_distance(
-                rendered_lines_pos(ix(0), ix(1)), eye_sampler(t));
-            if (new_depth < old_depth) {
-              rendered_lines_pos(ix(0), ix(1)) = x.xyz();
-            }
-          }
-          rendered_lines_mask(ix(0), ix(1)) = 1;
-        }
+        rendering::render_line(
+            cam.project(x0).xy(), cam.project(x1).xy(), rendered_lines_grid,
+            [&](auto const t, auto const ix, auto const iy) {
+              auto const x = x0 * (1 - t) + x1 * t;
+              if (rendered_lines_mask(ix, iy) == 0) {
+                rendered_lines_pos(ix, iy) = x.xyz();
+              } else {
+                auto const new_depth =
+                    euclidean_distance(x.xyz(), eye_sampler(t));
+                auto const old_depth = euclidean_distance(
+                    rendered_lines_pos(ix, iy), eye_sampler(t));
+                if (new_depth < old_depth) {
+                  rendered_lines_pos(ix, iy) = x.xyz();
+                }
+              }
+              rendered_lines_mask(ix, iy) = 1;
+            });
       };
 
       auto const aabb = discretized_domain.bounding_box();

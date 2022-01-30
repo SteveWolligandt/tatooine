@@ -2,85 +2,92 @@
 #define TATOOINE_RENDERING_MATRICES_H
 //==============================================================================
 #include <tatooine/mat.h>
+
 #include <cmath>
 //==============================================================================
 namespace tatooine::rendering {
 //==============================================================================
 template <typename Real>
-constexpr auto translation_matrix(Real x, Real y, Real z) {
-  auto m  = Mat4<Real>::eye();
-  m(0, 3) = x;
-  m(1, 3) = y;
-  m(2, 3) = z;
-  return m;
+auto constexpr translation_matrix(Real const x, Real const y, Real const z) {
+  auto constexpr O = Real(0);
+  auto constexpr I = Real(1);
+  return Mat4<Real>{{I, O, O, x},
+                    {O, I, O, y},
+                    {O, O, I, z},
+                    {O, O, O, I}};
 }
 //------------------------------------------------------------------------------
 template <typename Real>
-constexpr auto translation_matrix(Vec3<Real> t) {
-  auto m  = Mat4<Real>::eye();
-  m(0, 3) = t(0);
-  m(1, 3) = t(1);
-  m(2, 3) = t(2);
-  return m;
+auto constexpr translation_matrix(Vec3<Real> const& t) {
+  auto constexpr O = Real(0);
+  auto constexpr I = Real(1);
+  return Mat4<Real>{{I, O, O, t.x()},
+                    {O, I, O, t.y()},
+                    {O, O, I, t.z()},
+                    {O, O, O, I}};
 }
 //------------------------------------------------------------------------------
 template <typename Real>
-constexpr auto scale_matrix(Real s) {
-  auto m  = Mat4<Real>::zeros();
-  m(0, 0) = s;
-  m(1, 1) = s;
-  m(2, 2) = s;
-  m(3, 3) = 1;
-  return m;
+auto constexpr scale_matrix(Real s) {
+  auto constexpr O = Real(0);
+  auto constexpr I = Real(1);
+  return Mat4<Real>{{s, O, O, O},
+                    {O, s, O, O},
+                    {O, O, s, O},
+                    {O, O, O, I}};
 }
 //------------------------------------------------------------------------------
 template <typename Real>
-constexpr auto scale_matrix(Real x, Real y, Real z) {
-  auto m  = Mat4<Real>::zeros();
-  m(0, 0) = x;
-  m(1, 1) = y;
-  m(2, 2) = z;
-  m(3, 3) = 1;
-  return m;
+auto constexpr scale_matrix(Real x, Real y, Real z) {
+  auto constexpr O = Real(0);
+  auto constexpr I = Real(1);
+  return Mat4<Real>{{x, O, O, O},
+                    {O, y, O, O},
+                    {O, O, z, O},
+                    {O, O, O, I}};
 }
 //------------------------------------------------------------------------------
 template <typename Real>
-constexpr auto scale_matrix(Vec3<Real> const& s) {
-  auto m  = Mat4<Real>::zeros();
-  m(0, 0) = s(0);
-  m(1, 1) = s(1);
-  m(2, 2) = s(2);
-  m(3, 3) = 1;
-  return m;
+auto constexpr scale_matrix(Vec3<Real> const& s) {
+  auto constexpr O = Real(0);
+  auto constexpr I = Real(1);
+  return Mat4<Real>{{s.x(),     O,     O, O},
+                    {    O, s.y(),     O, O},
+                    {    O,     O, s.z(), O},
+                    {    O,     O,     O, I}};
 }
 //------------------------------------------------------------------------------
 template <typename Real>
-constexpr auto rotation_matrix(Real angle, Real u, Real v, Real w)
+auto constexpr rotation_matrix(Real angle, Real u, Real v, Real w)
     -> Mat4<Real> {
-  Real const s = std::sin(angle);
-  Real const c = std::cos(angle);
+  Real const s = gcem::sin(angle);
+  Real const c = gcem::cos(angle);
+  auto constexpr O = Real(0);
+  auto constexpr I = Real(1);
   return Mat4<Real>{{u * u + (v * v + w * w) * c, u * v * (1 - c) - w * s,
-           u * w * (1 - c) + v * s, Real(0)},
-          {u * v + (1 - c) + w * s, v * v * (u * u + w * w) * c,
-           v * w * (1 - c) + u * s, Real(0)},
-          {u * w + (1 - c) - v * s, v * v * (1 - c) + u * s,
-           w * w + (u * u + v * v) * c, Real(0)},
-          {Real(0), Real(0), Real(0), Real(1)}};
+                     u * w * (1 - c) + v * s, O},
+                    {u * v + (1 - c) + w * s, v * v * (u * u + w * w) * c,
+                     v * w * (1 - c) + u * s, O},
+                    {u * w + (1 - c) - v * s, v * v * (1 - c) + u * s,
+                     w * w + (u * u + v * v) * c, O},
+                    {O, O, O, I}};
 }
 //------------------------------------------------------------------------------
 template <typename Real>
-constexpr auto rotation_matrix(Real angle, Vec3<Real> const& axis) {
+auto constexpr rotation_matrix(Real angle, Vec3<Real> const& axis) {
   return rotation_matrix(angle, axis(0), axis(1), axis(2));
 }
 //------------------------------------------------------------------------------
 template <typename Real>
-constexpr auto orthographic_matrix(Real const l, Real const r, Real const b,
-                                   Real const t, Real const n, Real const f)
-    -> Mat4<Real> {
-  return Mat4<Real>{{2 / (r - l), Real(0), Real(0), -(r + l) / (r - l)},
-          {Real(0), 2 / (t - b), Real(0), -(t + b) / (t - b)},
-          {Real(0), Real(0), -2 / (f - n), -(f + n) / (f - n)},
-          {Real(0), Real(0), Real(0), Real(1)}};
+auto constexpr orthographic_matrix(Real const left, Real const right,
+                                   Real const bottom, Real const top,
+                                   Real const near, Real const far)
+     {
+  return Mat4<Real>{
+      {2 / (right - left), Real(0), Real(0), -(right + left) / (right - left)},
+      {Real(0), 2 / (top - bottom), Real(0), -(top + bottom) / (top - bottom)},
+      {Real(0), Real(0), -2 / (far - near), -(far + near) / (far - near)},
+      {Real(0), Real(0), Real(0), Real(1)}};
 }
 //------------------------------------------------------------------------------
 template <typename Real>
@@ -95,44 +102,45 @@ auto look_at_matrix(Vec3<Real> const& eye, Vec3<Real> const& center,
   return Mat4<Real>{{xaxis.x(), xaxis.y(), xaxis.z(), -dot(xaxis, eye)},
                     {yaxis.x(), yaxis.y(), yaxis.z(), -dot(yaxis, eye)},
                     {zaxis.x(), zaxis.y(), zaxis.z(), -dot(zaxis, eye)},
-                    {   O,    O,    O,           I}};
+                    {O, O, O, I}};
 }
 //------------------------------------------------------------------------------
 template <typename Real>
-auto constexpr frustum_matrix(Real const l, Real const r,
-                       Real const b, Real const t,
-                       Real const n, Real const f) -> Mat4<Real> {
+auto constexpr frustum_matrix(Real const left, Real const right,
+                              Real const bottom, Real const top,
+                              Real const near, Real const far) {
   auto constexpr O = Real(0);
   auto constexpr I = Real(1);
 
-  auto const iw  = 1 / (r - l);
-  auto const xs  = 2 * n * iw;
-  auto const xzs = (r + l) * iw;
+  auto const nn = 2 * near;
+  auto const inv_width = 1 / (right - left);
+  auto const xs        = nn * inv_width;
+  auto const xzs       = (right + left) * inv_width;
 
-  auto const ih  = 1 / (t - b);
-  auto const ys  = 2 * n * ih;
-  auto const yzs = (t + b) * ih;
+  auto const inv_height = 1 / (top - bottom);
+  auto const ys         = nn * inv_height;
+  auto const yzs        = (top + bottom) * inv_height;
 
-  auto const ind   = 1 / (f - n);
-  auto const zs    = -(f + n) * ind;
-  auto const zt    = -2 * f * n * ind;
+  auto const inv_depth = 1 / (far - near);
+  auto const zs        = -(far + near) * inv_depth;
+  auto const zt        = -nn * far * inv_depth;
 
-  return Mat4<Real>{{xs,  O, xzs,  O},
-                    { O, ys, yzs,  O},
-                    { O,  O,  zs, zt},
-                    { O,  O,  -I,  O}};
+  return Mat4<Real>{{xs,  O, xzs, O},
+                    { O, ys, yzs, O},
+                    { O,  O, zs, zt},
+                    { O,  O, -I,  O}};
 }
 //------------------------------------------------------------------------------
 template <typename Real>
-auto constexpr perspective_matrix(Real const angle_of_view, Real const aspect_ratio,
-                           Real const n, Real const f) {
+auto constexpr perspective_matrix(Real const fov, Real const aspect_ratio,
+                                  Real const near, Real const far) {
   auto constexpr angle_scale = Real(1) / Real(2) * Real(M_PI) / Real(180);
-  auto const scale           = gcem::tan(angle_of_view * angle_scale) * n;
-  auto const r               = aspect_ratio * scale;
-  auto const l               = -r;
-  auto const t               = scale;
-  auto const b               = -t;
-  return frustum_matrix(l, r, b, t, n, f);
+  auto const scale           = gcem::tan(fov * angle_scale) * near;
+  auto const right           = aspect_ratio * scale;
+  auto const left            = -right;
+  auto const top             = scale;
+  auto const bottom          = -top;
+  return frustum_matrix(left, right, bottom, top, near, far);
 }
 //==============================================================================
 }  // namespace tatooine::rendering
