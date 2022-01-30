@@ -97,7 +97,7 @@ auto look_at_matrix(Vec3<Real> const& eye, Vec3<Real> const& center,
   static auto constexpr I = Real(1);
 
   auto const zaxis = normalize(eye - center);
-  auto const xaxis = normalize(cross(up, zaxis));
+  auto const xaxis = cross(normalize(up), zaxis);
   auto const yaxis = cross(zaxis, xaxis);
   return Mat4<Real>{{xaxis.x(), xaxis.y(), xaxis.z(), -dot(xaxis, eye)},
                     {yaxis.x(), yaxis.y(), yaxis.z(), -dot(yaxis, eye)},
