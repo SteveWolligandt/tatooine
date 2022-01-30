@@ -81,7 +81,7 @@ struct vec : tensor<T, N> {
   auto constexpr y() -> auto& requires(N >= 2) { return at(1); }
   //----------------------------------------------------------------------------
   auto constexpr xyz() const requires(N >= 3) {
-    return vec<T, 2>{at(0), at(1), at(2)};
+    return vec<T, 3>{at(0), at(1), at(2)};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto constexpr z() const -> auto const& requires(N >= 3) { return at(2); }
@@ -89,7 +89,7 @@ struct vec : tensor<T, N> {
   auto constexpr z() -> auto& requires(N >= 3) { return at(2); }
   //----------------------------------------------------------------------------
   auto constexpr xyzw() const requires(N >= 3) {
-    return vec<T, 2>{at(0), at(1), at(2), at(3)};
+    return vec<T, 4>{at(0), at(1), at(2), at(3)};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto constexpr w() const -> auto const& requires(N >= 4) { return at(3); }
