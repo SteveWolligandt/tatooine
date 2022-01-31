@@ -2,14 +2,15 @@
 #define TATOOINE_RENDERING_RENDER_LINE_H
 //==============================================================================
 #include <tatooine/rectilinear_grid.h>
+#include <tatooine/rendering/camera.h>
 #include <tatooine/vec.h>
 //==============================================================================
 namespace tatooine::rendering {
 //==============================================================================
-template <typename Real, typename Callback>
-auto render_line(Vec2<Real> p0, Vec2<Real> p1, int const line_width,
-                 UniformRectilinearGrid2<Real> const& grid,
-                 Callback&&                           callback) {
+template <typename Real>
+auto render(Vec2<Real> p0, Vec2<Real> p1, int const line_width,
+            UniformRectilinearGrid2<Real> const&             grid,
+            invocable<Real, std::size_t, std::size_t> auto&& callback) {
   auto        nearest_neighbor_grid = uniform_rectilinear_grid<Real, 2>{};
   auto const& ax_x                  = grid.template dimension<0>();
   auto        nn_ax_x               = ax_x;
@@ -129,7 +130,7 @@ auto render_line(Vec2<Real> p0, Vec2<Real> p1, int const line_width,
   };
 
   auto const t_offset = Real(1) / (std::max(dist.x(), dist.y()) - 1);
-  auto i = std::size_t(0);
+  auto       i        = std::size_t(0);
   while (ip0.x() != ip1.x() || ip0.y() != ip1.y()) {
     c(i++ * t_offset, ip0.x(), ip0.y());
     e2 = 2 * err;
@@ -145,11 +146,18 @@ auto render_line(Vec2<Real> p0, Vec2<Real> p1, int const line_width,
   c(i++ * t_offset, ip1.x(), ip1.y());
 }
 //------------------------------------------------------------------------------
-template <typename Real, typename Callback>
-auto render_line(Vec2<Real> const& p0, Vec2<Real> const& p1,
-                 UniformRectilinearGrid2<Real> const& grid,
-                 Callback&&                           callback) {
-  render_line(p0, p1, 1, grid, std::forward<Callback>(callback));
+template <typename Real, invocable<Real, std::size_t, std::size_t> Callback>
+auto render(Vec2<Real> const& p0, Vec2<Real> const& p1,
+            UniformRectilinearGrid2<Real> const& grid, Callback&& callback) {
+  render(p0, p1, 1, grid, std::forward<Callback>(callback));
+}
+//------------------------------------------------------------------------------
+template <typename Real, invocable<Real, std::size_t, std::size_t> Callback>
+auto render(Vec4<Real> p0, Vec4<Real> p1, int const line_width,
+            UniformRectilinearGrid2<Real> const& grid, camera auto const& cam,
+            Callback&& callback) {
+  render(cam.project(p0).xy(), cam.project(p1).xy(), line_width, grid,
+         std::forward<Callback>(callback));
 }
 //==============================================================================
 }  // namespace tatooine::rendering

@@ -20,9 +20,9 @@ namespace tatooine::rendering {
 /// \param shader Shader for setting color at pixel. The shader takes position,
 /// color (vec3 or vec4). \return Returns a 2D rectilinear grid with a
 /// grid_vertex_property named "rendered_isosurface"
-template <typename CameraReal, typename IsoReal, typename Dim0, typename Dim1,
-          typename Dim2, typename Field, typename Shader>
-auto direct_isosurface(camera<CameraReal> const&                 cam,
+template <typename IsoReal, typename Dim0, typename Dim1, typename Dim2,
+          typename Field, typename Shader>
+auto direct_isosurface(camera auto const&                        cam,
                        rectilinear_grid<Dim0, Dim1, Dim2> const& g,
                        Field&& field, std::vector<IsoReal> const& isovalues,
                        Shader&& shader) {
@@ -35,13 +35,14 @@ auto direct_isosurface(camera<CameraReal> const&                 cam,
   //                       std::invoke_result_t<Field, std::size_t, std::size_t,
   //                       std::size_t>, std::invoke_result_t<Field, pos_t>>;
   // static_assert(is_floating_point<value_t>);
-  using viewdir_t = vec<CameraReal, 3>;
+  using cam_real_type = typename std::decay_t<decltype(cam)>::real_t;
+  using viewdir_t     = vec<cam_real_type, 3>;
   static_assert(
       std::is_invocable_v<Shader, pos_t, IsoReal, pos_t, viewdir_t,
                           vec<std::size_t, 2>>,
       "Shader must be invocable with position, gradient and view direction.");
-  using color_t =
-      std::invoke_result_t<Shader, pos_t, IsoReal, pos_t, viewdir_t, vec<std::size_t, 2>>;
+  using color_t = std::invoke_result_t<Shader, pos_t, IsoReal, pos_t, viewdir_t,
+                                       vec<std::size_t, 2>>;
   using rgb_t   = vec<typename color_t::value_type, 3>;
   using alpha_t = typename color_t::value_type;
   static_assert(is_vec<color_t>,
@@ -54,14 +55,16 @@ auto direct_isosurface(camera<CameraReal> const&                 cam,
   auto const& dim2 = g.template dimension<2>();
   auto const  aabb = g.bounding_box();
   auto        rendered_image =
-      rectilinear_grid<linspace<CameraReal>, linspace<CameraReal>>{
-          linspace<CameraReal>{0.0, cam.plane_width() - 1, cam.plane_width()},
-          linspace<CameraReal>{0.0, cam.plane_height() - 1,
-                               cam.plane_height()}};
+      rectilinear_grid<linspace<cam_real_type>, linspace<cam_real_type>>{
+          linspace<cam_real_type>{0.0, cam.plane_width() - 1,
+                                  cam.plane_width()},
+          linspace<cam_real_type>{0.0, cam.plane_height() - 1,
+                                  cam.plane_height()}};
   auto& rendering =
       rendered_image.template vertex_property<rgb_t>("rendered_isosurface");
 
-  std::vector<std::tuple<ray<CameraReal, 3>, double, std::size_t, std::size_t>>
+  std::vector<
+      std::tuple<ray<cam_real_type, 3>, double, std::size_t, std::size_t>>
              rays;
   std::mutex mutex;
   auto const bg_color = rgb_t{1, 1, 1};
@@ -407,9 +410,9 @@ auto direct_isosurface(camera<CameraReal> const&                 cam,
       execution_policy::parallel, rays.size());
   return rendered_image;
 }
-template <typename CameraReal, typename IsoReal, typename Dim0, typename Dim1,
-          typename Dim2, typename Field, typename Shader>
-auto direct_isosurface(camera<CameraReal> const&                 cam,
+template <typename IsoReal, typename Dim0, typename Dim1, typename Dim2,
+          typename Field, typename Shader>
+auto direct_isosurface(camera auto const&                        cam,
                        rectilinear_grid<Dim0, Dim1, Dim2> const& g,
                        Field&& field, IsoReal const isovalue, Shader&& shader) {
   return direct_isosurface(cam, g, std::forward<Field>(field),
@@ -426,10 +429,9 @@ auto direct_isosurface(camera<CameraReal> const&                 cam,
 /// and view direction as parameters. It must return a RGB or a RGBA
 /// color (vec3 or vec4). \return Returns a 2D grid with a grid_vertex_property
 /// named "rendered_isosurface"
-template <typename CameraReal, typename IsoReal, typename GridVertexProperty,
-          typename Shader>
+template <typename IsoReal, typename GridVertexProperty, typename Shader>
 auto direct_isosurface(
-    camera<CameraReal> const& cam,
+    camera auto const& cam,
     detail::rectilinear_grid::vertex_property_sampler<
         GridVertexProperty, interpolation::linear, interpolation::linear,
         interpolation::linear> const& linear_field,
@@ -441,16 +443,16 @@ auto direct_isosurface(
       isovalue, std::forward<Shader>(shader));
 }
 //------------------------------------------------------------------------------
-template <typename DistOnRay, typename CameraReal, typename AABBReal,
-          typename DataEvaluator, typename Isovalue, typename DomainCheck,
-          typename Shader>
-auto direct_isosurface(camera<CameraReal> const&                     cam,
+template <typename DistOnRay, typename AABBReal, typename DataEvaluator,
+          typename Isovalue, typename DomainCheck, typename Shader>
+auto direct_isosurface(camera auto const&                            cam,
                        axis_aligned_bounding_box<AABBReal, 3> const& aabb,
                        DataEvaluator&& data_evaluator,
                        DomainCheck&& domain_check, Isovalue isovalue,
                        DistOnRay const distance_on_ray, Shader&& shader) {
-  using pos_t     = vec<CameraReal, 3>;
-  using viewdir_t = vec<CameraReal, 3>;
+  using cam_real_type = typename std::decay_t<decltype(cam)>::real_t;
+  using pos_t         = vec<cam_real_type, 3>;
+  using viewdir_t     = vec<cam_real_type, 3>;
   static_assert(
       std::is_invocable_v<Shader, pos_t, viewdir_t, vec<std::size_t, 2>>,
       "Shader must be invocable with position and view direction.");
@@ -465,14 +467,16 @@ auto direct_isosurface(camera<CameraReal> const&                     cam,
   static_assert(
       color_t::num_components() == 3 || color_t::num_components() == 4,
       "ColorScale must return scalar type or tatooine::vec.");
-  rectilinear_grid<linspace<CameraReal>, linspace<CameraReal>> rendered_image{
-      linspace<CameraReal>{0.0, cam.plane_width() - 1, cam.plane_width()},
-      linspace<CameraReal>{0.0, cam.plane_height() - 1, cam.plane_height()}};
+  rectilinear_grid<linspace<cam_real_type>, linspace<cam_real_type>>
+        rendered_image{linspace<cam_real_type>{0.0, cam.plane_width() - 1,
+                                             cam.plane_width()},
+                     linspace<cam_real_type>{0.0, cam.plane_height() - 1,
+                                             cam.plane_height()}};
   auto& rendering =
       rendered_image.template vertex_property<rgb_t>("rendered_isosurface");
 
   std::vector<
-      std::tuple<ray<CameraReal, 3>, AABBReal, std::size_t, std::size_t>>
+      std::tuple<ray<cam_real_type, 3>, AABBReal, std::size_t, std::size_t>>
              rays;
   std::mutex mutex;
   auto const bg_color = rgb_t{1, 1, 1};

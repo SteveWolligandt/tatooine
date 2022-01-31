@@ -1,7 +1,6 @@
 #ifndef TATOOINE_RENDERING_PERSPECTIVE_CAMERA_H
 #define TATOOINE_RENDERING_PERSPECTIVE_CAMERA_H
 //==============================================================================
-#include <tatooine/ray.h>
 #include <tatooine/rendering/camera.h>
 #include <tatooine/rendering/matrices.h>
 
@@ -16,11 +15,11 @@ namespace tatooine::rendering {
 /// image plane gets constructed.
 /// This camera class constructs a right-handed coordinate system.
 template <floating_point Real>
-class perspective_camera : public camera<Real> {
+class perspective_camera : public camera_interface<Real, perspective_camera<Real>> {
  public:
   using real_t   = Real;
-  using parent_t = camera<Real>;
   using this_t   = perspective_camera<Real>;
+  using parent_t = camera_interface<Real, this_t>;
   using parent_t::aspect_ratio;
   using parent_t::d;
   using parent_t::eye;
@@ -29,6 +28,7 @@ class perspective_camera : public camera<Real> {
   using parent_t::lookat;
   using parent_t::n;
   using parent_t::near;
+  using parent_t::setup;
   using parent_t::up;
   using typename parent_t::mat4;
   using typename parent_t::vec3;
@@ -37,8 +37,6 @@ class perspective_camera : public camera<Real> {
   //----------------------------------------------------------------------------
   // member variables
   //----------------------------------------------------------------------------
-  vec3 m_bottom_left;
-  vec3 m_plane_base_x, m_plane_base_y;
   Real m_fov;
 
  public:
@@ -79,58 +77,30 @@ class perspective_camera : public camera<Real> {
                      std::size_t const res_y)
       : perspective_camera(eye, lookat, up, fov, 0.001, 1000, res_x, res_y) {}
   //----------------------------------------------------------------------------
-  ~perspective_camera() override = default;
+  ~perspective_camera() = default;
   //----------------------------------------------------------------------------
   // object methods
   //----------------------------------------------------------------------------
   /// gets a ray through plane at pixel with coordinate [x,y].
   /// [0,0] is bottom left.
   /// ray goes through center of pixel
-  auto ray(Real const x, Real const y) const
-      -> tatooine::ray<Real, 3> override {
-    auto const view_plane_point =
-        m_bottom_left + x * m_plane_base_x + y * m_plane_base_y;
-    return {{eye()}, {view_plane_point - eye()}};
-  }
   //============================================================================
- private:
-  auto setup() -> void override {
-    auto constexpr angle_scale   = Real(1) / Real(2) * Real(M_PI) / Real(180);
-    auto const zaxis             = normalize(lookat() - eye());
-    auto const xaxis             = cross(zaxis, normalize(up()));
-    auto const yaxis             = cross(xaxis, zaxis);
-    auto const scale             = gcem::tan(fov() * angle_scale);
-    Real const plane_half_width  = scale * aspect_ratio();
-    Real const plane_half_height = scale;
-
-    m_bottom_left =
-        eye() + zaxis - xaxis * plane_half_width - yaxis * plane_half_height;
-    m_plane_base_x = xaxis * 2 * plane_half_width / (this->plane_width() - 1);
-    m_plane_base_y = yaxis * 2 * plane_half_height / (this->plane_height() - 1);
-  }
-  //----------------------------------------------------------------------------
  public:
-  std::unique_ptr<parent_t> clone() const override {
-    return std::unique_ptr<this_t>(new this_t{*this});
-  }
   //----------------------------------------------------------------------------
-  auto projection_matrix() const -> mat4 override {
+  auto projection_matrix() const -> mat4 {
     return perspective_matrix(fov(), aspect_ratio(), n(), f());
   }
   //----------------------------------------------------------------------------
+  /// \returns field of view in degree
   auto fov() const { return m_fov; }
   //----------------------------------------------------------------------------
-  auto fov_radians() const {
-    static Real constexpr degree_to_radian = Real(M_PI) / Real(180);
-    return m_fov * degree_to_radian;
-  }
-  //----------------------------------------------------------------------------
+  /// \brief sets field of view in degree.
   auto set_fov(Real const fov) -> void {
     m_fov = fov;
     setup();
   }
 };
-//------------------------------------------------------------------------------
+//==============================================================================
 template <typename EyeReal, typename LookatReal, typename UpReal,
           typename FovReal, typename NearReal, typename FarReal>
 perspective_camera(vec<EyeReal, 3> const&, vec<LookatReal, 3> const&,
