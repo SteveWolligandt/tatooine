@@ -99,11 +99,11 @@ auto main() -> int {
 
   std::cout << "loading axes ...";
   auto const axis0 =
-      channelflow_file.dataset<double>("CartGrid/axis0").read_as_vector();
+      channelflow_file.dataset<real_t>("CartGrid/axis0").read_as_vector();
   auto const axis1 =
-      channelflow_file.dataset<double>("CartGrid/axis1").read_as_vector();
+      channelflow_file.dataset<real_t>("CartGrid/axis1").read_as_vector();
   auto const axis2 =
-      channelflow_file.dataset<double>("CartGrid/axis2").read_as_vector();
+      channelflow_file.dataset<real_t>("CartGrid/axis2").read_as_vector();
   std::cout << "done!\n";
 
   std::cout << "creating grids ...";
@@ -114,9 +114,9 @@ auto main() -> int {
 
   std::cout << "loading data ...";
   auto& scalar_field = discretized_domain.insert_vertex_property(
-      channelflow_file.dataset<double>("Q_cheng"), "Q_cheng");
+      channelflow_file.dataset<real_t>("Q_cheng"), "Q_cheng");
   auto& streamwise_velocity = discretized_domain.insert_vertex_property(
-      channelflow_file.dataset<double>("velocity/yvel"), "velocity_y");
+      channelflow_file.dataset<real_t>("velocity/yvel"), "velocity_y");
   std::cout << "done!\n";
 
   std::cout << "creating samplers ...";
@@ -228,8 +228,8 @@ auto main() -> int {
         auto cam =
             rendering::perspective_camera{eye, lookat, up, fov, width, height};
         auto rendered_lines_grid =
-            rectilinear_grid{linspace<double>{0.0, width - 1, width},
-                             linspace<double>{0.0, height - 1, height}};
+            rectilinear_grid{linspace<real_t>{0.0, width - 1, width},
+                             linspace<real_t>{0.0, height - 1, height}};
         auto& rendered_lines_mask =
             rendered_lines_grid.vertex_property<int>("mask");
         auto& rendered_lines_pos =
@@ -276,7 +276,7 @@ auto main() -> int {
               auto const normal  = normalize(gradient);
               auto const diffuse = std::abs(dot(view_dir, normal));
               auto const vel     = streamwise_velocity_sampler(x_iso);
-              auto const s       = std::clamp<double>(
+              auto const s       = std::clamp<real_t>(
                   (vel - min_mapped) / (max_mapped - min_mapped), 0, 1);
               auto const albedo = [&] {
                 switch (current_color_scale) {
@@ -291,7 +291,7 @@ auto main() -> int {
               }();
               auto const col = albedo * diffuse * 0.8 + albedo * 0.2;
               return vec{col(0), col(1), col(2),
-                         std::clamp<double>(std::pow(s, n) * m + k, 0.0, 1.0)};
+                         std::clamp<real_t>(std::pow(s, n) * m + k, 0.0, 1.0)};
             });
 
         auto& rendered_isosurface =
@@ -337,7 +337,7 @@ auto main() -> int {
     } else {
       auto line_stream = std::stringstream{line};
       auto cmd         = std::string{};
-      auto number      = double{};
+      auto number      = real_t{};
       line_stream >> cmd >> number;
       if (cmd == "min_scalar" || cmd == "min") {
         std::cout << "setting min scalar\n";
