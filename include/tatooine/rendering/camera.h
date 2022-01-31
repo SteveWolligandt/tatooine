@@ -15,13 +15,13 @@ namespace tatooine::rendering {
 ///
 /// Implementations must override the ray method that casts rays through the
 /// camera's image plane.
-template <floating_point Real>
-struct camera : clonable<camera<Real>> {
+template <floating_point Real, typename Derived>
+struct camera_interface {
   //----------------------------------------------------------------------------
   // typedefs
   //----------------------------------------------------------------------------
   using real_t = Real;
-  using this_t = camera<Real>;
+  using this_t = camera_interface<Real, Derived>;
   using vec3   = Vec3<Real>;
   using vec4   = Vec4<Real>;
   using mat4   = Mat4<Real>;
@@ -33,12 +33,14 @@ struct camera : clonable<camera<Real>> {
   vec3              m_eye, m_lookat, m_up;
   Real              m_near, m_far;
   Vec4<std::size_t> m_viewport;
+  vec3              m_bottom_left;
+  vec3              m_plane_base_x, m_plane_base_y;
 
   //----------------------------------------------------------------------------
   // constructors / destructor
   //----------------------------------------------------------------------------
  public:
-  camera(vec3 const& eye, vec3 const& lookat, vec3 const& up, Real const near,
+  camera_interface(vec3 const& eye, vec3 const& lookat, vec3 const& up, Real const near,
          Real const far, std::size_t const res_x, std::size_t const res_y)
       : m_eye{eye},
         m_lookat{lookat},
@@ -47,7 +49,7 @@ struct camera : clonable<camera<Real>> {
         m_far{far},
         m_viewport{0, 0, res_x, res_y} {}
   //----------------------------------------------------------------------------
-  virtual ~camera() = default;
+  ~camera_interface() = default;
   //----------------------------------------------------------------------------
   // object methods
   //----------------------------------------------------------------------------
@@ -182,18 +184,67 @@ struct camera : clonable<camera<Real>> {
 
     return p;
   }
-  //----------------------------------------------------------------------------
-  // interface methods
-  //----------------------------------------------------------------------------
-  virtual auto setup() -> void = 0;
+  //------------------------------------------------------------------------------
   /// \brief Gets a ray through plane at pixel with coordinate [x,y].
   ///
   /// [0,0] is bottom left.
   /// ray goes through center of pixel.
-  /// This method must be overridden in camera implementations.
-  virtual auto ray(Real x, Real y) const -> tatooine::ray<Real, 3> = 0;
-  virtual auto projection_matrix() const -> mat4                   = 0;
+  auto ray(Real const x, Real const y) const -> tatooine::ray<Real, 3> {
+    auto const view_plane_point =
+        m_bottom_left + x * m_plane_base_x + y * m_plane_base_y;
+    return {{eye()}, {view_plane_point - eye()}};
+  }
+  //------------------------------------------------------------------------------
+  auto setup() -> void {
+    auto const A = *inv(projection_matrix() * this->view_matrix());
+
+    auto const bottom_left_homogeneous = (A * Vec4<Real>{-1, -1, -1, 1});
+    m_bottom_left = bottom_left_homogeneous.xyz() / bottom_left_homogeneous.w();
+    auto const bottom_right = A * Vec4<Real>{1, -1, -1, 1};
+    auto const top_left     = A * Vec4<Real>{-1, 1, -1, 1};
+    m_plane_base_x = (bottom_right.xyz() / bottom_right.w() - m_bottom_left) /
+                     (this->plane_width() - 1);
+    m_plane_base_y = (top_left.xyz() / top_left.w() - m_bottom_left) /
+                     (this->plane_height() - 1);
+  }
+  //----------------------------------------------------------------------------
+  // interface methods
+  //----------------------------------------------------------------------------
+  auto projection_matrix() const -> mat4 {
+    return static_cast<Derived const*>(this)->projection_matrix();
+  };
 };
+//==============================================================================
+namespace details::camera {
+//==============================================================================
+template <typename Derived, std::floating_point Real>
+auto ptr_convertible_to_camera_interface(
+    const volatile camera_interface<Real, Derived>*) -> std::true_type;
+template <typename>
+auto ptr_convertible_to_camera_interface(const volatile void*)
+    -> std::false_type;
+
+template <typename>
+auto is_derived_from_camera_interface(...) -> std::true_type;
+template <typename D>
+auto is_derived_from_camera_interface(int) -> decltype(
+    ptr_convertible_to_camera_interface<D>(static_cast<D*>(nullptr)));
+//==============================================================================
+}  // namespace details::camera
+//==============================================================================
+template <typename T>
+struct is_camera_impl
+    : std::integral_constant<
+          bool,
+          std::is_class_v<T>&& decltype(
+              details::camera::is_derived_from_camera_interface<T>(0))::value> {
+};
+//------------------------------------------------------------------------------
+template <typename T>
+static auto constexpr is_camera = is_camera_impl<T>::value;
+//==============================================================================
+template <typename T>
+concept camera = is_camera<T>;
 //==============================================================================
 }  // namespace tatooine::rendering
 //==============================================================================

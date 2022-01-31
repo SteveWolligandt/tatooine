@@ -9,7 +9,7 @@
 #include <tatooine/rendering/direct_isosurface.h>
 #include <tatooine/rendering/orthographic_camera.h>
 #include <tatooine/rendering/perspective_camera.h>
-#include <tatooine/rendering/render_line.h>
+#include <tatooine/rendering/render_axis_aligned_bounding_box.h>
 
 #include <csignal>
 #include <cstdio>
@@ -92,91 +92,119 @@ auto sigint_handler(int s) -> void {
 //==============================================================================
 auto main() -> int {
   auto const path = filesystem::path{"channelflow_Q_streamwise_velocity"};
-  std::cerr << "creating files ...";
+  std::cout << "creating files ...";
   auto channelflow_file =
       hdf5::file{"/home/vcuser/channel_flow/dino_res_154000.h5"};
-  std::cerr << "done!\n";
+  std::cout << "done!\n";
 
-  std::cerr << "loading axes ...";
+  std::cout << "loading axes ...";
   auto const axis0 =
       channelflow_file.dataset<double>("CartGrid/axis0").read_as_vector();
   auto const axis1 =
       channelflow_file.dataset<double>("CartGrid/axis1").read_as_vector();
   auto const axis2 =
       channelflow_file.dataset<double>("CartGrid/axis2").read_as_vector();
-  std::cerr << "done!\n";
+  std::cout << "done!\n";
 
-  std::cerr << "creating grids ...";
+  std::cout << "creating grids ...";
   auto discretized_domain = rectilinear_grid{axis0, axis1, axis2};
   discretized_domain.set_chunk_size_for_lazy_properties(256);
-  std::cerr << "discretized_domain:\n" << discretized_domain << '\n';
-  std::cerr << "done!\n";
+  std::cout << "discretized_domain:\n" << discretized_domain << '\n';
+  std::cout << "done!\n";
 
-  std::cerr << "loading data ...";
+  std::cout << "loading data ...";
   auto& scalar_field = discretized_domain.insert_vertex_property(
       channelflow_file.dataset<double>("Q_cheng"), "Q_cheng");
   auto& streamwise_velocity = discretized_domain.insert_vertex_property(
       channelflow_file.dataset<double>("velocity/yvel"), "velocity_y");
-  std::cerr << "done!\n";
+  std::cout << "done!\n";
 
-  std::cerr << "creating samplers ...";
+  std::cout << "creating samplers ...";
   auto scalar_sampler              = scalar_field.linear_sampler();
   auto streamwise_velocity_sampler = streamwise_velocity.linear_sampler();
-  std::cerr << "done!\n";
+  std::cout << "done!\n";
 
   auto current_color_scale = color_scale_enum::jet;
   auto viridis             = color_scales::viridis{};
   auto jet                 = color_scales::jet{};
   auto cool_to_warm        = color_scales::cool_to_warm{};
 
-  std::cerr << "creating cameras ...";
-  std::size_t width = 1000, height = 1000;
-  real_t      ortho_scale = 2;
+  std::cout << "creating cameras ...";
+  auto width = std::size_t(1000);
+  auto height = std::size_t(1000);
+  //real_t      ortho_scale = 2;
 
-  auto eye    = line3{};
-  auto lookat = line3{};
-  auto up     = line3{};
+  auto animated_eye    = line3{};
+  auto animated_lookat = line3{};
+  auto animated_up     = line3{};
 
-  setup_eye_rotation(eye, discretized_domain);
-  setup_lookat_rotation(lookat, discretized_domain);
-  setup_up_rotation(up);
+  setup_eye_rotation(animated_eye, discretized_domain);
+  setup_lookat_rotation(animated_lookat, discretized_domain);
+  setup_up_rotation(animated_up);
   // setup_eye_flight(eye, discretized_domain);
   // setup_lookat_flight(lookat, discretized_domain);
   // setup_up_flight(up);
 
-  auto eye_sampler    = eye.linear_sampler();
-  auto up_sampler     = up.linear_sampler();
-  auto lookat_sampler = lookat.linear_sampler();
-  std::cerr << "done!\n";
+  auto eye_sampler    = animated_eye.linear_sampler();
+  auto up_sampler     = animated_up.linear_sampler();
+  auto lookat_sampler = animated_lookat.linear_sampler();
+  auto eye            = eye_sampler(0.75);
+  auto lookat         = lookat_sampler(0.75);
+  auto up             = up_sampler(0.75);
+  auto fov            = real_t(30);
+  auto animated       = false;
+  std::cout << "done!\n";
 
-  // std::cerr << "calculating min and max scalars ...";
-  // auto min_scalar = std::numeric_limits<double>::max();
-  // auto max_scalar = -std::numeric_limits<double>::max();
-  //
-  // discretized_domain.vertices().iterate_indices([&](auto const... is) {
-  //  min_scalar = std::min(min_scalar, streamwise_velocity(is...));
-  //  max_scalar = std::max(max_scalar, streamwise_velocity(is...));
-  //});
-  //[[maybe_unused]] auto const medium_scalar = (max_scalar + min_scalar) / 2;
   auto min_mapped = real_t(13);
   auto max_mapped = real_t(27);
-  std::cerr << "done!\n";
-  // std::cerr << "data range: " << min_scalar << " - " << max_scalar << '\n';
+  std::cout << "done!\n";
   auto num_frames = std::size_t(5);
   auto run        = true;
   auto n          = real_t(1);
   auto m          = real_t(1);
   auto k          = real_t(0);
-  auto linewidth  = int(5);
+  auto line_width = int(11);
   std::signal(SIGINT, sigint_handler);
   while (run) {
     std::cout << "> ";
     auto line = std::string{};
     std::getline(std::cin, line);
+    auto const cmd = line.substr(0, line.find(" "));
     if (line == "quit" || line == "q" || line == "exit") {
       std::cout << "k bye.\n";
       run = false;
-    } else if (line.substr(0, line.find(" ")) == "color_scale") {
+    } else if (cmd == "animation") {
+      animated = true;
+    } else if (cmd == "no_animation") {
+      animated = false;
+    } else if (cmd == "eye") {
+      auto line_stream = std::stringstream{line};
+      auto cmd         = std::string{};
+      auto x           = real_t{};
+      auto y           = real_t{};
+      auto z           = real_t{};
+
+      line_stream >> cmd >> x >> y >> z;
+      eye = vec3{x, y, z};
+    } else if (cmd == "up") {
+      auto line_stream = std::stringstream{line};
+      auto cmd         = std::string{};
+      auto x           = real_t{};
+      auto y           = real_t{};
+      auto z           = real_t{};
+
+      line_stream >> cmd >> x >> y >> z;
+      up = vec3{x, y, z};
+    } else if (cmd == "lookat" || cmd == "look_at") {
+      auto line_stream = std::stringstream{line};
+      auto cmd         = std::string{};
+      auto x           = real_t{};
+      auto y           = real_t{};
+      auto z           = real_t{};
+
+      line_stream >> cmd >> x >> y >> z;
+      lookat = vec3{x, y, z};
+    } else if (cmd == "color_scale") {
       auto line_stream = std::stringstream{line};
       auto cmd         = std::string{};
       auto scale_name  = std::string{};
@@ -196,20 +224,9 @@ auto main() -> int {
         std::cout << "unknown color scale \"" << scale_name << "\"\n";
       }
     } else if (line == "render" || line == "r") {
-      if (filesystem::exists(path)) {
-        filesystem::remove_all(path);
-      }
-      filesystem::create_directory(path);
-      auto i = std::size_t(0);
-      for (auto const t : linspace{0.0, 1.0, num_frames}) {
-        // auto t = 0.75;
-        if (got_sigint) {
-          break;
-        }
-        std::cerr << "rendering " << i + 1 << " / " << num_frames << "...\r";
-        auto cam = rendering::perspective_camera{
-            eye_sampler(t), lookat_sampler(t), up_sampler(t), 90, width,
-            height};
+      auto r = [&](auto const eye, auto const lookat, auto const up) {
+        auto cam =
+            rendering::perspective_camera{eye, lookat, up, fov, width, height};
         auto rendered_lines_grid =
             rectilinear_grid{linspace<double>{0.0, width - 1, width},
                              linspace<double>{0.0, height - 1, height}};
@@ -220,54 +237,26 @@ auto main() -> int {
 
         rendered_lines_grid.vertices().iterate_indices(
             [&](auto const... is) { rendered_lines_mask(is...) = 0; });
-        auto render = [&](vec4 const& x0, vec4 const& x1) {
-          rendering::render_line(
-              cam.project(x0).xy(), cam.project(x1).xy(), linewidth,
-              rendered_lines_grid,
-              [&](auto const t, auto const ix, auto const iy) {
-                auto const x = x0 * (1 - t) + x1 * t;
-                if (rendered_lines_mask(ix, iy) == 0) {
-                  rendered_lines_pos(ix, iy) = x.xyz();
-                } else {
-                  auto const new_depth =
-                      euclidean_distance(x.xyz(), eye_sampler(t));
-                  auto const old_depth = euclidean_distance(
-                      rendered_lines_pos(ix, iy), eye_sampler(t));
-                  if (new_depth < old_depth) {
-                    rendered_lines_pos(ix, iy) = x.xyz();
-                  }
-                }
-                rendered_lines_mask(ix, iy) = 1;
-              });
-        };
 
         auto const aabb = discretized_domain.bounding_box();
-        render(vec4{aabb.min(0), aabb.min(1), aabb.min(2), 1},
-               vec4{aabb.max(0), aabb.min(1), aabb.min(2), 1});
-        render(vec4{aabb.min(0), aabb.max(1), aabb.min(2), 1},
-               vec4{aabb.max(0), aabb.max(1), aabb.min(2), 1});
-        render(vec4{aabb.min(0), aabb.min(1), aabb.max(2), 1},
-               vec4{aabb.max(0), aabb.min(1), aabb.max(2), 1});
-        render(vec4{aabb.min(0), aabb.max(1), aabb.max(2), 1},
-               vec4{aabb.max(0), aabb.max(1), aabb.max(2), 1});
 
-        render(vec4{aabb.min(0), aabb.min(1), aabb.min(2), 1},
-               vec4{aabb.min(0), aabb.max(1), aabb.min(2), 1});
-        render(vec4{aabb.max(0), aabb.min(1), aabb.min(2), 1},
-               vec4{aabb.max(0), aabb.max(1), aabb.min(2), 1});
-        render(vec4{aabb.min(0), aabb.min(1), aabb.max(2), 1},
-               vec4{aabb.min(0), aabb.max(1), aabb.max(2), 1});
-        render(vec4{aabb.max(0), aabb.min(1), aabb.max(2), 1},
-               vec4{aabb.max(0), aabb.max(1), aabb.max(2), 1});
-
-        render(vec4{aabb.min(0), aabb.min(1), aabb.min(2), 1},
-               vec4{aabb.min(0), aabb.min(1), aabb.max(2), 1});
-        render(vec4{aabb.max(0), aabb.min(1), aabb.min(2), 1},
-               vec4{aabb.max(0), aabb.min(1), aabb.max(2), 1});
-        render(vec4{aabb.min(0), aabb.max(1), aabb.min(2), 1},
-               vec4{aabb.min(0), aabb.max(1), aabb.max(2), 1});
-        render(vec4{aabb.max(0), aabb.max(1), aabb.min(2), 1},
-               vec4{aabb.max(0), aabb.max(1), aabb.max(2), 1});
+        render(aabb, line_width, rendered_lines_grid, cam,
+               [&](auto const t, auto const& x0, auto const& x1, auto const ix,
+                   auto const iy) {
+                 auto const x = x0.xyz() * (1 - t) + x1.xyz() * t;
+                 if (rendered_lines_mask(ix, iy) == 0) {
+                   rendered_lines_pos(ix, iy) = x.xyz();
+                 } else {
+                   auto const new_depth =
+                       euclidean_distance(x.xyz(), eye_sampler(t));
+                   auto const old_depth = euclidean_distance(
+                       rendered_lines_pos(ix, iy), eye_sampler(t));
+                   if (new_depth < old_depth) {
+                     rendered_lines_pos(ix, iy) = x.xyz();
+                   }
+                 }
+                 rendered_lines_mask(ix, iy) = 1;
+               });
 
         auto isovalues      = std::vector{5e6};
         auto rendering_grid = rendering::direct_isosurface(
@@ -275,12 +264,10 @@ auto main() -> int {
             [&](auto const x_iso, auto const isovalue, auto const& gradient,
                 auto const& view_dir, auto const pixel_pos) {
               if (rendered_lines_mask(pixel_pos.x(), pixel_pos.y()) > 0) {
-                auto const iso_depth =
-                    euclidean_distance(x_iso, eye_sampler(t));
+                auto const iso_depth  = euclidean_distance(x_iso, eye);
                 auto const line_depth = euclidean_distance(
-                    rendered_lines_pos(pixel_pos.x(), pixel_pos.y()),
-                    eye_sampler(t));
-                if (line_depth <= iso_depth) {
+                    rendered_lines_pos(pixel_pos.x(), pixel_pos.y()), eye);
+                if (line_depth - 1e-5 <= iso_depth) {
                   return vec{0.0, 0.0, 0.0, 1.0};
                 }
                 rendered_lines_mask(pixel_pos.x(), pixel_pos.y()) = 2;
@@ -306,6 +293,7 @@ auto main() -> int {
               return vec{col(0), col(1), col(2),
                          std::clamp<double>(std::pow(s, n) * m + k, 0.0, 1.0)};
             });
+
         auto& rendered_isosurface =
             rendering_grid.vec3_vertex_property("rendered_isosurface");
         rendering_grid.vertices().iterate_indices([&](auto const... is) {
@@ -313,15 +301,39 @@ auto main() -> int {
             rendered_isosurface(is...) = vec3::zeros();
           }
         });
-        std::stringstream str;
-        str << std::setw(
-                   static_cast<std::size_t>(std::ceil(std::log10(num_frames))))
-            << std::setfill('0') << i;
-        write_png(path / ("direct_isosurface." + str.str() + ".png"),
-                  rendered_isosurface);
-        ++i;
+        return rendering_grid;
+      };
+      if (filesystem::exists(path)) {
+        filesystem::remove_all(path);
       }
-      std::cerr << "rendering done!                      \n";
+      filesystem::create_directory(path);
+      if (animated) {
+        auto i = std::size_t(0);
+        for (auto const t : linspace{0.0, 1.0, num_frames}) {
+          if (got_sigint) {
+            break;
+          }
+          auto rendering_grid =
+              r(eye_sampler(t), lookat_sampler(t), up_sampler(t));
+          std::cout << "rendering " << i + 1 << " / " << num_frames << "...\r";
+          ++i;
+          auto& rendered_isosurface =
+              rendering_grid.vec3_vertex_property("rendered_isosurface");
+          std::stringstream str;
+          str << std::setw(static_cast<std::size_t>(
+                     std::ceil(std::log10(num_frames))))
+              << std::setfill('0') << i;
+          write_png(path / ("direct_isosurface." + str.str() + ".png"),
+                    rendered_isosurface);
+        }
+      } else {
+        auto rendering_grid = r(eye, lookat, up);
+        std::cout << "rendering...\r";
+        auto& rendered_isosurface =
+            rendering_grid.vec3_vertex_property("rendered_isosurface");
+        write_png(path / "direct_isosurface.png", rendered_isosurface);
+      }
+      std::cout << "rendering done!                      \n";
     } else {
       auto line_stream = std::stringstream{line};
       auto cmd         = std::string{};
@@ -356,7 +368,10 @@ auto main() -> int {
         ortho_scale = number;
       } else if (cmd == "linewidth" || cmd == "line_width") {
         std::cout << "setting line width\n";
-        linewidth = number;
+        line_width = number;
+      } else if (cmd == "fov") {
+        std::cout << "setting fov\n";
+        fov = number;
       } else {
         std::cout << "unknown command\n";
       }

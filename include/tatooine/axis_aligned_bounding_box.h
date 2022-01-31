@@ -15,9 +15,9 @@ namespace tatooine {
 //==============================================================================
 namespace detail {
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-// template <typename AABB, typename Real, size_t N>
+// template <typename AABB, typename Real, std::size_t N>
 // struct aabb_ray_intersectable_parent {};
-template <typename AABB, typename Real, size_t N>
+template <typename AABB, typename Real, std::size_t N>
 struct aabb_ray_intersectable_parent : ray_intersectable<Real, N> {
   using parent_t = ray_intersectable<Real, N>;
   using typename parent_t::intersection_t;
@@ -37,13 +37,13 @@ struct aabb_ray_intersectable_parent : ray_intersectable<Real, N> {
     auto coord           = vec<Real, N>{};
     auto inside          = true;
     auto quadrant        = make_array<Quadrant, N>();
-    auto which_plane     = size_t(0);
+    auto which_plane     = std::size_t(0);
     auto max_t           = make_array<Real, N>();
     auto candidate_plane = make_array<Real, N>();
 
     // Find candidate planes; this loop can be avoided if rays cast all from the
     // eye(assume perpsective view)
-    for (size_t i = 0; i < N; i++)
+    for (std::size_t i = 0; i < N; i++)
       if (r.origin(i) < aabb.min(i)) {
         quadrant[i]        = left;
         candidate_plane[i] = aabb.min(i);
@@ -63,7 +63,7 @@ struct aabb_ray_intersectable_parent : ray_intersectable<Real, N> {
     }
 
     // Calculate T distances to candidate planes
-    for (size_t i = 0; i < N; i++)
+    for (std::size_t i = 0; i < N; i++)
       if (quadrant[i] != middle && r.direction(i) != 0) {
         max_t[i] = (candidate_plane[i] - r.origin(i)) / r.direction(i);
       } else {
@@ -72,7 +72,7 @@ struct aabb_ray_intersectable_parent : ray_intersectable<Real, N> {
 
     // Get largest of the max_t's for final choice of intersection
     which_plane = 0;
-    for (size_t i = 1; i < N; i++)
+    for (std::size_t i = 1; i < N; i++)
       if (max_t[which_plane] < max_t[i]) {
         which_plane = i;
       }
@@ -81,7 +81,7 @@ struct aabb_ray_intersectable_parent : ray_intersectable<Real, N> {
     if (max_t[which_plane] < 0) {
       return {};
     }
-    for (size_t i = 0; i < N; i++)
+    for (std::size_t i = 0; i < N; i++)
       if (which_plane != i) {
         coord(i) = r.origin(i) + max_t[which_plane] * r.direction(i);
         if (coord(i) < aabb.min(i) || coord(i) > aabb.max(i)) {
@@ -97,7 +97,7 @@ struct aabb_ray_intersectable_parent : ray_intersectable<Real, N> {
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 }  // namespace detail
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-template <typename Real, size_t N>
+template <typename Real, std::size_t N>
 struct axis_aligned_bounding_box
     : detail::aabb_ray_intersectable_parent<axis_aligned_bounding_box<Real, N>,
                                             Real, N> {
@@ -147,26 +147,26 @@ struct axis_aligned_bounding_box
                                       base_tensor<Tensor1, Real1, N> const& max)
       : m_min{min}, m_max{max} {}
   //============================================================================
-  auto constexpr  min() const -> auto const& { return m_min; }
-  auto constexpr  min() -> auto& { return m_min; }
-  auto constexpr  min(size_t i) const -> auto const& { return m_min(i); }
-  auto constexpr  min(size_t i) -> auto& { return m_min(i); }
+  auto constexpr min() const -> auto const& { return m_min; }
+  auto constexpr min() -> auto& { return m_min; }
+  auto constexpr min(std::size_t i) const -> auto const& { return m_min(i); }
+  auto constexpr min(std::size_t i) -> auto& { return m_min(i); }
   //----------------------------------------------------------------------------
-  auto constexpr  max() const -> auto const& { return m_max; }
-  auto constexpr  max() -> auto& { return m_max; }
-  auto constexpr  max(size_t i) const -> auto const& { return m_max(i); }
-  auto constexpr  max(size_t i) -> auto& { return m_max(i); }
+  auto constexpr max() const -> auto const& { return m_max; }
+  auto constexpr max() -> auto& { return m_max; }
+  auto constexpr max(std::size_t i) const -> auto const& { return m_max(i); }
+  auto constexpr max(std::size_t i) -> auto& { return m_max(i); }
   //----------------------------------------------------------------------------
-  auto constexpr  extents() const { return m_max - m_min; }
-  auto constexpr  extent(size_t i) const { return m_max(i) - m_min(i); }
+  auto constexpr extents() const { return m_max - m_min; }
+  auto constexpr extent(std::size_t i) const { return m_max(i) - m_min(i); }
   //----------------------------------------------------------------------------
-  auto constexpr  center() const { return (m_max + m_min) * Real(0.5); }
-  auto constexpr  center(size_t const i) const {
+  auto constexpr center() const { return (m_max + m_min) * Real(0.5); }
+  auto constexpr center(std::size_t const i) const {
     return (m_max(i) + m_min(i)) * Real(0.5);
   }
   //----------------------------------------------------------------------------
-  auto constexpr  is_inside(pos_t const& p) const {
-    for (size_t i = 0; i < N; ++i) {
+  auto constexpr is_inside(pos_t const& p) const {
+    for (std::size_t i = 0; i < N; ++i) {
       if (p(i) < m_min(i) || m_max(i) < p(i)) {
         return false;
       }
@@ -190,8 +190,8 @@ struct axis_aligned_bounding_box
     x3 -= c;
 
     // edges of rectangle
-    auto const f0 = x1 - x0; // normal of f1
-    auto const f1 = x3 - x0; // normal of f0
+    auto const f0 = x1 - x0;  // normal of f1
+    auto const f1 = x3 - x0;  // normal of f0
 
     // normals of aabb
     vec_t constexpr u0{1, 0};
@@ -209,10 +209,10 @@ struct axis_aligned_bounding_box
       // the seperating axis, not the aabb center. We don't need to cast the
       // center, because we know that the aabb is at origin compared to the
       // triangle!
-      auto       r  = e.x() * std::abs(dot(u0, axis)) +
-                      e.y() * std::abs(dot(u1, axis));
+      auto r =
+          e.x() * std::abs(dot(u0, axis)) + e.y() * std::abs(dot(u1, axis));
       return tatooine::max(-tatooine::max(p0, p1, p2, p3),
-                            tatooine::min(p0, p1, p2, p3)) > r;
+                           tatooine::min(p0, p1, p2, p3)) > r;
     };
     if (is_separating_axis(u0)) {
       return false;
@@ -249,10 +249,10 @@ struct axis_aligned_bounding_box
       // the seperating axis, not the aabb center. We don't need to cast the
       // center, because we know that the aabb is at origin compared to the
       // triangle!
-      auto       r  = e.x() * std::abs(dot(u0, axis)) +
-                      e.y() * std::abs(dot(u1, axis));
+      auto r =
+          e.x() * std::abs(dot(u0, axis)) + e.y() * std::abs(dot(u1, axis));
       return tatooine::max(-tatooine::max(p0, p1, p2),
-                            tatooine::min(p0, p1, p2)) > r;
+                           tatooine::min(p0, p1, p2)) > r;
     };
     if (is_separating_axis(u0)) {
       return false;
@@ -372,10 +372,10 @@ struct axis_aligned_bounding_box
       auto const p2 = dot(x2, axis);
       auto const p3 = dot(x3, axis);
       auto       r  = e.x() * std::abs(dot(u0, axis)) +
-                      e.y() * std::abs(dot(u1, axis)) +
-                      e.z() * std::abs(dot(u2, axis));
+               e.y() * std::abs(dot(u1, axis)) +
+               e.z() * std::abs(dot(u2, axis));
       return tatooine::max(-tatooine::max(p0, p1, p2, p3),
-                            tatooine::min(p0, p1, p2, p3)) > r;
+                           tatooine::min(p0, p1, p2, p3)) > r;
     };
 
     if (is_separating_axis(cross(u0, f0))) {
@@ -457,14 +457,14 @@ struct axis_aligned_bounding_box
   }
   //----------------------------------------------------------------------------
   constexpr auto operator+=(pos_t const& point) {
-    for (size_t i = 0; i < point.num_components(); ++i) {
+    for (std::size_t i = 0; i < point.num_components(); ++i) {
       m_min(i) = std::min(m_min(i), point(i));
       m_max(i) = std::max(m_max(i), point(i));
     }
   }
   //----------------------------------------------------------------------------
   constexpr auto reset() {
-    for (size_t i = 0; i < N; ++i) {
+    for (std::size_t i = 0; i < N; ++i) {
       m_min(i) = std::numeric_limits<Real>::max();
       m_max(i) = -std::numeric_limits<Real>::max();
     }
@@ -473,7 +473,7 @@ struct axis_aligned_bounding_box
   [[nodiscard]] constexpr auto add_dimension(Real const min,
                                              Real const max) const {
     axis_aligned_bounding_box<Real, N + 1> addeddim;
-    for (size_t i = 0; i < N; ++i) {
+    for (std::size_t i = 0; i < N; ++i) {
       addeddim.m_min(i) = m_min(i);
       addeddim.m_max(i) = m_max(i);
     }
@@ -486,7 +486,7 @@ struct axis_aligned_bounding_box
   auto random_point(RandomEngine&& random_engine = RandomEngine{
                         std::random_device{}()}) const {
     pos_t p;
-    for (size_t i = 0; i < N; ++i) {
+    for (std::size_t i = 0; i < N; ++i) {
       std::uniform_real_distribution<Real> distribution{m_min(i), m_max(i)};
       p(i) = distribution(random_engine);
     }
@@ -496,8 +496,8 @@ struct axis_aligned_bounding_box
   auto write_vtk(filesystem::path const& path) {
     vtk::legacy_file_writer f{path, vtk::dataset_type::polydata};
     f.write_header();
-    std::vector<vec<real_t, 3>>      positions;
-    std::vector<std::vector<size_t>> indices;
+    std::vector<vec<real_t, 3>>           positions;
+    std::vector<std::vector<std::size_t>> indices;
 
     positions.push_back(vec{min(0), min(1), min(2)});
     positions.push_back(vec{max(0), min(1), min(2)});
@@ -517,7 +517,11 @@ struct axis_aligned_bounding_box
     f.write_lines(indices);
   }
 };
-template <typename Real, size_t N>
+template <typename Real>
+using AABB2 = axis_aligned_bounding_box<Real, 2>;
+template <typename Real>
+using AABB3 = axis_aligned_bounding_box<Real, 3>;
+template <typename Real, std::size_t N>
 using aabb = axis_aligned_bounding_box<Real, N>;
 
 using aabb2d = aabb<double, 2>;
@@ -530,28 +534,28 @@ using aabb3  = aabb<real_t, 3>;
 //==============================================================================
 // deduction guides
 //==============================================================================
-template <typename Real0, typename Real1, size_t N>
+template <typename Real0, typename Real1, std::size_t N>
 axis_aligned_bounding_box(vec<Real0, N> const&, vec<Real1, N> const&)
     -> axis_aligned_bounding_box<common_type<Real0, Real1>, N>;
 //------------------------------------------------------------------------------
-template <typename Real0, typename Real1, size_t N>
-axis_aligned_bounding_box(vec<Real0, N>&&, vec<Real1, N>&&)
+template <typename Real0, typename Real1, std::size_t N>
+axis_aligned_bounding_box(vec<Real0, N>&&, vec<Real1, N> &&)
     -> axis_aligned_bounding_box<common_type<Real0, Real1>, N>;
 //------------------------------------------------------------------------------
 template <typename Tensor0, typename Tensor1, typename Real0, typename Real1,
-          size_t N>
+          std::size_t N>
 axis_aligned_bounding_box(base_tensor<Tensor0, Real0, N>&&,
-                          base_tensor<Tensor1, Real1, N>&&)
+                          base_tensor<Tensor1, Real1, N> &&)
     -> axis_aligned_bounding_box<common_type<Real0, Real1>, N>;
 
 //==============================================================================
 // ostream output
 //==============================================================================
-template <typename Real, size_t N>
+template <typename Real, std::size_t N>
 auto operator<<(std::ostream& out, axis_aligned_bounding_box<Real, N> const& bb)
     -> std::ostream& {
   out << std::scientific;
-  for (size_t i = 0; i < N; ++i) {
+  for (std::size_t i = 0; i < N; ++i) {
     out << "[ ";
     if (bb.min(i) >= 0) {
       out << ' ';

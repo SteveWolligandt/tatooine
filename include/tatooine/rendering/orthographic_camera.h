@@ -10,27 +10,22 @@
 //==============================================================================
 namespace tatooine::rendering {
 //==============================================================================
-/// \brief Perspective cameras are able to cast rays from one point called 'eye'
-/// through an image plane.
-///
-/// Based on the eye position, a look-at point and a field of view angle the
-/// image plane gets constructed.
-/// This camera class constructs a right-handed coordinate system.
 template <arithmetic Real>
-class orthographic_camera : public camera<Real> {
+class orthographic_camera : public camera_interface<Real, orthographic_camera<Real>> {
  public:
   using real_t   = Real;
-  using parent_t = camera<Real>;
   using this_t   = orthographic_camera<Real>;
+  using parent_t = camera_interface<Real, this_t>;
   using vec3     = vec<Real, 3>;
   using mat4     = mat<Real, 4, 4>;
 
-  using parent_t::near;
-  using parent_t::n;
-  using parent_t::far;
-  using parent_t::f;
-  using parent_t::depth;
   using parent_t::d;
+  using parent_t::depth;
+  using parent_t::f;
+  using parent_t::far;
+  using parent_t::n;
+  using parent_t::near;
+  using parent_t::setup;
 
  private:
   //----------------------------------------------------------------------------
@@ -47,53 +42,29 @@ class orthographic_camera : public camera<Real> {
   //----------------------------------------------------------------------------
   // getter / setter
   //----------------------------------------------------------------------------
-  auto left() const {
-    return m_left;
-  }
+  auto left() const { return m_left; }
   //----------------------------------------------------------------------------
-  auto l() const {
-    return left();
-  }
+  auto l() const { return left(); }
   //----------------------------------------------------------------------------
-  auto right() const {
-    return m_right;
-  }
+  auto right() const { return m_right; }
   //----------------------------------------------------------------------------
-  auto r() const {
-    return right();
-  }
+  auto r() const { return right(); }
   //----------------------------------------------------------------------------
-  auto bottom() const {
-    return m_bottom;
-  }
+  auto bottom() const { return m_bottom; }
   //----------------------------------------------------------------------------
-  auto b() const {
-    return bottom();
-  }
+  auto b() const { return bottom(); }
   //----------------------------------------------------------------------------
-  auto top() const {
-    return m_top;
-  }
+  auto top() const { return m_top; }
   //----------------------------------------------------------------------------
-  auto t() const {
-    return top();
-  }
+  auto t() const { return top(); }
   //----------------------------------------------------------------------------
-  auto width() const {
-    return right() - left();
-  }
+  auto width() const { return right() - left(); }
   //----------------------------------------------------------------------------
-  auto w() const {
-    return width();
-  }
+  auto w() const { return width(); }
   //----------------------------------------------------------------------------
-  auto height() const {
-    return top() - bottom();
-  }
+  auto height() const { return top() - bottom(); }
   //----------------------------------------------------------------------------
-  auto h() const {
-    return height();
-  }
+  auto h() const { return height(); }
   //----------------------------------------------------------------------------
   // constructors / destructor
   //----------------------------------------------------------------------------
@@ -102,7 +73,7 @@ class orthographic_camera : public camera<Real> {
   orthographic_camera(vec3 const& eye, vec3 const& lookat, vec3 const& up,
                       Real const left, Real const right, Real const bottom,
                       Real const top, Real const near, Real const far,
-                      size_t const res_x, size_t const res_y)
+                      std::size_t const res_x, std::size_t const res_y)
       : parent_t{eye, lookat, up, near, far, res_x, res_y},
         m_left{left},
         m_right{right},
@@ -113,11 +84,11 @@ class orthographic_camera : public camera<Real> {
   //----------------------------------------------------------------------------
   /// Constructor generates bottom left image plane pixel position and pixel
   /// offset size.
-  orthographic_camera(vec3 const& eye, vec3 const& lookat, 
-                      Real const left, Real const right, Real const bottom,
-                      Real const top, Real const near, Real const far,
-                      size_t const res_x, size_t const res_y)
-      : parent_t{eye, lookat, vec3{0,1,0}, near, far, res_x, res_y},
+  orthographic_camera(vec3 const& eye, vec3 const& lookat, Real const left,
+                      Real const right, Real const bottom, Real const top,
+                      Real const near, Real const far, std::size_t const res_x,
+                      std::size_t const res_y)
+      : parent_t{eye, lookat, vec3{0, 1, 0}, near, far, res_x, res_y},
         m_left{left},
         m_right{right},
         m_bottom{bottom},
@@ -129,7 +100,7 @@ class orthographic_camera : public camera<Real> {
   /// offset size.
   orthographic_camera(vec3 const& eye, vec3 const& lookat, vec3 const& up,
                       Real const height, Real const near, Real const far,
-                      size_t const res_x, size_t const res_y)
+                      std::size_t const res_x, std::size_t const res_y)
       : orthographic_camera{eye,        lookat, up,  -1,    1,    -height / 2,
                             height / 2, near,   far, res_x, res_y} {
     setup();
@@ -138,48 +109,18 @@ class orthographic_camera : public camera<Real> {
   /// Constructor generates bottom left image plane pixel position and pixel
   /// offset size.
   orthographic_camera(vec3 const& eye, vec3 const& lookat, Real const height,
-                      Real const near, Real const far, size_t const res_x,
-                      size_t const res_y)
+                      Real const near, Real const far, std::size_t const res_x,
+                      std::size_t const res_y)
       : orthographic_camera{eye,  lookat, vec3{0, 1, 0}, height,
                             near, far,    res_x,         res_y} {}
   //----------------------------------------------------------------------------
-  ~orthographic_camera() override = default;
+  ~orthographic_camera() = default;
   //----------------------------------------------------------------------------
   // object methods
   //----------------------------------------------------------------------------
-  /// gets a ray through plane at pixel with coordinate [x,y].
-  /// [0,0] is bottom left.
-  /// ray goes through center of pixel
-  auto ray(Real x, Real y) const -> tatooine::ray<Real, 3> override {
-    assert(x < this->plane_width());
-    assert(y < this->plane_height());
-    auto const view_plane_point =
-        m_bottom_left + x * m_plane_base_x + y * m_plane_base_y;
-    return {view_plane_point, normalize(this->lookat() - this->eye())};
-  }
-  //============================================================================
- private:
-  auto setup() -> void override {
-    vec3 const view_dir          = normalize(this->lookat() - this->eye());
-    vec3 const u                 = cross(view_dir, this->up());
-    vec3 const v                 = cross(u, view_dir);
-    Real const plane_half_height = h() / 2;
-    Real const plane_half_width  = plane_half_height * this->aspect_ratio();
-
-    m_bottom_left = this->eye() + view_dir * near()
-                                - u * plane_half_width
-                                - v * plane_half_height;
-    m_plane_base_x = u * 2 * plane_half_width / (this->plane_width() - 1);
-    m_plane_base_y = v * 2 * plane_half_height / (this->plane_height() - 1);
-  }
-  //----------------------------------------------------------------------------
  public:
   //----------------------------------------------------------------------------
-  auto clone() const -> std::unique_ptr<parent_t> override {
-    return std::unique_ptr<this_t>(new this_t{*this});
-  }
-  //----------------------------------------------------------------------------
-  auto projection_matrix() const -> mat4 override {
+  auto projection_matrix() const -> mat4 {
     static auto constexpr z = Real(0);
     static auto constexpr o = Real(1);
 
@@ -192,15 +133,12 @@ class orthographic_camera : public camera<Real> {
     auto const yt = (b() + t()) * ih;
     auto const zs = -2 * id;
     auto const zt = -(f() + n()) * id;
-    return mat4{{xs,  z,  z, xt},
-                { z, ys,  z, yt},
-                { z,  z, zs, zt},
-                { z,  z,  z,  o}};
+    return mat4{{xs, z, z, xt}, {z, ys, z, yt}, {z, z, zs, zt}, {z, z, z, o}};
   }
   //----------------------------------------------------------------------------
   auto setup(vec3 const& eye, vec3 const& lookat, vec3 const& up,
              Real const height, Real const near, Real const far,
-             size_t const res_x, size_t const res_y) -> void {
+             std::size_t const res_x, std::size_t const res_y) -> void {
     this->set_eye(eye);
     this->set_lookat(lookat);
     this->set_up(up);
