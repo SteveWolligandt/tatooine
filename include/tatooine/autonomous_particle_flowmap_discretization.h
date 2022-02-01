@@ -57,11 +57,12 @@ struct autonomous_particle_flowmap_discretization {
   autonomous_particle_flowmap_discretization(
       Flowmap&& flowmap, arithmetic auto const t0, arithmetic auto const tau,
       arithmetic auto const             tau_step,
-      std::vector<particle_type> const& initial_particles) {
+      std::vector<particle_type> const& initial_particles, std::atomic_uint64_t& uuid_generator) {
     static_assert(
         std::decay_t<Flowmap>::num_dimensions() == NumDimensions,
         "Number of dimensions of flowmap does not match number of dimensions.");
-    fill(std::forward<Flowmap>(flowmap), initial_particles, t0 + tau, tau_step);
+    fill(std::forward<Flowmap>(flowmap), initial_particles, t0 + tau, tau_step,
+         uuid_generator);
   }
   //----------------------------------------------------------------------------
   template <typename Flowmap>
@@ -73,7 +74,8 @@ struct autonomous_particle_flowmap_discretization {
         std::decay_t<Flowmap>::num_dimensions() == NumDimensions,
         "Number of dimensions of flowmap does not match number of dimensions.");
     auto initial_particle_distribution = g.copy_without_properties();
-    std::vector<particle_type> particles;
+    auto particles = std::vector<particle_type>{};
+    auto uuid_generator                          = std::atomic_uint64_t{};
     for (std::size_t i = 0; i < NumDimensions; ++i) {
       auto const spacing = initial_particle_distribution.dimension(i).spacing();
       initial_particle_distribution.dimension(i).pop_front();
@@ -84,7 +86,7 @@ struct autonomous_particle_flowmap_discretization {
         [&](auto const... is) {
           particles.emplace_back(
               initial_particle_distribution.vertex_at(is...), t0,
-              initial_particle_distribution.dimension(0).spacing() / 2);
+              initial_particle_distribution.dimension(0).spacing() / 2, uuid_generator);
         });
     // auto const small_particle_size =
     //     (std::sqrt(2 * initial_particle_distribution.dimension(0).spacing() *
@@ -105,7 +107,7 @@ struct autonomous_particle_flowmap_discretization {
     //           initial_particle_distribution.vertex_at(is...), t0,
     //           small_particle_size);
     //     });
-    fill(std::forward<Flowmap>(flowmap), particles, t0 + tau, tau_step);
+    fill(std::forward<Flowmap>(flowmap), particles, t0 + tau, tau_step, uuid_generator);
   }
   ////----------------------------------------------------------------------------
   // template <typename Flowmap>
@@ -163,22 +165,25 @@ struct autonomous_particle_flowmap_discretization {
   autonomous_particle_flowmap_discretization(
       Flowmap&& flowmap, arithmetic auto const tau,
       arithmetic auto const             tau_step,
-      std::vector<particle_type> const& initial_particles) {
+      std::vector<particle_type> const& initial_particles,
+      std::atomic_uint64_t&             uuid_generator) {
     static_assert(
         std::decay_t<Flowmap>::num_dimensions() == NumDimensions,
         "Number of dimensions of flowmap does not match number of dimensions.");
-    fill(std::forward<Flowmap>(flowmap), initial_particles, tau, tau_step);
+    fill(std::forward<Flowmap>(flowmap), initial_particles, tau, tau_step,
+         uuid_generator);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename Flowmap>
   autonomous_particle_flowmap_discretization(
       Flowmap&& flowmap, arithmetic auto const tau,
-      arithmetic auto const tau_step, particle_type const& initial_particle) {
+      arithmetic auto const tau_step, particle_type const& initial_particle,
+      std::atomic_uint64_t& uuid_generator) {
     static_assert(
         std::decay_t<Flowmap>::num_dimensions() == NumDimensions,
         "Number of dimensions of flowmap does not match number of dimensions.");
     fill(std::forward<Flowmap>(flowmap), std::vector{initial_particle}, tau,
-         tau_step);
+         tau_step, uuid_generator);
   }
   //============================================================================
   auto samplers() const -> auto const& { return m_samplers; }
@@ -205,19 +210,19 @@ struct autonomous_particle_flowmap_discretization {
     return m_centers1;
   }
   //----------------------------------------------------------------------------
-  auto hierarchy_mutex(tag::forward_t /*tag*/) const -> auto& {
+  auto hierarchy_mutex(forward_tag /*tag*/) const -> auto& {
     return m_centers0_mutex;
   }
   //----------------------------------------------------------------------------
-  auto hierarchy_mutex(tag::backward_t /*tag*/) const -> auto& {
+  auto hierarchy_mutex(backward_tag /*tag*/) const -> auto& {
     return m_centers1_mutex;
   }
   //----------------------------------------------------------------------------
-  auto hierarchy(tag::forward_t /*tag*/) const -> auto const& {
+  auto hierarchy(forward_tag /*tag*/) const -> auto const& {
     return hierarchy0();
   }
   //----------------------------------------------------------------------------
-  auto hierarchy(tag::backward_t /*tag*/) const -> auto const& {
+  auto hierarchy(backward_tag /*tag*/) const -> auto const& {
     return hierarchy1();
   }
   //============================================================================
@@ -235,15 +240,16 @@ struct autonomous_particle_flowmap_discretization {
   //----------------------------------------------------------------------------
   template <typename Flowmap>
   auto fill(Flowmap&& flowmap, range auto const& initial_particles,
-            arithmetic auto const tau, arithmetic auto const tau_step) {
+            arithmetic auto const tau, arithmetic auto const tau_step,
+            std::atomic_uint64_t& uuid_generator) {
     // if (m_path) {
     //   particle_type::template advect<SplitBehavior>(
     //       std::forward<Flowmap>(flowmap), tau_step, tau, initial_particles,
     //       *m_path);
     // } else {
-    auto [autonomous_particles, simple_particles] =
+    auto [autonomous_particles, simple_particles, edges] =
         particle_type::template advect<SplitBehavior>(
-            std::forward<Flowmap>(flowmap), tau_step, tau, initial_particles);
+            std::forward<Flowmap>(flowmap), tau_step, tau, initial_particles, uuid_generator);
     m_samplers.clear();
     m_samplers.reserve(size(autonomous_particles));
     using namespace std::ranges;
@@ -253,8 +259,9 @@ struct autonomous_particle_flowmap_discretization {
     //}
   }
   //----------------------------------------------------------------------------
-  template <typename Tag, std::size_t... VertexSeq>
-  [[nodiscard]] auto sample(pos_t const& x, Tag const tag,
+  template <std::size_t... VertexSeq>
+  [[nodiscard]] auto sample(pos_t const&                       x,
+                            forward_or_backward_tag auto const tag,
                             std::index_sequence<VertexSeq...> /*seq*/) const {
     sampler_type nearest_sampler;
     auto const&  h  = hierarchy(tag);
@@ -269,20 +276,20 @@ struct autonomous_particle_flowmap_discretization {
  public:
   //----------------------------------------------------------------------------
   [[nodiscard]] auto sample_forward(pos_t const& x) const {
-    return sample(x, tag::forward,
+    return sample(x, forward,
                   std::make_index_sequence<NumDimensions + 1>{});
   }
   //----------------------------------------------------------------------------
-  auto operator()(pos_t const& x, tag::forward_t /*tag*/) const {
+  auto operator()(pos_t const& x, forward_tag /*tag*/) const {
     return sample_forward(x);
   }
   //----------------------------------------------------------------------------
   auto sample_backward(pos_t const& x) const {
-    return sample(x, tag::backward,
+    return sample(x, backward,
                   std::make_index_sequence<NumDimensions + 1>{});
   }
   //----------------------------------------------------------------------------
-  auto operator()(pos_t const& x, tag::backward_t /*tag*/) const {
+  auto operator()(pos_t const& x, backward_tag /*tag*/) const {
     return sample_backward(x);
   }
 };

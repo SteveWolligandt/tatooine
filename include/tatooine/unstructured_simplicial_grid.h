@@ -377,14 +377,13 @@ struct unstructured_simplicial_grid
  public:
   template <detail::rectilinear_grid::dimension DimX,
             detail::rectilinear_grid::dimension DimY>
-  requires(NumDimensions == 2) &&
-      (SimplexDim == 2) explicit unstructured_simplicial_grid(
-          rectilinear_grid<DimX, DimY> const& g) {
+  requires(NumDimensions == 2) && (SimplexDim == 2)
+  explicit unstructured_simplicial_grid(rectilinear_grid<DimX, DimY> const& g) {
     auto const gv = g.vertices();
     for (auto v : gv) {
       insert_vertex(gv[v]);
     }
-    auto const gc = g.simplices();
+    auto const gc = g.vertices();
     auto const s0 = g.size(0);
     gc.iterate_indices([&](auto const i, auto const j) {
       auto const le_bo = vertex_handle{i + j * s0};

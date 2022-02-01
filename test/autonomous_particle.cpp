@@ -37,7 +37,7 @@ using namespace analytical::fields::numerical;
 //  auto& s            = sampler_grid.vec2_vertex_property("phi");
 //  sampler_grid.vertices().iterate_indices([&](auto const... is) {
 //    try {
-//      s(is...) = d(sampler_grid.vertex_at(is...), tag::forward);
+//      s(is...) = d(sampler_grid.vertex_at(is...), forward);
 //    } catch (...) {
 //      s(is...) = vec2{tag::fill{0.0 / 0.0}};
 //    }
@@ -62,12 +62,12 @@ using namespace analytical::fields::numerical;
 //      [&](auto const... is) {
 //        auto const x = sampler_grid.vertex_at(is...);
 //        try {
-//          phi_forward(is...) = d(x, tag::forward);
+//          phi_forward(is...) = d(x, forward);
 //        } catch (...) {
 //          phi_forward(is...) = vec2{tag::fill{0.0 / 0.0}};
 //        }
 //        try {
-//          phi_backward(is...) = d(x, tag::backward);
+//          phi_backward(is...) = d(x, backward);
 //        } catch (...) {
 //          phi_backward(is...) = vec2{tag::fill{0.0 / 0.0}};
 //        }
@@ -114,7 +114,7 @@ using namespace analytical::fields::numerical;
 //  auto sampler = advected_particle.sampler();
 //
 //  auto const px0 = sampler.ellipse0().S() * vec2{0.5, 0.5} + sampler.ellipse0().center();
-//  auto const px1 = sampler(px0, tag::forward);
+//  auto const px1 = sampler(px0, forward);
 //  pointset2  ps;
 //  ps.insert_vertex(px0);
 //  ps.insert_vertex(px1);
