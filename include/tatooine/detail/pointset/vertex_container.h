@@ -88,11 +88,6 @@ struct vertex_container {
 };
 //==============================================================================
 template <typename Real, std::size_t NumDimensions>
-auto vertices(pointset<Real, NumDimensions> const& ps) {
-  return ps.vertices();
-}
-//------------------------------------------------------------------------------
-template <typename Real, std::size_t NumDimensions>
 auto begin(vertex_container<Real, NumDimensions> verts) {
   return verts.begin();
 }
@@ -108,6 +103,15 @@ auto size(vertex_container<Real, NumDimensions> verts) {
 }
 //==============================================================================
 }  // namespace tatooine::detail::pointset
+//==============================================================================
+namespace tatooine {
+//==============================================================================
+template <typename Real, std::size_t NumDimensions>
+auto vertices(pointset<Real, NumDimensions> const& ps) {
+  return ps.vertices();
+}
+//==============================================================================
+}  // namespace tatooine
 //==============================================================================
 template <typename Real, std::size_t NumDimensions>
 inline constexpr bool std::ranges::enable_borrowed_range<

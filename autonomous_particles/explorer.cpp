@@ -160,7 +160,7 @@ auto update_x1() -> void {
   auto active_count = size_t{0};
   for (; active_it != end(active_particles); ++active_it, ++sampler_it) {
     if (*active_it) {
-      x1 += sampler_it->sample(x0, tag::backward);
+      x1 += sampler_it->sample(x0, backward);
       ++active_count;
     }
   }

@@ -104,7 +104,7 @@ auto doublegyre_grid(args_t<2> const& args) -> void {
     real_t mean_autonomous_backward_error = std::numeric_limits<real_t>::max(),
            mean_regular_backward_error    = std::numeric_limits<real_t>::max(),
            mean_agranovsky_backward_error = std::numeric_limits<real_t>::max();
-    size_t     num_points_ood_forward = 0, num_points_ood_backward = 0;
+    //size_t     num_points_ood_forward = 0, num_points_ood_backward = 0;
     std::mutex error_mutex;
 
     //----------------------------------------------------------------------------

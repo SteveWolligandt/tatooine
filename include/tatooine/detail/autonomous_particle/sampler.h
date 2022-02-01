@@ -46,10 +46,10 @@ struct sampler {
   //============================================================================
   // GETTERS / SETTERS
   //============================================================================
-  auto ellipse(tag::forward_t /*tag*/) const -> auto const& {
+  auto ellipse(forward_tag /*tag*/) const -> auto const& {
     return m_ellipse0;
   }
-  auto ellipse(tag::backward_t /*tag*/) const -> auto const& {
+  auto ellipse(backward_tag /*tag*/) const -> auto const& {
     return m_ellipse1;
   }
   auto ellipse0() const -> auto const& { return m_ellipse0; }
@@ -60,39 +60,45 @@ struct sampler {
   auto sample_forward(pos_t const& x) const {
     return ellipse1().center() + nabla_phi() * (x - ellipse0().center());
   }
-  auto operator()(pos_t const& x, tag::forward_t /*tag*/) const {
+  auto operator()(pos_t const& x, forward_tag /*tag*/) const {
     return sample_forward(x);
   }
-  auto sample(pos_t const& x, tag::forward_t /*tag*/) const {
+  auto sample(pos_t const& x, forward_tag /*tag*/) const {
     return sample_forward(x);
   }
   auto sample_backward(pos_t const& x) const {
     return ellipse0().center() + m_nabla_phi_inv * (x - ellipse1().center());
   }
-  auto sample(pos_t const& x, tag::backward_t /*tag*/) const {
+  auto sample(pos_t const& x, backward_tag /*tag*/) const {
     return sample_backward(x);
   }
-  auto operator()(pos_t const& x, tag::backward_t /*tag*/) const {
+  auto operator()(pos_t const& x, backward_tag /*tag*/) const {
     return sample_backward(x);
   }
   auto is_inside0(pos_t const& x) const { return m_ellipse0.is_inside(x); }
-  auto is_inside(pos_t const& x, tag::forward_t /*tag*/) const {
+  auto is_inside(pos_t const& x, forward_tag /*tag*/) const {
     return is_inside0(x);
   }
   auto is_inside1(pos_t const& x) const { return m_ellipse1.is_inside(x); }
-  auto is_inside(pos_t const& x, tag::backward_t /*tag*/) const {
+  auto is_inside(pos_t const& x, backward_tag /*tag*/) const {
     return is_inside1(x);
   }
-  auto center(tag::forward_t /*tag*/) const -> auto const& {
+  auto center(forward_tag /*tag*/) const -> auto const& {
     return m_ellipse0.center();
   }
-  auto center(tag::backward_t /*tag*/) const -> auto const& {
+  auto center(backward_tag /*tag*/) const -> auto const& {
     return m_ellipse1.center();
   }
-  auto distance_sqr(pos_t const& x, tag::forward_t tag) const {
+  auto opposite_center(forward_tag /*tag*/) const -> auto const& {
+    return m_ellipse1.center();
+  }
+  auto opposite_center(backward_tag /*tag*/) const -> auto const& {
+    return m_ellipse0.center();
+  }
+  auto distance_sqr(pos_t const& x, forward_tag tag) const {
     return tatooine::length(nabla_phi() * (x - center(tag)));
   }
-  auto distance_sqr(pos_t const& x, tag::backward_t tag) const {
+  auto distance_sqr(pos_t const& x, backward_tag tag) const {
     return tatooine::length(solve(nabla_phi(), (x - center(tag))));
   }
   auto distance(pos_t const& x, auto const tag) const {

@@ -1,6 +1,20 @@
 #ifndef TATOOINE_TAGS_H
 #define TATOOINE_TAGS_H
 //==============================================================================
+#include <concepts>
+//==============================================================================
+namespace tatooine {
+//==============================================================================
+struct forward_tag {};
+static constexpr forward_tag forward;
+struct backward_tag {};
+static constexpr backward_tag backward;
+template <typename T>
+concept forward_or_backward_tag =
+    (std::same_as<T, forward_tag>) || (std::same_as<T, backward_tag>);
+//==============================================================================
+}  // namespace tatooine
+//==============================================================================
 namespace tatooine::execution_policy {
 //==============================================================================
 struct parallel_t {};
@@ -23,10 +37,6 @@ struct eye_t {};
 static constexpr eye_t eye;
 struct automatic_t {};
 static constexpr automatic_t automatic;
-struct forward_t {};
-static constexpr forward_t forward;
-struct backward_t {};
-static constexpr backward_t backward;
 struct central_t {};
 static constexpr central_t central;
 struct quadratic_t {};
@@ -43,7 +53,7 @@ struct fill {
   Real value;
 };
 template <typename Real>
-fill(Real)->fill<Real>;
+fill(Real) -> fill<Real>;
 
 struct zeros_t {};
 static constexpr zeros_t zeros;
