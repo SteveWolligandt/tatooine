@@ -69,7 +69,8 @@ struct camera_controller : gl::window_listener {
   friend struct camera_controller_interface<Real>;
   class perspective_camera<Real>                     m_pcam;
   class orthographic_camera<Real>                    m_ocam;
-  camera<Real>*                                      m_active_cam;
+  float                                              orthographic_height = 1.0f;
+  polymorphic::camera<Real>*                         m_active_cam;
   std::unique_ptr<camera_controller_interface<Real>> m_controller;
   //============================================================================
   camera_controller(size_t const res_x, size_t const res_y)
@@ -93,6 +94,10 @@ struct camera_controller : gl::window_listener {
     use_fps_controller();
   }
   //============================================================================
+  auto active_camera() const -> auto const& { return *m_active_cam; }
+  auto unproject(Vec2<Real> const& x) {
+    return m_active_cam->unproject(x);
+  }
   auto unproject(Vec4<Real> const& x) {
     return m_active_cam->unproject(x);
   }
@@ -223,8 +228,10 @@ struct camera_controller : gl::window_listener {
     }
   }
   void on_resize(int w, int h) override {
-    m_pcam.set_resolution(w, h);
-    m_ocam.set_resolution(w, h);
+    m_pcam.set_resolution_without_update(w, h);
+    m_ocam.set_resolution_without_update(w, h);
+    m_ocam.setup(orthographic_height * m_ocam.aspect_ratio(),
+                 orthographic_height);
     if (m_controller) {
       m_controller->on_resize(w, h);
     }
@@ -461,11 +468,11 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
       auto offset_x = std::ceil(x) - m_mouse_pos_x;
       auto offset_y = std::ceil(y) - m_mouse_pos_y;
       auto new_eye  = controller().eye();
-      new_eye(0) -= static_cast<Real>(offset_x) *
+      new_eye(0) += static_cast<Real>(offset_x) *
                     controller().orthographic_camera().aspect_ratio() /
                     controller().orthographic_camera().plane_width() *
                     controller().orthographic_camera().height();
-      new_eye(1) += static_cast<Real>(offset_y) /
+      new_eye(1) -= static_cast<Real>(offset_y) /
                     controller().orthographic_camera().plane_height() *
                     controller().orthographic_camera().height();
       new_eye(2) = 0;
@@ -478,6 +485,7 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
   auto on_wheel_down() -> void override {
     controller().orthographic_camera().setup(
         controller().eye(), controller().lookat(), controller().up(),
+        controller().orthographic_camera().width() / 0.9,
         controller().orthographic_camera().height() / 0.9,
         controller().orthographic_camera().near(),
         controller().orthographic_camera().far(),
@@ -487,6 +495,7 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
   auto on_wheel_up() -> void override {
     controller().orthographic_camera().setup(
         controller().eye(), controller().lookat(), controller().up(),
+        controller().orthographic_camera().width() * 0.9,
         controller().orthographic_camera().height() * 0.9,
         controller().orthographic_camera().near(),
         controller().orthographic_camera().far(),

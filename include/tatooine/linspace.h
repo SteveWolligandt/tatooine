@@ -82,8 +82,8 @@ struct linspace {
   //----------------------------------------------------------------------------
   constexpr auto operator[](std::size_t i) const { return at(i); }
   //----------------------------------------------------------------------------
-  constexpr auto        begin() const { return iterator{this, 0}; }
-  static constexpr auto end() { return typename iterator::sentinel_type{}; }
+  constexpr auto begin() const { return iterator{this, 0}; }
+  constexpr auto end() const { return typename iterator::sentinel_type{this}; }
   //----------------------------------------------------------------------------
   constexpr auto size() const { return m_size; }
   constexpr auto size() -> auto& { return m_size; }
@@ -194,8 +194,12 @@ TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
 namespace tatooine::detail::linspace {
 //==============================================================================
 template <floating_point Real>
+struct sentinel {
+  tatooine::linspace<Real> const* linspace = nullptr;
+};
+template <floating_point Real>
 struct iterator : iterator_facade<iterator<Real>> {
-  struct sentinel_type {};
+  using sentinel_type = sentinel<Real>;
   using linspace_type = tatooine::linspace<Real>;
   //============================================================================
   // typedefs
@@ -250,24 +254,29 @@ auto next(iterator<Real> const& l, std::size_t diff = 1) {
 }
 //------------------------------------------------------------------------------
 template <floating_point Real>
-auto prev(iterator<Real> const& l, std::size_t diff = 1) {
-  iterator<Real> it{l};
-  it.decrement(diff);
-  return it;
+auto prev(iterator<Real> const& it, std::size_t const diff = 1) {
+  auto prev_it = iterator<Real> {it};
+  prev_it.decrement(diff);
+  return prev_it;
 }
 //------------------------------------------------------------------------------
 template <floating_point Real>
-inline auto advance(iterator<Real>& l, long n = 1) -> auto& {
+auto prev(sentinel<Real> const& it, std::size_t const diff = 1) {
+  return iterator<Real>{it.linspace, it.linspace->size() - diff};
+}
+//------------------------------------------------------------------------------
+template <floating_point Real>
+inline auto advance(iterator<Real>& it, long n = 1) -> auto& {
   if (n < 0) {
     while (n++) {
-      --l;
+      --it;
     }
   } else {
     while (n--) {
-      ++l;
+      ++it;
     }
   }
-  return l;
+  return it;
 }
 //==============================================================================
 }  // namespace tatooine::detail::linspace

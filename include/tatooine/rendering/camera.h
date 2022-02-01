@@ -11,17 +11,15 @@
 //==============================================================================
 namespace tatooine::rendering {
 //==============================================================================
-/// \brief Interface for camera implementations.
-///
-/// Implementations must override the ray method that casts rays through the
-/// camera's image plane.
-template <floating_point Real, typename Derived>
-struct camera_interface {
+namespace polymorphic {
+template <floating_point Real>
+struct camera {
   //----------------------------------------------------------------------------
   // typedefs
   //----------------------------------------------------------------------------
   using real_t = Real;
-  using this_t = camera_interface<Real, Derived>;
+  using this_t = camera<Real>;
+  using vec2   = Vec2<Real>;
   using vec3   = Vec3<Real>;
   using vec4   = Vec4<Real>;
   using mat4   = Mat4<Real>;
@@ -40,7 +38,7 @@ struct camera_interface {
   // constructors / destructor
   //----------------------------------------------------------------------------
  public:
-  camera_interface(vec3 const& eye, vec3 const& lookat, vec3 const& up, Real const near,
+  camera(vec3 const& eye, vec3 const& lookat, vec3 const& up, Real const near,
          Real const far, std::size_t const res_x, std::size_t const res_y)
       : m_eye{eye},
         m_lookat{lookat},
@@ -49,7 +47,7 @@ struct camera_interface {
         m_far{far},
         m_viewport{0, 0, res_x, res_y} {}
   //----------------------------------------------------------------------------
-  ~camera_interface() = default;
+  virtual ~camera() = default;
   //----------------------------------------------------------------------------
   // object methods
   //----------------------------------------------------------------------------
@@ -65,10 +63,17 @@ struct camera_interface {
   //----------------------------------------------------------------------------
   auto eye() const -> auto& { return m_eye; }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto set_eye_without_update(Real const x, Real const y, Real const z)
+      -> void {
+    m_eye = {x, y, z};
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto set_eye(Real const x, Real const y, Real const z) -> void {
     m_eye = {x, y, z};
     setup();
   }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto set_eye_without_update(vec3 const& eye) -> void { m_eye = eye; }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto set_eye(vec3 const& eye) -> void {
     m_eye = eye;
@@ -77,9 +82,18 @@ struct camera_interface {
   //----------------------------------------------------------------------------
   auto lookat() const -> auto& { return m_lookat; }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto set_lookat_without_update(Real const x, Real const y, Real const z)
+      -> void {
+    m_lookat = {x, y, z};
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto set_lookat(Real const x, Real const y, Real const z) -> void {
     m_lookat = {x, y, z};
     setup();
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto set_lookat_without_update(vec3 const lookat) -> void {
+    m_lookat = lookat;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto set_lookat(vec3 const lookat) -> void {
@@ -89,14 +103,30 @@ struct camera_interface {
   //----------------------------------------------------------------------------
   auto up() const -> auto& { return m_up; }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto set_up_without_update(Real const x, Real const y, Real const z) -> void {
+    m_up = {x, y, z};
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto set_up(Real const x, Real const y, Real const z) -> void {
     m_up = {x, y, z};
     setup();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto set_up_without_update(vec3 const up) -> void { m_up = up; }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto set_up(vec3 const up) -> void {
     m_up = up;
     setup();
+  }
+  //----------------------------------------------------------------------------
+  auto set_viewport_without_update(std::size_t const bottom,
+                                   std::size_t const left,
+                                   std::size_t const width,
+                                   std::size_t const height) {
+    m_viewport(0) = bottom;
+    m_viewport(1) = left;
+    m_viewport(2) = width;
+    m_viewport(3) = height;
   }
   //----------------------------------------------------------------------------
   auto set_viewport(std::size_t const bottom, std::size_t const left,
@@ -106,6 +136,12 @@ struct camera_interface {
     m_viewport(2) = width;
     m_viewport(3) = height;
     setup();
+  }
+  //----------------------------------------------------------------------------
+  auto set_resolution_without_update(std::size_t const width,
+                                     std::size_t const height) {
+    m_viewport(2) = width;
+    m_viewport(3) = height;
   }
   //----------------------------------------------------------------------------
   auto set_resolution(std::size_t const width, std::size_t const height) {
@@ -124,6 +160,7 @@ struct camera_interface {
   //----------------------------------------------------------------------------
   auto near() const { return m_near; }
   auto n() const { return near(); }
+  auto set_near_without_update(Real const near) { m_near = near; }
   auto set_near(Real const near) {
     m_near = near;
     setup();
@@ -131,6 +168,7 @@ struct camera_interface {
   //----------------------------------------------------------------------------
   auto far() const { return m_far; }
   auto f() const { return far(); }
+  auto set_far_without_update(Real const far) { m_far = far; }
   auto set_far(Real const far) {
     m_far = far;
     setup();
@@ -146,23 +184,31 @@ struct camera_interface {
   }
   //----------------------------------------------------------------------------
   /// Projects a screen coordinates to world coordinates.
-  auto unproject(vec4 x) const {
-    // Transformation of normalized coordinates between -1 and 1
-    x(0) = (x(0) - m_viewport(0)) / plane_width() * 2 - 1;
-    x(1) = (m_viewport(3) - x(1) - m_viewport(1)) / m_viewport(3) * 2 - 1;
-    x(2) = 2 * x(2) - 1;
-    x(3) = 1;
-    x    = solve(projection_matrix() * view_matrix(), x);
-    x(3) = 1.0 / x(3);
-    x(0) = x(0) * x(3);
-    x(1) = x(1) * x(3);
-    x(2) = x(2) * x(3);
-    return x;
+  auto unproject(vec2 const& p) const {
+    return unproject(vec4{p.x(), p.y(), 0, 1});
+  }
+  //----------------------------------------------------------------------------
+  /// Projects a homogeneous screen coordinates to world coordinates.
+  auto unproject(vec4 p) const {
+    // screen space to canonical view volume
+    p(0) = (p(0) - m_viewport(0)) / (plane_width() - 1) * 2 - 1;
+    p(1) = (p(1) - m_viewport(1)) / (plane_height() - 1) * 2 - 1;
+    p(2) = p(2) * 2 - 1;
+    p(3) = 1;
+
+    // canonical view volume to world coordinate
+    p    = solve(view_matrix() * projection_matrix(), p);
+    p(3) = 1 / p(3);
+    p(0) = p(0) * p(3);
+    p(1) = p(1) * p(3);
+    p(2) = p(2) * p(3);
+    p(3) = 1;
+    return p;
   }
   //----------------------------------------------------------------------------
   /// Projects a world coordinate to screen coordinates.
-  auto project(vec3 const& x) const {
-    return project(vec4{x(0), x(1), x(2), 1});
+  auto project(vec3 const& p) const {
+    return project(vec4{p(0), p(1), p(2), 1});
   }
   //----------------------------------------------------------------------------
   /// Projects a homogeneous world coordinate to screen coordinates.
@@ -210,25 +256,41 @@ struct camera_interface {
   //----------------------------------------------------------------------------
   // interface methods
   //----------------------------------------------------------------------------
-  auto projection_matrix() const -> mat4 {
+  virtual auto projection_matrix() const -> mat4 = 0;
+};
+}  // namespace polymorphic
+/// \brief Interface for camera implementations.
+///
+/// Implementations must override the ray method that casts rays through the
+/// camera's image plane.
+template <floating_point Real, typename Derived>
+struct camera_interface : polymorphic::camera<Real> {
+  using this_type   = camera_interface<Real, Derived>;
+  using parent_type = polymorphic::camera<Real>;
+  //----------------------------------------------------------------------------
+  using parent_type::parent_type;
+  using typename parent_type::mat4;
+  //----------------------------------------------------------------------------
+  virtual ~camera_interface() = default;
+  //----------------------------------------------------------------------------
+  auto projection_matrix() const -> mat4 override {
     return static_cast<Derived const*>(this)->projection_matrix();
   };
 };
 //==============================================================================
 namespace details::camera {
 //==============================================================================
-template <typename Derived, std::floating_point Real>
-auto ptr_convertible_to_camera_interface(
-    const volatile camera_interface<Real, Derived>*) -> std::true_type;
+template <std::floating_point Real>
+auto ptr_convertible_to_camera(const volatile polymorphic::camera<Real>*)
+    -> std::true_type;
 template <typename>
-auto ptr_convertible_to_camera_interface(const volatile void*)
-    -> std::false_type;
+auto ptr_convertible_to_camera(const volatile void*) -> std::false_type;
 
 template <typename>
-auto is_derived_from_camera_interface(...) -> std::true_type;
+auto is_derived_from_camera(...) -> std::true_type;
 template <typename D>
-auto is_derived_from_camera_interface(int) -> decltype(
-    ptr_convertible_to_camera_interface<D>(static_cast<D*>(nullptr)));
+auto is_derived_from_camera(int)
+    -> decltype(ptr_convertible_to_camera(static_cast<D*>(nullptr)));
 //==============================================================================
 }  // namespace details::camera
 //==============================================================================
@@ -236,9 +298,8 @@ template <typename T>
 struct is_camera_impl
     : std::integral_constant<
           bool,
-          std::is_class_v<T>&& decltype(
-              details::camera::is_derived_from_camera_interface<T>(0))::value> {
-};
+          std::is_class_v<T>&& decltype(details::camera::is_derived_from_camera<
+                                        T>(0))::value> {};
 //------------------------------------------------------------------------------
 template <typename T>
 static auto constexpr is_camera = is_camera_impl<T>::value;

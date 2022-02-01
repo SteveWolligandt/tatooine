@@ -11,10 +11,10 @@
 //==============================================================================
 using namespace tatooine;
 //==============================================================================
-auto v                = analytical::fields::numerical::doublegyre{};
-//auto v                = analytical::fields::numerical::saddle{};
-auto particles        = autonomous_particle2::container_t{};
-auto samplers         = std::vector<autonomous_particle2::sampler_t>{};
+auto v = analytical::fields::numerical::doublegyre{};
+// auto v                = analytical::fields::numerical::saddle{};
+auto particles        = autonomous_particle2::container_type{};
+auto samplers         = std::vector<autonomous_particle2::sampler_type>{};
 auto active_particles = std::vector<bool>{};
 auto x0               = vec2{};
 auto x1               = vec2{};
@@ -144,7 +144,7 @@ auto x0_geometry              = std::unique_ptr<gl::indexeddata<vec2f>>{};
 auto x1_geometry              = std::unique_ptr<gl::indexeddata<vec2f>>{};
 auto update_x0(Vec2<size_t> const& mouse_pos) -> void {
   auto unprojected = win->camera_controller().unproject(
-      vec4f{mouse_pos(0), mouse_pos(1), 0, 1});
+      vec2f{mouse_pos(0), win->height() - 1 - mouse_pos(1)});
   auto q                         = vec2{unprojected(0), unprojected(1)};
   auto active_it                 = begin(active_particles);
   active_particles               = std::vector<bool>(size(particles), false);
@@ -155,7 +155,7 @@ auto update_x0(Vec2<size_t> const& mouse_pos) -> void {
 //------------------------------------------------------------------------------
 auto update_x1() -> void {
   x1                = vec2::zeros();
-  auto active_it         = begin(active_particles);
+  auto active_it    = begin(active_particles);
   auto sampler_it   = begin(samplers);
   auto active_count = size_t{0};
   for (; active_it != end(active_particles); ++active_it, ++sampler_it) {
@@ -173,14 +173,15 @@ auto update_x1() -> void {
 }
 //------------------------------------------------------------------------------
 auto update_nearest() {
-  active_particles               = std::vector<bool>(size(particles), false);
-  auto shortest_distance         = std::numeric_limits<real_t>::infinity();
-  auto a                         = end(active_particles);
-  auto active_it                 = begin(active_particles);
-  autonomous_particle2::sampler_t const* nearest_sampler = nullptr;
+  active_particles       = std::vector<bool>(size(particles), false);
+  auto shortest_distance = std::numeric_limits<real_t>::infinity();
+  auto a                 = end(active_particles);
+  auto active_it         = begin(active_particles);
+  autonomous_particle2::sampler_type const* nearest_sampler = nullptr;
   for (auto const& s : samplers) {
-    if (auto const dist = s.ellipse1().squared_euclidean_distance_to_center(x0) *
-                          s.ellipse1().squared_local_euclidean_distance_to_center(x0);
+    if (auto const dist =
+            s.ellipse1().squared_euclidean_distance_to_center(x0) *
+            s.ellipse1().squared_local_euclidean_distance_to_center(x0);
         dist < shortest_distance) {
       shortest_distance = dist;
       nearest_sampler   = &s;
@@ -237,19 +238,23 @@ struct listener_t : gl::window_listener {
   }
 };
 //==============================================================================
-auto advect_particles() ->void {
+auto advect_particles() -> void {
   particles.clear();
   samplers.clear();
   auto const bottom_left = vec2{1.0, 0.5};
-  particles.emplace_back(bottom_left, t0, r0);
-  particles.emplace_back(bottom_left + vec2{2 * r0, 0}, t0, r0);
-  particles.emplace_back(bottom_left + vec2{0, 2 * r0}, t0, r0);
-  particles.emplace_back(bottom_left + vec2{2 * r0, 2 * r0}, t0, r0);
-  //particles.emplace_back(vec2{0.2, 0.2}, t0, r0);
-  //particles.emplace_back(vec2{0.4, 0.2}, t0, r0);
-  //particles.emplace_back(vec2{0.2, 0.4}, t0, r0);
-  //particles.emplace_back(vec2{0.4, 0.4}, t0, r0);
-  particles = autonomous_particle2::advect(flowmap(v), 0.01, tau, particles);
+  auto       uuid_generator = std::atomic_uint64_t{};
+  particles.emplace_back(bottom_left, t0, r0, uuid_generator);
+  particles.emplace_back(bottom_left + vec2{2 * r0, 0}, t0, r0, uuid_generator);
+  particles.emplace_back(bottom_left + vec2{0, 2 * r0}, t0, r0, uuid_generator);
+  particles.emplace_back(bottom_left + vec2{2 * r0, 2 * r0}, t0, r0,
+                         uuid_generator);
+  // particles.emplace_back(vec2{0.2, 0.2}, t0, r0);
+  // particles.emplace_back(vec2{0.4, 0.2}, t0, r0);
+  // particles.emplace_back(vec2{0.2, 0.4}, t0, r0);
+  // particles.emplace_back(vec2{0.4, 0.4}, t0, r0);
+  particles           = std::get<0>(autonomous_particle2::advect<
+                          autonomous_particle2::split_behaviors::three_splits>(
+      flowmap(v), 0.01, tau, particles, uuid_generator));
   active_particles = std::vector<bool>(size(particles), false);
   std::transform(begin(particles), end(particles), std::back_inserter(samplers),
                  [](auto const& p) { return p.sampler(); });
@@ -301,19 +306,19 @@ auto render_particles() -> void {
   particle_shader->bind();
   particle_shader->set_projection_matrix(
       win->camera_controller().projection_matrix());
-  auto const V         = win->camera_controller().view_matrix();
-  auto       M         = mat4f::zeros();
-  M(2, 2)              = static_cast<float>(1);
-  M(3, 3)              = static_cast<float>(1);
-  auto       active_it = begin(active_particles);
+  auto const V   = win->camera_controller().view_matrix();
+  auto       M   = mat4f::zeros();
+  M(2, 2)        = static_cast<float>(1);
+  M(3, 3)        = static_cast<float>(1);
+  auto active_it = begin(active_particles);
   for (auto const& p : particles) {
     auto const is_active = *(active_it++);
-    M(0, 0) = static_cast<float>(p.S()(0, 0));
-    M(1, 0) = static_cast<float>(p.S()(1, 0));
-    M(0, 1) = static_cast<float>(p.S()(0, 1));
-    M(1, 1) = static_cast<float>(p.S()(1, 1));
-    M(0, 3) = static_cast<float>(p.center(0));
-    M(1, 3) = static_cast<float>(p.center(1));
+    M(0, 0)              = static_cast<float>(p.S()(0, 0));
+    M(1, 0)              = static_cast<float>(p.S()(1, 0));
+    M(0, 1)              = static_cast<float>(p.S()(0, 1));
+    M(1, 1)              = static_cast<float>(p.S()(1, 1));
+    M(0, 3)              = static_cast<float>(p.center(0));
+    M(1, 3)              = static_cast<float>(p.center(1));
     particle_shader->set_modelview_matrix(V * M);
     if (is_active) {
       gl::line_width(3);
@@ -425,13 +430,13 @@ auto create_particle_geometry() -> void {
     }
     data[ellipse_num_points] = 0;
   }
-  particle_center_geometry             = std::make_unique<gl::indexeddata<vec2f>>();
+  particle_center_geometry = std::make_unique<gl::indexeddata<vec2f>>();
   particle_center_geometry->vertexbuffer().resize(size(samplers));
   particle_center_geometry->indexbuffer().resize(size(samplers));
   {
     auto data = particle_center_geometry->vertexbuffer().wmap();
-    auto it = begin(data);
-    for (auto const& s:samplers) {
+    auto it   = begin(data);
+    for (auto const& s : samplers) {
       *(it++) = s.ellipse1().center();
     }
   }

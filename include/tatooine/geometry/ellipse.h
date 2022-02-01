@@ -19,10 +19,13 @@ struct ellipse : hyper_ellipse<Real, 2> {
 //==============================================================================
 ellipse()->ellipse<real_t>;
 //------------------------------------------------------------------------------
-template <typename Real0, typename Real1>
+template <floating_point Real>
+ellipse(Real const) -> ellipse<Real>;
+//------------------------------------------------------------------------------
+template <floating_point Real0, floating_point Real1>
 ellipse(Real0 const, Real1 const) -> ellipse<common_type<Real0, Real1>>;
 //------------------------------------------------------------------------------
-template <typename Real0, typename Real1>
+template <floating_point Real0, floating_point Real1>
 ellipse(vec<Real0, 3> const&, vec<Real1, 3> const&)
     -> ellipse<common_type<Real0, Real1>>;
 //==============================================================================
