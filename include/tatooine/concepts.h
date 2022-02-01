@@ -99,20 +99,19 @@ concept range = std::ranges::range<T>;
 //------------------------------------------------------------------------------
 template <typename T>
 concept arithmetic_range =
-    range<T> && arithmetic<typename std::decay_t<T>::value_type>;
+    range<T> && arithmetic<std::ranges::range_value_t<T>>;
 //------------------------------------------------------------------------------
 template <typename T>
 concept integral_range =
-    range<T> && integral<typename std::decay_t<T>::value_type>;
+    range<T> && integral<std::ranges::range_value_t<T>>;
 //------------------------------------------------------------------------------
 template <typename T>
 concept floating_point_range =
-    range<T> && floating_point<typename std::decay_t<T>::value_type>;
+    range<T> && floating_point<std::ranges::range_value_t<T>>;
 //------------------------------------------------------------------------------
 template <typename T, typename S>
 concept range_of =
-    range<T> && std::same_as<typename std::decay_t<T>::value_type, S>;
-
+    range<T> && std::same_as<std::ranges::range_value_t<T>, S>;
 //==============================================================================
 // indexable
 //==============================================================================

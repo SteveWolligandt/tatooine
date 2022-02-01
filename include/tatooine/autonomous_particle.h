@@ -43,7 +43,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   using vec_t                       = vec<real_t, NumDimensions>;
   using mat_t                       = mat<real_t, NumDimensions, NumDimensions>;
   using pos_t                       = vec_t;
-  using container_t                 = std::vector<this_t>;
+  using container_type              = std::vector<this_t>;
   using simple_particle_container_t = std::vector<simple_particle_t>;
   using ellipse_t = geometry::hyper_ellipse<Real, NumDimensions>;
   using parent_t  = ellipse_t;
@@ -75,9 +75,9 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   autonomous_particle(autonomous_particle const& other)     = default;
   autonomous_particle(autonomous_particle&& other) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator=(autonomous_particle const& other)
+  auto operator               =(autonomous_particle const& other)
       -> autonomous_particle& = default;
-  auto operator=(autonomous_particle&& other) noexcept
+  auto operator               =(autonomous_particle&& other) noexcept
       -> autonomous_particle& = default;
   //----------------------------------------------------------------------------
   ~autonomous_particle() = default;
@@ -160,9 +160,9 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //     typename Flowmap>
   // static auto advect(Flowmap&& phi, real_t const step_size, real_t const
   // t_end,
-  //                    container_t const&      particles,
+  //                    container_type const&      particles,
   //                    filesystem::path const& path) {
-  //   // auto       finished_particles = container_t{};
+  //   // auto       finished_particles = container_type{};
   //   auto const num_threads =
   //       static_cast<std::size_t>(std::thread::hardware_concurrency());
   //   if (filesystem::exists(path)) {
@@ -170,11 +170,11 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //   }
   //   auto file = hdf5::file{path};
   //   auto hdd_data =
-  //       std::array{file.create_dataset<typename container_t::value_type>(
+  //       std::array{file.create_dataset<typename container_type::value_type>(
   //                      "ping", hdf5::unlimited),
-  //                  file.create_dataset<typename container_t::value_type>(
+  //                  file.create_dataset<typename container_type::value_type>(
   //                      "pong", hdf5::unlimited)};
-  //   auto finished = file.create_dataset<typename container_t::value_type>(
+  //   auto finished = file.create_dataset<typename container_type::value_type>(
   //       "finished", hdf5::unlimited);
   //   std::size_t reader = 0;
   //   std::size_t writer = 1;
@@ -187,9 +187,10 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //         std::vector<aligned<std::pair<std::size_t, std::size_t>>>(
   //             num_threads);
   //     auto advected_particles =
-  //     std::vector<aligned<container_t>>(num_threads); auto finished_particles
-  //     = std::vector<aligned<container_t>>(num_threads); auto loaded_particles
-  //     = std::vector<aligned<container_t>>(num_threads); std::size_t const
+  //     std::vector<aligned<container_type>>(num_threads); auto
+  //     finished_particles = std::vector<aligned<container_type>>(num_threads);
+  //     auto loaded_particles =
+  //     std::vector<aligned<container_type>>(num_threads); std::size_t const
   //     num_particles_at_once = 10000000; for (auto& l : loaded_particles) {
   //       l->reserve(num_particles_at_once);
   //     }
@@ -286,8 +287,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   /// Advects single particle.
   template <typename Flowmap>
   auto advect_with_two_splits(Flowmap&& phi, real_t const step_size,
-                                real_t const          t_end,
-                                std::atomic_uint64_t& uuid_generator) const {
+                              real_t const          t_end,
+                              std::atomic_uint64_t& uuid_generator) const {
     return advect<typename split_behaviors::two_splits>(
         std::forward<Flowmap>(phi), step_size, t_end, uuid_generator);
   }
@@ -408,11 +409,11 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   template <
       split_behavior SplitBehavior = typename split_behaviors::three_splits,
       typename Flowmap>
-  static auto advect(Flowmap&& phi, real_t const step_size,
-                     real_t const t_end, container_t const& initial_particles,
+  static auto advect(Flowmap&& phi, real_t const step_size, real_t const t_end,
+                     container_type const& initial_particles,
                      std::atomic_uint64_t& uuid_generator) {
     using namespace detail::autonomous_particle;
-    auto particles                     = container_t{};
+    auto particles       = container_type{};
     auto hierarchy_mutex = std::mutex{};
     auto hierarchy_pairs = std::vector<hierarchy_pair>{};
     hierarchy_pairs.reserve(particles.size());
@@ -421,8 +422,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     }
     auto [advected_particles, advected_simple_particles] =
         advect<SplitBehavior>(std::forward<Flowmap>(phi), step_size, t_end,
-                              initial_particles, hierarchy_pairs, hierarchy_mutex,
-                              uuid_generator);
+                              initial_particles, hierarchy_pairs,
+                              hierarchy_mutex, uuid_generator);
 
     auto edges = edgeset<Real, NumDimensions>{};
     auto map   = std::unordered_map<
@@ -430,24 +431,24 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     for (auto const& p : advected_particles) {
       map[p.id()] = edges.insert_vertex(p.center());
     }
-    //auto const h = hierarchy{hierarchy_pairs, map, edges};
-    //triangulate(edges, h);
+    // auto const h = hierarchy{hierarchy_pairs, map, edges};
+    // triangulate(edges, h);
     //
-    //auto const s = initial_particle_distribution.size();
-    //for (std::size_t j = 0; j < s[1]; ++j) {
-    //  for (std::size_t i = 0; i < s[0] - 1; ++i) {
-    //    auto const id0 = i + j * s[0];
-    //    auto const id1 = (i + 1) + j * s[0];
-    //    triangulate(edges, h.find_by_id(id0), h.find_by_id(id1));
-    //  }
-    //}
-    //for (std::size_t i = 0; i < s[0]; ++i) {
-    //  for (std::size_t j = 0; j < s[1] - 1; ++j) {
-    //    auto const id0 = i + j * s[0];
-    //    auto const id1 = i + (j + 1) * s[0];
-    //    triangulate(edges, h.find_by_id(id0), h.find_by_id(id1));
-    //  }
-    //}
+    // auto const s = initial_particle_distribution.size();
+    // for (std::size_t j = 0; j < s[1]; ++j) {
+    //   for (std::size_t i = 0; i < s[0] - 1; ++i) {
+    //     auto const id0 = i + j * s[0];
+    //     auto const id1 = (i + 1) + j * s[0];
+    //     triangulate(edges, h.find_by_id(id0), h.find_by_id(id1));
+    //   }
+    // }
+    // for (std::size_t i = 0; i < s[0]; ++i) {
+    //   for (std::size_t j = 0; j < s[1] - 1; ++j) {
+    //     auto const id0 = i + j * s[0];
+    //     auto const id1 = i + (j + 1) * s[0];
+    //     triangulate(edges, h.find_by_id(id0), h.find_by_id(id1));
+    //   }
+    // }
 
     return std::tuple{std::move(advected_particles),
                       std::move(advected_simple_particles), std::move(edges)};
@@ -469,7 +470,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
                      real_t const                                         t_end,
                      uniform_rectilinear_grid<Real, NumDimensions> const& g) {
     using namespace detail::autonomous_particle;
-    auto particles                     = container_t{};
+    auto particles                     = container_type{};
     auto initial_particle_distribution = g.copy_without_properties();
     auto uuid_generator                = std::atomic_uint64_t{0};
     for (std::size_t i = 0; i < NumDimensions; ++i) {
@@ -538,20 +539,19 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   /// \param particles Particles to be advected.
   template <split_behavior SplitBehavior, typename Flowmap>
   static auto advect(Flowmap&& phi, real_t const step_size, real_t const t_end,
-                     container_t                  particles,
+                     container_type               particles,
                      std::vector<hierarchy_pair>& hierarchy_pairs,
                      std::mutex&                  hierarchy_mutex,
                      std::atomic_uint64_t&        uuid_generator) {
     auto const num_threads = this_t::num_threads();
 
-    auto finished_particles        = container_t{};
+    auto finished_particles        = container_type{};
     auto finished_simple_particles = simple_particle_container_t{};
 
     // {particles_to_be_advected, advected_particles, finished_particles}
-    auto particles_per_thread =
-        std::vector<aligned<std::tuple<container_t, container_t, container_t,
-                                       simple_particle_container_t>>>(
-            num_threads);
+    auto particles_per_thread = std::vector<
+        aligned<std::tuple<container_type, container_type, container_type,
+                           simple_particle_container_t>>>(num_threads);
     while (particles.size() > 0) {
       distribute_particles_to_thread_containers(num_threads, particles,
                                                 particles_per_thread);
@@ -578,7 +578,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   }
   //----------------------------------------------------------------------------
   static auto distribute_particles_to_thread_containers(
-      std::size_t const num_threads, container_t& particles,
+      std::size_t const num_threads, container_type& particles,
       auto& particles_per_thread) {
     using namespace std::ranges;
 #pragma omp parallel
@@ -615,8 +615,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     }
   }
   //----------------------------------------------------------------------------
-  static auto gather_particles(container_t&                 particles,
-                               container_t&                 finished_particles,
+  static auto gather_particles(container_type&              particles,
+                               container_type&              finished_particles,
                                simple_particle_container_t& simple_particles,
                                auto& particles_per_thread) {
     using namespace std::ranges;
@@ -650,8 +650,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
       split_behavior SplitBehavior = typename split_behaviors::three_splits,
       typename Flowmap>
   auto advect_until_split(Flowmap phi, real_t step_size, real_t const t_end,
-                          container_t&                 splitted_particles,
-                          container_t&                 finished_particles,
+                          container_type&              splitted_particles,
+                          container_type&              finished_particles,
                           simple_particle_container_t& simple_particles,
                           std::vector<hierarchy_pair>& hierarchy_pairs,
                           std::mutex&                  hierarchy_mutex,
@@ -659,13 +659,13 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     if constexpr (is_cacheable<std::decay_t<decltype(phi)>>()) {
       phi.use_caching(false);
     }
-    static constexpr real_t min_tau_step          = 1e-10;
-    static constexpr real_t max_cond_overshoot    = 1e-8;
-    static constexpr auto   split_cond            = SplitBehavior::split_cond;
-    static constexpr auto   split_sqr_cond        = split_cond * split_cond;
-    static constexpr auto   split_radii           = SplitBehavior::radii;
-    static constexpr auto   split_offsets         = SplitBehavior::offsets;
-    auto const [eigvecs_S, eigvals_S]             = this->main_axes();
+    static constexpr real_t min_tau_step       = 1e-10;
+    static constexpr real_t max_cond_overshoot = 1e-8;
+    static constexpr auto   split_cond         = SplitBehavior::split_cond;
+    static constexpr auto   split_sqr_cond     = split_cond * split_cond;
+    static constexpr auto   split_radii        = SplitBehavior::radii;
+    static constexpr auto   split_offsets      = SplitBehavior::offsets;
+    auto const [eigvecs_S, eigvals_S]          = this->main_axes();
     auto const B = eigvecs_S * diag(eigvals_S);  // current main axes
     auto const K = *solve(diag(eigvals_S), transposed(eigvecs_S));
 
@@ -673,12 +673,12 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
         ghosts_forward, ghosts_backward, prev_ghosts_forward,
         prev_ghosts_backward;
     auto        min_step_size_reached = false;
-    auto        advected_ellipse = ellipse_t{*this};
-    auto        current_radii    = vec_t{};
-    auto        eig_HHt          = std::pair<mat_t, vec_t>{};
-    auto        sqr_cond_H       = real_t(1);
-    auto const& eigvecs_HHt      = eig_HHt.first;
-    auto const& eigvals_HHt      = eig_HHt.second;
+    auto        advected_ellipse      = ellipse_t{*this};
+    auto        current_radii         = vec_t{};
+    auto        eig_HHt               = std::pair<mat_t, vec_t>{};
+    auto        sqr_cond_H            = real_t(1);
+    auto const& eigvecs_HHt           = eig_HHt.first;
+    auto const& eigvals_HHt           = eig_HHt.second;
 
     // initialize ghosts
     for (std::size_t i = 0; i < num_dimensions(); ++i) {
@@ -734,7 +734,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
           simple_particles.emplace_back(x0(), advected_ellipse.center(),
                                         t_advected);
         }
-        advected_nabla_phi = H * K;
+        advected_nabla_phi  = H * K;
         assembled_nabla_phi = advected_nabla_phi * m_nabla_phi;
 
         current_radii        = sqrt(eigvals_HHt);

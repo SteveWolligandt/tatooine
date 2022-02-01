@@ -31,8 +31,6 @@ class orthographic_camera : public camera_interface<Real, orthographic_camera<Re
   //----------------------------------------------------------------------------
   // member variables
   //----------------------------------------------------------------------------
-  vec3 m_bottom_left;
-  vec3 m_plane_base_x, m_plane_base_y;
   Real m_left;
   Real m_right;
   Real m_bottom;
@@ -118,37 +116,31 @@ class orthographic_camera : public camera_interface<Real, orthographic_camera<Re
   //----------------------------------------------------------------------------
   // object methods
   //----------------------------------------------------------------------------
- public:
-  //----------------------------------------------------------------------------
-  auto projection_matrix() const -> mat4 {
-    static auto constexpr z = Real(0);
-    static auto constexpr o = Real(1);
-
-    auto const iw = 1 / w();
-    auto const ih = 1 / h();
-    auto const id = 1 / d();
-    auto const xs = 2 * iw;
-    auto const xt = (r() + l()) * iw;
-    auto const ys = 2 * ih;
-    auto const yt = (b() + t()) * ih;
-    auto const zs = -2 * id;
-    auto const zt = -(f() + n()) * id;
-    return mat4{{xs, z, z, xt}, {z, ys, z, yt}, {z, z, zs, zt}, {z, z, z, o}};
+  auto constexpr projection_matrix() const -> mat4 {
+    return orthographic_matrix(l(), r(), b(), t(), n(), f());
   }
   //----------------------------------------------------------------------------
   auto setup(vec3 const& eye, vec3 const& lookat, vec3 const& up,
-             Real const height, Real const near, Real const far,
+             Real const width, Real const height, Real const near, Real const far,
              std::size_t const res_x, std::size_t const res_y) -> void {
-    this->set_eye(eye);
-    this->set_lookat(lookat);
-    this->set_up(up);
-    this->set_resolution(res_x, res_y);
+    this->set_eye_without_update(eye);
+    this->set_lookat_without_update(lookat);
+    this->set_up_without_update(up);
+    this->set_resolution_without_update(res_x, res_y);
     m_top    = height / 2;
-    m_bottom = -top;
-    m_left   = -1;
-    m_right  = 1;
-    this->set_near(near);
-    this->set_far(far);
+    m_bottom = -m_top;
+    m_right  = width / 2;
+    m_left   = -m_right;
+    this->set_near_without_update(near);
+    this->set_far_without_update(far);
+    setup();
+  }
+  //----------------------------------------------------------------------------
+  auto setup(Real const width, Real const height) -> void {
+    m_top    = height / 2;
+    m_bottom = -m_top;
+    m_right  = width / 2;
+    m_left   = -m_right;
     setup();
   }
 };

@@ -81,20 +81,24 @@ auto constexpr rotation_matrix(Real angle, Vec3<Real> const& axis) {
 template <typename Real>
 auto constexpr orthographic_matrix(Real const left, Real const right,
                                    Real const bottom, Real const top,
-                                   Real const near, Real const far)
-     {
-  return Mat4<Real>{
-      {2 / (right - left), Real(0), Real(0), -(right + left) / (right - left)},
-      {Real(0), 2 / (top - bottom), Real(0), -(top + bottom) / (top - bottom)},
-      {Real(0), Real(0), -2 / (far - near), -(far + near) / (far - near)},
-      {Real(0), Real(0), Real(0), Real(1)}};
+                                   Real const near, Real const far) {
+  auto constexpr O = Real(0);
+  auto constexpr I = Real(1);
+  auto const inv_width = 1 / (right - left);
+  auto const inv_height = 1 / (top - bottom);
+  auto const inv_depth = 1 / (far - near);
+
+  return Mat4<Real>{{2 * inv_width, O, O, -(right + left) * inv_width},
+                    {O, 2 * inv_height, O, -(top + bottom) * inv_height},
+                    {O, O, -2 * inv_depth, -(far + near) * inv_depth},
+                    {O, O, O, I}};
 }
 //------------------------------------------------------------------------------
 template <typename Real>
 auto look_at_matrix(Vec3<Real> const& eye, Vec3<Real> const& center,
                     Vec3<Real> const& up = {0, 1, 0}) -> Mat4<Real> {
-  static auto constexpr O = Real(0);
-  static auto constexpr I = Real(1);
+  auto constexpr O = Real(0);
+  auto constexpr I = Real(1);
 
   auto const zaxis = normalize(eye - center);
   auto const xaxis = cross(normalize(up), zaxis);

@@ -44,6 +44,25 @@ create_autonomous_particles_application(post_triangulation)
 create_autonomous_particles_application(holger)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# interactive
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+add_executable(
+  autonomous_particles.interactive
+  interactive.cpp)
+target_link_libraries(
+  autonomous_particles.interactive
+  tatooine gl)
+target_compile_options(
+  autonomous_particles.interactive
+  PRIVATE
+   -Wall -Wextra -pedantic
+   -march=native)
+add_custom_target(autonomous_particles.interactive.run
+  COMMAND
+   ./autonomous_particles.interactive
+  DEPENDS
+   autonomous_particles.interactive)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # explorer
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable (autonomous_particles.explorer explorer.cpp)
