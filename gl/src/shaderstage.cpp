@@ -77,6 +77,7 @@ auto shaderstage::info_log(bool use_ansi_color) -> void {
   auto info_log_length = gl::get_shader_info_log_length(id());
   if (info_log_length > 0) {
     auto info_log = gl::get_shader_info_log(id(), info_log_length);
+    std::cout << info_log << '\n';
     std::istringstream is(info_log);
     std::ostringstream os;
 

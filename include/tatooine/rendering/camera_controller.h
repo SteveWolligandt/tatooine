@@ -69,9 +69,9 @@ struct camera_controller : gl::window_listener {
   friend struct camera_controller_interface<Real>;
   class perspective_camera<Real>                     m_pcam;
   class orthographic_camera<Real>                    m_ocam;
-  float                                              orthographic_height = 1.0f;
   polymorphic::camera<Real>*                         m_active_cam;
   std::unique_ptr<camera_controller_interface<Real>> m_controller;
+  Real                                               m_orthographic_height = 1;
   //============================================================================
   camera_controller(size_t const res_x, size_t const res_y)
       : m_pcam{{Real(0), Real(0), Real(0)},
@@ -85,7 +85,7 @@ struct camera_controller : gl::window_listener {
         m_ocam{{Real(0), Real(0), Real(0)},
                {Real(0), Real(0), Real(-1)},
                {Real(0), Real(1), Real(0)},
-               5,
+               m_orthographic_height,
                -100,
                100,
                res_x,
@@ -130,11 +130,10 @@ struct camera_controller : gl::window_listener {
     return m_active_cam->projection_matrix();
   }
   auto transform_matrix() const -> mat4 {
-    return look_at_matrix(m_active_cam->eye(), m_active_cam->lookat(),
-                          m_active_cam->up());
+    return m_active_cam->transform_matrix();
   }
   auto view_matrix() const {
-    return *inv(transform_matrix());
+    return m_active_cam->view_matrix();
   }
   auto eye() const -> auto const& {
     return m_active_cam->eye();
@@ -230,8 +229,8 @@ struct camera_controller : gl::window_listener {
   void on_resize(int w, int h) override {
     m_pcam.set_resolution_without_update(w, h);
     m_ocam.set_resolution_without_update(w, h);
-    m_ocam.setup(orthographic_height * m_ocam.aspect_ratio(),
-                 orthographic_height);
+    m_ocam.setup(m_orthographic_height * m_ocam.aspect_ratio(),
+                 m_orthographic_height);
     if (m_controller) {
       m_controller->on_resize(w, h);
     }

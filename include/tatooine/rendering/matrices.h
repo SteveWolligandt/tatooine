@@ -94,6 +94,7 @@ auto constexpr orthographic_matrix(Real const left, Real const right,
                     {O, O, O, I}};
 }
 //------------------------------------------------------------------------------
+/// Can be used as transform matrix of an object.
 template <typename Real>
 auto look_at_matrix(Vec3<Real> const& eye, Vec3<Real> const& center,
                     Vec3<Real> const& up = {0, 1, 0}) -> Mat4<Real> {
@@ -103,10 +104,26 @@ auto look_at_matrix(Vec3<Real> const& eye, Vec3<Real> const& center,
   auto const zaxis = normalize(eye - center);
   auto const xaxis = cross(normalize(up), zaxis);
   auto const yaxis = cross(zaxis, xaxis);
-  return Mat4<Real>{{xaxis.x(), xaxis.y(), xaxis.z(), -dot(xaxis, eye)},
-                    {yaxis.x(), yaxis.y(), yaxis.z(), -dot(yaxis, eye)},
-                    {zaxis.x(), zaxis.y(), zaxis.z(), -dot(zaxis, eye)},
+  return Mat4<Real>{{xaxis.x(), xaxis.y(), xaxis.z(), -eye.x()},
+                    {yaxis.x(), yaxis.y(), yaxis.z(), -eye.y()},
+                    {zaxis.x(), zaxis.y(), zaxis.z(), -eye.z()},
                     {O, O, O, I}};
+}
+//------------------------------------------------------------------------------
+/// Can be used as view matrix of a camera.
+template <typename Real>
+auto constexpr inv_look_at_matrix(Vec3<Real> const& eye, Vec3<Real> const& center,
+                    Vec3<Real> const& up = {0, 1, 0}) -> Mat4<Real> {
+  auto constexpr O = Real(0);
+  auto constexpr I = Real(1);
+
+  auto const zaxis = normalize(eye - center);
+  auto const xaxis = cross(normalize(up), zaxis);
+  auto const yaxis = cross(zaxis, xaxis);
+  return Mat4<Real>{{xaxis.x(), yaxis.x(), zaxis.x(), dot(xaxis, eye)},
+                    {xaxis.y(), yaxis.y(), zaxis.y(), dot(yaxis, eye)},
+                    {xaxis.z(), yaxis.z(), zaxis.z(), dot(zaxis, eye)},
+                    {        O,         O,         O,               I}};
 }
 //------------------------------------------------------------------------------
 template <typename Real>

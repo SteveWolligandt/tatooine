@@ -17,7 +17,11 @@ struct viridis  {
   using this_t  = viridis<Real>;
   using color_t = vec<Real, 3>;
   //==============================================================================
+ private:
   std::unique_ptr<Real[]> m_data;
+
+ public:
+  auto data() -> Real const* { return m_data.get(); }
   //==============================================================================
   viridis()
       : m_data{new Real[]{

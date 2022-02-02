@@ -541,8 +541,8 @@ class texture : public id_holder<GLuint> {
   /// setting all wrapmodes to same mode
   void set_wrap_mode(WrapMode mode) {
     set_wrap_mode_s(mode);
-    if constexpr (D > 1) set_wrap_mode_t(mode);
-    if constexpr (D > 2) set_wrap_mode_r(mode);
+    if constexpr (D > 1) { set_wrap_mode_t(mode); }
+    if constexpr (D > 2) { set_wrap_mode_r(mode); }
   }
 
   //----------------------------------------------------------------------------
