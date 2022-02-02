@@ -38,8 +38,9 @@ struct camera {
   // constructors / destructor
   //----------------------------------------------------------------------------
  public:
-  camera(vec3 const& eye, vec3 const& lookat, vec3 const& up, Real const near,
-         Real const far, std::size_t const res_x, std::size_t const res_y)
+  constexpr camera(vec3 const& eye, vec3 const& lookat, vec3 const& up,
+                   Real const near, Real const far, std::size_t const res_x,
+                   std::size_t const res_y)
       : m_eye{eye},
         m_lookat{lookat},
         m_up{up},
@@ -52,85 +53,89 @@ struct camera {
   // object methods
   //----------------------------------------------------------------------------
   /// Returns number of pixels of plane in x-direction.
-  auto plane_width() const { return m_viewport(2); }
+  auto constexpr plane_width() const { return m_viewport(2); }
   //----------------------------------------------------------------------------
   /// Returns number of pixels of plane in y-direction.
-  auto plane_height() const { return m_viewport(3); }
+  auto constexpr plane_height() const { return m_viewport(3); }
   //----------------------------------------------------------------------------
-  auto aspect_ratio() const {
+  auto constexpr aspect_ratio() const {
     return static_cast<Real>(m_viewport(2)) / static_cast<Real>(m_viewport(3));
   }
   //----------------------------------------------------------------------------
-  auto eye() const -> auto& { return m_eye; }
+  auto constexpr eye() const -> auto& { return m_eye; }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto set_eye_without_update(Real const x, Real const y, Real const z)
-      -> void {
+  auto constexpr set_eye_without_update(Real const x, Real const y,
+                                        Real const z) -> void {
     m_eye = {x, y, z};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto set_eye(Real const x, Real const y, Real const z) -> void {
+  auto constexpr set_eye(Real const x, Real const y, Real const z) -> void {
     m_eye = {x, y, z};
     setup();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto set_eye_without_update(vec3 const& eye) -> void { m_eye = eye; }
+  auto constexpr set_eye_without_update(vec3 const& eye) -> void {
+    m_eye = eye;
+  }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto set_eye(vec3 const& eye) -> void {
+  auto constexpr set_eye(vec3 const& eye) -> void {
     m_eye = eye;
     setup();
   }
   //----------------------------------------------------------------------------
-  auto lookat() const -> auto& { return m_lookat; }
+  auto constexpr lookat() const -> auto& { return m_lookat; }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto set_lookat_without_update(Real const x, Real const y, Real const z)
-      -> void {
+  auto constexpr set_lookat_without_update(Real const x, Real const y,
+                                           Real const z) -> void {
     m_lookat = {x, y, z};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto set_lookat(Real const x, Real const y, Real const z) -> void {
+  auto constexpr set_lookat(Real const x, Real const y, Real const z) -> void {
     m_lookat = {x, y, z};
     setup();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto set_lookat_without_update(vec3 const lookat) -> void {
+  auto constexpr set_lookat_without_update(vec3 const lookat) -> void {
     m_lookat = lookat;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto set_lookat(vec3 const lookat) -> void {
+  auto constexpr set_lookat(vec3 const lookat) -> void {
     m_lookat = lookat;
     setup();
   }
   //----------------------------------------------------------------------------
-  auto up() const -> auto& { return m_up; }
+  auto constexpr up() const -> auto& { return m_up; }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto set_up_without_update(Real const x, Real const y, Real const z) -> void {
+  auto constexpr set_up_without_update(Real const x, Real const y, Real const z)
+      -> void {
     m_up = {x, y, z};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto set_up(Real const x, Real const y, Real const z) -> void {
+  auto constexpr set_up(Real const x, Real const y, Real const z) -> void {
     m_up = {x, y, z};
     setup();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto set_up_without_update(vec3 const up) -> void { m_up = up; }
+  auto constexpr set_up_without_update(vec3 const up) -> void { m_up = up; }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto set_up(vec3 const up) -> void {
+  auto constexpr set_up(vec3 const up) -> void {
     m_up = up;
     setup();
   }
   //----------------------------------------------------------------------------
-  auto set_viewport_without_update(std::size_t const bottom,
-                                   std::size_t const left,
-                                   std::size_t const width,
-                                   std::size_t const height) {
+  auto constexpr set_viewport_without_update(std::size_t const bottom,
+                                             std::size_t const left,
+                                             std::size_t const width,
+                                             std::size_t const height) {
     m_viewport(0) = bottom;
     m_viewport(1) = left;
     m_viewport(2) = width;
     m_viewport(3) = height;
   }
   //----------------------------------------------------------------------------
-  auto set_viewport(std::size_t const bottom, std::size_t const left,
-                    std::size_t const width, std::size_t const height) {
+  auto constexpr set_viewport(std::size_t const bottom, std::size_t const left,
+                              std::size_t const width,
+                              std::size_t const height) {
     m_viewport(0) = bottom;
     m_viewport(1) = left;
     m_viewport(2) = width;
@@ -138,66 +143,74 @@ struct camera {
     setup();
   }
   //----------------------------------------------------------------------------
-  auto set_resolution_without_update(std::size_t const width,
-                                     std::size_t const height) {
+  auto constexpr set_resolution_without_update(std::size_t const width,
+                                               std::size_t const height) {
     m_viewport(2) = width;
     m_viewport(3) = height;
   }
   //----------------------------------------------------------------------------
-  auto set_resolution(std::size_t const width, std::size_t const height) {
+  auto constexpr set_resolution(std::size_t const width,
+                                std::size_t const height) {
     m_viewport(2) = width;
     m_viewport(3) = height;
     setup();
   }
   //----------------------------------------------------------------------------
-  auto look_at(vec3 const& eye, vec3 const& lookat, vec3 const& up = {0, 1, 0})
-      -> void {
+  auto constexpr look_at(vec3 const& eye, vec3 const& lookat,
+                         vec3 const& up = {0, 1, 0}) -> void {
     m_eye    = eye;
     m_lookat = lookat;
     m_up     = up;
     setup();
   }
   //----------------------------------------------------------------------------
-  auto near() const { return m_near; }
-  auto n() const { return near(); }
-  auto set_near_without_update(Real const near) { m_near = near; }
-  auto set_near(Real const near) {
+  auto constexpr near() const { return m_near; }
+  auto constexpr n() const { return near(); }
+  auto constexpr set_near_without_update(Real const near) { m_near = near; }
+  auto constexpr set_near(Real const near) {
     m_near = near;
     setup();
   }
   //----------------------------------------------------------------------------
-  auto far() const { return m_far; }
-  auto f() const { return far(); }
-  auto set_far_without_update(Real const far) { m_far = far; }
-  auto set_far(Real const far) {
+  auto constexpr far() const { return m_far; }
+  auto constexpr f() const { return far(); }
+  auto constexpr set_far_without_update(Real const far) { m_far = far; }
+  auto constexpr set_far(Real const far) {
     m_far = far;
     setup();
   }
   //----------------------------------------------------------------------------
-  auto depth() const { return f() - n(); }
-  auto d() const { return depth(); }
+  auto constexpr depth() const { return f() - n(); }
+  auto constexpr d() const { return depth(); }
   //----------------------------------------------------------------------------
-  auto transform_matrix() const -> mat4 { return *inv(view_matrix()); }
-  //----------------------------------------------------------------------------
-  auto view_matrix() const -> mat4 {
+  auto constexpr transform_matrix() const -> mat4 {
     return look_at_matrix(m_eye, m_lookat, m_up);
   }
   //----------------------------------------------------------------------------
+  auto constexpr view_matrix() const -> mat4 {
+    return inv_look_at_matrix(m_eye, m_lookat, m_up);
+  }
+  //----------------------------------------------------------------------------
+  auto view_projection_matrix() const {
+    return projection_matrix() * view_matrix();
+  }
+
+  //----------------------------------------------------------------------------
   /// Projects a screen coordinates to world coordinates.
   auto unproject(vec2 const& p) const {
-    return unproject(vec4{p.x(), p.y(), 0, 1});
+    return unproject(vec4{p.x(), p.y(), 0.5, 1});
   }
   //----------------------------------------------------------------------------
   /// Projects a homogeneous screen coordinates to world coordinates.
   auto unproject(vec4 p) const {
-    // screen space to canonical view volume
+    // [0,w-1] x [0,h-1] -> [-1,1] x [-1,1]
     p(0) = (p(0) - m_viewport(0)) / (plane_width() - 1) * 2 - 1;
     p(1) = (p(1) - m_viewport(1)) / (plane_height() - 1) * 2 - 1;
     p(2) = p(2) * 2 - 1;
     p(3) = 1;
 
     // canonical view volume to world coordinate
-    p    = solve(view_matrix() * projection_matrix(), p);
+    p    = *inv(view_projection_matrix()) * p;
     p(3) = 1 / p(3);
     p(0) = p(0) * p(3);
     p(1) = p(1) * p(3);
@@ -213,20 +226,17 @@ struct camera {
   //----------------------------------------------------------------------------
   /// Projects a homogeneous world coordinate to screen coordinates.
   auto project(vec4 p) const {
-    p    = projection_matrix() * view_matrix() * p;
-    p(0) = p(0) / p(3);
-    p(1) = p(1) / p(3);
-    p(2) = p(2) / p(3);
-    p(3) = 1;
+    p    = view_projection_matrix() * p;
+    p(0) /= p(3);
 
-    // [-1,1] to [0,1]
+    // [-1,1] -> [0,1]
     p(0) = p(0) * Real(0.5) + Real(0.5);
     p(1) = p(1) * Real(0.5) + Real(0.5);
     p(2) = p(2) * Real(0.5) + Real(0.5);
 
     // [0,1] to viewport
-    p(0) = p(0) * (m_viewport(2) - 1) + m_viewport(0);
-    p(1) = p(1) * (m_viewport(3) - 1) + m_viewport(1);
+    p(0) = p(0) * (plane_width() - 1) + m_viewport(0);
+    p(1) = p(1) * (plane_height() - 1) + m_viewport(1);
 
     return p;
   }
@@ -273,7 +283,7 @@ struct camera_interface : polymorphic::camera<Real> {
   //----------------------------------------------------------------------------
   virtual ~camera_interface() = default;
   //----------------------------------------------------------------------------
-  auto projection_matrix() const -> mat4 override {
+  auto constexpr projection_matrix() const -> mat4 override {
     return static_cast<Derived const*>(this)->projection_matrix();
   };
 };

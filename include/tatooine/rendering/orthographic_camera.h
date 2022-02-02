@@ -11,7 +11,8 @@
 namespace tatooine::rendering {
 //==============================================================================
 template <arithmetic Real>
-class orthographic_camera : public camera_interface<Real, orthographic_camera<Real>> {
+class orthographic_camera
+    : public camera_interface<Real, orthographic_camera<Real>> {
  public:
   using real_t   = Real;
   using this_t   = orthographic_camera<Real>;
@@ -40,38 +41,40 @@ class orthographic_camera : public camera_interface<Real, orthographic_camera<Re
   //----------------------------------------------------------------------------
   // getter / setter
   //----------------------------------------------------------------------------
-  auto left() const { return m_left; }
+  auto constexpr left() const { return m_left; }
   //----------------------------------------------------------------------------
-  auto l() const { return left(); }
+  auto constexpr l() const { return left(); }
   //----------------------------------------------------------------------------
-  auto right() const { return m_right; }
+  auto constexpr right() const { return m_right; }
   //----------------------------------------------------------------------------
-  auto r() const { return right(); }
+  auto constexpr r() const { return right(); }
   //----------------------------------------------------------------------------
-  auto bottom() const { return m_bottom; }
+  auto constexpr bottom() const { return m_bottom; }
   //----------------------------------------------------------------------------
-  auto b() const { return bottom(); }
+  auto constexpr b() const { return bottom(); }
   //----------------------------------------------------------------------------
-  auto top() const { return m_top; }
+  auto constexpr top() const { return m_top; }
   //----------------------------------------------------------------------------
-  auto t() const { return top(); }
+  auto constexpr t() const { return top(); }
   //----------------------------------------------------------------------------
-  auto width() const { return right() - left(); }
+  auto constexpr width() const { return right() - left(); }
   //----------------------------------------------------------------------------
-  auto w() const { return width(); }
+  auto constexpr w() const { return width(); }
   //----------------------------------------------------------------------------
-  auto height() const { return top() - bottom(); }
+  auto constexpr height() const { return top() - bottom(); }
   //----------------------------------------------------------------------------
-  auto h() const { return height(); }
+  auto constexpr h() const { return height(); }
   //----------------------------------------------------------------------------
   // constructors / destructor
   //----------------------------------------------------------------------------
   /// Constructor generates bottom left image plane pixel position and pixel
   /// offset size.
-  orthographic_camera(vec3 const& eye, vec3 const& lookat, vec3 const& up,
-                      Real const left, Real const right, Real const bottom,
-                      Real const top, Real const near, Real const far,
-                      std::size_t const res_x, std::size_t const res_y)
+  constexpr orthographic_camera(vec3 const& eye, vec3 const& lookat,
+                                vec3 const& up, Real const left,
+                                Real const right, Real const bottom,
+                                Real const top, Real const near, Real const far,
+                                std::size_t const res_x,
+                                std::size_t const res_y)
       : parent_t{eye, lookat, up, near, far, res_x, res_y},
         m_left{left},
         m_right{right},
@@ -82,10 +85,12 @@ class orthographic_camera : public camera_interface<Real, orthographic_camera<Re
   //----------------------------------------------------------------------------
   /// Constructor generates bottom left image plane pixel position and pixel
   /// offset size.
-  orthographic_camera(vec3 const& eye, vec3 const& lookat, Real const left,
-                      Real const right, Real const bottom, Real const top,
-                      Real const near, Real const far, std::size_t const res_x,
-                      std::size_t const res_y)
+  constexpr orthographic_camera(vec3 const& eye, vec3 const& lookat,
+                                Real const left, Real const right,
+                                Real const bottom, Real const top,
+                                Real const near, Real const far,
+                                std::size_t const res_x,
+                                std::size_t const res_y)
       : parent_t{eye, lookat, vec3{0, 1, 0}, near, far, res_x, res_y},
         m_left{left},
         m_right{right},
@@ -96,11 +101,22 @@ class orthographic_camera : public camera_interface<Real, orthographic_camera<Re
   //----------------------------------------------------------------------------
   /// Constructor generates bottom left image plane pixel position and pixel
   /// offset size.
-  orthographic_camera(vec3 const& eye, vec3 const& lookat, vec3 const& up,
-                      Real const height, Real const near, Real const far,
-                      std::size_t const res_x, std::size_t const res_y)
-      : orthographic_camera{eye,        lookat, up,  -1,    1,    -height / 2,
-                            height / 2, near,   far, res_x, res_y} {
+  constexpr orthographic_camera(vec3 const& eye, vec3 const& lookat,
+                                vec3 const& up, Real const height,
+                                Real const near, Real const far,
+                                std::size_t const res_x,
+                                std::size_t const res_y)
+      : orthographic_camera{eye,
+                            lookat,
+                            up,
+                            -height / 2 * Real(res_x) * Real(res_y),
+                            height / 2 * Real(res_x) * Real(res_y),
+                            -height / 2,
+                            height / 2,
+                            near,
+                            far,
+                            res_x,
+                            res_y} {
     setup();
   }
   //----------------------------------------------------------------------------
@@ -120,9 +136,10 @@ class orthographic_camera : public camera_interface<Real, orthographic_camera<Re
     return orthographic_matrix(l(), r(), b(), t(), n(), f());
   }
   //----------------------------------------------------------------------------
-  auto setup(vec3 const& eye, vec3 const& lookat, vec3 const& up,
-             Real const width, Real const height, Real const near, Real const far,
-             std::size_t const res_x, std::size_t const res_y) -> void {
+  auto constexpr setup(vec3 const& eye, vec3 const& lookat, vec3 const& up,
+                       Real const width, Real const height, Real const near,
+                       Real const far, std::size_t const res_x,
+                       std::size_t const res_y) -> void {
     this->set_eye_without_update(eye);
     this->set_lookat_without_update(lookat);
     this->set_up_without_update(up);
@@ -136,7 +153,7 @@ class orthographic_camera : public camera_interface<Real, orthographic_camera<Re
     setup();
   }
   //----------------------------------------------------------------------------
-  auto setup(Real const width, Real const height) -> void {
+  auto constexpr setup(Real const width, Real const height) -> void {
     m_top    = height / 2;
     m_bottom = -m_top;
     m_right  = width / 2;

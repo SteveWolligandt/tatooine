@@ -143,14 +143,12 @@ auto pathline_geometry        = std::unique_ptr<gl::indexeddata<vec2f>>{};
 auto x0_geometry              = std::unique_ptr<gl::indexeddata<vec2f>>{};
 auto x1_geometry              = std::unique_ptr<gl::indexeddata<vec2f>>{};
 auto update_x0(Vec2<size_t> const& mouse_pos) -> void {
-  auto unprojected = win->camera_controller().unproject(
-      vec2f{mouse_pos(0), win->height() - 1 - mouse_pos(1)});
-  auto q                         = vec2{unprojected(0), unprojected(1)};
-  auto active_it                 = begin(active_particles);
+  auto q = win->camera_controller().unproject(
+      vec2f{mouse_pos(0), win->height() - 1 - mouse_pos(1)}).xy();
+  //auto active_it                 = begin(active_particles);
   active_particles               = std::vector<bool>(size(particles), false);
-  x0(0)                          = unprojected(0);
-  x0(1)                          = unprojected(1);
-  x0_geometry->vertexbuffer()[0] = vec2f{x0};
+  x0                             = vec2{q};
+  x0_geometry->vertexbuffer()[0] = q;
 }
 //------------------------------------------------------------------------------
 auto update_x1() -> void {
@@ -177,14 +175,14 @@ auto update_nearest() {
   auto shortest_distance = std::numeric_limits<real_t>::infinity();
   auto a                 = end(active_particles);
   auto active_it         = begin(active_particles);
-  autonomous_particle2::sampler_type const* nearest_sampler = nullptr;
+  //autonomous_particle2::sampler_type const* nearest_sampler = nullptr;
   for (auto const& s : samplers) {
     if (auto const dist =
             s.ellipse1().squared_euclidean_distance_to_center(x0) *
             s.ellipse1().squared_local_euclidean_distance_to_center(x0);
         dist < shortest_distance) {
       shortest_distance = dist;
-      nearest_sampler   = &s;
+      //nearest_sampler   = &s;
       a                 = active_it;
     }
     ++active_it;
@@ -217,13 +215,14 @@ struct listener_t : gl::window_listener {
     }
     left_down = true;
 
-    auto unprojected = win->camera_controller().unproject(
-        vec4f{mouse_pos(0), mouse_pos(1), 0, 1});
-    auto q                 = vec2{unprojected(0), unprojected(1)};
+    auto q =
+        win->camera_controller()
+            .unproject(vec2f{mouse_pos(0), win->height() - 1 - mouse_pos(1)})
+            .xy();
     auto active_it         = begin(active_particles);
     bool q_inside_particle = false;
     for (auto const& s : samplers) {
-      if (s.ellipse1().is_inside(q)) {
+      if (s.ellipse1().is_inside(vec2{q})) {
         *active_it        = !*active_it;
         q_inside_particle = true;
       }
@@ -293,7 +292,7 @@ auto render_query_point() -> void {
       win->camera_controller().projection_matrix());
   auto const V         = win->camera_controller().view_matrix();
   auto       M         = mat4f::zeros();
-  auto       active_it = begin(active_particles);
+  //auto       active_it = begin(active_particles);
   point_shader->set_modelview_matrix(V);
   gl::point_size(5);
   point_shader->set_color(0, 0, 0, 1);

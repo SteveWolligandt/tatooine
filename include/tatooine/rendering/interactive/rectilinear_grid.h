@@ -1,42 +1,16 @@
-#ifndef TATOOINE_RENDERING_INTERACTIVE_ELLIPSE_H
-#define TATOOINE_RENDERING_INTERACTIVE_ELLIPSE_H
+#ifndef TATOOINE_RENDERING_INTERACTIVE_RECTILINEAR_GRID_H
+#define TATOOINE_RENDERING_INTERACTIVE_RECTILINEAR_GRID_H
 //==============================================================================
-#include <tatooine/geometry/ellipse.h>
 #include <tatooine/gl/indexeddata.h>
 #include <tatooine/gl/shader.h>
-#include <tatooine/linspace.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/rendering/camera.h>
 #include <tatooine/rendering/interactive/renderer.h>
 //==============================================================================
 namespace tatooine::rendering::detail::interactive {
 //==============================================================================
-template <floating_point Real>
-struct renderer<tatooine::geometry::ellipse<Real>> {
-  struct geometry : gl::indexeddata<Vec2<GLfloat>> {
-    static auto get() -> auto& {
-      static auto instance = geometry{};
-      return instance;
-    }
-    explicit geometry(std::size_t const num_vertices = 128) {
-      vertexbuffer().resize(num_vertices);
-      {
-        auto ts = linspace<float>{0, 2 * M_PI, num_vertices + 1};
-        ts.pop_back();
-        auto vb_map = vertexbuffer().wmap();
-        auto i      = std::size_t{};
-        for (auto const t : ts) {
-          vb_map[i++] = Vec2<GLfloat>{std::cos(t), std::sin(t)};
-        }
-      }
-      indexbuffer().resize(num_vertices);
-      {
-        auto data = indexbuffer().wmap();
-        for (std::size_t i = 0; i < num_vertices; ++i) {
-          data[i] = i;
-        }
-      }
-    }
-  };
+template <typename Axis0, typename Axis1>
+struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
   //==============================================================================
   struct shader : gl::shader {
     //------------------------------------------------------------------------------
@@ -92,27 +66,53 @@ struct renderer<tatooine::geometry::ellipse<Real>> {
   };
   //==============================================================================
   struct render_data {
-    int           line_width = 1;
-    Vec4<GLfloat> color      = {0, 0, 0, 1};
+    int                            line_width = 1;
+    Vec4<GLfloat>                  color      = {0, 0, 0, 1};
+    gl::indexeddata<Vec2<GLfloat>> geometry;
   };
   //==============================================================================
-  static auto init(tatooine::geometry::ellipse<Real> const& ell) {
-    return render_data{};
+  static auto init(tatooine::rectilinear_grid<Axis0, Axis1> const& grid) {
+    auto       d            = render_data{};
+    auto const num_vertices = grid.template size<0>() * 2 + grid.template size<1>() * 2;
+    d.geometry.vertexbuffer().resize(num_vertices);
+    d.geometry.indexbuffer().resize(num_vertices);
+    {
+      auto data = d.geometry.vertexbuffer().wmap();
+      auto k    = std::size_t{};
+      for (std::size_t i = 0; i < grid.template size<0>(); ++i) {
+        data[k++] = Vec2<GLfloat>{grid.template dimension<0>()[i],
+                                  grid.template dimension<1>().front()};
+        data[k++] = Vec2<GLfloat>{grid.template dimension<0>()[i],
+                                  grid.template dimension<1>().back()};
+      }
+      for (std::size_t i = 0; i < grid.template size<1>(); ++i) {
+        data[k++] = Vec2<GLfloat>{grid.template dimension<0>().front(),
+                                  grid.template dimension<1>()[i]};
+        data[k++] = Vec2<GLfloat>{grid.template dimension<0>().back(),
+                                  grid.template dimension<1>()[i]};
+      }
+    }
+    {
+      auto data = d.geometry.indexbuffer().wmap();
+      for (std::size_t i = 0; i < num_vertices; ++i) {
+        data[i] = i;
+      }
+    }
+    return d;
   }
   //==============================================================================
   static auto properties(render_data& data) {
-    ImGui::Text("Ellipse");
+    ImGui::Text("Rectilinear Grid");
     ImGui::DragInt("Line width", &data.line_width, 1, 1, 20);
     ImGui::ColorEdit4("Color", data.color.data().data());
   }
   //==============================================================================
-  static auto render(camera auto const&                       cam,
-                     tatooine::geometry::ellipse<Real> const& ell,
-                     render_data&                             data) {
+  static auto render(camera auto const&                              cam,
+                     tatooine::rectilinear_grid<Axis0, Axis1> const& grid,
+                     render_data&                                    data) {
     using CamReal = typename std::decay_t<decltype(cam)>::real_t;
-    static auto constexpr ell_is_float = is_same<GLfloat, Real>;
     static auto constexpr cam_is_float = is_same<GLfloat, CamReal>;
-    auto& shader                       = shader::get();
+    auto& shader = shader::get();
     shader.bind();
     if constexpr (cam_is_float) {
       shader.set_projection_matrix(cam.projection_matrix());
@@ -120,36 +120,16 @@ struct renderer<tatooine::geometry::ellipse<Real>> {
       shader.set_projection_matrix(Mat4<GLfloat>{cam.projection_matrix()});
     }
 
-    auto M = [&] {
-      auto constexpr O = GLfloat(0);
-      auto constexpr I = GLfloat(1);
-      if constexpr (ell_is_float) {
-        return Mat4<GLfloat>{{ell.S()(0, 0), ell.S()(0, 1), O, ell.center(0)},
-                             {ell.S()(1, 0), ell.S()(1, 1), O, ell.center(1)},
-                             {O, O, I, O},
-                             {O, O, O, I}};
-      } else {
-        return Mat4<GLfloat>{{GLfloat(ell.S()(0, 0)), GLfloat(ell.S()(0, 1)), O,
-                              GLfloat(ell.center(0))},
-                             {GLfloat(ell.S()(1, 0)), GLfloat(ell.S()(1, 1)), O,
-                              GLfloat(ell.center(1))},
-                             {O, O, I, O},
-                             {O, O, O, I}};
-      }
-    }();
-    auto V = [&] {
-      if constexpr (cam_is_float) {
-        return cam.view_matrix();
-      } else {
-        return Mat4<GLfloat>{cam.view_matrix()};
-      }
-    }();
-    shader.set_modelview_matrix(V * M);
+    if constexpr (cam_is_float) {
+      shader.set_modelview_matrix(cam.view_matrix());
+    } else {
+      shader.set_modelview_matrix(Mat4<GLfloat>{cam.view_matrix()});
+    }
 
     shader.set_color(data.color(0), data.color(1), data.color(2),
                      data.color(3));
     gl::line_width(data.line_width);
-    geometry::get().draw_line_loop();
+    data.geometry.draw_lines();
   }
 };
 //==============================================================================
