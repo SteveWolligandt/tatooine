@@ -4,7 +4,6 @@
 #include <tatooine/rendering/first_person_window.h>
 #include <tatooine/rendering/interactive/ellipse.h>
 #include <tatooine/rendering/interactive/rectilinear_grid.h>
-#include <tatooine/rendering/interactive/rectilinear_grid_vertex_property.h>
 //==============================================================================
 namespace tatooine::rendering {
 //==============================================================================
@@ -25,7 +24,7 @@ auto interactive(std::index_sequence<Is...> /*seq*/,
           auto& render_data = std::get<Is>(data);
           ImGui::PushID(static_cast<int>(Is));
           ImGui::BeginGroup();
-          renderer::properties(render_data);
+          renderer::properties(renderables, render_data);
           renderer::render(window.camera_controller().active_camera(),
                            std::forward<Renderables>(renderables),
                            render_data);
