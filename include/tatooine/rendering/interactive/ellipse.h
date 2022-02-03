@@ -12,6 +12,7 @@ namespace tatooine::rendering::detail::interactive {
 //==============================================================================
 template <floating_point Real>
 struct renderer<tatooine::geometry::ellipse<Real>> {
+using renderable_type = tatooine::geometry::ellipse<Real>;
   struct geometry : gl::indexeddata<Vec2<GLfloat>> {
     static auto get() -> auto& {
       static auto instance = geometry{};
@@ -96,18 +97,18 @@ struct renderer<tatooine::geometry::ellipse<Real>> {
     Vec4<GLfloat> color      = {0, 0, 0, 1};
   };
   //==============================================================================
-  static auto init(tatooine::geometry::ellipse<Real> const& ell) {
+  static auto init(renderable_type const& ell) {
     return render_data{};
   }
   //==============================================================================
-  static auto properties(render_data& data) {
+  static auto properties(renderable_type const& /*ell*/, render_data& data) {
     ImGui::Text("Ellipse");
     ImGui::DragInt("Line width", &data.line_width, 1, 1, 20);
     ImGui::ColorEdit4("Color", data.color.data().data());
   }
   //==============================================================================
   static auto render(camera auto const&                       cam,
-                     tatooine::geometry::ellipse<Real> const& ell,
+                     renderable_type const& ell,
                      render_data&                             data) {
     using CamReal = typename std::decay_t<decltype(cam)>::real_t;
     static auto constexpr ell_is_float = is_same<GLfloat, Real>;
