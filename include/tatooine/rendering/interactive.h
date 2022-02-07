@@ -112,12 +112,26 @@ auto render(std::index_sequence<Is...> /*seq*/, Renderables&&... renderables) {
       if constexpr (requires { renderer.on_button_released(b); }) {
         renderer.on_button_released(b);
       }
+      if constexpr (requires {
+                      renderer.on_button_released(
+                          b, window.camera_controller().active_camera());
+                    }) {
+        renderer.on_button_released(b,
+                                   window.camera_controller().active_camera());
+      }
     });
   });
   window.add_button_pressed_event([&](gl::button b) {
     foreach_renderer([&](auto& renderer, auto& renderable, auto i) {
       if constexpr (requires { renderer.on_button_pressed(b); }) {
         renderer.on_button_pressed(b);
+      }
+      if constexpr (requires {
+                      renderer.on_button_pressed(
+                          b, window.camera_controller().active_camera());
+                    }) {
+        renderer.on_button_pressed(b,
+                                   window.camera_controller().active_camera());
       }
     });
   });

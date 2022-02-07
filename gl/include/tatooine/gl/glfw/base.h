@@ -16,8 +16,9 @@ struct base {
   auto get() -> GLFWwindow*;
   auto get() const -> GLFWwindow const*;
   //----------------------------------------------------------------------------
-  auto make_current() -> void;
+  auto        make_current() -> void;
   static auto release() -> void;
+  auto        get_window_size(int* w, int* h) -> void;
 };
 //==============================================================================
 }  // namespace tatooine::gl::glfw

@@ -163,9 +163,9 @@ void window::on_wheel_right() {
 //------------------------------------------------------------------------------
 void window::on_cursor_moved(double x, double y) {
   auto h = int{};
-  glfwGetWindowSize(m_glfw_window.get(), nullptr, &h);
   imgui_api_backend::instance().on_cursor_moved(x, y);
   if (!ImGui::GetIO().WantCaptureMouse) {
+    m_glfw_window->get_window_size(nullptr, &h);
     notify_cursor_moved(x, h - 1 - y);
   }
 }
