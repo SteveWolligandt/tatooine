@@ -1,16 +1,15 @@
-#ifndef TATOOINE_RENDERING_INTERACTIVE_RENDERER_H
-#define TATOOINE_RENDERING_INTERACTIVE_RENDERER_H
+#ifndef TATOOINE_RENDERING_INTERACTIVE_INTERACTIVELY_RENDERABLE_H
+#define TATOOINE_RENDERING_INTERACTIVE_INTERACTIVELY_RENDERABLE_H
+//==============================================================================
+#include <type_traits>
+#include <tatooine/rendering/interactive/renderer.h>
 //==============================================================================
 namespace tatooine::rendering::interactive {
 //==============================================================================
 template <typename T>
-struct renderer;
-template <typename T>
-struct is_renderer_impl : std::false_type {};
-template <typename T>
-struct is_renderer_impl<renderer<T>> : std::true_type {};
-template <typename T>
-static auto constexpr is_renderer = is_renderer_impl<T>::value;
+concept interactively_renderable =
+requires(T t) { t.render(); } ||
+requires(renderer<std::decay_t<T>> t) { t.render(); };
 //==============================================================================
 }  // namespace tatooine::rendering::interactive
 //==============================================================================

@@ -8,11 +8,11 @@
 #include <tatooine/rendering/camera.h>
 #include <tatooine/rendering/interactive/renderer.h>
 //==============================================================================
-namespace tatooine::rendering::detail::interactive {
+namespace tatooine::rendering::interactive {
 //==============================================================================
 template <floating_point Real>
 struct renderer<tatooine::geometry::ellipse<Real>> {
-using renderable_type = tatooine::geometry::ellipse<Real>;
+  using renderable_type = tatooine::geometry::ellipse<Real>;
   struct geometry : gl::indexeddata<Vec2<GLfloat>> {
     static auto get() -> auto& {
       static auto instance = geometry{};
@@ -92,34 +92,26 @@ using renderable_type = tatooine::geometry::ellipse<Real>;
     }
   };
   //==============================================================================
-  struct render_data {
-    int           line_width = 1;
-    Vec4<GLfloat> color      = {0, 0, 0, 1};
-  };
+  int           line_width = 1;
+  Vec4<GLfloat> color      = {0, 0, 0, 1};
   //==============================================================================
-  static auto init(renderable_type const& ell) {
-    return render_data{};
+  renderer(renderable_type const& /*ell*/) {}
+  //------------------------------------------------------------------------------
+  static auto set_projection_matrix(Mat4<GLfloat> const& P) {
+    shader::get().set_projection_matrix(P);
   }
-  //==============================================================================
-  static auto properties(renderable_type const& /*ell*/, render_data& data) {
+  //------------------------------------------------------------------------------
+  auto properties(renderable_type const& /*ell*/) {
     ImGui::Text("Ellipse");
-    ImGui::DragInt("Line width", &data.line_width, 1, 1, 20);
-    ImGui::ColorEdit4("Color", data.color.data().data());
+    ImGui::DragInt("Line width", &line_width, 1, 1, 20);
+    ImGui::ColorEdit4("Color", color.data().data());
   }
   //==============================================================================
-  static auto render(camera auto const&                       cam,
-                     renderable_type const& ell,
-                     render_data&                             data) {
+  auto update(auto& ell, camera auto const& cam, auto const dt) {
+    auto& shader  = shader::get();
     using CamReal = typename std::decay_t<decltype(cam)>::real_t;
     static auto constexpr ell_is_float = is_same<GLfloat, Real>;
     static auto constexpr cam_is_float = is_same<GLfloat, CamReal>;
-    auto& shader                       = shader::get();
-    shader.bind();
-    if constexpr (cam_is_float) {
-      shader.set_projection_matrix(cam.projection_matrix());
-    } else {
-      shader.set_projection_matrix(Mat4<GLfloat>{cam.projection_matrix()});
-    }
 
     auto M = [&] {
       auto constexpr O = GLfloat(0);
@@ -147,13 +139,16 @@ using renderable_type = tatooine::geometry::ellipse<Real>;
     }();
     shader.set_modelview_matrix(V * M);
 
-    shader.set_color(data.color(0), data.color(1), data.color(2),
-                     data.color(3));
-    gl::line_width(data.line_width);
+    shader.set_color(color(0), color(1), color(2), color(3));
+  }
+  //----------------------------------------------------------------------------
+  auto render() {
+    shader::get().bind();
+    gl::line_width(line_width);
     geometry::get().draw_line_loop();
   }
 };
 //==============================================================================
-}  // namespace tatooine::rendering::detail::interactive
+}  // namespace tatooine::rendering::interactive
 //==============================================================================
 #endif

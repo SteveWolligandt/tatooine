@@ -63,11 +63,11 @@ class vertexbuffer
   vertexbuffer(std::initializer_list<data_t>&& list)
       : parent_t(std::move(list), default_usage) {}
 
-  void push_back(Ts&&... ts) {
+  void push_back(Ts const&... ts) {
     if constexpr (num_attributes == 1) {
-      parent_t::push_back(std::forward<Ts>(ts)...);
+      parent_t::push_back(ts...);
     } else {
-      parent_t::push_back(tuple{std::forward<Ts>(ts)...});
+      parent_t::push_back(tuple{ts...});
     }
   }
 
