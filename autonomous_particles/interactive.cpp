@@ -95,35 +95,29 @@ struct movable_line {
   //----------------------------------------------------------------------------
  private:
   //----------------------------------------------------------------------------
-  gl::indexeddata<Vec2<GLfloat>, int>     geometry;
-  vec2d                                   old_cursor_pos;
-  vec2d                                   cursor_pos;
-  std::vector<Vec2<GLfloat>>              xs = {{0, 0}, {1, 1}, {2, 1}, {2, 0}};
-  bool                                    down = false;
-  std::vector<bool>                       hovered;
-  std::vector<bool>                       grabbed;
-  int                                     point_size = 20;
-  rendering::orthographic_camera<GLfloat> cam;
+  gl::indexeddata<Vec2<GLfloat>, int>      geometry;
+  vec2d                                    cursor_pos;
+  std::vector<bool>                        hovered;
+  int                                      point_size = 20;
+  rendering::orthographic_camera<GLfloat>  cam;
+  std::vector<autonomous_particle2> const& ps;
 
   //----------------------------------------------------------------------------
  public:
   //----------------------------------------------------------------------------
-  movable_line()
-      : hovered(size(xs), false),
-        grabbed(size(xs), false),
+  movable_line(auto const& ps)
+      : hovered(size(ps), false),
         cam{Vec3<GLfloat>{0, 0, 0},
             Vec3<GLfloat>{0, 0, -1},
-            -3, 3,
-            -3, 3,
+            -0.5, 0.5,
+            -0.5, 0.5,
             -1, 1,
-            Vec4<std::size_t>{10, 10, 200, 200}} {
-    geometry.vertexbuffer().reserve(size(xs));
-    geometry.indexbuffer().reserve(size(xs));
-    for (auto const& x : xs) {
-      geometry.vertexbuffer().push_back(x, false);
-    }
-    for (std::size_t i = 0; i < size(xs); ++i) {
-      geometry.indexbuffer().push_back(i);
+            Vec4<std::size_t>{10, 10, 200, 200}},
+        ps{ps} {
+    geometry.vertexbuffer().resize(size(ps));
+    geometry.indexbuffer().resize(size(ps));
+    for (std::size_t i = 0; i < size(ps); ++i) {
+      geometry.indexbuffer()[i] = i;
     }
   }
   //----------------------------------------------------------------------------
@@ -181,46 +175,20 @@ struct movable_line {
   }
   //----------------------------------------------------------------------------
   auto on_cursor_moved(double const cursor_x, double const cursor_y) {
-    old_cursor_pos = cursor_pos;
-    cursor_pos     = {cursor_x, cursor_y};
-
-    auto const old_unprojected =
-        cam.unproject(vec2f{old_cursor_pos.x(),
-                            old_cursor_pos.y()})
-            .xy();
+    cursor_pos = {cursor_x, cursor_y};
+  }
+  //----------------------------------------------------------------------------
+  auto on_button_pressed(gl::button /*b*/, rendering::camera auto const& cam) {
     auto const unprojected =
-        cam.unproject(
-               vec2f{cursor_pos.x(), cursor_pos.y()})
-            .xy();
-
-    auto const move_dir = unprojected - old_unprojected;
-
-    auto       i = std::size_t{};
-    for (auto& x : xs) {
-      auto const dist = euclidean_distance(
-          cam.project(vec3f{x.x(), x.y(), 0}).xy(),
-          vec2f{cursor_pos.x(), cursor_pos.y()});
-      hovered[i] = dist < point_size / 2;
-      if (grabbed[i]) {
-        x += move_dir.xy();
-      }
-      geometry.vertexbuffer()[i] = {vec2f{x}, hovered[i] ? 1 : 0};
+        vec2{cam.unproject(vec2f{cursor_pos.x(), cursor_pos.y()}).xy()};
+    auto i = std::size_t{};
+    auto map = geometry.vertexbuffer().wmap();
+    for (auto const& p : ps) {
+      auto       s               = p.sampler();
+      auto const p1              = s.sample(unprojected, backward);
+      auto const local           = s.opposite_center(backward) - p1;
+      map[i] = {vec2f{local}, hovered[i] ? 1 : 0};
       ++i;
-    }
-  }
-  //----------------------------------------------------------------------------
-  auto on_button_pressed(gl::button /*b*/) { down = true; 
-    for (std::size_t i = 0; i < size(hovered); ++i) {
-      if (hovered[i] && down) {
-        grabbed[i] = true;
-      }
-    }
-  }
-  //----------------------------------------------------------------------------
-  auto on_button_released(gl::button /*b*/) {
-    down = false;
-    for (auto&& g : grabbed) {
-      g = false;
     }
   }
 };
@@ -236,5 +204,6 @@ auto main() -> int {
       p.advect_with_three_splits(flowmap(v), 0.01, 3, uuid_generator);
 
   rendering::interactive::pre_setup();
-  rendering::interactive::render(ps, g, movable_line{});
+  auto m = movable_line{ps};
+  rendering::interactive::render(ps, g, m);
 }
