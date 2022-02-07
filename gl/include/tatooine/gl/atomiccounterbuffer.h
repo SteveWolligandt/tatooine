@@ -13,17 +13,17 @@ namespace tatooine::gl {
 class atomiccounterbuffer
     : public buffer<GL_ATOMIC_COUNTER_BUFFER, GLuint> {
  public:
-  using parent_t = buffer<GL_ATOMIC_COUNTER_BUFFER, GLuint>;
-  using this_t   = atomiccounterbuffer;
+  using parent_type = buffer<GL_ATOMIC_COUNTER_BUFFER, GLuint>;
+  using this_type   = atomiccounterbuffer;
   static const usage_t default_usage = DYNAMIC_DRAW;
 
   DLL_API explicit atomiccounterbuffer(usage_t usage = default_usage);
 
-  atomiccounterbuffer(const this_t& other)     = default;
-  atomiccounterbuffer(this_t&& other) noexcept = default;
+  atomiccounterbuffer(const this_type& other)     = default;
+  atomiccounterbuffer(this_type&& other) noexcept = default;
 
-  auto operator=(const this_t& other) -> atomiccounterbuffer&     = default;
-  auto operator=(this_t&& other) noexcept -> atomiccounterbuffer& = default;
+  auto operator=(const this_type& other) -> atomiccounterbuffer&     = default;
+  auto operator=(this_type&& other) noexcept -> atomiccounterbuffer& = default;
 
   ~atomiccounterbuffer() = default;
 

@@ -72,8 +72,8 @@ concept has_defined_this_t = requires {
 };
 //------------------------------------------------------------------------------
 template <typename T>
-concept has_defined_parent_t = requires {
-  typename T::parent_t;
+concept has_defined_parent_type = requires {
+  typename T::parent_type;
 };
 //------------------------------------------------------------------------------
 template <typename T>

@@ -12,10 +12,10 @@ namespace tatooine::analytical::fields::numerical {
 template <typename Real>
 struct tornado : vectorfield<tornado<Real>, Real, 3> {
   using this_t   = tornado<Real>;
-  using parent_t = vectorfield<this_t, Real, 3>;
-  using typename parent_t::pos_t;
-  using typename parent_t::real_t;
-  using typename parent_t::tensor_t;
+  using parent_type = vectorfield<this_t, Real, 3>;
+  using typename parent_type::pos_t;
+  using typename parent_type::real_t;
+  using typename parent_type::tensor_t;
   //----------------------------------------------------------------------------
   static constexpr real_t eps = 1e-10;
   //----------------------------------------------------------------------------

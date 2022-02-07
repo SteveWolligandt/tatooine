@@ -16,7 +16,7 @@ struct sampler {
   using vec_t     = vec<Real, NumDimensions>;
   using pos_t     = vec_t;
   using mat_t     = mat<Real, NumDimensions, NumDimensions>;
-  using ellipse_t = geometry::hyper_ellipse<Real, NumDimensions>;
+  using ellipse_t = tatooine::geometry::hyper_ellipse<Real, NumDimensions>;
 
  private:
   //============================================================================
@@ -96,7 +96,7 @@ struct sampler {
     return m_ellipse0.center();
   }
   auto distance_sqr(pos_t const& x, forward_tag tag) const {
-    return tatooine::length(nabla_phi() * (x - center(tag)));
+    return tatooine::euclidean_length(nabla_phi() * (x - center(tag)));
   }
   auto distance_sqr(pos_t const& x, backward_tag tag) const {
     return tatooine::length(solve(nabla_phi(), (x - center(tag))));

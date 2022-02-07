@@ -9,9 +9,9 @@ namespace tatooine::analytical::fields::numerical {
 template <typename Real>
 struct cosinussinus : field<cosinussinus<Real>, Real, 2, 2> {
   using this_t   = cosinussinus<Real>;
-  using parent_t = field<this_t, Real, 2, 2>;
-  using typename parent_t::pos_t;
-  using typename parent_t::tensor_t;
+  using parent_type = field<this_t, Real, 2, 2>;
+  using typename parent_type::pos_t;
+  using typename parent_type::tensor_t;
   //============================================================================
   Real m_radius;
   //============================================================================
@@ -33,9 +33,9 @@ struct cosinussinus : field<cosinussinus<Real>, Real, 2, 2> {
 template <typename Real>
 struct sinuscosinus : field<sinuscosinus<Real>, Real, 2, 2> {
   using this_t   = sinuscosinus<Real>;
-  using parent_t = field<this_t, Real, 2, 2>;
-  using typename parent_t::pos_t;
-  using typename parent_t::tensor_t;
+  using parent_type = field<this_t, Real, 2, 2>;
+  using typename parent_type::pos_t;
+  using typename parent_type::tensor_t;
 
   //============================================================================
   constexpr sinuscosinus() noexcept {}

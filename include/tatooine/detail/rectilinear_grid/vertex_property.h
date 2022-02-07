@@ -74,20 +74,20 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
   //============================================================================
   using this_t =
       typed_vertex_property_interface<Grid, ValueType, HasNonConstReference>;
-  using parent_t        = vertex_property<Grid>;
+  using parent_type        = vertex_property<Grid>;
   using value_type      = ValueType;
   using const_reference = ValueType const&;
   using reference =
       std::conditional_t<HasNonConstReference, ValueType&, const_reference>;
   using grid_t = Grid;
-  using parent_t::grid;
-  using parent_t::num_dimensions;
-  using typename parent_t::vertex_handle;
+  using parent_type::grid;
+  using parent_type::num_dimensions;
+  using typename parent_type::vertex_handle;
 
   //============================================================================
   // ctors
   //============================================================================
-  explicit typed_vertex_property_interface(Grid const& g) : parent_t{g} {}
+  explicit typed_vertex_property_interface(Grid const& g) : parent_type{g} {}
   typed_vertex_property_interface(typed_vertex_property_interface const&) =
       default;
   typed_vertex_property_interface(typed_vertex_property_interface&&) noexcept =
@@ -334,20 +334,20 @@ struct typed_vertex_property
       decltype(std::declval<Container&>().at(
           std::declval<std::array<std::size_t, Grid::num_dimensions()>>())),
       ValueType&>;
-  using prop_parent_t =
+  using prop_parent_type =
       typed_vertex_property_interface<Grid, ValueType, has_non_const_reference>;
-  using cont_parent_t   = Container;
-  using value_type      = typename prop_parent_t::value_type;
-  using reference       = typename prop_parent_t::reference;
-  using const_reference = typename prop_parent_t::const_reference;
+  using cont_parent_type   = Container;
+  using value_type      = typename prop_parent_type::value_type;
+  using reference       = typename prop_parent_type::reference;
+  using const_reference = typename prop_parent_type::const_reference;
   using grid_t          = Grid;
-  using prop_parent_t::num_dimensions;
+  using prop_parent_type::num_dimensions;
   //============================================================================
   // ctors
   //============================================================================
   template <typename... Args>
   explicit typed_vertex_property(Grid const& g, Args&&... args)
-      : prop_parent_t{g}, cont_parent_t{std::forward<Args>(args)...} {}
+      : prop_parent_type{g}, cont_parent_type{std::forward<Args>(args)...} {}
   typed_vertex_property(typed_vertex_property const&)     = default;
   typed_vertex_property(typed_vertex_property&&) noexcept = default;
   //----------------------------------------------------------------------------

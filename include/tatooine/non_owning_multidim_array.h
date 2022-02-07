@@ -13,13 +13,13 @@ class non_owning_multidim_array : public dynamic_multidim_size<IndexOrder> {
  public:
   using value_type = T;
   using this_t     = non_owning_multidim_array<T, IndexOrder>;
-  using parent_t   = dynamic_multidim_size<IndexOrder>;
-  using parent_t::in_range;
-  using parent_t::indices;
-  using parent_t::num_components;
-  using parent_t::num_dimensions;
-  using parent_t::plain_index;
-  using parent_t::size;
+  using parent_type   = dynamic_multidim_size<IndexOrder>;
+  using parent_type::in_range;
+  using parent_type::indices;
+  using parent_type::num_components;
+  using parent_type::num_dimensions;
+  using parent_type::plain_index;
+  using parent_type::size;
   //============================================================================
   // members
   //============================================================================
@@ -38,20 +38,20 @@ class non_owning_multidim_array : public dynamic_multidim_size<IndexOrder> {
   template <typename OtherIndexing>
   auto operator=(non_owning_multidim_array<T, OtherIndexing> const& other)
       -> non_owning_multidim_array& {
-    if (parent_t::operator!=(other)) {
-      parent_t::resize(other.size());
+    if (parent_type::operator!=(other)) {
+      parent_type::resize(other.size());
     }
-    parent_t::operator=(other);
+    parent_type::operator=(other);
     return *this;
   }
   //============================================================================
   explicit non_owning_multidim_array(T const* data, integral auto const... size)
-      : parent_t{size...}, m_data(std::move(data)) {
+      : parent_type{size...}, m_data(std::move(data)) {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <unsigned_integral UInt>
   non_owning_multidim_array(T const* data, std::vector<UInt> const& size)
-      : parent_t{size}, m_data(std::move(data)) {
+      : parent_type{size}, m_data(std::move(data)) {
   }
   //============================================================================
   // methods

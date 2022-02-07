@@ -9,10 +9,10 @@ template <typename Real>
 struct rayleigh_benard_convection
     : vectorfield<rayleigh_benard_convection<Real>, Real, 3> {
   using this_t   = rayleigh_benard_convection<Real>;
-  using parent_t = vectorfield<this_t, Real, 3>;
+  using parent_type = vectorfield<this_t, Real, 3>;
   using real_t   = Real;
-  using typename parent_t::pos_t;
-  using typename parent_t::tensor_t;
+  using typename parent_type::pos_t;
+  using typename parent_type::tensor_t;
   //============================================================================
  private:
   Real m_A, m_k;

@@ -22,9 +22,9 @@ template <typename Real, size_t N, typename Stepper>
 struct solver : ode::solver<solver<Real, N, Stepper>, Real, N> {
  public:
   using this_t   = solver<Real, N, Stepper>;
-  using parent_t = ode::solver<this_t, Real, N>;
-  using typename parent_t::pos_t;
-  using typename parent_t::vec_t;
+  using parent_type = ode::solver<this_t, Real, N>;
+  using typename parent_type::pos_t;
+  using typename parent_type::vec_t;
 
  protected:
   //============================================================================
@@ -33,7 +33,7 @@ struct solver : ode::solver<solver<Real, N, Stepper>, Real, N> {
 
  private:
   //============================================================================
-  friend parent_t;
+  friend parent_type;
 
  public:
   //============================================================================

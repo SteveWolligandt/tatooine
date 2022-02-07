@@ -28,9 +28,9 @@ template <typename Real, size_t N>
 struct rungekutta43 : solver<rungekutta43<Real, N>, Real, N> {
   //============================================================================
   using this_t   = rungekutta43<Real, N>;
-  using parent_t = solver<this_t, Real, N>;
-  using typename parent_t::pos_t;
-  using typename parent_t::vec_t;
+  using parent_type = solver<this_t, Real, N>;
+  using typename parent_type::pos_t;
+  using typename parent_type::vec_t;
   using vc_ode_t     = VC::odeint::ode_t<N, Real, vec_t, false>;
   using vc_stepper_t = typename vc_ode_t::template solver_t<
       VC::odeint::steppers::rk43_t<pos_t, Real>>;

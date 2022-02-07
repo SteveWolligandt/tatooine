@@ -15,10 +15,10 @@ struct ftle_field
             FlowmapGradient::num_dimensions()> {
   using real_t   = typename FlowmapGradient::real_t;
   using this_t   = ftle_field<FlowmapGradient>;
-  using parent_t = scalarfield<this_t, real_t, FlowmapGradient::num_dimensions()>;
+  using parent_type = scalarfield<this_t, real_t, FlowmapGradient::num_dimensions()>;
   using vec_t    = typename FlowmapGradient::vec_t;
-  using typename parent_t::pos_t;
-  using typename parent_t::tensor_t;
+  using typename parent_type::pos_t;
+  using typename parent_type::tensor_t;
   //============================================================================
  private:
   FlowmapGradient m_flowmap_gradient;

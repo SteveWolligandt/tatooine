@@ -20,16 +20,16 @@ struct binary_operation_field
 
  public:
   using this_t = binary_operation_field<LHSInternalField, RHSInternalField, Op>;
-  using parent_t =
+  using parent_type =
       field<this_t,
             common_type<field_real_t<LHSInternalField>,
                         field_real_t<RHSInternalField>>,
             field_num_dimensions<LHSInternalField>,
             std::invoke_result_t<Op, field_tensor_t<LHSInternalField>,
                                  field_tensor_t<RHSInternalField>>>;
-  using typename parent_t::pos_t;
-  using typename parent_t::real_t;
-  using typename parent_t::tensor_t;
+  using typename parent_type::pos_t;
+  using typename parent_type::real_t;
+  using typename parent_type::tensor_t;
   //----------------------------------------------------------------------------
   // members
   //----------------------------------------------------------------------------

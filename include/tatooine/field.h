@@ -133,10 +133,10 @@ struct field : polymorphic::field<Real, NumDims, Tensor> {
   // typedefs
   //============================================================================
   using this_t   = field<DerivedField, Real, NumDims, Tensor>;
-  using parent_t = polymorphic::field<Real, NumDims, Tensor>;
-  using typename parent_t::pos_t;
-  using typename parent_t::real_t;
-  using typename parent_t::tensor_t;
+  using parent_type = polymorphic::field<Real, NumDims, Tensor>;
+  using typename parent_type::pos_t;
+  using typename parent_type::real_t;
+  using typename parent_type::tensor_t;
   //============================================================================
   // ctors
   //============================================================================
@@ -185,14 +185,14 @@ struct lambda_field : field<
      std::invoke_result_t<F, vec<tatooine::real_t, NumDims>, tatooine::real_t>> {
   F m_f;
   constexpr lambda_field(F&& f) : m_f{std::forward<F>(f)} {}
-  using parent_t =
+  using parent_type =
       field<lambda_field<NumDims, F>,
             internal_value_type<
                 std::invoke_result_t<F, vec<tatooine::real_t, NumDims>, tatooine::real_t>>,
             NumDims, std::invoke_result_t<F, vec<tatooine::real_t, NumDims>, tatooine::real_t>>;
-  using typename parent_t::pos_t;
-  using typename parent_t::real_t;
-  using typename parent_t::tensor_t;
+  using typename parent_type::pos_t;
+  using typename parent_type::real_t;
+  using typename parent_type::tensor_t;
   [[nodiscard]] constexpr auto evaluate(pos_t const& x, real_t const t) const
       -> tensor_t {
     return m_f(x, t);

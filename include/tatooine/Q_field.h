@@ -14,11 +14,11 @@ class Q_field
   //============================================================================
  public:
   using this_t = Q_field<V>;
-  using parent_t =
+  using parent_type =
       scalarfield<this_t, field_real_t<V>, field_num_dimensions<V>>;
-  using typename parent_t::real_t;
-  using typename parent_t::pos_t;
-  using typename parent_t::tensor_t;
+  using typename parent_type::real_t;
+  using typename parent_type::pos_t;
+  using typename parent_type::tensor_t;
   //============================================================================
   // fields
   //============================================================================

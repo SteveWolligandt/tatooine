@@ -20,9 +20,9 @@ class curvature_field<V, 2>
  public:
   using this_t   = curvature_field<V>;
   using real_t   = typename V::real_t;
-  using parent_t = field<this_t, real_t, 2>;
-  using typename parent_t::tensor_t;
-  using typename parent_t::pos_t;
+  using parent_type = field<this_t, real_t, 2>;
+  using typename parent_type::tensor_t;
+  using typename parent_type::pos_t;
 
   //============================================================================
   // fields
@@ -64,9 +64,9 @@ class curvature_field<V, 3>
  public:
   using this_t   = curvature_field<V>;
   using real_t   = typename V::real_t;
-  using parent_t = field<this_t, real_t, 3>;
-  using typename parent_t::tensor_t;
-  using typename parent_t::pos_t;
+  using parent_type = field<this_t, real_t, 3>;
+  using typename parent_type::tensor_t;
+  using typename parent_type::pos_t;
 
   //============================================================================
   // fields

@@ -249,8 +249,8 @@ struct fps_camera_controller : camera_controller_interface<Real> {
   using mat3 = mat<Real, 3, 3>;
   using mat4 = mat<Real, 4, 4>;
   using this_t = fps_camera_controller<Real>;
-  using parent_t = camera_controller_interface<Real>;
-  using parent_t::controller;
+  using parent_type = camera_controller_interface<Real>;
+  using parent_type::controller;
 
   double       m_mouse_pos_x, m_mouse_pos_y;
   bool         m_right_button_down = false;
@@ -376,13 +376,13 @@ struct fps_camera_controller : camera_controller_interface<Real> {
     if (m_w_down) {
       auto const look_dir =
           normalize(controller().lookat() - controller().eye());
-      auto const new_eye = controller().eye() + look_dir * ms * speed();
+      auto const new_eye = controller().eye() - look_dir * ms * speed();
       controller().look_at(new_eye, new_eye + look_dir);
     }
     if (m_s_down) {
       auto const look_dir =
           normalize(controller().lookat() - controller().eye());
-      auto const new_eye = controller().eye() - look_dir * ms * speed();
+      auto const new_eye = controller().eye() + look_dir * ms * speed();
       controller().look_at(new_eye, new_eye + look_dir);
     }
     if (m_q_down) {
@@ -427,8 +427,8 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
   using mat3 = mat<Real, 3, 3>;
   using mat4 = mat<Real, 4, 4>;
   using this_t = orthographic_camera_controller<Real>;
-  using parent_t = camera_controller_interface<Real>;
-  using parent_t::controller;
+  using parent_type = camera_controller_interface<Real>;
+  using parent_type::controller;
 
   //============================================================================
   // members

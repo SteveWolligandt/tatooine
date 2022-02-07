@@ -13,14 +13,14 @@ struct spacetime_splitted_vectorfield
                   std::remove_pointer_t<std::decay_t<V>>::num_dimensions() -
                       1> {
   using this_t = spacetime_splitted_vectorfield<V>;
-  using parent_t =
+  using parent_type =
       vectorfield<this_t,
                   typename std::remove_pointer_t<std::decay_t<V>>::real_t,
                   std::remove_pointer_t<std::decay_t<V>>::num_dimensions() - 1>;
-  using parent_t::num_dimensions;
-  using typename parent_t::pos_t;
-  using typename parent_t::real_t;
-  using typename parent_t::tensor_t;
+  using parent_type::num_dimensions;
+  using typename parent_type::pos_t;
+  using typename parent_type::real_t;
+  using typename parent_type::tensor_t;
   //============================================================================
   V m_v;
   //============================================================================

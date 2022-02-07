@@ -328,13 +328,13 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
     ImGui::Text("Rectilinear Grid");
     ImGui::Checkbox("Show Grid", &show_grid);
 
-    if (show_grid) {
+    //if (show_grid) {
       ImGui::DragInt("Line width", &line_width, 1, 1, 20);
       ImGui::ColorEdit4("Color", color.data().data());
-    }
+    //}
 
     ImGui::Checkbox("Show Property", &show_property);
-    if (show_property) {
+    //if (show_property) {
       if (ImGui::BeginCombo("##combo", selected_property_name != nullptr
                                            ? selected_property_name->c_str()
                                            : nullptr)) {
@@ -368,7 +368,7 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
         }
         ImGui::EndCombo();
       }
-    }
+    //}
     if (vector_property) {
       if (ImGui::BeginCombo("##combo2", selected_component)) {
         auto n = retrieve_typed_vec_prop(selected_property, [](auto&& prop) {
@@ -402,13 +402,13 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
     if (show_grid) {
       render_grid();
     }
-    if (show_property) {
+    if (show_property && selected_property != nullptr) {
       render_property();
     }
   }
   //------------------------------------------------------------------------------
-  auto update(renderable_type const& grid, camera auto const& cam,
-              auto const dt) {
+  auto update(auto const dt, renderable_type const& grid,
+              camera auto const& cam) {
     using CamReal = typename std::decay_t<decltype(cam)>::real_t;
     static auto constexpr cam_is_float = is_same<GLfloat, CamReal>;
     if (show_grid) {

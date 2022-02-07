@@ -19,14 +19,14 @@ indexbuffer::indexbuffer(indexbuffer&& other) : buffer(std::move(other)) {}
 //------------------------------------------------------------------------------
 
 indexbuffer& indexbuffer::operator=(const indexbuffer& other) {
-  parent_t::operator=(other);
+  parent_type::operator=(other);
   return *this;
 }
 
 //------------------------------------------------------------------------------
 
 indexbuffer& indexbuffer::operator=(indexbuffer&& other) {
-  parent_t::operator=(std::move(other));
+  parent_type::operator=(std::move(other));
   return *this;
 }
 

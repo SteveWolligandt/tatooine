@@ -8,10 +8,10 @@ namespace tatooine {
 template <typename Real, std::size_t NumDimensions>
 struct edgeset : unstructured_simplicial_grid<Real, NumDimensions, 1> {
   using this_t   = edgeset<Real, NumDimensions>;
-  using parent_t = unstructured_simplicial_grid<Real, NumDimensions, 1>;
-  using parent_t::parent_t;
-  using typename parent_t::vertex_handle;
-  using edge_handle = typename parent_t::simplex_handle;
+  using parent_type = unstructured_simplicial_grid<Real, NumDimensions, 1>;
+  using parent_type::parent_type;
+  using typename parent_type::vertex_handle;
+  using edge_handle = typename parent_type::simplex_handle;
   template <typename... Handles>
   auto insert_edge(vertex_handle const v0, vertex_handle const v1)  {
     return this->insert_simplex(v0, v1);

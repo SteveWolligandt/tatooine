@@ -10,12 +10,12 @@ namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 struct autonomous_particle : tatooine::autonomous_particle<real_t, 2>,
                              renderable<autonomous_particle> {
-  using this_t   = autonomous_particle;
-  using parent_t      = tatooine::autonomous_particle<real_t, 2>;
+  using this_type   = autonomous_particle;
+  using parent_type      = tatooine::autonomous_particle<real_t, 2>;
   using gpu_vec3      = vec<GLfloat, 3>;
   using vbo_t         = gl::vertexbuffer<gpu_vec3>;
   using vectorfield_t = polymorphic::vectorfield<real_t, 2>;
-  using parent_t::advect;
+  using parent_type::advect;
   //============================================================================
   real_t          m_taustep = 0.1;
   real_t          m_max_t   = 0.0;

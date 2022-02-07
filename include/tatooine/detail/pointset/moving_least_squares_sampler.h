@@ -12,9 +12,9 @@ struct moving_least_squares_sampler<Real, 2, T>
     : field<moving_least_squares_sampler<Real, 2, T>, Real, 2, T> {
   static_assert(flann_available(), "Moving Least Squares Sampler needs FLANN!");
   using this_t   = moving_least_squares_sampler<Real, 2, T>;
-  using parent_t = field<this_t, Real, 2, T>;
-  using typename parent_t::pos_t;
-  using typename parent_t::tensor_t;
+  using parent_type = field<this_t, Real, 2, T>;
+  using typename parent_type::pos_t;
+  using typename parent_type::tensor_t;
   using pointset_t        = tatooine::pointset<Real, 2>;
   using vertex_property_t = typename pointset_t::template vertex_property_t<T>;
   using vertex_handle     = typename pointset_t::vertex_handle;
@@ -170,9 +170,9 @@ struct moving_least_squares_sampler<Real, 3, T>
     : field<moving_least_squares_sampler<Real, 3, T>, Real, 3, T> {
   static_assert(flann_available(), "Moving Least Squares Sampler needs FLANN!");
   using this_t   = moving_least_squares_sampler<Real, 3, T>;
-  using parent_t = field<this_t, Real, 3, T>;
-  using typename parent_t::pos_t;
-  using typename parent_t::tensor_t;
+  using parent_type = field<this_t, Real, 3, T>;
+  using typename parent_type::pos_t;
+  using typename parent_type::tensor_t;
   using pointset_t        = tatooine::pointset<Real, 3>;
   using vertex_handle     = typename pointset_t::vertex_handle;
   using vertex_property_t = typename pointset_t::template vertex_property_t<T>;

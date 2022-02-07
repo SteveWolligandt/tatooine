@@ -8,11 +8,11 @@ namespace tatooine::numerical {
 template <typename Real>
 struct cylinder_flow : vectorfield<cylinder_flow<Real>, Real, 2> {
   using this_t = cylinder_flow<Real>;
-  using parent_t = vectorfield<this_t, Real, 2>;
+  using parent_type = vectorfield<this_t, Real, 2>;
   //============================================================================
-  using typename parent_t::real_t;
-  using typename parent_t::pos_t;
-  using typename parent_t::tensor_t;
+  using typename parent_type::real_t;
+  using typename parent_type::pos_t;
+  using typename parent_type::tensor_t;
   //============================================================================
   real_t a = 0;
   real_t Tc = 1;

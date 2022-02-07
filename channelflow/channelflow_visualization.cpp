@@ -15,12 +15,12 @@ namespace tat = tatooine;
 template <typename SamplerX, typename SamplerY, typename SamplerZ>
 struct vectorfield
     : tat::vectorfield<vectorfield<SamplerX, SamplerY, SamplerZ>, double, 3> {
-  using this_t   = vectorfield<SamplerX, SamplerY, SamplerZ>;
-  using parent_t = tat::vectorfield<this_t, double, 3>;
+  using this_type   = vectorfield<SamplerX, SamplerY, SamplerZ>;
+  using parent_type = tat::vectorfield<this_type, double, 3>;
 
-  using typename parent_t::pos_t;
-  using typename parent_t::real_t;
-  using typename parent_t::tensor_t;
+  using typename parent_type::pos_t;
+  using typename parent_type::real_t;
+  using typename parent_type::tensor_t;
 
   SamplerX m_sampler_x;
   SamplerY m_sampler_y;

@@ -22,15 +22,15 @@ struct mat : tensor<T, M, N> {
   // typedefs
   //============================================================================
   using this_t   = mat<T, M, N>;
-  using parent_t = tensor<T, M, N>;
+  using parent_type = tensor<T, M, N>;
 
   //============================================================================
   // inherited methods
   //============================================================================
-  using parent_t::is_quadratic_mat;
-  using parent_t::parent_t;
-  using parent_t::operator();
-  using parent_t::at;
+  using parent_type::is_quadratic_mat;
+  using parent_type::parent_type;
+  using parent_type::operator();
+  using parent_type::at;
 
   //============================================================================
   // factories
@@ -63,20 +63,20 @@ struct mat : tensor<T, M, N> {
   constexpr mat(mat&& other) noexcept = default;
   //----------------------------------------------------------------------------
   /// Copies any other tensor with same dimensions.
-  template <typename Tensor, typename TensorReal>
-  explicit constexpr mat(base_tensor<Tensor, TensorReal, M, N> const& other)
-      : parent_t{other} {}
+  template <typename OtherTensor, typename OtherT>
+  explicit constexpr mat(base_tensor<OtherTensor, OtherT, M, N> const& other)
+      : parent_type{other} {}
   //----------------------------------------------------------------------------
   template <typename... Rows>
-  explicit constexpr mat(Rows(&&... rows)[parent_t::dimension(1)]) {
+  explicit constexpr mat(Rows(&&... rows)[parent_type::dimension(1)]) {
     static_assert(((is_arithmetic<Rows> || is_complex<Rows>)&&...));
     static_assert(
-        sizeof...(rows) == parent_t::dimension(0),
+        sizeof...(rows) == parent_type::dimension(0),
         "number of given rows does not match specified number of rows");
 
     // lambda inserting row into data block
     auto insert_row = [r = std::size_t(0), this](auto const& row) mutable {
-      for (size_t c = 0; c < parent_t::dimension(1); ++c) {
+      for (size_t c = 0; c < parent_type::dimension(1); ++c) {
         at(r, c) = static_cast<T>(row[c]);
       }
       ++r;
@@ -86,7 +86,7 @@ struct mat : tensor<T, M, N> {
   }
   //----------------------------------------------------------------------------
   /// Constructs an identity matrix.
-  explicit constexpr mat(tag::eye_t /*flag*/) : parent_t{tag::zeros} {
+  explicit constexpr mat(tag::eye_t /*flag*/) : parent_type{tag::zeros} {
     for (size_t i = 0; i < std::min(M, N); ++i) { at(i, i) = 1; }
   }
   //============================================================================
@@ -96,10 +96,10 @@ struct mat : tensor<T, M, N> {
   //----------------------------------------------------------------------------
   auto constexpr operator=(mat&& other) noexcept -> mat& = default;
   //----------------------------------------------------------------------------
-  template <typename Tensor, typename TensorReal>
+  template <typename OtherTensor, typename OtherT>
   auto constexpr operator=(
-      base_tensor<Tensor, TensorReal, M, N> const& other) noexcept -> mat& {
-    parent_t::operator=(other);
+      base_tensor<OtherTensor, OtherT, M, N> const& other) noexcept -> mat& {
+    parent_type::operator=(other);
     return *this;
   }
   //============================================================================
@@ -112,8 +112,8 @@ struct mat : tensor<T, M, N> {
   //============================================================================
   static auto constexpr eye() { return this_t{tag::eye}; }
   //----------------------------------------------------------------------------
-  template <typename Tensor>
-  static auto constexpr vander(base_tensor<Tensor, T, N> const & v) {
+  template <typename OtherTensor>
+  static auto constexpr vander(base_tensor<OtherTensor, T, N> const & v) {
     this_t V;
     auto   factor_up_row = [row = std::size_t(0), &V](auto x) mutable {
       V(row, 0) = 1;

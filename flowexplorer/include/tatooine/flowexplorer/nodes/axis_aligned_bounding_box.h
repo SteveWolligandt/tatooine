@@ -13,12 +13,12 @@ template <size_t N>
 struct axis_aligned_bounding_box
     : tatooine::axis_aligned_bounding_box<double, N>,
       renderable<axis_aligned_bounding_box<N>> {
-  using this_t   = axis_aligned_bounding_box<N>;
-  using parent_t = tatooine::axis_aligned_bounding_box<double, N>;
+  using this_type   = axis_aligned_bounding_box<N>;
+  using parent_type = tatooine::axis_aligned_bounding_box<double, N>;
   using gpu_vec  = vec<float, N>;
   using vbo_t    = gl::vertexbuffer<gpu_vec>;
-  using parent_t::max;
-  using parent_t::min;
+  using parent_type::max;
+  using parent_type::min;
   //============================================================================
   gl::indexeddata<vec<float, N>> m_gpu_data;
   int                            m_line_width = 1;

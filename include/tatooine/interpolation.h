@@ -128,7 +128,7 @@ template <typename Real>
 struct cubic : polynomial<Real, 3> {
   static constexpr size_t num_derivatives = 1;
   using real_t                            = Real;
-  using parent_t                          = tatooine::polynomial<Real, 3>;
+  using parent_type                          = tatooine::polynomial<Real, 3>;
   static constexpr size_t num_dimensions() { return 1; }
   static_assert(is_floating_point<Real>);
 
@@ -144,7 +144,7 @@ struct cubic : polynomial<Real, 3> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr cubic(Real const t0, Real const t1, Real const ft0, Real const ft1,
                   Real const dft0_dt, Real const dft1_dt)
-      : parent_t{0, 0, 0, 0} {
+      : parent_type{0, 0, 0, 0} {
     constexpr Real        zero = 0;
     constexpr Real        one  = 1;
     mat<Real, 4, 4> const A{{one, t0, t0 * t0, t0 * t0 * t0},
@@ -157,7 +157,7 @@ struct cubic : polynomial<Real, 3> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr cubic(const Real ft0, const Real ft1, const Real dft0_dt,
                   const Real dft1_dt)
-      : parent_t{ft0, dft0_dt, 3 * ft1 - 3 * ft0 - dft1_dt - 2 * dft0_dt,
+      : parent_type{ft0, dft0_dt, 3 * ft1 - 3 * ft0 - dft1_dt - 2 * dft0_dt,
                  -2 * ft1 + 2 * ft0 + dft1_dt + dft0_dt} {}
 };
 //------------------------------------------------------------------------------

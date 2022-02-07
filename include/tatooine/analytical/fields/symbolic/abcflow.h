@@ -13,10 +13,10 @@ namespace tatooine::analytical::fields::symbolic {
 template <typename real_t>
 struct abcflow : field<real_t, 3, 3> {
   using this_t   = abcflow<real_t>;
-  using parent_t = field<real_t, 3, 3>;
-  using typename parent_t::pos_t;
-  using typename parent_t::tensor_t;
-  using typename parent_t::symtensor_t;
+  using parent_type = field<real_t, 3, 3>;
+  using typename parent_type::pos_t;
+  using typename parent_type::tensor_t;
+  using typename parent_type::symtensor_t;
 
   //============================================================================
  public:

@@ -12,10 +12,10 @@ namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 template <size_t N>
 struct position : tatooine::vec<real_t, N>, renderable<position<N>> {
-  using this_t   = position<N>;
-  using parent_t = tatooine::vec<real_t, N>;
+  using this_type   = position<N>;
+  using parent_type = tatooine::vec<real_t, N>;
   using gpu_vec  = vec<GLfloat, 3>;
-  using parent_t::at;
+  using parent_type::at;
   //============================================================================
   gl::indexeddata<gpu_vec>   m_gpu_data;
   int                           m_pointsize = 1;

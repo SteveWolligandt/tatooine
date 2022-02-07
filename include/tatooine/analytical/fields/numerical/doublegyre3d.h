@@ -8,10 +8,10 @@ namespace tatooine::analytical::fields::numerical {
 template <floating_point Real>
 struct doublegyre3d : vectorfield<doublegyre3d<Real>, Real, 3> {
   using this_t   = doublegyre3d<Real>;
-  using parent_t = vectorfield<this_t, Real, 3>;
-  using real_t   = typename parent_t::real_t;
-  using pos_t    = typename parent_t::pos_t;
-  using tensor_t = typename parent_t::tensor_t;
+  using parent_type = vectorfield<this_t, Real, 3>;
+  using real_t   = typename parent_type::real_t;
+  using pos_t    = typename parent_type::pos_t;
+  using tensor_t = typename parent_type::tensor_t;
   //============================================================================
   real_t m_eps   = real_t(1) / real_t(4);
   real_t m_omega = 2 * M_PI / 10;

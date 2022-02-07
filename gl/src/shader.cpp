@@ -23,7 +23,8 @@ void shader::create() {
 
   gl::link_program(id());
   if (auto log = info_log(); log) {
-    throw std::runtime_error{std::move(*log)}; }
+    throw std::runtime_error{std::move(*log)};
+  }
   bind();
   for (const auto& var : m_attribute_var_names) add_attribute(var);
   for (const auto& var : m_uniform_var_names) add_uniform(var);
@@ -221,9 +222,8 @@ std::optional<std::string> shader::info_log() {
   if (info_log_length == 0) {
     return {};
   }
-  std::string l(info_log_length, ' ');
-  gl::get_program_info_log(id(), info_log_length, &chars_written,
-                           const_cast<GLchar*>(l.c_str()));
+  auto l = std::string(info_log_length, ' ');
+  gl::get_program_info_log(id(), info_log_length, &chars_written, l.data());
 
   return l;
 }

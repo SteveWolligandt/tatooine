@@ -14,9 +14,9 @@ struct diag_tensor
   //============================================================================
   using tensor_t = Tensor;
   using this_t   = diag_tensor<Tensor, M, N>;
-  using parent_t =
+  using parent_type =
       base_tensor<this_t, typename std::decay_t<tensor_t>::value_type, M, N>;
-  using typename parent_t::value_type;
+  using typename parent_type::value_type;
   //============================================================================
  private:
   tensor_t m_internal_tensor;

@@ -11,7 +11,7 @@ struct tensor_size;
 
 template <size_t... Dimensions>
 struct tensor {
-  using this_t = tensor;
+  using this_type = tensor;
   static auto constexpr rank() { return sizeof...(Dimensions); }
   template <size_t I>
   static auto size() {
@@ -21,7 +21,7 @@ struct tensor {
   auto operator()(Indices... /*unused*/) {
     static_assert(sizeof...(Indices) == rank(),
                   "Number of indices differs from tensor rank.");
-    return index::tensor<this_t, Indices...>{};
+    return index::tensor<this_type, Indices...>{};
   }
 };
 

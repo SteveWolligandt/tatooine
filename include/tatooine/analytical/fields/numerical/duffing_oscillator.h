@@ -11,9 +11,9 @@ namespace tatooine::analytical::fields::numerical {
 template <typename Real>
 struct duffing_oscillator : vectorfield<duffing_oscillator<Real>, Real, 2> {
   using this_t   = duffing_oscillator<Real>;
-  using parent_t = vectorfield<this_t, Real, 2>;
-  using typename parent_t::pos_t;
-  using typename parent_t::tensor_t;
+  using parent_type = vectorfield<this_t, Real, 2>;
+  using typename parent_type::pos_t;
+  using typename parent_type::tensor_t;
   //============================================================================
   Real                  m_delta, m_alpha, m_beta;
   static constexpr auto pi = boost::math::constants::pi<Real>();
@@ -48,9 +48,9 @@ template <typename Real>
 struct forced_duffing_oscillator
     : vectorfield<forced_duffing_oscillator<Real>, Real, 2> {
   using this_t   = forced_duffing_oscillator<Real>;
-  using parent_t = vectorfield<this_t, Real, 2>;
-  using typename parent_t::pos_t;
-  using typename parent_t::tensor_t;
+  using parent_type = vectorfield<this_t, Real, 2>;
+  using typename parent_type::pos_t;
+  using typename parent_type::tensor_t;
   //============================================================================
   Real                  m_eps;
   static constexpr auto pi = boost::math::constants::pi<Real>();

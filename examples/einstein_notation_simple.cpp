@@ -463,7 +463,7 @@ struct tensor_size;
 
 template <size_t... Dimensions>
 struct tensor {
-  using this_t = tensor;
+  using this_type = tensor;
   static auto constexpr rank() { return sizeof...(Dimensions); }
   template <size_t I>
   static auto size() {
@@ -471,7 +471,7 @@ struct tensor {
   }
   template <typename... Indices>
   auto operator()(Indices... /*unused*/) {
-    return index::tensor<this_t, Indices...>{};
+    return index::tensor<this_type, Indices...>{};
   }
 };
 

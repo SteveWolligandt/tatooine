@@ -19,10 +19,10 @@ namespace detail {
 // struct aabb_ray_intersectable_parent {};
 template <typename AABB, typename Real, std::size_t N>
 struct aabb_ray_intersectable_parent : ray_intersectable<Real, N> {
-  using parent_t = ray_intersectable<Real, N>;
-  using typename parent_t::intersection_t;
-  using typename parent_t::optional_intersection_t;
-  using typename parent_t::ray_t;
+  using parent_type = ray_intersectable<Real, N>;
+  using typename parent_type::intersection_t;
+  using typename parent_type::optional_intersection_t;
+  using typename parent_type::ray_t;
   //============================================================================
   auto as_aabb() const -> auto const& {
     return *dynamic_cast<AABB const*>(this);

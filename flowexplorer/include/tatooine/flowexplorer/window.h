@@ -8,8 +8,8 @@
 namespace tatooine::flowexplorer {
 //==============================================================================
 struct window : rendering::first_person_window {
-  using this_t   = window;
-  using parent_t = rendering::first_person_window;
+  using this_type   = window;
+  using parent_type = rendering::first_person_window;
   //----------------------------------------------------------------------------
   // members
   //----------------------------------------------------------------------------

@@ -22,20 +22,20 @@ struct infinite_vertex_property_sampler
   infinite_vertex_property_sampler(VertexPropSampler const& sampler)
       : m_sampler{sampler} {}
 
-  using parent_t = tatooine::field<infinite_vertex_property_sampler,
+  using parent_type = tatooine::field<infinite_vertex_property_sampler,
                                    typename VertexPropSampler::real_t,
                                    VertexPropSampler::num_dimensions(),
                                    typename VertexPropSampler::tensor_t>;
-  using typename parent_t::pos_t;
-  using typename parent_t::real_t;
-  using typename parent_t::tensor_t;
+  using typename parent_type::pos_t;
+  using typename parent_type::real_t;
+  using typename parent_type::tensor_t;
 
  private:
   static constexpr auto non_repeated_dimensions__() {
     auto constexpr rs = repeated_dimensions;
     auto non          = std::array<std::size_t, num_non_repeated_dimensions>{};
     auto idx          = std::size_t(0);
-    for (std::size_t i = 0; i < parent_t::num_dimensions(); ++i) {
+    for (std::size_t i = 0; i < parent_type::num_dimensions(); ++i) {
       bool b = true;
       for (auto r : rs) {
         if (r == i) {
@@ -53,9 +53,9 @@ struct infinite_vertex_property_sampler
 
  public:
   static auto constexpr num_non_repeated_dimensions =
-      parent_t::num_dimensions() - sizeof...(RepeatedDims);
+      parent_type::num_dimensions() - sizeof...(RepeatedDims);
   static auto constexpr num_repeated_dimensions =
-      parent_t::num_dimensions() - num_non_repeated_dimensions;
+      parent_type::num_dimensions() - num_non_repeated_dimensions;
   static constexpr auto repeated_dimensions     = std::array{RepeatedDims...};
   static constexpr auto non_repeated_dimensions = non_repeated_dimensions__();
   template <std::size_t... i>
@@ -85,7 +85,7 @@ struct infinite_vertex_property_sampler
     if (is_inside(x)) {
       return m_sampler(clamp_pos(x), t);
     }
-    return parent_t::ood_tensor();
+    return parent_type::ood_tensor();
   }
   //----------------------------------------------------------------------------
   template <std::size_t... i>

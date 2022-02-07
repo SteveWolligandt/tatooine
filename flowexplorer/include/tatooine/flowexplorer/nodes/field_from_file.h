@@ -13,8 +13,8 @@ struct field_from_file
                                             TensorDims...>,
       ui::node<field_from_file<Real, N, is_time_dependent, TensorDims...>> {
   //============================================================================
-  using this_t = field_from_file<Real, N, is_time_dependent, TensorDims...>;
-  using node_parent_t = ui::node<this_t>;
+  using this_type = field_from_file<Real, N, is_time_dependent, TensorDims...>;
+  using node_parent_type = ui::node<this_type>;
   //============================================================================
  private:
   std::string m_path;
@@ -54,7 +54,7 @@ struct field_from_file
   }
   //----------------------------------------------------------------------------
   auto deserialize(toml::table const& serialized_node) -> void override {
-    node_parent_t::deserialize(serialized_node);
+    node_parent_type::deserialize(serialized_node);
     if (!m_path.empty()) {
       std::cerr << "read: " << m_path << '\n';
       this->read(m_path);

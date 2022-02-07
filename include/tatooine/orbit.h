@@ -9,9 +9,9 @@ namespace tatooine::numerical {
 template <typename Real>
 struct orbit : field<orbit<Real>, Real, 3, 3> {
   using this_t   = orbit<Real>;
-  using parent_t = field<this_t, Real, 3, 3>;
-  using typename parent_t::pos_t;
-  using typename parent_t::tensor_t;
+  using parent_type = field<this_t, Real, 3, 3>;
+  using typename parent_type::pos_t;
+  using typename parent_type::tensor_t;
   using vec_t = tensor_t;
 
   //============================================================================

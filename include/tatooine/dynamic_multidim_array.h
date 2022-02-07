@@ -22,13 +22,13 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
  public:
   using value_type = T;
   using this_t     = dynamic_multidim_array<T, IndexOrder>;
-  using parent_t   = dynamic_multidim_size<IndexOrder>;
-  using parent_t::in_range;
-  using parent_t::indices;
-  using parent_t::num_components;
-  using parent_t::num_dimensions;
-  using parent_t::plain_index;
-  using parent_t::size;
+  using parent_type   = dynamic_multidim_size<IndexOrder>;
+  using parent_type::in_range;
+  using parent_type::indices;
+  using parent_type::num_components;
+  using parent_type::num_dimensions;
+  using parent_type::plain_index;
+  using parent_type::size;
   using container_t = std::vector<T>;
   //============================================================================
   // members
@@ -201,7 +201,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   template <typename OtherT, typename OtherIndexing>
   explicit constexpr dynamic_multidim_array(
       dynamic_multidim_array<OtherT, OtherIndexing> const& other)
-      : parent_t{other} {
+      : parent_type{other} {
     auto it = begin(other.data());
     for (auto& v : m_data) {
       v = static_cast<T>(*(it++));
@@ -211,10 +211,10 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   template <typename OtherT, typename OtherIndexing>
   auto operator=(dynamic_multidim_array<OtherT, OtherIndexing> const& other)
       -> dynamic_multidim_array& {
-    if (parent_t::operator!=(other)) {
+    if (parent_type::operator!=(other)) {
       resize(other.size());
     }
-    parent_t::operator=(other);
+    parent_type::operator=(other);
     for (auto i : indices()) {
       at(i) = other(i);
     }
@@ -222,81 +222,81 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   }
   //============================================================================
   explicit dynamic_multidim_array(integral auto const... size)
-      : parent_t{size...}, m_data(num_components(), T{}) {}
+      : parent_type{size...}, m_data(num_components(), T{}) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename S, integral... Size>
   explicit dynamic_multidim_array(tag::fill<S> const& f, Size const... size)
-      : parent_t{size...}, m_data(num_components(), f.value) {}
+      : parent_type{size...}, m_data(num_components(), f.value) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   explicit dynamic_multidim_array(tag::zeros_t const& /*z*/,
                                   integral auto const... size)
-      : parent_t{size...}, m_data(num_components(), 0) {}
+      : parent_type{size...}, m_data(num_components(), 0) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   explicit dynamic_multidim_array(tag::ones_t const& /*o*/,
                                   integral auto const... size)
-      : parent_t{size...}, m_data(num_components(), 1) {}
+      : parent_type{size...}, m_data(num_components(), 1) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   explicit dynamic_multidim_array(std::vector<T> const& data,
                                   integral auto const... size)
-      : parent_t{size...}, m_data(data) {}
+      : parent_type{size...}, m_data(data) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   explicit dynamic_multidim_array(std::vector<T>&& data,
                                   integral auto const... size)
-      : parent_t{size...}, m_data(std::move(data)) {}
+      : parent_type{size...}, m_data(std::move(data)) {}
   //----------------------------------------------------------------------------
   template <unsigned_integral UInt>
   explicit dynamic_multidim_array(std::vector<UInt> const& size)
-      : parent_t{size}, m_data(num_components(), T{}) {}
+      : parent_type{size}, m_data(num_components(), T{}) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename S, unsigned_integral UInt>
   dynamic_multidim_array(tag::fill<S> const& f, std::vector<UInt> const& size)
-      : parent_t{size}, m_data(num_components(), f.value) {}
+      : parent_type{size}, m_data(num_components(), f.value) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <unsigned_integral UInt>
   dynamic_multidim_array(tag::zeros_t const& /*z*/,
                          std::vector<UInt> const& size)
-      : parent_t{size}, m_data(num_components(), 0) {}
+      : parent_type{size}, m_data(num_components(), 0) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename UInt, enable_if<is_unsigned_integral<UInt> > = true>
   dynamic_multidim_array(tag::ones_t const& /*o*/,
                          std::vector<UInt> const& size)
-      : parent_t{size}, m_data(num_components(), 1) {}
+      : parent_type{size}, m_data(num_components(), 1) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <unsigned_integral UInt>
   dynamic_multidim_array(std::vector<T> const&    data,
                          std::vector<UInt> const& size)
-      : parent_t{size}, m_data(data) {}
+      : parent_type{size}, m_data(data) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <unsigned_integral UInt>
   dynamic_multidim_array(std::vector<T>&& data, std::vector<UInt> const& size)
-      : parent_t{size}, m_data(std::move(data)) {}
+      : parent_type{size}, m_data(std::move(data)) {}
   //----------------------------------------------------------------------------
   template <size_t N, unsigned_integral UInt>
   explicit dynamic_multidim_array(std::array<UInt, N> const& size)
-      : parent_t{size}, m_data(num_components(), T{}) {}
+      : parent_type{size}, m_data(num_components(), T{}) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, typename S, unsigned_integral UInt>
   dynamic_multidim_array(tag::fill<S> const& f, std::array<UInt, N> const& size)
-      : parent_t{size}, m_data(num_components(), f.value) {}
+      : parent_type{size}, m_data(num_components(), f.value) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, unsigned_integral UInt>
   dynamic_multidim_array(tag::zeros_t const& /*z*/,
                          std::array<UInt, N> const& size)
-      : parent_t{size}, m_data(num_components(), 0) {}
+      : parent_type{size}, m_data(num_components(), 0) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, unsigned_integral UInt>
   dynamic_multidim_array(tag::ones_t const& /*o*/,
                          std::array<UInt, N> const& size)
-      : parent_t{size}, m_data(num_components(), 1) {}
+      : parent_type{size}, m_data(num_components(), 1) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, unsigned_integral UInt>
   dynamic_multidim_array(std::vector<T> const&      data,
                          std::array<UInt, N> const& size)
-      : parent_t{size}, m_data(data) {}
+      : parent_type{size}, m_data(data) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, unsigned_integral UInt>
   dynamic_multidim_array(std::vector<T>&& data, std::array<UInt, N> const& size)
-      : parent_t{size}, m_data(std::move(data)) {}
+      : parent_type{size}, m_data(std::move(data)) {}
   //----------------------------------------------------------------------------
   template <unsigned_integral UInt, std::size_t N, arithmetic RandomReal,
             typename Engine>
@@ -416,25 +416,25 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   auto operator[](size_t i) -> auto& { return m_data[i]; }
   //----------------------------------------------------------------------------
   void resize(integral auto const... size) {
-    parent_t::resize(size...);
+    parent_type::resize(size...);
     m_data.resize(num_components());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <unsigned_integral UInt>
   void resize(std::vector<UInt> const& res, T const value = T{}) {
-    parent_t::resize(res);
+    parent_type::resize(res);
     m_data.resize(num_components(), value);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <unsigned_integral UInt>
   void resize(std::vector<UInt>&& res, T const value = T{}) {
-    parent_t::resize(std::move(res));
+    parent_type::resize(std::move(res));
     m_data.resize(num_components(), value);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <integral Int, size_t N>
   void resize(std::array<Int, N> const& res, T const value = T{}) {
-    parent_t::resize(res);
+    parent_type::resize(res);
     m_data.resize(num_components(), value);
   }
   //----------------------------------------------------------------------------
@@ -461,7 +461,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   template <typename F, typename OtherT, typename OtherIndexing>
   constexpr void binary_operation(
       F&& f, dynamic_multidim_array<OtherT, OtherIndexing> const& other) {
-    assert(parent_t::operator==(other));
+    assert(parent_type::operator==(other));
     for (auto const& is : indices()) {
       at(is) = f(at(is), other(is));
     }

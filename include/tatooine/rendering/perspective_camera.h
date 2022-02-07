@@ -20,19 +20,19 @@ class perspective_camera
  public:
   using real_t   = Real;
   using this_t   = perspective_camera<Real>;
-  using parent_t = camera_interface<Real, this_t>;
-  using parent_t::aspect_ratio;
-  using parent_t::d;
-  using parent_t::eye;
-  using parent_t::f;
-  using parent_t::far;
-  using parent_t::lookat;
-  using parent_t::n;
-  using parent_t::near;
-  using parent_t::setup;
-  using parent_t::up;
-  using typename parent_t::mat4;
-  using typename parent_t::vec3;
+  using parent_type = camera_interface<Real, this_t>;
+  using parent_type::aspect_ratio;
+  using parent_type::d;
+  using parent_type::eye;
+  using parent_type::f;
+  using parent_type::far;
+  using parent_type::lookat;
+  using parent_type::n;
+  using parent_type::near;
+  using parent_type::setup;
+  using parent_type::up;
+  using typename parent_type::mat4;
+  using typename parent_type::vec3;
 
  private:
   //----------------------------------------------------------------------------
@@ -50,7 +50,9 @@ class perspective_camera
                                vec3 const& up, Real const fov, Real const near,
                                Real const far, std::size_t const res_x,
                                std::size_t const res_y)
-      : parent_t{eye, lookat, up, near, far, res_x, res_y}, m_fov{fov} {
+      : parent_type{eye,  lookat, up,
+                    near, far,    Vec4<std::size_t>{0, 0, res_x, res_y}},
+        m_fov{fov} {
     setup();
   }
   //----------------------------------------------------------------------------

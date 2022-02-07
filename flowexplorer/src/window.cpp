@@ -54,7 +54,7 @@ window::window(filesystem::path const& path)
 window::~window() { m_scene.write("scene.toml"); }
 //==============================================================================
 void window::on_key_pressed(gl::key k) {
-  parent_t::on_key_pressed(k);
+  parent_type::on_key_pressed(k);
   if (k == gl::KEY_F1) {
     m_show_nodes_gui = !m_show_nodes_gui;
   } else if (k == gl::KEY_F5) {
@@ -71,7 +71,7 @@ void window::on_key_pressed(gl::key k) {
 }
 //------------------------------------------------------------------------------
 void window::on_button_pressed(gl::button b) {
-  parent_t::on_button_pressed(b);
+  parent_type::on_button_pressed(b);
   if (ImGui::GetIO().WantCaptureMouse) {
     return;
   }
@@ -97,7 +97,7 @@ void window::on_button_pressed(gl::button b) {
 }
 //------------------------------------------------------------------------------
 void window::on_button_released(gl::button b) {
-  parent_t::on_button_released(b);
+  parent_type::on_button_released(b);
   if (ImGui::GetIO().WantCaptureMouse) {
     return;
   }
@@ -112,7 +112,7 @@ void window::on_button_released(gl::button b) {
 }
 //------------------------------------------------------------------------------
 void window::on_cursor_moved(double x, double y) {
-  parent_t::on_cursor_moved(x, y);
+  parent_type::on_cursor_moved(x, y);
   if (ImGui::GetIO().WantCaptureMouse) {
     return;
   }

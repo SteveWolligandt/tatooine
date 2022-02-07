@@ -26,7 +26,7 @@ template <typename T, typename GlobalIndexOrder = x_fastest,
 struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
   //============================================================================
   using value_type = T;
-  using parent_t   = dynamic_multidim_size<GlobalIndexOrder>;
+  using parent_type   = dynamic_multidim_size<GlobalIndexOrder>;
   using this_t  = chunked_multidim_array<T, GlobalIndexOrder, LocalIndexOrder>;
   using chunk_t = dynamic_multidim_array<T, LocalIndexOrder>;
   using chunk_ptr_t          = std::unique_ptr<chunk_t>;
@@ -34,11 +34,11 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
   using global_index_order_t = GlobalIndexOrder;
   using local_index_order_t  = LocalIndexOrder;
   //----------------------------------------------------------------------------
-  using parent_t::in_range;
-  using parent_t::multi_index;
-  using parent_t::num_components;
-  using parent_t::num_dimensions;
-  using parent_t::size;
+  using parent_type::in_range;
+  using parent_type::multi_index;
+  using parent_type::num_components;
+  using parent_type::num_dimensions;
+  using parent_type::size;
   //----------------------------------------------------------------------------
  private:
   std::vector<std::size_t>                    m_internal_chunk_size;
@@ -49,7 +49,7 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
   //============================================================================
  public:
   chunked_multidim_array(chunked_multidim_array const& other)
-      : parent_t{other},
+      : parent_type{other},
         m_internal_chunk_size{other.m_internal_chunk_size},
         m_chunk_structure{other.m_chunk_structure},
         m_chunks(other.m_chunks.size()) {
@@ -86,7 +86,7 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
   auto resize(SizeRange&& size) -> void requires(
       is_integral<typename std::decay_t<SizeRange>::value_type>) {
     // apply full size
-    parent_t::resize(size);
+    parent_type::resize(size);
 
     // transform to chunk size and apply
     auto size_it       = begin(size);

@@ -11,9 +11,9 @@ template <typename V, typename Real, size_t N>
 struct spacetime_vectorfield
     : vectorfield<spacetime_vectorfield<V, Real, N>, Real, N> {
   using this_t   = spacetime_vectorfield<V, Real, N>;
-  using parent_t = vectorfield<this_t, Real, N>;
-  using typename parent_t::pos_t;
-  using typename parent_t::tensor_t;
+  using parent_type = vectorfield<this_t, Real, N>;
+  using typename parent_type::pos_t;
+  using typename parent_type::tensor_t;
   static constexpr auto holds_field_pointer = is_pointer<V>;
 
   static_assert(std::remove_pointer_t<std::decay_t<V>>::tensor_t::rank() == 1);
@@ -140,10 +140,10 @@ struct spacetime_vectorfield<symbolic::field<Real, N - 1>, Real, N>
   //============================================================================
   using V        = symbolic::field<Real, N - 1>;
   using this_t   = spacetime_vectorfield<V, Real, N>;
-  using parent_t = symbolic::field<Real, N>;
-  using typename parent_t::pos_t;
-  using typename parent_t::symtensor_t;
-  using typename parent_t::tensor_t;
+  using parent_type = symbolic::field<Real, N>;
+  using typename parent_type::pos_t;
+  using typename parent_type::symtensor_t;
+  using typename parent_type::tensor_t;
 
   //============================================================================
   spacetime_vectorfield(

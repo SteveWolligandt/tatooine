@@ -12,10 +12,10 @@ template <std::floating_point Real>
 struct autonomous_particles_test
     : vectorfield<autonomous_particles_test<Real>, Real, 2> {
   using this_t   = autonomous_particles_test<Real>;
-  using parent_t = vectorfield<this_t, Real, 2>;
-  using typename parent_t::real_t;
-  using typename parent_t::pos_t;
-  using typename parent_t::tensor_t;
+  using parent_type = vectorfield<this_t, Real, 2>;
+  using typename parent_type::real_t;
+  using typename parent_type::pos_t;
+  using typename parent_type::tensor_t;
   //============================================================================
   constexpr autonomous_particles_test() noexcept {}
   constexpr autonomous_particles_test(autonomous_particles_test const&) =
@@ -152,10 +152,10 @@ struct differentiated_field<
             Real, 2, 2, 2> {
   using this_t = differentiated_field<
       analytical::fields::numerical::autonomous_particles_test<Real>>;
-  using parent_t = field<this_t, Real, 2, 2, 2>;
-  using typename parent_t::real_t;
-  using typename parent_t::pos_t;
-  using typename parent_t::tensor_t;
+  using parent_type = field<this_t, Real, 2, 2, 2>;
+  using typename parent_type::real_t;
+  using typename parent_type::pos_t;
+  using typename parent_type::tensor_t;
 
   //============================================================================
  public:
