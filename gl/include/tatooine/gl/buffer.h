@@ -436,7 +436,7 @@ class buffer : public id_holder<GLuint> {
   void gpu_malloc(std::size_t n, const T& initial);
   void set_usage(usage_t);
 
-  void push_back(T&&);
+  void push_back(T const&);
   void pop_back();
 
   template <typename... Ts>
@@ -659,12 +659,12 @@ void buffer<array_type, T>::copy(const this_t& other) {
 }
 //------------------------------------------------------------------------------
 template <GLsizei array_type, typename T>
-void buffer<array_type, T>::push_back(T&& t) {
+void buffer<array_type, T>::push_back(T const& t) {
   if (m_capacity < m_size + 1) {
     reserve(std::max<std::size_t>(m_size * 2, 1));
   }
   ++m_size;
-  at(m_size - 1) = std::forward<T>(t);
+  at(m_size - 1) = t;
 }
 //------------------------------------------------------------------------------
 template <GLsizei array_type, typename T>

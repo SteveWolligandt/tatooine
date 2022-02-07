@@ -8,7 +8,7 @@
 #include <tatooine/rendering/camera.h>
 #include <tatooine/rendering/interactive/renderer.h>
 //==============================================================================
-namespace tatooine::rendering::detail::interactive {
+namespace tatooine::rendering::interactive {
 //==============================================================================
 template <typename Axis0, typename Axis1>
 struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
@@ -183,31 +183,31 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
     }
   };
   //==============================================================================
-  struct render_data {
-    int                line_width             = 1;
-    bool               show_grid              = true;
-    bool               show_property          = false;
-    Vec4<GLfloat>      color                  = {0, 0, 0, 1};
-    std::string const* selected_property_name = nullptr;
-    typename renderable_type::vertex_property_t const* selected_property =
-        nullptr;
-    bool        vector_property    = false;
-    char const* selected_component = nullptr;
+ private:
+  int                line_width             = 1;
+  bool               show_grid              = true;
+  bool               show_property          = false;
+  Vec4<GLfloat>      color                  = {0, 0, 0, 1};
+  std::string const* selected_property_name = nullptr;
+  typename renderable_type::vertex_property_t const* selected_property =
+      nullptr;
+  bool        vector_property    = false;
+  char const* selected_component = nullptr;
 
-    gl::indexeddata<Vec2<GLfloat>> geometry;
-    GLfloat                        min_scalar = 0, max_scalar = 1;
-    gl::tex2r32f                   tex;
-  };
+  gl::indexeddata<Vec2<GLfloat>> geometry;
+  GLfloat                        min_scalar = 0, max_scalar = 1;
+  gl::tex2r32f                   tex;
+
+ public:
   //==============================================================================
-  static auto init(renderable_type const& grid) {
-    auto d = render_data{};
+  renderer(renderable_type const& grid) {
     // grid geometry
     auto const num_vertices =
         grid.template size<0>() * 2 + grid.template size<1>() * 2;
-    d.geometry.vertexbuffer().resize(num_vertices);
-    d.geometry.indexbuffer().resize(num_vertices);
+    geometry.vertexbuffer().resize(num_vertices);
+    geometry.indexbuffer().resize(num_vertices);
     {
-      auto data = d.geometry.vertexbuffer().wmap();
+      auto data = geometry.vertexbuffer().wmap();
       auto k    = std::size_t{};
       for (std::size_t i = 0; i < grid.template size<0>(); ++i) {
         data[k++] = Vec2<GLfloat>{grid.template dimension<0>()[i],
@@ -223,14 +223,13 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
       }
     }
     {
-      auto data = d.geometry.indexbuffer().wmap();
+      auto data = geometry.indexbuffer().wmap();
       for (std::size_t i = 0; i < num_vertices; ++i) {
         data[i] = i;
       }
     }
 
-    d.tex.resize(grid.template size<0>(), grid.template size<1>());
-    return d;
+    tex.resize(grid.template size<0>(), grid.template size<1>());
   }
   //==============================================================================
   template <typename T>
@@ -240,50 +239,51 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
         prop);
   }
   //==============================================================================
-  static auto properties(renderable_type const& grid, render_data& data) {
+  auto properties(renderable_type const& grid) {
     static const char* vector_items[] = {"magnitude", "x", "y", "z", "w"};
-    auto upload = [&](auto&& prop, auto&& get_data) {
+    auto               upload         = [&](auto&& prop, auto&& get_data) {
       auto texdata = std::vector<GLfloat>{};
       texdata.reserve(grid.vertices().size());
-      data.min_scalar = std::numeric_limits<GLfloat>::max();
-      data.max_scalar = -std::numeric_limits<GLfloat>::max();
+      min_scalar = std::numeric_limits<GLfloat>::max();
+      max_scalar = -std::numeric_limits<GLfloat>::max();
 
       grid.vertices().iterate_indices([&](auto const... is) {
-        auto const p    = get_data(prop, is...);
-        data.min_scalar = std::min<GLfloat>(data.min_scalar, p);
-        data.max_scalar = std::max<GLfloat>(data.max_scalar, p);
+        auto const p = get_data(prop, is...);
+        min_scalar   = std::min<GLfloat>(min_scalar, p);
+        max_scalar   = std::max<GLfloat>(max_scalar, p);
         texdata.push_back(p);
-      });
-      data.tex.upload_data(texdata, grid.template size<0>(),
-                           grid.template size<1>());
+                            });
+      tex.upload_data(texdata, grid.template size<0>(),
+                                            grid.template size<1>());
     };
     auto retrieve_typed_scalar_prop = [](auto&& prop, auto&& f) {
       if (prop->type() == typeid(float)) {
-        f(*cast_prop<float>(prop));
+        return f(*cast_prop<float>(prop));
       } else if (prop->type() == typeid(double)) {
-        f(*cast_prop<double>(prop));
+        return f(*cast_prop<double>(prop));
       }
     };
     auto retrieve_typed_vec_prop = [](auto&& prop, auto&& f) {
       if (prop->type() == typeid(vec2d)) {
-        f(*cast_prop<vec2d>(prop));
+        return f(*cast_prop<vec2d>(prop));
       } else if (prop->type() == typeid(vec2f)) {
-        f(*cast_prop<vec2f>(prop));
+        return f(*cast_prop<vec2f>(prop));
       } else if (prop->type() == typeid(vec3d)) {
-        f(*cast_prop<vec3d>(prop));
+        return f(*cast_prop<vec3d>(prop));
       } else if (prop->type() == typeid(vec3f)) {
-        f(*cast_prop<vec3f>(prop));
+        return f(*cast_prop<vec3f>(prop));
       } else if (prop->type() == typeid(vec4d)) {
-        f(*cast_prop<vec4d>(prop));
+        return f(*cast_prop<vec4d>(prop));
       } else if (prop->type() == typeid(vec4f)) {
-        f(*cast_prop<vec4f>(prop));
+        return f(*cast_prop<vec4f>(prop));
       }
+      throw std::runtime_error{"property does not hold a vector type"};
     };
     auto upload_scalar = [&](auto&& prop) {
       upload(prop,
              [](auto const& prop, auto const... is) { return prop(is...); });
-      data.vector_property    = false;
-      data.selected_component = nullptr;
+      vector_property    = false;
+      selected_component = nullptr;
     };
     auto upload_magnitude = [&](auto&& prop) {
       upload(prop, [](auto const& prop, auto const... is) {
@@ -297,44 +297,56 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
       });
     };
     auto upload_x = [&](auto&& prop) {
-      upload(prop,
-             [](auto const& prop, auto const... is) { return prop(is...).x(); });
+      upload(prop, [](auto const& prop, auto const... is) {
+        return prop(is...).x();
+      });
     };
     auto upload_y = [&](auto&& prop) {
-      upload(prop,
-             [](auto const& prop, auto const... is) { return prop(is...).y(); });
+      if constexpr (std::decay_t<decltype(prop)>::value_type::num_components() >
+                    1) {
+        upload(prop, [](auto const& prop, auto const... is) {
+          return prop(is...).y();
+        });
+      }
     };
     auto upload_z = [&](auto&& prop) {
-      upload(prop,
-             [](auto const& prop, auto const... is) { return prop(is...).z(); });
+      if constexpr (std::decay_t<decltype(prop)>::value_type::num_components() >
+                    2) {
+        upload(prop, [](auto const& prop, auto const... is) {
+          return prop(is...).z();
+        });
+      }
     };
     auto upload_w = [&](auto&& prop) {
-      upload(prop,
-             [](auto const& prop, auto const... is) { return prop(is...).w(); });
+      if constexpr (std::decay_t<decltype(prop)>::value_type::num_components() >
+                    3) {
+        upload(prop, [](auto const& prop, auto const... is) {
+          return prop(is...).w();
+        });
+      }
     };
     ImGui::Text("Rectilinear Grid");
-    ImGui::Checkbox("Show Grid", &data.show_grid);
+    ImGui::Checkbox("Show Grid", &show_grid);
 
-    if (data.show_grid) {
-      ImGui::DragInt("Line width", &data.line_width, 1, 1, 20);
-      ImGui::ColorEdit4("Color", data.color.data().data());
+    if (show_grid) {
+      ImGui::DragInt("Line width", &line_width, 1, 1, 20);
+      ImGui::ColorEdit4("Color", color.data().data());
     }
 
-    ImGui::Checkbox("Show Property", &data.show_property);
-    if (data.show_property) {
-      if (ImGui::BeginCombo("##combo",
-                            data.selected_property_name != nullptr
-                                ? data.selected_property_name->c_str()
-                                : nullptr)) {
+    ImGui::Checkbox("Show Property", &show_property);
+    if (show_property) {
+      if (ImGui::BeginCombo("##combo", selected_property_name != nullptr
+                                           ? selected_property_name->c_str()
+                                           : nullptr)) {
         for (auto const& [name, prop] : grid.vertex_properties()) {
           if (prop->type() == typeid(double) || prop->type() == typeid(float) ||
               prop->type() == typeid(vec2f) || prop->type() == typeid(vec2d) ||
               prop->type() == typeid(vec3f) || prop->type() == typeid(vec3d) ||
               prop->type() == typeid(vec4f) || prop->type() == typeid(vec4d)) {
-            auto is_selected = data.selected_property == prop.get();
+            auto is_selected = selected_property == prop.get();
             if (ImGui::Selectable(name.c_str(), is_selected)) {
-              data.selected_property      = prop.get();
-              data.selected_property_name = &name;
+              selected_property      = prop.get();
+              selected_property_name = &name;
               if (prop->type() == typeid(float) ||
                   prop->type() == typeid(double)) {
                 retrieve_typed_scalar_prop(prop.get(), upload_scalar);
@@ -345,8 +357,8 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
                          prop->type() == typeid(vec4f) ||
                          prop->type() == typeid(vec4d)) {
                 retrieve_typed_vec_prop(prop.get(), upload_magnitude);
-                data.vector_property = true;
-                data.selected_component = vector_items[0];
+                vector_property    = true;
+                selected_component = vector_items[0];
               }
             }
             if (is_selected) {
@@ -357,103 +369,115 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
         ImGui::EndCombo();
       }
     }
-    if (data.vector_property) {
-      if (ImGui::BeginCombo("##combo2", data.selected_component)) {
-        for (std::size_t i = 0; i < 4; ++i) {
-          auto const is_selected = data.selected_component == vector_items[i];
+    if (vector_property) {
+      if (ImGui::BeginCombo("##combo2", selected_component)) {
+        auto n = retrieve_typed_vec_prop(selected_property, [](auto&& prop) {
+          return std::decay_t<decltype(prop)>::value_type::num_components();
+        });
+        for (std::size_t i = 0; i < n + 1; ++i) {
+          auto const is_selected = selected_component == vector_items[i];
           if (ImGui::Selectable(vector_items[i], is_selected)) {
-            data.selected_component = vector_items[i];
+            selected_component = vector_items[i];
             if (i == 0) {
-              retrieve_typed_vec_prop(data.selected_property, upload_magnitude);
+              retrieve_typed_vec_prop(selected_property, upload_magnitude);
             } else if (i == 1) {
-              retrieve_typed_vec_prop(data.selected_property, upload_x);
-            } 
+              retrieve_typed_vec_prop(selected_property, upload_x);
+            } else if (i == 2) {
+              retrieve_typed_vec_prop(selected_property, upload_y);
+            } else if (i == 3) {
+              retrieve_typed_vec_prop(selected_property, upload_z);
+            } else if (i == 4) {
+              retrieve_typed_vec_prop(selected_property, upload_w);
+            }
           }
         }
         ImGui::EndCombo();
       }
-      ImGui::DragFloat("Min", &data.min_scalar, 0.01f, -FLT_MAX,
-                       data.max_scalar);
-      ImGui::DragFloat("Max", &data.max_scalar, 0.01f, data.min_scalar,
-                       FLT_MAX);
+      ImGui::DragFloat("Min", &min_scalar, 0.01f, -FLT_MAX, max_scalar);
+      ImGui::DragFloat("Max", &max_scalar, 0.01f, min_scalar, FLT_MAX);
     }
   }
   //==============================================================================
-  static auto render(camera auto const& cam, renderable_type const& grid,
-                     render_data& data) {
-    if (data.show_grid) {
-      render_grid(cam, grid, data);
+  auto render() {
+    if (show_grid) {
+      render_grid();
     }
-    if (data.show_property) {
-      render_property(cam, grid, data);
+    if (show_property) {
+      render_property();
     }
   }
   //------------------------------------------------------------------------------
-  static auto render_grid(camera auto const& cam, renderable_type const& grid,
-                          render_data& data) {
+  auto update(renderable_type const& grid, camera auto const& cam,
+              auto const dt) {
     using CamReal = typename std::decay_t<decltype(cam)>::real_t;
     static auto constexpr cam_is_float = is_same<GLfloat, CamReal>;
+    if (show_grid) {
+      if constexpr (cam_is_float) {
+        line_shader::get().set_projection_matrix(cam.projection_matrix());
+      } else {
+        line_shader::get().set_projection_matrix(
+            Mat4<GLfloat>{cam.projection_matrix()});
+      }
+
+      if constexpr (cam_is_float) {
+        line_shader::get().set_modelview_matrix(cam.view_matrix());
+      } else {
+        line_shader::get().set_modelview_matrix(
+            Mat4<GLfloat>{cam.view_matrix()});
+      }
+    }
+    if (show_property) {
+      if constexpr (cam_is_float) {
+        property_shader::get().set_projection_matrix(cam.projection_matrix());
+      } else {
+        property_shader::get().set_projection_matrix(
+            Mat4<GLfloat>{cam.projection_matrix()});
+      }
+
+      if constexpr (cam_is_float) {
+        property_shader::get().set_modelview_matrix(
+            cam.view_matrix() *
+            scale_matrix<GLfloat>(grid.template extent<0>(),
+                                  grid.template extent<1>(), 1) *
+            translation_matrix<GLfloat>(grid.template dimension<0>().front(),
+                                        grid.template dimension<1>().front(),
+                                        0));
+      } else {
+        property_shader::get().set_modelview_matrix(
+            Mat4<GLfloat>{cam.view_matrix()} *
+            scale_matrix<GLfloat>(grid.template extent<0>(),
+                                  grid.template extent<1>(), 1) *
+            translation_matrix<GLfloat>(grid.template dimension<0>().front(),
+                                        grid.template dimension<1>().front(),
+                                        0));
+      }
+      property_shader::get().set_extent(Vec2<GLfloat>{grid.extent()});
+      property_shader::get().set_pixel_width(Vec2<GLfloat>{
+          grid.template dimension<0>()[1] - grid.template dimension<0>()[0],
+          grid.template dimension<1>()[1] - grid.template dimension<1>()[0]});
+    }
+  }
+  //------------------------------------------------------------------------------
+  auto render_grid() {
     auto& line_shader                  = line_shader::get();
     line_shader.bind();
-    if constexpr (cam_is_float) {
-      line_shader.set_projection_matrix(cam.projection_matrix());
-    } else {
-      line_shader.set_projection_matrix(Mat4<GLfloat>{cam.projection_matrix()});
-    }
 
-    if constexpr (cam_is_float) {
-      line_shader.set_modelview_matrix(cam.view_matrix());
-    } else {
-      line_shader.set_modelview_matrix(Mat4<GLfloat>{cam.view_matrix()});
-    }
-
-    line_shader.set_color(data.color(0), data.color(1), data.color(2),
-                          data.color(3));
-    gl::line_width(data.line_width);
-    data.geometry.draw_lines();
+    line_shader.set_color(color(0), color(1), color(2), color(3));
+    gl::line_width(line_width);
+    geometry.draw_lines();
   }
   //----------------------------------------------------------------------------
-  static auto render_property(camera auto const&     cam,
-                              renderable_type const& grid, render_data& data) {
-    using CamReal = typename std::decay_t<decltype(cam)>::real_t;
-    static auto constexpr cam_is_float = is_same<GLfloat, CamReal>;
-    auto& shader                       = property_shader::get();
-    shader.bind();
-    shader.set_extent(Vec2<GLfloat>{grid.extent()});
-    shader.set_pixel_width(Vec2<GLfloat>{
-        grid.template dimension<0>()[1] - grid.template dimension<0>()[0],
-        grid.template dimension<1>()[1] - grid.template dimension<1>()[0]});
-    if constexpr (cam_is_float) {
-      shader.set_projection_matrix(cam.projection_matrix());
-    } else {
-      shader.set_projection_matrix(Mat4<GLfloat>{cam.projection_matrix()});
-    }
-
-    if constexpr (cam_is_float) {
-      shader.set_modelview_matrix(
-          cam.view_matrix() *
-          scale_matrix<GLfloat>(grid.template extent<0>(),
-                                grid.template extent<1>(), 1) *
-          translation_matrix<GLfloat>(grid.template dimension<0>().front(),
-                                      grid.template dimension<1>().front(), 0));
-    } else {
-      shader.set_modelview_matrix(
-          Mat4<GLfloat>{cam.view_matrix()} *
-          scale_matrix<GLfloat>(grid.template extent<0>(),
-                                grid.template extent<1>(), 1) *
-          translation_matrix<GLfloat>(grid.template dimension<0>().front(),
-                                      grid.template dimension<1>().front(), 0));
-    }
-
-    data.tex.bind(0);
+  auto render_property() {
+    property_shader::get().bind();
+    tex.bind(0);
     color_scale::viridis().tex.bind(1);
-    property_shader::get().set_min(data.min_scalar);
-    property_shader::get().set_max(data.max_scalar);
-    gl::line_width(data.line_width);
+    property_shader::get().set_min(min_scalar);
+    property_shader::get().set_max(max_scalar);
+    gl::line_width(line_width);
     geometry::get().draw_triangles();
   }
 };
 //==============================================================================
-}  // namespace tatooine::rendering::detail::interactive
+}  // namespace tatooine::rendering::interactive
 //==============================================================================
 #endif
