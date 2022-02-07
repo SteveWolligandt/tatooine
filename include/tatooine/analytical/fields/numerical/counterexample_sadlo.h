@@ -11,9 +11,9 @@ namespace tatooine::analytical::fields::numerical {
 template <typename Real>
 struct counterexample_sadlo : vectorfield<counterexample_sadlo<Real>, Real, 2> {
   using this_t   = counterexample_sadlo<Real>;
-  using parent_t = vectorfield<this_t, Real, 2>;
-  using typename parent_t::pos_t;
-  using typename parent_t::tensor_t;
+  using parent_type = vectorfield<this_t, Real, 2>;
+  using typename parent_type::pos_t;
+  using typename parent_type::tensor_t;
   //============================================================================
   constexpr counterexample_sadlo() noexcept {}
   //----------------------------------------------------------------------------

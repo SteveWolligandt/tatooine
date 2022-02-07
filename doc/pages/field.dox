@@ -37,7 +37,7 @@ When creating a field two methods have to be provided:
 
 Both methods get a position and a time. `in_domain` defines the domain of a
 field. In this example the domain is unbounded. `evaluate` returns a tensor. In
-this case parent_t::tensor_t is tatooine::vec2.
+this case parent_type::tensor_t is tatooine::vec2.
 The methods do not need to be marked virtual or override. The CRTP mechanism
 just needs those two methods with the correct signature.
 
@@ -47,11 +47,11 @@ just needs those two methods with the correct signature.
 using namespace tatooine;
 //==============================================================================
 struct my_vectorfield : vectorfield<my_vectorfield, tatooine::real_t, 2> {
-  using this_t = my_vectorfield;
-  using parent_t = vectorfield<my_vectorfield, tatooine::real_t, 2>;
-  using parent_t::real_t;
-  using parent_t::pos_t;
-  using parent_t::tensor_t;
+  using this_type = my_vectorfield;
+  using parent_type = vectorfield<my_vectorfield, tatooine::real_t, 2>;
+  using parent_type::real_t;
+  using parent_type::pos_t;
+  using parent_type::tensor_t;
 
   auto constexpr in_domain(pos_t const& x, real_t const t) const -> bool {
     return true;

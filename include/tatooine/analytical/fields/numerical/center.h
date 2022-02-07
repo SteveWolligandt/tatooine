@@ -10,9 +10,9 @@ namespace tatooine::analytical::fields::numerical {
 template <typename Real>
 struct center : vectorfield<center<Real>, Real, 2> {
   using this_t   = center<Real>;
-  using parent_t = vectorfield<this_t, Real, 2>;
-  using typename parent_t::pos_t;
-  using typename parent_t::tensor_t;
+  using parent_type = vectorfield<this_t, Real, 2>;
+  using typename parent_type::pos_t;
+  using typename parent_type::tensor_t;
   //============================================================================
   constexpr center() noexcept {}
   constexpr center(center const&)     = default;
@@ -138,9 +138,9 @@ template <typename Real>
 struct differentiated_field<analytical::fields::numerical::center<Real>>
     : matrixfield<analytical::fields::numerical::center<Real>, Real, 2> {
   using this_t   = differentiated_field<analytical::fields::numerical::center<Real>>;
-  using parent_t = matrixfield<this_t, Real, 2>;
-  using typename parent_t::pos_t;
-  using typename parent_t::tensor_t;
+  using parent_type = matrixfield<this_t, Real, 2>;
+  using typename parent_type::pos_t;
+  using typename parent_type::tensor_t;
 
   //============================================================================
  private:

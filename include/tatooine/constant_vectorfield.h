@@ -12,9 +12,9 @@ struct constant_vectorfield : field<constant_vectorfield<Real, N>, Real, N, N> {
   // typedefs
   //============================================================================
   using this_t   = constant_vectorfield<Real, N>;
-  using parent_t = field<this_t, Real, N, N>;
-  using typename parent_t::pos_t;
-  using typename parent_t::tensor_t;
+  using parent_type = field<this_t, Real, N, N>;
+  using typename parent_type::pos_t;
+  using typename parent_type::tensor_t;
   //============================================================================
   // members
   //============================================================================

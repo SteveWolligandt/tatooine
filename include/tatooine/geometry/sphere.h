@@ -15,10 +15,10 @@ namespace tatooine::geometry {
 template <floating_point Real, size_t N>
 struct sphere : ray_intersectable<Real, N> {
   using this_t   = sphere<Real, N>;
-  using parent_t = ray_intersectable<Real, N>;
+  using parent_type = ray_intersectable<Real, N>;
   using vec_t    = vec<Real, N>;
-  using typename parent_t::intersection_t;
-  using typename parent_t::optional_intersection_t;
+  using typename parent_type::intersection_t;
+  using typename parent_type::optional_intersection_t;
   //============================================================================
  private:
   vec_t m_center = vec_t::zeros();

@@ -22,52 +22,54 @@ class vertexbuffer
                     std::conditional_t<sizeof...(Ts) == 1, head_t<Ts...>,
                                        tuple<Ts...> > > {
  public:
-  using parent_t = buffer<
+  using parent_type = buffer<
       GL_ARRAY_BUFFER,
       std::conditional_t<sizeof...(Ts) == 1, head_t<Ts...>, tuple<Ts...> > >;
   using this_t = vertexbuffer<Ts...>;
-  using data_t = typename parent_t::data_t;
+  using data_t = typename parent_type::data_t;
 
-  static constexpr size_t data_size = parent_t::data_size;
+  static constexpr auto data_size = parent_type::data_size;
 
   static usage_t const default_usage = usage_t::STATIC_DRAW;
 
-  static constexpr unsigned int num_attributes = sizeof...(Ts);
-  static constexpr std::array<size_t, num_attributes> num_components{
+  static constexpr auto num_attributes = sizeof...(Ts);
+  static constexpr std::array<std::size_t, num_attributes> num_components{
       tatooine::num_components<Ts>...};
   static constexpr std::array<GLenum, num_attributes> types{
       value_type_v<Ts>...};
-  static constexpr std::array<size_t, num_attributes> offsets =
+  static constexpr std::array<std::size_t, num_attributes> offsets =
       attr_offset<num_attributes, Ts...>::gen(0, 0);
 
   //----------------------------------------------------------------------------
-  vertexbuffer(usage_t usage = default_usage) : parent_t{usage} {}
-  vertexbuffer(vertexbuffer const& other) : parent_t{other} {}
-  vertexbuffer(vertexbuffer&& other) noexcept : parent_t{other} {}
+  vertexbuffer(usage_t usage = default_usage) : parent_type{usage} {}
+  vertexbuffer(vertexbuffer const& other) : parent_type{other} {}
+  vertexbuffer(vertexbuffer&& other) noexcept : parent_type{other} {}
 
   auto operator=(this_t const& other) -> auto& {
-    parent_t::operator=(other);
+    parent_type::operator=(other);
     return *this;
   }
 
   auto operator=(this_t&& other) noexcept -> auto& {
-    parent_t::operator=(std::move(other));
+    parent_type::operator=(std::move(other));
     return *this;
   }
 
-  vertexbuffer(size_t n, usage_t usage = default_usage) : parent_t(n, usage) {}
-  vertexbuffer(size_t n, data_t const& initial, usage_t usage = default_usage)
-      : parent_t(n, initial, usage) {}
+  vertexbuffer(std::size_t n, usage_t usage = default_usage)
+      : parent_type(n, usage) {}
+  vertexbuffer(std::size_t n, data_t const& initial,
+               usage_t usage = default_usage)
+      : parent_type(n, initial, usage) {}
   vertexbuffer(std::vector<data_t> const& data, usage_t usage = default_usage)
-      : parent_t(data, usage) {}
+      : parent_type(data, usage) {}
   vertexbuffer(std::initializer_list<data_t>&& list)
-      : parent_t(std::move(list), default_usage) {}
+      : parent_type(std::move(list), default_usage) {}
 
   void push_back(Ts const&... ts) {
     if constexpr (num_attributes == 1) {
-      parent_t::push_back(ts...);
+      parent_type::push_back(ts...);
     } else {
-      parent_t::push_back(tuple{ts...});
+      parent_type::push_back(tuple{ts...});
     }
   }
 
@@ -81,7 +83,7 @@ class vertexbuffer
   }
   //----------------------------------------------------------------------------
  private:
-  template <typename... Normalized, size_t... Is>
+  template <typename... Normalized, std::size_t... Is>
   static constexpr void activate_attributes(std::index_sequence<Is...>,
                                             Normalized... normalized) {
     static_assert(sizeof...(Normalized) == sizeof...(Is));

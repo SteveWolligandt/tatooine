@@ -14,8 +14,8 @@ struct lazy_reader
     : chunked_multidim_array<typename DataSet::value_type, GlobalIndexOrder, LocalIndexOrder> {
   using this_t     = lazy_reader<DataSet, GlobalIndexOrder, LocalIndexOrder>;
   using value_type = typename DataSet::value_type;
-  using parent_t   = chunked_multidim_array<value_type, GlobalIndexOrder, LocalIndexOrder>;
-  using parent_t::chunk_at;
+  using parent_type   = chunked_multidim_array<value_type, GlobalIndexOrder, LocalIndexOrder>;
+  using parent_type::chunk_at;
 
   static auto default_value() -> value_type& {
     static value_type t{};
@@ -33,13 +33,13 @@ struct lazy_reader
 
  public:
   lazy_reader(DataSet const& file, std::vector<std::size_t> const& chunk_size)
-      : parent_t{std::vector<std::size_t>(chunk_size.size(), 0), chunk_size},
+      : parent_type{std::vector<std::size_t>(chunk_size.size(), 0), chunk_size},
         m_dataset{file} {
     init(chunk_size);
   }
   //----------------------------------------------------------------------------
   lazy_reader(lazy_reader const& other)
-      : parent_t{other},
+      : parent_type{other},
         m_dataset{other.m_dataset},
         m_read{other.m_read}
         //, m_max_num_chunks_loaded{other.m_max_num_chunks_loaded}

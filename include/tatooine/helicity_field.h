@@ -18,10 +18,10 @@ class helicity_field
  public:
   using real_t = typename V::real_t;
   using this_t = helicity_field<V>;
-  using parent_t =
+  using parent_type =
       field<this_t, real_t, V::num_dimensions(), V::tensor_t::dimension(0)>;
-  using typename parent_t::tensor_t;
-  using typename parent_t::pos_t;
+  using typename parent_type::tensor_t;
+  using typename parent_type::pos_t;
   //============================================================================
   // fields
   //============================================================================

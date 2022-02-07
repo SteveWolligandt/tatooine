@@ -45,7 +45,7 @@ struct vector_property {
 template <typename Handle, typename T>
 struct vector_property_impl : vector_property<Handle> {
   using this_t                 = vector_property_impl<Handle, T>;
-  using parent_t               = vector_property<Handle>;
+  using parent_type               = vector_property<Handle>;
   using container_t            = std::vector<T>;
   using value_type             = typename container_t::value_type;
   using allocator_type         = typename container_t::allocator_type;
@@ -68,22 +68,22 @@ struct vector_property_impl : vector_property<Handle> {
   explicit vector_property_impl(const T& value = T{}) : m_value{value} {}
   //----------------------------------------------------------------------------
   vector_property_impl(const vector_property_impl& other)
-      : parent_t{other}, m_data{other.m_data}, m_value{other.m_value} {}
+      : parent_type{other}, m_data{other.m_data}, m_value{other.m_value} {}
   //----------------------------------------------------------------------------
   vector_property_impl(vector_property_impl&& other)
- noexcept       : parent_t{std::move(other)},
+ noexcept       : parent_type{std::move(other)},
         m_data{std::move(other.m_data)},
         m_value{std::move(other.m_value)} {}
   //----------------------------------------------------------------------------
   auto operator=(const vector_property_impl& other) -> auto& {
-    parent_t::operator=(other);
+    parent_type::operator=(other);
     m_data  = other.m_data;
     m_value = other.m_value;
     return *this;
   }
   //----------------------------------------------------------------------------
   auto operator=(vector_property_impl&& other) noexcept -> auto& {
-    parent_t::operator=(std::move(other));
+    parent_type::operator=(std::move(other));
     m_data  = std::move(other.m_data);
     m_value = std::move(other.m_value);
     return *this;
@@ -164,7 +164,7 @@ struct vector_property_impl : vector_property<Handle> {
   //----------------------------------------------------------------------------
   [[nodiscard]] auto type() const -> const std::type_info& override { return typeid(T); }
   //----------------------------------------------------------------------------
-  auto clone() const -> std::unique_ptr<parent_t> override {
+  auto clone() const -> std::unique_ptr<parent_type> override {
     return std::unique_ptr<this_t>{new this_t{*this}};
   }
 };
@@ -206,7 +206,7 @@ struct deque_property {
 template <typename Handle, typename T>
 struct deque_property_impl : deque_property<Handle> {
   using this_t                 = deque_property_impl<Handle, T>;
-  using parent_t               = deque_property<Handle>;
+  using parent_type               = deque_property<Handle>;
   using container_t            = std::deque<T>;
   using value_type             = typename container_t::value_type;
   using allocator_type         = typename container_t::allocator_type;
@@ -229,22 +229,22 @@ struct deque_property_impl : deque_property<Handle> {
   explicit deque_property_impl(const T& value = T{}) : m_value{value} {}
   //----------------------------------------------------------------------------
   deque_property_impl(const deque_property_impl& other)
-      : parent_t{other}, m_data{other.m_data}, m_value{other.m_value} {}
+      : parent_type{other}, m_data{other.m_data}, m_value{other.m_value} {}
   //----------------------------------------------------------------------------
   deque_property_impl(deque_property_impl&& other)
- noexcept       : parent_t{std::move(other)},
+ noexcept       : parent_type{std::move(other)},
         m_data{std::move(other.m_data)},
         m_value{std::move(other.m_value)} {}
   //----------------------------------------------------------------------------
   auto operator=(const deque_property_impl& other) -> auto& {
-    parent_t::operator=(other);
+    parent_type::operator=(other);
     m_data  = other.m_data;
     m_value = other.m_value;
     return *this;
   }
   //----------------------------------------------------------------------------
   auto operator=(deque_property_impl&& other)  noexcept -> auto& {
-    parent_t::operator=(std::move(other));
+    parent_type::operator=(std::move(other));
     m_data  = std::move(other.m_data);
     m_value = std::move(other.m_value);
     return *this;
@@ -329,7 +329,7 @@ struct deque_property_impl : deque_property<Handle> {
   //----------------------------------------------------------------------------
   [[nodiscard]] auto type() const -> const std::type_info& override { return typeid(T); }
   //----------------------------------------------------------------------------
-  auto clone() const -> std::unique_ptr<parent_t> override {
+  auto clone() const -> std::unique_ptr<parent_type> override {
     return std::unique_ptr<this_t>{new this_t{*this}};
   }
 };

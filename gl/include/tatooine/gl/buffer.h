@@ -373,8 +373,8 @@ class cbuffer_iterator {
 template <GLsizei _array_type, typename T>
 class buffer : public id_holder<GLuint> {
  public:
-  using parent_t = id_holder<GLuint>;
-  using parent_t::id;
+  using parent_type = id_holder<GLuint>;
+  using parent_type::id;
   friend class rbuffer_map_element<_array_type, T>;
   friend class rwbuffer_map_element<_array_type, T>;
 
@@ -494,7 +494,7 @@ buffer<array_type, T>::buffer(const buffer& other) : buffer(other.m_usage) {
 //------------------------------------------------------------------------------
 template <GLsizei array_type, typename T>
 buffer<array_type, T>::buffer(buffer&& other) noexcept
-    : parent_t{std::move(other)},
+    : parent_type{std::move(other)},
       m_size(std::exchange(other.m_size, 0)),
       m_capacity(std::exchange(other.m_capacity, 0)),
       m_usage(other.m_usage) {}
@@ -508,7 +508,7 @@ auto buffer<array_type, T>::operator=(const buffer& other) -> buffer& {
 //------------------------------------------------------------------------------
 template <GLsizei array_type, typename T>
 auto buffer<array_type, T>::operator=(buffer&& other) noexcept -> buffer& {
-  parent_t::operator=(std::move(other));
+  parent_type::operator=(std::move(other));
   std::swap(m_size, other.m_size);
   std::swap(m_capacity, other.m_capacity);
   std::swap(m_usage, other.m_usage);

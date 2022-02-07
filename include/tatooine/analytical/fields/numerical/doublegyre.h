@@ -10,10 +10,10 @@ namespace tatooine::analytical::fields::numerical {
 template <typename Real>
 struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
   using this_t   = doublegyre<Real>;
-  using parent_t = vectorfield<this_t, Real, 2>;
-  using typename parent_t::pos_t;
-  using typename parent_t::real_t;
-  using typename parent_t::tensor_t;
+  using parent_type = vectorfield<this_t, Real, 2>;
+  using typename parent_type::pos_t;
+  using typename parent_type::real_t;
+  using typename parent_type::tensor_t;
   //============================================================================
   static constexpr auto pi = std::numbers::pi_v<Real>;
   //============================================================================
@@ -36,7 +36,7 @@ struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
   [[nodiscard]] constexpr auto evaluate(pos_t const& x, Real const t) const
       -> tensor_t {
     if (!m_infinite_domain && (x(0) < 0 || x(0) > 2 || x(1) < 0 || x(1) > 1)) {
-      return parent_t::ood_tensor();
+      return parent_type::ood_tensor();
     }
     Real const a  = m_epsilon * gcem::sin(m_omega * t);
     Real const b  = 1 - 2 * a;

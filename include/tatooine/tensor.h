@@ -3,8 +3,8 @@
 //==============================================================================
 #include <tatooine/base_tensor.h>
 //==============================================================================
-#include <tatooine/math.h>
 #include <tatooine/is_transposed_tensor.h>
+#include <tatooine/math.h>
 #include <tatooine/multidim_array.h>
 #include <tatooine/tags.h>
 #include <tatooine/utility.h>
@@ -17,7 +17,7 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,
   //============================================================================
   using this_t          = tensor<T, Dims...>;
   using tensor_parent_t = base_tensor<this_t, T, Dims...>;
-  using value_type = typename tensor_parent_t::value_type;
+  using value_type      = typename tensor_parent_t::value_type;
   using array_parent_t =
       static_multidim_array<T, x_fastest, tag::stack, Dims...>;
 
@@ -61,17 +61,18 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,
   }
   //----------------------------------------------------------------------------
   template <convertible_to<T>... Ts>
-  requires (tensor_parent_t::rank() == 1) &&
-           (tensor_parent_t::dimension(0) == sizeof...(Ts))
-  explicit constexpr tensor(Ts const&... ts) : array_parent_t{ts...} {}
+  requires(tensor_parent_t::rank() == 1) &&
+      (tensor_parent_t::dimension(0) ==
+       sizeof...(Ts)) explicit constexpr tensor(Ts const&... ts)
+      : array_parent_t{ts...} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename = void>
-  requires is_arithmetic<T>
-  explicit constexpr tensor(tag::zeros_t zeros) : array_parent_t{zeros} {}
+
+  explicit constexpr tensor(tag::zeros_t zeros) requires is_arithmetic<T>
+      : array_parent_t{zeros} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename = void>
-  requires is_arithmetic<T>
-  explicit constexpr tensor(tag::ones_t ones) : array_parent_t{ones} {}
+
+  explicit constexpr tensor(tag::ones_t ones) requires is_arithmetic<T>
+      : array_parent_t{ones} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename FillReal>
   requires is_arithmetic<T>
@@ -80,7 +81,7 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,
   template <typename RandomReal, typename Engine>
   requires is_arithmetic<T>
   explicit constexpr tensor(random::uniform<RandomReal, Engine>&& rand)
-    : array_parent_t{std::move(rand)} {}
+      : array_parent_t{std::move(rand)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <arithmetic RandomReal, typename Engine>
   explicit constexpr tensor(random::uniform<RandomReal, Engine>& rand)
@@ -186,7 +187,7 @@ TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-#include<tatooine/dynamic_tensor.h>
+#include <tatooine/dynamic_tensor.h>
 //==============================================================================
 #include <tatooine/mat.h>
 #include <tatooine/vec.h>

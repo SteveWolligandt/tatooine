@@ -32,13 +32,13 @@ class static_multidim_array
  public:
   using value_type = T;
   using this_t   = static_multidim_array<T, IndexOrder, MemLoc, Resolution...>;
-  using parent_t = static_multidim_size<IndexOrder, Resolution...>;
-  using parent_t::in_range;
-  using parent_t::indices;
-  using parent_t::num_components;
-  using parent_t::num_dimensions;
-  using parent_t::plain_index;
-  using parent_t::size;
+  using parent_type = static_multidim_size<IndexOrder, Resolution...>;
+  using parent_type::in_range;
+  using parent_type::indices;
+  using parent_type::num_components;
+  using parent_type::num_dimensions;
+  using parent_type::plain_index;
+  using parent_type::size;
   using container_t =
       std::conditional_t<std::is_same<MemLoc, tag::stack>::value,
                          std::array<T, num_components()>, std::vector<T>>;

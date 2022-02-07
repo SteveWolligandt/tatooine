@@ -19,6 +19,11 @@ static constexpr auto gl_type_v = gl_type<T>::value;
 //};
 //------------------------------------------------------------------------------
 template <>
+struct gl_type<bool> {
+  static constexpr GLenum value = GL_BOOL;
+};
+//------------------------------------------------------------------------------
+template <>
 struct gl_type<gl_half> {
   static constexpr GLenum value = GL_HALF_FLOAT;
 };

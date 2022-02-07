@@ -6,6 +6,7 @@
 #include <tatooine/ray.h>
 #include <tatooine/rendering/matrices.h>
 #include <tatooine/vec.h>
+#include <tatooine/gl/glfunctions.h>
 
 #include <array>
 //==============================================================================
@@ -39,14 +40,14 @@ struct camera {
   //----------------------------------------------------------------------------
  public:
   constexpr camera(vec3 const& eye, vec3 const& lookat, vec3 const& up,
-                   Real const near, Real const far, std::size_t const res_x,
-                   std::size_t const res_y)
+                   Real const near, Real const far,
+                   Vec4<std::size_t> const& viewport)
       : m_eye{eye},
         m_lookat{lookat},
         m_up{up},
         m_near{near},
         m_far{far},
-        m_viewport{0, 0, res_x, res_y} {}
+        m_viewport{viewport} {}
   //----------------------------------------------------------------------------
   virtual ~camera() = default;
   //----------------------------------------------------------------------------
@@ -156,6 +157,10 @@ struct camera {
     setup();
   }
   //----------------------------------------------------------------------------
+  auto set_gl_viewport() const {
+    gl::viewport(m_viewport[0], m_viewport[1], m_viewport[2], m_viewport[3]);
+  }
+  //----------------------------------------------------------------------------
   auto constexpr look_at(vec3 const& eye, vec3 const& lookat,
                          vec3 const& up = {0, 1, 0}) -> void {
     m_eye    = eye;
@@ -201,13 +206,19 @@ struct camera {
     return unproject(vec4{p.x(), p.y(), 0.5, 1});
   }
   //----------------------------------------------------------------------------
+  /// Projects a screen coordinates to world coordinates.
+  auto unproject(vec3 const& p) const {
+    return unproject(vec4{p.x(), p.y(), p.z(), 1});
+  }
+  //----------------------------------------------------------------------------
   /// Projects a homogeneous screen coordinates to world coordinates.
   auto unproject(vec4 p) const {
     // [0,w-1] x [0,h-1] -> [-1,1] x [-1,1]
-    p(0) = (p(0) - m_viewport(0)) / (plane_width() - 1) * 2 - 1;
-    p(1) = (p(1) - m_viewport(1)) / (plane_height() - 1) * 2 - 1;
+    p(0) = (p(0) - m_viewport(0)) / (m_viewport(2) - 1) * 2 - 1;
+    p(1) = (p(1) - m_viewport(1)) / (m_viewport(3) - 1) * 2 - 1;
     p(2) = p(2) * 2 - 1;
     p(3) = 1;
+    std::cout << p.xy() << '\n';
 
     // canonical view volume to world coordinate
     p    = *inv(view_projection_matrix()) * p;
@@ -226,7 +237,7 @@ struct camera {
   //----------------------------------------------------------------------------
   /// Projects a homogeneous world coordinate to screen coordinates.
   auto project(vec4 p) const {
-    p    = view_projection_matrix() * p;
+    p = view_projection_matrix() * p;
     p(0) /= p(3);
 
     // [-1,1] -> [0,1]
@@ -288,7 +299,7 @@ struct camera_interface : polymorphic::camera<Real> {
   };
 };
 //==============================================================================
-namespace details::camera {
+namespace detail::camera {
 //==============================================================================
 template <std::floating_point Real>
 auto ptr_convertible_to_camera(const volatile polymorphic::camera<Real>*)
@@ -302,13 +313,13 @@ template <typename D>
 auto is_derived_from_camera(int)
     -> decltype(ptr_convertible_to_camera(static_cast<D*>(nullptr)));
 //==============================================================================
-}  // namespace details::camera
+}  // namespace detail::camera
 //==============================================================================
 template <typename T>
 struct is_camera_impl
     : std::integral_constant<
           bool,
-          std::is_class_v<T>&& decltype(details::camera::is_derived_from_camera<
+          std::is_class_v<T>&& decltype(detail::camera::is_derived_from_camera<
                                         T>(0))::value> {};
 //------------------------------------------------------------------------------
 template <typename T>

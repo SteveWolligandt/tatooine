@@ -298,16 +298,16 @@ struct front_evolving_streamsurface_discretization
   using this_t =
       front_evolving_streamsurface_discretization<Flowmap,
                                                   SeedcurveInterpolationKernel>;
-  using parent_t = unstructured_triangular_grid<real_t, num_dimensions()>;
-  using parent_t::at;
-  using typename parent_t::pos_t;
-  using parent_t::operator[];
-  using typename parent_t::cell_handle;
-  using typename parent_t::vertex_handle;
+  using parent_type = unstructured_triangular_grid<real_t, num_dimensions()>;
+  using parent_type::at;
+  using typename parent_type::pos_t;
+  using parent_type::operator[];
+  using typename parent_type::cell_handle;
+  using typename parent_type::vertex_handle;
 
   using vec2          = vec<real_t, 2>;
   using uv_t          = vec2;
-  using uv_property_t = typename parent_t::template vertex_property_t<uv_t>;
+  using uv_property_t = typename parent_type::template vertex_property_t<uv_t>;
 
   using vertex_vec_t     = std::vector<vertex_handle>;
   using vertex_list_t    = std::list<vertex_handle>;
@@ -334,22 +334,22 @@ struct front_evolving_streamsurface_discretization
       : ssf{_ssf}, m_uv_property{&add_uv_prop()} {}
   //----------------------------------------------------------------------------
   front_evolving_streamsurface_discretization(const this_t& other)
-      : parent_t{other}, ssf{other.ssf}, m_uv_property{&find_uv_prop()} {}
+      : parent_type{other}, ssf{other.ssf}, m_uv_property{&find_uv_prop()} {}
   //----------------------------------------------------------------------------
   front_evolving_streamsurface_discretization(this_t&& other) noexcept
-      : parent_t{std::move(other)},
+      : parent_type{std::move(other)},
         ssf{other.ssf},
         m_uv_property{&find_uv_prop()} {}
   //----------------------------------------------------------------------------
   auto& operator=(const this_t& other) {
-    parent_t::operator=(other);
+    parent_type::operator=(other);
     ssf               = other.ssf;
     m_uv_property     = &find_uv_prop();
     return *this;
   }
   //----------------------------------------------------------------------------
   auto& operator=(this_t&& other) noexcept {
-    parent_t::operator=(std::move(other));
+    parent_type::operator=(std::move(other));
     ssf               = other.ssf;
     m_uv_property     = &find_uv_prop();
     return *this;
@@ -378,25 +378,25 @@ struct front_evolving_streamsurface_discretization
   }
   //----------------------------------------------------------------------------
   auto insert_vertex(const pos_t& p, const uv_t& p_uv) {
-    auto v = parent_t::insert_vertex(p);
+    auto v = parent_type::insert_vertex(p);
     uv(v)  = p_uv;
     return v;
   }
   //----------------------------------------------------------------------------
   auto insert_vertex(pos_t&& p, const uv_t& p_uv) {
-    auto v = parent_t::insert_vertex(std::move(p));
+    auto v = parent_type::insert_vertex(std::move(p));
     uv(v)  = p_uv;
     return v;
   }
   //----------------------------------------------------------------------------
   auto insert_vertex(const pos_t& p, uv_t&& p_uv) {
-    auto v = parent_t::insert_vertex(p);
+    auto v = parent_type::insert_vertex(p);
     uv(v)  = std::move(p_uv);
     return v;
   }
   //----------------------------------------------------------------------------
   auto insert_vertex(pos_t&& p, uv_t&& p_uv) {
-    auto v = parent_t::insert_vertex(std::move(p));
+    auto v = parent_type::insert_vertex(std::move(p));
     uv(v)  = std::move(p_uv);
     return v;
   }
@@ -601,22 +601,22 @@ struct front_evolving_streamsurface_discretization
 //                                   Flowmap, SeedcurveInterpolationKernel> {
 //  using real_t = typename Flowmap::real_t;
 //  static constexpr auto num_dimensions() { return Flowmap::num_dimensions(); }
-//  using parent_t =
+//  using parent_type =
 //      front_evolving_streamsurface_discretization<Flowmap,
 //                                                  SeedcurveInterpolationKernel>;
-//  using front_t          = typename parent_t::front_t;
-//  using subfront_t       = typename parent_t::subfront_t;
-//  using ssf_t            = typename parent_t::ssf_t;
-//  using vertex_vec_t     = typename parent_t::vertex_vec_t;
-//  using vertex_list_t    = typename parent_t::vertex_list_t;
-//  using vertex_handle           = typename parent_t::vertex_handle;
-//  using cell_handle             = typename parent_t::cell_handle;
-//  using vertex_list_it_t = typename parent_t::vertex_list_it_t;
-//  using vertex_range_t   = typename parent_t::vertex_range_t;
-//  using parent_t::at;
-//  using parent_t::insert_vertex;
-//  using parent_t::t0;
-//  using parent_t::uv;
+//  using front_t          = typename parent_type::front_t;
+//  using subfront_t       = typename parent_type::subfront_t;
+//  using ssf_t            = typename parent_type::ssf_t;
+//  using vertex_vec_t     = typename parent_type::vertex_vec_t;
+//  using vertex_list_t    = typename parent_type::vertex_list_t;
+//  using vertex_handle           = typename parent_type::vertex_handle;
+//  using cell_handle             = typename parent_type::cell_handle;
+//  using vertex_list_it_t = typename parent_type::vertex_list_it_t;
+//  using vertex_range_t   = typename parent_type::vertex_range_t;
+//  using parent_type::at;
+//  using parent_type::insert_vertex;
+//  using parent_type::t0;
+//  using parent_type::uv;
 //
 //  //============================================================================
 //  simple_discretization(const simple_discretization& other)     = default;
@@ -630,7 +630,7 @@ struct front_evolving_streamsurface_discretization
 //  simple_discretization(ssf_t* ssf, size_t seedline_resolution, real_t
 //  stepsize,
 //                        real_t backward_tau, real_t forward_tau)
-//      : parent_t{ssf} {
+//      : parent_type{ssf} {
 //    assert(forward_tau >= 0);
 //    assert(backward_tau <= 0);
 //
@@ -683,7 +683,7 @@ struct front_evolving_streamsurface_discretization
 //    range.second            = end(old_front.front().first);
 //
 //    for (auto& v : vertices) {
-//      const auto& uv = parent_t::uv(v);
+//      const auto& uv = parent_type::uv(v);
 //      const vec   new_uv{uv(0), uv(1) + step};
 //      auto new_pos = this->ssf->sample(new_uv, backward_tau, forward_tau);
 //
@@ -700,28 +700,28 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
   using real_t = typename Flowmap::real_t;
   using this_t =
       hultquist_discretization<Flowmap, SeedcurveInterpolationKernel>;
-  using parent_t =
+  using parent_type =
       front_evolving_streamsurface_discretization<Flowmap,
                                                   SeedcurveInterpolationKernel>;
-  using parent_t::at;
-  using parent_t::insert_vertex;
-  using parent_t::t0;
-  using parent_t::uv;
-  using typename parent_t::front_t;
-  using typename parent_t::ssf_t;
-  using typename parent_t::subfront_t;
-  using typename parent_t::cell_handle;
-  using typename parent_t::uv_t;
-  using typename parent_t::vertex_handle;
-  using typename parent_t::vertex_list_it_t;
-  using typename parent_t::vertex_list_t;
-  using typename parent_t::vertex_range_t;
-  using typename parent_t::vertex_vec_t;
+  using parent_type::at;
+  using parent_type::insert_vertex;
+  using parent_type::t0;
+  using parent_type::uv;
+  using typename parent_type::front_t;
+  using typename parent_type::ssf_t;
+  using typename parent_type::subfront_t;
+  using typename parent_type::cell_handle;
+  using typename parent_type::uv_t;
+  using typename parent_type::vertex_handle;
+  using typename parent_type::vertex_list_it_t;
+  using typename parent_type::vertex_list_t;
+  using typename parent_type::vertex_range_t;
+  using typename parent_type::vertex_vec_t;
   //----------------------------------------------------------------------------
   hultquist_discretization(ssf_t* ssf, size_t seedline_resolution,
                            real_t stepsize, real_t backward_tau,
                            real_t forward_tau)
-      : parent_t(ssf) {
+      : parent_type(ssf) {
     assert(forward_tau >= 0);
     assert(backward_tau <= 0);
 
@@ -780,7 +780,7 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
     for (auto v_it = begin(subfront.first); v_it != end(subfront.first);
          ++v_it) {
       auto        v  = *v_it;
-      const auto& uv = parent_t::uv(v);
+      const auto& uv = parent_type::uv(v);
       const vec   new_uv{uv(0), uv(1) + step};
       try {
         if (this->m_on_border.find(v) == end(this->m_on_border)) {
@@ -813,12 +813,12 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
       if (it->on_border != next(it)->on_border) {
         // find point between current and next that hits the border and is on
         // integrated subfront
-        const auto& uv = next(it)->on_border ? parent_t::uv(it->v)
-                                             : parent_t::uv(next(it)->v);
+        const auto& uv = next(it)->on_border ? parent_type::uv(it->v)
+                                             : parent_type::uv(next(it)->v);
         const auto fix_v     = uv(1);
         auto       walking_u = uv(0);
         const auto dist =
-            std::abs(parent_t::uv(it->v)(0) - parent_t::uv(next(it)->v)(0));
+            std::abs(parent_type::uv(it->v)(0) - parent_type::uv(next(it)->v)(0));
         auto step = dist / 4;
         if (it->on_border) {
           step = -step;
@@ -910,21 +910,21 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
   static constexpr auto num_dimensions() {
     return Flowmap::num_dimensions();
   }
-  using parent_t =
+  using parent_type =
       front_evolving_streamsurface_discretization<Flowmap,
                                                   SeedcurveInterpolationKernel>;
-  using typename parent_t::front_t;
-  using typename parent_t::ssf_t;
-  using typename parent_t::subfront_t;
-  using typename parent_t::cell_handle;
-  using typename parent_t::vertex_handle;
-  using typename parent_t::vertex_list_it_t;
-  using typename parent_t::vertex_list_t;
+  using typename parent_type::front_t;
+  using typename parent_type::ssf_t;
+  using typename parent_type::subfront_t;
+  using typename parent_type::cell_handle;
+  using typename parent_type::vertex_handle;
+  using typename parent_type::vertex_list_it_t;
+  using typename parent_type::vertex_list_t;
   template <typename T>
-  using vertex_property_t = typename parent_t::template vertex_property_t<T>;
-  using parent_t::at;
-  using parent_t::insert_vertex;
-  using parent_t::uv;
+  using vertex_property_t = typename parent_type::template vertex_property_t<T>;
+  using parent_type::at;
+  using parent_type::insert_vertex;
+  using parent_type::uv;
 
   vertex_property_t<real_t>& alpha_prop;
   vertex_property_t<real_t>& second_derivate_alpha_prop;
@@ -932,7 +932,7 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
   //----------------------------------------------------------------------------
   schulze_discretization(ssf_t* ssf, size_t seedline_resolution,
                          size_t num_iterations)
-      : parent_t(ssf),
+      : parent_type(ssf),
         alpha_prop(this->template add_vertex_property<real_t>("alpha")),
         second_derivate_alpha_prop(this->template add_vertex_property<real_t>(
             "second_derivative_alpha")) {
@@ -970,7 +970,7 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
 
       size_t i = 0;
       for (const auto v : vs) {
-        const auto& uv = parent_t::uv(v);
+        const auto& uv = parent_type::uv(v);
         vec2        new_uv{uv(0), uv(1) + alpha[i++]};
         auto        new_pos = this->ssf->sample(new_uv);
         vertices1.push_back(insert_vertex(new_pos, new_uv));
@@ -989,7 +989,7 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
                   std::back_inserter(sub_front));
         auto sub_alpha = optimal_stepsizes(sub_front);
         for (auto v = pred_range.first; v != pred_range.second; ++v) {
-          const auto& uv = parent_t::uv(*v);
+          const auto& uv = parent_type::uv(*v);
           vec2        new_uv{uv(0), uv(1) + sub_alpha[i++]};
           auto        new_pos = this->ssf->sample(new_uv);
           vertices1.push_back(insert_vertex(new_pos, new_uv));

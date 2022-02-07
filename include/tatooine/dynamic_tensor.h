@@ -17,8 +17,8 @@ static constexpr auto is_dynamic_tensor = is_dynamic_tensor_impl<T>::value;
 template <arithmetic_or_complex T>
 struct tensor<T> : dynamic_multidim_array<T> {
   using this_t   = tensor<T>;
-  using parent_t = dynamic_multidim_array<T>;
-  using parent_t::parent_t;
+  using parent_type = dynamic_multidim_array<T>;
+  using parent_type::parent_type;
   //============================================================================
   // factories
   //============================================================================

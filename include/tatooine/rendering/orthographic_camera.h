@@ -14,19 +14,19 @@ template <arithmetic Real>
 class orthographic_camera
     : public camera_interface<Real, orthographic_camera<Real>> {
  public:
-  using real_t   = Real;
-  using this_t   = orthographic_camera<Real>;
-  using parent_t = camera_interface<Real, this_t>;
-  using vec3     = vec<Real, 3>;
-  using mat4     = mat<Real, 4, 4>;
+  using real_t      = Real;
+  using this_t      = orthographic_camera<Real>;
+  using parent_type = camera_interface<Real, this_t>;
+  using vec3        = vec<Real, 3>;
+  using mat4        = mat<Real, 4, 4>;
 
-  using parent_t::d;
-  using parent_t::depth;
-  using parent_t::f;
-  using parent_t::far;
-  using parent_t::n;
-  using parent_t::near;
-  using parent_t::setup;
+  using parent_type::d;
+  using parent_type::depth;
+  using parent_type::f;
+  using parent_type::far;
+  using parent_type::n;
+  using parent_type::near;
+  using parent_type::setup;
 
  private:
   //----------------------------------------------------------------------------
@@ -73,9 +73,42 @@ class orthographic_camera
                                 vec3 const& up, Real const left,
                                 Real const right, Real const bottom,
                                 Real const top, Real const near, Real const far,
+                                Vec4<std::size_t> const & viewport)
+      : parent_type{eye,  lookat, up,
+                    near, far,    viewport},
+        m_left{left},
+        m_right{right},
+        m_bottom{bottom},
+        m_top{top} {
+    setup();
+  }
+  //----------------------------------------------------------------------------
+  /// Constructor generates bottom left image plane pixel position and pixel
+  /// offset size.
+  constexpr orthographic_camera(vec3 const& eye, vec3 const& lookat,
+                                vec3 const& up, Real const left,
+                                Real const right, Real const bottom,
+                                Real const top, Real const near, Real const far,
                                 std::size_t const res_x,
                                 std::size_t const res_y)
-      : parent_t{eye, lookat, up, near, far, res_x, res_y},
+      : parent_type{eye,  lookat, up,
+                    near, far,    Vec4<std::size_t>{0, 0, res_x, res_y}},
+        m_left{left},
+        m_right{right},
+        m_bottom{bottom},
+        m_top{top} {
+    setup();
+  }
+  //----------------------------------------------------------------------------
+  /// Constructor generates bottom left image plane pixel position and pixel
+  /// offset size.
+  constexpr orthographic_camera(vec3 const& eye, vec3 const& lookat,
+                                Real const left, Real const right,
+                                Real const bottom, Real const top,
+                                Real const near, Real const far,
+                                Vec4<std::size_t> const& viewport)
+      : parent_type{eye,  lookat, vec3{0, 1, 0},
+                    near, far,    viewport},
         m_left{left},
         m_right{right},
         m_bottom{bottom},
@@ -91,11 +124,31 @@ class orthographic_camera
                                 Real const near, Real const far,
                                 std::size_t const res_x,
                                 std::size_t const res_y)
-      : parent_t{eye, lookat, vec3{0, 1, 0}, near, far, res_x, res_y},
+      : parent_type{eye,  lookat, vec3{0, 1, 0},
+                    near, far,    Vec4<std::size_t>{0, 0, res_x, res_y}},
         m_left{left},
         m_right{right},
         m_bottom{bottom},
         m_top{top} {
+    setup();
+  }
+  //----------------------------------------------------------------------------
+  /// Constructor generates bottom left image plane pixel position and pixel
+  /// offset size.
+  constexpr orthographic_camera(vec3 const& eye, vec3 const& lookat,
+                                vec3 const& up, Real const height,
+                                Real const near, Real const far,
+                                Vec4<std::size_t> const& viewport)
+      : orthographic_camera{eye,
+                            lookat,
+                            up,
+                            -height / 2 * Real(viewport[2]) * Real(viewport[3]),
+                            height / 2 * Real(viewport[2]) * Real(viewport[3]),
+                            -height / 2,
+                            height / 2,
+                            near,
+                            far,
+                            viewport} {
     setup();
   }
   //----------------------------------------------------------------------------
@@ -123,10 +176,23 @@ class orthographic_camera
   /// Constructor generates bottom left image plane pixel position and pixel
   /// offset size.
   orthographic_camera(vec3 const& eye, vec3 const& lookat, Real const height,
+                      Real const near, Real const far,
+                      Vec4<std::size_t> const& viewport)
+      : orthographic_camera{eye,  lookat, vec3{0, 1, 0}, height,
+                            near, far,    viewport} {}
+  //----------------------------------------------------------------------------
+  /// Constructor generates bottom left image plane pixel position and pixel
+  /// offset size.
+  orthographic_camera(vec3 const& eye, vec3 const& lookat, Real const height,
                       Real const near, Real const far, std::size_t const res_x,
                       std::size_t const res_y)
-      : orthographic_camera{eye,  lookat, vec3{0, 1, 0}, height,
-                            near, far,    res_x,         res_y} {}
+      : orthographic_camera{eye,
+                            lookat,
+                            vec3{0, 1, 0},
+                            height,
+                            near,
+                            far,
+                            Vec4<std::size_t>{0, 0, res_x, res_y}} {}
   //----------------------------------------------------------------------------
   ~orthographic_camera() = default;
   //----------------------------------------------------------------------------

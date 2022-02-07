@@ -10,9 +10,9 @@ struct inverse_distance_weighting_sampler
   static_assert(flann_available(),
                 "Inverse Distance Weighting Sampler needs FLANN!");
   using this_t   = inverse_distance_weighting_sampler<Real, NumDimensions, T>;
-  using parent_t = field<this_t, Real, NumDimensions, T>;
-  using typename parent_t::pos_t;
-  using typename parent_t::tensor_t;
+  using parent_type = field<this_t, Real, NumDimensions, T>;
+  using typename parent_type::pos_t;
+  using typename parent_type::tensor_t;
   using pointset_t        = tatooine::pointset<Real, NumDimensions>;
   using vertex_handle     = typename pointset_t::vertex_handle;
   using vertex_property_t = typename pointset_t::template vertex_property_t<T>;

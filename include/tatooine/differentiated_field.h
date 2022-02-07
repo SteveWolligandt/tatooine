@@ -20,21 +20,21 @@ struct differentiated_field
   static constexpr auto holds_field_pointer = is_pointer<InternalField>;
 
   using this_t   = differentiated_field<InternalField>;
-  using parent_t = field<
+  using parent_type = field<
       this_t, typename raw_internal_field_t::real_t,
       raw_internal_field_t::num_dimensions(),
       tensor_add_dimension_right_t<raw_internal_field_t::num_dimensions(),
                                    typename raw_internal_field_t::tensor_t>>;
-  using parent_t::num_dimensions;
-  using typename parent_t::pos_t;
-  using typename parent_t::real_t;
+  using parent_type::num_dimensions;
+  using typename parent_type::pos_t;
+  using typename parent_type::real_t;
   using vec_t = vec<real_t, num_dimensions()>;
-  using typename parent_t::tensor_t;
+  using typename parent_type::tensor_t;
 
   // static_assert(raw_internal_field_t::tensor_rank() == 1);
   // static_assert(tensor_t::rank() == 2);
   // static_assert(raw_internal_field_t::tensor_rank() + 1 ==
-  //              parent_t::tensor_rank());
+  //              parent_type::tensor_rank());
   //============================================================================
  private:
   InternalField m_internal_field;
@@ -168,14 +168,14 @@ struct time_differentiated_field
             std::decay_t<InternalField>::num_dimensions(),
             typename std::decay_t<InternalField>::tensor_t> {
   using this_t   = time_differentiated_field<InternalField>;
-  using parent_t = field<this_t, typename std::decay_t<InternalField>::real_t,
+  using parent_type = field<this_t, typename std::decay_t<InternalField>::real_t,
                          std::decay_t<InternalField>::num_dimensions(),
                          typename std::decay_t<InternalField>::tensor_t>;
-  using parent_t::num_dimensions;
-  using typename parent_t::pos_t;
-  using typename parent_t::real_t;
+  using parent_type::num_dimensions;
+  using typename parent_type::pos_t;
+  using typename parent_type::real_t;
   using vec_t = vec<real_t, num_dimensions()>;
-  using typename parent_t::tensor_t;
+  using typename parent_type::tensor_t;
   static constexpr auto holds_field_pointer = is_pointer<InternalField>;
 
   //============================================================================

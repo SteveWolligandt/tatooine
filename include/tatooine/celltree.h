@@ -22,10 +22,10 @@ struct celltree_parent {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Celltree, typename real_t>
 struct celltree_parent<Celltree, real_t, 3, 3> : ray_intersectable<real_t, 3> {
-  using parent_t = ray_intersectable<real_t, 3>;
+  using parent_type = ray_intersectable<real_t, 3>;
 
-  using typename parent_t::optional_intersection_t;
-  using typename parent_t::ray_t;
+  using typename parent_type::optional_intersection_t;
+  using typename parent_type::ray_t;
   auto as_celltree() const -> auto const& {
     return *dynamic_cast<Celltree const*>(this);
   }

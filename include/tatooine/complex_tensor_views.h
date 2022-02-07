@@ -10,8 +10,8 @@ struct const_imag_complex_tensor
     : base_tensor<const_imag_complex_tensor<Tensor, T, Dims...>, T, Dims...> {
   static_assert(std::is_same_v<typename Tensor::value_type, std::complex<T>>);
   using this_t   = const_imag_complex_tensor<Tensor, T, Dims...>;
-  using parent_t = base_tensor<this_t, T, Dims...>;
-  using parent_t::rank;
+  using parent_type = base_tensor<this_t, T, Dims...>;
+  using parent_type::rank;
 
   //============================================================================
  private:
@@ -44,8 +44,8 @@ struct imag_complex_tensor
     : base_tensor<imag_complex_tensor<Tensor, T, Dims...>, T, Dims...> {
   static_assert(std::is_same_v<typename Tensor::value_type, std::complex<T>>);
   using this_t   = imag_complex_tensor<Tensor, T, Dims...>;
-  using parent_t = base_tensor<this_t, T, Dims...>;
-  using parent_t::rank;
+  using parent_type = base_tensor<this_t, T, Dims...>;
+  using parent_type::rank;
   //============================================================================
  private:
   Tensor& m_internal_tensor;
@@ -98,8 +98,8 @@ struct const_real_complex_tensor
     : base_tensor<const_real_complex_tensor<Tensor, T, Dims...>, T, Dims...> {
   static_assert(std::is_same_v<typename Tensor::value_type, std::complex<T>>);
   using this_t   = const_real_complex_tensor<Tensor, T, Dims...>;
-  using parent_t = base_tensor<this_t, T, Dims...>;
-  using parent_t::rank;
+  using parent_type = base_tensor<this_t, T, Dims...>;
+  using parent_type::rank;
   //============================================================================
  private:
   Tensor const& m_internal_tensor;
@@ -130,8 +130,8 @@ struct real_complex_tensor
     : base_tensor<real_complex_tensor<Tensor, T, Dims...>, T, Dims...> {
   static_assert(std::is_same_v<typename Tensor::value_type, std::complex<T>>);
   using this_t   = real_complex_tensor<Tensor, T, Dims...>;
-  using parent_t = base_tensor<this_t, T, Dims...>;
-  using parent_t::rank;
+  using parent_type = base_tensor<this_t, T, Dims...>;
+  using parent_type::rank;
   //============================================================================
  private:
   Tensor& m_internal_tensor;

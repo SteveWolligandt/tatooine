@@ -46,7 +46,7 @@ auto set_view_projection_matrices(Mat4<GLfloat> const& VP,
       ...);
 }
 struct window {
-  [[nodiscard]]static auto get() -> auto& {
+  [[nodiscard]] static auto get() -> auto& {
     static auto w = first_person_window{500, 500};
     return w;
   }
@@ -57,8 +57,7 @@ struct window {
 /// Call this function if you need to create gpu data before calling render.
 auto pre_setup() { [[maybe_unused]] auto& w = detail::window::get(); }
 //==============================================================================
-template <std::size_t... Is,
-          interactively_renderable... Renderables>
+template <std::size_t... Is, interactively_renderable... Renderables>
 auto render(std::index_sequence<Is...> /*seq*/, Renderables&&... renderables) {
   using namespace detail;
   using renderer_type_set = type_set<renderer<std::decay_t<Renderables>>...>;
@@ -82,12 +81,24 @@ auto render(std::index_sequence<Is...> /*seq*/, Renderables&&... renderables) {
 
   gl::clear_color(255, 255, 255, 255);
 
-  auto renderers = std::tuple{[](auto&& renderable) {
-    using type = decltype(renderable);
+  auto renderers = std::tuple{[&](auto&& renderable) {
+    using type         = decltype(renderable);
     using decayed_type = std::decay_t<type>;
-    if constexpr (requires(type t) { t.render(); }) {
+    if constexpr (
+        requires(type t) { t.render(); } ||
+        requires(type t) { t.late_render(); } ||
+        requires(type t) {
+          t.render(renderable, window.camera_controller().active_camera());
+        }) {
       return renderable;
-    } else if constexpr (requires(renderer<decayed_type> t) { t.render(); }) {
+    } else if constexpr (
+        requires(renderer<decayed_type> t) { t.render(); } ||
+        requires(renderer<decayed_type> t) { t.render(renderable); } ||
+        requires(renderer<decayed_type> t) { t.late_render(); } ||
+        requires(renderer<decayed_type> t) { t.late_render(renderable); } ||
+        requires(renderer<decayed_type> t) {
+          t.render(renderable, window.camera_controller().active_camera());
+        }) {
       return renderer<decayed_type>(renderable);
     }
   }(renderables)...};
@@ -115,6 +126,13 @@ auto render(std::index_sequence<Is...> /*seq*/, Renderables&&... renderables) {
       if constexpr (requires { renderer.on_cursor_moved(x, y); }) {
         renderer.on_cursor_moved(x, y);
       }
+      if constexpr (requires {
+                      renderer.on_cursor_moved(
+                          x, y, window.camera_controller().active_camera());
+                    }) {
+        renderer.on_cursor_moved(x, y,
+                                 window.camera_controller().active_camera());
+      }
     });
   });
 
@@ -125,20 +143,19 @@ auto render(std::index_sequence<Is...> /*seq*/, Renderables&&... renderables) {
     gl::clear_color_depth_buffer();
     ImGui::Begin("Properties");
     foreach_renderer([&](auto& renderer, auto& renderable, auto i) {
+      if constexpr (requires { renderer.update(dt); }) {
+        renderer.update(dt);
+      }
+      if constexpr (requires { renderer.update(dt, renderable); }) {
+        renderer.update(dt, renderable);
+      }
       if constexpr (requires {
                       renderer.update(
-                          renderable,
-                          window.camera_controller().active_camera(), dt);
+                          dt, renderable,
+                          window.camera_controller().active_camera());
                     }) {
-        renderer.update(renderable, window.camera_controller().active_camera(),
-                        dt);
-      }
-      else if constexpr (requires {
-                      renderer.update(
-                          window.camera_controller().active_camera(), dt);
-                    }) {
-        renderer.update(window.camera_controller().active_camera(),
-                        dt);
+        renderer.update(dt, renderable,
+                        window.camera_controller().active_camera());
       }
 
       if constexpr (requires { renderer.properties(renderable); }) {
@@ -148,9 +165,30 @@ auto render(std::index_sequence<Is...> /*seq*/, Renderables&&... renderables) {
         ImGui::EndGroup();
         ImGui::PopID();
       }
-      renderer.render();
+      if constexpr (requires { renderer.render(); }) {
+        renderer.render();
+      }
+      if constexpr (requires { renderer.render(renderable); }) {
+        renderer.render(renderable);
+      }
+      if constexpr (requires {
+                      renderer.render(
+                          renderable,
+                          window.camera_controller().active_camera());
+                    }) {
+        renderer.render(renderable, window.camera_controller().active_camera());
+      }
     });
     ImGui::End();
+    // In this late render area you can use custom cameras.
+    foreach_renderer([&](auto& renderer, auto& renderable, auto i) {
+      if constexpr (requires { renderer.late_render(); }) {
+        renderer.late_render();
+      }
+      if constexpr (requires { renderer.late_render(renderable); }) {
+        renderer.late_render(renderable);
+      }
+    });
   });
 }
 //------------------------------------------------------------------------------

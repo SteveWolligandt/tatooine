@@ -9,12 +9,12 @@ namespace tatooine::analytical::fields::symbolic {
 template <typename Real>
 struct counterexample_sadlo : field<Real, 2, 2> {
   using this_t   = counterexample_sadlo<Real>;
-  using parent_t = field<Real, 2, 2>;
-  using parent_t::t;
-  using parent_t::x;
-  using typename parent_t::pos_t;
-  using typename parent_t::symtensor_t;
-  using typename parent_t::tensor_t;
+  using parent_type = field<Real, 2, 2>;
+  using parent_type::t;
+  using parent_type::x;
+  using typename parent_type::pos_t;
+  using typename parent_type::symtensor_t;
+  using typename parent_type::tensor_t;
 
   counterexample_sadlo() {
     auto r =

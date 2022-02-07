@@ -14,15 +14,15 @@ struct kdtree : aabb<typename Mesh::real_t, Mesh::num_dimensions()> {
   static constexpr auto num_dimensions() { return Mesh::num_dimensions(); }
   using real_t   = typename Mesh::real_t;
   using this_t   = kdtree<Mesh>;
-  using parent_t = aabb<real_t, num_dimensions()>;
-  using parent_t::center;
-  using parent_t::is_inside;
-  using parent_t::max;
-  using parent_t::min;
-  using typename parent_t::vec_t;
+  using parent_type = aabb<real_t, num_dimensions()>;
+  using parent_type::center;
+  using parent_type::is_inside;
+  using parent_type::max;
+  using parent_type::min;
+  using typename parent_type::vec_t;
   using vertex_handle = typename Mesh::vertex_handle;
   friend class std::unique_ptr<this_t>;
-  using parent_t::is_simplex_inside;
+  using parent_type::is_simplex_inside;
 
  private:
   Mesh const*                            m_mesh;
@@ -57,7 +57,7 @@ struct kdtree : aabb<typename Mesh::real_t, Mesh::num_dimensions()> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   kdtree(Mesh const& mesh, vec_t const& min, vec_t const& max,
          size_t const level, size_t const max_depth)
-      : parent_t{min, max},
+      : parent_type{min, max},
         m_mesh{&mesh},
         m_level{level},
         m_max_depth{max_depth} {}

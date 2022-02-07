@@ -11,11 +11,11 @@ struct steady_field
             Field::num_dimensions(), typename Field::tensor_t> {
   using field_t  = Field;
   using this_t   = steady_field<Field>;
-  using parent_t = field<this_t, typename Field::real_t,
+  using parent_type = field<this_t, typename Field::real_t,
                          Field::num_dimensions(), typename Field::tensor_t>;
-  using typename parent_t::pos_t;
-  using typename parent_t::real_t;
-  using typename parent_t::tensor_t;
+  using typename parent_type::pos_t;
+  using typename parent_type::real_t;
+  using typename parent_type::tensor_t;
   //============================================================================
  private:
   Field m_internal_field;

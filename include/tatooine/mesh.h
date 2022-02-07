@@ -16,23 +16,23 @@ template <typename Real, size_t N>
 class mesh : public edgeset<Real, N> {
  public:
   using this_t   = mesh<Real, N>;
-  using parent_t = edgeset<Real, N>;
+  using parent_type = edgeset<Real, N>;
 
-  using typename parent_t::edge;
-  using typename parent_t::handle;
-  using typename parent_t::order_independent_edge_compare;
-  using typename parent_t::pos_t;
-  using typename parent_t::vertex;
+  using typename parent_type::edge;
+  using typename parent_type::handle;
+  using typename parent_type::order_independent_edge_compare;
+  using typename parent_type::pos_t;
+  using typename parent_type::vertex;
 
-  using parent_t::at;
-  using parent_t::operator[];
-  using parent_t::edges;
-  using parent_t::is_valid;
-  using parent_t::num_edges;
-  using parent_t::num_vertices;
-  using parent_t::remove;
-  using parent_t::vertices;
-  using parent_t::insert_edge;
+  using parent_type::at;
+  using parent_type::operator[];
+  using parent_type::edges;
+  using parent_type::is_valid;
+  using parent_type::num_edges;
+  using parent_type::num_vertices;
+  using parent_type::remove;
+  using parent_type::vertices;
+  using parent_type::insert_edge;
 
   //============================================================================
  public:
@@ -92,11 +92,11 @@ class mesh : public edgeset<Real, N> {
 
   //============================================================================
   template <typename T>
-  using vertex_prop = typename parent_t::template vertex_prop<T>;
+  using vertex_prop = typename parent_type::template vertex_prop<T>;
 
   //----------------------------------------------------------------------------
   template <typename T>
-  using edge_prop = typename parent_t::template edge_prop<T>;
+  using edge_prop = typename parent_type::template edge_prop<T>;
 
   //----------------------------------------------------------------------------
   template <typename T>
@@ -130,13 +130,13 @@ class mesh : public edgeset<Real, N> {
 
   //----------------------------------------------------------------------------
   constexpr mesh(std::initializer_list<pos_t>&& vertices)
-      : parent_t(std::move(vertices)) {
+      : parent_type(std::move(vertices)) {
     add_link_properties();
   }
 
   //----------------------------------------------------------------------------
 #ifdef USE_TRIANGLE
-  mesh(const triangle::io& io) : parent_t{io} {
+  mesh(const triangle::io& io) : parent_type{io} {
     add_link_properties();
     for (int i = 0; i < io.numberoftriangles; ++i)
       insert_face(io.trianglelist[i * 3], io.trianglelist[i * 3 + 1],
@@ -144,12 +144,12 @@ class mesh : public edgeset<Real, N> {
   }
 #endif
 
-  // mesh(const tetgenio& io) : parent_t{io} { add_link_properties(); }
+  // mesh(const tetgenio& io) : parent_type{io} { add_link_properties(); }
 
   //============================================================================
  public:
   mesh(const mesh& other)
-      : parent_t(other),
+      : parent_type(other),
         m_faces(other.m_faces),
         m_invalid_faces(other.m_invalid_faces) {
     m_face_properties.clear();
@@ -160,7 +160,7 @@ class mesh : public edgeset<Real, N> {
 
   //----------------------------------------------------------------------------
   mesh(mesh&& other)
-      : parent_t(std::move(other)),
+      : parent_type(std::move(other)),
         m_faces(std::move(other.m_faces)),
         m_invalid_faces(std::move(other.m_invalid_faces)),
         m_face_properties(std::move(other.m_face_properties)) {
@@ -169,7 +169,7 @@ class mesh : public edgeset<Real, N> {
 
   //----------------------------------------------------------------------------
   auto& operator=(const mesh& other) {
-    parent_t::operator=(other);
+    parent_type::operator=(other);
     m_faces           = other.m_faces;
     m_invalid_faces   = other.m_invalid_faces;
     for (const auto& [name, prop] : other.m_face_properties)
@@ -180,7 +180,7 @@ class mesh : public edgeset<Real, N> {
 
   //----------------------------------------------------------------------------
   auto& operator=(mesh&& other) {
-    parent_t::operator=(std::move(other));
+    parent_type::operator=(std::move(other));
     m_faces           = std::move(other.m_faces);
     m_invalid_faces   = std::move(other.m_invalid_faces);
     m_face_properties = std::move(other.m_face_properties);
@@ -253,7 +253,7 @@ class mesh : public edgeset<Real, N> {
   //----------------------------------------------------------------------------
   void remove(vertex v) {
     using namespace boost;
-    parent_t::remove(v);
+    parent_type::remove(v);
     for (auto f : faces(v))
       if (find(m_invalid_faces, f) == m_invalid_faces.end()) remove(f);
   }
@@ -261,7 +261,7 @@ class mesh : public edgeset<Real, N> {
   //----------------------------------------------------------------------------
   void remove(edge e, bool remove_orphaned_vertices = true) {
     using namespace boost;
-    parent_t::remove(e, remove_orphaned_vertices);
+    parent_type::remove(e, remove_orphaned_vertices);
     for (auto f : faces(e))
       if (find(m_invalid_faces, f) == m_invalid_faces.end()) remove(f);
   }
@@ -379,7 +379,7 @@ class mesh : public edgeset<Real, N> {
     m_invalid_faces.clear();
 
     // tidy up vertices
-    parent_t::tidy_up();
+    parent_type::tidy_up();
   }
 
   //----------------------------------------------------------------------------
@@ -408,7 +408,7 @@ class mesh : public edgeset<Real, N> {
 
   //----------------------------------------------------------------------------
   void clear() {
-    parent_t::clear();
+    parent_type::clear();
     clear_faces();
   }
 
@@ -457,7 +457,7 @@ class mesh : public edgeset<Real, N> {
 #ifdef USE_TRIANGLE
   //----------------------------------------------------------------------------
   auto to_triangle_io() const {
-    auto io = parent_t::to_triangle_io();
+    auto io = parent_type::to_triangle_io();
 
     // Define input points
     io.numberoftriangles = num_faces();
@@ -478,7 +478,7 @@ class mesh : public edgeset<Real, N> {
   //! using specified vertices of mesh.
   //! automatically searches for faces using of of the vertices
   auto to_triangle_io(const std::vector<vertex>& vertices) const {
-    auto io = parent_t::to_triangle_io(vertices);
+    auto io = parent_type::to_triangle_io(vertices);
 
     std::set<face> fs;
     for (auto v : vertices)
@@ -511,7 +511,7 @@ class mesh : public edgeset<Real, N> {
 
   //----------------------------------------------------------------------------
   // void to_tetgen_io(tetgenio& in) const {
-  //   parent_t::to_tetgen_io(in);
+  //   parent_type::to_tetgen_io(in);
   //
   //   // Define input points
   //   in.numberoffacets = num_faces();

@@ -19,40 +19,40 @@ class pixelunpackbuffer : public buffer<GL_PIXEL_UNPACK_BUFFER, T> {
   // typedefs
   //----------------------------------------------------------------------------
  public:
-  using parent_t                         = buffer<GL_PIXEL_UNPACK_BUFFER, T>;
+  using parent_type                         = buffer<GL_PIXEL_UNPACK_BUFFER, T>;
   using this_t                           = pixelunpackbuffer<T>;
   static constexpr usage_t default_usage = usage_t::STATIC_COPY;
   //----------------------------------------------------------------------------
   // ctors
   //----------------------------------------------------------------------------
-  pixelunpackbuffer(usage_t usage = default_usage) : parent_t(usage) {}
+  pixelunpackbuffer(usage_t usage = default_usage) : parent_type(usage) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  pixelunpackbuffer(const pixelunpackbuffer& other) : parent_t(other) {}
+  pixelunpackbuffer(const pixelunpackbuffer& other) : parent_type(other) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  pixelunpackbuffer(pixelunpackbuffer&& other) : parent_t(std::move(other)) {}
+  pixelunpackbuffer(pixelunpackbuffer&& other) : parent_type(std::move(other)) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   pixelunpackbuffer(size_t n, usage_t usage = default_usage)
-      : parent_t(n, usage) {}
+      : parent_type(n, usage) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   pixelunpackbuffer(size_t n, const T& initial, usage_t usage = default_usage)
-      : parent_t(n, initial, usage) {}
+      : parent_type(n, initial, usage) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   pixelunpackbuffer(const std::vector<T>& data, usage_t usage = default_usage)
-      : parent_t(data, usage) {}
+      : parent_type(data, usage) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   pixelunpackbuffer(std::initializer_list<T>&& list)
-      : parent_t(std::move(list), default_usage) {}
+      : parent_type(std::move(list), default_usage) {}
 
   //----------------------------------------------------------------------------
   // assign operators
   //----------------------------------------------------------------------------
   auto& operator=(const pixelunpackbuffer& other) {
-    parent_t::operator=(other);
+    parent_type::operator=(other);
     return *this;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto& operator=(pixelunpackbuffer&& other) {
-    parent_t::operator=(std::move(other));
+    parent_type::operator=(std::move(other));
     return *this;
   }
 };

@@ -78,28 +78,29 @@ auto shaderstage::info_log(bool use_ansi_color) -> void {
   if (info_log_length > 0) {
     auto info_log = gl::get_shader_info_log(id(), info_log_length);
     std::cout << info_log << '\n';
-    std::istringstream is(info_log);
-    std::ostringstream os;
-
-    std::string line;
-    while (std::getline(is, line)) {
-      std::smatch match;
-
-      std::regex_match(line, match, regex_nvidia_compiler_error);
-      if (!match.str(0).empty()) {
-        parse_compile_error(match, os, use_ansi_color);
-        os << '\n';
-        continue;
-      }
-      std::regex_match(line, match, regex_mesa_compiler_error);
-      if (!match.str(0).empty()) {
-        parse_compile_error(match, os, use_ansi_color);
-        os << '\n';
-        continue;
-      }
-      os << line << '\n';
-    }
-    throw std::runtime_error(os.str());
+    //throw info_log;
+    //std::istringstream is(info_log);
+    //std::ostringstream os;
+    //
+    //std::string line;
+    //while (std::getline(is, line)) {
+    //  std::smatch match;
+    //
+    //  std::regex_match(line, match, regex_nvidia_compiler_error);
+    //  if (!match.str(0).empty()) {
+    //    parse_compile_error(match, os, use_ansi_color);
+    //    os << '\n';
+    //    continue;
+    //  }
+    //  std::regex_match(line, match, regex_mesa_compiler_error);
+    //  if (!match.str(0).empty()) {
+    //    parse_compile_error(match, os, use_ansi_color);
+    //    os << '\n';
+    //    continue;
+    //  }
+    //  os << line << '\n';
+    //}
+    //throw std::runtime_error(os.str());
   }
 }
 //------------------------------------------------------------------------------

@@ -8,7 +8,7 @@ using namespace tatooine;
 //==============================================================================
 struct chengs_color_scale_t {
   using real_t  = double;
-  using this_t  = chengs_color_scale_t;
+  using this_type  = chengs_color_scale_t;
   using color_t = vec<real_t, 3>;
   //==============================================================================
   std::unique_ptr<real_t[]> m_data;

@@ -10,10 +10,10 @@ namespace tatooine {
 
 struct rbc : field<rbc, double, 2, 2> {
   using this_t   = rbc;
-  using parent_t = field<this_t, real_t, 2, 2>;
-  using parent_t::pos_t;
-  using parent_t::real_t;
-  using parent_t::tensor_t;
+  using parent_type = field<this_t, real_t, 2, 2>;
+  using parent_type::pos_t;
+  using parent_type::real_t;
+  using parent_type::tensor_t;
   using grid_t = grid_sampler<real_t, 2, vec<real_t, 2>, interpolation::linear,
                               interpolation::linear>;
   static constexpr std::array dim{512ul, 128ul, 201ul};

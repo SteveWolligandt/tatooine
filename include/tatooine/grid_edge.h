@@ -22,14 +22,14 @@ template <typename Real, size_t N>
 struct grid_edge
     : public std::pair<grid_vertex<Real, N>, grid_vertex<Real, N>> {
   using vertex_t = grid_vertex<Real, N>;
-  using parent_t = std::pair<vertex_t, vertex_t>;
+  using parent_type = std::pair<vertex_t, vertex_t>;
   //============================================================================
   grid_edge(const vertex_t& v0, const vertex_t& v1)
-      : parent_t(std::min(v0, v1), std::max(v0, v1)) {}
+      : parent_type(std::min(v0, v1), std::max(v0, v1)) {}
   //----------------------------------------------------------------------------
-  grid_edge(const grid_edge& e) : parent_t(e) {}
+  grid_edge(const grid_edge& e) : parent_type(e) {}
   //----------------------------------------------------------------------------
-  grid_edge(grid_edge&& e) noexcept : parent_t(std::move(e)) {}
+  grid_edge(grid_edge&& e) noexcept : parent_type(std::move(e)) {}
   //----------------------------------------------------------------------------
   auto operator=(const grid_edge& e) -> grid_edge& = default;
   auto operator=(grid_edge&& e) noexcept -> grid_edge& = default;

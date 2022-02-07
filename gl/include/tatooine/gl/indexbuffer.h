@@ -14,7 +14,7 @@ namespace tatooine::gl {
 
 class indexbuffer : public buffer<GL_ELEMENT_ARRAY_BUFFER, unsigned int> {
  public:
-  using parent_t = buffer<GL_ELEMENT_ARRAY_BUFFER, unsigned int>;
+  using parent_type = buffer<GL_ELEMENT_ARRAY_BUFFER, unsigned int>;
   using this_t   = indexbuffer;
 
   static const usage_t default_usage = STATIC_DRAW;

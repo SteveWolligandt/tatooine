@@ -149,9 +149,9 @@ struct type<double> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t N>
 struct type<std::array<T, N>> : detail::base_array_type<T, N> {
-  using parent_t = detail::base_array_type<T, 1>;
+  using parent_type = detail::base_array_type<T, 1>;
   hsize_t dim[1]{N};
-  type() : parent_t{dim} {}
+  type() : parent_type{dim} {}
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>

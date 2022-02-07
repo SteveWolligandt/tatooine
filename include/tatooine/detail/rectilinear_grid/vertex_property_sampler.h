@@ -270,9 +270,9 @@ struct vertex_property_sampler
   using this_t = vertex_property_sampler<property_t, InterpolationKernels...>;
   using real_t = typename GridVertexProperty::real_t;
   using value_type = typename GridVertexProperty::value_type;
-  using parent_t   = base_vertex_property_sampler<this_t, real_t, value_type,
+  using parent_type   = base_vertex_property_sampler<this_t, real_t, value_type,
                                                 InterpolationKernels...>;
-  using field_parent_t =
+  using field_parent_type =
       tatooine::field<this_t, real_t, sizeof...(InterpolationKernels), value_type>;
   //============================================================================
   static constexpr size_t current_dimension_index() { return 0; }
@@ -313,11 +313,11 @@ struct vertex_property_sampler
     return grid().template cell_index<DimensionIndex>(x);
   }
   //----------------------------------------------------------------------------
-  auto evaluate(typename field_parent_t::pos_t const& x,
-                typename field_parent_t::real_t const /*t*/) const ->
-      typename field_parent_t::tensor_t {
+  auto evaluate(typename field_parent_type::pos_t const& x,
+                typename field_parent_type::real_t const /*t*/) const ->
+      typename field_parent_type::tensor_t {
     if (!grid().is_inside(x)) {
-      return field_parent_t::ood_tensor();
+      return field_parent_type::ood_tensor();
     }
     return invoke_unpacked(
         [&](auto const... xs) {
@@ -346,7 +346,7 @@ struct vertex_property_sampler_view
                                               InterpolationKernels...>;
   using real_t     = Real;
   using value_type = ValueType;
-  using parent_t   = base_vertex_property_sampler<this_t, real_t, value_type,
+  using parent_type   = base_vertex_property_sampler<this_t, real_t, value_type,
                                                 InterpolationKernels...>;
   //============================================================================
   static constexpr auto num_dimensions() {

@@ -682,10 +682,11 @@ void get_shader_info_log(GLuint shader, GLsizei maxLength, GLsizei* length,
 
 //------------------------------------------------------------------------------
 std::string get_shader_info_log(GLuint shader, GLsizei maxLength) {
-  std::vector<char> buffer(maxLength);
-  if (verbose) verbose_ostream << "data\n";
-  get_shader_info_log(shader, maxLength, nullptr, buffer.data());
-  std::string log(buffer.begin(), buffer.end());
+  auto log = std::string(maxLength, ' ');
+  if (verbose) {
+    verbose_ostream << "data\n";
+  }
+  get_shader_info_log(shader, maxLength, nullptr, log.data());
   return log;
 }
 

@@ -46,13 +46,13 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   using container_type              = std::vector<this_t>;
   using simple_particle_container_t = std::vector<simple_particle_t>;
   using ellipse_t = geometry::hyper_ellipse<Real, NumDimensions>;
-  using parent_t  = ellipse_t;
+  using parent_type  = ellipse_t;
   using sampler_type =
       detail::autonomous_particle::sampler<Real, NumDimensions>;
   using hierarchy_pair = detail::autonomous_particle::hierarchy_pair;
-  using parent_t::center;
-  using parent_t::discretize;
-  using parent_t::S;
+  using parent_type::center;
+  using parent_type::discretize;
+  using parent_type::S;
   //============================================================================
   // members
   //============================================================================
@@ -89,7 +89,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //----------------------------------------------------------------------------
   autonomous_particle(ellipse_t const& ell, real_t const t,
                       std::uint64_t const id)
-      : parent_t{ell},
+      : parent_type{ell},
         m_x0{ell.center()},
         m_t{t},
         m_nabla_phi{mat_t::eye()},
@@ -101,7 +101,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //----------------------------------------------------------------------------
   autonomous_particle(pos_t const& x, real_t const t, real_t const r,
                       std::uint64_t const id)
-      : parent_t{x, r}, m_x0{x}, m_t{t}, m_nabla_phi{mat_t::eye()}, m_id{id} {}
+      : parent_type{x, r}, m_x0{x}, m_t{t}, m_nabla_phi{mat_t::eye()}, m_id{id} {}
   //----------------------------------------------------------------------------
   autonomous_particle(pos_t const& x, real_t const t, real_t const r,
                       std::atomic_uint64_t& uuid_generator)
@@ -109,7 +109,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //----------------------------------------------------------------------------
   autonomous_particle(ellipse_t const& ell, real_t const t, pos_t const& x0,
                       mat_t const& nabla_phi, std::uint64_t const id)
-      : parent_t{ell}, m_x0{x0}, m_t{t}, m_nabla_phi{nabla_phi}, m_id{id} {}
+      : parent_type{ell}, m_x0{x0}, m_t{t}, m_nabla_phi{nabla_phi}, m_id{id} {}
   //----------------------------------------------------------------------------
   autonomous_particle(ellipse_t const& ell, real_t const t, pos_t const& x0,
                       mat_t const&          nabla_phi,
@@ -122,9 +122,9 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   auto x0() const -> auto const& { return m_x0; }
   auto x0(std::size_t i) const { return x0()(i); }
   //----------------------------------------------------------------------------
-  auto x() -> auto& { return parent_t::center(); }
-  auto x() const -> auto const& { return parent_t::center(); }
-  auto x(std::size_t const i) const { return parent_t::center()(i); }
+  auto x() -> auto& { return parent_type::center(); }
+  auto x() const -> auto const& { return parent_type::center(); }
+  auto x(std::size_t const i) const { return parent_type::center()(i); }
   //----------------------------------------------------------------------------
   auto t() -> auto& { return m_t; }
   auto t() const { return m_t; }

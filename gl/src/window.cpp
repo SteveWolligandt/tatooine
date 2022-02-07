@@ -162,8 +162,12 @@ void window::on_wheel_right() {
 }
 //------------------------------------------------------------------------------
 void window::on_cursor_moved(double x, double y) {
-  imgui_api_backend::instance().on_cursor_moved(x,y);
-  if (!ImGui::GetIO().WantCaptureMouse) { notify_cursor_moved(x, y); }
+  auto h = int{};
+  glfwGetWindowSize(m_glfw_window.get(), nullptr, &h);
+  imgui_api_backend::instance().on_cursor_moved(x, y);
+  if (!ImGui::GetIO().WantCaptureMouse) {
+    notify_cursor_moved(x, h - 1 - y);
+  }
 }
 //------------------------------------------------------------------------------
 void window::on_resize(int w, int h) {

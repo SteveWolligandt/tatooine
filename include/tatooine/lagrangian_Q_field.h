@@ -18,11 +18,11 @@ class lagrangian_Q_field
  public:
   using real_t = typename V::real_t;
   using this_t = lagrangian_Q_field<V, N>;
-  using parent_t =
+  using parent_type =
       field<this_t, real_t, V::num_dimensions()>;
-  using parent_t::num_dimensions;
-  using typename parent_t::pos_t;
-  using typename parent_t::tensor_t;
+  using parent_type::num_dimensions;
+  using typename parent_type::pos_t;
+  using typename parent_type::tensor_t;
   using ode_solver_t = ode::vclibs::rungekutta43<real_t, 3>;
   //============================================================================
   // fields

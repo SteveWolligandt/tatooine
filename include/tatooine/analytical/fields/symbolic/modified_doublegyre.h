@@ -10,12 +10,12 @@ namespace tatooine::analytical::fields::symbolic {
 template <typename Real>
 struct modified_doublegyre : field<Real, 2, 2> {
   using this_t   = modified_doublegyre<Real>;
-  using parent_t = field<Real, 2, 2>;
-  using typename parent_t::pos_t;
-  using typename parent_t::tensor_t;
-  using typename parent_t::symtensor_t;
-  using parent_t::t;
-  using parent_t::x;
+  using parent_type = field<Real, 2, 2>;
+  using typename parent_type::pos_t;
+  using typename parent_type::tensor_t;
+  using typename parent_type::symtensor_t;
+  using parent_type::t;
+  using parent_type::x;
 
   static GiNaC::numeric c() { return -0.2040811331; }
   static GiNaC::numeric d() { return 9.964223388; }
