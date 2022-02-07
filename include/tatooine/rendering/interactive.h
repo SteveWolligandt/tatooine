@@ -194,6 +194,7 @@ auto render(std::index_sequence<Is...> /*seq*/, Renderables&&... renderables) {
       }
     });
     ImGui::End();
+    gl::clear_depth_buffer();
     // In this late render area you can use custom cameras.
     foreach_renderer([&](auto& renderer, auto& renderable, auto i) {
       if constexpr (requires { renderer.late_render(); }) {
