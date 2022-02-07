@@ -15,7 +15,7 @@ struct movable_line {
         "#version 330 core\n"
         "out vec4 out_color;\n"
         "void main() {\n"
-        "  out_color = vec4(0,0,0,1);\n"
+        "  out_color = vec4(0, 0, 0, 1);\n"
         "}\n";
     //------------------------------------------------------------------------------
     static auto get() -> auto& {
@@ -36,12 +36,12 @@ struct movable_line {
     static constexpr std::string_view vertex_shader =
         "#version 330 core\n"
         "layout (location = 0) in vec2 position;\n"
-        "layout (location = 1) in int active;\n"
-        "flat out int frag_active;\n"
+        "layout (location = 1) in int hovered;\n"
+        "flat out int frag_hovered;\n"
         "uniform mat4 view_matrix;\n"
         "uniform mat4 projection_matrix;\n"
         "void main() {\n"
-        "  frag_active = active;\n"
+        "  frag_hovered = hovered;\n"
         "  gl_Position = projection_matrix *\n"
         "                view_matrix *\n"
         "                vec4(position, 0, 1);\n"
@@ -51,14 +51,14 @@ struct movable_line {
         "#version 330 core\n"
         "uniform vec4 color;\n"
         "out vec4 out_color;\n"
-        "flat in int frag_active;\n"
+        "flat in int frag_hovered;\n"
         "void main() {\n"
-        "  if (frag_active == 1) {\n"
+        "  if (frag_hovered == 1) {\n"
         "    out_color = vec4(1,0,0,1);\n"
         "  } else {\n"
         "    out_color = vec4(0,0,0,1);\n"
         "  }\n"
-        "  out_color = vec4(frag_active,0,0,1);\n"
+        "  out_color = vec4(frag_hovered,0,0,1);\n"
         "}\n";
     //------------------------------------------------------------------------------
     static auto get() -> auto& {
@@ -113,13 +113,10 @@ struct movable_line {
         grabbed(size(xs), false),
         cam{Vec3<GLfloat>{0, 0, 0},
             Vec3<GLfloat>{0, 0, -1},
-            -3,
-            3,
-            -3,
-            3,
-            -3,
-            3,
-            Vec4<std::size_t>{10, 10, 1000, 1000}} {
+            -3, 3,
+            -3, 3,
+            -1, 1,
+            Vec4<std::size_t>{10, 10, 200, 200}} {
     geometry.vertexbuffer().reserve(size(xs));
     geometry.indexbuffer().reserve(size(xs));
     for (auto const& x : xs) {
@@ -132,26 +129,49 @@ struct movable_line {
   //----------------------------------------------------------------------------
   auto late_render() {
     cam.set_gl_viewport();
-    auto outline = gl::indexeddata<Vec2<GLfloat>>{};
-    outline.vertexbuffer().resize(4);
-    outline.indexbuffer().resize(4);
-    {
-      auto data = outline.vertexbuffer().map();
-      data[0]   = Vec2<GLfloat>{-0.999, -0.999};
-      data[1]   = Vec2<GLfloat>{ 0.999, -0.999};
-      data[2]   = Vec2<GLfloat>{ 0.999,  0.999};
-      data[3]   = Vec2<GLfloat>{-0.999,  0.999};
-    }
-    {
-      auto data = outline.indexbuffer().map();
-      data[0]   = 0;
-      data[1]   = 1;
-      data[2]   = 2;
-      data[3]   = 3;
-    }
     line_shader::get().bind();
-    gl::line_width(3);
-    outline.draw_line_loop();
+    {
+      auto outline = gl::indexeddata<Vec2<GLfloat>>{};
+      outline.vertexbuffer().resize(4);
+      outline.indexbuffer().resize(4);
+      {
+        auto data = outline.vertexbuffer().map();
+        data[0]   = Vec2<GLfloat>{-0.999, -0.999};
+        data[1]   = Vec2<GLfloat>{0.999, -0.999};
+        data[2]   = Vec2<GLfloat>{0.999, 0.999};
+        data[3]   = Vec2<GLfloat>{-0.999, 0.999};
+      }
+      {
+        auto data = outline.indexbuffer().map();
+        data[0]   = 0;
+        data[1]   = 1;
+        data[2]   = 2;
+        data[3]   = 3;
+      }
+      gl::line_width(3);
+      outline.draw_line_loop();
+    }
+    {
+      auto axes = gl::indexeddata<Vec2<GLfloat>>{};
+      axes.vertexbuffer().resize(4);
+      axes.indexbuffer().resize(4);
+      {
+        auto data = axes.vertexbuffer().map();
+        data[0]   = Vec2<GLfloat>{0, -1};
+        data[1]   = Vec2<GLfloat>{0, 1};
+        data[2]   = Vec2<GLfloat>{-1, 0};
+        data[3]   = Vec2<GLfloat>{1, 0};
+      }
+      {
+        auto data = axes.indexbuffer().map();
+        data[0]   = 0;
+        data[1]   = 1;
+        data[2]   = 2;
+        data[3]   = 3;
+      }
+      gl::line_width(1);
+      axes.draw_lines();
+    }
 
     point_shader::get().set_projection_matrix(cam.projection_matrix());
     point_shader::get().set_view_matrix(cam.view_matrix());
@@ -166,26 +186,21 @@ struct movable_line {
 
     auto const old_unprojected =
         cam.unproject(vec2f{old_cursor_pos.x(),
-                            cam.plane_height() - 1 - old_cursor_pos.y()})
+                            old_cursor_pos.y()})
             .xy();
     auto const unprojected =
         cam.unproject(
-               vec2f{cursor_pos.x(), cam.plane_height() - 1 - cursor_pos.y()})
+               vec2f{cursor_pos.x(), cursor_pos.y()})
             .xy();
 
     auto const move_dir = unprojected - old_unprojected;
 
     auto       i = std::size_t{};
-    auto const one_is_grabbed =
-        std::ranges::find(grabbed, true) != end(grabbed);
     for (auto& x : xs) {
       auto const dist = euclidean_distance(
           cam.project(vec3f{x.x(), x.y(), 0}).xy(),
           vec2f{cursor_pos.x(), cursor_pos.y()});
       hovered[i] = dist < point_size / 2;
-      if (hovered[i] && down && !one_is_grabbed) {
-        grabbed[i] = true;
-      }
       if (grabbed[i]) {
         x += move_dir.xy();
       }
@@ -194,7 +209,13 @@ struct movable_line {
     }
   }
   //----------------------------------------------------------------------------
-  auto on_button_pressed(gl::button /*b*/) { down = true; }
+  auto on_button_pressed(gl::button /*b*/) { down = true; 
+    for (std::size_t i = 0; i < size(hovered); ++i) {
+      if (hovered[i] && down) {
+        grabbed[i] = true;
+      }
+    }
+  }
   //----------------------------------------------------------------------------
   auto on_button_released(gl::button /*b*/) {
     down = false;

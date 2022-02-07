@@ -471,7 +471,7 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
                     controller().orthographic_camera().aspect_ratio() /
                     controller().orthographic_camera().plane_width() *
                     controller().orthographic_camera().height();
-      new_eye(1) -= static_cast<Real>(offset_y) /
+      new_eye(1) += static_cast<Real>(offset_y) /
                     controller().orthographic_camera().plane_height() *
                     controller().orthographic_camera().height();
       new_eye(2) = 0;
