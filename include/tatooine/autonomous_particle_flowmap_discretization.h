@@ -15,9 +15,9 @@ template <typename Real, std::size_t NumDimensions,
           typename SplitBehavior = autonomous_particle<
               Real, NumDimensions>::split_behaviors::three_splits>
 struct autonomous_particle_flowmap_discretization {
-  using real_t              = Real;
+  using real_type              = Real;
   using vec_t               = vec<Real, NumDimensions>;
-  using pos_t               = vec_t;
+  using pos_type               = vec_t;
   using particle_type       = autonomous_particle<Real, NumDimensions>;
   using sampler_type        = typename particle_type::sampler_type;
   using sampler_container_t = std::vector<sampler_type>;
@@ -265,7 +265,7 @@ struct autonomous_particle_flowmap_discretization {
   }
   //----------------------------------------------------------------------------
   template <std::size_t... VertexSeq>
-  [[nodiscard]] auto sample(pos_t const&                       p0,
+  [[nodiscard]] auto sample(pos_type const&                       p0,
                             forward_or_backward_tag auto const tag,
                             std::index_sequence<VertexSeq...> /*seq*/) const {
     auto nearest_sampler_it = end(m_samplers);
@@ -285,25 +285,25 @@ struct autonomous_particle_flowmap_discretization {
   //----------------------------------------------------------------------------
  public:
   //----------------------------------------------------------------------------
-  [[nodiscard]] auto sample(pos_t const&                       x,
+  [[nodiscard]] auto sample(pos_type const&                       x,
                             forward_or_backward_tag auto const tag) const {
     return sample(x, tag, std::make_index_sequence<NumDimensions + 1>{});
   }
   //----------------------------------------------------------------------------
-  [[nodiscard]] auto sample_forward(pos_t const& x) const {
+  [[nodiscard]] auto sample_forward(pos_type const& x) const {
     return sample(x, forward);
   }
   //----------------------------------------------------------------------------
-  auto sample_backward(pos_t const& x) const { return sample(x, backward); }
+  auto sample_backward(pos_type const& x) const { return sample(x, backward); }
   //----------------------------------------------------------------------------
-  auto operator()(pos_t const& x, forward_or_backward_tag auto tag) const {
+  auto operator()(pos_type const& x, forward_or_backward_tag auto tag) const {
     return sample(x, tag);
   }
 };
 //==============================================================================
 template <std::size_t NumDimensions>
 using AutonomousParticleFlowmapDiscretization =
-    autonomous_particle_flowmap_discretization<real_t, NumDimensions>;
+    autonomous_particle_flowmap_discretization<real_type, NumDimensions>;
 using autonomous_particle_flowmap_discretization2 =
     AutonomousParticleFlowmapDiscretization<2>;
 using autonomous_particle_flowmap_discretization3 =
@@ -316,7 +316,7 @@ using staggered_autonomous_particle_flowmap_discretization =
 //------------------------------------------------------------------------------
 template <std::size_t NumDimensions>
 using StaggeredAutonomousParticleFlowmapDiscretization =
-    staggered_autonomous_particle_flowmap_discretization<real_t, NumDimensions>;
+    staggered_autonomous_particle_flowmap_discretization<real_type, NumDimensions>;
 using staggered_autonomous_particle_flowmap_discretization2 =
     StaggeredAutonomousParticleFlowmapDiscretization<2>;
 using staggered_autonomous_particle_flowmap_discretization3 =

@@ -39,7 +39,7 @@ void write_line_container_to_vtk(LineCont const&         lines,
     for (const auto& l : lines) {
       num_pts += l.vertices().size();
     }
-    std::vector<std::array<typename LineCont::value_type::real_t, 3>> points;
+    std::vector<std::array<typename LineCont::value_type::real_type, 3>> points;
     std::vector<std::vector<std::size_t>>                             line_seqs;
     points.reserve(num_pts);
     line_seqs.reserve(lines.size());
@@ -91,7 +91,7 @@ auto merge_container(Lines lines, MaxDist max_dist /*, MinAngle min_angle*/) {
   lines.pop_back();
 
   while (!lines.empty()) {
-    auto min_d   = std::numeric_limits<typename line_t::real_t>::max();
+    auto min_d   = std::numeric_limits<typename line_t::real_type>::max();
     auto best_it = std::end(lines);
     bool merged_take_front = false;
     bool it_take_front     = false;

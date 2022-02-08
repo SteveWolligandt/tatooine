@@ -20,16 +20,16 @@ template <typename Celltree, typename Real, size_t NumDimensions,
           size_t NumVerticesPerSimplex>
 struct celltree_parent {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Celltree, typename real_t>
-struct celltree_parent<Celltree, real_t, 3, 3> : ray_intersectable<real_t, 3> {
-  using parent_type = ray_intersectable<real_t, 3>;
+template <typename Celltree, typename real_type>
+struct celltree_parent<Celltree, real_type, 3, 3> : ray_intersectable<real_type, 3> {
+  using parent_type = ray_intersectable<real_type, 3>;
 
   using typename parent_type::optional_intersection_t;
   using typename parent_type::ray_t;
   auto as_celltree() const -> auto const& {
     return *dynamic_cast<Celltree const*>(this);
   }
-  auto check_intersection(ray_t const& /*r*/, real_t const /*min_t*/ = 0) const
+  auto check_intersection(ray_t const& /*r*/, real_type const /*min_t*/ = 0) const
       -> optional_intersection_t override {
     auto const& c        = as_celltree();
     auto        cur_aabb = c.bounding_box();
@@ -38,8 +38,8 @@ struct celltree_parent<Celltree, real_t, 3, 3> : ray_intersectable<real_t, 3> {
   }
   //============================================================================
   auto collect_possible_intersections(
-      ray<real_t, 3> const& r, size_t const ni,
-      axis_aligned_bounding_box<real_t, 3> const& cur_aabb,
+      ray<real_type, 3> const& r, size_t const ni,
+      axis_aligned_bounding_box<real_type, 3> const& cur_aabb,
       std::vector<size_t>& possible_collisions) const -> void {
     auto const& c = as_celltree();
     auto const& n = c.node(ni);
@@ -68,7 +68,7 @@ struct celltree_parent<Celltree, real_t, 3, 3> : ray_intersectable<real_t, 3> {
     }
   }
   //----------------------------------------------------------------------------
-  auto collect_possible_intersections(ray<real_t, 3> const& r) const {
+  auto collect_possible_intersections(ray<real_type, 3> const& r) const {
     auto const&         c        = as_celltree();
     auto const          cur_aabb = axis_aligned_bounding_box{c.m_min, c.m_max};
     std::vector<size_t> possible_collisions;
@@ -82,20 +82,20 @@ struct celltree_parent<Celltree, real_t, 3, 3> : ray_intersectable<real_t, 3> {
 }  // namespace detail
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename Mesh>
-struct celltree : detail::celltree_parent<celltree<Mesh>, typename Mesh::real_t,
+struct celltree : detail::celltree_parent<celltree<Mesh>, typename Mesh::real_type,
                                           Mesh::num_dimensions(),
                                           Mesh::num_vertices_per_simplex()> {
-  friend struct detail::celltree_parent<celltree<Mesh>, typename Mesh::real_t,
+  friend struct detail::celltree_parent<celltree<Mesh>, typename Mesh::real_type,
                                         Mesh::num_dimensions(),
                                         Mesh::num_vertices_per_simplex()>;
-  using real_t = typename Mesh::real_t;
+  using real_type = typename Mesh::real_type;
   static constexpr auto num_dimensions() { return Mesh::num_dimensions(); }
   static constexpr auto num_vertices_per_simplex() {
     return Mesh::num_vertices_per_simplex();
   }
 
-  using vec_t  = vec<real_t, num_dimensions()>;
-  using this_t = celltree<Mesh>;
+  using vec_t  = vec<real_type, num_dimensions()>;
+  using this_type = celltree<Mesh>;
   //============================================================================
   struct node_t {
     using float_t = double;
@@ -174,7 +174,7 @@ struct celltree : detail::celltree_parent<celltree<Mesh>, typename Mesh::real_t,
   Mesh const*                   m_mesh;
   std::vector<node_t>           m_nodes;
   std::vector<std::size_t>      m_cell_handles;
-  vec<real_t, num_dimensions()> m_min, m_max;
+  vec<real_type, num_dimensions()> m_min, m_max;
 
   //============================================================================
  public:
@@ -184,8 +184,8 @@ struct celltree : detail::celltree_parent<celltree<Mesh>, typename Mesh::real_t,
   auto operator=(celltree&&) noexcept -> celltree& = default;
   ~celltree()                                      = default;
   //===========================================================================
-  celltree(Mesh const& mesh, vec<real_t, num_dimensions()> const& min,
-           vec<real_t, num_dimensions()> const& max)
+  celltree(Mesh const& mesh, vec<real_type, num_dimensions()> const& min,
+           vec<real_type, num_dimensions()> const& max)
       : m_mesh{&mesh},
         m_cell_handles(mesh.cells().size()),
         m_min{min},
@@ -259,9 +259,9 @@ struct celltree : detail::celltree_parent<celltree<Mesh>, typename Mesh::real_t,
     auto const& n = node(cur_node_idx);
     if (n.is_leaf()) {
       auto const vertex_handles = mesh().cell_at(n.as_leaf().start);
-      auto       A              = mat<real_t, num_dimensions() + 1,
+      auto       A              = mat<real_type, num_dimensions() + 1,
                    Mesh::num_vertices_per_simplex()>::ones();
-      auto       b              = vec<real_t, num_dimensions() + 1>::ones();
+      auto       b              = vec<real_type, num_dimensions() + 1>::ones();
       for (size_t i = 0; i < num_dimensions(); ++i) {
         ((A(Seq, i) = mesh()[std::get<Seq>(vertex_handles)](i)), ...);
       }
@@ -270,7 +270,7 @@ struct celltree : detail::celltree_parent<celltree<Mesh>, typename Mesh::real_t,
       }
       auto const       barycentric_coordinates = solve(A, b);
       auto             is_inside               = true;
-      constexpr real_t eps                     = 1e-6;
+      constexpr real_type eps                     = 1e-6;
       for (size_t i = 0; i < Mesh::num_vertices_per_simplex(); ++i) {
         is_inside &= barycentric_coordinates(0) >= -eps;
         is_inside &= barycentric_coordinates(0) <= 1 + eps;
@@ -412,11 +412,11 @@ struct celltree : detail::celltree_parent<celltree<Mesh>, typename Mesh::real_t,
   /// TODO heuristic not working correctly
   template <size_t... Seq>
   auto split_with_heuristic(size_t const ni, size_t const li, size_t const ri,
-                            std::uint8_t const split_dim, real_t const min,
-                            real_t const max, std::index_sequence<Seq...> seq) {
+                            std::uint8_t const split_dim, real_type const min,
+                            real_type const max, std::index_sequence<Seq...> seq) {
     sort_indices(ni, split_dim, seq);
 
-    auto       min_cost   = std::numeric_limits<real_t>::max();
+    auto       min_cost   = std::numeric_limits<real_type>::max();
     auto       best_lsize = std::numeric_limits<std::uint32_t>::max();
     auto       cur_lsize  = std::uint32_t(1);
     typename node_t::float_t      best_lmax = 0, best_rmin = 0;
@@ -468,7 +468,7 @@ struct celltree : detail::celltree_parent<celltree<Mesh>, typename Mesh::real_t,
   auto write_vtk(filesystem::path const& path) {
     vtk::legacy_file_writer f{path, vtk::dataset_type::polydata};
     f.write_header();
-    std::vector<vec<real_t, 3>>      positions;
+    std::vector<vec<real_type, 3>>      positions;
     std::vector<std::vector<size_t>> indices;
     auto const parent_bounding_box = axis_aligned_bounding_box{m_min, m_max};
     write_vtk_collect_positions_and_indices(positions, indices, 0,
@@ -479,9 +479,9 @@ struct celltree : detail::celltree_parent<celltree<Mesh>, typename Mesh::real_t,
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  private:
   auto write_vtk_collect_positions_and_indices(
-      std::vector<vec<real_t, num_dimensions()>>& positions,
+      std::vector<vec<real_type, num_dimensions()>>& positions,
       std::vector<std::vector<size_t>>& indices, size_t cur_node_idx,
-      axis_aligned_bounding_box<real_t, num_dimensions()> const& aabb,
+      axis_aligned_bounding_box<real_type, num_dimensions()> const& aabb,
       size_t cur_level = 0, size_t cur_idx = 0) -> size_t {
     if (node(cur_node_idx).is_leaf()) {
       positions.push_back(vec{aabb.min(0), aabb.min(1), aabb.min(2)});

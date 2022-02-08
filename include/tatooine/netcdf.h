@@ -57,7 +57,7 @@ class attribute {};
 template <typename T>
 class variable {
  public:
-  using this_t     = variable<T>;
+  using this_type     = variable<T>;
   using value_type = T;
 
  private:

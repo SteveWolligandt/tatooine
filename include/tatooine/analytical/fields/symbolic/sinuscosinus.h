@@ -8,10 +8,10 @@ namespace tatooine::analytical::fields::numerical {
 //==============================================================================
 template <typename Real>
 struct cosinussinus : field<cosinussinus<Real>, Real, 2, 2> {
-  using this_t   = cosinussinus<Real>;
-  using parent_type = field<this_t, Real, 2, 2>;
-  using typename parent_type::pos_t;
-  using typename parent_type::tensor_t;
+  using this_type   = cosinussinus<Real>;
+  using parent_type = field<this_type, Real, 2, 2>;
+  using typename parent_type::pos_type;
+  using typename parent_type::tensor_type;
   //============================================================================
   Real m_radius;
   //============================================================================
@@ -19,12 +19,12 @@ struct cosinussinus : field<cosinussinus<Real>, Real, 2, 2> {
   //----------------------------------------------------------------------------
   void set_radius(Real r) { m_radius = r; }
   //----------------------------------------------------------------------------
-  [[nodiscard]] constexpr auto evaluate(const pos_t& /*x*/, Real t) const
-      -> tensor_t final {
-    return tensor_t{std::cos(t) * m_radius, std::sin(t) * m_radius};
+  [[nodiscard]] constexpr auto evaluate(const pos_type& /*x*/, Real t) const
+      -> tensor_type final {
+    return tensor_type{std::cos(t) * m_radius, std::sin(t) * m_radius};
   }
   //----------------------------------------------------------------------------
-  [[nodiscard]] constexpr auto in_domain(const pos_t& /*x*/, Real /*t*/) const
+  [[nodiscard]] constexpr auto in_domain(const pos_type& /*x*/, Real /*t*/) const
       -> bool final {
     return true;
   }
@@ -32,20 +32,20 @@ struct cosinussinus : field<cosinussinus<Real>, Real, 2, 2> {
 //==============================================================================
 template <typename Real>
 struct sinuscosinus : field<sinuscosinus<Real>, Real, 2, 2> {
-  using this_t   = sinuscosinus<Real>;
-  using parent_type = field<this_t, Real, 2, 2>;
-  using typename parent_type::pos_t;
-  using typename parent_type::tensor_t;
+  using this_type   = sinuscosinus<Real>;
+  using parent_type = field<this_type, Real, 2, 2>;
+  using typename parent_type::pos_type;
+  using typename parent_type::tensor_type;
 
   //============================================================================
   constexpr sinuscosinus() noexcept {}
   //----------------------------------------------------------------------------
-  [[nodiscard]] constexpr auto evaluate(const pos_t& /*x*/, Real t) const
-      -> tensor_t final {
-    return tensor_t{std::sin(t), std::cos(t)};
+  [[nodiscard]] constexpr auto evaluate(const pos_type& /*x*/, Real t) const
+      -> tensor_type final {
+    return tensor_type{std::sin(t), std::cos(t)};
   }
   //----------------------------------------------------------------------------
-  [[nodiscard]] constexpr auto in_domain(const pos_t& /*x*/, Real /*t*/) const
+  [[nodiscard]] constexpr auto in_domain(const pos_type& /*x*/, Real /*t*/) const
       -> bool final {
     return true;
   }

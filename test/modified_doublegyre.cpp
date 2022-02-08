@@ -9,15 +9,15 @@ TEST_CASE("modified_doublegyre_lcs_creation",
           "[modified_doublegyre][lcs][creation]") {
   analytical::fields::numerical::modified_doublegyre v;
   auto ht = v.hyperbolic_trajectory();
-  line<real_t, 2> lcs;
-  real_t const t0 = 0;
-  real_t const tau = 20;
-  real_t const step_width = 0.1;
-  real_t const mu = 1e-6;
-  ode::vclibs::rungekutta43<real_t, 2> ode;
+  line<real_type, 2> lcs;
+  real_type const t0 = 0;
+  real_type const tau = 20;
+  real_type const step_width = 0.1;
+  real_type const mu = 1e-6;
+  ode::vclibs::rungekutta43<real_type, 2> ode;
 
   lcs.push_back(ht(t0));
-  real_t t = t0;
+  real_type t = t0;
   while (t < t0 + tau) {
     t += step_width;
     vec2 y;

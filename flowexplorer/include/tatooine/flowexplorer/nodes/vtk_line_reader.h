@@ -17,7 +17,7 @@ struct vtk_line_reader : renderable<vtk_line_reader> {
   // internal
  private:
   gl::indexeddata<vec3f> m_gpu_data;
-  line<real_t, 3>                   m_line3;
+  line<real_type, 3>                   m_line3;
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // user data

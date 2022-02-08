@@ -19,11 +19,11 @@ TEST_CASE("direct_iso_grid_vertex_sampler") {
   auto& s       = discretize(mag_vst, g, "s", 0);
   g.write_vtk("discretized_iso_volume.vtk");
   auto iso = 1.05;
-  parameterized_line<real_t, 3, interpolation::cubic> eye;
+  parameterized_line<real_type, 3, interpolation::cubic> eye;
   eye.push_back(vec3{-2, 4, -2}, 0);
   eye.push_back(vec3{-6, 4, 5}, 0.5);
   eye.push_back(vec3{-2, 4, 12}, 1);
-  parameterized_line<real_t, 3, interpolation::linear> lookat;
+  parameterized_line<real_type, 3, interpolation::linear> lookat;
   lookat.push_back(vec3{1, 0, 3}, 0);
   lookat.push_back(vec3{1, 0, 7}, 1);
 

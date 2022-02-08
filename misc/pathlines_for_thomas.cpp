@@ -10,7 +10,7 @@ template <typename V>
 auto random_domain_position(const V& v, const boundingbox<double, 2>& domain, double t) {
   random::uniform    randx{domain.min(0), domain.max(0)};
   random::uniform    randy{domain.min(1), domain.max(1)};
-  typename V::pos_t x;
+  typename V::pos_type x;
   do {
     x(0) = randx();
     x(1) = randy();

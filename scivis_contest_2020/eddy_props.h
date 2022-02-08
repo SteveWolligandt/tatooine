@@ -11,7 +11,7 @@
 namespace tatooine::scivis_contest_2020 {
 //==============================================================================
 template <typename V>
-auto eddy_props(V const& v, typename V::pos_t const& x,
+auto eddy_props(V const& v, typename V::pos_type const& x,
                 arithmetic auto const t) {
   auto const Jf             = diff(v, 1e-8);
 
@@ -23,7 +23,7 @@ auto eddy_props(V const& v, typename V::pos_t const& x,
   if (eulerian_Q > 0) {
     parameterized_line<double, 3, interpolation::linear> pathline;
 
-    using solver_t = ode::vclibs::rungekutta43<typename V::real_t, 3>;
+    using solver_t = ode::vclibs::rungekutta43<typename V::real_type, 3>;
     solver_t solver;
     auto     evaluator = [&v, &Jf](auto const& y, auto const t) ->
         typename solver_t::maybe_vec {

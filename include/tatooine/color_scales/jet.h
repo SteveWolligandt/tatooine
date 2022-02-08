@@ -13,24 +13,24 @@ namespace tatooine::color_scales {
 //==============================================================================
 template <floating_point Real>
 struct jet  {
-  using real_t  = Real;
-  using this_t  = jet<Real>;
+  using real_type  = Real;
+  using this_type  = jet<Real>;
   using color_t = vec<Real, 3>;
   //==============================================================================
   static constexpr auto num_samples = std::size_t(7);
   //==============================================================================
   std::unique_ptr<color_t[]> m_samples;
-  std::unique_ptr<real_t[]> m_parameterization;
+  std::unique_ptr<real_type[]> m_parameterization;
   //==============================================================================
   jet()
       : m_samples{new color_t[]{color_t{0, 0, 0.5625}, color_t{0, 0, 1},
                              color_t{0, 1, 1}, color_t{0.5, 1, 0.5},
                              color_t{1, 1, 0}, color_t{1, 0, 0},
                              color_t{0.5, 0, 0}}},
-        m_parameterization{new real_t[]{0, 0.111111, 0.36508, 0.492063,
+        m_parameterization{new real_type[]{0, 0.111111, 0.36508, 0.492063,
                                         0.619047, 0.873016, 1}} {}
   //----------------------------------------------------------------------------
-  auto sample(real_t t) const {
+  auto sample(real_type t) const {
     if (t <= 0) {
       return m_samples[0];
     }
@@ -47,7 +47,7 @@ struct jet  {
     }
     return m_samples[i] * (1 - t) + m_samples[i + 1] * t;
   }
-  auto operator()(real_t const t) const { return sample(t); }
+  auto operator()(real_type const t) const { return sample(t); }
   //----------------------------------------------------------------------------
 #if TATOOINE_GL_AVAILABLE
   auto to_gpu_tex() {

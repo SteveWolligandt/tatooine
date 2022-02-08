@@ -144,11 +144,11 @@ struct split_behaviors<Real, 2> {
   //                 vec_t{x5, x5 / 2},
   //                 vec_t{x5, x5 / 2},
   //                 vec_t{x5, x5 / 2},
-  //                 vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)},
-  //                 vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)}};
+  //                 vec_t{real_type(1) / real_type(2), real_type(1) / real_type(4)},
+  //                 vec_t{real_type(1) / real_type(2), real_type(1) / real_type(4)}};
   //  static auto constexpr offsets = std::array{
   //      vec_t{-x5, -x5 / 2}, vec_t{x5, -x5 / 2},      vec_t{-x5, x5 / 2},
-  //      vec_t{x5, x5 / 2},   vec_t{0, real_t(3) / 4}, vec_t{0, -real_t(3) /
+  //      vec_t{x5, x5 / 2},   vec_t{0, real_type(3) / 4}, vec_t{0, -real_type(3) /
   //      4}};
   //};
 };

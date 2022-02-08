@@ -21,9 +21,9 @@ namespace tatooine::ode::boost {
 template <typename Real, size_t N, typename Stepper>
 struct solver : ode::solver<solver<Real, N, Stepper>, Real, N> {
  public:
-  using this_t   = solver<Real, N, Stepper>;
-  using parent_type = ode::solver<this_t, Real, N>;
-  using typename parent_type::pos_t;
+  using this_type   = solver<Real, N, Stepper>;
+  using parent_type = ode::solver<this_type, Real, N>;
+  using typename parent_type::pos_type;
   using typename parent_type::vec_t;
 
  protected:
@@ -49,20 +49,20 @@ struct solver : ode::solver<solver<Real, N, Stepper>, Real, N> {
                        T0Real const t0, TauReal tau,
                        StepperCallback&& callback) const {
     constexpr auto callback_takes_derivative =
-        std::is_invocable_v<StepperCallback, pos_t, Real, vec_t>;
+        std::is_invocable_v<StepperCallback, pos_type, Real, vec_t>;
 
     if (tau == 0) {
       return;
     }
-    pos_t x_copy(y0);
+    pos_type x_copy(y0);
 
     ::boost::numeric::odeint::integrate_adaptive(
         m_stepper,
-        [&evaluator, tau, t0](pos_t const& y, pos_t& sample, Real t) {
+        [&evaluator, tau, t0](pos_type const& y, pos_type& sample, Real t) {
           sample = evaluator(y, t);
         },
         x_copy, t0, t0 + tau, tau > 0 ? m_stepsize : -m_stepsize,
-        [tau, t0, &callback, &evaluator](const pos_t& y, Real t) {
+        [tau, t0, &callback, &evaluator](const pos_type& y, Real t) {
           if constexpr (!callback_takes_derivative) {
             callback(y, t);
           } else {

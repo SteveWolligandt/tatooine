@@ -12,7 +12,7 @@ template <typename DataSet, typename GlobalIndexOrder = x_fastest,
           typename LocalIndexOrder = GlobalIndexOrder>
 struct lazy_reader
     : chunked_multidim_array<typename DataSet::value_type, GlobalIndexOrder, LocalIndexOrder> {
-  using this_t     = lazy_reader<DataSet, GlobalIndexOrder, LocalIndexOrder>;
+  using this_type     = lazy_reader<DataSet, GlobalIndexOrder, LocalIndexOrder>;
   using value_type = typename DataSet::value_type;
   using parent_type   = chunked_multidim_array<value_type, GlobalIndexOrder, LocalIndexOrder>;
   using parent_type::chunk_at;

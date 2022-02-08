@@ -15,13 +15,13 @@ namespace tatooine {
 template <typename Real, size_t N>
 class mesh : public edgeset<Real, N> {
  public:
-  using this_t   = mesh<Real, N>;
+  using this_type   = mesh<Real, N>;
   using parent_type = edgeset<Real, N>;
 
   using typename parent_type::edge;
   using typename parent_type::handle;
   using typename parent_type::order_independent_edge_compare;
-  using typename parent_type::pos_t;
+  using typename parent_type::pos_type;
   using typename parent_type::vertex;
 
   using parent_type::at;
@@ -129,7 +129,7 @@ class mesh : public edgeset<Real, N> {
   constexpr mesh() { add_link_properties(); }
 
   //----------------------------------------------------------------------------
-  constexpr mesh(std::initializer_list<pos_t>&& vertices)
+  constexpr mesh(std::initializer_list<pos_type>&& vertices)
       : parent_type(std::move(vertices)) {
     add_link_properties();
   }
@@ -548,7 +548,7 @@ class mesh : public edgeset<Real, N> {
   //   in.pointmarkerlist = new int[in.numberofpoints];
   //   in.numberofpointattributes = 1;
   //   in.pointattributelist =
-  //       new tetgen::real_t[in.numberofpoints * in.numberofpointattributes];
+  //       new tetgen::real_type[in.numberofpoints * in.numberofpointattributes];
   //   for (const auto& [v, i] : vertex_mapping) {
   //     in.pointlist[i * 3]     = at(v)(0);
   //     in.pointlist[i * 3 + 1] = at(v)(1);
@@ -878,7 +878,7 @@ class mesh : public edgeset<Real, N> {
   }
 
   //----------------------------------------------------------------------------
-  static bool is_left(const pos_t& a, const pos_t& b, const pos_t& c) {
+  static bool is_left(const pos_type& a, const pos_type& b, const pos_type& c) {
     return ((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])) >= 0;
   }
 
@@ -1024,8 +1024,8 @@ inline auto constrained_delaunay(
 //------------------------------------------------------------------------------
 template <typename Real>
 inline auto conforming_delaunay(const edgeset<2, Real>& es,
-                                triangle::real_t          minangle = 0,
-                                triangle::real_t          maxarea  = 0) {
+                                triangle::real_type          minangle = 0,
+                                triangle::real_type          maxarea  = 0) {
   triangle::api api;
   api.options("zpq" + std::to_string(minangle));
   if (maxarea > 0)

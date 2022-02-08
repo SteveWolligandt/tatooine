@@ -82,8 +82,8 @@ TEST_CASE("unstructured_tetrahedral_grid_vertex_property_sampler",
           "[unstructured_tetrahedral_grid][vertex_property][sampler]") {
   size_t const num_points  = 100;
   size_t const random_seed = 1234;
-  real_t const radius      = 1;
-  auto const   s           = geometry::sphere<real_t, 3>{radius};
+  real_type const radius      = 1;
+  auto const   s           = geometry::sphere<real_type, 3>{radius};
   auto         mesh        = unstructured_tetrahedral_grid{
       s.random_points(num_points, std::mt19937_64{random_seed})};
   using v = decltype(mesh)::vertex_handle;

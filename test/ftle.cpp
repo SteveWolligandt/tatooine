@@ -32,8 +32,8 @@ TEST_CASE("ftle_doublegyre", "[ftle][doublegyre][dg]") {
   doublegyre v;
   v.set_infinite_domain(true);
   rectilinear_grid   sample_grid{linspace{0.0, 2.0, 1000}, linspace{0.0, 1.0, 500}};
-  real_t tau = 10;
-  real_t t0  = 0;
+  real_type tau = 10;
+  real_type t0  = 0;
   //ftle_test_vectorfield(
   //    v, sample_grid, t0, tau,
   //    "dg_ftle_" + std::to_string(t0) + "_" + std::to_string(tau));
@@ -68,7 +68,7 @@ TEST_CASE("ftle_counterexample_sadlo", "[ftle][counterexample_sadlo]") {
 //==============================================================================
 TEST_CASE("ftle_saddle", "[ftle][saddle]") {
   saddle                                   v;
-  rectilinear_grid<linspace<real_t>, linspace<real_t>> ftle_grid{linspace{-1.0, 1.0, 200},
+  rectilinear_grid<linspace<real_type>, linspace<real_type>> ftle_grid{linspace{-1.0, 1.0, 200},
                                                      linspace{-1.0, 1.0, 200}};
   auto& ftle_prop = ftle_grid.insert_scalar_vertex_property("ftle");
   auto const t0   = 0;
@@ -90,7 +90,7 @@ void ftle_test_vectorfield(V const& v, Grid& ftle_grid, T0 t0, Tau tau,
   std::seed_seq seed{100};
   //auto          tex = gpu::lic(
   //    v,
-  //    uniform_grid<real_t, 2>{linspace{ftle_grid.template front<0>(),
+  //    uniform_grid<real_type, 2>{linspace{ftle_grid.template front<0>(),
   //                                     ftle_grid.template back<0>(), 200},
   //                            linspace{ftle_grid.template front<1>(),
   //                                     ftle_grid.template back<1>(), 100}},
@@ -102,13 +102,13 @@ void ftle_test_vectorfield(V const& v, Grid& ftle_grid, T0 t0, Tau tau,
           "ftle");
   auto& colored_ftle_prop =
       ftle_grid.vec3_vertex_property("ftle_colored");
-  ftle_field f{v, tau, ode::vclibs::rungekutta43<real_t, 2>{}};
+  ftle_field f{v, tau, ode::vclibs::rungekutta43<real_type, 2>{}};
   f.flowmap_gradient().flowmap().use_caching(false);
   f.flowmap_gradient().set_epsilon(
       vec{(ftle_grid.template back<0>() - ftle_grid.template front<0>()) /
-              static_cast<real_t>(ftle_grid.size(0)),
+              static_cast<real_type>(ftle_grid.size(0)),
           (ftle_grid.template back<1>() - ftle_grid.template front<1>()) /
-              static_cast<real_t>(ftle_grid.size(1))});
+              static_cast<real_type>(ftle_grid.size(1))});
   for_loop(
       [&](auto const ix, auto const iy) {
         vec const x{ftle_grid.vertex_at(ix, iy)};
@@ -116,7 +116,7 @@ void ftle_test_vectorfield(V const& v, Grid& ftle_grid, T0 t0, Tau tau,
       },
       ftle_grid.size(0), ftle_grid.size(1));
 
-  auto max = -std::numeric_limits<real_t>::max();
+  auto max = -std::numeric_limits<real_type>::max();
   ftle_grid.vertices().iterate_indices(
       [&](auto const... is) { max = std::max(ftle_prop(is...), max); });
   color_scales::viridis scale;

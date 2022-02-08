@@ -11,16 +11,16 @@ namespace tatooine::flowexplorer::nodes {
 struct sample_to_grid : ui::node<sample_to_grid> {
  private:
   std::variant<std::monostate,
-               nonuniform_rectilinear_grid<real_t, 2>*,
-               nonuniform_rectilinear_grid<real_t, 3>*>
+               nonuniform_rectilinear_grid<real_type, 2>*,
+               nonuniform_rectilinear_grid<real_type, 3>*>
       m_discretized_domain;
   std::variant<std::monostate,
-               polymorphic::scalarfield<real_t, 2>*,
-               polymorphic::scalarfield<real_t, 3>*,
-               polymorphic::vectorfield<real_t, 2>*,
-               polymorphic::vectorfield<real_t, 3>*>
+               polymorphic::scalarfield<real_type, 2>*,
+               polymorphic::scalarfield<real_type, 3>*,
+               polymorphic::vectorfield<real_type, 2>*,
+               polymorphic::vectorfield<real_type, 3>*>
                  m_field;
-  real_t         m_time = 0.0;
+  real_type         m_time = 0.0;
   ui::input_pin* m_discretized_domain_pin;
   ui::input_pin* m_field_pin;
 
@@ -28,13 +28,13 @@ struct sample_to_grid : ui::node<sample_to_grid> {
   sample_to_grid(flowexplorer::scene& s)
       : ui::node<sample_to_grid>{"Field Sampler", s},
         m_discretized_domain_pin{&this->template insert_input_pin<
-            nonuniform_rectilinear_grid<real_t, 2>,
-            nonuniform_rectilinear_grid<real_t, 3>>("Discretized Domain")},
+            nonuniform_rectilinear_grid<real_type, 2>,
+            nonuniform_rectilinear_grid<real_type, 3>>("Discretized Domain")},
         m_field_pin{&this->template insert_input_pin<
-            polymorphic::scalarfield<real_t, 2>,
-            polymorphic::scalarfield<real_t, 3>,
-            polymorphic::vectorfield<real_t, 2>,
-            polymorphic::vectorfield<real_t, 3>>("Field")} {}
+            polymorphic::scalarfield<real_type, 2>,
+            polymorphic::scalarfield<real_type, 3>,
+            polymorphic::vectorfield<real_type, 2>,
+            polymorphic::vectorfield<real_type, 3>>("Field")} {}
   //----------------------------------------------------------------------------
   virtual ~sample_to_grid() = default;
   //----------------------------------------------------------------------------
@@ -55,19 +55,19 @@ struct sample_to_grid : ui::node<sample_to_grid> {
   auto on_pin_connected(ui::input_pin& this_pin, ui::output_pin& other_pin)
       -> void {
     if (this_pin == *m_field_pin) {
-      set_field<polymorphic::scalarfield<real_t, 2>,
-                polymorphic::scalarfield<real_t, 3>,
-                polymorphic::vectorfield<real_t, 2>,
-                polymorphic::vectorfield<real_t, 3>>(other_pin);
+      set_field<polymorphic::scalarfield<real_type, 2>,
+                polymorphic::scalarfield<real_type, 3>,
+                polymorphic::vectorfield<real_type, 2>,
+                polymorphic::vectorfield<real_type, 3>>(other_pin);
     } else if (this_pin == *m_discretized_domain_pin) {
-      if (other_pin.type() == typeid(nonuniform_rectilinear_grid<real_t, 2>)) {
+      if (other_pin.type() == typeid(nonuniform_rectilinear_grid<real_type, 2>)) {
         m_discretized_domain =
-            dynamic_cast<nonuniform_rectilinear_grid<real_t, 2>*>(
+            dynamic_cast<nonuniform_rectilinear_grid<real_type, 2>*>(
                 &other_pin.node());
       } else if (other_pin.type() ==
-                 typeid(nonuniform_rectilinear_grid<real_t, 3>)) {
+                 typeid(nonuniform_rectilinear_grid<real_type, 3>)) {
         m_discretized_domain =
-            dynamic_cast<nonuniform_rectilinear_grid<real_t, 3>*>(
+            dynamic_cast<nonuniform_rectilinear_grid<real_type, 3>*>(
                 &other_pin.node());
       }
     }

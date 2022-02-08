@@ -15,20 +15,20 @@ template <typename VertexPropSampler, std::size_t... RepeatedDims>
 struct infinite_vertex_property_sampler
     : tatooine::field<
           infinite_vertex_property_sampler<VertexPropSampler, RepeatedDims...>,
-          typename VertexPropSampler::real_t,
+          typename VertexPropSampler::real_type,
           VertexPropSampler::num_dimensions(),
-          typename VertexPropSampler::tensor_t> {
+          typename VertexPropSampler::tensor_type> {
   VertexPropSampler const& m_sampler;
   infinite_vertex_property_sampler(VertexPropSampler const& sampler)
       : m_sampler{sampler} {}
 
   using parent_type = tatooine::field<infinite_vertex_property_sampler,
-                                   typename VertexPropSampler::real_t,
+                                   typename VertexPropSampler::real_type,
                                    VertexPropSampler::num_dimensions(),
-                                   typename VertexPropSampler::tensor_t>;
-  using typename parent_type::pos_t;
-  using typename parent_type::real_t;
-  using typename parent_type::tensor_t;
+                                   typename VertexPropSampler::tensor_type>;
+  using typename parent_type::pos_type;
+  using typename parent_type::real_type;
+  using typename parent_type::tensor_type;
 
  private:
   static constexpr auto non_repeated_dimensions__() {
@@ -59,7 +59,7 @@ struct infinite_vertex_property_sampler
   static constexpr auto repeated_dimensions     = std::array{RepeatedDims...};
   static constexpr auto non_repeated_dimensions = non_repeated_dimensions__();
   template <std::size_t... i>
-  auto clamp_pos(pos_t x, std::index_sequence<i...>) const {
+  auto clamp_pos(pos_type x, std::index_sequence<i...>) const {
     (
         [&] {
           auto constexpr dim = repeated_dimensions[i];
@@ -77,11 +77,11 @@ struct infinite_vertex_property_sampler
         ...);
     return x;
   }
-  auto clamp_pos(pos_t const& x) const {
+  auto clamp_pos(pos_type const& x) const {
     return clamp_pos(x, std::make_index_sequence<num_repeated_dimensions>{});
   }
-  [[nodiscard]] auto evaluate(pos_t const& x, real_t const t) const
-      -> tensor_t {
+  [[nodiscard]] auto evaluate(pos_type const& x, real_type const t) const
+      -> tensor_type {
     if (is_inside(x)) {
       return m_sampler(clamp_pos(x), t);
     }
@@ -89,7 +89,7 @@ struct infinite_vertex_property_sampler
   }
   //----------------------------------------------------------------------------
   template <std::size_t... i>
-  auto constexpr is_inside(pos_t const& x, std::index_sequence<i...>) const
+  auto constexpr is_inside(pos_type const& x, std::index_sequence<i...>) const
       -> bool {
     return ([&] {
       auto constexpr dim = non_repeated_dimensions[i];
@@ -98,7 +98,7 @@ struct infinite_vertex_property_sampler
       return front <= x(dim) && x(dim) <= back;
     }() && ...);
   }
-  auto constexpr is_inside(pos_t const& x) const -> bool {
+  auto constexpr is_inside(pos_type const& x) const -> bool {
     return is_inside(x,
                      std::make_index_sequence<num_non_repeated_dimensions>{});
   }

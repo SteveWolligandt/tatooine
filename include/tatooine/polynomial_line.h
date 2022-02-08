@@ -150,7 +150,7 @@ class polynomial_line {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 template <typename... Polynomials>
 polynomial_line(Polynomials&&...)
-    ->polynomial_line<common_type<typename Polynomials::real_t...>,
+    ->polynomial_line<common_type<typename Polynomials::real_type...>,
                       sizeof...(Polynomials), max(Polynomials::degree()...)>;
 //==============================================================================
 template <typename Real, size_t N, size_t Degree>

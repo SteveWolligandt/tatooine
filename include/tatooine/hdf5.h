@@ -245,7 +245,7 @@ struct dataspace : id_holder {
 //==============================================================================
 struct attribute {
  public:
-  using this_t = attribute;
+  using this_type = attribute;
 
  private:
   hid_t       m_parent_id;
@@ -356,7 +356,7 @@ struct attribute_creator {
 template <typename T>
 struct dataset : id_holder, attribute_creator<dataset<T>> {
  public:
-  using this_t     = dataset<T>;
+  using this_type     = dataset<T>;
   using value_type = T;
 
  private:
@@ -761,7 +761,7 @@ struct dataset : id_holder, attribute_creator<dataset<T>> {
   }
   //----------------------------------------------------------------------------
   auto read_lazy(std::vector<std::size_t> const& chunk_size) {
-    return lazy_reader<this_t>{*this, chunk_size};
+    return lazy_reader<this_type>{*this, chunk_size};
   }
   //----------------------------------------------------------------------------
   auto name() const -> auto const& { return m_name; }
@@ -820,7 +820,7 @@ struct node : id_holder,
 //==============================================================================
 struct group : node<group> {
  public:
-  using this_t = group;
+  using this_type = group;
 
  private:
   std::string m_name;

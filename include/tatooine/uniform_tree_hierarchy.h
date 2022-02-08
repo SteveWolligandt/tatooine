@@ -17,15 +17,15 @@ struct base_uniform_tree_hierarchy : aabb<Real, NumDims> {
   struct dim {
     enum e : std::uint8_t { left = 0, right = 1 << I };
   };
-  using real_t   = Real;
-  using this_t   = base_uniform_tree_hierarchy<Real, NumDims, Derived>;
+  using real_type   = Real;
+  using this_type   = base_uniform_tree_hierarchy<Real, NumDims, Derived>;
   using parent_t = aabb<Real, NumDims>;
   using parent_t::center;
   using parent_t::is_inside;
   using parent_t::max;
   using parent_t::min;
   using typename parent_t::vec_t;
-  friend class std::unique_ptr<this_t>;
+  friend class std::unique_ptr<this_type>;
   static constexpr auto num_dimensions() { return NumDims; }
   static constexpr auto num_children() {
     return ipow(2, NumDims);
@@ -151,9 +151,9 @@ struct uniform_tree_hierarchy<unstructured_simplicial_grid<Real, NumDims, Simple
           Real, NumDims,
           uniform_tree_hierarchy<unstructured_simplicial_grid<Real, NumDims, SimplexDim>>> {
   using mesh_t   = unstructured_simplicial_grid<Real, NumDims, SimplexDim>;
-  using this_t   = uniform_tree_hierarchy<mesh_t>;
-  using parent_t = base_uniform_tree_hierarchy<Real, NumDims, this_t>;
-  using real_t   = typename parent_t::real_t;
+  using this_type   = uniform_tree_hierarchy<mesh_t>;
+  using parent_t = base_uniform_tree_hierarchy<Real, NumDims, this_type>;
+  using real_type   = typename parent_t::real_type;
   using parent_t::center;
   using parent_t::is_inside;
   using parent_t::is_simplex_inside;
@@ -271,8 +271,8 @@ struct uniform_tree_hierarchy<unstructured_simplicial_grid<Real, NumDims, Simple
   //------------------------------------------------------------------------------
   auto construct(vec_t const& min, vec_t const& max, size_t const level,
                  size_t const max_depth) const {
-    return std::unique_ptr<this_t>{
-        new this_t{min, max, level, max_depth, mesh()}};
+    return std::unique_ptr<this_type>{
+        new this_type{min, max, level, max_depth, mesh()}};
   }
   //----------------------------------------------------------------------------
   auto distribute_vertex(vertex_handle const v) {

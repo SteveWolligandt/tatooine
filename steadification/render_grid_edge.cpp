@@ -24,23 +24,23 @@ class renderer {
   // types
   //============================================================================
  public:
-  using real_t = typename V::real_t;
+  using real_type = typename V::real_type;
   template <template <typename> typename SeedcurveInterpolator>
   using pathsurface_t =
       streamsurface<integration::vclibs::rungekutta43, SeedcurveInterpolator,
-                    interpolation::hermite, V, real_t, 2>;
+                    interpolation::hermite, V, real_type, 2>;
   template <template <typename> typename SeedcurveInterpolator =
                 interpolation::linear>
   using pathsurface_discretization_t =
       hultquist_discretization<integration::vclibs::rungekutta43,
                                SeedcurveInterpolator, interpolation::hermite, V,
-                               real_t, 2>;
+                               real_type, 2>;
   using pathsurface_gpu_t    = streamsurface_renderer;
-  using vec2                 = vec<real_t, 2>;
-  using vec3                 = vec<real_t, 3>;
+  using vec2                 = vec<real_type, 2>;
+  using vec3                 = vec<real_type, 3>;
   using ivec2                = vec<size_t, 2>;
   using ivec3                = vec<size_t, 3>;
-  using grid_t               = grid<real_t, 2>;
+  using grid_t               = grid<real_type, 2>;
   using grid_edge_iterator_t = typename grid_t::edge_iterator;
   inline static const float nanf = 0.0f / 0.0f;
   struct node {
@@ -70,7 +70,7 @@ class renderer {
   lic_shader                         m_lic_shader;
   ll_to_v_shader                     m_result_to_v_tex_shader;
   RandEng&                           m_rand_eng;
-  boundingbox<real_t, 2>             m_domain;
+  boundingbox<real_type, 2>             m_domain;
   combine_rasterizations_shader      m_combine_rasterizations_shader;
   seedcurve_shader                   m_seedcurve_shader;
  public:
@@ -103,8 +103,8 @@ class renderer {
   // ctor
   //============================================================================
  public:
-  renderer(const field<V, real_t, 2, 2>& v,
-                 const boundingbox<real_t, 2>& domain, ivec2 render_resolution,
+  renderer(const field<V, real_type, 2, 2>& v,
+                 const boundingbox<real_type, 2>& domain, ivec2 render_resolution,
                  RandEng& rand_eng)
       : m_v{v.as_derived()},
         m_render_resolution{render_resolution},
@@ -233,10 +233,10 @@ class renderer {
     gl::barrier();
   }
   //----------------------------------------------------------------------------
-  void result_to_lic_tex(const grid_t& domain, const real_t min_t,
-                         const real_t max_t) {
+  void result_to_lic_tex(const grid_t& domain, const real_type min_t,
+                         const real_type max_t) {
     const size_t num_samples = 20;
-    const real_t stepsize =
+    const real_type stepsize =
         (domain.dimension(0).back() - domain.dimension(0).front()) /
         (m_render_resolution(0) * 2);
     result_to_v_tex();
@@ -277,25 +277,25 @@ class renderer {
     gl::framebuffer fbo{tex};
     fbo.bind();
     m_seedcurve_shader.bind();
-    std::vector<line<real_t, 3>> domain_edges;
+    std::vector<line<real_type, 3>> domain_edges;
 
     for (auto edge : domain.edges()) {
       auto [v0, v1] = edge;
       auto x0       = v0.position();
       auto x1       = v1.position();
       domain_edges.push_back(
-          line<real_t, 3>{vec<real_t, 3>{x0(0), x0(1), 0},
-                          vec<real_t, 3>{x1(0), x1(1), 0}});
+          line<real_type, 3>{vec<real_type, 3>{x0(0), x0(1), 0},
+                          vec<real_type, 3>{x1(0), x1(1), 0}});
     }
     //for (auto x : domain.dimension(0)) {
     //  domain_edges.push_back(
-    //      line<real_t, 3>{vec<real_t, 3>{x, domain.dimension(1).front(), 0},
-    //                      vec<real_t, 3>{x, domain.dimension(1).back(), 0}});
+    //      line<real_type, 3>{vec<real_type, 3>{x, domain.dimension(1).front(), 0},
+    //                      vec<real_type, 3>{x, domain.dimension(1).back(), 0}});
     //}
     //for (auto y : domain.dimension(1)) {
     //  domain_edges.push_back(
-    //      line<real_t, 3>{vec<real_t, 3>{domain.dimension(0).front(), y, 0},
-    //                      vec<real_t, 3>{domain.dimension(0).back(), y, 0}});
+    //      line<real_type, 3>{vec<real_type, 3>{domain.dimension(0).front(), y, 0},
+    //                      vec<real_type, 3>{domain.dimension(0).back(), y, 0}});
     //}
 
     auto domain_edges_gpu = line_renderer(domain_edges);
@@ -309,7 +309,7 @@ class renderer {
     gl::disable_blending();
   }
   void render_seedcurve(gl::tex2rgba32f&                 tex,
-                         line<real_t, 2>& seed,
+                         line<real_type, 2>& seed,
                          GLfloat t0, GLfloat min_t, GLfloat max_t) {
     gl::disable_depth_test();
     gl::framebuffer fbo{tex};
@@ -328,11 +328,11 @@ class renderer {
   }
   //----------------------------------------------------------------------------
   auto render(const grid_t& domain, const typename grid_t::edge& edge,
-              const real_t min_t, const real_t max_t, const real_t t0, const real_t btau,
-              const real_t ftau, const size_t seed_res, const real_t stepsize) {
+              const real_type min_t, const real_type max_t, const real_type t0, const real_type btau,
+              const real_type ftau, const size_t seed_res, const real_type stepsize) {
     using namespace std::string_literals;
 
-    simple_tri_mesh<real_t, 2> mesh =
+    simple_tri_mesh<real_type, 2> mesh =
         pathsurface(m_v, edge, t0, btau, ftau, seed_res, stepsize)
             .first;
     rasterize(pathsurface_gpu_t{mesh, t0}, 0, 0);

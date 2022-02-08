@@ -93,17 +93,17 @@ struct interpolator_t {
 
 //-----------------------------------------------------------------------------
 
-// TODO: split vector<real_t> vector<pair<vec_t,vec_t>> (faster search) -- push_back, pop_front, reverse, resize
+// TODO: split vector<real_type> vector<pair<vec_t,vec_t>> (faster search) -- push_back, pop_front, reverse, resize
 
 template <typename T, typename R,
           typename Container = std::vector<std::tuple<R, T, T>>>
 struct spline_t : public Container {
   using vec_t = T;
-  using real_t = R;
+  using real_type = R;
   using container_t = Container;
   using value_type = typename container_t::value_type;
 
-  real_t t(int i) const {
+  real_type t(int i) const {
     assert(i<int(this->size()));
     return std::get<0>((*this)[i]);
   }
@@ -128,9 +128,9 @@ struct spline_t : public Container {
     if (this->size() < 2)
       return true;
 
-    real_t d = t(1) - t(0);
+    real_type d = t(1) - t(0);
     for (size_t i=1;i<this->size()-1;++i) {
-      real_t d1 = t(i+1)-t(i);
+      real_type d1 = t(i+1)-t(i);
       if (d*d1 < 0)
         return false;
       d = d1;
@@ -142,7 +142,7 @@ struct spline_t : public Container {
   void push_back(value_type&& _p) {
     container_t::push_back(std::forward<value_type>(_p));
   }
-  void push_back(real_t _t, const vec_t& _x, const vec_t& _dx) {
+  void push_back(real_type _t, const vec_t& _x, const vec_t& _dx) {
     this->emplace_back(_t, _x, _dx);
   }
 
@@ -156,14 +156,14 @@ struct spline_t : public Container {
     // VC_DBG_P(std::get<0>((*this)[i]));
     // VC_DBG_P(std::get<0>((*this)[j]));
 
-    return interpolator_t<vec_t, real_t, OnlyValue> {
+    return interpolator_t<vec_t, real_type, OnlyValue> {
       std::get<1>((*this)[i]), std::get<2>((*this)[i]), // x0, dx0
       std::get<1>((*this)[j]), std::get<2>((*this)[j]), // x1, dx1
       std::get<0>((*this)[i]), std::get<0>((*this)[j]), // t0, t1
     };
   }
 
-  int index(real_t _t) const {
+  int index(real_type _t) const {
     assert(!this->empty());
 
     const int n = int(this->size());
@@ -177,12 +177,12 @@ struct spline_t : public Container {
     auto ii =
         ascending() ?
         std::lower_bound(this->begin(), this->end()-1, _t,
-                         [](const value_type& a, real_t b) {
+                         [](const value_type& a, real_type b) {
                            return std::get<0>(a) < b;
                          })
         :
         std::lower_bound(this->begin(), this->end()-1, _t,
-                         [](const value_type& a,real_t b) {
+                         [](const value_type& a,real_type b) {
                            return std::get<0>(a) > b;
                          });
 
@@ -191,22 +191,22 @@ struct spline_t : public Container {
   }
 
   template <bool OnlyValue = false>
-  auto interpolator(real_t _t) const {
+  auto interpolator(real_type _t) const {
     return interpolator<OnlyValue>(index(_t));
   }
 
 
   template <bool OnlyValue = false>
   auto&
-  update_interpolator(real_t _t,
-                      interpolator_t<vec_t, real_t, OnlyValue>& _last) const {
+  update_interpolator(real_type _t,
+                      interpolator_t<vec_t, real_type, OnlyValue>& _last) const {
     if (!_last.is_in(_t))
       _last = interpolator<OnlyValue>(_t);
 
     return _last;
   }
 
-  auto operator()(real_t _t) const {
+  auto operator()(real_type _t) const {
     return interpolator(_t)(_t);
   }
 };

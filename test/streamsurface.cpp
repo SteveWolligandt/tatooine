@@ -138,12 +138,12 @@ TEST_CASE(
 ////  struct vf_t : vectorfield<2, double, vf_t> {
 ////    using parent_t = vectorfield<2, double, vf_t>;
 ////    using parent_t::out_of_domain;
-////    using parent_t::pos_t;
+////    using parent_t::pos_type;
 ////    using parent_t::vec_t;
-////    constexpr bool in_domain(const pos_t& x, double) const {
+////    constexpr bool in_domain(const pos_type& x, double) const {
 ////      return x(1) >= -0.65;
 ////    }
-////    constexpr vec_t evaluate(const pos_t& x, double t) const {
+////    constexpr vec_t evaluate(const pos_type& x, double t) const {
 ////      if (!in_domain(x, t)) throw out_of_domain{x, t};
 ////      return {0, -1};
 ////    }
@@ -180,12 +180,12 @@ TEST_CASE(
 ////  struct vf_t : vectorfield<2, double, vf_t> {
 ////    using parent_t = vectorfield<2, double, vf_t>;
 ////    using parent_t::out_of_domain;
-////    using parent_t::pos_t;
+////    using parent_t::pos_type;
 ////    using parent_t::vec_t;
-////    constexpr bool in_domain(const pos_t& x, double) const {
+////    constexpr bool in_domain(const pos_type& x, double) const {
 ////      return x(0) >= 0 && x(1) >= 0;
 ////    }
-////    constexpr vec_t evaluate(const pos_t& x, double t) const {
+////    constexpr vec_t evaluate(const pos_type& x, double t) const {
 ////      if (!in_domain(x, t)) throw out_of_domain{x, t};
 ////      return {-1, -1};
 ////    }

@@ -14,7 +14,7 @@ class GPUMemCache : public std::map<key_t, value_t> {
  public:
   //============================================================================
 
-  using this_t         = GPUMemCache<key_t, value_t>;
+  using this_type         = GPUMemCache<key_t, value_t>;
   using parent_t       = std::map<key_t, value_t>;
   using value_type     = typename parent_t::value_type;
   using key_type       = typename parent_t::key_type;
@@ -248,8 +248,8 @@ class GPUMemCache : public std::map<key_t, value_t> {
   uint64_t                  m_max_gpu_memory_usage;
   std::list<const_iterator> m_queue;
 };
-template <typename real_t, typename key_t, typename value_t>
-using TimedGPUMemCache = GPUMemCache<real_t, GPUMemCache<key_t, value_t>>;
+template <typename real_type, typename key_t, typename value_t>
+using TimedGPUMemCache = GPUMemCache<real_type, GPUMemCache<key_t, value_t>>;
 
 //==============================================================================
 }  // namespace tatooine::steadification

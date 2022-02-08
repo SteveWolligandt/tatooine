@@ -13,8 +13,8 @@ namespace tatooine::color_scales {
 //==============================================================================
 template <floating_point Real>
 struct viridis  {
-  using real_t  = Real;
-  using this_t  = viridis<Real>;
+  using real_type  = Real;
+  using this_type  = viridis<Real>;
   using color_t = vec<Real, 3>;
   //==============================================================================
  private:
@@ -154,7 +154,7 @@ struct viridis  {
             0.964894, 0.902323, 0.123941, 0.974417, 0.903590, 0.130215,
             0.983868, 0.904867, 0.136897, 0.993248, 0.906157, 0.143936}} {}
   //----------------------------------------------------------------------------
-  auto sample(real_t t) const {
+  auto sample(real_type t) const {
     if (t <= 0) {
       return color_t{m_data[0], m_data[1], m_data[2]};
     }
@@ -168,7 +168,7 @@ struct viridis  {
                    m_data[i * 3 + 1] * (1 - t) + m_data[(i + 1) * 3 + 1] * t,
                    m_data[i * 3 + 2] * (1 - t) + m_data[(i + 1) * 3 + 2] * t};
   }
-  auto operator()(real_t const t) const { return sample(t); }
+  auto operator()(real_type const t) const { return sample(t); }
   //----------------------------------------------------------------------------
 #if TATOOINE_GL_AVAILABLE
   auto to_gpu_tex() {

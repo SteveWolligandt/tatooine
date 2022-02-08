@@ -9,20 +9,20 @@ namespace tatooine {
 template <typename InternalField, typename Op>
 struct unary_operation_field
     : field<unary_operation_field<InternalField, Op>,
-            field_real_t<InternalField>, field_num_dimensions<InternalField>,
-            std::invoke_result_t<Op, field_tensor_t<InternalField>>> {
+            field_real_type<InternalField>, field_num_dimensions<InternalField>,
+            std::invoke_result_t<Op, field_tensor_type<InternalField>>> {
  public:
-  using this_t           = unary_operation_field<InternalField, Op>;
+  using this_type           = unary_operation_field<InternalField, Op>;
   using internal_field_t = InternalField;
   using raw_internal_field_t =
       std::decay_t<std::remove_pointer_t<internal_field_t>>;
   using parent_t =
-      field<this_t, typename raw_internal_field_t::real_t,
+      field<this_type, typename raw_internal_field_t::real_type,
             raw_internal_field_t::num_dimensions(),
-            std::invoke_result_t<Op, typename raw_internal_field_t::tensor_t>>;
-  using typename parent_t::pos_t;
-  using typename parent_t::real_t;
-  using typename parent_t::tensor_t;
+            std::invoke_result_t<Op, typename raw_internal_field_t::tensor_type>>;
+  using typename parent_t::pos_type;
+  using typename parent_t::real_type;
+  using typename parent_t::tensor_type;
 
  private:
   internal_field_t m_field;
@@ -44,8 +44,8 @@ struct unary_operation_field
  public:
   ~unary_operation_field() override = default;
   //============================================================================
-  constexpr auto evaluate(pos_t const& x, real_t const t) const
-      -> tensor_t final {
+  constexpr auto evaluate(pos_type const& x, real_type const t) const
+      -> tensor_type final {
     if constexpr (std::is_pointer_v<std::decay_t<InternalField>>) {
       return m_op(m_field->evaluate(x, t));
     } else {

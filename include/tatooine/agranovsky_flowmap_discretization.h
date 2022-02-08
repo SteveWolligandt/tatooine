@@ -11,7 +11,7 @@ using agranovsky_flowmap_discretization =
     staggered_flowmap_discretization<regular_flowmap_discretization<Real, N>>;
 template <size_t N>
 using AgranovskyFlowmapDiscretization =
-    agranovsky_flowmap_discretization<real_t, N>;
+    agranovsky_flowmap_discretization<real_type, N>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

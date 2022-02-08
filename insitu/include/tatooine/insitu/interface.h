@@ -7,22 +7,22 @@
 namespace tatooine::insitu {
 //==============================================================================
 struct interface : base_interface<interface> {
-  using this_t   = interface;
-  using parent_t = base_interface<this_t>;
-  using pos_t    = vec3;
+  using this_type   = interface;
+  using parent_t = base_interface<this_type>;
+  using pos_type    = vec3;
 
   using scalar_arr_t = non_owning_multidim_array<double, x_fastest>;
   using grid_prop_t =
       uniform_rectilinear_grid<double, 3>::typed_property_impl_t<scalar_arr_t>;
-  using tracer_t           = std::pair<size_t, pos_t>;
+  using tracer_t           = std::pair<size_t, pos_type>;
   using tracer_container_t = std::vector<tracer_t>;
 
   struct velocity_field : vectorfield<velocity_field, double, 3> {
-    using this_t   = velocity_field;
-    using parent_t = vectorfield<this_t, double, 3>;
-    using parent_t::pos_t;
-    using parent_t::real_t;
-    using parent_t::tensor_t;
+    using this_type   = velocity_field;
+    using parent_t = vectorfield<this_type, double, 3>;
+    using parent_t::pos_type;
+    using parent_t::real_type;
+    using parent_t::tensor_type;
 
     uniform_rectilinear_grid<double, 3> const& m_worker_halo_grid;
     grid_prop_t const&             m_x;
@@ -34,13 +34,13 @@ struct interface : base_interface<interface> {
                    grid_prop_t const& z)
         : m_worker_halo_grid{worker_halo_grid}, m_x{x}, m_y{y}, m_z{z} {}
 
-    auto evaluate(pos_t const& x, real_t const /*t*/) const
-        -> tensor_t override {
+    auto evaluate(pos_type const& x, real_type const /*t*/) const
+        -> tensor_type override {
       return {m_x.sampler<interpolation::linear>()(x),
               m_y.sampler<interpolation::linear>()(x),
               m_z.sampler<interpolation::linear>()(x)};
     }
-    auto in_domain(pos_t const& x, real_t const /*t*/) const -> bool override {
+    auto in_domain(pos_type const& x, real_type const /*t*/) const -> bool override {
       return m_worker_halo_grid.in_domain(x(0), x(1), x(2));
     }
   };
@@ -98,7 +98,7 @@ struct interface : base_interface<interface> {
   /// Updates the position x to the advected position.
   /// \param x initial positions (gets changed)
   /// \return advected position
-  auto advect_tracer(pos_t& pos) -> bool;
+  auto advect_tracer(pos_type& pos) -> bool;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// Updates the positions xs to the advected positions
   /// \param xs initial positions (get changed)

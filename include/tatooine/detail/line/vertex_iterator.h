@@ -13,7 +13,7 @@ struct vertex_iterator
   //============================================================================
   // typedefs
   //============================================================================
-  using this_t = vertex_iterator<Real, NumDimensions, Handle>;
+  using this_type = vertex_iterator<Real, NumDimensions, Handle>;
 
   //============================================================================
   // ctors
@@ -47,13 +47,13 @@ struct vertex_iterator
   // methods
   //============================================================================
  public:
-  auto next(const size_t inc = 1) const -> this_t {
-    this_t n = *this;
+  auto next(const size_t inc = 1) const -> this_type {
+    this_type n = *this;
     n.m_handle.i += inc;
     return n;
   }
-  auto prev(const size_t dec = 1) const -> this_t {
-    this_t p = *this;
+  auto prev(const size_t dec = 1) const -> this_type {
+    this_type p = *this;
     p.m_handle.i -= dec;
     return p;
   }

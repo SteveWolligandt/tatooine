@@ -38,7 +38,7 @@ auto create_initial_distribution(args_t const& args) {
 auto create_initial_particles(args_t const& args) {
   auto       initial_distribution_grid = create_initial_distribution(args);
   auto const r0 = initial_distribution_grid.dimension<0>().spacing() / 2;
-  typename autonomous_particle<real_t, 3>::container_t
+  typename autonomous_particle<real_type, 3>::container_t
       initial_particles;
   for (auto const& x : initial_distribution_grid.vertices()) {
     initial_particles.emplace_back(x, args.t0, r0);

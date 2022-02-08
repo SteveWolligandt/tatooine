@@ -89,8 +89,8 @@ void draw_line(float x0, float y0, float z0, float x1, float y1, float z1,
 }
 
 //------------------------------------------------------------------------------
-template <typename real_t>
-void draw(const tatooine::line<real_t, 2>& l) {
+template <typename real_type>
+void draw(const tatooine::line<real_type, 2>& l) {
   for (auto it = l.vertices().begin(); it != --l.vertices().end(); ++it)
     draw_line((*it)(0), (*it)(1), 0, (*next(it))(0), (*next(it))(1), 0);
 }

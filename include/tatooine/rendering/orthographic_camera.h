@@ -14,9 +14,9 @@ template <arithmetic Real>
 class orthographic_camera
     : public camera_interface<Real, orthographic_camera<Real>> {
  public:
-  using real_t      = Real;
-  using this_t      = orthographic_camera<Real>;
-  using parent_type = camera_interface<Real, this_t>;
+  using real_type      = Real;
+  using this_type      = orthographic_camera<Real>;
+  using parent_type = camera_interface<Real, this_type>;
   using vec3        = vec<Real, 3>;
   using mat4        = mat<Real, 4, 4>;
 

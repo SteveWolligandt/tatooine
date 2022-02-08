@@ -47,7 +47,7 @@ MAKE_OPTION_CLASS(maxnsteps);
 template <typename T>
 class odeopts_t {
  public:
-  using real_t  = T;
+  using real_type  = T;
 
   template <typename... Args>
   constexpr odeopts_t(Args&&... args) { set(std::forward<Args>(args)...); }
@@ -58,15 +58,15 @@ class odeopts_t {
     return *this;
   }
 
-  real_t rtol = real_t(1e-3); //!< relative tolerance
-  real_t atol = real_t(1e-8); //!< absolute tolerance
-  real_t h0 = 0;              //!< initial step size (none if 0)
+  real_type rtol = real_type(1e-3); //!< relative tolerance
+  real_type atol = real_type(1e-8); //!< absolute tolerance
+  real_type h0 = 0;              //!< initial step size (none if 0)
   /// maximum step size
-  real_t hmax = std::numeric_limits<real_t>::infinity();
+  real_type hmax = std::numeric_limits<real_type>::infinity();
   int    maxsteps = 0;        //!< maximum number of steps (if >0)
 
  private:
-  template <typename klass> using opt_t = option_t<klass, real_t>;
+  template <typename klass> using opt_t = option_t<klass, real_type>;
 
   constexpr void check_assertions() const {
     assert(rtol > 0 && "relative tolerance must be positive");
@@ -88,12 +88,12 @@ class odeopts_t {
                   "maximum number of steps must be an integer");
     maxsteps = opt.value;
   }
-  // cast other types to real_t
+  // cast other types to real_type
   template <typename klass, typename R>
   constexpr void _set(option_t<klass, R> opt) {
-    _set(opt_t<klass> { static_cast<real_t>(opt.value) });
+    _set(opt_t<klass> { static_cast<real_type>(opt.value) });
   }
-  // handle invalid option class (w/ real_t)
+  // handle invalid option class (w/ real_type)
   template <typename InvalidOption>
   constexpr void _set(opt_t<InvalidOption>) {
     static_assert(!std::is_same<InvalidOption, InvalidOption>::value,
@@ -102,7 +102,7 @@ class odeopts_t {
   }
 
   template <typename klass, typename... Args>
-  constexpr void _setlist(klass, real_t value, Args&&... args) {
+  constexpr void _setlist(klass, real_type value, Args&&... args) {
     return _setlist(opt_t<klass> { value }, std::forward<Args>(args)...);
   }
 
@@ -112,7 +112,7 @@ class odeopts_t {
     _setlist(std::forward<Args>(args)...);
   }
   template <typename... Args>
-  constexpr void _setlist(const odeopts_t<real_t>& _other, Args&&... args) {
+  constexpr void _setlist(const odeopts_t<real_type>& _other, Args&&... args) {
     *this = _other;
     _setlist(std::forward<Args>(args)...);
   }

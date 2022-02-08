@@ -5,8 +5,8 @@
 //==============================================================================
 using namespace tatooine;
 //==============================================================================
-using mesh_t = unstructured_triangular_grid<real_t, 3>;
-using cam_t  = rendering::perspective_camera<real_t>;
+using mesh_t = unstructured_triangular_grid<real_type, 3>;
+using cam_t  = rendering::perspective_camera<real_type>;
 //==============================================================================
 auto main(int const argc, char const** argv) -> int {
   auto const resolution_x = std::size_t(1000);

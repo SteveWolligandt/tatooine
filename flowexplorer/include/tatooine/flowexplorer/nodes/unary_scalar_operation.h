@@ -8,7 +8,7 @@ namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 struct unary_scalar_operation : ui::node<unary_scalar_operation> {
   enum class op : int { sin, cos };
-  real_t         m_value = 0;
+  real_type         m_value = 0;
   int            m_op    = 0;
   ui::input_pin& m_input;
 

@@ -11,25 +11,25 @@ namespace tatooine {
 //==============================================================================
 template <typename V, size_t N>
 class lagrangian_Q_field
-    : public scalarfield<lagrangian_Q_field<V, N>, typename V::real_t, N> {
+    : public scalarfield<lagrangian_Q_field<V, N>, typename V::real_type, N> {
   //============================================================================
   // typedefs
   //============================================================================
  public:
-  using real_t = typename V::real_t;
-  using this_t = lagrangian_Q_field<V, N>;
+  using real_type = typename V::real_type;
+  using this_type = lagrangian_Q_field<V, N>;
   using parent_type =
-      field<this_t, real_t, V::num_dimensions()>;
+      field<this_type, real_type, V::num_dimensions()>;
   using parent_type::num_dimensions;
-  using typename parent_type::pos_t;
-  using typename parent_type::tensor_t;
-  using ode_solver_t = ode::vclibs::rungekutta43<real_t, 3>;
+  using typename parent_type::pos_type;
+  using typename parent_type::tensor_type;
+  using ode_solver_t = ode::vclibs::rungekutta43<real_type, 3>;
   //============================================================================
   // fields
   //============================================================================
  private:
   V const& m_v;
-  real_t m_btau, m_ftau;
+  real_type m_btau, m_ftau;
 
   //============================================================================
   // ctor
@@ -39,15 +39,15 @@ class lagrangian_Q_field
   lagrangian_Q_field(const vectorfield<V, Real, N>& v,
                      arithmetic auto const btau, arithmetic auto const ftau)
       : m_v{v.as_derived()},
-        m_btau{static_cast<real_t>(btau)},
-        m_ftau{static_cast<real_t>(ftau)} {}
+        m_btau{static_cast<real_type>(btau)},
+        m_ftau{static_cast<real_type>(ftau)} {}
 
   //============================================================================
   // methods
   //============================================================================
  public:
-  constexpr tensor_t evaluate(const pos_t& x, real_t t) const {
-    parameterized_line<real_t, num_dimensions(), interpolation::linear> pathline;
+  constexpr tensor_type evaluate(const pos_type& x, real_type t) const {
+    parameterized_line<real_type, num_dimensions(), interpolation::linear> pathline;
     auto const Qf = Q(m_v);
     ode_solver_t ode_solver;
     auto     evaluator = [this, &Qf](auto const& y, auto const t) ->
@@ -56,12 +56,12 @@ class lagrangian_Q_field
           return m_v(y, t);
         };
 
-    real_t const eps      = 1e-6;
-    auto& pathline_Q_prop = pathline.template add_vertex_property<real_t>("Q");
+    real_type const eps      = 1e-6;
+    auto& pathline_Q_prop = pathline.template add_vertex_property<real_type>("Q");
     if (m_ftau > 0) {
       ode_solver.solve(evaluator, x, t, m_ftau,
                    [&pathline, &pathline_Q_prop, &Qf, eps](
-                       const pos_t& y, real_t t) {
+                       const pos_type& y, real_type t) {
                      auto const Q     = Qf(y, t);
 
                      if (pathline.empty()) {
@@ -116,8 +116,8 @@ class lagrangian_Q_field
     return Q_time(0);
   }
   //----------------------------------------------------------------------------
-  constexpr bool in_domain(const pos_t& x, real_t t) const {
-    const real_t eps = 1e-6;
+  constexpr bool in_domain(const pos_type& x, real_type t) const {
+    const real_type eps = 1e-6;
     return m_v.in_domain(x + vec{eps, 0, 0}, t) &&
            m_v.in_domain(x - vec{eps, 0, 0}, t) &&
            m_v.in_domain(x + vec{0, eps, 0}, t) &&

@@ -48,7 +48,7 @@ auto channel_flow_single(args_t) {
 
     if (args.show_dimensions) {
       std::cerr << discrete_channelflow_domain << '\n';
-      auto min_cell_extent = std::numeric_limits<real_t>::infinity();
+      auto min_cell_extent = std::numeric_limits<real_type>::infinity();
       for (std::size_t i = 0; i < discrete_channelflow_domain.size<0>() - 1;
            ++i) {
         min_cell_extent =

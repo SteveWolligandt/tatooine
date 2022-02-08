@@ -18,8 +18,8 @@ struct camera {
   //----------------------------------------------------------------------------
   // typedefs
   //----------------------------------------------------------------------------
-  using real_t = Real;
-  using this_t = camera<Real>;
+  using real_type = Real;
+  using this_type = camera<Real>;
   using vec2   = Vec2<Real>;
   using vec3   = Vec3<Real>;
   using vec4   = Vec4<Real>;
@@ -218,7 +218,6 @@ struct camera {
     p(1) = (p(1) - m_viewport(1)) / (m_viewport(3) - 1) * 2 - 1;
     p(2) = p(2) * 2 - 1;
     p(3) = 1;
-    std::cout << p.xy() << '\n';
 
     // canonical view volume to world coordinate
     p    = *inv(view_projection_matrix()) * p;
@@ -228,6 +227,11 @@ struct camera {
     p(2) = p(2) * p(3);
     p(3) = 1;
     return p;
+  }
+  //----------------------------------------------------------------------------
+  /// Projects a world coordinate to screen coordinates.
+  auto project(vec2 const& p) const {
+    return project(vec4{p(0), p(1), 0, 1});
   }
   //----------------------------------------------------------------------------
   /// Projects a world coordinate to screen coordinates.

@@ -11,43 +11,43 @@
 //==============================================================================
 namespace tatooine::symbolic {
 //==============================================================================
-template <typename real_t, size_t N, size_t... TensorDims>
-struct field : tatooine::field<field<real_t, N, TensorDims...>, real_t, N,
+template <typename real_type, size_t N, size_t... TensorDims>
+struct field : tatooine::field<field<real_type, N, TensorDims...>, real_type, N,
                                TensorDims...> {
-  using this_t   = field<real_t, N, TensorDims...>;
-  using parent_t = tatooine::field<this_t, real_t, N, TensorDims...>;
+  using this_type   = field<real_type, N, TensorDims...>;
+  using parent_t = tatooine::field<this_type, real_type, N, TensorDims...>;
   using parent_t::num_dimensions;
-  using typename parent_t::pos_t;
-  using typename parent_t::tensor_t;
-  using symtensor_t = tensor<GiNaC::ex, TensorDims...>;
+  using typename parent_t::pos_type;
+  using typename parent_t::tensor_type;
+  using symtensor_type = tensor<GiNaC::ex, TensorDims...>;
 
   static auto x(size_t i) -> auto& { return symbol::x(i); }
   static auto t() -> auto& { return symbol::t(); }
 
  private:
-  symtensor_t m_expr;
+  symtensor_type m_expr;
 
  protected:
-  void set_expr(const symtensor_t& ex) { m_expr = ex; }
-  void set_expr(symtensor_t&& ex) { m_expr = std::move(ex); }
+  void set_expr(const symtensor_type& ex) { m_expr = ex; }
+  void set_expr(symtensor_type&& ex) { m_expr = std::move(ex); }
 
  public:
   constexpr field() = default;
-  explicit constexpr field(const symtensor_t& ex) : m_expr{ex} {}
-  explicit constexpr field(symtensor_t&& ex) : m_expr{std::move(ex)} {}
+  explicit constexpr field(const symtensor_type& ex) : m_expr{ex} {}
+  explicit constexpr field(symtensor_type&& ex) : m_expr{std::move(ex)} {}
   //----------------------------------------------------------------------------
   [[nodiscard]] auto expr() const -> const auto& { return m_expr; }
   //----------------------------------------------------------------------------
   template <size_t... Is>
-  auto evaluate(const pos_t& _x, double _t,
-                    std::index_sequence<Is...> /*is*/) const -> tensor_t {
-    return evtod<real_t>(m_expr, (x(Is) == _x(Is))..., t() == _t);
+  auto evaluate(const pos_type& _x, double _t,
+                    std::index_sequence<Is...> /*is*/) const -> tensor_type {
+    return evtod<real_type>(m_expr, (x(Is) == _x(Is))..., t() == _t);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto evaluate(const pos_t& _x, double _t) const -> tensor_t {
+  auto evaluate(const pos_type& _x, double _t) const -> tensor_type {
     return evaluate(_x, _t, std::make_index_sequence<num_dimensions()>{});
   }
-  constexpr auto in_domain(const pos_t& /*x*/, double /*t*/) const { return true; }
+  constexpr auto in_domain(const pos_type& /*x*/, double /*t*/) const { return true; }
 };
 
 //==============================================================================

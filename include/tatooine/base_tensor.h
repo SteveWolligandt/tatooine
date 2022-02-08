@@ -23,8 +23,8 @@ struct tensor_slice;
 template <typename Tensor, typename T, std::size_t... Dims>
 struct base_tensor : crtp<Tensor> {
   using value_type = T;
-  using tensor_t   = Tensor;
-  using this_t     = base_tensor<Tensor, T, Dims...>;
+  using tensor_type   = Tensor;
+  using this_type     = base_tensor<Tensor, T, Dims...>;
   using parent_type   = crtp<Tensor>;
   using parent_type::as_derived;
   using multidim_size_t = static_multidim_size<x_fastest, Dims...>;

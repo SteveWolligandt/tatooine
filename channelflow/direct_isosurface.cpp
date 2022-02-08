@@ -99,11 +99,11 @@ auto main() -> int {
 
   std::cout << "loading axes ...";
   auto const axis0 =
-      channelflow_file.dataset<real_t>("CartGrid/axis0").read_as_vector();
+      channelflow_file.dataset<real_type>("CartGrid/axis0").read_as_vector();
   auto const axis1 =
-      channelflow_file.dataset<real_t>("CartGrid/axis1").read_as_vector();
+      channelflow_file.dataset<real_type>("CartGrid/axis1").read_as_vector();
   auto const axis2 =
-      channelflow_file.dataset<real_t>("CartGrid/axis2").read_as_vector();
+      channelflow_file.dataset<real_type>("CartGrid/axis2").read_as_vector();
   std::cout << "done!\n";
 
   std::cout << "creating grids ...";
@@ -114,9 +114,9 @@ auto main() -> int {
 
   std::cout << "loading data ...";
   auto& scalar_field = discretized_domain.insert_vertex_property(
-      channelflow_file.dataset<real_t>("Q_cheng"), "Q_cheng");
+      channelflow_file.dataset<real_type>("Q_cheng"), "Q_cheng");
   auto& streamwise_velocity = discretized_domain.insert_vertex_property(
-      channelflow_file.dataset<real_t>("velocity/yvel"), "velocity_y");
+      channelflow_file.dataset<real_type>("velocity/yvel"), "velocity_y");
   std::cout << "done!\n";
 
   std::cout << "creating samplers ...";
@@ -132,7 +132,7 @@ auto main() -> int {
   std::cout << "creating cameras ...";
   auto width = std::size_t(1000);
   auto height = std::size_t(1000);
-  //real_t      ortho_scale = 2;
+  //real_type      ortho_scale = 2;
 
   auto animated_eye    = line3{};
   auto animated_lookat = line3{};
@@ -151,18 +151,18 @@ auto main() -> int {
   auto eye            = eye_sampler(0.75);
   auto lookat         = lookat_sampler(0.75);
   auto up             = up_sampler(0.75);
-  auto fov            = real_t(30);
+  auto fov            = real_type(30);
   auto animated       = false;
   std::cout << "done!\n";
 
-  auto min_mapped = real_t(13);
-  auto max_mapped = real_t(27);
+  auto min_mapped = real_type(13);
+  auto max_mapped = real_type(27);
   std::cout << "done!\n";
   auto num_frames = std::size_t(5);
   auto run        = true;
-  auto n          = real_t(1);
-  auto m          = real_t(1);
-  auto k          = real_t(0);
+  auto n          = real_type(1);
+  auto m          = real_type(1);
+  auto k          = real_type(0);
   auto line_width = int(11);
   std::signal(SIGINT, sigint_handler);
   while (run) {
@@ -180,27 +180,27 @@ auto main() -> int {
     } else if (cmd == "eye") {
       auto line_stream = std::stringstream{line};
       auto cmd         = std::string{};
-      auto x           = real_t{};
-      auto y           = real_t{};
-      auto z           = real_t{};
+      auto x           = real_type{};
+      auto y           = real_type{};
+      auto z           = real_type{};
 
       line_stream >> cmd >> x >> y >> z;
       eye = vec3{x, y, z};
     } else if (cmd == "up") {
       auto line_stream = std::stringstream{line};
       auto cmd         = std::string{};
-      auto x           = real_t{};
-      auto y           = real_t{};
-      auto z           = real_t{};
+      auto x           = real_type{};
+      auto y           = real_type{};
+      auto z           = real_type{};
 
       line_stream >> cmd >> x >> y >> z;
       up = vec3{x, y, z};
     } else if (cmd == "lookat" || cmd == "look_at") {
       auto line_stream = std::stringstream{line};
       auto cmd         = std::string{};
-      auto x           = real_t{};
-      auto y           = real_t{};
-      auto z           = real_t{};
+      auto x           = real_type{};
+      auto y           = real_type{};
+      auto z           = real_type{};
 
       line_stream >> cmd >> x >> y >> z;
       lookat = vec3{x, y, z};
@@ -228,8 +228,8 @@ auto main() -> int {
         auto cam =
             rendering::perspective_camera{eye, lookat, up, fov, width, height};
         auto rendered_lines_grid =
-            rectilinear_grid{linspace<real_t>{0.0, width - 1, width},
-                             linspace<real_t>{0.0, height - 1, height}};
+            rectilinear_grid{linspace<real_type>{0.0, width - 1, width},
+                             linspace<real_type>{0.0, height - 1, height}};
         auto& rendered_lines_mask =
             rendered_lines_grid.vertex_property<int>("mask");
         auto& rendered_lines_pos =
@@ -276,7 +276,7 @@ auto main() -> int {
               auto const normal  = normalize(gradient);
               auto const diffuse = std::abs(dot(view_dir, normal));
               auto const vel     = streamwise_velocity_sampler(x_iso);
-              auto const s       = std::clamp<real_t>(
+              auto const s       = std::clamp<real_type>(
                   (vel - min_mapped) / (max_mapped - min_mapped), 0, 1);
               auto const albedo = [&] {
                 switch (current_color_scale) {
@@ -291,7 +291,7 @@ auto main() -> int {
               }();
               auto const col = albedo * diffuse * 0.8 + albedo * 0.2;
               return vec{col(0), col(1), col(2),
-                         std::clamp<real_t>(std::pow(s, n) * m + k, 0.0, 1.0)};
+                         std::clamp<real_type>(std::pow(s, n) * m + k, 0.0, 1.0)};
             });
 
         auto& rendered_isosurface =
@@ -337,7 +337,7 @@ auto main() -> int {
     } else {
       auto line_stream = std::stringstream{line};
       auto cmd         = std::string{};
-      auto number      = real_t{};
+      auto number      = real_type{};
       line_stream >> cmd >> number;
       if (cmd == "min_scalar" || cmd == "min") {
         std::cout << "setting min scalar\n";

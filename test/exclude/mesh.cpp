@@ -22,16 +22,16 @@ namespace tatooine::test {
 struct mesh_test : public mesh<double, 3> {
   //----------------------------------------------------------------------------
   using parent_t = mesh<double, 3>;
-  using pos_t  = typename parent_t::pos_t;
+  using pos_type  = typename parent_t::pos_type;
   using parent_t::edge;
   using parent_t::face;
   using parent_t::vertex;
 
   //----------------------------------------------------------------------------
-  static const pos_t p0;
-  static const pos_t p1;
-  static const pos_t p2;
-  static const pos_t p3;
+  static const pos_type p0;
+  static const pos_type p1;
+  static const pos_type p2;
+  static const pos_type p3;
 
   //----------------------------------------------------------------------------
   vertex v0, v1, v2, v3;
@@ -67,10 +67,10 @@ struct mesh_test : public mesh<double, 3> {
 };  // MeshTestFixture
 //------------------------------------------------------------------------------
 
-const mesh_test::pos_t mesh_test::p0{1, 2, 3};
-const mesh_test::pos_t mesh_test::p1{2, 3, 4};
-const mesh_test::pos_t mesh_test::p2{3, 4, 5};
-const mesh_test::pos_t mesh_test::p3{4, 5, 6};
+const mesh_test::pos_type mesh_test::p0{1, 2, 3};
+const mesh_test::pos_type mesh_test::p1{2, 3, 4};
+const mesh_test::pos_type mesh_test::p2{3, 4, 5};
+const mesh_test::pos_type mesh_test::p3{4, 5, 6};
 
 //==============================================================================
 // TEST_CASE_METHOD(mesh_test, "[mesh] number of edges", "[mesh]") {

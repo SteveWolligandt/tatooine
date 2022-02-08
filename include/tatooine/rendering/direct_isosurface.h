@@ -26,22 +26,22 @@ auto direct_isosurface(camera auto const&                        cam,
                        rectilinear_grid<Dim0, Dim1, Dim2> const& g,
                        Field&& field, std::vector<IsoReal> const& isovalues,
                        Shader&& shader) {
-  using grid_real_t = typename rectilinear_grid<Dim0, Dim1, Dim2>::real_t;
-  using pos_t       = vec<grid_real_t, 3>;
+  using grid_real_type = typename rectilinear_grid<Dim0, Dim1, Dim2>::real_type;
+  using pos_type       = vec<grid_real_type, 3>;
   constexpr auto use_indices =
       std::is_invocable_v<Field, std::size_t, std::size_t, std::size_t>;
   // using value_t =
   //    std::conditional_t<use_indices,
   //                       std::invoke_result_t<Field, std::size_t, std::size_t,
-  //                       std::size_t>, std::invoke_result_t<Field, pos_t>>;
+  //                       std::size_t>, std::invoke_result_t<Field, pos_type>>;
   // static_assert(is_floating_point<value_t>);
-  using cam_real_type = typename std::decay_t<decltype(cam)>::real_t;
+  using cam_real_type = typename std::decay_t<decltype(cam)>::real_type;
   using viewdir_t     = vec<cam_real_type, 3>;
   static_assert(
-      std::is_invocable_v<Shader, pos_t, IsoReal, pos_t, viewdir_t,
+      std::is_invocable_v<Shader, pos_type, IsoReal, pos_type, viewdir_t,
                           vec<std::size_t, 2>>,
       "Shader must be invocable with position, gradient and view direction.");
-  using color_t = std::invoke_result_t<Shader, pos_t, IsoReal, pos_t, viewdir_t,
+  using color_t = std::invoke_result_t<Shader, pos_type, IsoReal, pos_type, viewdir_t,
                                        vec<std::size_t, 2>>;
   using rgb_t   = vec<typename color_t::value_type, 3>;
   using alpha_t = typename color_t::value_type;
@@ -100,7 +100,7 @@ auto direct_isosurface(camera auto const&                        cam,
           }
         }
 
-        auto cell_pos        = make_array<real_t, 3>();
+        auto cell_pos        = make_array<real_type, 3>();
         auto done            = false;
         auto update_cell_pos = [&](auto const& r) {
           for (std::size_t dim = 0; dim < 3; ++dim) {
@@ -151,17 +151,17 @@ auto direct_isosurface(camera auto const&                        cam,
                  plane_indices_to_check[2] != std::size_t(0) - 1);
           auto const t0 =
               r.direction(0) == 0
-                  ? std::numeric_limits<real_t>::max()
+                  ? std::numeric_limits<real_type>::max()
                   : (dim0[plane_indices_to_check[0]] - r.origin(0)) /
                         r.direction(0);
           auto const t1 =
               r.direction(1) == 0
-                  ? std::numeric_limits<real_t>::max()
+                  ? std::numeric_limits<real_type>::max()
                   : (dim1[plane_indices_to_check[1]] - r.origin(1)) /
                         r.direction(1);
           auto const t2 =
               r.direction(2) == 0
-                  ? std::numeric_limits<real_t>::max()
+                  ? std::numeric_limits<real_type>::max()
                   : (dim2[plane_indices_to_check[2]] - r.origin(2)) /
                         r.direction(2);
 
@@ -215,14 +215,14 @@ auto direct_isosurface(camera auto const&                        cam,
           auto const& xb          = r.direction();
           auto const  cell_extent = x1 - x0;
           auto const  inv_cell_extent =
-              pos_t{1 / cell_extent(0), 1 / cell_extent(1), 1 / cell_extent(2)};
+              pos_type{1 / cell_extent(0), 1 / cell_extent(1), 1 / cell_extent(2)};
           // create rays in different spaces
           auto const a0 = (x1 - xa) * inv_cell_extent;
           auto const b0 = xb * inv_cell_extent;
           auto const a1 = (xa - x0) * inv_cell_extent;
           auto const b1 = -xb * inv_cell_extent;
 
-          std::vector<std::tuple<grid_real_t, IsoReal, pos_t>> found_surfaces;
+          std::vector<std::tuple<grid_real_type, IsoReal, pos_type>> found_surfaces;
           for (auto const isovalue : isovalues) {
             // check if isosurface is present in current cell
             if (!((cell_data[indexing(0, 0, 0)] > isovalue &&
@@ -333,7 +333,7 @@ auto direct_isosurface(camera auto const&                        cam,
                       return t0 < t1;
                     });
           for (auto const& [t, isovalue, uvw1] : found_surfaces) {
-            auto const uvw0  = pos_t{1 - uvw1(0), 1 - uvw1(1), 1 - uvw1(2)};
+            auto const uvw0  = pos_type{1 - uvw1(0), 1 - uvw1(1), 1 - uvw1(2)};
             auto const x_iso = uvw0 * cell_extent + x0;
             assert(uvw0(0) >= 0 && uvw0(0) <= 1);
             assert(uvw0(1) >= 0 && uvw0(1) <= 1);
@@ -450,14 +450,14 @@ auto direct_isosurface(camera auto const&                            cam,
                        DataEvaluator&& data_evaluator,
                        DomainCheck&& domain_check, Isovalue isovalue,
                        DistOnRay const distance_on_ray, Shader&& shader) {
-  using cam_real_type = typename std::decay_t<decltype(cam)>::real_t;
-  using pos_t         = vec<cam_real_type, 3>;
+  using cam_real_type = typename std::decay_t<decltype(cam)>::real_type;
+  using pos_type         = vec<cam_real_type, 3>;
   using viewdir_t     = vec<cam_real_type, 3>;
   static_assert(
-      std::is_invocable_v<Shader, pos_t, viewdir_t, vec<std::size_t, 2>>,
+      std::is_invocable_v<Shader, pos_type, viewdir_t, vec<std::size_t, 2>>,
       "Shader must be invocable with position and view direction.");
-  using value_t = std::invoke_result_t<DataEvaluator, pos_t>;
-  using color_t = std::invoke_result_t<Shader, pos_t, viewdir_t>;
+  using value_t = std::invoke_result_t<DataEvaluator, pos_type>;
+  using color_t = std::invoke_result_t<Shader, pos_type, viewdir_t>;
   using rgb_t   = vec<typename color_t::value_type, 3>;
   using alpha_t = typename color_t::value_type;
   static_assert(is_floating_point<value_t>,

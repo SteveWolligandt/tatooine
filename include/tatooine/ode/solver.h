@@ -54,7 +54,7 @@ struct solver : crtp<Derived> {
   using parent_type = crtp<Derived>;
   using parent_type::as_derived;
   using vec_t = vec<Real, N>;
-  using pos_t = vec_t;
+  using pos_type = vec_t;
 
   //----------------------------------------------------------------------------
   // methods

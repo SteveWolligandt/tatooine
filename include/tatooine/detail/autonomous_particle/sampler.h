@@ -14,7 +14,7 @@ struct sampler {
   // TYPEDEFS
   //============================================================================
   using vec_t     = vec<Real, NumDimensions>;
-  using pos_t     = vec_t;
+  using pos_type     = vec_t;
   using mat_t     = mat<Real, NumDimensions, NumDimensions>;
   using ellipse_t = tatooine::geometry::hyper_ellipse<Real, NumDimensions>;
 
@@ -57,30 +57,30 @@ struct sampler {
   //============================================================================
   // METHODS
   //============================================================================
-  auto sample_forward(pos_t const& x) const {
+  auto sample_forward(pos_type const& x) const {
     return ellipse1().center() + nabla_phi() * (x - ellipse0().center());
   }
-  auto operator()(pos_t const& x, forward_tag /*tag*/) const {
+  auto operator()(pos_type const& x, forward_tag /*tag*/) const {
     return sample_forward(x);
   }
-  auto sample(pos_t const& x, forward_tag /*tag*/) const {
+  auto sample(pos_type const& x, forward_tag /*tag*/) const {
     return sample_forward(x);
   }
-  auto sample_backward(pos_t const& x) const {
-    return ellipse0().center() + m_nabla_phi_inv * (x - ellipse1().center());
+  auto sample_backward(pos_type const& x) const {
+    return ellipse0().center() + nabla_phi_inv() * (x - ellipse1().center());
   }
-  auto sample(pos_t const& x, backward_tag /*tag*/) const {
+  auto sample(pos_type const& x, backward_tag /*tag*/) const {
     return sample_backward(x);
   }
-  auto operator()(pos_t const& x, backward_tag /*tag*/) const {
+  auto operator()(pos_type const& x, backward_tag /*tag*/) const {
     return sample_backward(x);
   }
-  auto is_inside0(pos_t const& x) const { return m_ellipse0.is_inside(x); }
-  auto is_inside(pos_t const& x, forward_tag /*tag*/) const {
+  auto is_inside0(pos_type const& x) const { return m_ellipse0.is_inside(x); }
+  auto is_inside(pos_type const& x, forward_tag /*tag*/) const {
     return is_inside0(x);
   }
-  auto is_inside1(pos_t const& x) const { return m_ellipse1.is_inside(x); }
-  auto is_inside(pos_t const& x, backward_tag /*tag*/) const {
+  auto is_inside1(pos_type const& x) const { return m_ellipse1.is_inside(x); }
+  auto is_inside(pos_type const& x, backward_tag /*tag*/) const {
     return is_inside1(x);
   }
   auto center(forward_tag /*tag*/) const -> auto const& {
@@ -95,13 +95,13 @@ struct sampler {
   auto opposite_center(backward_tag /*tag*/) const -> auto const& {
     return m_ellipse0.center();
   }
-  auto distance_sqr(pos_t const& x, forward_tag tag) const {
+  auto distance_sqr(pos_type const& x, forward_tag tag) const {
     return tatooine::euclidean_length(nabla_phi() * (x - center(tag)));
   }
-  auto distance_sqr(pos_t const& x, backward_tag tag) const {
+  auto distance_sqr(pos_type const& x, backward_tag tag) const {
     return tatooine::length(solve(nabla_phi(), (x - center(tag))));
   }
-  auto distance(pos_t const& x, auto const tag) const {
+  auto distance(pos_type const& x, auto const tag) const {
     return gcem::sqrt(distance_sqr(x, tag));
   }
   auto nabla_phi() const -> auto const& { return m_nabla_phi; }

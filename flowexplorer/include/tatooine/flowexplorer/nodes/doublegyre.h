@@ -6,12 +6,12 @@
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
-struct doublegyre : tatooine::analytical::fields::numerical::doublegyre<real_t>,
+struct doublegyre : tatooine::analytical::fields::numerical::doublegyre<real_type>,
                     ui::node<doublegyre> {
   doublegyre(flowexplorer::scene& s)
       : ui::node<doublegyre>{
             "Double Gyre", s,
-            *dynamic_cast<polymorphic::vectorfield<real_t, 2>*>(this)} {
+            *dynamic_cast<polymorphic::vectorfield<real_type, 2>*>(this)} {
     this->set_infinite_domain(true);
   }
   virtual ~doublegyre() = default;

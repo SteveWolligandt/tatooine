@@ -9,8 +9,8 @@ template <typename Tensor, typename T, size_t... Dims>
 struct const_imag_complex_tensor
     : base_tensor<const_imag_complex_tensor<Tensor, T, Dims...>, T, Dims...> {
   static_assert(std::is_same_v<typename Tensor::value_type, std::complex<T>>);
-  using this_t   = const_imag_complex_tensor<Tensor, T, Dims...>;
-  using parent_type = base_tensor<this_t, T, Dims...>;
+  using this_type   = const_imag_complex_tensor<Tensor, T, Dims...>;
+  using parent_type = base_tensor<this_type, T, Dims...>;
   using parent_type::rank;
 
   //============================================================================
@@ -43,8 +43,8 @@ template <typename Tensor, typename T, size_t... Dims>
 struct imag_complex_tensor
     : base_tensor<imag_complex_tensor<Tensor, T, Dims...>, T, Dims...> {
   static_assert(std::is_same_v<typename Tensor::value_type, std::complex<T>>);
-  using this_t   = imag_complex_tensor<Tensor, T, Dims...>;
-  using parent_type = base_tensor<this_t, T, Dims...>;
+  using this_type   = imag_complex_tensor<Tensor, T, Dims...>;
+  using parent_type = base_tensor<this_type, T, Dims...>;
   using parent_type::rank;
   //============================================================================
  private:
@@ -97,8 +97,8 @@ template <typename Tensor, typename T, size_t... Dims>
 struct const_real_complex_tensor
     : base_tensor<const_real_complex_tensor<Tensor, T, Dims...>, T, Dims...> {
   static_assert(std::is_same_v<typename Tensor::value_type, std::complex<T>>);
-  using this_t   = const_real_complex_tensor<Tensor, T, Dims...>;
-  using parent_type = base_tensor<this_t, T, Dims...>;
+  using this_type   = const_real_complex_tensor<Tensor, T, Dims...>;
+  using parent_type = base_tensor<this_type, T, Dims...>;
   using parent_type::rank;
   //============================================================================
  private:
@@ -129,8 +129,8 @@ template <typename Tensor, typename T, size_t... Dims>
 struct real_complex_tensor
     : base_tensor<real_complex_tensor<Tensor, T, Dims...>, T, Dims...> {
   static_assert(std::is_same_v<typename Tensor::value_type, std::complex<T>>);
-  using this_t   = real_complex_tensor<Tensor, T, Dims...>;
-  using parent_type = base_tensor<this_t, T, Dims...>;
+  using this_type   = real_complex_tensor<Tensor, T, Dims...>;
+  using parent_type = base_tensor<this_type, T, Dims...>;
   using parent_type::rank;
   //============================================================================
  private:

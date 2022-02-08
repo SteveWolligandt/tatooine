@@ -7,19 +7,19 @@ namespace tatooine {
 //==============================================================================
 template <typename Field>
 struct steady_field
-    : field<steady_field<Field>, typename Field::real_t,
-            Field::num_dimensions(), typename Field::tensor_t> {
+    : field<steady_field<Field>, typename Field::real_type,
+            Field::num_dimensions(), typename Field::tensor_type> {
   using field_t  = Field;
-  using this_t   = steady_field<Field>;
-  using parent_type = field<this_t, typename Field::real_t,
-                         Field::num_dimensions(), typename Field::tensor_t>;
-  using typename parent_type::pos_t;
-  using typename parent_type::real_t;
-  using typename parent_type::tensor_t;
+  using this_type   = steady_field<Field>;
+  using parent_type = field<this_type, typename Field::real_type,
+                         Field::num_dimensions(), typename Field::tensor_type>;
+  using typename parent_type::pos_type;
+  using typename parent_type::real_type;
+  using typename parent_type::tensor_type;
   //============================================================================
  private:
   Field m_internal_field;
-  real_t  m_fixed_time;
+  real_type  m_fixed_time;
   //============================================================================
  public:
   steady_field(steady_field const& other)     = default;
@@ -34,13 +34,13 @@ struct steady_field
   template <typename F_, typename TReal, enable_if<is_arithmetic<TReal>> = true>
   constexpr steady_field(F_&& f, TReal fixed_time)
       : m_internal_field{std::forward<F_>(f)},
-        m_fixed_time{static_cast<real_t>(fixed_time)} {}
+        m_fixed_time{static_cast<real_type>(fixed_time)} {}
   //----------------------------------------------------------------------------
-  constexpr auto evaluate(pos_t const& x, real_t const /*t*/) const -> tensor_t {
+  constexpr auto evaluate(pos_type const& x, real_type const /*t*/) const -> tensor_type {
     return m_internal_field(x, m_fixed_time);
   }
   //----------------------------------------------------------------------------
-  constexpr auto in_domain(pos_t const& x, real_t const /*t*/) const -> bool final {
+  constexpr auto in_domain(pos_type const& x, real_type const /*t*/) const -> bool final {
     return m_internal_field.in_domain(x, m_fixed_time);
   }
 };

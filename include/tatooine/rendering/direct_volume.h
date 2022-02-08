@@ -14,9 +14,9 @@ auto direct_volume(camera<CameraReal> const&                     cam,
                    axis_aligned_bounding_box<AABBReal, 3> const& aabb,
                    DomainCheck&& domain_check, DistOnRay const distance_on_ray,
                    Shader&& shader) {
-  using pos_t     = vec<AABBReal, 3>;
+  using pos_type     = vec<AABBReal, 3>;
   using viewdir_t = vec<CameraReal, 3>;
-  using color_t   = std::invoke_result_t<Shader, pos_t, viewdir_t>;
+  using color_t   = std::invoke_result_t<Shader, pos_type, viewdir_t>;
   using rgb_t     = vec<typename color_t::value_type, 3>;
   using alpha_t   = typename color_t::value_type;
   static_assert(is_vec<color_t> && color_t::num_components() == 4,
@@ -45,7 +45,7 @@ auto direct_volume(camera<CameraReal> const&                     cam,
     auto  accumulated_color = rgb_t::zeros();
     auto  accumulated_alpha = alpha_t(0);
     auto  cur_t             = t;
-    pos_t cur_pos           = r(cur_t);
+    pos_type cur_pos           = r(cur_t);
     if (!aabb.is_inside(cur_pos)) {
       cur_t += 1e-6;
       cur_pos = r(cur_t);

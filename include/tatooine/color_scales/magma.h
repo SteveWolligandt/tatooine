@@ -11,14 +11,14 @@ namespace tatooine::color_scales {
 //==============================================================================
 template <arithmetic Real>
 struct magma {
-  using real_t  = Real;
-  using this_t  = magma<Real>;
+  using real_type  = Real;
+  using this_type  = magma<Real>;
   using color_t = vec<Real, 3>;
   //==============================================================================
-  std::unique_ptr<real_t[]> m_data;
+  std::unique_ptr<real_type[]> m_data;
   //==============================================================================
   magma()
-      : m_data{new real_t[]{0.001462,
+      : m_data{new real_type[]{0.001462,
                             0.000466,
                             0.013866,
                             0.002258,
@@ -787,7 +787,7 @@ struct magma {
                             0.99143800000000004,
                             0.74950399999999995}} {}
   //----------------------------------------------------------------------------
-  auto sample(real_t t) const {
+  auto sample(real_type t) const {
     if (t <= 0) {
       return color_t{m_data[0], m_data[1], m_data[2]};
     }
@@ -801,7 +801,7 @@ struct magma {
                    m_data[i * 3 + 1] * (1 - t) + m_data[(i + 1) * 3 + 1] * t,
                    m_data[i * 3 + 2] * (1 - t) + m_data[(i + 1) * 3 + 2] * t};
   }
-  auto operator()(real_t const t) const { return sample(t); }
+  auto operator()(real_type const t) const { return sample(t); }
  //----------------------------------------------------------------------------
 #if TATOOINE_GL_AVAILABLE
   auto to_gpu_tex() {

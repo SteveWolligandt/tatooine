@@ -30,7 +30,7 @@ struct plane {
   auto origin() const -> auto const& { return m_origin; }
 };
 template <size_t N>
-using Plane   = plane<real_t, N>;
+using Plane   = plane<real_type, N>;
 using plane2  = Plane<2>;
 using plane3  = Plane<3>;
 using plane4  = Plane<4>;

@@ -11,18 +11,18 @@ namespace tatooine::analytical::fields::numerical {
 /// http://web.cse.ohio-state.edu/~crawfis.3/Data/Tornado/tornadoSrc.c
 template <typename Real>
 struct tornado : vectorfield<tornado<Real>, Real, 3> {
-  using this_t   = tornado<Real>;
-  using parent_type = vectorfield<this_t, Real, 3>;
-  using typename parent_type::pos_t;
-  using typename parent_type::real_t;
-  using typename parent_type::tensor_t;
+  using this_type   = tornado<Real>;
+  using parent_type = vectorfield<this_type, Real, 3>;
+  using typename parent_type::pos_type;
+  using typename parent_type::real_type;
+  using typename parent_type::tensor_type;
   //----------------------------------------------------------------------------
-  static constexpr real_t eps = 1e-10;
+  static constexpr real_type eps = 1e-10;
   //----------------------------------------------------------------------------
-  constexpr auto evaluate(pos_t const& pos, real_t const t) const
-      -> tensor_t final {
-    real_t r, xc, yc, scale, temp, z0;
-    real_t r2 = 8;
+  constexpr auto evaluate(pos_type const& pos, real_type const t) const
+      -> tensor_type final {
+    real_type r, xc, yc, scale, temp, z0;
+    real_type r2 = 8;
 
     // For each z-slice, determine the spiral circle.
     xc = 0.5 + 0.1 * std::sin(0.04 * t + 10 * pos.z());
@@ -48,13 +48,13 @@ struct tornado : vectorfield<tornado<Real>, Real, 3> {
     temp       = std::sqrt(temp * temp + z0 * z0);
     scale      = (r + r2 - temp) * scale / (temp + eps);
     scale      = scale / (1 + pos.z());
-    return tensor_t{ (pos.y() - yc) + 0.1 * (pos.x() - xc),
+    return tensor_type{ (pos.y() - yc) + 0.1 * (pos.x() - xc),
                     -(pos.x() - xc) + 0.1 * (pos.y() - yc),
                      z0} *
            scale;
   }
   //----------------------------------------------------------------------------
-  constexpr auto in_domain(pos_t const& /*pos*/, real_t const /*t*/) const
+  constexpr auto in_domain(pos_type const& /*pos*/, real_type const /*t*/) const
       -> bool final {
     return true;
   }

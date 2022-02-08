@@ -1,15 +1,15 @@
 #include <Tatooine/doublegyre.h>
 #include "steadification.h"
 #include "datasets.h"
-#include "real_t.h"
+#include "real_type.h"
 
 //==============================================================================
 using solution_t = Steadification::solution_t;
 
 //==============================================================================
 template <typename vf_t, typename settings = settings_t<vf_t>>
-void lic_test(real_t t0, real_t tau, unsigned int num_segments,
-              real_t stepwidth, const std::string& seed_str) {
+void lic_test(real_type t0, real_type tau, unsigned int num_segments,
+              real_type stepwidth, const std::string& seed_str) {
   vf_t            vf;
   std::seed_seq   seed(seed_str.begin(), seed_str.end());
   std::mt19937_64 random_engine(seed);
@@ -32,10 +32,10 @@ void lic_test(real_t t0, real_t tau, unsigned int num_segments,
 //------------------------------------------------------------------------------
 int main(int argc, char** argv) {
   std::string vf_name;
-  real_t       t0           = 0;
-  real_t       tau          = 10;
+  real_type       t0           = 0;
+  real_type       tau          = 10;
   unsigned int num_segments = 10;
-  real_t stepwidth  = 0.05;
+  real_type stepwidth  = 0.05;
   std::string seed_str = "abc";
 
   if (argc > 1) vf_name = argv[1];
@@ -46,10 +46,10 @@ int main(int argc, char** argv) {
   if (argc > 6) seed_str = argv[6];
 
   if (vf_name == "dg")
-    lic_test<tatooine::analytical::DoubleGyre<real_t>>(t0, tau, num_segments,
+    lic_test<tatooine::analytical::DoubleGyre<real_type>>(t0, tau, num_segments,
                                                        stepwidth,  seed_str);
   else if (vf_name == "sc")
-    lic_test<tatooine::analytical::SinusCosinus<real_t>>(t0, tau, num_segments,
+    lic_test<tatooine::analytical::SinusCosinus<real_type>>(t0, tau, num_segments,
                                                          stepwidth,  seed_str);
   else if (vf_name == "mg")
     lic_test<MovingGyre>(t0, tau, num_segments, stepwidth, seed_str);

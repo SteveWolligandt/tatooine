@@ -11,10 +11,11 @@ template <typename Real, typename T>
 struct moving_least_squares_sampler<Real, 2, T>
     : field<moving_least_squares_sampler<Real, 2, T>, Real, 2, T> {
   static_assert(flann_available(), "Moving Least Squares Sampler needs FLANN!");
-  using this_t   = moving_least_squares_sampler<Real, 2, T>;
-  using parent_type = field<this_t, Real, 2, T>;
-  using typename parent_type::pos_t;
-  using typename parent_type::tensor_t;
+  using this_type   = moving_least_squares_sampler<Real, 2, T>;
+  using parent_type = field<this_type, Real, 2, T>;
+  using typename parent_type::pos_type;
+  using typename parent_type::tensor_type;
+  using typename parent_type::real_type;
   using pointset_t        = tatooine::pointset<Real, 2>;
   using vertex_property_t = typename pointset_t::template vertex_property_t<T>;
   using vertex_handle     = typename pointset_t::vertex_handle;
@@ -41,8 +42,8 @@ struct moving_least_squares_sampler<Real, 2, T>
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   ~moving_least_squares_sampler() = default;
   //==========================================================================
-  [[nodiscard]] auto evaluate(pos_t const& q, Real const /*t*/) const
-      -> tensor_t {
+  [[nodiscard]] auto evaluate(pos_type const& q, Real const /*t*/) const
+      -> tensor_type {
     auto        nn      = m_pointset.nearest_neighbors_radius_raw(q, m_radius);
     auto const& indices = nn.first;
     auto&       distances = nn.second;
@@ -53,10 +54,10 @@ struct moving_least_squares_sampler<Real, 2, T>
     auto const num_neighbors = size(indices);
 
     if (num_neighbors == 0) {
-      if constexpr (is_arithmetic<tensor_t>) {
+      if constexpr (is_arithmetic<tensor_type>) {
         return Real(0) / Real(0);
       } else {
-        return tensor_t::fill(Real(0) / Real(0));
+        return tensor_type::fill(Real(0) / Real(0));
       }
     }
     if (num_neighbors == 1) {
@@ -169,10 +170,11 @@ template <typename Real, typename T>
 struct moving_least_squares_sampler<Real, 3, T>
     : field<moving_least_squares_sampler<Real, 3, T>, Real, 3, T> {
   static_assert(flann_available(), "Moving Least Squares Sampler needs FLANN!");
-  using this_t   = moving_least_squares_sampler<Real, 3, T>;
-  using parent_type = field<this_t, Real, 3, T>;
-  using typename parent_type::pos_t;
-  using typename parent_type::tensor_t;
+  using this_type   = moving_least_squares_sampler<Real, 3, T>;
+  using parent_type = field<this_type, Real, 3, T>;
+  using typename parent_type::pos_type;
+  using typename parent_type::tensor_type;
+  using typename parent_type::real_type;
   using pointset_t        = tatooine::pointset<Real, 3>;
   using vertex_handle     = typename pointset_t::vertex_handle;
   using vertex_property_t = typename pointset_t::template vertex_property_t<T>;
@@ -199,8 +201,8 @@ struct moving_least_squares_sampler<Real, 3, T>
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   ~moving_least_squares_sampler() = default;
   //==========================================================================
-  [[nodiscard]] auto evaluate(pos_t const& q, real_t const /*t*/) const
-      -> tensor_t {
+  [[nodiscard]] auto evaluate(pos_type const& q, real_type const /*t*/) const
+      -> tensor_type {
     auto const  nn      = m_pointset.nearest_neighbors_radius_raw(q, m_radius);
     auto const& indices = nn.first;
     auto const& distances     = nn.second;

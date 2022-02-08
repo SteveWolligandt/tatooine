@@ -10,7 +10,7 @@ namespace tatooine {
 //==============================================================================
 template <arithmetic_or_complex T, size_t N>
 struct vec : tensor<T, N> {
-  using this_t   = vec<T, N>;
+  using this_type   = vec<T, N>;
   using parent_t = tensor<T, N>;
   using parent_t::at;
   using parent_t::dimension;
@@ -26,22 +26,22 @@ struct vec : tensor<T, N> {
   using const_iterator =
       typename parent_t::array_parent_t::container_t::const_iterator;
   //============================================================================
-  static auto constexpr zeros() { return this_t{tag::fill<T>{0}}; }
+  static auto constexpr zeros() { return this_type{tag::fill<T>{0}}; }
   //----------------------------------------------------------------------------
-  static auto constexpr ones() { return this_t{tag::fill<T>{1}}; }
+  static auto constexpr ones() { return this_type{tag::fill<T>{1}}; }
   //----------------------------------------------------------------------------
-  static auto constexpr fill(T const& t) { return this_t{tag::fill<T>{t}}; }
+  static auto constexpr fill(T const& t) { return this_type{tag::fill<T>{t}}; }
   //----------------------------------------------------------------------------
   template <typename RandEng = std::mt19937_64>
   static auto constexpr randu(T min = 0, T max = 1,
                               RandEng&& eng = RandEng{std::random_device{}()}) {
-    return this_t{random::uniform{min, max, std::forward<RandEng>(eng)}};
+    return this_type{random::uniform{min, max, std::forward<RandEng>(eng)}};
   }
   //----------------------------------------------------------------------------
   template <typename RandEng = std::mt19937_64>
   static auto constexpr randn(T mean = 0, T stddev = 1,
                               RandEng&& eng = RandEng{std::random_device{}()}) {
-    return this_t{random::normal<T>{eng, mean, stddev}};
+    return this_type{random::normal<T>{eng, mean, stddev}};
   }
   //----------------------------------------------------------------------------
   constexpr vec(vec const&)           = default;

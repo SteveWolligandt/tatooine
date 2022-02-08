@@ -18,9 +18,9 @@ struct vectorfield
   using this_type   = vectorfield<SamplerX, SamplerY, SamplerZ>;
   using parent_type = tat::vectorfield<this_type, double, 3>;
 
-  using typename parent_type::pos_t;
-  using typename parent_type::real_t;
-  using typename parent_type::tensor_t;
+  using typename parent_type::pos_type;
+  using typename parent_type::real_type;
+  using typename parent_type::tensor_type;
 
   SamplerX m_sampler_x;
   SamplerY m_sampler_y;
@@ -32,11 +32,11 @@ struct vectorfield
         m_sampler_y{sampler_y},
         m_sampler_z{sampler_z} {}
   //----------------------------------------------------------------------------
-  auto evaluate(pos_t const& x, real_t const t) const -> tensor_t {
+  auto evaluate(pos_type const& x, real_type const t) const -> tensor_type {
     return {m_sampler_x(x), m_sampler_y(x), m_sampler_z(x)};
   }
   //----------------------------------------------------------------------------
-  auto in_domain(pos_t const& x, real_t const t) const -> bool {
+  auto in_domain(pos_type const& x, real_type const t) const -> bool {
     return m_sampler_x.grid().in_domain(x(0), x(1), x(2));
   }
 };

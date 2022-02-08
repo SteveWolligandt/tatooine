@@ -7,17 +7,17 @@
 using namespace tatooine;
 //==============================================================================
 struct chengs_color_scale_t {
-  using real_t  = double;
+  using real_type  = double;
   using this_type  = chengs_color_scale_t;
-  using color_t = vec<real_t, 3>;
+  using color_t = vec<real_type, 3>;
   //==============================================================================
-  std::unique_ptr<real_t[]> m_data;
+  std::unique_ptr<real_type[]> m_data;
   //==============================================================================
   chengs_color_scale_t()
-      : m_data{new real_t[]{0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+      : m_data{new real_type[]{0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
                             0.0, 0.0, 0.0, 0.0, 0.0}} {}
   //----------------------------------------------------------------------------
-  auto sample(real_t t) const {
+  auto sample(real_type t) const {
     if (t <= 0) {
       return color_t{m_data[0], m_data[1], m_data[2]};
     }
@@ -31,7 +31,7 @@ struct chengs_color_scale_t {
                    m_data[i * 3 + 1] * (1 - t) + m_data[(i + 1) * 3 + 1] * t,
                    m_data[i * 3 + 2] * (1 - t) + m_data[(i + 1) * 3 + 2] * t};
   }
-  auto operator()(real_t const t) const { return sample(t); }
+  auto operator()(real_type const t) const { return sample(t); }
 };
 //==============================================================================
 auto main(int argc, char** argv) -> int {

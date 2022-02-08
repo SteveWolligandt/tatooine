@@ -15,17 +15,17 @@ namespace tatooine {
 template <typename V, template <typename, std::size_t> typename ODESolver,
           template <typename> typename InterpolationKernel>
 struct numerical_flowmap {
-  using this_t      = numerical_flowmap<V, ODESolver, InterpolationKernel>;
+  using this_type      = numerical_flowmap<V, ODESolver, InterpolationKernel>;
   using raw_field_t = std::remove_pointer_t<std::decay_t<V>>;
-  using real_t      = typename raw_field_t::real_t;
+  using real_type      = typename raw_field_t::real_type;
   static constexpr auto num_dimensions() {
     return raw_field_t::num_dimensions();
   }
-  using vec_t            = vec<real_t, num_dimensions()>;
-  using pos_t            = vec_t;
-  using integral_curve_t = line<real_t, num_dimensions()>;
-  using cache_t = tatooine::cache<std::pair<real_t, pos_t>, integral_curve_t>;
-  using ode_solver_t = ODESolver<real_t, num_dimensions()>;
+  using vec_t            = vec<real_type, num_dimensions()>;
+  using pos_type            = vec_t;
+  using integral_curve_t = line<real_type, num_dimensions()>;
+  using cache_t = tatooine::cache<std::pair<real_type, pos_type>, integral_curve_t>;
+  using ode_solver_t = ODESolver<real_type, num_dimensions()>;
   static constexpr auto holds_field_pointer = std::is_pointer_v<V>;
   //============================================================================
   // members
@@ -33,7 +33,7 @@ struct numerical_flowmap {
  private : V      m_v;
   ode_solver_t    m_ode_solver;
   mutable cache_t m_cache;
-  mutable std::map<std::pair<pos_t, real_t>, std::pair<bool, bool>>
+  mutable std::map<std::pair<pos_type, real_type>, std::pair<bool, bool>>
        m_on_domain_border;
   bool m_use_caching = true;
   //============================================================================
@@ -107,22 +107,22 @@ struct numerical_flowmap {
         m_use_caching{use_caching} {}
   //============================================================================
   [[nodiscard]] constexpr auto evaluate(
-      fixed_num_rows_mat<num_dimensions()> auto const& x0s, real_t const t0,
-      real_t tau) const {
-    auto xes = mat<real_t, x0s.dimension(0), x0s.dimension(1)>{x0s};
+      fixed_num_rows_mat<num_dimensions()> auto const& x0s, real_type const t0,
+      real_type tau) const {
+    auto xes = mat<real_type, x0s.dimension(0), x0s.dimension(1)>{x0s};
     for (std::size_t i = 0; i < xes.dimension(1); ++i) {
-      xes.col(i) = evaluate(pos_t{xes.col(i)}, t0, tau);
+      xes.col(i) = evaluate(pos_type{xes.col(i)}, t0, tau);
     }
     return xes;
   }
   //============================================================================
   [[nodiscard]] constexpr auto evaluate(
-      fixed_size_vec<num_dimensions()> auto const& x0, real_t const t0,
-      real_t const tau) const -> pos_t {
+      fixed_size_vec<num_dimensions()> auto const& x0, real_type const t0,
+      real_type const tau) const -> pos_type {
     if (tau == 0) {
-      return pos_t{x0};
+      return pos_type{x0};
     }
-    auto x1 = pos_t{};
+    auto x1 = pos_type{};
     if (!m_use_caching) {
       auto callback = [t0, &x0, &x1, tau](const auto& y, auto const t) {
         if (t0 + tau == t) {
@@ -133,7 +133,7 @@ struct numerical_flowmap {
       return x1;
     }
     // use caching
-    constexpr real_t security_eps   = 1e-7;
+    constexpr real_type security_eps   = 1e-7;
     auto const&      integral_curve = cached_curve(x0, t0, tau);
     auto             t              = t0 + tau;
     if (tau < 0 &&
@@ -162,19 +162,19 @@ struct numerical_flowmap {
   }
   //----------------------------------------------------------------------------
   [[nodiscard]] constexpr auto operator()(
-      fixed_num_rows_mat<num_dimensions()> auto const& x0s, real_t const t0,
-      real_t const tau) const {
+      fixed_num_rows_mat<num_dimensions()> auto const& x0s, real_type const t0,
+      real_type const tau) const {
     return evaluate(x0s, t0, tau);
   }
   //----------------------------------------------------------------------------
   [[nodiscard]] constexpr auto operator()(
-      fixed_size_vec<num_dimensions()> auto const& y0, real_t const t0,
-      real_t const tau) const -> pos_t {
+      fixed_size_vec<num_dimensions()> auto const& y0, real_type const t0,
+      real_type const tau) const -> pos_type {
     return evaluate(vec{y0}, t0, tau);
   }
   //----------------------------------------------------------------------------
-  auto integral_curve(pos_t const& y0, real_t const t0,
-                      real_t const tau) const {
+  auto integral_curve(pos_type const& y0, real_type const t0,
+                      real_type const tau) const {
     integral_curve_t c;
     auto const       v          = c.push_back(y0);
     c.parameterization()[v]     = t0;
@@ -182,8 +182,8 @@ struct numerical_flowmap {
     return std::pair{std::move(c), full_integration};
   }
   //----------------------------------------------------------------------------
-  auto integral_curve(pos_t const& y0, real_t const t0, real_t const btau,
-                      real_t const ftau) const {
+  auto integral_curve(pos_type const& y0, real_type const t0, real_type const btau,
+                      real_type const ftau) const {
     integral_curve_t c;
     auto const       v      = c.push_back(y0);
     c.parameterization()[v] = t0;
@@ -209,7 +209,7 @@ struct numerical_flowmap {
   /// \return true if could integrate all tau, false if hit domain border or
   /// something else went wrong.
   auto continue_integration(integral_curve_t& integral_curve,
-                            real_t const      tau) const -> bool {
+                            real_type const      tau) const -> bool {
     auto&       tangents         = integral_curve.tangents();
     auto&       parameterization = integral_curve.parameterization();
     auto const& y0               = [&integral_curve, tau] {
@@ -253,17 +253,17 @@ struct numerical_flowmap {
     return true;
   }
   //----------------------------------------------------------------------------
-  auto cached_curve(pos_t const& y0, real_t const t0) const -> auto const& {
+  auto cached_curve(pos_type const& y0, real_type const t0) const -> auto const& {
     return *m_cache.emplace({t0, y0}).first->second;
   }
   //----------------------------------------------------------------------------
-  auto cached_curve(pos_t const& y0, real_t const t0, real_t const tau) const
+  auto cached_curve(pos_type const& y0, real_type const t0, real_type const tau) const
       -> auto const& {
     return cached_curve(y0, t0, tau < 0 ? tau : 0, tau > 0 ? tau : 0);
   }
   //----------------------------------------------------------------------------
-  auto cached_curve(pos_t const& y0, real_t const t0, real_t btau,
-                    real_t ftau) const -> auto const& {
+  auto cached_curve(pos_type const& y0, real_type const t0, real_type btau,
+                    real_type ftau) const -> auto const& {
     auto [curve_it, new_integral_curve] = m_cache.emplace({t0, y0});
     auto& curve                         = curve_it->second;
 
@@ -315,7 +315,7 @@ struct numerical_flowmap {
   //----------------------------------------------------------------------------
   template <typename = void>
   requires holds_field_pointer auto set_vectorfield(
-      polymorphic::vectorfield<real_t, num_dimensions()>* w) {
+      polymorphic::vectorfield<real_type, num_dimensions()>* w) {
     m_v = w;
   }
   //----------------------------------------------------------------------------
@@ -389,7 +389,7 @@ namespace tatooine {
 //==============================================================================
 template <typename V, template <typename, std::size_t> typename ODESolver,
           template <typename> typename InterpolationKernel,
-          arithmetic EpsReal = typename V::real_t>
+          arithmetic EpsReal = typename V::real_type>
 auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
           tag::central_t /*tag*/, EpsReal epsilon = 1e-7) {
   return flowmap_gradient_central_differences<
@@ -407,7 +407,7 @@ auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
 //==============================================================================
 template <typename V, template <typename, std::size_t> typename ODESolver,
           template <typename> typename InterpolationKernel,
-          arithmetic EpsReal = typename std::decay_t<V>::real_t>
+          arithmetic EpsReal = typename std::decay_t<V>::real_type>
 auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
           EpsReal epsilon = 1e-7) {
   return diff(flowmap, tag::central, epsilon);

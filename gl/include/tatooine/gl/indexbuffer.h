@@ -15,15 +15,15 @@ namespace tatooine::gl {
 class indexbuffer : public buffer<GL_ELEMENT_ARRAY_BUFFER, unsigned int> {
  public:
   using parent_type = buffer<GL_ELEMENT_ARRAY_BUFFER, unsigned int>;
-  using this_t   = indexbuffer;
+  using this_type   = indexbuffer;
 
   static const usage_t default_usage = STATIC_DRAW;
 
   DLL_API indexbuffer(usage_t usage = default_usage);
   DLL_API indexbuffer(const indexbuffer& other);
   DLL_API indexbuffer(indexbuffer&& other);
-  DLL_API this_t& operator=(const this_t& other);
-  DLL_API this_t& operator=(this_t&& other);
+  DLL_API this_type& operator=(const this_type& other);
+  DLL_API this_type& operator=(this_type&& other);
 
   DLL_API indexbuffer(size_t n, usage_t usage = default_usage);
   DLL_API indexbuffer(size_t n, unsigned int initial,

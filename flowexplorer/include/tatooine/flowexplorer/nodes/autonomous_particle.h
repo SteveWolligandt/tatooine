@@ -8,20 +8,20 @@
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
-struct autonomous_particle : tatooine::autonomous_particle<real_t, 2>,
+struct autonomous_particle : tatooine::autonomous_particle<real_type, 2>,
                              renderable<autonomous_particle> {
   using this_type   = autonomous_particle;
-  using parent_type      = tatooine::autonomous_particle<real_t, 2>;
+  using parent_type      = tatooine::autonomous_particle<real_type, 2>;
   using gpu_vec3      = vec<GLfloat, 3>;
   using vbo_t         = gl::vertexbuffer<gpu_vec3>;
-  using vectorfield_t = polymorphic::vectorfield<real_t, 2>;
+  using vectorfield_t = polymorphic::vectorfield<real_type, 2>;
   using parent_type::advect;
   //============================================================================
-  real_t          m_taustep = 0.1;
-  real_t          m_max_t   = 0.0;
-  real_t          m_radius  = 0.03;
-  vec<real_t, 2>* m_x0      = nullptr;
-  real_t          m_t0      = 0;
+  real_type          m_taustep = 0.1;
+  real_type          m_max_t   = 0.0;
+  real_type          m_radius  = 0.03;
+  vec<real_type, 2>* m_x0      = nullptr;
+  real_type          m_t0      = 0;
 
 
   vectorfield_t* m_v;
@@ -66,7 +66,7 @@ struct autonomous_particle : tatooine::autonomous_particle<real_t, 2>,
   auto on_pin_connected(ui::input_pin& this_pin, ui::output_pin& other_pin)
       -> void final;
   //----------------------------------------------------------------------------
-  auto update(std::chrono::duration<real_t> const& /*dt*/) -> void override {
+  auto update(std::chrono::duration<real_type> const& /*dt*/) -> void override {
     if (m_needs_another_update && !m_currently_advecting) {
       advect();
     }

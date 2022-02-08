@@ -24,9 +24,9 @@ struct linspace {
   //============================================================================
   // typedefs
   //============================================================================
-  using this_t     = linspace<Real>;
-  using real_t     = Real;
-  using value_type = real_t;
+  using this_type     = linspace<Real>;
+  using real_type     = Real;
+  using value_type = real_type;
   using iterator = detail::linspace::iterator<Real>;
 
   //============================================================================
@@ -204,7 +204,7 @@ struct iterator : iterator_facade<iterator<Real>> {
   //============================================================================
   // typedefs
   //============================================================================
-  using this_t = iterator<Real>;
+  using this_type = iterator<Real>;
 
   //============================================================================
   // members

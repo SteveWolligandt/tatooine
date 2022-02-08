@@ -13,16 +13,16 @@ struct particle {
   // typedefs
   //----------------------------------------------------------------------------
  public:
-  using this_t = particle;
-  using real_t = Real;
-  using vec_t  = vec<real_t, NumDimensions>;
-  using pos_t  = vec_t;
+  using this_type = particle;
+  using real_type = Real;
+  using vec_t  = vec<real_type, NumDimensions>;
+  using pos_type  = vec_t;
   //----------------------------------------------------------------------------
   // members
   //----------------------------------------------------------------------------
  private:
-  pos_t  m_x0, m_x1;
-  real_t m_t1;
+  pos_type  m_x0, m_x1;
+  real_type m_t1;
 
   //----------------------------------------------------------------------------
   // ctors
@@ -38,9 +38,9 @@ struct particle {
   //----------------------------------------------------------------------------
   particle() = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  particle(pos_t const& x0, real_t t0);
+  particle(pos_type const& x0, real_type t0);
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  particle(pos_t const& x0, pos_t const& x1, real_t t1);
+  particle(pos_type const& x0, pos_type const& x1, real_type t1);
   //----------------------------------------------------------------------------
   // getters / setters
   //----------------------------------------------------------------------------
@@ -56,7 +56,7 @@ struct particle {
   auto t1() const { return m_t1; }
   //----------------------------------------------------------------------------
   template <typename Flowmap>
-  auto advect(Flowmap&& phi, real_t const tau) {
+  auto advect(Flowmap&& phi, real_type const tau) {
     m_x1 = phi(m_x1, m_t1, tau);
     m_t1 += tau;
   }
@@ -95,16 +95,16 @@ auto particle<Real, NumDimensions>::operator=(particle&& other) noexcept
 }
 //----------------------------------------------------------------------------
 template <typename Real, std::size_t NumDimensions>
-particle<Real, NumDimensions>::particle(pos_t const& x0, real_t const t0)
+particle<Real, NumDimensions>::particle(pos_type const& x0, real_type const t0)
     : m_x0{x0}, m_x1{x0}, m_t1{t0} {}
 //----------------------------------------------------------------------------
 template <typename Real, std::size_t NumDimensions>
-particle<Real, NumDimensions>::particle(pos_t const& x0, pos_t const& x1,
-                                        real_t const t1)
+particle<Real, NumDimensions>::particle(pos_type const& x0, pos_type const& x1,
+                                        real_type const t1)
     : m_x0{x0}, m_x1{x1}, m_t1{t1} {}
 //==============================================================================
 template <std::size_t NumDimensions>
-using Particle  = particle<real_t, NumDimensions>;
+using Particle  = particle<real_number, NumDimensions>;
 using particle2 = Particle<2>;
 using particle3 = Particle<3>;
 //==============================================================================

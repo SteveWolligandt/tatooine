@@ -20,7 +20,7 @@ auto main(int argc, char** argv) -> int {
   grid.write("example_polygon.vtk");
 
   auto sample_grid =
-      uniform_rectilinear_grid2{linspace<real_t>{-4, 4, 2000}, linspace<real_t>{-4, 4, 2000}};
+      uniform_rectilinear_grid2{linspace<real_type>{-4, 4, 2000}, linspace<real_type>{-4, 4, 2000}};
 
   auto& col = sample_grid.scalar_vertex_property("color");
   auto sampler = grid.sampler(vertex_colors);

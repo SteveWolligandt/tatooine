@@ -101,15 +101,15 @@ constexpr auto output(Arg0&& arg0, Args&&... args) {
 template <typename T, typename R>
 struct output_t {
   using vec_t= T;
-  using real_t= R;
+  using real_type= R;
 
-  using helper = detail::helper_t<vec_t, real_t>;
-  using spline_t = hermite::spline_t<vec_t, real_t>;
+  using helper = detail::helper_t<vec_t, real_type>;
+  using spline_t = hermite::spline_t<vec_t, real_type>;
 
   template <typename Generator, typename Sink>
   struct dense_output_t {
     Generator  generator; // generates next samples t
-    real_t     t;         // current t, will be consumed next
+    real_type     t;         // current t, will be consumed next
     int        n = -1;    // number of consumed samples (<0 if uninitialized)
     const Sink sink;      // consumer
 

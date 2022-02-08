@@ -12,10 +12,10 @@ struct ray {
   template <typename OtherReal, size_t OtherN>
   friend struct ray;
   using vec_t = vec<Real, N>;
-  using pos_t = vec_t;
+  using pos_type = vec_t;
   //============================================================================
  private:
-  pos_t m_origin;
+  pos_type m_origin;
   vec_t m_direction;
   //============================================================================
  public:
@@ -29,13 +29,13 @@ struct ray {
   ray& operator=(ray const&) = default;
   ray& operator=(ray&&) noexcept = default;
   //----------------------------------------------------------------------------
-  ray(pos_t const& origin, vec_t const& direction)
+  ray(pos_type const& origin, vec_t const& direction)
       : m_origin{origin}, m_direction{direction} {}
-  ray(pos_t&& origin, vec_t const& direction)
+  ray(pos_type&& origin, vec_t const& direction)
       : m_origin{std::move(origin)}, m_direction{direction} {}
-  ray(pos_t const& origin, vec_t&& direction)
+  ray(pos_type const& origin, vec_t&& direction)
       : m_origin{origin}, m_direction{std::move(direction)} {}
-  ray(pos_t&& origin, vec_t&& direction)
+  ray(pos_type&& origin, vec_t&& direction)
       : m_origin{std::move(origin)}, m_direction{std::move(direction)} {}
   //============================================================================
   auto origin() -> auto& {

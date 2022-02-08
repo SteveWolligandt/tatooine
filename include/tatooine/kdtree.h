@@ -10,18 +10,18 @@
 namespace tatooine {
 //==============================================================================
 template <typename Mesh>
-struct kdtree : aabb<typename Mesh::real_t, Mesh::num_dimensions()> {
+struct kdtree : aabb<typename Mesh::real_type, Mesh::num_dimensions()> {
   static constexpr auto num_dimensions() { return Mesh::num_dimensions(); }
-  using real_t   = typename Mesh::real_t;
-  using this_t   = kdtree<Mesh>;
-  using parent_type = aabb<real_t, num_dimensions()>;
+  using real_type   = typename Mesh::real_type;
+  using this_type   = kdtree<Mesh>;
+  using parent_type = aabb<real_type, num_dimensions()>;
   using parent_type::center;
   using parent_type::is_inside;
   using parent_type::max;
   using parent_type::min;
   using typename parent_type::vec_t;
   using vertex_handle = typename Mesh::vertex_handle;
-  friend class std::unique_ptr<this_t>;
+  friend class std::unique_ptr<this_type>;
   using parent_type::is_simplex_inside;
 
  private:
@@ -36,8 +36,8 @@ struct kdtree : aabb<typename Mesh::real_t, Mesh::num_dimensions()> {
  public:
   explicit kdtree(Mesh const& mesh, size_t const max_depth = default_max_depth)
       : m_mesh{&mesh}, m_level{0}, m_max_depth{max_depth} {
-    auto min = vec_t::ones() * std::numeric_limits<real_t>::infinity();
-    auto max = -vec_t::ones() * std::numeric_limits<real_t>::infinity();
+    auto min = vec_t::ones() * std::numeric_limits<real_type>::infinity();
+    auto max = -vec_t::ones() * std::numeric_limits<real_type>::infinity();
     for (auto v : mesh.vertices()) {
       for (size_t i = 0; i < num_dimensions(); ++i) {
         min(i) = std::min(min(i), mesh[v](i));
@@ -93,7 +93,7 @@ struct kdtree : aabb<typename Mesh::real_t, Mesh::num_dimensions()> {
 
  private:
   //----------------------------------------------------------------------------
-  auto distribute_vertices(size_t const split_index, real_t const split_pos) {
+  auto distribute_vertices(size_t const split_index, real_type const split_pos) {
     for (auto const v : m_vertex_handles) {
       if (mesh()[v](split_index) <= split_pos) {
         m_children[0]->m_vertex_handles.push_back(v);
@@ -111,9 +111,9 @@ struct kdtree : aabb<typename Mesh::real_t, Mesh::num_dimensions()> {
     auto min1            = this->min();
     auto max1            = this->max();
     auto split_index     = std::numeric_limits<size_t>::max();
-    auto split_pos       = std::numeric_limits<real_t>::max();
-    auto max_space_range = real_t(0);
-    auto dim_positions   = std::vector<real_t>{};
+    auto split_pos       = std::numeric_limits<real_type>::max();
+    auto max_space_range = real_type(0);
+    auto dim_positions   = std::vector<real_type>{};
 
     for (size_t i = 0; i < num_dimensions(); ++i) {
       for (auto const v : m_vertex_handles) {
@@ -134,10 +134,10 @@ struct kdtree : aabb<typename Mesh::real_t, Mesh::num_dimensions()> {
     max0(split_index) = split_pos;
     min1(split_index) = split_pos;
 
-    m_children[0] = std::unique_ptr<this_t>(
-        new this_t{mesh(), min0, max0, m_level + 1, m_max_depth});
-    m_children[1] = std::unique_ptr<this_t>(
-        new this_t{mesh(), min1, max1, m_level + 1, m_max_depth});
+    m_children[0] = std::unique_ptr<this_type>(
+        new this_type{mesh(), min0, max0, m_level + 1, m_max_depth});
+    m_children[1] = std::unique_ptr<this_type>(
+        new this_type{mesh(), min1, max1, m_level + 1, m_max_depth});
     distribute_vertices(split_index, split_pos);
     m_children[0]->split_if_necessary();
     m_children[1]->split_if_necessary();
@@ -147,7 +147,7 @@ struct kdtree : aabb<typename Mesh::real_t, Mesh::num_dimensions()> {
   auto write_vtk(filesystem::path const& path) {
     vtk::legacy_file_writer f{path, vtk::dataset_type::polydata};
     f.write_header();
-    std::vector<vec<real_t, num_dimensions()>> positions;
+    std::vector<vec<real_type, num_dimensions()>> positions;
     std::vector<std::vector<size_t>>           indices;
     write_vtk_collect_positions_and_indices(positions, indices);
     f.write_points(positions);
@@ -156,7 +156,7 @@ struct kdtree : aabb<typename Mesh::real_t, Mesh::num_dimensions()> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  private:
   auto write_vtk_collect_positions_and_indices(
-      std::vector<vec<real_t, num_dimensions()>>& positions,
+      std::vector<vec<real_type, num_dimensions()>>& positions,
       std::vector<std::vector<size_t>>& indices, size_t cur_idx = 0) -> size_t {
     if constexpr (num_dimensions() == 2) {
       positions.push_back(vec{min(0), min(1)});

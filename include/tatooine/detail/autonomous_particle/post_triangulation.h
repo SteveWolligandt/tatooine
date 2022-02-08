@@ -88,7 +88,7 @@ struct hierarchy {
   //----------------------------------------------------------------------------
   auto sort_leafs(edgeset_type const& edges) -> void {
     auto split_dir = calc_split_dir(edges);
-    auto dists     = std::vector<std::pair<std::uint64_t, real_t>>{};
+    auto dists     = std::vector<std::pair<std::uint64_t, Real>>{};
     dists.reserve(leafs.size());
     dists.emplace_back(0, 0.0);
     for (std::size_t i = 1; i < leafs.size(); ++i) {

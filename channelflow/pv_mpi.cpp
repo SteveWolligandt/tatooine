@@ -7,7 +7,7 @@
 #include <tatooine/spacetime_vectorfield.h>
 //==============================================================================
 namespace tat    = tatooine;
-using doublegyre = tat::analytical::fields::numerical::doublegyre<tat::real_t>;
+using doublegyre = tat::analytical::fields::numerical::doublegyre<tat::real_type>;
 using tat::linspace;
 //==============================================================================
 auto main(int argc, char** argv) -> int {

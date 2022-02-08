@@ -20,7 +20,7 @@ auto find_critical_points(sampler<VertexProperty, interpolation::linear,
   static_assert(VertexProperty::value_type::dimension(0) == 2);
   using namespace boost;
   using namespace adaptors;
-  std::vector<typename VertexProperty::grid_t::pos_t> critical_points;
+  std::vector<typename VertexProperty::grid_t::pos_type> critical_points;
   // iterate over each grid cell
   for (size_t y = 0; y < s.grid().template size<1>() - 1; ++y) {
     for (size_t x = 0; x < s.grid().template size<0>() - 1; ++x) {

@@ -9,10 +9,11 @@ struct inverse_distance_weighting_sampler
             NumDimensions, T> {
   static_assert(flann_available(),
                 "Inverse Distance Weighting Sampler needs FLANN!");
-  using this_t   = inverse_distance_weighting_sampler<Real, NumDimensions, T>;
-  using parent_type = field<this_t, Real, NumDimensions, T>;
-  using typename parent_type::pos_t;
-  using typename parent_type::tensor_t;
+  using this_type   = inverse_distance_weighting_sampler<Real, NumDimensions, T>;
+  using parent_type = field<this_type, Real, NumDimensions, T>;
+  using typename parent_type::pos_type;
+  using typename parent_type::tensor_type;
+  using typename parent_type::real_type;
   using pointset_t        = tatooine::pointset<Real, NumDimensions>;
   using vertex_handle     = typename pointset_t::vertex_handle;
   using vertex_property_t = typename pointset_t::template vertex_property_t<T>;
@@ -40,8 +41,8 @@ struct inverse_distance_weighting_sampler
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   ~inverse_distance_weighting_sampler() = default;
   //==========================================================================
-  [[nodiscard]] auto evaluate(pos_t const& x, real_t const /*t*/) const
-      -> tensor_t {
+  [[nodiscard]] auto evaluate(pos_type const& x, real_type const /*t*/) const
+      -> tensor_type {
     auto [indices, distances] =
         m_pointset.nearest_neighbors_radius_raw(x, m_radius);
     if (indices.empty()) {

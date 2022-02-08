@@ -17,7 +17,7 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
   struct color_scale : gl::indexeddata<Vec2<GLfloat>> {
     struct viridis_t {
       gl::tex1rgb32f tex;
-      viridis_t() {
+      viridis_t() : tex{} {
         auto s = color_scales::viridis<GLfloat>{};
         tex.upload_data(s.data(), 256);
         tex.set_wrap_mode(gl::WrapMode::CLAMP_TO_EDGE);
@@ -61,16 +61,16 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
     static constexpr std::string_view vertex_shader =
         "#version 330 core\n"
         "layout (location = 0) in vec2 position;\n"
-        "uniform mat4 modelview_matrix;\n"
+        "uniform mat4 model_view_matrix;\n"
         "uniform mat4 projection_matrix;\n"
         "uniform vec2 extent;\n"
         "uniform vec2 pixel_width;\n"
         "out vec2 texcoord;\n"
         "void main() {\n"
-        "  texcoord = (position * extent + pixel_width/2 ) /\n"
+        "  texcoord = (position * extent + pixel_width / 2) /\n"
         "             (extent+pixel_width);\n"
         "  gl_Position = projection_matrix *\n"
-        "                modelview_matrix *\n"
+        "                model_view_matrix *\n"
         "                vec4(position, 0, 1);\n"
         "}\n";
     //------------------------------------------------------------------------------
@@ -103,7 +103,7 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
       set_uniform("data", 0);
       set_uniform("color_scale", 1);
       set_projection_matrix(Mat4<GLfloat>::eye());
-      set_modelview_matrix(Mat4<GLfloat>::eye());
+      set_model_view_matrix(Mat4<GLfloat>::eye());
       set_min(0);
       set_max(1);
     }
@@ -114,8 +114,8 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
       set_uniform_mat4("projection_matrix", P.data().data());
     }
     //------------------------------------------------------------------------------
-    auto set_modelview_matrix(Mat4<GLfloat> const& MV) -> void {
-      set_uniform_mat4("modelview_matrix", MV.data().data());
+    auto set_model_view_matrix(Mat4<GLfloat> const& MV) -> void {
+      set_uniform_mat4("model_view_matrix", MV.data().data());
     }
     //------------------------------------------------------------------------------
     auto set_extent(Vec2<GLfloat> const& extent) -> void {
@@ -135,11 +135,11 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
     static constexpr std::string_view vertex_shader =
         "#version 330 core\n"
         "layout (location = 0) in vec2 position;\n"
-        "uniform mat4 modelview_matrix;\n"
+        "uniform mat4 model_view_matrix;\n"
         "uniform mat4 projection_matrix;\n"
         "void main() {\n"
         "  gl_Position = projection_matrix *\n"
-        "                modelview_matrix *\n"
+        "                model_view_matrix *\n"
         "                vec4(position, 0, 1);\n"
         "}\n";
     //------------------------------------------------------------------------------
@@ -164,7 +164,7 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
       create();
       set_color(0, 0, 0);
       set_projection_matrix(Mat4<GLfloat>::eye());
-      set_modelview_matrix(Mat4<GLfloat>::eye());
+      set_model_view_matrix(Mat4<GLfloat>::eye());
     }
     //------------------------------------------------------------------------------
    public:
@@ -178,8 +178,8 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
       set_uniform_mat4("projection_matrix", P.data().data());
     }
     //------------------------------------------------------------------------------
-    auto set_modelview_matrix(Mat4<GLfloat> const& MV) -> void {
-      set_uniform_mat4("modelview_matrix", MV.data().data());
+    auto set_model_view_matrix(Mat4<GLfloat> const& MV) -> void {
+      set_uniform_mat4("model_view_matrix", MV.data().data());
     }
   };
   //==============================================================================
@@ -328,46 +328,46 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
     ImGui::Text("Rectilinear Grid");
     ImGui::Checkbox("Show Grid", &show_grid);
 
-    //if (show_grid) {
-      ImGui::DragInt("Line width", &line_width, 1, 1, 20);
-      ImGui::ColorEdit4("Color", color.data().data());
+    // if (show_grid) {
+    ImGui::DragInt("Line width", &line_width, 1, 1, 20);
+    ImGui::ColorEdit4("Color", color.data().data());
     //}
 
     ImGui::Checkbox("Show Property", &show_property);
-    //if (show_property) {
-      if (ImGui::BeginCombo("##combo", selected_property_name != nullptr
-                                           ? selected_property_name->c_str()
-                                           : nullptr)) {
-        for (auto const& [name, prop] : grid.vertex_properties()) {
-          if (prop->type() == typeid(double) || prop->type() == typeid(float) ||
-              prop->type() == typeid(vec2f) || prop->type() == typeid(vec2d) ||
-              prop->type() == typeid(vec3f) || prop->type() == typeid(vec3d) ||
-              prop->type() == typeid(vec4f) || prop->type() == typeid(vec4d)) {
-            auto is_selected = selected_property == prop.get();
-            if (ImGui::Selectable(name.c_str(), is_selected)) {
-              selected_property      = prop.get();
-              selected_property_name = &name;
-              if (prop->type() == typeid(float) ||
-                  prop->type() == typeid(double)) {
-                retrieve_typed_scalar_prop(prop.get(), upload_scalar);
-              } else if (prop->type() == typeid(vec2f) ||
-                         prop->type() == typeid(vec2d) ||
-                         prop->type() == typeid(vec3f) ||
-                         prop->type() == typeid(vec3d) ||
-                         prop->type() == typeid(vec4f) ||
-                         prop->type() == typeid(vec4d)) {
-                retrieve_typed_vec_prop(prop.get(), upload_magnitude);
-                vector_property    = true;
-                selected_component = vector_items[0];
-              }
-            }
-            if (is_selected) {
-              ImGui::SetItemDefaultFocus();
+    // if (show_property) {
+    if (ImGui::BeginCombo("##combo", selected_property_name != nullptr
+                                         ? selected_property_name->c_str()
+                                         : nullptr)) {
+      for (auto const& [name, prop] : grid.vertex_properties()) {
+        if (prop->type() == typeid(double) || prop->type() == typeid(float) ||
+            prop->type() == typeid(vec2f) || prop->type() == typeid(vec2d) ||
+            prop->type() == typeid(vec3f) || prop->type() == typeid(vec3d) ||
+            prop->type() == typeid(vec4f) || prop->type() == typeid(vec4d)) {
+          auto is_selected = selected_property == prop.get();
+          if (ImGui::Selectable(name.c_str(), is_selected)) {
+            selected_property      = prop.get();
+            selected_property_name = &name;
+            if (prop->type() == typeid(float) ||
+                prop->type() == typeid(double)) {
+              retrieve_typed_scalar_prop(prop.get(), upload_scalar);
+            } else if (prop->type() == typeid(vec2f) ||
+                       prop->type() == typeid(vec2d) ||
+                       prop->type() == typeid(vec3f) ||
+                       prop->type() == typeid(vec3d) ||
+                       prop->type() == typeid(vec4f) ||
+                       prop->type() == typeid(vec4d)) {
+              retrieve_typed_vec_prop(prop.get(), upload_magnitude);
+              vector_property    = true;
+              selected_component = vector_items[0];
             }
           }
+          if (is_selected) {
+            ImGui::SetItemDefaultFocus();
+          }
         }
-        ImGui::EndCombo();
       }
+      ImGui::EndCombo();
+    }
     //}
     if (vector_property) {
       if (ImGui::BeginCombo("##combo2", selected_component)) {
@@ -409,7 +409,7 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
   //------------------------------------------------------------------------------
   auto update(auto const dt, renderable_type const& grid,
               camera auto const& cam) {
-    using CamReal = typename std::decay_t<decltype(cam)>::real_t;
+    using CamReal = typename std::decay_t<decltype(cam)>::real_type;
     static auto constexpr cam_is_float = is_same<GLfloat, CamReal>;
     if (show_grid) {
       if constexpr (cam_is_float) {
@@ -420,9 +420,9 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
       }
 
       if constexpr (cam_is_float) {
-        line_shader::get().set_modelview_matrix(cam.view_matrix());
+        line_shader::get().set_model_view_matrix(cam.view_matrix());
       } else {
-        line_shader::get().set_modelview_matrix(
+        line_shader::get().set_model_view_matrix(
             Mat4<GLfloat>{cam.view_matrix()});
       }
     }
@@ -435,15 +435,15 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
       }
 
       if constexpr (cam_is_float) {
-        property_shader::get().set_modelview_matrix(
+        property_shader::get().set_model_view_matrix(
             cam.view_matrix() *
-            scale_matrix<GLfloat>(grid.template extent<0>(),
-                                  grid.template extent<1>(), 1) *
             translation_matrix<GLfloat>(grid.template dimension<0>().front(),
                                         grid.template dimension<1>().front(),
-                                        0));
+                                        0) *
+            scale_matrix<GLfloat>(grid.template extent<0>(),
+                                  grid.template extent<1>(), 1));
       } else {
-        property_shader::get().set_modelview_matrix(
+        property_shader::get().set_model_view_matrix(
             Mat4<GLfloat>{cam.view_matrix()} *
             scale_matrix<GLfloat>(grid.template extent<0>(),
                                   grid.template extent<1>(), 1) *
@@ -459,7 +459,7 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
   }
   //------------------------------------------------------------------------------
   auto render_grid() {
-    auto& line_shader                  = line_shader::get();
+    auto& line_shader = line_shader::get();
     line_shader.bind();
 
     line_shader.set_color(color(0), color(1), color(2), color(3));

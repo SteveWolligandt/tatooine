@@ -10,8 +10,8 @@ auto main() -> int {
   auto const width  = std::size_t(500);
   auto const height = std::size_t(1000);
   auto       grid =
-      uniform_rectilinear_grid2{linspace<real_t>{0, width - 1, width},
-                                linspace<real_t>{0, height - 1, height}};
+      uniform_rectilinear_grid2{linspace<real_type>{0, width - 1, width},
+                                linspace<real_type>{0, height - 1, height}};
   auto& rasterized_line = grid.vec3_vertex_property("line");
   grid.vertices().iterate_indices(
       [&](auto const... is) { rasterized_line(is...) = vec3::ones(); },

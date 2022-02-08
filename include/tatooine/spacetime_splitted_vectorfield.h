@@ -9,18 +9,18 @@ namespace tatooine {
 template <typename V>
 struct spacetime_splitted_vectorfield
     : vectorfield<spacetime_splitted_vectorfield<V>,
-                  typename std::remove_pointer_t<std::decay_t<V>>::real_t,
+                  typename std::remove_pointer_t<std::decay_t<V>>::real_type,
                   std::remove_pointer_t<std::decay_t<V>>::num_dimensions() -
                       1> {
-  using this_t = spacetime_splitted_vectorfield<V>;
+  using this_type = spacetime_splitted_vectorfield<V>;
   using parent_type =
-      vectorfield<this_t,
-                  typename std::remove_pointer_t<std::decay_t<V>>::real_t,
+      vectorfield<this_type,
+                  typename std::remove_pointer_t<std::decay_t<V>>::real_type,
                   std::remove_pointer_t<std::decay_t<V>>::num_dimensions() - 1>;
   using parent_type::num_dimensions;
-  using typename parent_type::pos_t;
-  using typename parent_type::real_t;
-  using typename parent_type::tensor_t;
+  using typename parent_type::pos_type;
+  using typename parent_type::real_type;
+  using typename parent_type::tensor_type;
   //============================================================================
   V m_v;
   //============================================================================
@@ -34,19 +34,19 @@ struct spacetime_splitted_vectorfield
   //----------------------------------------------------------------------------
   template <typename W>
   requires std::is_pointer_v<V>
-  void set_field(vectorfield<W, real_t, num_dimensions() + 1> const& v) {
+  void set_field(vectorfield<W, real_type, num_dimensions() + 1> const& v) {
     m_v = &v;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename = void>
   requires std::is_pointer_v<V>
-  void set_field(polymorphic::vectorfield<real_t, num_dimensions() + 1> const& v) {
+  void set_field(polymorphic::vectorfield<real_type, num_dimensions() + 1> const& v) {
     m_v = &v;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename = void>
   requires std::is_pointer_v<V>
-  void set_field(polymorphic::vectorfield<real_t, num_dimensions() + 1> const* v) {
+  void set_field(polymorphic::vectorfield<real_type, num_dimensions() + 1> const* v) {
     m_v = v;
   }
   //============================================================================
@@ -60,23 +60,23 @@ struct spacetime_splitted_vectorfield
   //----------------------------------------------------------------------------
   ~spacetime_splitted_vectorfield() override = default;
   //----------------------------------------------------------------------------
-  [[nodiscard]] auto evaluate(pos_t const& x, real_t const t) const
-      -> tensor_t final {
-    vec<real_t, num_dimensions() + 1> pt;
+  [[nodiscard]] auto evaluate(pos_type const& x, real_type const t) const
+      -> tensor_type final {
+    vec<real_type, num_dimensions() + 1> pt;
     for (size_t i = 0; i < num_dimensions(); ++i) {
       pt(i) = x(i);
     }
     pt(num_dimensions()) = t;
     auto const vt        = internal_field()(pt, t);
-    tensor_t   v;
+    tensor_type   v;
     for (size_t i = 0; i < num_dimensions(); ++i) {
       v(i) = vt(i);
     }
     return v;
   }
   //----------------------------------------------------------------------------
-  [[nodiscard]] auto in_domain(pos_t const& x, real_t t) const -> bool final {
-    vec<real_t, num_dimensions() + 1> pt;
+  [[nodiscard]] auto in_domain(pos_type const& x, real_type t) const -> bool final {
+    vec<real_type, num_dimensions() + 1> pt;
     for (size_t i = 0; i < num_dimensions(); ++i) {
       pt(i) = x(i);
     }

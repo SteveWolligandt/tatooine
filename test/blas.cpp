@@ -13,7 +13,7 @@ TEST_CASE("blas_gemm", "[blas][gemm]") {
                  {4, 5, 6}};
 
   auto C = mat23::zeros();
-  blas::gemm(real_t(1), A, B, real_t(0), C);
+  blas::gemm(real_type(1), A, B, real_type(0), C);
   REQUIRE(C(0, 0) == Approx(30));
   REQUIRE(C(1, 0) == Approx(40));
 

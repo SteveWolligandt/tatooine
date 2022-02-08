@@ -39,8 +39,8 @@ using repeated_interpolation_kernel_for_vertex_property =
 template <typename Grid>
 struct vertex_property {
   //============================================================================
-  using this_t        = vertex_property<Grid>;
-  using real_t        = typename Grid::real_t;
+  using this_type        = vertex_property<Grid>;
+  using real_type        = typename Grid::real_type;
   using vertex_handle = typename Grid::vertex_handle;
   //============================================================================
   static constexpr auto num_dimensions() { return Grid::num_dimensions(); }
@@ -60,7 +60,7 @@ struct vertex_property {
   virtual auto type() const -> std::type_info const&           = 0;
   virtual auto container_type() const -> std::type_info const& = 0;
   //----------------------------------------------------------------------------
-  virtual auto clone() const -> std::unique_ptr<this_t> = 0;
+  virtual auto clone() const -> std::unique_ptr<this_type> = 0;
   //----------------------------------------------------------------------------
   auto grid() -> auto& { return *m_grid; }
   auto grid() const -> auto const& { return *m_grid; }
@@ -72,7 +72,7 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
   //============================================================================
   // typedefs
   //============================================================================
-  using this_t =
+  using this_type =
       typed_vertex_property_interface<Grid, ValueType, HasNonConstReference>;
   using parent_type        = vertex_property<Grid>;
   using value_type      = ValueType;
@@ -105,7 +105,7 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
   template <template <typename> typename InterpolationKernel>
   auto sampler_() const {
     using sampler_t =
-        repeated_interpolation_kernel_for_vertex_property<this_t,
+        repeated_interpolation_kernel_for_vertex_property<this_type,
                                                           InterpolationKernel>;
     grid().update_diff_stencil_coefficients();
     return sampler_t{*this};
@@ -125,14 +125,14 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
 
     if constexpr (sizeof...(InterpolationKernels) == 0) {
       using sampler_t = repeated_interpolation_kernel_for_vertex_property<
-          this_t, interpolation::cubic>;
+          this_type, interpolation::cubic>;
       grid().update_diff_stencil_coefficients();
       return sampler_t{*this};
     } else if constexpr (sizeof...(InterpolationKernels) == 1) {
       return sampler_<InterpolationKernels...>();
     } else {
       using sampler_t =
-          vertex_property_sampler<this_t, InterpolationKernels...>;
+          vertex_property_sampler<this_type, InterpolationKernels...>;
       if (!grid().diff_stencil_coefficients_created_once()) {
         grid().update_diff_stencil_coefficients();
       }
@@ -329,7 +329,7 @@ struct typed_vertex_property
   //============================================================================
   // typedefs
   //============================================================================
-  using this_t = typed_vertex_property<Grid, ValueType, Container>;
+  using this_type = typed_vertex_property<Grid, ValueType, Container>;
   static constexpr bool has_non_const_reference = std::is_convertible_v<
       decltype(std::declval<Container&>().at(
           std::declval<std::array<std::size_t, Grid::num_dimensions()>>())),
@@ -356,7 +356,7 @@ struct typed_vertex_property
   // methods
   //============================================================================
   auto clone() const -> std::unique_ptr<vertex_property<Grid>> override {
-    return std::unique_ptr<this_t>(new this_t{*this});
+    return std::unique_ptr<this_type>(new this_type{*this});
   }
   //----------------------------------------------------------------------------
   auto container_type() const -> std::type_info const& override {
@@ -450,7 +450,7 @@ struct vertex_property_differentiated_type_impl<Grid, tensor<T, Dims...>> {
 //==============================================================================
 template <typename Grid, typename PropValueType, bool PropHasNonConstReference>
 struct differentiated_typed_vertex_property {
-  using this_t     = differentiated_typed_vertex_property<Grid, PropValueType,
+  using this_type     = differentiated_typed_vertex_property<Grid, PropValueType,
                                                       PropHasNonConstReference>;
   using prop_t     = typed_vertex_property_interface<Grid, PropValueType,
                                                  PropHasNonConstReference>;
@@ -507,7 +507,7 @@ struct differentiated_typed_vertex_property {
   template <template <typename> typename InterpolationKernel>
   auto sampler_() const {
     using sampler_t =
-        repeated_interpolation_kernel_for_vertex_property<this_t,
+        repeated_interpolation_kernel_for_vertex_property<this_type,
                                                           InterpolationKernel>;
     grid().update_diff_stencil_coefficients();
     return sampler_t{*this};
@@ -527,14 +527,14 @@ struct differentiated_typed_vertex_property {
 
     if constexpr (sizeof...(InterpolationKernels) == 0) {
       using sampler_t = repeated_interpolation_kernel_for_vertex_property<
-          this_t, interpolation::cubic>;
+          this_type, interpolation::cubic>;
       grid().update_diff_stencil_coefficients();
       return sampler_t{*this};
     } else if constexpr (sizeof...(InterpolationKernels) == 1) {
       return sampler_<InterpolationKernels...>();
     } else {
       using sampler_t =
-          vertex_property_sampler<this_t, InterpolationKernels...>;
+          vertex_property_sampler<this_type, InterpolationKernels...>;
       grid().update_diff_stencil_coefficients();
       return sampler_t{*this};
     }

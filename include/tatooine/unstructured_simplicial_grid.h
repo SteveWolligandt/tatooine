@@ -95,9 +95,9 @@ struct parent<Mesh, Real, 3, 2> : pointset<Real, 3>,
                                   ray_intersectable<Real, 3> {
   using parent_pointset_t          = pointset<Real, 3>;
   using parent_ray_intersectable_t = ray_intersectable<Real, 3>;
-  using real_t                     = Real;
-  using typename pointset<real_t, 3>::vertex_handle;
-  using hierarchy_t = hierarchy<Mesh, real_t, 3, 2>;
+  using real_type                     = Real;
+  using typename pointset<real_type, 3>::vertex_handle;
+  using hierarchy_t = hierarchy<Mesh, real_type, 3, 2>;
   using const_simplex_at_return_type =
       simplex_at_return_type_t<vertex_handle const&, 3>;
   using simplex_at_return_type = simplex_at_return_type_t<vertex_handle&, 3>;
@@ -112,11 +112,11 @@ struct parent<Mesh, Real, 3, 2> : pointset<Real, 3>,
     return *dynamic_cast<Mesh const*>(this);
   }
   //----------------------------------------------------------------------------
-  auto check_intersection(ray_t const& r, real_t const min_t = 0) const
+  auto check_intersection(ray_t const& r, real_type const min_t = 0) const
       -> optional_intersection_t override {
     constexpr double eps          = 1e-6;
     auto const&      grid         = as_grid();
-    auto             global_min_t = std::numeric_limits<real_t>::max();
+    auto             global_min_t = std::numeric_limits<real_type>::max();
     auto             inters       = optional_intersection_t{};
     if (!grid.m_hierarchy) {
       grid.build_hierarchy();
@@ -151,7 +151,7 @@ struct parent<Mesh, Real, 3, 2> : pointset<Real, 3>,
       }
 
       auto const t                 = dot(v0v2, qvec) * inv_det;
-      auto const barycentric_coord = vec<real_t, 3>{1 - u - v, u, v};
+      auto const barycentric_coord = vec<real_type, 3>{1 - u - v, u, v};
       if (t > min_t) {
         auto const pos = barycentric_coord(0) * v0 + barycentric_coord(1) * v1 +
                          barycentric_coord(2) * v2;
@@ -179,15 +179,16 @@ struct unstructured_simplicial_grid
     : detail::unstructured_simplicial_grid::parent<
           unstructured_simplicial_grid<Real, NumDimensions, SimplexDim>, Real,
           NumDimensions, SimplexDim> {
-  using this_t = unstructured_simplicial_grid<Real, NumDimensions, SimplexDim>;
+  using this_type = unstructured_simplicial_grid<Real, NumDimensions, SimplexDim>;
+  using real_type = Real;
   using parent_t =
-      detail::unstructured_simplicial_grid::parent<this_t, Real, NumDimensions,
+      detail::unstructured_simplicial_grid::parent<this_type, Real, NumDimensions,
                                                    SimplexDim>;
   friend struct detail::unstructured_simplicial_grid::parent<
-      this_t, Real, NumDimensions, SimplexDim>;
+      this_type, Real, NumDimensions, SimplexDim>;
   using parent_t::at;
   using parent_t::num_dimensions;
-  using typename parent_t::pos_t;
+  using typename parent_t::pos_type;
   using typename parent_t::vertex_handle;
   using parent_t::operator[];
   using parent_t::insert_vertex;
@@ -212,7 +213,7 @@ struct unstructured_simplicial_grid
    private:
     using grid_t =
         unstructured_simplicial_grid<Real, NumDimensions, SimplexDim>;
-    using this_t = vertex_property_sampler_t<T>;
+    using this_type = vertex_property_sampler_t<T>;
 
     grid_t const&               m_grid;
     vertex_property_t<T> const& m_prop;
@@ -225,13 +226,13 @@ struct unstructured_simplicial_grid
     auto grid() const -> auto const& { return m_grid; }
     auto property() const -> auto const& { return m_prop; }
     //--------------------------------------------------------------------------
-    [[nodiscard]] auto evaluate(pos_t const& x, real_t const /*t*/) const -> T {
+    [[nodiscard]] auto evaluate(pos_type const& x, real_type const /*t*/) const -> T {
       return evaluate(x,
                       std::make_index_sequence<num_vertices_per_simplex()>{});
     }
     //--------------------------------------------------------------------------
     template <std::size_t... VertexSeq>
-    [[nodiscard]] auto evaluate(pos_t const& x,
+    [[nodiscard]] auto evaluate(pos_type const& x,
                                 std::index_sequence<VertexSeq...> /*seq*/) const
         -> T {
       auto simplex_handles = m_grid.hierarchy().nearby_simplices(x);
@@ -263,7 +264,7 @@ struct unstructured_simplicial_grid
           b(r) = x(r) - m_grid[std::get<0>(vs)](r);
         }
         auto const   barycentric_coord = solve(A, b);
-        real_t const eps               = 1e-8;
+        Real const eps               = 1e-8;
         if (((barycentric_coord(VertexSeq) >= -eps) && ...) &&
             ((barycentric_coord(VertexSeq) <= 1 + eps) && ...)) {
           return (
@@ -346,7 +347,7 @@ struct unstructured_simplicial_grid
     read(path);
   }
   //----------------------------------------------------------------------------
-  unstructured_simplicial_grid(std::initializer_list<pos_t>&& vertices)
+  unstructured_simplicial_grid(std::initializer_list<pos_type>&& vertices)
       : parent_t{std::move(vertices)} {}
   //----------------------------------------------------------------------------
   explicit unstructured_simplicial_grid(
@@ -522,7 +523,7 @@ struct unstructured_simplicial_grid
     return vi;
   }
   //----------------------------------------------------------------------------
-  auto insert_vertex(pos_t const& v) {
+  auto insert_vertex(pos_type const& v) {
     auto const vi = parent_t::insert_vertex(v);
     // if (m_hierarchy != nullptr) {
     //  if (!m_hierarchy->insert_vertex(vi.index())) {
@@ -532,7 +533,7 @@ struct unstructured_simplicial_grid
     return vi;
   }
   //----------------------------------------------------------------------------
-  auto insert_vertex(pos_t&& v) {
+  auto insert_vertex(pos_type&& v) {
     auto const vi = parent_t::insert_vertex(std::move(v));
     // if (m_hierarchy != nullptr) {
     //  if (!m_hierarchy->insert_vertex(vi.index())) {
@@ -752,11 +753,11 @@ struct unstructured_simplicial_grid
   }
   //----------------------------------------------------------------------------
   auto scalar_simplex_property(std::string const& name) const -> auto const& {
-    return simplex_property<tatooine::real_t>(name);
+    return simplex_property<tatooine::real_number>(name);
   }
   //----------------------------------------------------------------------------
   auto scalar_simplex_property(std::string const& name) -> auto& {
-    return simplex_property<tatooine::real_t>(name);
+    return simplex_property<tatooine::real_number>(name);
   }
   //----------------------------------------------------------------------------
   auto vec2_simplex_property(std::string const& name) const -> auto const& {
@@ -1413,7 +1414,7 @@ unstructured_simplicial_grid(std::string const&)
     ->unstructured_simplicial_grid<double, 3>;
 template <typename... Dims>
 unstructured_simplicial_grid(rectilinear_grid<Dims...> const& g)
-    -> unstructured_simplicial_grid<typename rectilinear_grid<Dims...>::real_t,
+    -> unstructured_simplicial_grid<typename rectilinear_grid<Dims...>::real_type,
                                     sizeof...(Dims)>;
 //==============================================================================
 namespace detail::unstructured_simplicial_grid {
@@ -1514,7 +1515,7 @@ auto size(simplex_container<Real, NumDimensions, SimplexDim> simplices) {
 //    std::size_t num_pts = 0;
 //    std::size_t cur_first = 0;
 //    for (auto const& m : grids) { num_pts += m.vertices().size(); }
-//    std::vector<std::array<typename MeshCont::value_type::real_t, 3>>
+//    std::vector<std::array<typename MeshCont::value_type::real_type, 3>>
 //    points; std::vector<std::vector<std::size_t>> simplices;
 //    points.reserve(num_pts); simplices.reserve(grids.size());
 //

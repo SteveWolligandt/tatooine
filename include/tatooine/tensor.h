@@ -15,8 +15,8 @@ template <arithmetic_or_complex T, size_t... Dims>
 struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,
                 static_multidim_array<T, x_fastest, tag::stack, Dims...> {
   //============================================================================
-  using this_t          = tensor<T, Dims...>;
-  using tensor_parent_t = base_tensor<this_t, T, Dims...>;
+  using this_type          = tensor<T, Dims...>;
+  using tensor_parent_t = base_tensor<this_type, T, Dims...>;
   using value_type      = typename tensor_parent_t::value_type;
   using array_parent_t =
       static_multidim_array<T, x_fastest, tag::stack, Dims...>;
@@ -122,22 +122,22 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,
     return *this;
   }
   //----------------------------------------------------------------------------
-  static constexpr auto zeros() { return this_t{tag::fill<T>{0}}; }
+  static constexpr auto zeros() { return this_type{tag::fill<T>{0}}; }
   //----------------------------------------------------------------------------
-  static constexpr auto ones() { return this_t{tag::fill<T>{1}}; }
+  static constexpr auto ones() { return this_type{tag::fill<T>{1}}; }
   //----------------------------------------------------------------------------
-  static constexpr auto fill(T const& t) { return this_t{tag::fill<T>{t}}; }
+  static constexpr auto fill(T const& t) { return this_type{tag::fill<T>{t}}; }
   //----------------------------------------------------------------------------
   template <typename RandEng = std::mt19937_64>
   static constexpr auto randu(T min = 0, T max = 1,
                               RandEng&& eng = RandEng{std::random_device{}()}) {
-    return this_t{random::uniform{min, max, std::forward<RandEng>(eng)}};
+    return this_type{random::uniform{min, max, std::forward<RandEng>(eng)}};
   }
   //----------------------------------------------------------------------------
   template <typename RandEng = std::mt19937_64>
   static constexpr auto randn(T mean = 0, T stddev = 1,
                               RandEng&& eng = RandEng{std::random_device{}()}) {
-    return this_t{random::normal<T>{eng, mean, stddev}};
+    return this_type{random::normal<T>{eng, mean, stddev}};
   }
   //----------------------------------------------------------------------------
   template <typename OtherT>
@@ -160,7 +160,7 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,
   }
 };
 template <std::size_t... Dimensions>
-using Tensor = tensor<real_t, Dimensions...>;
+using Tensor = tensor<real_number, Dimensions...>;
 
 using tensor222    = Tensor<2, 2, 2>;
 using tensor222    = Tensor<2, 2, 2>;

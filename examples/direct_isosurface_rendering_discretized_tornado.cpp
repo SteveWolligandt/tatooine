@@ -14,7 +14,7 @@ auto direct_iso_discretized_tornado() {
   auto&        discretized_velocity = discretize(v, discretized_domain, "v", 0);
   auto         discretized_jacobian = diff(discretized_velocity);
   auto&        discretized_Q = discretized_domain.scalar_vertex_property("Q");
-  real_t const t             = 0;
+  real_type const t             = 0;
   discretized_domain.vertices().iterate_indices(
       [&](auto const... is) {
         mat3 const J         = discretized_jacobian(is...);
@@ -30,9 +30,9 @@ auto direct_iso_discretized_tornado() {
   auto const                    up     = vec3{0, 0, 1};
   auto const                    fov    = 60;
   rendering::perspective_camera cam{eye, lookat, up, fov, width, height};
-  real_t const                  min      = 0.0;
-  real_t const                  max      = 1.0;
-  real_t const                  isovalue = 0.1;
+  real_type const                  min      = 0.0;
+  real_type const                  max      = 1.0;
+  real_type const                  isovalue = 0.1;
 
   auto Q_sampler = discretized_Q.linear_sampler();
   auto shader    = [&](auto const& x_iso, auto const& gradient,
@@ -43,7 +43,7 @@ auto direct_iso_discretized_tornado() {
     auto const spec_dot = std::max(std::abs(dot(reflect_dir, view_dir)), 0.0);
     auto const specular = std::pow(spec_dot, 100);
     auto const scalar =
-        std::clamp<real_t>((length(v)(x_iso, t) - min) / (max - min), 0, 1);
+        std::clamp<real_type>((length(v)(x_iso, t) - min) / (max - min), 0, 1);
     auto const albedo = color_scale(scalar);
     auto const col    = albedo * diffuse + specular;
     return vec{col(0), col(1), col(2), scalar * scalar};

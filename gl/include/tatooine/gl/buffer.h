@@ -381,7 +381,7 @@ class buffer : public id_holder<GLuint> {
   constexpr static GLsizei     array_type = _array_type;
   constexpr static std::size_t data_size  = sizeof(T);
 
-  using this_t = buffer<array_type, T>;
+  using this_type = buffer<array_type, T>;
   using data_t = T;
 
   using relement_t  = rbuffer_map_element<array_type, T>;
@@ -422,7 +422,7 @@ class buffer : public id_holder<GLuint> {
   void        bind() const;
   static void unbind();
 
-  void copy(const this_t& other);
+  void copy(const this_type& other);
 
   [[nodiscard]] auto empty() const -> bool { return m_size == 0; }
   [[nodiscard]] auto size() const { return m_size; }
@@ -593,7 +593,7 @@ void buffer<array_type, T>::upload_data(const std::vector<T>& data) {
 template <GLsizei array_type, typename T>
 void buffer<array_type, T>::reserve(std::size_t size) {
   if (capacity() < size) {
-    this_t tmp(*this);
+    this_type tmp(*this);
     gpu_malloc(size);
     copy(tmp);
   }
@@ -649,7 +649,7 @@ void buffer<array_type, T>::unbind() {
 }
 //------------------------------------------------------------------------------
 template <GLsizei array_type, typename T>
-void buffer<array_type, T>::copy(const this_t& other) {
+void buffer<array_type, T>::copy(const this_type& other) {
   if (capacity() < other.size()) {
     gpu_malloc(other.size());
   }
@@ -677,7 +677,7 @@ template <typename... Ts>
 void buffer<array_type, T>::emplace_back(Ts&&... ts) {
   if (m_capacity < m_size + 1) {
     // reallocate
-    this_t tmp(*this);
+    this_type tmp(*this);
     gpu_malloc(m_size * 2.0);
     copy(tmp);
   }

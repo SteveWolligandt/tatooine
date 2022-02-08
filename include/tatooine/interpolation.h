@@ -20,7 +20,7 @@ struct linear {
   //----------------------------------------------------------------------------
  public:
   static constexpr size_t num_derivatives = 0;
-  using real_t                            = Real;
+  using real_type                            = Real;
   using polynomial_t                      = tatooine::polynomial<Real, 1>;
   static constexpr size_t num_dimensions() { return 1; }
   static_assert(is_floating_point<Real>);
@@ -63,7 +63,7 @@ struct linear<tensor<Real, N>> {
   //----------------------------------------------------------------------------
  public:
   static constexpr size_t num_derivatives = 0;
-  using real_t                            = Real;
+  using real_type                            = Real;
   using vec_t                             = vec<Real, N>;
   using polynomial_t                      = tatooine::polynomial<Real, 1>;
   using polynomial_array_t                = std::array<polynomial_t, N>;
@@ -127,7 +127,7 @@ struct linear<vec<Real, N>> : linear<tensor<Real, N>> {
 template <typename Real>
 struct cubic : polynomial<Real, 3> {
   static constexpr size_t num_derivatives = 1;
-  using real_t                            = Real;
+  using real_type                            = Real;
   using parent_type                          = tatooine::polynomial<Real, 3>;
   static constexpr size_t num_dimensions() { return 1; }
   static_assert(is_floating_point<Real>);
@@ -168,7 +168,7 @@ struct cubic<tensor<Real, N>> {
   //----------------------------------------------------------------------------
  public:
   static constexpr size_t num_derivatives = 1;
-  using real_t                            = Real;
+  using real_type                            = Real;
   using vec_t                             = vec<Real, N>;
   using polynomial_t                      = tatooine::polynomial<Real, 3>;
   using polynomial_array_t                = std::array<polynomial_t, N>;
@@ -201,7 +201,7 @@ struct cubic<tensor<Real, N>> {
                   const vec_t& dft1_dt)
       : cubic{ft0, ft1, dft0_dt, dft1_dt, std::make_index_sequence<N>{}} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr cubic(real_t const t0, real_t const t1, const vec_t& ft0,
+  constexpr cubic(real_type const t0, real_type const t1, const vec_t& ft0,
                   const vec_t& ft1, const vec_t& dft0_dt,
                   const vec_t& dft1_dt) {
     mat<Real, 4, N> B;
@@ -244,7 +244,7 @@ struct cubic<vec<Real, N>> : cubic<tensor<Real, N>> {
 template <typename Real>
 struct quintic {
   static constexpr size_t num_derivatives = 2;
-  using real_t                            = Real;
+  using real_type                            = Real;
   using polynomial_t                      = tatooine::polynomial<Real, 5>;
   static constexpr size_t num_dimensions() { return 1; }
   static_assert(std::is_arithmetic<Real>::value);
@@ -317,7 +317,7 @@ struct quintic {
 //  //----------------------------------------------------------------------------
 // public:
 //  static constexpr size_t num_derivatives = 1;
-//  using real_t                            = Real;
+//  using real_type                            = Real;
 //  using vec_t                             = vec<Real, N>;
 //  using polynomial_line_t                 = tatooine::polynomial_line<Real, N, 3>;
 //  static constexpr size_t num_dimensions() {
@@ -368,7 +368,7 @@ struct quintic {
 //                ddft1_dtt,
 //                std::make_index_sequence<N>{}} {}
 //  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-//  - constexpr quintic(real_t const t0, real_t const t1, const vec_t& ft0,
+//  - constexpr quintic(real_type const t0, real_type const t1, const vec_t& ft0,
 //                    const vec_t& ft1, const vec_t& dft0_dt,
 //                    const vec_t& dft1_dt, const vec_t& ddft0_dtt,
 //                    const vec_t& ddft1_dtt) {

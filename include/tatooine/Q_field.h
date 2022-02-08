@@ -8,17 +8,17 @@ namespace tatooine {
 //==============================================================================
 template <typename V>
 class Q_field
-    : public scalarfield<Q_field<V>, field_real_t<V>, field_num_dimensions<V>> {
+    : public scalarfield<Q_field<V>, field_real_type<V>, field_num_dimensions<V>> {
   //============================================================================
   // typedefs
   //============================================================================
  public:
-  using this_t = Q_field<V>;
+  using this_type = Q_field<V>;
   using parent_type =
-      scalarfield<this_t, field_real_t<V>, field_num_dimensions<V>>;
-  using typename parent_type::real_t;
-  using typename parent_type::pos_t;
-  using typename parent_type::tensor_t;
+      scalarfield<this_type, field_real_type<V>, field_num_dimensions<V>>;
+  using typename parent_type::real_type;
+  using typename parent_type::pos_type;
+  using typename parent_type::tensor_type;
   //============================================================================
   // fields
   //============================================================================
@@ -41,14 +41,14 @@ class Q_field
   //============================================================================
   // methods
   //============================================================================
-  constexpr auto evaluate(pos_t const& x, real_t const t) const -> tensor_t {
+  constexpr auto evaluate(pos_type const& x, real_type const t) const -> tensor_type {
     auto J     = diff(m_v, 1e-7)(x, t);
     auto S     = (J + transposed(J)) / 2;
     auto Omega = (J - transposed(J)) / 2;
     return (sqr_norm(Omega, 2) - sqr_norm(S, 2)) / 2;
   }
   //----------------------------------------------------------------------------
-  constexpr auto in_domain(pos_t const& x, real_t const t) const -> bool {
+  constexpr auto in_domain(pos_type const& x, real_type const t) const -> bool {
     return m_v.in_domain(x, t);
   }
 };

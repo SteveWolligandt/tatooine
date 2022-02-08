@@ -9,11 +9,11 @@ namespace tatooine::analytical::fields::numerical {
 /// Double Gyre dataset
 template <typename Real>
 struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
-  using this_t   = doublegyre<Real>;
-  using parent_type = vectorfield<this_t, Real, 2>;
-  using typename parent_type::pos_t;
-  using typename parent_type::real_t;
-  using typename parent_type::tensor_t;
+  using this_type   = doublegyre<Real>;
+  using parent_type = vectorfield<this_type, Real, 2>;
+  using typename parent_type::pos_type;
+  using typename parent_type::real_type;
+  using typename parent_type::tensor_type;
   //============================================================================
   static constexpr auto pi = std::numbers::pi_v<Real>;
   //============================================================================
@@ -33,8 +33,8 @@ struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
   //------------------------------------------------------------------------------
   ~doublegyre() override = default;
   //----------------------------------------------------------------------------
-  [[nodiscard]] constexpr auto evaluate(pos_t const& x, Real const t) const
-      -> tensor_t {
+  [[nodiscard]] constexpr auto evaluate(pos_type const& x, Real const t) const
+      -> tensor_type {
     if (!m_infinite_domain && (x(0) < 0 || x(0) > 2 || x(1) < 0 || x(1) > 1)) {
       return parent_type::ood_tensor();
     }
@@ -66,8 +66,8 @@ struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr auto set_A(Real const A) { m_A = A; }
 };
-
-doublegyre()->doublegyre<real_t>;
+//==============================================================================
+doublegyre()->doublegyre<real_number>;
 //==============================================================================
 }  // namespace tatooine::analytical::fields::numerical
 //==============================================================================

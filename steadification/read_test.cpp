@@ -3,9 +3,9 @@
 #include <Tatooine/regular_grid.h>
 
 static std::string dataset_dir = DATASET_DIR;
-using real_t                   = double;
+using real_type                   = double;
 using grid_t =
-    tatooine::regular_grid_sampler<2, real_t, tatooine::Vec<real_t, 2>,
+    tatooine::regular_grid_sampler<2, real_type, tatooine::Vec<real_type, 2>,
                                    tatooine::interpolation::hermite,
                                    tatooine::interpolation::hermite>;
 
@@ -47,7 +47,7 @@ auto load_grids() {
 //------------------------------------------------------------------------------
 
 auto load_times() {
-  std::vector<real_t> times;
+  std::vector<real_type> times;
 
   std::ifstream times_file(dataset_dir + "flapping_wing/vtk/times.txt");
   std::string   line;

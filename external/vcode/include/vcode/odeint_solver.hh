@@ -34,13 +34,13 @@ struct ode_t {
   static_assert(std::is_floating_point<R>::value,
                 "expect floating point type R");
 
-  using real_t = R;
+  using real_type = R;
   using vec_t = V;
 
   //---------------------------------------------------------------------------
 
-  using helper = detail::helper_t<vec_t, real_t>;
-  using output_t = detail::output_t<vec_t, real_t>;
+  using helper = detail::helper_t<vec_t, real_type>;
+  using output_t = detail::output_t<vec_t, real_type>;
 
   template <typename Sink>
   using sink_t = typename output_t::template sink_t<Sink>;
@@ -55,7 +55,7 @@ struct ode_t {
   static constexpr bool normcontrol() { return NormControl; }
 
   static auto norm(const vec_t& _v) {
-    if constexpr (std::is_same<vec_t, real_t>::value)
+    if constexpr (std::is_same<vec_t, real_type>::value)
       return std::abs(_v);
     else if constexpr (normcontrol())
       return vector_operations_t<vec_t>::norm2(_v);
@@ -64,37 +64,37 @@ struct ode_t {
   }
 
   static auto abs(const vec_t& _v) {
-    if constexpr (std::is_same<vec_t, real_t>::value)
+    if constexpr (std::is_same<vec_t, real_type>::value)
       return std::abs(_v);
     else
       return vector_operations_t<vec_t>::abs(_v);
   }
   static auto max(const vec_t& _x, const vec_t& _y) {
-    if constexpr (std::is_same<vec_t, real_t>::value)
+    if constexpr (std::is_same<vec_t, real_type>::value)
       return std::max(_x, _y);
     else
       return vector_operations_t<vec_t>::max(_x, _y);
   }
 
-  static auto qurt(real_t _x) { // x^(1/4)
+  static auto qurt(real_type _x) { // x^(1/4)
     assert(_x >=0);
     return std::sqrt(std::sqrt(_x));
   }
 
   template <int P>
-  static auto rt(real_t _x) { // x^(1/P)
+  static auto rt(real_type _x) { // x^(1/P)
     assert(_x >=0);
     static_assert(P >= 1, "expect positive P");
     if constexpr(P == 1) return _x;
     if constexpr(P == 2) return sqrt(_x);
     if constexpr(P == 3) return cbrt(_x);
     if constexpr(P == 4) return qurt(_x);
-    else                 return pow(_x, real_t(1)/P);
+    else                 return pow(_x, real_type(1)/P);
   }
 
-  auto static constexpr INF = std::numeric_limits<real_t>::infinity();
-  auto static constexpr EPS = std::numeric_limits<real_t>::epsilon();
-  auto static constexpr RHO = real_t(0.8);
+  auto static constexpr INF = std::numeric_limits<real_type>::infinity();
+  auto static constexpr EPS = std::numeric_limits<real_type>::epsilon();
+  auto static constexpr RHO = real_type(0.8);
 
   //---------------------------------------------------------------------------
 
@@ -103,14 +103,14 @@ struct ode_t {
     return options_t { std::forward<Args>(args)... };
   }
 
-  using options_t = options::odeopts_t<real_t>;
+  using options_t = options::odeopts_t<real_type>;
 
   using maybe_vec = maybe<vec_t>;
-  using maybe_real = maybe<real_t>;
+  using maybe_real = maybe<real_type>;
 
   //---------------------------------------------------------------------------
 
-  using spline_t = hermite::spline_t<vec_t, real_t>;
+  using spline_t = hermite::spline_t<vec_t, real_type>;
 
   //---------------------------------------------------------------------------
 
@@ -119,12 +119,12 @@ struct ode_t {
   template <typename Stepper>
   struct solver_t : public Stepper {
 
-    real_t t;
-    real_t tdir;
-    real_t tfinal;
-    real_t tnew;
-    real_t absh;
-    real_t relerr;
+    real_type t;
+    real_type tdir;
+    real_type tfinal;
+    real_type tnew;
+    real_type absh;
+    real_type relerr;
 
     int nsteps = 0;
     evstate_t state = evstate_t::UNINITIALIZED;
@@ -138,13 +138,13 @@ struct ode_t {
 
     solver_t(const options_t& _opts = options_t{}) : opts(_opts) {}
 
-    real_t h() const { return tdir * absh; }
+    real_type h() const { return tdir * absh; }
     bool done() const { return this->t == this->tfinal; }
 
-    real_t hmin() const { return (16*EPS)*std::abs(t); }
+    real_type hmin() const { return (16*EPS)*std::abs(t); }
 
     /// Is `_t` in interval `[t, tnew]`?
-    bool is_inside(real_t _t) const {
+    bool is_inside(real_type _t) const {
       if (tdir>0) return t <= _t && _t <= tnew;
       else        return tnew <= _t && _t <= t;
     }
@@ -155,7 +155,7 @@ struct ode_t {
 
     template <bool OnlyValue=false>
     auto hermite_interpolator() const {
-      return hermite::interpolator_t<vec_t, real_t, OnlyValue> {
+      return hermite::interpolator_t<vec_t, real_type, OnlyValue> {
         this->y, this->dy, this->ynew, this->dynew, t, tnew
       };
     }
@@ -173,30 +173,30 @@ struct ode_t {
 
     //-------------------------------------------------------------------------
 
-    static constexpr real_t AY = 1;
-    static constexpr real_t ADY = 1;
+    static constexpr real_type AY = 1;
+    static constexpr real_type ADY = 1;
 
     vec_t scale(const vec_t& _absy) const {
       return (AY * abs(_absy)) * opts.rtol + opts.atol;
     }
-    vec_t scale(const vec_t& _absy, const vec_t& _absdy, real_t _absh = 1) const {
+    vec_t scale(const vec_t& _absy, const vec_t& _absdy, real_type _absh = 1) const {
       return (AY * _absy + ADY * _absh * abs(_absdy)) * opts.rtol + opts.atol;
     }
 
-    real_t scaled_norm(const vec_t& _y) const {
+    real_type scaled_norm(const vec_t& _y) const {
       return scaled_norm(_y, scale(abs(_y)));
     }
-    real_t scaled_norm(const vec_t& _y, const vec_t _scale) const {
+    real_type scaled_norm(const vec_t& _y, const vec_t _scale) const {
       if constexpr (normcontrol()) {
-        return norm((_y/_scale)*(real_t(1)/dim())); // RMS
+        return norm((_y/_scale)*(real_type(1)/dim())); // RMS
       }
       else {
         return norm(_y/_scale);
       }
     }
 
-    static constexpr real_t RHO = real_t(0.8); // safety factor
-    static constexpr real_t MAXTRIES = 100;    // for single step
+    static constexpr real_type RHO = real_type(0.8); // safety factor
+    static constexpr real_type MAXTRIES = 100;    // for single step
 
     // TODO: provide also a simpler initialization (w/ only one evaluation at (t0,y0))
 
@@ -211,23 +211,23 @@ struct ode_t {
         https://github.com/JuliaDiffEq/ODE.jl/blob/master/src/ODE.jl
      */
     template <typename DY>
-    real_t guess_inital_step_size(DY&& _dy) {
+    real_type guess_inital_step_size(DY&& _dy) {
       assert(state == evstate_t::OK);
 
-      real_t normy = norm(this->y);
-      real_t tau = std::max(opts.rtol * normy, opts.atol);
+      real_type normy = norm(this->y);
+      real_type tau = std::max(opts.rtol * normy, opts.atol);
       // Note: This is not exactly scaled_norm() (Hairer: same norm).
       //       Should be good enough.
 
-      real_t d0 = normy / tau;
-      real_t d1 = norm(this->dy) / tau;
+      real_type d0 = normy / tau;
+      real_type d1 = norm(this->dy) / tau;
 
-      real_t h0;
+      real_type h0;
 
-      if ((d0 < real_t(1e-5)) || (d1 < real_t(1e-5)))
+      if ((d0 < real_type(1e-5)) || (d1 < real_type(1e-5)))
         h0 = 1e-6;
       else
-        h0 = (d0/d1)*real_t(0.01);
+        h0 = (d0/d1)*real_type(0.01);
 
       // perform Euler step
 
@@ -243,23 +243,23 @@ struct ode_t {
 
       // estimate second derivative
 
-      real_t d2 = norm(dy1 - this->dy)/(tau*h0);
+      real_type d2 = norm(dy1 - this->dy)/(tau*h0);
 
-      real_t h1;
+      real_type h1;
 
-      if (std::max(d1, d2) <= real_t(1e-15)) {
-        h1 = std::max(real_t(1e-6), real_t(1e-3) * h0);
+      if (std::max(d1, d2) <= real_type(1e-15)) {
+        h1 = std::max(real_type(1e-6), real_type(1e-3) * h0);
       }
       else {
-        h1 = rt<stepper_t::order1()>(real_t(0.01)/std::max(d1, d2));
+        h1 = rt<stepper_t::order1()>(real_type(0.01)/std::max(d1, d2));
       }
 
-      real_t hguess = tdir*std::min(std::min(100*h0, h1), tdir*(tfinal-t));
+      real_type hguess = tdir*std::min(std::min(100*h0, h1), tdir*(tfinal-t));
 
       return hguess;
     }
 
-    real_t relative_error(const vec_t& _yerr) const {
+    real_type relative_error(const vec_t& _yerr) const {
       vec_t absy = max(abs(this->y), abs(this->ynew));
 
       return scaled_norm(_yerr, scale(absy, abs(this->dy), absh));
@@ -269,13 +269,13 @@ struct ode_t {
     }
 
     bool is_acceptable() const {
-      static constexpr real_t THRESHOLD = real_t(1.1);
+      static constexpr real_type THRESHOLD = real_type(1.1);
 
       return relerr <= THRESHOLD;
     }
 
-    real_t decreased_step_size() const {
-      static constexpr real_t MINSCALE = 0.2;
+    real_type decreased_step_size() const {
+      static constexpr real_type MINSCALE = 0.2;
 
       constexpr int P = stepper_t::order0();
       auto scale = RHO / rt<P>(relerr);          // TODO: check !!!
@@ -283,9 +283,9 @@ struct ode_t {
       return absh * std::max(MINSCALE, scale);
     }
 
-    real_t increased_step_size() const {
-      static constexpr real_t MAXSCALE = 5;
-      static constexpr real_t THRESHOLD_INCREASE = 0.5;
+    real_type increased_step_size() const {
+      static constexpr real_type MAXSCALE = 5;
+      static constexpr real_type THRESHOLD_INCREASE = 0.5;
 
       if ((relerr < THRESHOLD_INCREASE) && (absh < opts.hmax)) {
         // Don't increase if absh was capped to hmax.
@@ -293,13 +293,13 @@ struct ode_t {
         auto scale = RHO / rt<Q>(relerr);         // TODO: check !!!
         assert(scale/RHO > 1); // TODO: just cap?
         return std::min(opts.hmax,
-                        absh * std::max(std::min(MAXSCALE, scale), real_t(1)));
+                        absh * std::max(std::min(MAXSCALE, scale), real_type(1)));
       }
       return absh;
     }
 
-    real_t bisected_step_size() const {
-      static constexpr real_t BISECTION_FACTOR = 0.25;
+    real_type bisected_step_size() const {
+      static constexpr real_type BISECTION_FACTOR = 0.25;
 
       return absh * BISECTION_FACTOR;
     }
@@ -314,19 +314,19 @@ struct ode_t {
           decreases `hmax`
         \return new time `t+h()` or `tfinal`; stretching changes `absh`
      */
-    real_t reach_destination() {
-      static constexpr real_t STRETCH_FINAL = 1.1;
+    real_type reach_destination() {
+      static constexpr real_type STRETCH_FINAL = 1.1;
 
       assert(STRETCH_FINAL > 0);
 
-      auto s = std::max(STRETCH_FINAL, real_t(1));
+      auto s = std::max(STRETCH_FINAL, real_type(1));
 
       if (s * absh > std::abs(tfinal - t)) {
         if (s >= 1) {
           return tfinal;
         }
         else if (STRETCH_FINAL * absh < std::abs(tfinal - t)) {
-          return t + h() * std::min(STRETCH_FINAL, real_t(0.5));
+          return t + h() * std::min(STRETCH_FINAL, real_type(0.5));
         }
         else {
           return tfinal;
@@ -343,7 +343,7 @@ struct ode_t {
         \param _y0 start point
      */
     template <typename DY>
-    auto initialize(DY&& _dy, real_t _t0, real_t _t1, const vec_t& _y0) {
+    auto initialize(DY&& _dy, real_type _t0, real_type _t1, const vec_t& _y0) {
       state = evstate_t::OK;
 
       this->t = _t0;
@@ -367,7 +367,7 @@ struct ode_t {
       this->dynew = this->dy;
       this->tnew = this->t;
 
-      real_t hinit = opts.h0 > 0 ? opts.h0 : guess_inital_step_size(_dy);
+      real_type hinit = opts.h0 > 0 ? opts.h0 : guess_inital_step_size(_dy);
       absh = std::abs(hinit);
 
       return evstate_t::OK;
@@ -380,7 +380,7 @@ struct ode_t {
       tnew = this->reach_destination();
       absh = std::abs(tnew-t);
 
-      real_t hmin = this->hmin();
+      real_type hmin = this->hmin();
 
       ++nsteps;
 
@@ -557,7 +557,7 @@ struct ode_t {
         \param _output optional output function
      */
     template <typename DY, typename Output>
-    auto integrate(DY&& _dy, real_t _t0, real_t _t1, const vec_t& _y0,
+    auto integrate(DY&& _dy, real_type _t0, real_type _t1, const vec_t& _y0,
                    Output&& _output) {
       auto result = initialize(std::forward<DY>(_dy), _t0, _t1, _y0);
       if (result != evstate_t::OK)
@@ -567,7 +567,7 @@ struct ode_t {
     }
     /// Initialize solver and integrate `_dy` (calls initialize()).
     template <typename DY>
-    auto integrate(DY&& _dy, real_t _t0, real_t _t1, const vec_t& _y0) {
+    auto integrate(DY&& _dy, real_type _t0, real_type _t1, const vec_t& _y0) {
       return  integrate(std::forward<DY>(_dy), _t0, _t1, _y0,
                         [](const auto&){});
     }
@@ -612,22 +612,22 @@ struct ode_t {
    */
 
   /// Generate dense() output at uniform steps of size `_delta`.
-  static auto generate(real_t _delta) {
+  static auto generate(real_type _delta) {
     using generator::generator_t, generator::tag_t;
-    return generator_t<tag_t::uniform_delta_steps, real_t>(_delta);
+    return generator_t<tag_t::uniform_delta_steps, real_type>(_delta);
   }
 
   /// Generate dense() output at `_n` steps with uniform step size.
   static auto generate(int _n) {
     using generator::generator_t, generator::tag_t;
-    return generator_t<tag_t::n_uniform_steps, real_t>(_n);
+    return generator_t<tag_t::n_uniform_steps, real_type>(_n);
   }
 
   /// Generate dense() output for times in range.
   template <typename Iterator>
   static auto generate(Iterator _begin, Iterator _end) {
     using generator::generator_t, generator::tag_t;
-    return generator_t<tag_t::time_range, real_t, Iterator> {
+    return generator_t<tag_t::time_range, real_type, Iterator> {
              _begin, _end
            };
   }
@@ -636,7 +636,7 @@ struct ode_t {
   template <typename F>
   static auto generate(F&& _f, int _n){
     using generator::generator_t, generator::tag_t;
-    return generator_t<tag_t::indexed_time_range, real_t, F> {
+    return generator_t<tag_t::indexed_time_range, real_type, F> {
       std::forward<F>(_f), _n
     };
   }
@@ -667,7 +667,7 @@ struct ode_t {
 
   /// Make sink that stores output in Hermite spline.
   static auto sink(spline_t& _spline) {
-    return sink([&](real_t t, const vec_t& y, const vec_t& dy) {
+    return sink([&](real_type t, const vec_t& y, const vec_t& dy) {
                        _spline.push_back(
                            typename spline_t::value_type { t, y, dy });
                      });
@@ -731,7 +731,7 @@ struct ode_t {
      @{
    */
 
-  using rk43_t = steppers::rk43_t<vec_t, real_t>;
+  using rk43_t = steppers::rk43_t<vec_t, real_type>;
 
   auto static solver(rk43_tag, const options_t& _opts = options_t{}) {
     return solver_t<rk43_t>(_opts);

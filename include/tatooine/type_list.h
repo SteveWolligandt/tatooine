@@ -241,24 +241,24 @@ struct type_list_contains_impl<type_list_impl<>, T> : std::false_type {};
 /// \tparam Ts Variadic list of types.
 template <typename... Ts>
 struct type_list_impl {
-  using this_t = type_list_impl<Ts...>;
+  using this_type = type_list_impl<Ts...>;
 
-  using front = type_list_front<this_t>;
-  using back = type_list_back<this_t>;
+  using front = type_list_front<this_type>;
+  using back = type_list_back<this_type>;
   template <typename T>
-  using push_back = type_list_push_back<this_t, T>;
+  using push_back = type_list_push_back<this_type, T>;
   template <typename T>
-  using push_front = type_list_push_front<this_t, T>;
+  using push_front = type_list_push_front<this_type, T>;
 
-  using pop_back = type_list_pop_back<this_t>;
-  using pop_front = type_list_pop_front<this_t>;
+  using pop_back = type_list_pop_back<this_type>;
+  using pop_front = type_list_pop_front<this_type>;
 
   template <std::size_t I>
-  using at = type_list_at<this_t, I>;
+  using at = type_list_at<this_type, I>;
   template <typename T>
-  static bool constexpr contains = type_list_contains<this_t, T>;
+  static bool constexpr contains = type_list_contains<this_type, T>;
 
-  static auto constexpr size = type_list_size<this_t>;
+  static auto constexpr size = type_list_size<this_type>;
   static bool constexpr empty = size == 0;
 };
 //==============================================================================
@@ -268,17 +268,17 @@ struct type_list_impl {
 /// En empty list cannot be popped nor has it a front or a back.
 template <>
 struct type_list_impl<> {
-  using this_t = type_list_impl<>;
+  using this_type = type_list_impl<>;
 
   template <typename T>
-  using push_back = type_list_push_back<this_t, T>;
+  using push_back = type_list_push_back<this_type, T>;
   template <typename T>
-  using push_front = type_list_push_front<this_t, T>;
+  using push_front = type_list_push_front<this_type, T>;
 
   template <std::size_t I>
-  using at = type_list_at<this_t, I>;
+  using at = type_list_at<this_type, I>;
   template <typename T>
-  static bool constexpr contains = type_list_contains<this_t, T>;
+  static bool constexpr contains = type_list_contains<this_type, T>;
 
   static auto constexpr size = 0;
   static bool constexpr empty = true;

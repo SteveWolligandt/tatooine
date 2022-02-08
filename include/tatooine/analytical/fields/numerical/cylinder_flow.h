@@ -7,22 +7,22 @@ namespace tatooine::numerical {
 //==============================================================================
 template <typename Real>
 struct cylinder_flow : vectorfield<cylinder_flow<Real>, Real, 2> {
-  using this_t = cylinder_flow<Real>;
-  using parent_type = vectorfield<this_t, Real, 2>;
+  using this_type = cylinder_flow<Real>;
+  using parent_type = vectorfield<this_type, Real, 2>;
   //============================================================================
-  using typename parent_type::real_t;
-  using typename parent_type::pos_t;
-  using typename parent_type::tensor_t;
+  using typename parent_type::real_type;
+  using typename parent_type::pos_type;
+  using typename parent_type::tensor_type;
   //============================================================================
-  real_t a = 0;
-  real_t Tc = 1;
-  real_t L = 2;
-  real_t R0 = 1;
-  real_t y0 = 1;
-  real_t alpha = 1;
+  real_type a = 0;
+  real_type Tc = 1;
+  real_type L = 2;
+  real_type R0 = 1;
+  real_type y0 = 1;
+  real_type alpha = 1;
   //============================================================================
-  [[no_discard]] auto evaluate(pos_t const& p, real_t t) const -> tensor_t {
-    real_t const eps = 1e-7;
+  [[no_discard]] auto evaluate(pos_type const& p, real_type t) const -> tensor_type {
+    real_type const eps = 1e-7;
     auto const&  x   = p(0);
     auto const&  y   = p(1);
     auto const   xn  = x - eps;
@@ -68,11 +68,11 @@ struct cylinder_flow : vectorfield<cylinder_flow<Real>, Real, 2> {
     auto const psi_yn = f_yn * g_yn;
     auto const psi_yp = f_yp * g_yp;
 
-    return tensor_t{ (psi_yp - psi_yn) / (2 * eps),
+    return tensor_type{ (psi_yp - psi_yn) / (2 * eps),
                     -(psi_xp - psi_xn) / (2 * eps)};
   }
   //----------------------------------------------------------------------------
-  [[no_discard]] auto in_domain(pos_t const& x, real_t t) const -> bool {
+  [[no_discard]] auto in_domain(pos_type const& x, real_type t) const -> bool {
     if (sqr_length(x) <= 1) { return false; }
     return true;
   }

@@ -84,17 +84,17 @@ auto IO_static_multidim_array() {
 //==============================================================================
 auto IO_tensor() {
   auto path   = filesystem::path{"tensor.h5"};
-  using tensor_t = tensor333;
-  auto t0     = tensor_t::randu();
+  using tensor_type = tensor333;
+  auto t0     = tensor_type::randu();
   {
     auto file    = hdf5::file{path};
-    auto dataset = file.create_dataset<tensor_t>("data", 1);
+    auto dataset = file.create_dataset<tensor_type>("data", 1);
 
     dataset.write(&t0);
   }
   {
     auto file = hdf5::file{path};
-    auto data = file.dataset<tensor_t>("data").read();
+    auto data = file.dataset<tensor_type>("data").read();
 
     auto const& t1        = data(0);
     auto const  iteration = [&](auto const... is) {
@@ -110,7 +110,7 @@ auto IO_tensor() {
 //==============================================================================
 auto IO_ellipse() {
   auto path   = filesystem::path{"ellipse.h5"};
-  using ell_t = geometry::ellipse<real_t>;
+  using ell_t = geometry::ellipse<real_type>;
   auto ell0     = ell_t{};
   {
     auto file    = hdf5::file{path};

@@ -10,15 +10,15 @@ TEST_CASE("derived_field_numerical_doublegyre",
           "[derived_field][numerical][doublegyre]") {
   numerical::doublegyre dg;
   auto                  ddg  = diff(dg);
-  REQUIRE(decltype(ddg)::tensor_t::num_dimensions() == 2);
-  REQUIRE(decltype(ddg)::tensor_t::dimension(0) == 2);
-  REQUIRE(decltype(ddg)::tensor_t::dimension(1) == 2);
+  REQUIRE(decltype(ddg)::tensor_type::num_dimensions() == 2);
+  REQUIRE(decltype(ddg)::tensor_type::dimension(0) == 2);
+  REQUIRE(decltype(ddg)::tensor_type::dimension(1) == 2);
 
   auto                  dddg = diff(ddg);
-  REQUIRE(decltype(dddg)::tensor_t::num_dimensions() == 3);
-  REQUIRE(decltype(dddg)::tensor_t::dimension(0) == 2);
-  REQUIRE(decltype(dddg)::tensor_t::dimension(1) == 2);
-  REQUIRE(decltype(dddg)::tensor_t::dimension(2) == 2);
+  REQUIRE(decltype(dddg)::tensor_type::num_dimensions() == 3);
+  REQUIRE(decltype(dddg)::tensor_type::dimension(0) == 2);
+  REQUIRE(decltype(dddg)::tensor_type::dimension(1) == 2);
+  REQUIRE(decltype(dddg)::tensor_type::dimension(2) == 2);
 }
 
 //==============================================================================
@@ -29,16 +29,16 @@ TEST_CASE("derived_field_symbolic_doublegyre",
 
   auto                   ddg      = diff(dg);
   [[maybe_unused]] auto& ddg_expr = ddg.expr();
-  REQUIRE(decltype(ddg)::tensor_t::num_dimensions() == 2);
-  REQUIRE(decltype(ddg)::tensor_t::dimension(0) == 2);
-  REQUIRE(decltype(ddg)::tensor_t::dimension(1) == 2);
+  REQUIRE(decltype(ddg)::tensor_type::num_dimensions() == 2);
+  REQUIRE(decltype(ddg)::tensor_type::dimension(0) == 2);
+  REQUIRE(decltype(ddg)::tensor_type::dimension(1) == 2);
 
   auto                  dddg      = diff(ddg);
   [[maybe_unused]] auto& dddg_expr = dddg.expr();
-  REQUIRE(decltype(dddg)::tensor_t::num_dimensions() == 3);
-  REQUIRE(decltype(dddg)::tensor_t::dimension(0) == 2);
-  REQUIRE(decltype(dddg)::tensor_t::dimension(1) == 2);
-  REQUIRE(decltype(dddg)::tensor_t::dimension(2) == 2);
+  REQUIRE(decltype(dddg)::tensor_type::num_dimensions() == 3);
+  REQUIRE(decltype(dddg)::tensor_type::dimension(0) == 2);
+  REQUIRE(decltype(dddg)::tensor_type::dimension(1) == 2);
+  REQUIRE(decltype(dddg)::tensor_type::dimension(2) == 2);
 }
 
 //==============================================================================

@@ -18,9 +18,9 @@ template <floating_point Real>
 class perspective_camera
     : public camera_interface<Real, perspective_camera<Real>> {
  public:
-  using real_t   = Real;
-  using this_t   = perspective_camera<Real>;
-  using parent_type = camera_interface<Real, this_t>;
+  using real_type   = Real;
+  using this_type   = perspective_camera<Real>;
+  using parent_type = camera_interface<Real, this_type>;
   using parent_type::aspect_ratio;
   using parent_type::d;
   using parent_type::eye;

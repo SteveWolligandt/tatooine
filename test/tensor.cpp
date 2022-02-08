@@ -672,34 +672,34 @@ TEST_CASE("tensor_diag", "[tensor][diag]") {
   {
     auto V = diag(v);
     CAPTURE(type_name(V));
-    REQUIRE(std::is_reference_v<decltype(V)::tensor_t>);
+    REQUIRE(std::is_reference_v<decltype(V)::tensor_type>);
     REQUIRE_FALSE(
-        std::is_const_v<std::remove_reference_t<decltype(V)::tensor_t>>);
+        std::is_const_v<std::remove_reference_t<decltype(V)::tensor_type>>);
 
     auto IV = *inv(V);
-    REQUIRE_FALSE(std::is_reference_v<decltype(IV)::tensor_t>);
-    REQUIRE_FALSE(std::is_const_v<decltype(IV)::tensor_t>);
+    REQUIRE_FALSE(std::is_reference_v<decltype(IV)::tensor_type>);
+    REQUIRE_FALSE(std::is_const_v<decltype(IV)::tensor_type>);
   }
 
   {
     auto CV = diag(cv);
     CAPTURE(type_name(CV));
-    REQUIRE(std::is_reference_v<decltype(CV)::tensor_t>);
-    REQUIRE(std::is_const_v<std::remove_reference_t<decltype(CV)::tensor_t>>);
+    REQUIRE(std::is_reference_v<decltype(CV)::tensor_type>);
+    REQUIRE(std::is_const_v<std::remove_reference_t<decltype(CV)::tensor_type>>);
 
     auto ICV = *inv(CV);
-    REQUIRE_FALSE(std::is_reference_v<decltype(ICV)::tensor_t>);
-    REQUIRE_FALSE(std::is_const_v<decltype(ICV)::tensor_t>);
+    REQUIRE_FALSE(std::is_reference_v<decltype(ICV)::tensor_type>);
+    REQUIRE_FALSE(std::is_const_v<decltype(ICV)::tensor_type>);
   }
   {
     auto MV = diag(vec{1.0, 2.0, 3.0});
     CAPTURE(type_name(MV));
-    REQUIRE_FALSE(std::is_reference_v<decltype(MV)::tensor_t>);
-    REQUIRE_FALSE(std::is_const_v<decltype(MV)::tensor_t>);
+    REQUIRE_FALSE(std::is_reference_v<decltype(MV)::tensor_type>);
+    REQUIRE_FALSE(std::is_const_v<decltype(MV)::tensor_type>);
 
     auto IMV = *inv(MV);
-    REQUIRE_FALSE(std::is_reference_v<decltype(IMV)::tensor_t>);
-    REQUIRE_FALSE(std::is_const_v<decltype(IMV)::tensor_t>);
+    REQUIRE_FALSE(std::is_reference_v<decltype(IMV)::tensor_type>);
+    REQUIRE_FALSE(std::is_const_v<decltype(IMV)::tensor_type>);
   }
 }
 //==============================================================================
@@ -837,19 +837,19 @@ TEST_CASE("tensor_solve_qr", "[tensor][solve][qr]") {
     }
   }
   SECTION("dynamic size") {
-    using tensor_t = tensor<real_t>;
+    using tensor_type = tensor<real_type>;
     SECTION("[3x2] * x = [3]") {
-      auto const A = tensor_t{{0.558452565029228, 0.588181218880352},
+      auto const A = tensor_type{{0.558452565029228, 0.588181218880352},
                                     {0.310060713289403, 0.745229548770475},
                                     {0.574182859934675, 0.672548212017124}};
       auto const b =
-          tensor_t{0.959108917701253, 0.824089907371562, 0.216504922237786};
+          tensor_type{0.959108917701253, 0.824089907371562, 0.216504922237786};
       auto const x = solve_qr_lapack(A, b);
       REQUIRE(x(0) == Approx(-0.122835608990910));
       REQUIRE(x(1) == Approx(1.063825231297154));
     }
     SECTION("[10x3] * x = [3]") {
-      auto const A = tensor_t{
+      auto const A = tensor_type{
           {8.965093625403926e-01, 3.893250293791598e-01, 3.305594961369532e-01},
           {2.403050248090894e-01, 8.836745625824101e-01, 5.722894106761662e-01},
           {7.146705532712633e-01, 6.140332082043635e-01, 3.042693218568352e-01},
@@ -861,7 +861,7 @@ TEST_CASE("tensor_solve_qr", "[tensor][solve][qr]") {
           {7.201109603362171e-01, 3.773362170594952e-02, 5.093482205989774e-02},
           {9.222061381020611e-01, 4.398406997561723e-01,
            3.150885879908960e-02}};
-      auto const b = tensor_t{
+      auto const b = tensor_type{
           8.833326321826099e-01, 1.096405426335730e-01, 4.346577071588996e-01,
           5.566271839555079e-01, 3.988973169837728e-01, 6.473914675875588e-01,
           6.781564356703795e-01, 1.596150228791643e-01, 6.935348727541041e-01,
@@ -875,16 +875,16 @@ TEST_CASE("tensor_solve_qr", "[tensor][solve][qr]") {
       REQUIRE(x(2) == Approx(0.423926150017107));
     }
     SECTION("[3x2] * X = [3x3]") {
-      auto const A =tensor_t{{5.585869366509278e-01, 2.214462772401433e-01},
+      auto const A =tensor_type{{5.585869366509278e-01, 2.214462772401433e-01},
                          {2.918793314368302e-01, 2.659715516929950e-02},
                          {2.146386150607548e-01, 8.039619985765174e-01}};
       auto const B =
-          tensor_t{{0.279979694746482, 0.315199822433918, 0.111821780748876},
+          tensor_type{{0.279979694746482, 0.315199822433918, 0.111821780748876},
               {0.758387692091753, 0.230406806948115, 0.161407203444348},
               {0.744379569825457, 0.520073661017721, 0.922036927885906}};
 
       auto const X = solve_qr_lapack(A, B);
-      auto const S = tensor_t{{7.737842084745754e-01, 4.482121340398817e-01,
+      auto const S = tensor_type{{7.737842084745754e-01, 4.482121340398817e-01,
                           -9.328850644791921e-02},
                          {6.398173008803022e-01, 5.139792582646610e-01,
                           1.147391148379995e+00}};

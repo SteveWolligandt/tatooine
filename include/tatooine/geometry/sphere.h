@@ -14,7 +14,7 @@ namespace tatooine::geometry {
 //==============================================================================
 template <floating_point Real, size_t N>
 struct sphere : ray_intersectable<Real, N> {
-  using this_t   = sphere<Real, N>;
+  using this_type   = sphere<Real, N>;
   using parent_type = ray_intersectable<Real, N>;
   using vec_t    = vec<Real, N>;
   using typename parent_type::intersection_t;
@@ -228,10 +228,10 @@ auto discretize(sphere<Real, 3> const& s, size_t num_subdivisions = 0) {
   return m;
 }
 //==============================================================================
-using sphere2 = sphere<real_t, 2>;
-using circle = sphere<real_t, 2>;
-using sphere3 = sphere<real_t, 3>;
-using sphere4 = sphere<real_t, 4>;
+using sphere2 = sphere<real_type, 2>;
+using circle = sphere<real_type, 2>;
+using sphere3 = sphere<real_type, 3>;
+using sphere4 = sphere<real_type, 4>;
 //==============================================================================
 }  // namespace tatooine::geometry
 //==============================================================================

@@ -14,12 +14,12 @@ template <floating_point Real>
 using ellipse = hyper_ellipse<Real, 2>;
 //template <floating_point Real>
 //struct ellipse : hyper_ellipse<Real, 2> {
-//  using this_t   = ellipse;
+//  using this_type   = ellipse;
 //  using parent_type = hyper_ellipse<Real, 2>;
 //  using parent_type::parent_type;
 //};
 ////==============================================================================
-//ellipse()->ellipse<real_t>;
+//ellipse()->ellipse<real_type>;
 ////------------------------------------------------------------------------------
 //template <floating_point Real>
 //ellipse(Real const) -> ellipse<Real>;

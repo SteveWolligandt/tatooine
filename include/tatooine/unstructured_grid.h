@@ -12,10 +12,10 @@ namespace tatooine {
 template <typename Real, std::size_t NumDimensions>
 struct unstructured_grid : pointset<Real, NumDimensions> {
  public:
-  using this_t   = unstructured_grid;
+  using this_type   = unstructured_grid;
   using parent_t = pointset<Real, NumDimensions>;
-  using real_t   = Real;
-  using typename parent_t::pos_t;
+  using real_type   = Real;
+  using typename parent_t::pos_type;
   using typename parent_t::vertex_handle;
   template <typename T>
   using vertex_property_t = typename parent_t::template vertex_property_t<T>;
@@ -25,7 +25,7 @@ struct unstructured_grid : pointset<Real, NumDimensions> {
       : boost::iterator_facade<cell_vertex_iterator, vertex_handle,
                                boost::bidirectional_traversal_tag,
                                vertex_handle> {
-    using this_t = cell_vertex_iterator;
+    using this_type = cell_vertex_iterator;
     using grid_t = unstructured_grid;
     cell_vertex_iterator(std::vector<std::size_t>::const_iterator it)
         : m_it{it} {}
@@ -49,7 +49,7 @@ struct unstructured_grid : pointset<Real, NumDimensions> {
   struct cell {
    public:
     friend struct cell_iterator;
-    using this_t         = cell;
+    using this_type         = cell;
     using grid_t         = unstructured_grid;
     using iterator       = cell_vertex_iterator;
     using const_iterator = iterator;
@@ -78,7 +78,7 @@ struct unstructured_grid : pointset<Real, NumDimensions> {
     //----------------------------------------------------------------------------
     /// Checks if a point x is inside the cell.
     /// From here: https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html
-    auto is_inside(pos_t const& x) const requires(NumDimensions == 2) {
+    auto is_inside(pos_type const& x) const requires(NumDimensions == 2) {
       bool c = false;
       for (std::size_t i = 0, j = size() - 1; i < size(); j = i++) {
         auto const& xi = m_grid->at(at(i));
@@ -96,20 +96,20 @@ struct unstructured_grid : pointset<Real, NumDimensions> {
     /// This is an implementation of \"\a Barycentric \a coordinates \a for \a
     /// arbitrary  \a polygons \a in \a the \a plane\" by Hormann
     /// \cite Hormann2005BarycentricCF.
-    auto barycentric_coordinates(pos_t const& query_point) const
+    auto barycentric_coordinates(pos_type const& query_point) const
         requires(NumDimensions == 2) {
       // some typedefs and namespaces
       using namespace boost;
       using namespace boost::adaptors;
-      using scalar_list = std::vector<real_t>;
-      using pos_list    = std::vector<pos_t>;
+      using scalar_list = std::vector<real_type>;
+      using pos_list    = std::vector<pos_type>;
 
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       // create data fields
-      static real_t constexpr eps           = 1e-8;
+      static real_type constexpr eps           = 1e-8;
       auto const num_vertices               = size();
       auto       vertex_weights             = scalar_list(num_vertices, 0);
-      auto       accumulated_vertex_weights = real_t(0);
+      auto       accumulated_vertex_weights = real_type(0);
       auto       triangle_areas             = scalar_list(num_vertices, 0);
       auto       dot_products               = scalar_list(num_vertices, 0);
       auto       distances_to_vertices      = scalar_list(num_vertices, 0);
@@ -152,7 +152,7 @@ struct unstructured_grid : pointset<Real, NumDimensions> {
                                          &dot_products](auto const prev_idx,
                                                         auto const cur_idx,
                                                         auto const next_idx) {
-        auto weight = real_t(0);
+        auto weight = real_type(0);
         if (std::abs(triangle_areas[prev_idx]) > eps) /* A != 0 */ {
           weight += (distances_to_vertices[prev_idx] -
                      dot_products[prev_idx] / distances_to_vertices[cur_idx]) /
@@ -202,7 +202,7 @@ struct unstructured_grid : pointset<Real, NumDimensions> {
         if (std::abs(triangle_areas[i]) <= eps && dot_products[i] <= eps) {
           distances_to_vertices[next_idx] =
               length(direction_to_vertices[next_idx]);
-          real_t const norm =
+          real_type const norm =
               1 / (distances_to_vertices[i] + distances_to_vertices[next_idx]);
           vertex_weights[i]        = distances_to_vertices[next_idx] * norm;
           vertex_weights[next_idx] = distances_to_vertices[i] * norm;
@@ -227,7 +227,7 @@ struct unstructured_grid : pointset<Real, NumDimensions> {
   struct cell_iterator
       : boost::iterator_facade<cell_iterator, cell,
                                boost::forward_traversal_tag, cell const&> {
-    using this_t = cell_iterator;
+    using this_type = cell_iterator;
     using grid_t = unstructured_grid;
     cell_iterator(cell c) : m_cell{std::move(c)} {}
     cell_iterator(cell_iterator const& other) : m_cell{other.m_cell} {}
@@ -269,7 +269,7 @@ struct unstructured_grid : pointset<Real, NumDimensions> {
               parent_t::num_dimensions(), T> {
    private:
     using grid_t = unstructured_grid<Real, NumDimensions>;
-    using this_t = barycentric_coordinates_vertex_property_sampler_t<T>;
+    using this_type = barycentric_coordinates_vertex_property_sampler_t<T>;
 
     grid_t const&               m_grid;
     vertex_property_t<T> const& m_prop;
@@ -282,7 +282,7 @@ struct unstructured_grid : pointset<Real, NumDimensions> {
     auto grid() const -> auto const& { return m_grid; }
     auto property() const -> auto const& { return m_prop; }
     //--------------------------------------------------------------------------
-    [[nodiscard]] auto evaluate(pos_t const& x, real_t const /*t*/) const -> T {
+    [[nodiscard]] auto evaluate(pos_type const& x, real_type const /*t*/) const -> T {
       for (auto const& cell : m_grid.cells()) {
         if (cell.is_inside(x)) {
           auto b   = cell.barycentric_coordinates(x);
@@ -461,7 +461,7 @@ struct unstructured_grid : pointset<Real, NumDimensions> {
 };
 //==============================================================================
 template <std::size_t NumDimensions>
-using UnstructuredGrid = unstructured_grid<real_t, NumDimensions>;
+using UnstructuredGrid = unstructured_grid<real_type, NumDimensions>;
 template <std::size_t NumDimensions>
 using UnstructuredGridF = unstructured_grid<float, NumDimensions>;
 template <std::size_t NumDimensions>

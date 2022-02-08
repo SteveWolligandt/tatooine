@@ -8,13 +8,13 @@ namespace tatooine::analytical::fields::symbolic {
 //==============================================================================
 template <typename Real>
 struct counterexample_sadlo : field<Real, 2, 2> {
-  using this_t   = counterexample_sadlo<Real>;
+  using this_type   = counterexample_sadlo<Real>;
   using parent_type = field<Real, 2, 2>;
   using parent_type::t;
   using parent_type::x;
-  using typename parent_type::pos_t;
-  using typename parent_type::symtensor_t;
-  using typename parent_type::tensor_t;
+  using typename parent_type::pos_type;
+  using typename parent_type::symtensor_type;
+  using typename parent_type::tensor_type;
 
   counterexample_sadlo() {
     auto r =
@@ -28,7 +28,7 @@ struct counterexample_sadlo : field<Real, 2, 2> {
                             GiNaC::numeric{1, 2} * sin(t()) + cos(t()))});
   }
 
-  constexpr bool in_domain(const pos_t& x, Real /*t*/) const {
+  constexpr bool in_domain(const pos_type& x, Real /*t*/) const {
     return length(x) <= 3;
   }
 };

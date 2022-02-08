@@ -16,7 +16,7 @@ struct vectorfield_to_gpu : ui::node<vectorfield_to_gpu>, gl::tex2rg32f {
   vectorfield_t* m_v  = nullptr;
   bb_t*          m_bb = nullptr;
   vec<int, 2>    m_res;
-  real_t         m_t;
+  real_type         m_t;
   //----------------------------------------------------------------------------
   auto bounding_box() const { return m_bb; }
   //----------------------------------------------------------------------------
@@ -39,7 +39,7 @@ struct vectorfield_to_gpu : ui::node<vectorfield_to_gpu>, gl::tex2rg32f {
     *dynamic_cast<tex_t*>(this) = gpu::upload_tex<float>(
         sample_to_vector(
             *m_v,
-            uniform_rectilinear_grid<real_t, 2>{
+            uniform_rectilinear_grid<real_type, 2>{
                 linspace{m_bb->min(0), m_bb->max(0), static_cast<size_t>(m_res.at(0))},
                 linspace{m_bb->min(1), m_bb->max(1), static_cast<size_t>(m_res.at(1))}},
             m_t),

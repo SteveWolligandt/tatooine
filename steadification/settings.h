@@ -52,9 +52,9 @@ template <> struct settings<boussinesq> {
 };
 //==============================================================================
 template <> struct settings<rbc> {
-  using real_t = typename rbc::real_t;
+  using real_type = typename rbc::real_type;
   static constexpr std::string_view name      = "rbc";
-  static constexpr real_t           eps       = 1e-2;
+  static constexpr real_type           eps       = 1e-2;
   static constexpr size_t           num_edges = 5;
   //----------------------------------------------------------------------------
   static constexpr boundingbox<double, 2> domain{
@@ -77,22 +77,22 @@ template <> struct settings<rbc> {
 //};
 //==============================================================================
 template <> struct settings<cavity> {
-  using real_t = typename cavity::real_t;
+  using real_type = typename cavity::real_type;
   static constexpr std::string_view name = "cavity";
   static constexpr vec<size_t, 2>   render_resolution{
       cavity::domain.dimension(0).size() * 4,
       cavity::domain.dimension(1).size() * 4};
   static constexpr size_t num_edges = 5;
-  static constexpr real_t eps       = 1e-4;
+  static constexpr real_type eps       = 1e-4;
   //----------------------------------------------------------------------------
-  static constexpr boundingbox<real_t, 2> domain{
+  static constexpr boundingbox<real_type, 2> domain{
       vec{cavity::domain.front(0) + eps, cavity::domain.front(1) + eps},
       vec{cavity::domain.back(0) - eps, cavity::domain.back(1) - eps}};
 };
   //==============================================================================
-  // template <typename real_t> struct settings<movinggyre<real_t>> {
+  // template <typename real_type> struct settings<movinggyre<real_type>> {
   //  static constexpr std::string_view name = "movinggyre";
-  //  static constexpr real_t           eps  = 1e-4;
+  //  static constexpr real_type           eps  = 1e-4;
   //  static constexpr grid domain{linspace{0, 1, 51}, linspace{-0.5, 0.5, 51}};
   //  static constexpr vec<size_t, 2> render_resolution{1000, 1000};
   //  static constexpr size_t         num_edges = 5;
@@ -100,7 +100,7 @@ template <> struct settings<cavity> {
   //==============================================================================
   // template <> struct settings<FlappingWing> {
   //  static constexpr std::string_view name = "FlappingWing";
-  //  static constexpr real_t           eps  = 1e-5;
+  //  static constexpr real_type           eps  = 1e-5;
   //  static constexpr grid             domain{linspace{0.0 + eps, 24.0 - eps,
   //  26},
   //                                           linspace{0.0 + eps, 24.0 - eps,

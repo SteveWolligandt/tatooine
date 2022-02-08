@@ -13,10 +13,10 @@ namespace tatooine::analytical::fields::numerical {
 //==============================================================================
 template <typename Real>
 struct modified_doublegyre : vectorfield<modified_doublegyre<Real>, Real, 2> {
-  using this_t   = modified_doublegyre<Real>;
-  using parent_type = vectorfield<this_t, Real, 2>;
-  using typename parent_type::pos_t;
-  using typename parent_type::tensor_t;
+  using this_type   = modified_doublegyre<Real>;
+  using parent_type = vectorfield<this_type, Real, 2>;
+  using typename parent_type::pos_type;
+  using typename parent_type::tensor_type;
   //============================================================================
   static constexpr Real pi      = M_PI;
   static constexpr Real epsilon = 0.25;
@@ -26,13 +26,13 @@ struct modified_doublegyre : vectorfield<modified_doublegyre<Real>, Real, 2> {
   static constexpr Real cc      = c * c;
   static constexpr Real d       = 9.964223388;
   //============================================================================
-  constexpr tensor_t evaluate(const pos_t& x, Real t) const {
+  constexpr tensor_type evaluate(const pos_type& x, Real t) const {
     const Real a  = epsilon * std::sin(omega * (t + timeoffset(t)));
     const Real b  = 1 - 2 * a;
     const Real f  = a * x(0) * x(0) + b * x(0);
     const Real df = 2 * a * x(0) + b;
 
-    return tensor_t{-pi * A * std::sin(pi * f) * std::cos(pi * x(1)),
+    return tensor_type{-pi * A * std::sin(pi * f) * std::cos(pi * x(1)),
                     pi * A * std::cos(pi * f) * std::sin(pi * x(1)) * df};
   }
 
@@ -67,7 +67,7 @@ struct modified_doublegyre : vectorfield<modified_doublegyre<Real>, Real, 2> {
   }
 
   //----------------------------------------------------------------------------
-  constexpr bool in_domain(const pos_t& x, Real) const {
+  constexpr bool in_domain(const pos_type& x, Real) const {
     return x(0) >= 0 && x(0) <= 2 && x(1) >= 0 && x(1) <= 1;
   }
 

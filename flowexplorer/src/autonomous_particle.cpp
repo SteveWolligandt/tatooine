@@ -359,12 +359,12 @@ void autonomous_particle::on_pin_connected(ui::input_pin& /*this_pin*/,
 void autonomous_particle::generate_points_in_initial_circle(
     size_t const n) {
   m_points_on_initial_circle.clear();
-  random::uniform<real_t> rand;
+  random::uniform<real_type> rand;
   for (size_t i = 0; i < n; ++i) {
     if (m_stop_thread) {
       break;
     }
-    real_t alpha = M_PI * 2 * real_t(i) / (n - 1);
+    real_type alpha = M_PI * 2 * real_type(i) / (n - 1);
     m_points_on_initial_circle.emplace_back(std::cos(alpha) * m_radius,
                                             std::sin(alpha) * m_radius);
     m_points_on_initial_circle.back() += *m_x0;

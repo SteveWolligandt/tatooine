@@ -15,7 +15,7 @@ struct uniform {
   static_assert(is_arithmetic<T>);
   //============================================================================
   using engine_t = Engine;
-  using real_t   = T;
+  using real_type   = T;
   using distribution_t =
       std::conditional_t<is_floating_point<T>,
                          std::uniform_real_distribution<T>,
@@ -47,7 +47,7 @@ struct uniform {
   auto operator()() { return get(); }
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-uniform()->uniform<real_t, std::mt19937_64>;
+uniform()->uniform<real_number, std::mt19937_64>;
 template <typename T>
 uniform(T const min, T const max) -> uniform<T, std::mt19937_64>;
 template <typename T, typename... Args>
@@ -80,7 +80,7 @@ inline auto alpha_numeric_string(std::size_t const size) {
 template <typename T, typename Engine = std::mt19937_64>
 struct normal {
   using engine_t       = Engine;
-  using real_t         = T;
+  using real_type         = T;
   using distribution_t = std::normal_distribution<T>;
 
   //============================================================================

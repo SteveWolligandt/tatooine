@@ -23,20 +23,20 @@ namespace tatooine {
 template <detail::rectilinear_grid::dimension XDomain,
           detail::rectilinear_grid::dimension YDomain,
           invocable<size_t const, size_t const,
-                    vec<typename grid<XDomain, YDomain>::real_t, 2> const&>
+                    vec<typename grid<XDomain, YDomain>::real_type, 2> const&>
               GetScalars>
 auto isolines(GetScalars&& get_scalars, grid<XDomain, YDomain> const& g,
               arithmetic auto const isolevel) {
-  using real_t     = typename grid<XDomain, YDomain>::real_t;
-  using pos_t      = vec<real_t, 2>;
-  using edge_set_t = std::vector<line<real_t, 2>>;
+  using real_type     = typename grid<XDomain, YDomain>::real_type;
+  using pos_type      = vec<real_type, 2>;
+  using edge_set_t = std::vector<line<real_type, 2>>;
   edge_set_t isolines;
 
 #ifdef NDEBUG
   std::mutex mutex;
 #endif
   auto process_cube = [&](auto ix, auto iy) {
-    std::vector<pos_t> iso_positions;
+    std::vector<pos_type> iso_positions;
     std::array p{g(ix, iy), g(ix + 1, iy), g(ix + 1, iy + 1), g(ix, iy + 1)};
 
     std::array s{get_scalars(ix, iy, p[0]), get_scalars(ix + 1, iy, p[1]),

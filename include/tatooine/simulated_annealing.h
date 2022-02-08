@@ -101,27 +101,27 @@ auto simulated_annealing(
 
 // template <typename Real, typename Status>
 // struct SimulatedAnnealingListener {
-//   using real_t   = Real;
+//   using real_type   = Real;
 //   using status_t = Status;
-//   virtual void on_new_best_status(size_t [>i*/, real_t /*temperature<],
-//                                   real_t [>best_energy<],
+//   virtual void on_new_best_status(size_t [>i*/, real_type /*temperature<],
+//                                   real_type [>best_energy<],
 //                                   const status_t & [>best_status<],
-//                                   real_t [>cur_energy<],
+//                                   real_type [>cur_energy<],
 //                                   const status_t & [>cur_status<]) const {}
-//   virtual void on_end_of_iteration(size_t [>i*/, real_t /*temperature<],
-//                                    real_t [>best_energy<],
+//   virtual void on_end_of_iteration(size_t [>i*/, real_type /*temperature<],
+//                                    real_type [>best_energy<],
 //                                    const status_t & [>best_status<],
-//                                    real_t [>cur_energy<],
+//                                    real_type [>cur_energy<],
 //                                    const status_t & [>cur_status<]) const {}
-//   virtual void on_using_worse(size_t [>i*/, real_t /*temperature<],
-//                               real_t [>best_energy<],
+//   virtual void on_using_worse(size_t [>i*/, real_type /*temperature<],
+//                               real_type [>best_energy<],
 //                               const status_t & [>best_status<],
-//                               real_t [>cur_energy<],
+//                               real_type [>cur_energy<],
 //                               const status_t & [>cur_status<]) const {}
-//   virtual void on_going_back(size_t [>i*/, real_t /*temperature<],
-//                              real_t [>best_energy<],
+//   virtual void on_going_back(size_t [>i*/, real_type /*temperature<],
+//                              real_type [>best_energy<],
 //                              const status_t & [>best_status<],
-//                              real_t [>cur_energy<],
+//                              real_type [>cur_energy<],
 //                              const status_t & [>cur_status<]) const {}
 // };
 //
@@ -132,9 +132,9 @@ auto simulated_annealing(
 //           template <typename> typename comparator_t = std::less>
 // class SimulatedAnnealing {
 //  public:
-//   using real_t     = Real;
+//   using real_type     = Real;
 //   using status_t   = Status;
-//   using listener_t = SimulatedAnnealingListener<real_t, status_t>;
+//   using listener_t = SimulatedAnnealingListener<real_type, status_t>;
 //
 //  private:
 //   std::vector<const listener_t *> m_listeners;
@@ -149,19 +149,19 @@ auto simulated_annealing(
 //                   energy_f &&energy, temperature_f &&temperature, next_f
 //                   &&next, random_engine_t &&random_engine = random_engine_t{
 //                       std::random_device{}()}) {
-//     comparator_t<real_t> comparator;
+//     comparator_t<real_type> comparator;
 //     status_t             cur_status = initial_status;
-//     real_t               cur_energy = energy(initial_status);
+//     real_type               cur_energy = energy(initial_status);
 //
 //     status_t best_status = initial_status;
-//     real_t   best_energy = cur_energy;
+//     real_type   best_energy = cur_energy;
 //
-//     std::uniform_real_distribution<real_t> uni_0_1{0.0, 1.0};
+//     std::uniform_real_distribution<real_type> uni_0_1{0.0, 1.0};
 //
 //     for (size_t i = 0; i < c; ++i) {
 //       auto     t          = temperature(i);
 //       status_t new_status = next(cur_status, t, i);
-//       real_t   new_energy = energy(new_status);
+//       real_type   new_energy = energy(new_status);
 //
 //       // always accept status with better energy
 //       if (comparator(new_energy, best_energy)) {
