@@ -12,14 +12,14 @@ struct diag_tensor
     : base_tensor<diag_tensor<Tensor, M, N>,
                   typename std::decay_t<Tensor>::value_type, M, N> {
   //============================================================================
-  using tensor_t = Tensor;
-  using this_t   = diag_tensor<Tensor, M, N>;
+  using tensor_type = Tensor;
+  using this_type   = diag_tensor<Tensor, M, N>;
   using parent_type =
-      base_tensor<this_t, typename std::decay_t<tensor_t>::value_type, M, N>;
+      base_tensor<this_type, typename std::decay_t<tensor_type>::value_type, M, N>;
   using typename parent_type::value_type;
   //============================================================================
  private:
-  tensor_t m_internal_tensor;
+  tensor_type m_internal_tensor;
 
   //============================================================================
  public:
@@ -39,7 +39,7 @@ struct diag_tensor
     return 0;
   }
   //----------------------------------------------------------------------------
-  template <typename _Tensor = tensor_t,
+  template <typename _Tensor = tensor_type,
             enable_if<std::is_const_v<std::remove_reference_t<_Tensor>>> = true>
   auto internal_tensor() -> auto& {
     return m_internal_tensor;

@@ -148,11 +148,11 @@ auto solving_a_linear_system() {
 auto compute_eigenvalues() {
   auto const A = mat2{{1,2},
                       {3,4}};
-  // lambda_A is of type vec<std::complex<tatooine::real_t>, 2>.
+  // lambda_A is of type vec<std::complex<tatooine::real_type>, 2>.
   auto const lambda_A = eigenvalues(A);
 
   auto const AAt = A * transposed(A);
-  // lambda_AAt is of type vec<tatooine::real_t, 2>.
+  // lambda_AAt is of type vec<tatooine::real_type, 2>.
   auto const lambda_AAt = eigenvalues_sym(A);
 }
 \endcode
@@ -160,22 +160,22 @@ auto compute_eigenvalues() {
 auto compute_eigenvectors() {
   auto const A = mat2{{1,2},
                       {3,4}};
-  // Sigma_A is of type mat<std::complex<tatooine::real_t>, 2, 2>.
+  // Sigma_A is of type mat<std::complex<tatooine::real_type>, 2, 2>.
   // It holds the complex eigenvectors as columns.
-  // lambda_A is of type vec<std::complex<tatooine::real_t>, 2>.
+  // lambda_A is of type vec<std::complex<tatooine::real_type>, 2>.
   auto const [Sigma_A, lambda_A] = eigenvectors(A);
 
   auto const AAt = A * transposed(A);
-  // Sigma_AAt is of type mat<tatooine::real_t, 2, 2>.
+  // Sigma_AAt is of type mat<tatooine::real_type, 2, 2>.
   // It holds the real eigenvectors as columns.
-  // lambda_AAt is of type vec<tatooine::real_t, 2>.
+  // lambda_AAt is of type vec<tatooine::real_type, 2>.
   auto const [Sigma_AAt, lambda_AAt] = eigenvectors_sym(AAt);
 }
 \endcode
 
 \section tensors_typedefs_sec Typedefs
 \subsection tensors_typedefs_vec_sec Vectors
-For `tatooine::vec` with `tatooine::real_t`:
+For `tatooine::vec` with `tatooine::real_type`:
 
 templated size `tatooine::Vec`,
 
@@ -195,7 +195,7 @@ templated size `tatooine::VecD`,
 
 \subsection tensors_typedefs_mat_sec Matrices
 
-For `tatooine::mat` with `tatooine::real_t`:
+For `tatooine::mat` with `tatooine::real_type`:
 
 `tatooine::mat2`, `tatooine::mat3`, ..., `tatooine::mat9`,
 

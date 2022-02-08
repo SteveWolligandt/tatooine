@@ -18,7 +18,7 @@ using maybe_t = typename VC::odeint::ode_t<N, Real, T, B>::maybe_vec;
 template <arithmetic Real, size_t N, bool B = false>
 using maybe_vec_t = maybe_t<vec<Real, N>, Real, N, B>;
 template <arithmetic Real, size_t N, bool B = false>
-using maybe_real_t = maybe_t<Real, Real, N, B>;
+using maybe_real_type = maybe_t<Real, Real, N, B>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename F, typename Real, size_t N>
 concept vc_stepper_evaluator = std::regular_invocable<F, vec<Real, N>, Real>&&
@@ -27,13 +27,13 @@ concept vc_stepper_evaluator = std::regular_invocable<F, vec<Real, N>, Real>&&
 template <typename Real, size_t N>
 struct rungekutta43 : solver<rungekutta43<Real, N>, Real, N> {
   //============================================================================
-  using this_t   = rungekutta43<Real, N>;
-  using parent_type = solver<this_t, Real, N>;
-  using typename parent_type::pos_t;
+  using this_type   = rungekutta43<Real, N>;
+  using parent_type = solver<this_type, Real, N>;
+  using typename parent_type::pos_type;
   using typename parent_type::vec_t;
   using vc_ode_t     = VC::odeint::ode_t<N, Real, vec_t, false>;
   using vc_stepper_t = typename vc_ode_t::template solver_t<
-      VC::odeint::steppers::rk43_t<pos_t, Real>>;
+      VC::odeint::steppers::rk43_t<pos_type, Real>>;
   using vc_options_t = typename vc_ode_t::options_t;
   using maybe_vec    = typename vc_ode_t::maybe_vec;
   //============================================================================
@@ -79,7 +79,7 @@ struct rungekutta43 : solver<rungekutta43<Real, N>, Real, N> {
       return;
     }
 
-    auto dy = [&v](pos_t const& y, Real const t) -> maybe_vec {
+    auto dy = [&v](pos_type const& y, Real const t) -> maybe_vec {
       if (v(y, t).isnan()) {
         return out_of_domain;
       }
@@ -94,7 +94,7 @@ struct rungekutta43 : solver<rungekutta43<Real, N>, Real, N> {
   constexpr void solve(Evaluator&& evaluator, vec<Y0Real, N> const& y0,
                        T0Real const t0, TauReal tau,
                        StepperCallback&& callback) const {
-    auto dy = [&evaluator](Real t, pos_t const& y) -> maybe_vec {
+    auto dy = [&evaluator](Real t, pos_type const& y) -> maybe_vec {
       if (auto const s = evaluator(y, t); s) {
         return *s;
       } else {
@@ -111,25 +111,25 @@ struct rungekutta43 : solver<rungekutta43<Real, N>, Real, N> {
                        T0Real const t0, TauReal tau,
                        StepperCallback&& callback) const {
     constexpr auto callback_takes_derivative =
-        std::is_invocable_v<StepperCallback, pos_t, Real, vec_t>;
+        std::is_invocable_v<StepperCallback, pos_type, Real, vec_t>;
 
     if (tau == 0) {
       return;
     }
     // do not start integration if y0, t0 is not in domain of vectorfield
 
-    auto dy = [&evaluator](Real t, pos_t const& y) {
+    auto dy = [&evaluator](Real t, pos_type const& y) {
       return evaluator(y, t);
     };
 
     m_stepper.initialize(dy, t0, t0 + tau, y0);
     auto wrapped_callback = [&] {
       if constexpr (!callback_takes_derivative) {
-        return [&](Real const t, pos_t const& y) {
+        return [&](Real const t, pos_type const& y) {
           callback(y, t);
         };
       } else {
-        return [&](Real const t, pos_t const& y, vec_t const& dy) {
+        return [&](Real const t, pos_type const& y, vec_t const& dy) {
           callback(y, t, dy);
         };
       }

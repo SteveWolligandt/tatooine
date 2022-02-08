@@ -42,7 +42,7 @@ TEST_CASE("gpu_upload_doublegyre", "[gpu][dg][doublegyre][upload]") {
 //  linspace<float>              ydomain{0.0, 1.0, 11};
 //  float                        t     = 0;
 //  auto [sample_grid, name] = resample(v, grid{xdomain, ydomain}, t);
-//  auto& v_sampled = sample_grid.vertex_property<decltype(v)::tensor_t>(name);
+//  auto& v_sampled = sample_grid.vertex_property<decltype(v)::tensor_type>(name);
 //  REQUIRE(sample_grid.size<0>() == xdomain.size());
 //  REQUIRE(sample_grid.size<1>() == ydomain.size());
 //  REQUIRE(&sample_grid == &v_sampled.grid());

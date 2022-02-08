@@ -6,7 +6,7 @@
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
-struct linspace : ui::node<linspace>, tatooine::linspace<real_t> {
+struct linspace : ui::node<linspace>, tatooine::linspace<real_type> {
   linspace(flowexplorer::scene& s);
   virtual ~linspace() = default;
 };

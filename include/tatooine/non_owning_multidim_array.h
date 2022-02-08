@@ -12,7 +12,7 @@ class non_owning_multidim_array : public dynamic_multidim_size<IndexOrder> {
   //============================================================================
  public:
   using value_type = T;
-  using this_t     = non_owning_multidim_array<T, IndexOrder>;
+  using this_type     = non_owning_multidim_array<T, IndexOrder>;
   using parent_type   = dynamic_multidim_size<IndexOrder>;
   using parent_type::in_range;
   using parent_type::indices;

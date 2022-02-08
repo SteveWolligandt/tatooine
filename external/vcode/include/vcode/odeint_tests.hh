@@ -22,98 +22,98 @@ namespace tests {
 template <typename R>
 struct detest {
 
-  using real_t = R;
+  using real_type = R;
 
   // A: single equations
 
   struct A1_t {
     static constexpr int dim = 1;
-    using vec_t = real_t;
-    static auto dy(real_t t, vec_t y) { return -y; }
-    static constexpr real_t t1 = 20;
-    static constexpr real_t y0 = 1;
-    static auto y(real_t t) { return std::exp(-t); }
+    using vec_t = real_type;
+    static auto dy(real_type t, vec_t y) { return -y; }
+    static constexpr real_type t1 = 20;
+    static constexpr real_type y0 = 1;
+    static auto y(real_type t) { return std::exp(-t); }
   };
   struct A2_t {
     static constexpr int dim = 1;
-    using vec_t = real_t;
-    static auto dy(real_t t, vec_t y) { return -(y*y*y)/2; }
-    static constexpr real_t t1 = 20;
-    static constexpr real_t y0 = 1;
-    static auto y(real_t t) { return real_t(1)/std::sqrt(1+t); }
+    using vec_t = real_type;
+    static auto dy(real_type t, vec_t y) { return -(y*y*y)/2; }
+    static constexpr real_type t1 = 20;
+    static constexpr real_type y0 = 1;
+    static auto y(real_type t) { return real_type(1)/std::sqrt(1+t); }
   };
   struct A3_t {
     static constexpr int dim = 1;
-    using vec_t = real_t;
-    static auto dy(real_t t, vec_t y) { return y*cos(t); }
-    static constexpr real_t t1 = 20;
-    static constexpr real_t y0 = 1;
-    static auto y(real_t t) { return std::exp(sin(t)); }
+    using vec_t = real_type;
+    static auto dy(real_type t, vec_t y) { return y*cos(t); }
+    static constexpr real_type t1 = 20;
+    static constexpr real_type y0 = 1;
+    static auto y(real_type t) { return std::exp(sin(t)); }
   };
   struct A4_t {
     static constexpr int dim = 1;
-    using vec_t = real_t;
-    static auto dy(real_t t, vec_t y) { return y/4*(1-y/20); }
-    static constexpr real_t t1 = 20;
-    static constexpr real_t y0 = 1;
-    static auto y(real_t t) {
-      return real_t(20)/(1+19*std::exp(-t/4));
+    using vec_t = real_type;
+    static auto dy(real_type t, vec_t y) { return y/4*(1-y/20); }
+    static constexpr real_type t1 = 20;
+    static constexpr real_type y0 = 1;
+    static auto y(real_type t) {
+      return real_type(20)/(1+19*std::exp(-t/4));
     }
   };
   struct A5_t {
     static constexpr int dim = 1;
-    using vec_t = real_t;
-    static auto dy(real_t t, vec_t y) { return (y-t)/(y+t); }
-    static constexpr real_t t1 = 20;
-    static constexpr real_t y0 = 4;
+    using vec_t = real_type;
+    static auto dy(real_type t, vec_t y) { return (y-t)/(y+t); }
+    static constexpr real_type t1 = 20;
+    static constexpr real_type y0 = 4;
   };
 
   // B: small systems
 
   struct B1_t {
     static constexpr int dim = 2;
-    using vec_t = VC::vecn::vecn<dim, real_t>;
-    static vec_t dy(real_t t, vec_t y) {
+    using vec_t = VC::vecn::vecn<dim, real_type>;
+    static vec_t dy(real_type t, vec_t y) {
       return { 2 * (y[0] - y[0] * y[1]), -(y[1] - y[0] * y[1]) };
     }
-    static constexpr real_t t1 = 20;
+    static constexpr real_type t1 = 20;
     static inline const vec_t y0= {1, 3};
   };
   struct B2_t {
     static constexpr int dim = 3;
-    using vec_t = VC::vecn::vecn<dim, real_t>;
-    static vec_t dy(real_t t, vec_t y) {
+    using vec_t = VC::vecn::vecn<dim, real_type>;
+    static vec_t dy(real_type t, vec_t y) {
       return { -y[0] + y[1], y[0] - 2 * y[1] + y[2], y[1] - y[2] };
     }
-    static constexpr real_t t1 = 20;
+    static constexpr real_type t1 = 20;
     static inline const vec_t y0 = {2, 0, 1};
   };
   struct B3_t {
     static constexpr int dim = 3;
-    using vec_t = VC::vecn::vecn<dim, real_t>;
-    static vec_t dy(real_t t, vec_t y) {
+    using vec_t = VC::vecn::vecn<dim, real_type>;
+    static vec_t dy(real_type t, vec_t y) {
       return { -y[0], y[0] - 2 * y[1] + y[2], y[1] - y[2] };
     }
-    static constexpr real_t t1 = 20;
+    static constexpr real_type t1 = 20;
     static inline const vec_t y0 = {1, 0, 0};
   };
   struct B4_t {
     static constexpr int dim = 3;
-    using vec_t = VC::vecn::vecn<dim, real_t>;
-    static vec_t dy(real_t t, vec_t y) {
-      const real_t d = std::hypot(y[0], y[1]);
+    using vec_t = VC::vecn::vecn<dim, real_type>;
+    static vec_t dy(real_type t, vec_t y) {
+      const real_type d = std::hypot(y[0], y[1]);
       return { -y[1]-(y[0]*y[2])/d, y[0]-(y[1]*y[2])/d, y[0]/d };
     }
-    static constexpr real_t t1 = 20;
+    static constexpr real_type t1 = 20;
     static inline const vec_t y0= {3, 0, 0};
   };
   struct B5_t {
     static constexpr int dim = 3;
-    using vec_t = VC::vecn::vecn<dim, real_t>;
-    static vec_t dy(real_t t, vec_t y) {
-      return { y[1] * y[2], -y[0] * y[2], -real_t(0.51) * y[0] * y[1] };
+    using vec_t = VC::vecn::vecn<dim, real_type>;
+    static vec_t dy(real_type t, vec_t y) {
+      return { y[1] * y[2], -y[0] * y[2], -real_type(0.51) * y[0] * y[1] };
     }
-    static constexpr real_t t1 = 20;
+    static constexpr real_type t1 = 20;
     static inline const vec_t y0= {0, 1, 1};
   };
 
@@ -121,8 +121,8 @@ struct detest {
 
   struct C1_t {
     static constexpr int dim = 10;
-    using vec_t = VC::vecn::vecn<dim, real_t>;
-    static vec_t dy(real_t t, vec_t y) {
+    using vec_t = VC::vecn::vecn<dim, real_type>;
+    static vec_t dy(real_type t, vec_t y) {
       vec_t r;
       r[0] = -y[0];
       for (int i=1;i<9;++i)
@@ -130,14 +130,14 @@ struct detest {
       r[9] = y[8];
       return r;
     }
-    static constexpr real_t t1 = 20;
+    static constexpr real_type t1 = 20;
    static inline const vec_t y0= { 1, 0 /* ... */};
   };
 
   struct C2_t {
     static constexpr int dim = 10;
-    using vec_t = VC::vecn::vecn<dim, real_t>;
-    static vec_t dy(real_t t, vec_t y) {
+    using vec_t = VC::vecn::vecn<dim, real_type>;
+    static vec_t dy(real_type t, vec_t y) {
       vec_t r;
       r[0] = -y[0];
       for (int i=1;i<9;++i)
@@ -145,14 +145,14 @@ struct detest {
       r[9] = 9*y[8];
       return r;
     }
-    static constexpr real_t t1 = 20;
+    static constexpr real_type t1 = 20;
     static inline const vec_t y0= { 1, 0 /* ... */};
   };
 
   struct C3_t {
     static constexpr int dim = 10;
-    using vec_t = VC::vecn::vecn<dim, real_t>;
-    static vec_t dy(real_t t, vec_t y) {
+    using vec_t = VC::vecn::vecn<dim, real_type>;
+    static vec_t dy(real_type t, vec_t y) {
       vec_t r;
       r[0] = -2*y[0]+y[1];
       for (int i=1;i<9;++i)
@@ -160,14 +160,14 @@ struct detest {
       r[9] = y[8] -2*y[9];
       return r;
     }
-    static constexpr real_t t1 = 20;
+    static constexpr real_type t1 = 20;
     static inline const vec_t y0= { 1, 0 /* ... */};
   };
 
   struct C4_t {
     static constexpr int dim = 51;
-    using vec_t = VC::vecn::vecn<dim, real_t>;
-    static vec_t dy(real_t t, vec_t y) {
+    using vec_t = VC::vecn::vecn<dim, real_type>;
+    static vec_t dy(real_type t, vec_t y) {
       vec_t r;
       r[0] = -2*y[0]+y[1];
       for (int i=1;i<50;++i)
@@ -175,7 +175,7 @@ struct detest {
       r[50] = y[49] -2*y[50];
       return r;
     }
-    static constexpr real_t t1 = 20;
+    static constexpr real_type t1 = 20;
     static inline const vec_t y0 { 1, 0 /* ... */};
   };
 
@@ -186,13 +186,13 @@ struct detest {
   template <int I>
   struct Di {
     static constexpr int dim = 4;
-    using vec_t = VC::vecn::vecn<dim, real_t>;
-    static constexpr real_t EPS = real_t(I)/10;
-    static vec_t dy(real_t t, const vec_t& y) {
-      const real_t d = pow(y[0]*y[0]+y[1]*y[1], 1.5);
+    using vec_t = VC::vecn::vecn<dim, real_type>;
+    static constexpr real_type EPS = real_type(I)/10;
+    static vec_t dy(real_type t, const vec_t& y) {
+      const real_type d = pow(y[0]*y[0]+y[1]*y[1], 1.5);
       return { y[2], y[3], -y[0]/d, -y[1]/d };
     }
-    static constexpr real_t t1 = 20;
+    static constexpr real_type t1 = 20;
     static inline const vec_t y0 { 1 - EPS, 0, 0, std::sqrt((1 + EPS) / (1 - EPS)) };
   };
   using D1_t = Di<1>;
@@ -205,55 +205,55 @@ struct detest {
 
   struct E1_t {
     static constexpr int dim = 2;
-    using vec_t = VC::vecn::vecn<dim, real_t>;
-    static vec_t dy(real_t t, vec_t y) {
-      return { y[1], -(y[1]/(t+1)+(1-real_t(0.25)/((t+1)*(t+1)))*y[0]) };
+    using vec_t = VC::vecn::vecn<dim, real_type>;
+    static vec_t dy(real_type t, vec_t y) {
+      return { y[1], -(y[1]/(t+1)+(1-real_type(0.25)/((t+1)*(t+1)))*y[0]) };
     }
-    static constexpr real_t t1 = 20;
+    static constexpr real_type t1 = 20;
     static inline const vec_t y0= {
-      real_t(0.6713967071418030), real_t(0.09540051444747446)
+      real_type(0.6713967071418030), real_type(0.09540051444747446)
     };
   };
 
   struct E2_t {
     static constexpr int dim = 2;
-    using vec_t = VC::vecn::vecn<dim, real_t>;
-    static vec_t dy(real_t t, vec_t y) {
+    using vec_t = VC::vecn::vecn<dim, real_type>;
+    static vec_t dy(real_type t, vec_t y) {
       return { y[1], (1-y[0]*y[0])*y[1]-y[0]};
     }
-    static constexpr real_t t1 = 20;
+    static constexpr real_type t1 = 20;
     static inline const vec_t y0= { 2, 0 };
   };
 
   struct E3_t {
     static constexpr int dim = 2;
-    using vec_t = VC::vecn::vecn<dim, real_t>;
-    static vec_t dy(real_t t, vec_t y) {
+    using vec_t = VC::vecn::vecn<dim, real_type>;
+    static vec_t dy(real_type t, vec_t y) {
       return {
-        y[1], y[0] * y[0] * y[0] / 6 - y[0] + 2 * sin(real_t(2.78535) * t)
+        y[1], y[0] * y[0] * y[0] / 6 - y[0] + 2 * sin(real_type(2.78535) * t)
       };
     }
-    static constexpr real_t t1 = 20;
+    static constexpr real_type t1 = 20;
     static inline const vec_t y0= { 0, 0 };
   };
 
   struct E4_t {
     static constexpr int dim = 2;
-    using vec_t = VC::vecn::vecn<dim, real_t>;
-    static vec_t dy(real_t t, vec_t y) {
-      return { y[1], real_t(0.032) - real_t(0.4)*y[1]*y[1] };
+    using vec_t = VC::vecn::vecn<dim, real_type>;
+    static vec_t dy(real_type t, vec_t y) {
+      return { y[1], real_type(0.032) - real_type(0.4)*y[1]*y[1] };
     }
-    static constexpr real_t t1 = 20;
+    static constexpr real_type t1 = 20;
     static inline const vec_t y0= { 30, 0 };
   };
 
   struct E5_t {
     static constexpr int dim = 2;
-    using vec_t = VC::vecn::vecn<dim, real_t>;
-    static vec_t dy(real_t t, vec_t y) {
+    using vec_t = VC::vecn::vecn<dim, real_type>;
+    static vec_t dy(real_type t, vec_t y) {
       return { y[1], std::sqrt(1 + y[1] * y[1]) / (25 - t) };
     }
-    static constexpr real_t t1 = 20;
+    static constexpr real_type t1 = 20;
     static inline const vec_t y0= { 0, 0 };
   };
 
@@ -261,10 +261,10 @@ struct detest {
 
   struct F1_t {
     static constexpr int dim = 2;
-    using vec_t = VC::vecn::vecn<dim, real_t>;
-    static vec_t dy(real_t t, vec_t y) {
-      constexpr real_t a = 0.1;
-      real_t dy2 = 2*a*y[1]-(real_t(M_PI*M_PI)+a*a)*y[0];
+    using vec_t = VC::vecn::vecn<dim, real_type>;
+    static vec_t dy(real_type t, vec_t y) {
+      constexpr real_type a = 0.1;
+      real_type dy2 = 2*a*y[1]-(real_type(M_PI*M_PI)+a*a)*y[0];
 
       if (int(std::floor(t))%2 == 0)
         dy2 += 1;
@@ -273,68 +273,68 @@ struct detest {
 
       return { y[1], dy2 };
     }
-    static constexpr real_t t1 = 20;
+    static constexpr real_type t1 = 20;
     static inline const vec_t y0= { 0, 0 };
   };
 
   struct F2_t {
     static constexpr int dim = 1;
-    using vec_t = real_t;
-    static vec_t dy(real_t t, vec_t y) {
+    using vec_t = real_type;
+    static vec_t dy(real_type t, vec_t y) {
       return 55 - (int(std::floor(t))%2 == 0 ? 3*y/2 : y/2);
     }
-    static constexpr real_t t1 = 20;
+    static constexpr real_type t1 = 20;
     static inline const vec_t y0 = 110;
   };
 
   struct F3_t {
     static constexpr int dim = 2;
-    using vec_t = VC::vecn::vecn<dim, real_t>;
-    static vec_t dy(real_t t, vec_t y) {
+    using vec_t = VC::vecn::vecn<dim, real_type>;
+    static vec_t dy(real_type t, vec_t y) {
       return {
-        y[1], real_t(0.01)*(1-y[0]*y[0])-y[0]-std::abs(sin(real_t(M_PI)*t))
+        y[1], real_type(0.01)*(1-y[0]*y[0])-y[0]-std::abs(sin(real_type(M_PI)*t))
       };
     }
-    static constexpr real_t t1 = 20;
+    static constexpr real_type t1 = 20;
     static inline const vec_t y0= { 0, 0 };
   };
 
   struct F4_t {
     static constexpr int dim = 1;
-    using vec_t = real_t;
+    using vec_t = real_type;
 
     // Note: This one is very sensitive to step size base relerr -> 0)!
-    static auto dy(real_t t, vec_t y) -> maybe<vec_t> {
+    static auto dy(real_type t, vec_t y) -> maybe<vec_t> {
       if (!(0<=t && t<=20))
         return OutOfDomain;
       if (t<=10) {
-        return -real_t(2)/21 - 120*(t-5) /(1+4*(t-5)*(t-5));
+        return -real_type(2)/21 - 120*(t-5) /(1+4*(t-5)*(t-5));
       }
       else {
         return -2*y;
       }
     }
-    static constexpr real_t t1 = 20;
+    static constexpr real_type t1 = 20;
     static inline const vec_t y0 = 1;
   };
 
   struct F5_t {
     static constexpr int dim = 1;
-    using vec_t = real_t;
-    static real_t c() {
-      real_t sum = 0;
+    using vec_t = real_type;
+    static real_type c() {
+      real_type sum = 0;
       for (int i=0;i<19;++i)
-        sum += std::pow(real_t(i),real_t(4)/3);
+        sum += std::pow(real_type(i),real_type(4)/3);
       return sum;
     };
-    static vec_t dy(real_t t, vec_t y) {
-      static const real_t c = F5_t::c();
-      real_t dp = 0;
+    static vec_t dy(real_type t, vec_t y) {
+      static const real_type c = F5_t::c();
+      real_type dp = 0;
       for (int i=0;i<19;++i)
-        dp += (real_t(4)/3)*std::pow(std::abs(t-i), real_t(1)/3); // abs?!
+        dp += (real_type(4)/3)*std::pow(std::abs(t-i), real_type(1)/3); // abs?!
       return 1/c * dp * y;
     }
-    static constexpr real_t t1 = 20;
+    static constexpr real_type t1 = 20;
     static inline const vec_t y0 = 1;
   };
 
@@ -342,10 +342,10 @@ struct detest {
 
   template <typename Test> static auto make_ode() {
     if constexpr (Test::dim == 1) {
-      return VC::odeint::ode_t<1, real_t, real_t> {};
+      return VC::odeint::ode_t<1, real_type, real_type> {};
     }
     else {
-      return VC::odeint::ode_t<Test::dim, real_t> {};
+      return VC::odeint::ode_t<Test::dim, real_type> {};
     }
   }
 
@@ -398,10 +398,10 @@ struct detest {
   }
 
   template <int D>
-  static real_t norm(const VC::vecn::vecn<D, real_t>& _x) {
+  static real_type norm(const VC::vecn::vecn<D, real_type>& _x) {
     return VC::vecn::norm(_x);
   }
-  static real_t norm(real_t _x) { return std::abs(_x); }
+  static real_type norm(real_type _x) { return std::abs(_x); }
 
   template <typename Test, typename... Args>
   static auto error(const Test& t, Args&&... args) {

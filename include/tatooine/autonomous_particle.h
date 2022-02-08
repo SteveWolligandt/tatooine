@@ -37,13 +37,13 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //----------------------------------------------------------------------------
   constexpr static auto half = 1 / Real(2);
 
-  using this_t                      = autonomous_particle<Real, NumDimensions>;
+  using this_type                      = autonomous_particle<Real, NumDimensions>;
   using simple_particle_t           = particle<Real, NumDimensions>;
-  using real_t                      = Real;
-  using vec_t                       = vec<real_t, NumDimensions>;
-  using mat_t                       = mat<real_t, NumDimensions, NumDimensions>;
-  using pos_t                       = vec_t;
-  using container_type              = std::vector<this_t>;
+  using real_type                      = Real;
+  using vec_t                       = vec<real_type, NumDimensions>;
+  using mat_t                       = mat<real_type, NumDimensions, NumDimensions>;
+  using pos_type                       = vec_t;
+  using container_type              = std::vector<this_type>;
   using simple_particle_container_t = std::vector<simple_particle_t>;
   using ellipse_t = geometry::hyper_ellipse<Real, NumDimensions>;
   using parent_type  = ellipse_t;
@@ -58,8 +58,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //============================================================================
  private:
   //----------------------------------------------------------------------------
-  pos_t         m_x0;
-  real_t        m_t;
+  pos_type         m_x0;
+  real_type        m_t;
   mat_t         m_nabla_phi;
   std::uint64_t m_id = std::numeric_limits<std::uint64_t>::max();
 
@@ -75,9 +75,9 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   autonomous_particle(autonomous_particle const& other)     = default;
   autonomous_particle(autonomous_particle&& other) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator               =(autonomous_particle const& other)
+  auto operator=(autonomous_particle const& other)
       -> autonomous_particle& = default;
-  auto operator               =(autonomous_particle&& other) noexcept
+  auto operator=(autonomous_particle&& other) noexcept
       -> autonomous_particle& = default;
   //----------------------------------------------------------------------------
   ~autonomous_particle() = default;
@@ -87,7 +87,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   explicit autonomous_particle(std::atomic_uint64_t& uuid_generator)
       : autonomous_particle{uuid_generator++} {}
   //----------------------------------------------------------------------------
-  autonomous_particle(ellipse_t const& ell, real_t const t,
+  autonomous_particle(ellipse_t const& ell, real_type const t,
                       std::uint64_t const id)
       : parent_type{ell},
         m_x0{ell.center()},
@@ -95,23 +95,23 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
         m_nabla_phi{mat_t::eye()},
         m_id{id} {}
   //----------------------------------------------------------------------------
-  autonomous_particle(ellipse_t const& ell, real_t const t,
+  autonomous_particle(ellipse_t const& ell, real_type const t,
                       std::atomic_uint64_t& uuid_generator)
       : autonomous_particle{ell, t, uuid_generator++} {}
   //----------------------------------------------------------------------------
-  autonomous_particle(pos_t const& x, real_t const t, real_t const r,
+  autonomous_particle(pos_type const& x, real_type const t, real_type const r,
                       std::uint64_t const id)
       : parent_type{x, r}, m_x0{x}, m_t{t}, m_nabla_phi{mat_t::eye()}, m_id{id} {}
   //----------------------------------------------------------------------------
-  autonomous_particle(pos_t const& x, real_t const t, real_t const r,
+  autonomous_particle(pos_type const& x, real_type const t, real_type const r,
                       std::atomic_uint64_t& uuid_generator)
       : autonomous_particle{x, t, r, uuid_generator++} {}
   //----------------------------------------------------------------------------
-  autonomous_particle(ellipse_t const& ell, real_t const t, pos_t const& x0,
+  autonomous_particle(ellipse_t const& ell, real_type const t, pos_type const& x0,
                       mat_t const& nabla_phi, std::uint64_t const id)
       : parent_type{ell}, m_x0{x0}, m_t{t}, m_nabla_phi{nabla_phi}, m_id{id} {}
   //----------------------------------------------------------------------------
-  autonomous_particle(ellipse_t const& ell, real_t const t, pos_t const& x0,
+  autonomous_particle(ellipse_t const& ell, real_type const t, pos_type const& x0,
                       mat_t const&          nabla_phi,
                       std::atomic_uint64_t& uuid_generator)
       : autonomous_particle{ell, t, x0, nabla_phi, uuid_generator++} {}
@@ -149,7 +149,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   // template <
   //    split_behavior SplitBehavior = typename split_behaviors::three_splits,
   //    typename Flowmap>
-  // auto advect(Flowmap&& phi, real_t const step_size, real_t const t_end,
+  // auto advect(Flowmap&& phi, real_type const step_size, real_type const t_end,
   //            filesystem::path const& path) const {
   //  return advect(std::forward<Flowmap>(phi), step_size, t_end, {*this},
   //  path);
@@ -158,7 +158,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   // template <
   //     split_behavior SplitBehavior = typename split_behaviors::three_splits,
   //     typename Flowmap>
-  // static auto advect(Flowmap&& phi, real_t const step_size, real_t const
+  // static auto advect(Flowmap&& phi, real_type const step_size, real_type const
   // t_end,
   //                    container_type const&      particles,
   //                    filesystem::path const& path) {
@@ -286,8 +286,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //----------------------------------------------------------------------------
   /// Advects single particle.
   template <typename Flowmap>
-  auto advect_with_two_splits(Flowmap&& phi, real_t const step_size,
-                              real_t const          t_end,
+  auto advect_with_two_splits(Flowmap&& phi, real_type const step_size,
+                              real_type const          t_end,
                               std::atomic_uint64_t& uuid_generator) const {
     return advect<typename split_behaviors::two_splits>(
         std::forward<Flowmap>(phi), step_size, t_end, uuid_generator);
@@ -295,8 +295,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //----------------------------------------------------------------------------
   /// Advects single particle.
   template <typename Flowmap>
-  auto advect_with_three_splits(Flowmap&& phi, real_t const step_size,
-                                real_t const          t_end,
+  auto advect_with_three_splits(Flowmap&& phi, real_type const step_size,
+                                real_type const          t_end,
                                 std::atomic_uint64_t& uuid_generator) const {
     return advect<typename split_behaviors::three_splits>(
         std::forward<Flowmap>(phi), step_size, t_end, uuid_generator);
@@ -305,7 +305,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   /// Advects single particle.
   template <typename Flowmap>
   auto advect_with_three_and_four_splits(
-      Flowmap&& phi, real_t const step_size, real_t const t_end,
+      Flowmap&& phi, real_type const step_size, real_type const t_end,
       std::atomic_uint64_t& uuid_generator) const {
     return advect<typename split_behaviors::three_and_four_splits>(
         std::forward<Flowmap>(phi), step_size, t_end, uuid_generator);
@@ -313,8 +313,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //----------------------------------------------------------------------------
   /// Advects single particle.
   template <typename Flowmap>
-  auto advect_with_five_splits(Flowmap&& phi, real_t const step_size,
-                               real_t const          t_end,
+  auto advect_with_five_splits(Flowmap&& phi, real_type const step_size,
+                               real_type const          t_end,
                                std::atomic_uint64_t& uuid_generator) const {
     return advect<typename split_behaviors::five_splits>(
         std::forward<Flowmap>(phi), step_size, t_end, uuid_generator);
@@ -322,8 +322,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //----------------------------------------------------------------------------
   /// Advects single particle.
   template <typename Flowmap>
-  auto advect_with_seven_splits(Flowmap&& phi, real_t const step_size,
-                                real_t const          t_end,
+  auto advect_with_seven_splits(Flowmap&& phi, real_type const step_size,
+                                real_type const          t_end,
                                 std::atomic_uint64_t& uuid_generator) const {
     return advect<typename split_behaviors::seven_splits>(
         std::forward<Flowmap>(phi), step_size, t_end, uuid_generator);
@@ -332,7 +332,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   template <
       split_behavior SplitBehavior = typename split_behaviors::three_splits,
       typename Flowmap>
-  auto advect(Flowmap&& phi, real_t const step_size, real_t const t_end,
+  auto advect(Flowmap&& phi, real_type const step_size, real_type const t_end,
               std::atomic_uint64_t& uuid_generator) const {
     using namespace detail::autonomous_particle;
     auto hierarchy_mutex = std::mutex{};
@@ -354,8 +354,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //----------------------------------------------------------------------------
   template <typename Flowmap>
   static auto advect_with_two_splits(
-      Flowmap&& phi, real_t const step_size, real_t const t0,
-      real_t const                                         t_end,
+      Flowmap&& phi, real_type const step_size, real_type const t0,
+      real_type const                                         t_end,
       uniform_rectilinear_grid<Real, NumDimensions> const& g) {
     return advect<typename split_behaviors::two_splits>(
         std::forward<Flowmap>(phi), step_size, t0, t_end, g);
@@ -363,8 +363,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //----------------------------------------------------------------------------
   template <typename Flowmap>
   static auto advect_with_three_splits(
-      Flowmap&& phi, real_t const step_size, real_t const t0,
-      real_t const                                         t_end,
+      Flowmap&& phi, real_type const step_size, real_type const t0,
+      real_type const                                         t_end,
       uniform_rectilinear_grid<Real, NumDimensions> const& g) {
     return advect<typename split_behaviors::three_splits>(
         std::forward<Flowmap>(phi), step_size, t0, t_end, g);
@@ -372,8 +372,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //----------------------------------------------------------------------------
   template <typename Flowmap>
   static auto advect_with_three_and_four_splits(
-      Flowmap&& phi, real_t const step_size, real_t const t0,
-      real_t const                                         t_end,
+      Flowmap&& phi, real_type const step_size, real_type const t0,
+      real_type const                                         t_end,
       uniform_rectilinear_grid<Real, NumDimensions> const& g) {
     return advect<typename split_behaviors::three_and_four_splits>(
         std::forward<Flowmap>(phi), step_size, t0, t_end, g);
@@ -381,8 +381,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //----------------------------------------------------------------------------
   template <typename Flowmap>
   static auto advect_with_five_splits(
-      Flowmap&& phi, real_t const step_size, real_t const t0,
-      real_t const                                         t_end,
+      Flowmap&& phi, real_type const step_size, real_type const t0,
+      real_type const                                         t_end,
       uniform_rectilinear_grid<Real, NumDimensions> const& g) {
     return advect<typename split_behaviors::five_splits>(
         std::forward<Flowmap>(phi), step_size, t0, t_end, g);
@@ -390,8 +390,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //----------------------------------------------------------------------------
   template <typename Flowmap>
   static auto advect_with_seven_splits(
-      Flowmap&& phi, real_t const step_size, real_t const t0,
-      real_t const                                         t_end,
+      Flowmap&& phi, real_type const step_size, real_type const t0,
+      real_type const                                         t_end,
       uniform_rectilinear_grid<Real, NumDimensions> const& g) {
     return advect<typename split_behaviors::seven_splits>(
         std::forward<Flowmap>(phi), step_size, t0, t_end, g);
@@ -409,7 +409,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   template <
       split_behavior SplitBehavior = typename split_behaviors::three_splits,
       typename Flowmap>
-  static auto advect(Flowmap&& phi, real_t const step_size, real_t const t_end,
+  static auto advect(Flowmap&& phi, real_type const step_size, real_type const t_end,
                      container_type const& initial_particles,
                      std::atomic_uint64_t& uuid_generator) {
     using namespace detail::autonomous_particle;
@@ -466,8 +466,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   template <
       split_behavior SplitBehavior = typename split_behaviors::three_splits,
       typename Flowmap>
-  static auto advect(Flowmap&& phi, real_t const step_size, real_t const t0,
-                     real_t const                                         t_end,
+  static auto advect(Flowmap&& phi, real_type const step_size, real_type const t0,
+                     real_type const                                         t_end,
                      uniform_rectilinear_grid<Real, NumDimensions> const& g) {
     using namespace detail::autonomous_particle;
     auto particles                     = container_type{};
@@ -538,12 +538,12 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   /// \param t_end End of time of advetion.
   /// \param particles Particles to be advected.
   template <split_behavior SplitBehavior, typename Flowmap>
-  static auto advect(Flowmap&& phi, real_t const step_size, real_t const t_end,
+  static auto advect(Flowmap&& phi, real_type const step_size, real_type const t_end,
                      container_type               particles,
                      std::vector<hierarchy_pair>& hierarchy_pairs,
                      std::mutex&                  hierarchy_mutex,
                      std::atomic_uint64_t&        uuid_generator) {
-    auto const num_threads = this_t::num_threads();
+    auto const num_threads = this_type::num_threads();
 
     auto finished_particles        = container_type{};
     auto finished_simple_particles = simple_particle_container_t{};
@@ -597,8 +597,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //----------------------------------------------------------------------------
   template <split_behavior SplitBehavior, typename Flowmap>
   static auto advect_particle_pools(
-      std::size_t const num_threads, Flowmap&& phi, real_t const step_size,
-      real_t const t_end, auto& particles_per_thread,
+      std::size_t const num_threads, Flowmap&& phi, real_type const step_size,
+      real_type const t_end, auto& particles_per_thread,
       std::vector<hierarchy_pair>& hierarchy_pairs, std::mutex& hierarchy_mutex,
       std::atomic_uint64_t& uuid_generator) {
 #pragma omp parallel
@@ -649,7 +649,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   template <
       split_behavior SplitBehavior = typename split_behaviors::three_splits,
       typename Flowmap>
-  auto advect_until_split(Flowmap phi, real_t step_size, real_t const t_end,
+  auto advect_until_split(Flowmap phi, real_type step_size, real_type const t_end,
                           container_type&              splitted_particles,
                           container_type&              finished_particles,
                           simple_particle_container_t& simple_particles,
@@ -659,8 +659,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     if constexpr (is_cacheable<std::decay_t<decltype(phi)>>()) {
       phi.use_caching(false);
     }
-    static constexpr real_t min_tau_step       = 1e-10;
-    static constexpr real_t max_cond_overshoot = 1e-8;
+    static constexpr real_type min_tau_step       = 1e-10;
+    static constexpr real_type max_cond_overshoot = 1e-8;
     static constexpr auto   split_cond         = SplitBehavior::split_cond;
     static constexpr auto   split_sqr_cond     = split_cond * split_cond;
     static constexpr auto   split_radii        = SplitBehavior::radii;
@@ -676,7 +676,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     auto        advected_ellipse      = ellipse_t{*this};
     auto        current_radii         = vec_t{};
     auto        eig_HHt               = std::pair<mat_t, vec_t>{};
-    auto        sqr_cond_H            = real_t(1);
+    auto        sqr_cond_H            = real_type(1);
     auto const& eigvecs_HHt           = eig_HHt.first;
     auto const& eigvals_HHt           = eig_HHt.second;
 
@@ -797,7 +797,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
 // typedefs
 //==============================================================================
 template <std::size_t NumDimensions>
-using AutonomousParticle = autonomous_particle<real_t, NumDimensions>;
+using AutonomousParticle = autonomous_particle<real_number, NumDimensions>;
 template <floating_point Real>
 using AutonomousParticle2 = autonomous_particle<Real, 2>;
 template <floating_point Real>

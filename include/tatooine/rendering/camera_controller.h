@@ -138,6 +138,12 @@ struct camera_controller : gl::window_listener {
   auto eye() const -> auto const& {
     return m_active_cam->eye();
   }
+  auto pitch() const  {
+    return m_active_cam->pitch();
+  }
+  auto yaw() const {
+    return m_active_cam->yaw();
+  }
   auto set_eye(Real const x, Real const y, Real const z) {
     m_pcam.set_eye(x, y, z);
     m_ocam.set_eye(x, y, z);
@@ -248,7 +254,7 @@ struct fps_camera_controller : camera_controller_interface<Real> {
   using vec4 = vec<Real, 4>;
   using mat3 = mat<Real, 3, 3>;
   using mat4 = mat<Real, 4, 4>;
-  using this_t = fps_camera_controller<Real>;
+  using this_type = fps_camera_controller<Real>;
   using parent_type = camera_controller_interface<Real>;
   using parent_type::controller;
 
@@ -265,7 +271,7 @@ struct fps_camera_controller : camera_controller_interface<Real> {
   //----------------------------------------------------------------------------
   fps_camera_controller(camera_controller<Real>* controller)
       : camera_controller_interface<Real>{controller} {
-    controller->look_at(controller->eye(), controller->eye() + vec{0, 0, -1});
+    controller->look_at(controller->eye(), controller->eye() + vec{0, 0, 1});
   }
   virtual ~fps_camera_controller() = default;
   //----------------------------------------------------------------------------
@@ -341,21 +347,22 @@ struct fps_camera_controller : camera_controller_interface<Real> {
       auto offset_y = std::ceil(y) - m_mouse_pos_y;
 
       auto const look_dir = normalize(controller().lookat() - controller().eye());
-      auto theta = std::atan2(look_dir(0), look_dir(2));
+      auto theta = std::atan2(look_dir(2), look_dir(0));
       auto phi = std::acos(look_dir(1));
 
       theta -= offset_x * Real(0.01);
-      phi = std::min<Real>(
-          M_PI - Real(0.3),
-          std::max<Real>(Real(0.3), phi + offset_y * Real(0.01)));
+      phi -= offset_y * Real(0.01);
+      //phi = std::min<Real>(
+      //    M_PI - Real(0.3),
+      //    std::max<Real>(Real(0.3), phi - offset_y * Real(0.01)));
 
       auto const new_look_dir =
-          vec{std::sin(phi) * std::sin(theta),
+          vec{std::sin(phi) * std::cos(theta),
               std::cos(phi),
-              std::sin(phi) * std::cos(theta)};
+              std::sin(phi) * std::sin(theta)};
       controller().look_at(controller().eye(),
                            controller().eye() + new_look_dir);
-    }
+    }                          
     m_mouse_pos_x = std::ceil(x);
     m_mouse_pos_y = std::ceil(y);
   }
@@ -404,20 +411,20 @@ struct fps_camera_controller : camera_controller_interface<Real> {
     if (m_a_down) {
       auto const look_dir =
           normalize(controller().lookat() - controller().eye());
-      auto const right   = cross(vec{0, 1, 0}, -look_dir);
+      auto const right   = cross(vec{0, 1, 0}, look_dir);
       auto const new_eye = controller().eye() - right * ms * speed();
       controller().look_at(new_eye, new_eye + look_dir);
     }
     if (m_d_down) {
       auto const look_dir =
           normalize(controller().lookat() - controller().eye());
-      auto const right   = cross(vec{0, 1, 0}, -look_dir);
+      auto const right   = cross(vec{0, 1, 0}, look_dir);
       auto const new_eye = controller().eye() + right * ms * speed();
       controller().look_at(new_eye, new_eye + look_dir);
     }
   }
   //----------------------------------------------------------------------------
-  auto type() const -> std::type_info const& override { return typeid(this_t); }
+  auto type() const -> std::type_info const& override { return typeid(this_type); }
 };
 //==============================================================================
 template <typename Real>
@@ -426,7 +433,7 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
   using vec4 = vec<Real, 4>;
   using mat3 = mat<Real, 3, 3>;
   using mat4 = mat<Real, 4, 4>;
-  using this_t = orthographic_camera_controller<Real>;
+  using this_type = orthographic_camera_controller<Real>;
   using parent_type = camera_controller_interface<Real>;
   using parent_type::controller;
 
@@ -443,7 +450,7 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
       : camera_controller_interface<Real>{controller} {
     auto new_eye = controller->eye();
     new_eye(2)   = 0;
-    controller->look_at(new_eye, new_eye + vec{0, 0, -1});
+    controller->look_at(new_eye, new_eye + vec{0, 0, 1});
   }
   virtual ~orthographic_camera_controller() = default;
 
@@ -467,15 +474,15 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
       auto offset_x = std::ceil(x) - m_mouse_pos_x;
       auto offset_y = std::ceil(y) - m_mouse_pos_y;
       auto new_eye  = controller().eye();
-      new_eye(0) += static_cast<Real>(offset_x) *
+      new_eye(0) -= static_cast<Real>(offset_x) *
                     controller().orthographic_camera().aspect_ratio() /
                     controller().orthographic_camera().plane_width() *
                     controller().orthographic_camera().height();
-      new_eye(1) += static_cast<Real>(offset_y) /
+      new_eye(1) -= static_cast<Real>(offset_y) /
                     controller().orthographic_camera().plane_height() *
                     controller().orthographic_camera().height();
       new_eye(2) = 0;
-      controller().look_at(new_eye, new_eye + vec{0, 0, -1});
+      controller().look_at(new_eye, new_eye + vec{0, 0, 1});
     }
     m_mouse_pos_x = std::ceil(x);
     m_mouse_pos_y = std::ceil(y);
@@ -501,7 +508,7 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
         controller().plane_width(), controller().plane_height());
   }
   //----------------------------------------------------------------------------
-  auto type() const -> std::type_info const& override { return typeid(this_t); }
+  auto type() const -> std::type_info const& override { return typeid(this_type); }
 };
 //==============================================================================
 }  // namespace tatooine::rendering

@@ -9,12 +9,12 @@ namespace tatooine {
 //==============================================================================
 
 struct rbc : field<rbc, double, 2, 2> {
-  using this_t   = rbc;
-  using parent_type = field<this_t, real_t, 2, 2>;
-  using parent_type::pos_t;
-  using parent_type::real_t;
-  using parent_type::tensor_t;
-  using grid_t = grid_sampler<real_t, 2, vec<real_t, 2>, interpolation::linear,
+  using this_type   = rbc;
+  using parent_type = field<this_type, real_type, 2, 2>;
+  using parent_type::pos_type;
+  using parent_type::real_type;
+  using parent_type::tensor_type;
+  using grid_t = grid_sampler<real_type, 2, vec<real_type, 2>, interpolation::linear,
                               interpolation::linear>;
   static constexpr std::array dim{512ul, 128ul, 201ul};
   static constexpr grid       domain{linspace{0.00390625, 3.99609375, dim[0]},
@@ -51,18 +51,18 @@ struct rbc : field<rbc, double, 2, 2> {
     }
   }
   //----------------------------------------------------------------------------
-  tensor_t evaluate(const pos_t& pos, real_t t) const {
+  tensor_type evaluate(const pos_type& pos, real_type t) const {
     const auto& times = domain.dimension(2);
     for (size_t i = 0; i < grids.size() - 1; ++i)
       if (times[i] <= t && t <= times[i + 1]) {
-        real_t f = (t - times[i]) / (times[i + 1] - times[i]);
+        real_type f = (t - times[i]) / (times[i + 1] - times[i]);
         return (1 - f) * grids[i](pos(0), pos(1)) +
                f * grids[i + 1](pos(0), pos(1));
       }
     return {0, 0};
   }
   //----------------------------------------------------------------------------
-  bool in_domain(const pos_t& p, real_t t) const {
+  bool in_domain(const pos_type& p, real_type t) const {
     auto& times = domain.dimension(2);
     return times.front() <= t && t <= times.back() &&
            grids.front().in_domain(p(0), p(1));

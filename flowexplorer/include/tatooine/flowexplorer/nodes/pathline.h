@@ -15,10 +15,10 @@ struct pathline : renderable<pathline> {
   //----------------------------------------------------------------------------
   // typedefs
   //----------------------------------------------------------------------------
-  using vectorfield2_t = polymorphic::vectorfield<real_t, 2>;
-  using vectorfield3_t = polymorphic::vectorfield<real_t, 3>;
-  using integrator2_t  = ode::vclibs::rungekutta43<real_t, 2>;
-  using integrator3_t  = ode::vclibs::rungekutta43<real_t, 3>;
+  using vectorfield2_t = polymorphic::vectorfield<real_type, 2>;
+  using vectorfield3_t = polymorphic::vectorfield<real_type, 3>;
+  using integrator2_t  = ode::vclibs::rungekutta43<real_type, 2>;
+  using integrator3_t  = ode::vclibs::rungekutta43<real_type, 3>;
   //----------------------------------------------------------------------------
   ui::input_pin&                          m_t0_pin;
   ui::input_pin&                          m_backward_tau_pin;
@@ -31,11 +31,11 @@ struct pathline : renderable<pathline> {
   ui::output_pin&                         m_pos3_pin;
   vec2                                    m_x_neg2, m_x_pos2;
   vec3                                    m_x_neg3, m_x_pos3;
-  line<real_t, 3>                         m_cpu_data;
+  line<real_type, 3>                         m_cpu_data;
   gl::indexeddata<vec3f, vec3f, float> m_gpu_data;
 
-  real_t                 m_t0   = 0;
-  real_t                 m_btau = -5, m_ftau = 5;
+  real_type                 m_t0   = 0;
+  real_type                 m_btau = -5, m_ftau = 5;
   std::array<GLfloat, 4> m_line_color{0.0f, 0.0f, 0.0f, 1.0f};
   int                    m_line_width           = 1;
   bool                   m_integration_going_on = false;

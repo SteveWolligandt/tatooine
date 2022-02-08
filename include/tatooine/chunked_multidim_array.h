@@ -27,7 +27,7 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
   //============================================================================
   using value_type = T;
   using parent_type   = dynamic_multidim_size<GlobalIndexOrder>;
-  using this_t  = chunked_multidim_array<T, GlobalIndexOrder, LocalIndexOrder>;
+  using this_type  = chunked_multidim_array<T, GlobalIndexOrder, LocalIndexOrder>;
   using chunk_t = dynamic_multidim_array<T, LocalIndexOrder>;
   using chunk_ptr_t          = std::unique_ptr<chunk_t>;
   using chunk_ptr_field_t    = std::vector<chunk_ptr_t>;
@@ -75,7 +75,7 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
     }
   }
   //----------------------------------------------------------------------------
-  template <can_read<this_t> Reader>
+  template <can_read<this_type> Reader>
   chunked_multidim_array(Reader&&                   reader,
                          std::vector<std::size_t> const& chunk_size) {
     m_internal_chunk_size = chunk_size;
@@ -458,9 +458,9 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
   ////----------------------------------------------------------------------------
   //
   // auto unchunk_plain() const requires is_arithmetic<T>{
-  //  using real_t          = typename T::real_t;
+  //  using real_type          = typename T::real_type;
   //  constexpr auto      n = T::num_components();
-  //  std::vector<real_t> data;
+  //  std::vector<real_type> data;
   //  data.reserve(num_components() * n);
   //  for (std::size_t i = 0; i < num_components(); ++i) {
   //    for (std::size_t j = 0; j < n; ++j) { data.push_back((*this)[i][j]); }

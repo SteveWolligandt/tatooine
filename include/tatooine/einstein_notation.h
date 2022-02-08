@@ -65,7 +65,7 @@ struct added_contracted_tensor;
 //==============================================================================
 template <typename Tensor, typename... Indices>
 struct indexed_tensor {
-  using tensor_t = std::decay_t<Tensor>;
+  using tensor_type = std::decay_t<Tensor>;
  private:
   Tensor m_tensor;
 
@@ -86,16 +86,16 @@ struct indexed_tensor {
   static auto constexpr index_map(std::index_sequence<Seq...> /*seq*/) {
     return std::array{Indices::get()...};
   }
-  static auto constexpr rank() { return tensor_t::rank(); }
+  static auto constexpr rank() { return tensor_type::rank(); }
   template <std::size_t I>
   static auto constexpr size() {
-    return tensor_t::template size<I>();
+    return tensor_type::template size<I>();
   }
   private:
    template <size_t I, typename E, typename HeadIndex, typename... TailIndices>
    static auto constexpr size_() {
      if constexpr (is_same<E, HeadIndex>) {
-       return tensor_t::dimension(I);
+       return tensor_type::dimension(I);
      } else {
        return size_<I + 1, E, TailIndices...>();
      }
@@ -213,7 +213,7 @@ struct indexed_tensor {
                         ContractedIndexSequence>>()...);
           }
         },
-        tensor_t::dimension(FreeIndexSequence)...);
+        tensor_type::dimension(FreeIndexSequence)...);
   }
   //----------------------------------------------------------------------------
   template <typename... IndexedTensors, typename Tensor_ = Tensor,
@@ -230,7 +230,7 @@ struct indexed_tensor {
   template <typename... IndexedTensors, typename Tensor_ = Tensor,
             enable_if<!is_const<std::remove_reference_t<Tensor_>>> = true>
   auto assign(contracted_tensor<IndexedTensors...> other) {
-    m_tensor = tensor_t{tag::fill{0}};
+    m_tensor = tensor_type{tag::fill{0}};
     add(other, std::make_index_sequence<rank()>{},
         std::make_index_sequence<
             contracted_tensor<IndexedTensors...>::contracted_indices::size>{},
@@ -249,7 +249,7 @@ struct indexed_tensor {
             enable_if<!is_const<std::remove_reference_t<Tensor_>>> = true>
   auto operator=(added_contracted_tensor<ContractedTensors...> other)
       -> indexed_tensor& {
-    m_tensor = tensor_t{tag::fill{0}};
+    m_tensor = tensor_type{tag::fill{0}};
     assign(other, std::make_index_sequence<sizeof...(ContractedTensors)>{});
     return *this;
   }
@@ -257,7 +257,7 @@ struct indexed_tensor {
   template <typename Tensors, typename... Is, typename Tensor_ = Tensor,
             enable_if<!is_const<std::remove_reference_t<Tensor_>>> = true>
   auto operator=(indexed_tensor<Tensors, Is...> other) -> indexed_tensor& {
-    m_tensor = tensor_t{tag::fill{0}};
+    m_tensor = tensor_type{tag::fill{0}};
     *this += contracted_tensor{other};
     return *this;
   }
@@ -271,7 +271,7 @@ struct indexed_tensor {
                         indexed_tensor<RHS, J, K>>
           other) -> indexed_tensor& {
     if constexpr (is_same<I, index_at<0>> && is_same<K, index_at<1>>) {
-      using comp_type = typename tensor_t::value_type;
+      using comp_type = typename tensor_type::value_type;
       static_assert(is_same<comp_type, typename std::decay_t<LHS>::value_type>);
       static_assert(is_same<comp_type, typename std::decay_t<RHS>::value_type>);
       blas::gemm(comp_type(1), other.template at<0>().tensor(),
@@ -395,7 +395,7 @@ struct added_contracted_tensor {
 //==============================================================================
 template <typename... IndexedTensors>
 struct contracted_tensor {
-  using real_t = common_type<typename IndexedTensors::tensor_t::value_type...>;
+  using real_type = common_type<typename IndexedTensors::tensor_type::value_type...>;
   using indices_per_tensor = type_list<typename IndexedTensors::indices...>;
   template <std::size_t I>
   using indices_of_tensor = type_list_at<indices_per_tensor, I>;
@@ -453,7 +453,7 @@ struct contracted_tensor {
     auto const tensor_index_maps = std::tuple{IndexedTensors::index_map()...};
     auto       index_arrays =
         std::tuple{make_array<std::size_t, IndexedTensors::rank()>()...};
-    real_t acc = 0;
+    real_type acc = 0;
 
     for_loop(
         [&](auto const... contracted_indices) {
@@ -492,12 +492,12 @@ struct contracted_tensor {
     return acc;
   }
   //----------------------------------------------------------------------------
-  operator real_t() const {
+  operator real_type() const {
     if constexpr (free_indices::empty){
       return to_scalar(std::make_index_sequence<contracted_indices::size>{},
                        std::make_index_sequence<sizeof...(IndexedTensors)>{});
     } else {
-      return real_t(0) / real_t(0);
+      return real_type(0) / real_type(0);
     }
   }
 };

@@ -173,7 +173,7 @@ There are some helper methods to make the code more readable or at least to hide
 \code{.cpp}
 auto create_a_rectilinear_grid_and_some_props() {
   auto g = tatooine::rectilinear_grid{64, 64};
-  // create a vertex property that holds tatooine::real_t instances per vertex
+  // create a vertex property that holds tatooine::real_type instances per vertex
   auto& scalar_prop = g.scalar_vertex_property("scalar_prop"); 
   // create a vertex property that holds vec2 instances per vertex
   auto& vec2_prop = g.vec2_vertex_property("vec2_prop"); 

@@ -39,10 +39,10 @@ class rectilinear_grid {
   static constexpr bool is_uniform =
       (is_linspace<std::decay_t<Dimensions>> && ...);
   static constexpr auto num_dimensions() { return sizeof...(Dimensions); }
-  using this_t = rectilinear_grid<Dimensions...>;
-  using real_t = common_type<typename Dimensions::value_type...>;
-  using vec_t  = vec<real_t, num_dimensions()>;
-  using pos_t  = vec_t;
+  using this_type = rectilinear_grid<Dimensions...>;
+  using real_type = common_type<typename Dimensions::value_type...>;
+  using vec_t  = vec<real_type, num_dimensions()>;
+  using pos_type  = vec_t;
   using seq_t  = std::make_index_sequence<num_dimensions()>;
 
   using dimensions_t = std::tuple<std::decay_t<Dimensions>...>;
@@ -52,15 +52,15 @@ class rectilinear_grid {
   using cell_container   = detail::rectilinear_grid::cell_container<Dimensions...>;
 
   // general property types
-  using vertex_property_t = detail::rectilinear_grid::vertex_property<this_t>;
+  using vertex_property_t = detail::rectilinear_grid::vertex_property<this_type>;
   template <typename ValueType, bool HasNonConstReference>
   using typed_vertex_property_interface_t =
-      detail::rectilinear_grid::typed_vertex_property_interface<this_t, ValueType,
+      detail::rectilinear_grid::typed_vertex_property_interface<this_type, ValueType,
                                            HasNonConstReference>;
   template <typename Container>
   using typed_vertex_property_t =
       detail::rectilinear_grid::typed_vertex_property<
-          this_t, typename Container::value_type, Container>;
+          this_type, typename Container::value_type, Container>;
   template <typename F>
   using invoke_result_with_indices =
       std::invoke_result_t<F, decltype(((void)std::declval<Dimensions>(),
@@ -80,7 +80,7 @@ class rectilinear_grid {
   property_container_t m_vertex_properties;
   mutable bool         m_diff_stencil_coefficients_created_once = false;
 
-  using stencil_t      = std::vector<real_t>;
+  using stencil_t      = std::vector<real_type>;
   using stencil_list_t = std::vector<stencil_t>;
   mutable std::array<std::array<std::vector<stencil_list_t>, num_stencils>,
                      num_dimensions()>
@@ -132,7 +132,7 @@ class rectilinear_grid {
       axis_aligned_bounding_box<Real, num_dimensions()> const& bb,
       std::array<std::size_t, num_dimensions()> const&              res,
       std::index_sequence<Seq...> /*seq*/)
-      : m_dimensions{linspace<real_t>{real_t(bb.min(Seq)), real_t(bb.max(Seq)),
+      : m_dimensions{linspace<real_type>{real_type(bb.min(Seq)), real_type(bb.max(Seq)),
                                       res[Seq]}...} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
@@ -155,7 +155,7 @@ class rectilinear_grid {
   template <std::size_t... Ds>
   constexpr auto copy_without_properties(
       std::index_sequence<Ds...> /*seq*/) const {
-    return this_t{std::get<Ds>(m_dimensions)...};
+    return this_type{std::get<Ds>(m_dimensions)...};
   }
 
  public:
@@ -312,7 +312,7 @@ class rectilinear_grid {
  private:
   template <std::size_t... Seq>
   constexpr auto min(std::index_sequence<Seq...> /*seq*/) const {
-    return vec<real_t, num_dimensions()>{static_cast<real_t>(front<Seq>())...};
+    return vec<real_type, num_dimensions()>{static_cast<real_type>(front<Seq>())...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
@@ -321,7 +321,7 @@ class rectilinear_grid {
  private:
   template <std::size_t... Seq>
   constexpr auto max(std::index_sequence<Seq...> /*seq*/) const {
-    return vec<real_t, num_dimensions()>{static_cast<real_t>(back<Seq>())...};
+    return vec<real_type, num_dimensions()>{static_cast<real_type>(back<Seq>())...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
@@ -340,9 +340,9 @@ class rectilinear_grid {
   template <std::size_t... Seq>
   constexpr auto bounding_box(std::index_sequence<Seq...> /*seq*/) const {
     static_assert(sizeof...(Seq) == num_dimensions());
-    return axis_aligned_bounding_box<real_t, num_dimensions()>{
-        vec<real_t, num_dimensions()>{static_cast<real_t>(front<Seq>())...},
-        vec<real_t, num_dimensions()>{static_cast<real_t>(back<Seq>())...}};
+    return axis_aligned_bounding_box<real_type, num_dimensions()>{
+        vec<real_type, num_dimensions()>{static_cast<real_type>(front<Seq>())...},
+        vec<real_type, num_dimensions()>{static_cast<real_type>(back<Seq>())...}};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
@@ -454,7 +454,7 @@ class rectilinear_grid {
     return dimension<I>().front();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto front(std::size_t const i) const -> real_t {
+  constexpr auto front(std::size_t const i) const -> real_type {
     if (i == 0) {
       return front<0>();
     }
@@ -508,7 +508,7 @@ class rectilinear_grid {
         return front<10>();
       }
     }
-    return std::numeric_limits<real_t>::max();
+    return std::numeric_limits<real_type>::max();
   }
   //----------------------------------------------------------------------------
   template <std::size_t I>
@@ -516,7 +516,7 @@ class rectilinear_grid {
     return dimension<I>().back();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto back(std::size_t const i) const -> real_t {
+  constexpr auto back(std::size_t const i) const -> real_type {
     if (i == 0) {
       return back<0>();
     }
@@ -570,7 +570,7 @@ class rectilinear_grid {
         return back<10>();
       }
     }
-    return std::numeric_limits<real_t>::max();
+    return std::numeric_limits<real_type>::max();
   }
   //----------------------------------------------------------------------------
   template <std::size_t I>
@@ -589,7 +589,7 @@ class rectilinear_grid {
     return extent(std::make_index_sequence<num_dimensions()>{});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto extent(std::size_t const i) const -> real_t {
+  constexpr auto extent(std::size_t const i) const -> real_type {
     if (i == 0) {
       return extent<0>();
     }
@@ -643,7 +643,7 @@ class rectilinear_grid {
         return extent<10>();
       }
     }
-    return std::numeric_limits<real_t>::max();
+    return std::numeric_limits<real_type>::max();
   }
   //----------------------------------------------------------------------------
   template <std::size_t I>
@@ -662,7 +662,7 @@ class rectilinear_grid {
     return center(std::make_index_sequence<num_dimensions()>{});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto center(std::size_t const i) const -> real_t {
+  constexpr auto center(std::size_t const i) const -> real_type {
     if (i == 0) {
       return center<0>();
     }
@@ -716,7 +716,7 @@ class rectilinear_grid {
         return center<10>();
       }
     }
-    return std::numeric_limits<real_t>::max();
+    return std::numeric_limits<real_type>::max();
   }
   //----------------------------------------------------------------------------
   template <arithmetic... Comps, std::size_t... Seq>
@@ -733,12 +733,12 @@ class rectilinear_grid {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <std::size_t... Seq>
-  constexpr auto is_inside(pos_t const& p,
+  constexpr auto is_inside(pos_type const& p,
                            std::index_sequence<Seq...> /*seq*/) const {
     return ((front<Seq>() <= p(Seq) && p(Seq) <= back<Seq>()) && ...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto is_inside(pos_t const& p) const {
+  constexpr auto is_inside(pos_type const& p) const {
     return is_inside(p, std::make_index_sequence<num_dimensions()>{});
   }
   //----------------------------------------------------------------------------
@@ -764,14 +764,14 @@ class rectilinear_grid {
   //----------------------------------------------------------------------------
  private:
   template <std::size_t... Seq>
-  constexpr auto in_domain(std::array<real_t, num_dimensions()> const& x,
+  constexpr auto in_domain(std::array<real_type, num_dimensions()> const& x,
                            std::index_sequence<Seq...> /*seq*/) const {
     return in_domain(x[Seq]...);
   }
   //----------------------------------------------------------------------------
  public:
   constexpr auto in_domain(
-      std::array<real_t, num_dimensions()> const& x) const {
+      std::array<real_type, num_dimensions()> const& x) const {
     return in_domain(x, seq_t{});
   }
   //----------------------------------------------------------------------------
@@ -835,7 +835,7 @@ class rectilinear_grid {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// returns cell index and factor for interpolation
   template <std::size_t DimensionIndex>
-  auto cell_index(arithmetic auto x) const -> std::pair<std::size_t, real_t> {
+  auto cell_index(arithmetic auto x) const -> std::pair<std::size_t, real_type> {
     auto const& dim = dimension<DimensionIndex>();
     if (std::abs(x - dim.front()) < 1e-10) {
       x = dim.front();
@@ -941,7 +941,7 @@ class rectilinear_grid {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename Dim>
   auto update_diff_stencil_coefficients(
-      Dim const& dim, std::vector<std::vector<real_t>>& stencils,
+      Dim const& dim, std::vector<std::vector<real_type>>& stencils,
       std::size_t const stencil_size, std::size_t const stencil_center) const {
     stencils.reserve(dim.size());
 
@@ -950,7 +950,7 @@ class rectilinear_grid {
     }
     for (std::size_t i = stencil_center;
          i < dim.size() - (stencil_size - stencil_center - 1); ++i) {
-      std::vector<real_t> xs(stencil_size);
+      std::vector<real_type> xs(stencil_size);
       for (std::size_t j = 0; j < stencil_size; ++j) {
         xs[j] = dim[i - stencil_center + j] - dim[i];
       }
@@ -970,16 +970,16 @@ class rectilinear_grid {
   template <std::size_t... DIs, integral Int>
   auto vertex_at(std::index_sequence<DIs...> /*seq*/,
                  std::array<Int, num_dimensions()> const& is) const
-      -> vec<real_t, num_dimensions()> {
-    return pos_t{static_cast<real_t>(dimension<DIs>()[is[DIs]])...};
+      -> vec<real_type, num_dimensions()> {
+    return pos_type{static_cast<real_type>(dimension<DIs>()[is[DIs]])...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <std::size_t... DIs>
   auto vertex_at(std::index_sequence<DIs...>, integral auto const... is) const
-      -> vec<real_t, num_dimensions()> {
+      -> vec<real_type, num_dimensions()> {
     static_assert(sizeof...(DIs) == sizeof...(is));
     static_assert(sizeof...(is) == num_dimensions());
-    return pos_t{static_cast<real_t>(dimension<DIs>()[is])...};
+    return pos_type{static_cast<real_type>(dimension<DIs>()[is])...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto vertex_at(integral auto const... is) const {
@@ -1064,7 +1064,7 @@ class rectilinear_grid {
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest>
   auto insert_scalar_vertex_property(std::string const& name) -> auto& {
-    return insert_vertex_property<tatooine::real_t, IndexOrder>(name);
+    return insert_vertex_property<tatooine::real_number, IndexOrder>(name);
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest>
@@ -1177,12 +1177,12 @@ class rectilinear_grid {
   //----------------------------------------------------------------------------
   template <bool HasNonConstReference = true>
   auto scalar_vertex_property(std::string const& name) const -> auto const& {
-    return vertex_property<tatooine::real_t, HasNonConstReference>(name);
+    return vertex_property<tatooine::real_number, HasNonConstReference>(name);
   }
   //----------------------------------------------------------------------------
   template <bool HasNonConstReference = true>
   auto scalar_vertex_property(std::string const& name) -> auto& {
-    return vertex_property<tatooine::real_t, HasNonConstReference>(name);
+    return vertex_property<tatooine::real_number, HasNonConstReference>(name);
   }
   //----------------------------------------------------------------------------
   template <bool HasNonConstReference = true>
@@ -1383,9 +1383,9 @@ class rectilinear_grid {
   }
 #endif
   //============================================================================
-  template <invocable<pos_t> F>
+  template <invocable<pos_type> F>
   auto sample_to_vertex_property(F&& f, std::string const& name) -> auto& {
-    using T    = std::invoke_result_t<F, pos_t>;
+    using T    = std::invoke_result_t<F, pos_type>;
     auto& prop = insert_vertex_property<T>(name);
     vertices().iterate_indices([&](auto const... is) {
       try {
@@ -1423,10 +1423,10 @@ class rectilinear_grid {
   }
   //----------------------------------------------------------------------------
   struct vtk_listener : vtk::legacy_file_listener {
-    this_t& gr;
+    this_type& gr;
     bool&   is_structured_points;
     vec3&   spacing;
-    vtk_listener(this_t& gr_, bool& is_structured_points_, vec3& spacing_)
+    vtk_listener(this_type& gr_, bool& is_structured_points_, vec3& spacing_)
         : gr{gr_},
           is_structured_points{is_structured_points_},
           spacing{spacing_} {}
@@ -1620,7 +1620,7 @@ class rectilinear_grid {
   auto read_amira(filesystem::path const& path)
     requires (num_dimensions() == 2) ||
              (num_dimensions() == 3) {
-    auto const  am        = amira::read<real_t>(path);
+    auto const  am        = amira::read<real_type>(path);
     auto const& data      = std::get<0>(am);
     auto const& dims      = std::get<1>(am);
     auto const& aabb      = std::get<2>(am);
@@ -1645,8 +1645,8 @@ class rectilinear_grid {
                                  linspace<double>>) {
       dimension<0>() = linspace<double>{aabb.min(0), aabb.max(0), dims[0]};
     } else if constexpr (std::is_same_v<std::decay_t<decltype(dimension<0>())>,
-                                        linspace<real_t>>) {
-      dimension<0>() = linspace<real_t>{aabb.min(0), aabb.max(0), dims[0]};
+                                        linspace<real_type>>) {
+      dimension<0>() = linspace<real_type>{aabb.min(0), aabb.max(0), dims[0]};
     } else {
       linspace<double> d{aabb.min(0), aabb.max(0), dims[0]};
       dimension<0>().resize(dims[0]);
@@ -1656,8 +1656,8 @@ class rectilinear_grid {
                                  linspace<double>>) {
       dimension<1>() = linspace<double>{aabb.min(1), aabb.max(1), dims[1]};
     } else if constexpr (std::is_same_v<std::decay_t<decltype(dimension<0>())>,
-                                        linspace<real_t>>) {
-      dimension<1>() = linspace<real_t>{aabb.min(1), aabb.max(1), dims[1]};
+                                        linspace<real_type>>) {
+      dimension<1>() = linspace<real_type>{aabb.min(1), aabb.max(1), dims[1]};
     } else {
       linspace<double> d{aabb.min(1), aabb.max(1), dims[1]};
       dimension<1>().resize(dims[1]);
@@ -1669,8 +1669,8 @@ class rectilinear_grid {
         dimension<2>() = linspace<double>{aabb.min(2), aabb.max(2), dims[2]};
       } else if constexpr (std::is_same_v<
                                std::decay_t<decltype(dimension<1>())>,
-                               linspace<real_t>>) {
-        dimension<2>() = linspace<real_t>{aabb.min(2), aabb.max(2), dims[2]};
+                               linspace<real_type>>) {
+        dimension<2>() = linspace<real_type>{aabb.min(2), aabb.max(2), dims[2]};
       } else {
         linspace<double> d{aabb.min(2), aabb.max(2), dims[2]};
         dimension<2>().resize(dims[2]);
@@ -1680,17 +1680,17 @@ class rectilinear_grid {
     // copy data
     std::size_t i = 0;
     if (num_comps == 1) {
-      auto& prop = insert_vertex_property<real_t>(path.string());
+      auto& prop = insert_vertex_property<real_type>(path.string());
       vertices().iterate_indices(
           [&](auto const... is) { prop(is...) = data[i++]; });
     } else if (num_comps == 2) {
-      auto& prop = insert_vertex_property<vec<real_t, 2>>(path.string());
+      auto& prop = insert_vertex_property<vec<real_type, 2>>(path.string());
       vertices().iterate_indices([&](auto const... is) {
         prop(is...) = {data[i], data[i + 1]};
         i += num_comps;
       });
     } else if (num_comps == 3) {
-      auto& prop = insert_vertex_property<vec<real_t, 3>>(path.string());
+      auto& prop = insert_vertex_property<vec<real_type, 3>>(path.string());
       vertices().iterate_indices([&](auto const... is) {
         prop(is...) = {data[i], data[i + 1], data[i + 2]};
         i += num_comps;
@@ -2152,7 +2152,7 @@ auto operator+(AdditionalDimension&&                  additional_dimension,
 template <floating_point Real, std::size_t N>
 using uniform_rectilinear_grid = detail::rectilinear_grid::creator_t<linspace<Real>, N>;
 template <std::size_t N>
-using UniformRectilinearGrid    = uniform_rectilinear_grid<real_t, N>;
+using UniformRectilinearGrid    = uniform_rectilinear_grid<real_number, N>;
 using uniform_rectilinear_grid2 = UniformRectilinearGrid<2>;
 using uniform_rectilinear_grid3 = UniformRectilinearGrid<3>;
 using uniform_rectilinear_grid4 = UniformRectilinearGrid<4>;
@@ -2170,7 +2170,7 @@ template <arithmetic Real, std::size_t N>
 using nonuniform_rectilinear_grid =
     detail::rectilinear_grid::creator_t<std::vector<Real>, N>;
 template <std::size_t N>
-using NonuniformRectilinearGrid    = nonuniform_rectilinear_grid<real_t, N>;
+using NonuniformRectilinearGrid    = nonuniform_rectilinear_grid<real_number, N>;
 using nonuniform_rectilinear_grid2 = NonuniformRectilinearGrid<2>;
 using nonuniform_rectilinear_grid3 = NonuniformRectilinearGrid<3>;
 using nonuniform_rectilinear_grid4 = NonuniformRectilinearGrid<4>;
@@ -2180,7 +2180,7 @@ template <arithmetic Real, std::size_t... N>
 using static_nonuniform_rectilinear_grid =
     rectilinear_grid<std::array<Real, N>...>;
 template <std::size_t N>
-using StaticNonUniformGrid = static_nonuniform_rectilinear_grid<real_t, N>;
+using StaticNonUniformGrid = static_nonuniform_rectilinear_grid<real_number, N>;
 using static_nonuniform_rectilinear_grid2 = NonuniformRectilinearGrid<2>;
 using static_nonuniform_rectilinear_grid3 = NonuniformRectilinearGrid<3>;
 using static_nonuniform_rectilinear_grid4 = NonuniformRectilinearGrid<4>;

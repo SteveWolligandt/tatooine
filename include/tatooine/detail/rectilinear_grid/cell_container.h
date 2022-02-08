@@ -24,7 +24,7 @@ struct cell_container {
   //using iterator          = cell_iterator<Dimensions...>;
   //using const_iterator    = iterator;
   //using handle    = cell_handle<Dimensions...>;
-  //using pos_t = typename grid_t::pos_t;
+  //using pos_type = typename grid_t::pos_type;
   using seq_t = typename grid_t::seq_t;
   static constexpr auto num_dimensions() { return sizeof...(Dimensions); }
   //----------------------------------------------------------------------------
@@ -33,16 +33,16 @@ struct cell_container {
 //  template <size_t... DIs, integral Int>
 //  auto at(std::index_sequence<DIs...>,
 //          std::array<Int, num_dimensions()> const& is) const
-//      -> vec<real_t, num_dimensions()> {
-//    return pos_t{static_cast<real_t>(m_grid.template dimension<DIs>()[is[DIs]])...};
+//      -> vec<real_type, num_dimensions()> {
+//    return pos_type{static_cast<real_type>(m_grid.template dimension<DIs>()[is[DIs]])...};
 //  }
 //  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 //  template <size_t... DIs, integral... Is>
 //  auto at(std::index_sequence<DIs...>, Is const... is) const
-//      -> vec<real_t, num_dimensions()> {
+//      -> vec<real_type, num_dimensions()> {
 //    static_assert(sizeof...(DIs) == sizeof...(is));
 //    static_assert(sizeof...(is) == num_dimensions());
-//    return pos_t{static_cast<real_t>(m_grid.template dimension<DIs>()[is])...};
+//    return pos_type{static_cast<real_type>(m_grid.template dimension<DIs>()[is])...};
 //  }
 //  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // public:

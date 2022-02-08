@@ -10,7 +10,7 @@ namespace tatooine {
 
 template <typename Real, size_t N, size_t... Is>
 [[nodiscard]] auto newton_raphson(const symbolic::field<Real, N, N>&          v,
-                                  typename symbolic::field<Real, N, N>::pos_t x,
+                                  typename symbolic::field<Real, N, N>::pos_type x,
                                   Real t, size_t n, double precision,
                                   std::index_sequence<Is...>) {
   auto Jv     = diff(v);
@@ -29,7 +29,7 @@ template <typename Real, size_t N, size_t... Is>
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Real, size_t N>
 [[nodiscard]] auto newton_raphson(const symbolic::field<Real, N, N>&          v,
-                                  typename symbolic::field<Real, N, N>::pos_t x,
+                                  typename symbolic::field<Real, N, N>::pos_type x,
                                   Real t, size_t n, double precision = 1e-10) {
   return newton_raphson(v, x, t, n, precision, std::make_index_sequence<N>{});
 }

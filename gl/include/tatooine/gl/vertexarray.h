@@ -13,7 +13,7 @@ namespace tatooine::gl {
 //==============================================================================
 class vertexarray : public id_holder<GLuint> {
  public:
-  using this_t = vertexarray;
+  using this_type = vertexarray;
 
   DLL_API vertexarray();
   DLL_API vertexarray(vertexarray const& other) = delete;

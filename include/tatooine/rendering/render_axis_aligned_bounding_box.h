@@ -11,7 +11,7 @@ template <typename Real>
 auto render(
     AABB3<Real> const& aabb, int const line_width,
     UniformRectilinearGrid2<Real> const& grid, camera auto const& cam,
-    invocable<Real, typename AABB3<Real>::pos_t, typename AABB3<Real>::pos_t,
+    invocable<Real, typename AABB3<Real>::pos_type, typename AABB3<Real>::pos_type,
               std::size_t, std::size_t> auto&& callback) {
   auto r = [&](auto const x0, auto const x1) {
     render(x0, x1, line_width, grid, cam,
@@ -49,7 +49,7 @@ template <typename Real, typename Callback>
 auto render(
     AABB3<Real> const& aabb, UniformRectilinearGrid2<Real> const& grid,
     camera auto const&                         cam,
-    invocable<Real, typename AABB3<Real>::pos_t, typename AABB3<Real>::pos_t,
+    invocable<Real, typename AABB3<Real>::pos_type, typename AABB3<Real>::pos_type,
               std::size_t, std::size_t> auto&& callback) {
   render(aabb, 1, grid, cam, std::forward<Callback>(callback));
 }

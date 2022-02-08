@@ -9,27 +9,27 @@ namespace tatooine {
 template <typename LHSInternalField, typename RHSInternalField, typename Op>
 struct binary_operation_field
     : field<binary_operation_field<LHSInternalField, RHSInternalField, Op>,
-            common_type<field_real_t<LHSInternalField>,
-                        field_real_t<RHSInternalField>>,
+            common_type<field_real_type<LHSInternalField>,
+                        field_real_type<RHSInternalField>>,
             field_num_dimensions<LHSInternalField>,
             std::invoke_result_t<Op,
-                                 field_tensor_t<LHSInternalField>,
-                                 field_tensor_t<RHSInternalField>>> {
+                                 field_tensor_type<LHSInternalField>,
+                                 field_tensor_type<RHSInternalField>>> {
   static_assert(field_num_dimensions<LHSInternalField> ==
                 field_num_dimensions<RHSInternalField>);
 
  public:
-  using this_t = binary_operation_field<LHSInternalField, RHSInternalField, Op>;
+  using this_type = binary_operation_field<LHSInternalField, RHSInternalField, Op>;
   using parent_type =
-      field<this_t,
-            common_type<field_real_t<LHSInternalField>,
-                        field_real_t<RHSInternalField>>,
+      field<this_type,
+            common_type<field_real_type<LHSInternalField>,
+                        field_real_type<RHSInternalField>>,
             field_num_dimensions<LHSInternalField>,
-            std::invoke_result_t<Op, field_tensor_t<LHSInternalField>,
-                                 field_tensor_t<RHSInternalField>>>;
-  using typename parent_type::pos_t;
-  using typename parent_type::real_t;
-  using typename parent_type::tensor_t;
+            std::invoke_result_t<Op, field_tensor_type<LHSInternalField>,
+                                 field_tensor_type<RHSInternalField>>>;
+  using typename parent_type::pos_type;
+  using typename parent_type::real_type;
+  using typename parent_type::tensor_type;
   //----------------------------------------------------------------------------
   // members
   //----------------------------------------------------------------------------
@@ -79,8 +79,8 @@ struct binary_operation_field
   //----------------------------------------------------------------------------
   // methods
   //----------------------------------------------------------------------------
-  constexpr auto evaluate(pos_t const& x, real_t const t) const
-      -> tensor_t final {
+  constexpr auto evaluate(pos_type const& x, real_type const t) const
+      -> tensor_type final {
     return m_op(lhs()(x, t), rhs()(x, t));
   }
   auto lhs() const -> auto const& {

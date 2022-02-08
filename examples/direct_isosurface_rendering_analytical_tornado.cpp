@@ -19,8 +19,8 @@ auto direct_iso_tornado() {
   auto const            fov                 = 60;
   rendering::perspective_camera cam{eye, lookat, up, fov, width, height};
   auto const                    t                = 0;
-  real_t const                  min              = 0.0;
-  real_t const                  max              = 1.0;
+  real_type const                  min              = 0.0;
+  real_type const                  max              = 1.0;
   auto const                    distance_on_ray  = 0.001;
   auto const                    isovalue         = 1;
   auto const                    domain_check     = [&aabb](auto const& x) {
@@ -35,7 +35,7 @@ auto direct_iso_tornado() {
             std::max(std::abs(dot(reflect_dir, view_dir)), 0.0);
         auto const specular = std::pow(spec_dot, 100);
         auto const albedo   = color_scale(
-            std::clamp<real_t>((length(v)(x_iso, t) - min) / (max - min), 0, 1));
+            std::clamp<real_type>((length(v)(x_iso, t) - min) / (max - min), 0, 1));
         auto const col      = albedo * diffuse + specular;
         return vec{col(0), col(1), col(2), 1};
       };

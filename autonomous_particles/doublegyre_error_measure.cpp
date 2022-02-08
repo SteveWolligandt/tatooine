@@ -23,7 +23,7 @@ auto measure(auto const& sampler, auto const& phi, auto const t0, auto const t1,
 auto main(int const /*argc*/, char const** argv) -> int {
   auto v        = doublegyre{};
   auto phi      = flowmap(v);
-  auto tau_step = real_t(0.1);
+  auto tau_step = real_type(0.1);
   auto t0       = std::stod(argv[1]);
   auto t1       = std::stod(argv[2]);
   auto x0       = vec2{std::stod(argv[3]), std::stod(argv[4])};
@@ -33,7 +33,7 @@ auto main(int const /*argc*/, char const** argv) -> int {
   auto& local_errors =
       local_neighborhood.scalar_vertex_property("local_errors");
 
-  auto part           = autonomous_particle<real_t, 2>{x0, t0, r0};
+  auto part           = autonomous_particle<real_type, 2>{x0, t0, r0};
   auto advected_parts = part.advect_with_3_splits(phi, tau_step, t1);
   std::cout << "got " << size(advected_parts) << " advected particles\n";
   std::size_t i = 0;

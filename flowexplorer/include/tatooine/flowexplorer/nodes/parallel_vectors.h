@@ -13,7 +13,7 @@ struct parallel_vectors : renderable<parallel_vectors> {
   ui::input_pin&               v_pin;
   ui::input_pin&               w_pin;
   ui::input_pin&               grid_pin;
-  std::vector<line<real_t, 3>> m_lines;
+  std::vector<line<real_type, 3>> m_lines;
   gl::indexeddata<vec3f> m_geometry;
   //============================================================================
   parallel_vectors(flowexplorer::scene& s);

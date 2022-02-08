@@ -9,13 +9,13 @@ int main(int, char** argv) {
   using V      = fields::scivis_contest_2020_ensemble_member;
   V v{argv[1]};
 
-  std::vector<parameterized_line<V::real_t, 3, interpolation::linear>>
+  std::vector<parameterized_line<V::real_type, 3, interpolation::linear>>
                pathlines;
   size_t const num_pathlines = 100;
   pathlines.reserve(num_pathlines);
 
   auto              bb = v.m_w_grid.boundingbox();
-  vec<V::real_t, 4> xt;
+  vec<V::real_type, 4> xt;
   bool              in_domain = false;
   std::mutex        mutex;
 //#pragma omp parallel for
@@ -31,7 +31,7 @@ int main(int, char** argv) {
       std::lock_guard lock{mutex};
       return pathlines.emplace_back();
     }();
-    ode::vclibs::rungekutta43<V::real_t, 3> solver;
+    ode::vclibs::rungekutta43<V::real_type, 3> solver;
     solver.solve(v, vec{xt(0), xt(1), xt(2)}, xt(3), 1000000,
                  [&mutex, &pathline](auto t, const auto& y) {
                    if (pathline.empty()) {

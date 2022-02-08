@@ -20,7 +20,7 @@ struct vertex_container {
   using iterator       = vertex_iterator<Dimensions...>;
   using const_iterator = iterator;
   using handle         = typename grid_t::vertex_handle;
-  using pos_t          = typename grid_t::pos_t;
+  using pos_type          = typename grid_t::pos_type;
   using seq_t          = typename grid_t::seq_t;
   static constexpr auto num_dimensions() { return sizeof...(Dimensions); }
   //----------------------------------------------------------------------------

@@ -9,18 +9,18 @@ namespace tatooine {
 //==============================================================================
 
 template <typename V>
-class lambda2_field : public field<lambda2_field<V>, typename V::real_t,
+class lambda2_field : public field<lambda2_field<V>, typename V::real_type,
                                    V::num_dimensions()> {
   //============================================================================
   // typedefs
   //============================================================================
  public:
-  using real_t = typename V::real_t;
-  using this_t = lambda2_field<V>;
+  using real_type = typename V::real_type;
+  using this_type = lambda2_field<V>;
   using parent_type =
-      field<this_t, real_t, V::num_dimensions()>;
-  using typename parent_type::tensor_t;
-  using typename parent_type::pos_t;
+      field<this_type, real_type, V::num_dimensions()>;
+  using typename parent_type::tensor_type;
+  using typename parent_type::pos_type;
   //============================================================================
   // fields
   //============================================================================
@@ -38,7 +38,7 @@ class lambda2_field : public field<lambda2_field<V>, typename V::real_t,
   // methods
   //============================================================================
  public:
-  constexpr tensor_t evaluate(const pos_t& x, real_t t) const {
+  constexpr tensor_type evaluate(const pos_type& x, real_type t) const {
     auto J     = diff(m_vf)(x, t);
     auto S     = (J + transpose(J)) / 2;
     auto Omega = (J - transpose(J)) / 2;
@@ -46,7 +46,7 @@ class lambda2_field : public field<lambda2_field<V>, typename V::real_t,
     return eigenvalues_sym(A)(1);
   }
   //----------------------------------------------------------------------------
-  constexpr bool in_domain(const pos_t& x, real_t t) const {
+  constexpr bool in_domain(const pos_type& x, real_type t) const {
     return m_vf.in_domain(x, t);
   }
 };

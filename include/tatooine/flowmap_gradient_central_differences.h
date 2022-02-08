@@ -11,12 +11,12 @@ struct flowmap_gradient_central_differences {
   //============================================================================
  public:
   using flowmap_t = std::decay_t<Flowmap>;
-  using this_t    = flowmap_gradient_central_differences<flowmap_t>;
-  using real_t    = typename flowmap_t::real_t;
+  using this_type    = flowmap_gradient_central_differences<flowmap_t>;
+  using real_type    = typename flowmap_t::real_type;
   static constexpr auto num_dimensions() { return flowmap_t::num_dimensions(); }
   using vec_t      = typename flowmap_t::vec_t;
-  using pos_t      = typename flowmap_t::pos_t;
-  using mat_t      = mat<real_t, num_dimensions(), num_dimensions()>;
+  using pos_type      = typename flowmap_t::pos_type;
+  using mat_t      = mat<real_type, num_dimensions(), num_dimensions()>;
   using gradient_t = mat_t;
 
   //============================================================================
@@ -27,7 +27,7 @@ struct flowmap_gradient_central_differences {
   //============================================================================
  public:
   template <fixed_dims_flowmap_c<num_dimensions()> _Flowmap>
-  flowmap_gradient_central_differences(_Flowmap flowmap, real_t const epsilon)
+  flowmap_gradient_central_differences(_Flowmap flowmap, real_type const epsilon)
       : m_flowmap{std::forward<_Flowmap>(flowmap)},
         m_epsilon{tag::fill{epsilon}} {}
   //----------------------------------------------------------------------------
@@ -35,10 +35,10 @@ struct flowmap_gradient_central_differences {
   flowmap_gradient_central_differences(_Flowmap flowmap, vec_t const& epsilon)
       : m_flowmap{std::forward<_Flowmap>(flowmap)}, m_epsilon{epsilon} {}
   //============================================================================
-  auto evaluate(pos_t const& y0, real_t const t0, real_t const tau) const {
+  auto evaluate(pos_type const& y0, real_type const t0, real_type const tau) const {
     gradient_t derivative;
 
-    auto offset = pos_t::zeros();
+    auto offset = pos_type::zeros();
     for (size_t i = 0; i < num_dimensions(); ++i) {
       offset(i)     = m_epsilon(i);
       auto const dx = 2 * m_epsilon(i);
@@ -50,7 +50,7 @@ struct flowmap_gradient_central_differences {
     return derivative;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator()(pos_t const& y0, real_t const t0, real_t const tau) const {
+  auto operator()(pos_type const& y0, real_type const t0, real_type const tau) const {
     return evaluate(y0, t0, tau);
   }
   //----------------------------------------------------------------------------

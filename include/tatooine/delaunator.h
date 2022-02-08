@@ -94,17 +94,17 @@ std::pair<Real, Real> circumcenter(Real const ax, Real const ay, Real const bx,
 //------------------------------------------------------------------------------
 template <range Coords>
 struct compare {
-  using real_t = typename Coords::value_type::value_type;
+  using real_type = typename Coords::value_type::value_type;
   Coords const& coords;
-  real_t                     cx;
-  real_t                     cy;
+  real_type                     cx;
+  real_type                     cy;
 
   bool operator()(std::size_t i, std::size_t j) {
-    real_t const d1    = dist(coords[i](0), coords[i](1), cx, cy);
-    real_t const d2    = dist(coords[j](0), coords[j](1), cx, cy);
-    real_t const diff1 = d1 - d2;
-    real_t const diff2 = coords[i](0) - coords[j](0);
-    real_t const diff3 = coords[i](1) - coords[j](1);
+    real_type const d1    = dist(coords[i](0), coords[i](1), cx, cy);
+    real_type const d2    = dist(coords[j](0), coords[j](1), cx, cy);
+    real_type const diff1 = d1 - d2;
+    real_type const diff2 = coords[i](0) - coords[j](0);
+    real_type const diff3 = coords[i](1) - coords[j](1);
 
     if (diff1 > 0.0 || diff1 < 0.0) {
       return diff1 < 0;
@@ -153,7 +153,7 @@ template <range Coords>
 class Delaunator {
   static_assert(std::is_same_v<typename Coords::value_type, Vec2<float>> ||
                 std::is_same_v<typename Coords::value_type, Vec2<double>>);
-  using real_t = typename Coords::value_type::value_type;
+  using real_type = typename Coords::value_type::value_type;
 
  public:
   Coords const& coords;
@@ -166,17 +166,17 @@ class Delaunator {
 
   Delaunator(Coords const& in_coords);
 
-  real_t get_hull_area();
+  real_type get_hull_area();
 
  private:
   std::vector<std::size_t> m_hash;
-  real_t                     m_center_x;
-  real_t                     m_center_y;
+  real_type                     m_center_x;
+  real_type                     m_center_y;
   std::size_t              m_hash_size;
   std::vector<std::size_t> m_edge_stack;
 
   std::size_t legalize(std::size_t a);
-  std::size_t hash_key(real_t x, real_t y) const;
+  std::size_t hash_key(real_type x, real_type y) const;
   std::size_t add_triangle(std::size_t i0, std::size_t i1, std::size_t i2,
                            std::size_t a, std::size_t b, std::size_t c);
   void        link(std::size_t a, std::size_t b);
@@ -186,16 +186,16 @@ template <range Coords>
 Delaunator<Coords>::Delaunator(Coords const& in_coords) : coords{in_coords} {
   std::size_t n = (coords.size() * 2) >> 1;
 
-  real_t                     max_x = std::numeric_limits<real_t>::min();
-  real_t                     max_y = std::numeric_limits<real_t>::min();
-  real_t                     min_x = std::numeric_limits<real_t>::max();
-  real_t                     min_y = std::numeric_limits<real_t>::max();
+  real_type                     max_x = std::numeric_limits<real_type>::min();
+  real_type                     max_y = std::numeric_limits<real_type>::min();
+  real_type                     min_x = std::numeric_limits<real_type>::max();
+  real_type                     min_y = std::numeric_limits<real_type>::max();
   std::vector<std::size_t> ids;
   ids.reserve(n);
 
   for (std::size_t i = 0; i < n; i++) {
-    real_t const x = coords[i](0);
-    real_t const y = coords[i](1);
+    real_type const x = coords[i](0);
+    real_type const y = coords[i](1);
 
     if (x < min_x) { min_x = x; }
     if (y < min_y) { min_y = y; }
@@ -204,9 +204,9 @@ Delaunator<Coords>::Delaunator(Coords const& in_coords) : coords{in_coords} {
 
     ids.push_back(i);
   }
-  real_t const cx       = (min_x + max_x) / 2;
-  real_t const cy       = (min_y + max_y) / 2;
-  real_t       min_dist = std::numeric_limits<real_t>::max();
+  real_type const cx       = (min_x + max_x) / 2;
+  real_type const cy       = (min_y + max_y) / 2;
+  real_type       min_dist = std::numeric_limits<real_type>::max();
 
   std::size_t i0 = std::numeric_limits<std::size_t>::max();
   std::size_t i1 = std::numeric_limits<std::size_t>::max();
@@ -214,39 +214,39 @@ Delaunator<Coords>::Delaunator(Coords const& in_coords) : coords{in_coords} {
 
   // pick a seed point close to the centroid
   for (std::size_t i = 0; i < n; i++) {
-    real_t const d = dist(cx, cy, coords[i](0), coords[i](1));
+    real_type const d = dist(cx, cy, coords[i](0), coords[i](1));
     if (d < min_dist) {
       i0       = i;
       min_dist = d;
     }
   }
 
-  real_t const i0x = coords[i0](0);
-  real_t const i0y = coords[i0](1);
+  real_type const i0x = coords[i0](0);
+  real_type const i0y = coords[i0](1);
 
-  min_dist = std::numeric_limits<real_t>::max();
+  min_dist = std::numeric_limits<real_type>::max();
 
   // find the point closest to the seed
   for (std::size_t i = 0; i < n; i++) {
     if (i == i0) continue;
-    real_t const d = dist(i0x, i0y, coords[i](0), coords[i](1));
+    real_type const d = dist(i0x, i0y, coords[i](0), coords[i](1));
     if (d < min_dist && d > 0.0) {
       i1       = i;
       min_dist = d;
     }
   }
 
-  real_t i1x = coords[i1](0);
-  real_t i1y = coords[i1](1);
+  real_type i1x = coords[i1](0);
+  real_type i1y = coords[i1](1);
 
-  real_t min_radius = std::numeric_limits<real_t>::max();
+  real_type min_radius = std::numeric_limits<real_type>::max();
 
   // find the third point which forms the smallest circumcircle with the first
   // two
   for (std::size_t i = 0; i < n; i++) {
     if (i == i0 || i == i1) continue;
 
-    real_t const r =
+    real_type const r =
         circumradius(i0x, i0y, i1x, i1y, coords[i](0), coords[i](1));
 
     if (r < min_radius) {
@@ -255,12 +255,12 @@ Delaunator<Coords>::Delaunator(Coords const& in_coords) : coords{in_coords} {
     }
   }
 
-  if (!(min_radius < std::numeric_limits<real_t>::max())) {
+  if (!(min_radius < std::numeric_limits<real_type>::max())) {
     throw std::runtime_error("not triangulation");
   }
 
-  real_t i2x = coords[i2](0);
-  real_t i2y = coords[i2](1);
+  real_type i2x = coords[i2](0);
+  real_type i2y = coords[i2](1);
 
   if (orient(i0x, i0y, i1x, i1y, i2x, i2y)) {
     std::swap(i1, i2);
@@ -306,12 +306,12 @@ Delaunator<Coords>::Delaunator(Coords const& in_coords) : coords{in_coords} {
   add_triangle(i0, i1, i2, std::numeric_limits<std::size_t>::max(),
                std::numeric_limits<std::size_t>::max(),
                std::numeric_limits<std::size_t>::max());
-  real_t xp = std::numeric_limits<real_t>::quiet_NaN();
-  real_t yp = std::numeric_limits<real_t>::quiet_NaN();
+  real_type xp = std::numeric_limits<real_type>::quiet_NaN();
+  real_type yp = std::numeric_limits<real_type>::quiet_NaN();
   for (std::size_t k = 0; k < n; k++) {
     std::size_t const i = ids[k];
-    real_t const        x = coords[i](0);
-    real_t const        y = coords[i](1);
+    real_type const        x = coords[i](0);
+    real_type const        y = coords[i](1);
 
     // skip near-duplicate points
     if (k > 0 && check_pts_equal(x, y, xp, yp)) continue;
@@ -403,8 +403,8 @@ Delaunator<Coords>::Delaunator(Coords const& in_coords) : coords{in_coords} {
 }
 //------------------------------------------------------------------------------
 template <range Coords>
-auto Delaunator<Coords>::get_hull_area() -> real_t {
-  std::vector<real_t> hull_area;
+auto Delaunator<Coords>::get_hull_area() -> real_type {
+  std::vector<real_type> hull_area;
   size_t            e = hull_start;
   do {
     hull_area.push_back((coords[e](0) - coords[hull_prev[e]](0)) *
@@ -510,12 +510,12 @@ std::size_t Delaunator<Coords>::legalize(std::size_t a) {
 }
 //------------------------------------------------------------------------------
 template <range Coords>
-std::size_t Delaunator<Coords>::hash_key(real_t const x,
-                                              real_t const y) const {
-  real_t const dx = x - m_center_x;
-  real_t const dy = y - m_center_y;
+std::size_t Delaunator<Coords>::hash_key(real_type const x,
+                                              real_type const y) const {
+  real_type const dx = x - m_center_x;
+  real_type const dy = y - m_center_y;
   return fast_mod(static_cast<std::size_t>(std::llround(std::floor(
-                      pseudo_angle(dx, dy) * static_cast<real_t>(m_hash_size)))),
+                      pseudo_angle(dx, dy) * static_cast<real_type>(m_hash_size)))),
                   m_hash_size);
 }
 //------------------------------------------------------------------------------

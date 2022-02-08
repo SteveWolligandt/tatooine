@@ -29,8 +29,8 @@ auto sphere::shader() -> sphere_shader& {
 //------------------------------------------------------------------------------
 sphere::sphere(flowexplorer::scene& s)
     : renderable<sphere>{"Sphere", s,
-                         *dynamic_cast<geometry::sphere<real_t, 3>*>(this)} {
-  insert_input_pin_property_link(insert_input_pin<real_t>(""), radius());
+                         *dynamic_cast<geometry::sphere<real_type, 3>*>(this)} {
+  insert_input_pin_property_link(insert_input_pin<real_type>(""), radius());
   insert_input_pin_property_link(insert_input_pin<vec3>(""), center());
 
   auto d = discretize(*this, 3);

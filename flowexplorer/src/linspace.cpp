@@ -6,7 +6,7 @@ namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 linspace::linspace(flowexplorer::scene& s)
     : node<linspace>{"Linear Spacing", s,
-                     *dynamic_cast<tatooine::linspace<real_t>*>(this)} {}
+                     *dynamic_cast<tatooine::linspace<real_type>*>(this)} {}
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================

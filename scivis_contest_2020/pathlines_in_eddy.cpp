@@ -32,7 +32,7 @@ auto create_grid() {
 //------------------------------------------------------------------------------
 template <typename... Is>
 void collect_pathlines_in_eddy(
-    V const& v, typename V::pos_t const& x, arithmetic auto const t,
+    V const& v, typename V::pos_type const& x, arithmetic auto const t,
     arithmetic auto const threshold,
     std::vector<parameterized_line<double, 3, interpolation::linear>>&
         pathlines) {

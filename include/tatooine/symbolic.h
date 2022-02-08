@@ -39,9 +39,9 @@ auto ev(const GiNaC::ex& expr, Relations&&... relations) {
 //----------------------------------------------------------------------------
 /// substitudes expression with relations and casts substituted expression to
 /// double
-template <typename out_real_t = double, typename... Relations>
+template <typename out_real_type = double, typename... Relations>
 auto evtod(const GiNaC::ex& expr, Relations&&... relations) {
-  return static_cast<out_real_t>(
+  return static_cast<out_real_type>(
       GiNaC::ex_to<GiNaC::numeric>(
           ev(expr, std::forward<Relations>(relations)...).evalf())
           .to_double());

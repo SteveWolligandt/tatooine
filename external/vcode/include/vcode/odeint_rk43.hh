@@ -22,12 +22,12 @@ namespace steppers {
 
 template <typename T, typename R>
 struct rk43_t : public stepper_state_t<T, 0> {
-  using real_t = R;
+  using real_type = R;
   using vec_t = T;
 
   using maybe_vec = maybe<vec_t>;
-  using solution_t= hermite::spline_t<real_t, vec_t>;
-  using helper = detail::helper_t<vec_t, real_t>;
+  using solution_t= hermite::spline_t<real_type, vec_t>;
+  using helper = detail::helper_t<vec_t, real_type>;
 
   static constexpr int order0() { return 4; }
   static constexpr int order1() {
@@ -35,13 +35,13 @@ struct rk43_t : public stepper_state_t<T, 0> {
   }  // TODO: Is this correct for this tableau??
 
   template <typename DY>
-  maybe_vec _step(DY&& _dy, real_t _t, real_t _h) {
+  maybe_vec _step(DY&& _dy, real_type _t, real_type _h) {
     auto guard = require_no_undefined<vec_t>{};
     auto dy = guard(helper::require_finite(std::forward<DY>(_dy)));
     // dy: no evaluations of dy after any failure
 
-    const real_t t= _t;
-    const real_t h= _h;
+    const real_type t= _t;
+    const real_type h= _h;
     const vec_t y= this->y;
 
     std::array<vec_t, 4> k;
@@ -51,8 +51,8 @@ struct rk43_t : public stepper_state_t<T, 0> {
     k[2]= dy(t + h / 2, y + k[1] / 2) * h;
     k[3]= dy(t + h, y + k[2]) * h;
 
-    constexpr real_t I6= real_t(1) / 6;
-    constexpr real_t I3= real_t(1) / 3;
+    constexpr real_type I6= real_type(1) / 6;
+    constexpr real_type I3= real_type(1) / 3;
 
     if (guard.undefined())  // no change of attributes
       return guard.state();

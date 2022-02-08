@@ -7,12 +7,12 @@ namespace tatooine {
 //==============================================================================
 template <typename InternalFlowmapDiscretization>
 struct staggered_flowmap_discretization {
-  using real_t = typename InternalFlowmapDiscretization::real_t;
+  using real_type = typename InternalFlowmapDiscretization::real_type;
   static auto constexpr num_dimensions() {
     return InternalFlowmapDiscretization::num_dimensions();
   }
-  using vec_t = vec<real_t, num_dimensions()>;
-  using pos_t = vec_t;
+  using vec_t = vec<real_type, num_dimensions()>;
+  using pos_type = vec_t;
   //============================================================================
   std::list<InternalFlowmapDiscretization> m_steps;
   //============================================================================
@@ -46,7 +46,7 @@ struct staggered_flowmap_discretization {
   /// advection time.
   /// \param x position
   /// \returns phi(x, t0, t1 - t0)
-  auto sample_forward(pos_t x) const {
+  auto sample_forward(pos_type x) const {
     for (auto const& step : m_steps) {
       x = step.sample_forward(x);
     }
@@ -57,7 +57,7 @@ struct staggered_flowmap_discretization {
   /// advection time.
   /// \param x position
   /// \returns phi(x, t1, t0 - t1)
-  auto sample_backward(pos_t x) const {
+  auto sample_backward(pos_type x) const {
     for (auto it = m_steps.rbegin(); it != m_steps.rend(); ++it) {
       auto const& step = *it;
       x = step.sample_backward(x);

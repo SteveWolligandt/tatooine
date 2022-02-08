@@ -31,7 +31,7 @@ class static_multidim_array
   //============================================================================
  public:
   using value_type = T;
-  using this_t   = static_multidim_array<T, IndexOrder, MemLoc, Resolution...>;
+  using this_type   = static_multidim_array<T, IndexOrder, MemLoc, Resolution...>;
   using parent_type = static_multidim_size<IndexOrder, Resolution...>;
   using parent_type::in_range;
   using parent_type::indices;
@@ -58,27 +58,27 @@ class static_multidim_array
   // factories
   //============================================================================
  public:
-  static constexpr auto zeros() { return this_t{tag::zeros}; }
+  static constexpr auto zeros() { return this_type{tag::zeros}; }
   //------------------------------------------------------------------------------
-  static constexpr auto ones() { return this_t{tag::ones}; }
+  static constexpr auto ones() { return this_type{tag::ones}; }
   //------------------------------------------------------------------------------
   template <typename S>
   static constexpr auto fill(S&& s) {
-    return this_t{tag::fill<std::decay_t<S>>{std::forward<S>(s)}};
+    return this_type{tag::fill<std::decay_t<S>>{std::forward<S>(s)}};
   }
   //------------------------------------------------------------------------------
   template <typename RandEng = std::mt19937_64>
   static auto randu(T min = 0, T max = 1,
                     RandEng&& eng = RandEng{
                         std::random_device{}()}) requires arithmetic<T> {
-    return this_t{random::uniform{min, max, std::forward<RandEng>(eng)}};
+    return this_type{random::uniform{min, max, std::forward<RandEng>(eng)}};
   }
   //----------------------------------------------------------------------------
   template <typename RandEng = std::mt19937_64>
   static auto randn(T mean = 0, T stddev = 1,
                     RandEng&& eng = RandEng{
                         std::random_device{}()}) requires arithmetic<T> {
-    return this_t{random::normal{mean, stddev, std::forward<RandEng>(eng)}};
+    return this_type{random::normal{mean, stddev, std::forward<RandEng>(eng)}};
   }
   //============================================================================
   // members

@@ -21,7 +21,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   //============================================================================
  public:
   using value_type = T;
-  using this_t     = dynamic_multidim_array<T, IndexOrder>;
+  using this_type     = dynamic_multidim_array<T, IndexOrder>;
   using parent_type   = dynamic_multidim_size<IndexOrder>;
   using parent_type::in_range;
   using parent_type::indices;
@@ -38,37 +38,37 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   // factories
   //============================================================================
   static auto zeros(integral auto const... size) {
-    return this_t{tag::zeros, size...};
+    return this_type{tag::zeros, size...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <integral Int>
   static auto zeros(std::vector<Int> const& size) {
-    return this_t{tag::zeros, size};
+    return this_type{tag::zeros, size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, integral Int>
   static auto zeros(std::array<Int, N> const& size) {
-    return this_t{tag::zeros, size};
+    return this_type{tag::zeros, size};
   }
   //------------------------------------------------------------------------------
   static auto ones(integral auto const... size) {
-    return this_t{tag::ones, size...};
+    return this_type{tag::ones, size...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <integral Int>
   static auto ones(std::vector<Int> const& size) {
-    return this_t{tag::ones, size};
+    return this_type{tag::ones, size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, integral Int>
   static auto ones(std::array<Int, N> const& size) {
-    return this_t{tag::ones, size};
+    return this_type{tag::ones, size};
   }
   //------------------------------------------------------------------------------
   // template <unsigned_integral UInt, typename RandEng = std::mt19937_64>
   // static auto randu(T min, T max, std::initializer_list<UInt>&& size,
   //                  RandEng&& eng = RandEng{std::random_device{}()}) {
-  //  return this_t{random::uniform{min, max, std::forward<RandEng>(eng)},
+  //  return this_type{random::uniform{min, max, std::forward<RandEng>(eng)},
   //                std::vector<UInt>(std::move(size))};
   //}
   //// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -77,14 +77,14 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   // static auto randu(std::initializer_list<UInt>&& size, T min = 0, T
   // max = 1,
   //                  RandEng&& eng = RandEng{std::random_device{}()}) {
-  //  return this_t{random::uniform{min, max, std::forward<RandEng>(eng)},
+  //  return this_type{random::uniform{min, max, std::forward<RandEng>(eng)},
   //                std::vector<UInt>(std::move(size))};
   //}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <unsigned_integral UInt, typename RandEng = std::mt19937_64>
   static auto randu(T min, T max, std::vector<UInt> const& size,
                     RandEng&& eng = RandEng{std::random_device{}()}) {
-    return this_t{
+    return this_type{
         random::uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)},
         size};
   }
@@ -92,7 +92,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   template <unsigned_integral UInt, typename RandEng = std::mt19937_64>
   static auto randu(std::vector<UInt> const& size, T min = 0, T max = 1,
                     RandEng&& eng = RandEng{std::random_device{}()}) {
-    return this_t{
+    return this_type{
         random::uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)},
         size};
   }
@@ -101,7 +101,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
             typename RandEng = std::mt19937_64>
   static auto randu(T min, T max, std::array<UInt, N> const& size,
                     RandEng&& eng = RandEng{std::random_device{}()}) {
-    return this_t{
+    return this_type{
         random::uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)},
         size};
   }
@@ -110,7 +110,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
             typename RandEng = std::mt19937_64>
   static auto randu(std::array<UInt, N> const& size, T min = 0, T max = 1,
                     RandEng&& eng = RandEng{std::random_device{}()}) {
-    return this_t{
+    return this_type{
         random::uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)},
         size};
   }
@@ -118,70 +118,70 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   template <unsigned_integral UInt, typename RandEng>
   static auto rand(random::uniform<T, RandEng> const& rand,
                    std::vector<UInt> const&           size) {
-    return this_t{rand, size};
+    return this_type{rand, size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, unsigned_integral UInt, typename RandEng>
   static auto rand(random::uniform<T, RandEng> const& rand,
                    std::array<UInt, N> const&         size) {
-    return this_t{rand, size};
+    return this_type{rand, size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename RandEng, integral... Size>
   static auto rand(random::uniform<T, RandEng> const& rand,
                    Size const... size) {
-    return this_t{rand, std::vector{static_cast<size_t>(size)...}};
+    return this_type{rand, std::vector{static_cast<size_t>(size)...}};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <unsigned_integral UInt, typename RandEng>
   static auto rand(random::uniform<T, RandEng>&& rand,
                    std::vector<UInt> const&      size) {
-    return this_t{std::move(rand), size};
+    return this_type{std::move(rand), size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, unsigned_integral UInt, typename RandEng>
   static auto rand(random::uniform<T, RandEng>&& rand,
                    std::array<UInt, N> const&    size) {
-    return this_t{std::move(rand), size};
+    return this_type{std::move(rand), size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename RandEng, integral... Size>
   static auto rand(random::uniform<T, RandEng>&& rand, Size const... size) {
-    return this_t{std::move(rand), std::vector{static_cast<size_t>(size)...}};
+    return this_type{std::move(rand), std::vector{static_cast<size_t>(size)...}};
   }
   //----------------------------------------------------------------------------
   template <unsigned_integral UInt, typename RandEng>
   static auto rand(random::normal<T, RandEng> const& rand,
                    std::vector<UInt> const&          size) {
-    return this_t{rand, size};
+    return this_type{rand, size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, unsigned_integral UInt, typename RandEng>
   static auto rand(random::normal<T, RandEng> const& rand,
                    std::array<UInt, N> const&        size) {
-    return this_t{rand, size};
+    return this_type{rand, size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename RandEng, integral... Size>
   static auto rand(random::normal<T, RandEng> const& rand, Size const... size) {
-    return this_t{rand, std::vector{static_cast<size_t>(size)...}};
+    return this_type{rand, std::vector{static_cast<size_t>(size)...}};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <unsigned_integral UInt, typename RandEng>
   static auto rand(random::normal<T, RandEng>&& rand,
                    std::vector<UInt> const&     size) {
-    return this_t{std::move(rand), size};
+    return this_type{std::move(rand), size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, unsigned_integral UInt, typename RandEng>
   static auto rand(random::normal<T, RandEng>&& rand,
                    std::array<UInt, N> const&   size) {
-    return this_t{std::move(rand), size};
+    return this_type{std::move(rand), size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename RandEng, integral... Size>
   static auto rand(random::normal<T, RandEng>&& rand, Size... size) {
-    return this_t{std::move(rand), std::vector{static_cast<size_t>(size)...}};
+    return this_type{std::move(rand), std::vector{static_cast<size_t>(size)...}};
   }
   //============================================================================
   // ctors

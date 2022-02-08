@@ -11,11 +11,11 @@ namespace tatooine::scivis_contest_2020 {
 template <template <typename> typename SpatialInterpolationKernel>
 struct ensemble_member
     : vectorfield<ensemble_member<SpatialInterpolationKernel>, double, 3> {
-  using this_t   = ensemble_member<SpatialInterpolationKernel>;
-  using parent_t = vectorfield<this_t, double, 3>;
-  using typename parent_t::pos_t;
-  using typename parent_t::real_t;
-  using typename parent_t::tensor_t;
+  using this_type   = ensemble_member<SpatialInterpolationKernel>;
+  using parent_t = vectorfield<this_type, double, 3>;
+  using typename parent_t::pos_type;
+  using typename parent_t::real_type;
+  using typename parent_t::tensor_type;
   using component_grid_t = rectilinear_grid<linspace<double>, linspace<double>,
                                 std::vector<double>, linspace<double>>;
   using chunked_grid_property_t =
@@ -93,13 +93,13 @@ struct ensemble_member
         interpolation::linear>("w", w_var, chunk_res);
   }
   //==============================================================================
-  auto evaluate(pos_t const& x, real_t const t) const -> tensor_t final {
-    return tensor_t{m_u->sample(x(0), x(1), x(2), t),
+  auto evaluate(pos_type const& x, real_type const t) const -> tensor_type final {
+    return tensor_type{m_u->sample(x(0), x(1), x(2), t),
                     m_v->sample(x(0), x(1), x(2), t),
                     m_w->sample(x(0), x(1), x(2), t)};
   }
   //------------------------------------------------------------------------------
-  auto in_domain(pos_t const& x, real_t const t) const -> bool final {
+  auto in_domain(pos_type const& x, real_type const t) const -> bool final {
     if (bool const in_u = m_u_grid.in_domain(x(0), x(1), x(2), t); !in_u) {
       return false;
     }

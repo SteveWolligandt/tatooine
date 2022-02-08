@@ -40,10 +40,10 @@ struct pointset {
   // static constexpr std::size_t triangle_dims = 2;
   // static constexpr std::size_t tetgen_dims = 3;
   static constexpr auto num_dimensions() { return NumDimensions; }
-  using real_t = Real;
-  using this_t = pointset<Real, NumDimensions>;
+  using real_type = Real;
+  using this_type = pointset<Real, NumDimensions>;
   using vec_t  = vec<Real, NumDimensions>;
-  using pos_t  = vec_t;
+  using pos_type  = vec_t;
 #if TATOOINE_FLANN_AVAILABLE
   using flann_index_t = flann::Index<flann::L2<Real>>;
 #endif
@@ -62,7 +62,7 @@ struct pointset {
       std::map<std::string, std::unique_ptr<vector_property<vertex_handle>>>;
   //============================================================================
  private:
-  std::vector<pos_t>          m_vertex_position_data;
+  std::vector<pos_type>          m_vertex_position_data;
   std::set<vertex_handle>     m_invalid_vertices;
   vertex_property_container_t m_vertex_properties;
 #if TATOOINE_FLANN_AVAILABLE
@@ -73,7 +73,7 @@ struct pointset {
   pointset()  = default;
   ~pointset() = default;
   //----------------------------------------------------------------------------
-  pointset(std::initializer_list<pos_t>&& vertices)
+  pointset(std::initializer_list<pos_type>&& vertices)
       : m_vertex_position_data(std::move(vertices)) {}
   //----------------------------------------------------------------------------
   // #ifdef USE_TRIANGLE
@@ -104,10 +104,10 @@ struct pointset {
         m_invalid_vertices(std::move(other.m_invalid_vertices)),
         m_vertex_properties(std::move(other.m_vertex_properties)) {}
   //----------------------------------------------------------------------------
-  pointset(std::vector<pos_t> const& vertices)
+  pointset(std::vector<pos_type> const& vertices)
       : m_vertex_position_data(vertices) {}
   //----------------------------------------------------------------------------
-  pointset(std::vector<pos_t>&& vertices)
+  pointset(std::vector<pos_type>&& vertices)
       : m_vertex_position_data(std::move(vertices)) {}
   //----------------------------------------------------------------------------
   auto operator=(pointset const& other) -> pointset& {
@@ -174,7 +174,7 @@ struct pointset {
  public:
   auto insert_vertex(arithmetic auto const... ts) requires(sizeof...(ts) ==
                                                            NumDimensions) {
-    vertex_position_data().push_back(pos_t{static_cast<Real>(ts)...});
+    vertex_position_data().push_back(pos_type{static_cast<Real>(ts)...});
     for (auto& [key, prop] : vertex_properties()) {
       prop->push_back();
     }
@@ -183,14 +183,14 @@ struct pointset {
   //----------------------------------------------------------------------------
   template <typename Vec, typename OtherReal>
   auto insert_vertex(base_tensor<Vec, OtherReal, NumDimensions> const& v) {
-    vertex_position_data().push_back(pos_t{v});
+    vertex_position_data().push_back(pos_type{v});
     for (auto& [key, prop] : vertex_properties()) {
       prop->push_back();
     }
     return vertex_handle{size(vertex_position_data()) - 1};
   }
   //----------------------------------------------------------------------------
-  auto insert_vertex(pos_t&& v) {
+  auto insert_vertex(pos_type&& v) {
     vertex_position_data().emplace_back(std::move(v));
     for (auto& [key, prop] : vertex_properties()) {
       prop->push_back();
@@ -231,7 +231,7 @@ struct pointset {
   auto clear() { clear_vertices(); }
 
   //----------------------------------------------------------------------------
-  auto join(this_t const& other) {
+  auto join(this_type const& other) {
     for (auto v : other.vertices()) {
       insert_vertex(other[v]);
     }
@@ -316,7 +316,7 @@ struct pointset {
   //   tetgenio io;
   //   std::size_t       i    = 0;
   //   io.numberofpoints = vertices.size();
-  //   io.pointlist      = new tetgen_real_t[io.numberofpoints * 3];
+  //   io.pointlist      = new tetgen_real_type[io.numberofpoints * 3];
   //   for (auto v : vertices) {
   //     auto const& x       = at(v);
   //     io.pointlist[i]     = x(0);
@@ -363,11 +363,11 @@ struct pointset {
   }
   //----------------------------------------------------------------------------
   auto scalar_vertex_property(std::string const& name) const -> auto const& {
-    return vertex_property<tatooine::real_t>(name);
+    return vertex_property<tatooine::real_number>(name);
   }
   //----------------------------------------------------------------------------
   auto scalar_vertex_property(std::string const& name) -> auto& {
-    return vertex_property<tatooine::real_t>(name);
+    return vertex_property<tatooine::real_number>(name);
   }
   //----------------------------------------------------------------------------
   auto vec2_vertex_property(std::string const& name) const -> auto const& {
@@ -430,8 +430,8 @@ struct pointset {
   //----------------------------------------------------------------------------
   auto insert_scalar_vertex_property(
       std::string const&     name,
-      tatooine::real_t const value = tatooine::real_t{}) -> auto& {
-    return insert_vertex_property<tatooine::real_t>(name, value);
+      tatooine::real_number const value = tatooine::real_number{}) -> auto& {
+    return insert_vertex_property<tatooine::real_number>(name, value);
   }
   //----------------------------------------------------------------------------
   auto insert_vec2_vertex_property(
@@ -752,7 +752,7 @@ struct pointset {
   }
   //----------------------------------------------------------------------------
  public:
-  auto nearest_neighbor(pos_t const& x) const {
+  auto nearest_neighbor(pos_type const& x) const {
     flann::Matrix<Real> qm{const_cast<Real*>(x.data_ptr()), 1,  // NOLINT
                            num_dimensions()};
     std::vector<std::vector<int>>  indices;
@@ -764,7 +764,7 @@ struct pointset {
   //----------------------------------------------------------------------------
   /// Takes the raw output indices of flann without converting them into vertex
   /// handles.
-  auto nearest_neighbors_raw(pos_t const& x, std::size_t const num_nearest_neighbors,
+  auto nearest_neighbors_raw(pos_type const& x, std::size_t const num_nearest_neighbors,
                              flann::SearchParams const params = {}) const {
     auto qm  = flann::Matrix<Real>{const_cast<Real*>(x.data_ptr()), 1,
                                   num_dimensions()};
@@ -775,7 +775,7 @@ struct pointset {
     return ret;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto nearest_neighbors(pos_t const& x,
+  auto nearest_neighbors(pos_type const& x,
                          std::size_t const num_nearest_neighbors) const {
     auto const [indices, distances] =
         nearest_neighbors_raw(x, num_nearest_neighbors);
@@ -791,7 +791,7 @@ struct pointset {
   //----------------------------------------------------------------------------
   /// Takes the raw output indices of flann without converting them into vertex
   /// handles.
-  auto nearest_neighbors_radius_raw(pos_t const& x, Real const radius,
+  auto nearest_neighbors_radius_raw(pos_type const& x, Real const radius,
                                     flann::SearchParams const params = {}) const
       -> std::pair<std::vector<int>, std::vector<Real>> {
     flann::Matrix<Real>           qm{const_cast<Real*>(x.data_ptr()),  // NOLINT
@@ -802,7 +802,7 @@ struct pointset {
     return {std::move(indices.front()), std::move(distances.front())};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto nearest_neighbors_radius(pos_t const& x, Real const radius) const {
+  auto nearest_neighbors_radius(pos_type const& x, Real const radius) const {
     auto const [indices, distances] = nearest_neighbors_radius_raw(x, radius);
     std::vector<vertex_handle> handles;
     handles.reserve(size(indices));
@@ -832,7 +832,7 @@ struct pointset {
 };
 //==============================================================================
 template <std::size_t NumDimensions>
-using Pointset  = pointset<real_t, NumDimensions>;
+using Pointset  = pointset<real_number, NumDimensions>;
 using pointset2 = Pointset<2>;
 using pointset3 = Pointset<3>;
 using pointset4 = Pointset<4>;

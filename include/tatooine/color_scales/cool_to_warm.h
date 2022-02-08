@@ -13,22 +13,22 @@ namespace tatooine::color_scales {
 //==============================================================================
 template <floating_point Real>
 struct cool_to_warm  {
-  using real_t  = Real;
-  using this_t  = cool_to_warm<Real>;
+  using real_type  = Real;
+  using this_type  = cool_to_warm<Real>;
   using color_t = vec<Real, 3>;
   //==============================================================================
   static constexpr auto num_samples = std::size_t(3);
   //==============================================================================
   std::unique_ptr<color_t[]> m_samples;
-  std::unique_ptr<real_t[]> m_parameterization;
+  std::unique_ptr<real_type[]> m_parameterization;
   //==============================================================================
   cool_to_warm()
       : m_samples{new color_t[]{color_t{0.231373, 0.298039, 0.752941},
                                 color_t{0.865, 0.865, 0.865},
                                 color_t{0.705882, 0.0156863, 0.14902}}},
-        m_parameterization{new real_t[]{0, 0.5, 1}} {}
+        m_parameterization{new real_type[]{0, 0.5, 1}} {}
   //----------------------------------------------------------------------------
-  auto sample(real_t t) const {
+  auto sample(real_type t) const {
     if (t <= 0) {
       return m_samples[0];
     }
@@ -45,7 +45,7 @@ struct cool_to_warm  {
     }
     return m_samples[i] * (1 - t) + m_samples[i + 1] * t;
   }
-  auto operator()(real_t const t) const { return sample(t); }
+  auto operator()(real_type const t) const { return sample(t); }
   //----------------------------------------------------------------------------
 #if TATOOINE_GL_AVAILABLE
   auto to_gpu_tex() {

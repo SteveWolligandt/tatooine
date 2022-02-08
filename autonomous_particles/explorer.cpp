@@ -19,9 +19,9 @@ auto active_particles = std::vector<bool>{};
 auto x0               = vec2{};
 auto x1               = vec2{};
 auto x1_integrated    = vec2{};
-auto t0               = real_t{0};
-auto tau              = real_t{0};
-auto r0               = real_t{0.01};
+auto t0               = real_type{0};
+auto tau              = real_type{0};
+auto r0               = real_type{0.01};
 //==============================================================================
 auto render_ui() -> void;
 auto render_particles() -> void;
@@ -172,7 +172,7 @@ auto update_x1() -> void {
 //------------------------------------------------------------------------------
 auto update_nearest() {
   active_particles       = std::vector<bool>(size(particles), false);
-  auto shortest_distance = std::numeric_limits<real_t>::infinity();
+  auto shortest_distance = std::numeric_limits<real_type>::infinity();
   auto a                 = end(active_particles);
   auto active_it         = begin(active_particles);
   //autonomous_particle2::sampler_type const* nearest_sampler = nullptr;
@@ -455,7 +455,7 @@ auto create_pathline_geometry() -> void {
 auto update_pathline_geometry() -> void {
   pathline_geometry->clear();
   {
-    auto integrator = ode::vclibs::rungekutta43<real_t, 2>{};
+    auto integrator = ode::vclibs::rungekutta43<real_type, 2>{};
     pathline_geometry->vertexbuffer().push_back(vec2f{x0});
     integrator.solve(v, x0, t0 + tau, -tau, [&](auto const& x, auto const t) {
       pathline_geometry->vertexbuffer().push_back(vec2f{x});

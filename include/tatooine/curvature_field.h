@@ -13,16 +13,16 @@ class curvature_field;
 //==============================================================================
 template <typename V>
 class curvature_field<V, 2>
-    : public field<curvature_field<V>, typename V::real_t, 2> {
+    : public field<curvature_field<V>, typename V::real_type, 2> {
   //============================================================================
   // typedefs
   //============================================================================
  public:
-  using this_t   = curvature_field<V>;
-  using real_t   = typename V::real_t;
-  using parent_type = field<this_t, real_t, 2>;
-  using typename parent_type::tensor_t;
-  using typename parent_type::pos_t;
+  using this_type   = curvature_field<V>;
+  using real_type   = typename V::real_type;
+  using parent_type = field<this_type, real_type, 2>;
+  using typename parent_type::tensor_type;
+  using typename parent_type::pos_type;
 
   //============================================================================
   // fields
@@ -41,7 +41,7 @@ class curvature_field<V, 2>
   // methods
   //============================================================================
  public:
-  constexpr tensor_t evaluate(const pos_t& x, real_t t) const {
+  constexpr tensor_type evaluate(const pos_type& x, real_type t) const {
     const auto Jf = diff(m_vf);
     const auto J  = Jf(x, t);
     const auto v  = m_vf(x, t);
@@ -50,23 +50,23 @@ class curvature_field<V, 2>
     return (v(0) * a(1) - v(1) * a(0)) / (lv * lv * lv);
   }
   //----------------------------------------------------------------------------
-  constexpr bool in_domain(const pos_t& x, real_t t) const {
+  constexpr bool in_domain(const pos_type& x, real_type t) const {
     return m_vf.in_domain(x, t);
   }
 };
 //==============================================================================
 template <typename V>
 class curvature_field<V, 3>
-    : public field<curvature_field<V>, typename V::real_t, 3> {
+    : public field<curvature_field<V>, typename V::real_type, 3> {
   //============================================================================
   // typedefs
   //============================================================================
  public:
-  using this_t   = curvature_field<V>;
-  using real_t   = typename V::real_t;
-  using parent_type = field<this_t, real_t, 3>;
-  using typename parent_type::tensor_t;
-  using typename parent_type::pos_t;
+  using this_type   = curvature_field<V>;
+  using real_type   = typename V::real_type;
+  using parent_type = field<this_type, real_type, 3>;
+  using typename parent_type::tensor_type;
+  using typename parent_type::pos_type;
 
   //============================================================================
   // fields
@@ -85,7 +85,7 @@ class curvature_field<V, 3>
   // methods
   //============================================================================
  public:
-  constexpr tensor_t evaluate(const pos_t& x, real_t t) const {
+  constexpr tensor_type evaluate(const pos_type& x, real_type t) const {
     const auto Jf = diff(m_vf);
     const auto J  = Jf(x, t);
     const auto v  = m_vf(x, t);
@@ -94,7 +94,7 @@ class curvature_field<V, 3>
     return cross(v,a) / (lv * lv * lv);
   }
   //----------------------------------------------------------------------------
-  constexpr bool in_domain(const pos_t& x, real_t t) const {
+  constexpr bool in_domain(const pos_type& x, real_type t) const {
     return m_vf.in_domain(x, t);
   }
 };

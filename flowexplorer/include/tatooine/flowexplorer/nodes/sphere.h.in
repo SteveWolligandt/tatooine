@@ -20,7 +20,7 @@ struct sphere_shader : gl::shader {
   auto set_modelview_matrix(mat4f const&) -> void;
 };
 //==============================================================================
-struct sphere : renderable<sphere>, tatooine::geometry::sphere<real_t, 3> {
+struct sphere : renderable<sphere>, tatooine::geometry::sphere<real_type, 3> {
   static auto shader() -> sphere_shader&;
   gl::indexeddata<vec3f> m_gpu_data;
   std::array<GLfloat, 4> m_color{0.0f, 0.0f, 0.0f, 1.0f};

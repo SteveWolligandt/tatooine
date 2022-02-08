@@ -20,8 +20,8 @@ namespace tatooine::autonomous_particles {
 auto doublegyre_grid(args_t<2> const& args) -> void;
 using autonomous_particle_flowmap_discretization =
     tatooine::autonomous_particle_flowmap_discretization<
-        real_t, 2,
-        autonomous_particle<real_t,
+        real_type, 2,
+        autonomous_particle<real_type,
                             2>::split_behaviors::three_splits>;
 }
 //==============================================================================
@@ -54,9 +54,9 @@ auto doublegyre_grid(args_t<2> const& args) -> void {
     // Create memory for measuring
     //----------------------------------------------------------------------------
     indicator.set_text("Creating memory for measuring");
-    std::vector<real_t> forward_autonomous_errors, forward_regular_errors,
+    std::vector<real_type> forward_autonomous_errors, forward_regular_errors,
         forward_agranovsky_errors;
-    std::vector<real_t> backward_autonomous_errors, backward_regular_errors,
+    std::vector<real_type> backward_autonomous_errors, backward_regular_errors,
         backward_agranovsky_errors;
     rectilinear_grid sampler_check_grid{linspace{0.0, 2.0, args.output_res_x},
                                         linspace{0.0, 1.0, args.output_res_y}};
@@ -98,12 +98,12 @@ auto doublegyre_grid(args_t<2> const& args) -> void {
     [[maybe_unused]] auto& backward_errors_diff_agranovsky_prop =
         sampler_check_grid.scalar_vertex_property(
             "backward_error_diff_agranovsky");
-    real_t mean_autonomous_forward_error  = std::numeric_limits<real_t>::max(),
-           mean_regular_forward_error     = std::numeric_limits<real_t>::max(),
-           mean_agranovsky_forward_error  = std::numeric_limits<real_t>::max();
-    real_t mean_autonomous_backward_error = std::numeric_limits<real_t>::max(),
-           mean_regular_backward_error    = std::numeric_limits<real_t>::max(),
-           mean_agranovsky_backward_error = std::numeric_limits<real_t>::max();
+    real_type mean_autonomous_forward_error  = std::numeric_limits<real_type>::max(),
+           mean_regular_forward_error     = std::numeric_limits<real_type>::max(),
+           mean_agranovsky_forward_error  = std::numeric_limits<real_type>::max();
+    real_type mean_autonomous_backward_error = std::numeric_limits<real_type>::max(),
+           mean_regular_backward_error    = std::numeric_limits<real_type>::max(),
+           mean_agranovsky_backward_error = std::numeric_limits<real_type>::max();
     //size_t     num_points_ood_forward = 0, num_points_ood_backward = 0;
     std::mutex error_mutex;
 
@@ -207,7 +207,7 @@ auto doublegyre_grid(args_t<2> const& args) -> void {
         std::ceil(std::sqrt(num_particles_after_advection / 2)));
     auto const regularized_width = regularized_height * 2;
     {
-      auto regular_disc = regular_flowmap_discretization<real_t, 2>{
+      auto regular_disc = regular_flowmap_discretization<real_type, 2>{
           phi,        args.t0,           args.tau,          vec2{0, 0},
           vec2{2, 1}, regularized_width, regularized_height};
       indicator.set_text("Resampling regular flow map discretization");
@@ -227,7 +227,7 @@ auto doublegyre_grid(args_t<2> const& args) -> void {
 
             } catch (std::exception const& e) {
               forward_errors_regular_prop(is...) =
-                  std::numeric_limits<real_t>::quiet_NaN();
+                  std::numeric_limits<real_type>::quiet_NaN();
             }
             forward_errors_diff_regular_prop(is...) =
                 forward_errors_regular_prop(is...) -
@@ -328,30 +328,30 @@ auto doublegyre_grid(args_t<2> const& args) -> void {
     //----------------------------------------------------------------------------
     mean_autonomous_forward_error =
         std::accumulate(begin(forward_autonomous_errors),
-                        end(forward_autonomous_errors), real_t(0)) /
+                        end(forward_autonomous_errors), real_type(0)) /
         size(forward_autonomous_errors);
     mean_regular_forward_error =
         std::accumulate(begin(forward_regular_errors),
-                        end(forward_regular_errors), real_t(0)) /
+                        end(forward_regular_errors), real_type(0)) /
         size(forward_regular_errors);
     mean_agranovsky_forward_error =
         std::accumulate(begin(forward_agranovsky_errors),
-                        end(forward_agranovsky_errors), real_t(0)) /
+                        end(forward_agranovsky_errors), real_type(0)) /
         size(forward_agranovsky_errors);
     //----------------------------------------------------------------------------
     // Compare backward flow map
     //----------------------------------------------------------------------------
     mean_autonomous_backward_error =
         std::accumulate(begin(backward_autonomous_errors),
-                        end(backward_autonomous_errors), real_t(0)) /
+                        end(backward_autonomous_errors), real_type(0)) /
         size(backward_autonomous_errors);
     mean_regular_backward_error =
         std::accumulate(begin(backward_regular_errors),
-                        end(backward_regular_errors), real_t(0)) /
+                        end(backward_regular_errors), real_type(0)) /
         size(backward_regular_errors);
     mean_agranovsky_backward_error =
         std::accumulate(begin(backward_agranovsky_errors),
-                        end(backward_agranovsky_errors), real_t(0)) /
+                        end(backward_agranovsky_errors), real_type(0)) /
         size(backward_agranovsky_errors);
     //----------------------------------------------------------------------------
     indicator.mark_as_completed();
@@ -371,14 +371,14 @@ auto doublegyre_grid(args_t<2> const& args) -> void {
            //<< sampler_check_grid.vertices().size()
            //<< " out of domain in forward direction("
            //<< (100 * num_points_ood_forward /
-           //    (real_t)sampler_check_grid.vertices().size())
+           //    (real_type)sampler_check_grid.vertices().size())
            //<< "%)\n"
 
            //<< num_points_ood_backward << " / "
            //<< sampler_check_grid.vertices().size()
            //<< " out of domain in backward direction("
            //<< (100 * num_points_ood_backward /
-           //    (real_t)sampler_check_grid.vertices().size())
+           //    (real_type)sampler_check_grid.vertices().size())
            //<< "%)\n"
 
            << "mean error forward autonomous particles: " << std::scientific

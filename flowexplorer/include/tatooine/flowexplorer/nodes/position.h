@@ -11,9 +11,9 @@
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 template <size_t N>
-struct position : tatooine::vec<real_t, N>, renderable<position<N>> {
+struct position : tatooine::vec<real_type, N>, renderable<position<N>> {
   using this_type   = position<N>;
-  using parent_type = tatooine::vec<real_t, N>;
+  using parent_type = tatooine::vec<real_type, N>;
   using gpu_vec  = vec<GLfloat, 3>;
   using parent_type::at;
   //============================================================================
@@ -22,8 +22,8 @@ struct position : tatooine::vec<real_t, N>, renderable<position<N>> {
   std::array<GLfloat, 4>        m_color{0.0f, 0.0f, 0.0f, 1.0f};
   std::array<ui::input_pin*, N> m_input_pins;
   //============================================================================
-  auto pos()       -> vec<real_t, N>& { return *this; }
-  auto pos() const -> vec<real_t, N> const& { return *this; }
+  auto pos()       -> vec<real_type, N>& { return *this; }
+  auto pos() const -> vec<real_type, N> const& { return *this; }
   //----------------------------------------------------------------------------
   auto point_size()       -> auto& { return m_pointsize; }
   auto point_size() const -> auto const& { return m_pointsize; }
@@ -38,11 +38,11 @@ struct position : tatooine::vec<real_t, N>, renderable<position<N>> {
   //============================================================================
   constexpr position(flowexplorer::scene& s)
       : renderable<position>{"Position", s,
-                             *dynamic_cast<tatooine::vec<real_t, N>*>(this)} {
+                             *dynamic_cast<tatooine::vec<real_type, N>*>(this)} {
     create_indexed_data();
     for (size_t i = 0; i < N; ++i) {
       this->insert_input_pin_property_link(
-          this->template insert_input_pin<real_t>(""), at(i));
+          this->template insert_input_pin<real_type>(""), at(i));
     }
   }
   //============================================================================
@@ -143,11 +143,11 @@ struct position : tatooine::vec<real_t, N>, renderable<position<N>> {
   auto check_intersection(ray<float, 3> const& r) const
       -> std::optional<intersection<double, 3>> override {
     if constexpr (N == 3) {
-      geometry::sphere<real_t, 3> s{0.01, vec3{at(0), at(1), at(2)}};
-      return s.check_intersection(ray<real_t, 3>{r});
+      geometry::sphere<real_type, 3> s{0.01, vec3{at(0), at(1), at(2)}};
+      return s.check_intersection(ray<real_type, 3>{r});
     } else if constexpr (N == 2) {
-      geometry::sphere<real_t, 3> s{0.01, vec3{at(0), at(1), 0}};
-      return s.check_intersection(ray<real_t, 3>{r});
+      geometry::sphere<real_type, 3> s{0.01, vec3{at(0), at(1), 0}};
+      return s.check_intersection(ray<real_type, 3>{r});
     }
     return {};
   }

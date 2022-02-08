@@ -9,11 +9,11 @@ namespace tatooine::analytical::fields::symbolic {
 //==============================================================================
 template <typename Real>
 struct modified_doublegyre : field<Real, 2, 2> {
-  using this_t   = modified_doublegyre<Real>;
+  using this_type   = modified_doublegyre<Real>;
   using parent_type = field<Real, 2, 2>;
-  using typename parent_type::pos_t;
-  using typename parent_type::tensor_t;
-  using typename parent_type::symtensor_t;
+  using typename parent_type::pos_type;
+  using typename parent_type::tensor_type;
+  using typename parent_type::symtensor_type;
   using parent_type::t;
   using parent_type::x;
 
@@ -52,7 +52,7 @@ struct modified_doublegyre : field<Real, 2, 2> {
   }
 
   //----------------------------------------------------------------------------
-  constexpr bool in_domain(const pos_t& x, Real) const {
+  constexpr bool in_domain(const pos_type& x, Real) const {
     return x(0) >= 0 && x(0) <= 2 && x(1) >= 0 && x(1) <= 1;
   }
 

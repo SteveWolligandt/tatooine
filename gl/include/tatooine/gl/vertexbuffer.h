@@ -25,7 +25,7 @@ class vertexbuffer
   using parent_type = buffer<
       GL_ARRAY_BUFFER,
       std::conditional_t<sizeof...(Ts) == 1, head_t<Ts...>, tuple<Ts...> > >;
-  using this_t = vertexbuffer<Ts...>;
+  using this_type = vertexbuffer<Ts...>;
   using data_t = typename parent_type::data_t;
 
   static constexpr auto data_size = parent_type::data_size;
@@ -45,12 +45,12 @@ class vertexbuffer
   vertexbuffer(vertexbuffer const& other) : parent_type{other} {}
   vertexbuffer(vertexbuffer&& other) noexcept : parent_type{other} {}
 
-  auto operator=(this_t const& other) -> auto& {
+  auto operator=(this_type const& other) -> auto& {
     parent_type::operator=(other);
     return *this;
   }
 
-  auto operator=(this_t&& other) noexcept -> auto& {
+  auto operator=(this_type&& other) noexcept -> auto& {
     parent_type::operator=(std::move(other));
     return *this;
   }

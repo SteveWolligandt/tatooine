@@ -8,12 +8,12 @@ namespace tatooine::geometry {
 //==============================================================================
 template <floating_point Real>
 struct ellipsoid : hyper_ellipse<Real, 3> {
-  using this_t   = ellipsoid;
+  using this_type   = ellipsoid;
   using parent_type = hyper_ellipse<Real, 3>;
   using parent_type::parent_type;
 };
 //==============================================================================
-ellipsoid()->ellipsoid<real_t>;
+ellipsoid()->ellipsoid<real_type>;
 //------------------------------------------------------------------------------
 template <floating_point Real0, floating_point Real1, floating_point Real2>
 ellipsoid(Real0, Real1, Real2) -> ellipsoid<common_type<Real0, Real1, Real2>>;

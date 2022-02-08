@@ -28,12 +28,12 @@ namespace detail {
 template <typename T, typename R>
 struct helper_t {
   using vec_t = T;
-  using real_t = R;
+  using real_type = R;
 
   using maybe_vec = maybe<vec_t>;
 
   static bool isfinitenorm(const vec_t& _v) {
-    if constexpr (std::is_same<vec_t, real_t>::value)
+    if constexpr (std::is_same<vec_t, real_type>::value)
       return std::isfinite(_v);
     else
       return vector_operations_t<vec_t>::isfinitenorm(_v);
@@ -51,13 +51,13 @@ struct helper_t {
    */
   template <typename DY>
   static auto require_finite(DY&& _dy) {
-    using result_t= typename std::invoke_result<DY, real_t, vec_t>::type;
+    using result_t= typename std::invoke_result<DY, real_type, vec_t>::type;
 
     if constexpr (std::is_same<result_t, maybe_vec>::value) {
 #ifndef NDEBUG
       return std::forward<DY>(_dy);
 #else
-      return [_dy](real_t t, const vec_t& y) {
+      return [_dy](real_type t, const vec_t& y) {
         auto dy= _dy(t, y);
         assert((dy.undefined() || std::isfinitenorm(dy)) &&
                "expect finite norm for successful evaluation");
@@ -65,7 +65,7 @@ struct helper_t {
       };
 #endif
     } else {
-      return [_dy](real_t t, const vec_t& y) -> maybe_vec {
+      return [_dy](real_type t, const vec_t& y) -> maybe_vec {
         auto dy= _dy(t, y);
         if (!isfinitenorm(dy)) return Failed;
         return dy;
@@ -78,9 +78,9 @@ struct helper_t {
   template <typename Sink>
   struct pass_value_only_t
       : std::integral_constant<bool,
-                               std::is_invocable<Sink, real_t, vec_t>::value> {
-    static_assert(std::is_invocable<Sink, real_t, vec_t>::value ||
-                      std::is_invocable<Sink, real_t, vec_t, vec_t>::value,
+                               std::is_invocable<Sink, real_type, vec_t>::value> {
+    static_assert(std::is_invocable<Sink, real_type, vec_t>::value ||
+                      std::is_invocable<Sink, real_type, vec_t, vec_t>::value,
                   "Require sink callable as sink(t,y) or sink(t,y,dy).");
   };
 
@@ -97,7 +97,7 @@ struct helper_t {
           sink(std::forward<Sink>(_sink)) {}
 
     // TODO: alternative: evaluator always returns tuple (t,...)
-    auto operator()(real_t _t) const {
+    auto operator()(real_type _t) const {
       if constexpr (pass_value_only_t<Sink>::value) {
         return sink(_t, evaluator(_t));
       } else {

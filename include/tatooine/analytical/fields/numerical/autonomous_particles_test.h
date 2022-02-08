@@ -11,11 +11,11 @@ namespace tatooine::analytical::fields::numerical {
 template <std::floating_point Real>
 struct autonomous_particles_test
     : vectorfield<autonomous_particles_test<Real>, Real, 2> {
-  using this_t   = autonomous_particles_test<Real>;
-  using parent_type = vectorfield<this_t, Real, 2>;
-  using typename parent_type::real_t;
-  using typename parent_type::pos_t;
-  using typename parent_type::tensor_t;
+  using this_type   = autonomous_particles_test<Real>;
+  using parent_type = vectorfield<this_type, Real, 2>;
+  using typename parent_type::real_type;
+  using typename parent_type::pos_type;
+  using typename parent_type::tensor_type;
   //============================================================================
   constexpr autonomous_particles_test() noexcept {}
   constexpr autonomous_particles_test(autonomous_particles_test const&) =
@@ -29,14 +29,14 @@ struct autonomous_particles_test
   //----------------------------------------------------------------------------
   ~autonomous_particles_test() override = default;
   //----------------------------------------------------------------------------
-  [[nodiscard]] constexpr auto evaluate(pos_t const& x, real_t const /*t*/) const
-      -> tensor_t final {
+  [[nodiscard]] constexpr auto evaluate(pos_type const& x, real_type const /*t*/) const
+      -> tensor_type final {
     return {x(0) * x(0) * x(0) - x(0),
             (1 - 3 * x(0) * x(0)) * x(1)};
   }
   //----------------------------------------------------------------------------
-  [[nodiscard]] constexpr auto in_domain(pos_t const& /*x*/,
-                                         real_t const /*t*/) const -> bool final {
+  [[nodiscard]] constexpr auto in_domain(pos_type const& /*x*/,
+                                         real_type const /*t*/) const -> bool final {
     return true;
   }
 };
@@ -45,13 +45,13 @@ autonomous_particles_test()->autonomous_particles_test<double>;
 //==============================================================================
 template <std::floating_point Real>
 struct autonomous_particles_test_flowmap {
-  using real_t = Real;
-  using vec_t  = vec<real_t, 2>;
-  using pos_t  = vec_t;
+  using real_type = Real;
+  using vec_t  = vec<real_type, 2>;
+  using pos_type  = vec_t;
   static constexpr auto num_dimensions() { return 2; }
   //----------------------------------------------------------------------------
-  constexpr auto evaluate(pos_t const& x, real_t const /*t*/,
-                          real_t const   tau) const -> pos_t {
+  constexpr auto evaluate(pos_type const& x, real_type const /*t*/,
+                          real_type const   tau) const -> pos_type {
     auto const a = std::exp(2 * tau);
     auto const b = std::exp(-2 * tau);
     auto const c = std::sqrt((1 - a) * x(0) * x(0) + a);
@@ -60,8 +60,8 @@ struct autonomous_particles_test_flowmap {
     };
   }
   //----------------------------------------------------------------------------
-  constexpr auto operator()(pos_t const& x, real_t const t, real_t const tau) const
-      -> pos_t {
+  constexpr auto operator()(pos_type const& x, real_type const t, real_type const tau) const
+      -> pos_type {
     return evaluate(x, t, tau);
   }
 };
@@ -92,26 +92,26 @@ constexpr auto flowmap(
 //==============================================================================
 template <std::floating_point Real>
 struct autonomous_particles_test_flowmap_gradient {
-  using real_t     = Real;
-  using vec_t      = vec<real_t, 2>;
-  using pos_t      = vec_t;
-  using mat_t      = mat<real_t, 2, 2>;
+  using real_type     = Real;
+  using vec_t      = vec<real_type, 2>;
+  using pos_type      = vec_t;
+  using mat_t      = mat<real_type, 2, 2>;
   using gradient_t = mat_t;
   static constexpr auto num_dimensions() { return 2; }
   //----------------------------------------------------------------------------
-  constexpr auto evaluate(pos_t const& x, real_t const /*t*/,
-                          real_t const   tau) const -> gradient_t {
+  constexpr auto evaluate(pos_type const& x, real_type const /*t*/,
+                          real_type const   tau) const -> gradient_t {
     auto const a = std::exp(2 * tau);
     auto const b = std::exp(-2 * tau);
     auto const c = std::sqrt(-a * x(0) * x(0) + x(0) * x(0) + a);
     auto const d =
-        std::pow((-a * x(0) * x(0) + x(0) * x(0) + a), real_t(3) / real_t(2));
-    return {{1 / c - (x(0) * (2 * x(0) - 2 * a * x(0))) / (2 * d), real_t(0)},
+        std::pow((-a * x(0) * x(0) + x(0) * x(0) + a), real_type(3) / real_type(2));
+    return {{1 / c - (x(0) * (2 * x(0) - 2 * a * x(0))) / (2 * d), real_type(0)},
             {(3 * b * (2 * x(0) - 2 * a * x(0)) * c * x(1)) / 2  , b * d}};
   }
   //----------------------------------------------------------------------------
-  constexpr auto operator()(pos_t const& x, Real const t,
-                            real_t const tau) const {
+  constexpr auto operator()(pos_type const& x, Real const t,
+                            real_type const tau) const {
     return evaluate(x, t, tau);
   }
 };
@@ -150,22 +150,22 @@ struct differentiated_field<
     analytical::fields::numerical::autonomous_particles_test<Real>, 2, 2>
     : field<analytical::fields::numerical::autonomous_particles_test<Real>,
             Real, 2, 2, 2> {
-  using this_t = differentiated_field<
+  using this_type = differentiated_field<
       analytical::fields::numerical::autonomous_particles_test<Real>>;
-  using parent_type = field<this_t, Real, 2, 2, 2>;
-  using typename parent_type::real_t;
-  using typename parent_type::pos_t;
-  using typename parent_type::tensor_t;
+  using parent_type = field<this_type, Real, 2, 2, 2>;
+  using typename parent_type::real_type;
+  using typename parent_type::pos_type;
+  using typename parent_type::tensor_type;
 
   //============================================================================
  public:
-  constexpr auto evaluate(pos_t const& x, real_t const /*t*/) const
-      -> tensor_t final {
+  constexpr auto evaluate(pos_type const& x, real_type const /*t*/) const
+      -> tensor_type final {
     return {{3 * x(0) * x(0) - 1, 0                  },
             {-6 * x(0) * x(1)   , 1 - 3 * x(0) * x(0)}};
   }
   //----------------------------------------------------------------------------
-  constexpr auto in_domain(pos_t const& /*x*/, real_t const /*t*/) const
+  constexpr auto in_domain(pos_type const& /*x*/, real_type const /*t*/) const
       -> bool final {
     return true;
   }

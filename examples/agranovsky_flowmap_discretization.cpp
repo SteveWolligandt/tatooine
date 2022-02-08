@@ -9,12 +9,12 @@ auto main() -> int {
   auto       v         = analytical::fields::numerical::doublegyre{};
   auto       phi       = flowmap(v);
   phi.use_caching(false);
-  auto const t0        = real_t(0);
-  auto const t1        = real_t(20);
-  auto const delta_t   = real_t(0.1);
-  auto       phi_naive = naive_flowmap_discretization<real_t, 2>{
+  auto const t0        = real_type(0);
+  auto const t1        = real_type(20);
+  auto const delta_t   = real_type(0.1);
+  auto       phi_naive = naive_flowmap_discretization<real_type, 2>{
       phi, t0, t1, vec2{0, 0}, vec2{2, 1}, 100, 50};
-  auto phi_agranovsky = agranovsky_flowmap_discretization<real_t, 2>{
+  auto phi_agranovsky = agranovsky_flowmap_discretization<real_type, 2>{
       phi, t0, t1, delta_t, vec2{0, 0}, vec2{2, 1}, 100, 50};
   size_t cnt = 0;
   phi_naive.forward_grid().write_vtk(

@@ -9,9 +9,9 @@ namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 pathline::pathline(flowexplorer::scene& s)
     : renderable<pathline>{"Path Line", s},
-      m_t0_pin{insert_input_pin<real_t>("t0")},
-      m_backward_tau_pin{insert_input_pin<real_t>("tau -")},
-      m_forward_tau_pin{insert_input_pin<real_t>("tau +")},
+      m_t0_pin{insert_input_pin<real_type>("t0")},
+      m_backward_tau_pin{insert_input_pin<real_type>("tau -")},
+      m_forward_tau_pin{insert_input_pin<real_type>("tau +")},
       m_v_pin{insert_input_pin<vectorfield2_t, vectorfield3_t>("Vector Field")},
       m_x0_pin{
           insert_input_pin<vec2, vec3, std::vector<vec2>, std::vector<vec3>>(

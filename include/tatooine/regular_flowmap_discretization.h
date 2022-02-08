@@ -12,10 +12,10 @@ namespace tatooine {
 /// Samples a flow map by advecting particles from a uniform rectilinear grid.
 template <typename Real, size_t N>
 struct regular_flowmap_discretization {
-  using real_t = Real;
+  using real_type = Real;
   static auto constexpr num_dimensions() { return N; }
   using vec_t = vec<Real, N>;
-  using pos_t = vec_t;
+  using pos_type = vec_t;
   template <size_t M, typename... Ts>
   struct grid_type_creator {
     using type = typename grid_type_creator<M - 1, linspace<Real>, Ts...>::type;
@@ -28,7 +28,7 @@ struct regular_flowmap_discretization {
   //----------------------------------------------------------------------------
   using forward_grid_t = typename grid_type_creator<N>::type;
   using grid_vertex_property_t =
-      detail::rectilinear_grid::typed_vertex_property_interface<forward_grid_t, pos_t, true>;
+      detail::rectilinear_grid::typed_vertex_property_interface<forward_grid_t, pos_type, true>;
   //----------------------------------------------------------------------------
   template <size_t M, template <typename> typename... InterpolationKernels>
   struct grid_sampler_type_creator {
@@ -47,9 +47,9 @@ struct regular_flowmap_discretization {
 
   using backward_grid_t = unstructured_simplicial_grid<Real, N, N>;
   using mesh_vertex_property_t =
-      typename backward_grid_t::template vertex_property_t<pos_t>;
+      typename backward_grid_t::template vertex_property_t<pos_type>;
   using mesh_vertex_property_sampler_t =
-      typename backward_grid_t::template vertex_property_sampler_t<pos_t>;
+      typename backward_grid_t::template vertex_property_sampler_t<pos_type>;
   //============================================================================
  private:
   Real m_t0;
@@ -69,22 +69,22 @@ struct regular_flowmap_discretization {
   template <typename Flowmap, typename ExecutionPolicy, size_t... Is>
   regular_flowmap_discretization(std::index_sequence<Is...> /*seq*/,
                                  Flowmap&& flowmap, arithmetic auto const t0,
-                                 arithmetic auto const tau, pos_t const& min,
-                                 pos_t const&    max,
+                                 arithmetic auto const tau, pos_type const& min,
+                                 pos_type const&    max,
                                  ExecutionPolicy execution_policy,
                                  integral auto const... resolution)
-      : m_t0{real_t(t0)},
-        m_t1{real_t(t0 + tau)},
-        m_tau{real_t(tau)},
+      : m_t0{real_type(t0)},
+        m_t1{real_type(t0 + tau)},
+        m_tau{real_type(tau)},
         m_forward_grid{linspace<Real>{min(Is), max(Is),
                                       static_cast<size_t>(resolution)}...},
         m_forward_discretization{
-            &m_forward_grid.template vertex_property<pos_t>(
+            &m_forward_grid.template vertex_property<pos_type>(
                 "forward_discretization")},
         m_forward_sampler{m_forward_discretization->linear_sampler()},
         m_backward_grid{m_forward_grid},
         m_backward_discretization{
-            &m_backward_grid.template vertex_property<pos_t>(
+            &m_backward_grid.template vertex_property<pos_type>(
                 "backward_discretization")},
         m_backward_sampler{
             m_backward_grid.sampler(*m_backward_discretization)} {
@@ -96,8 +96,8 @@ struct regular_flowmap_discretization {
   regular_flowmap_discretization(Flowmap&&             flowmap,
                                  ExecutionPolicy       execution_policy,
                                  arithmetic auto const t0,
-                                 arithmetic auto const tau, pos_t const& min,
-                                 pos_t const& max,
+                                 arithmetic auto const tau, pos_type const& min,
+                                 pos_type const& max,
                                  integral auto const... resolution)
       : regular_flowmap_discretization{std::make_index_sequence<N>{},
                                        std::forward<Flowmap>(flowmap),
@@ -117,8 +117,8 @@ struct regular_flowmap_discretization {
   //----------------------------------------------------------------------------
   template <typename Flowmap>
   regular_flowmap_discretization(Flowmap&& flowmap, arithmetic auto const t0,
-                                 arithmetic auto const tau, pos_t const& min,
-                                 pos_t const& max,
+                                 arithmetic auto const tau, pos_type const& min,
+                                 pos_type const& max,
                                  integral auto const... resolution)
       : regular_flowmap_discretization{std::make_index_sequence<N>{},
                                        std::forward<Flowmap>(flowmap),
@@ -171,7 +171,7 @@ struct regular_flowmap_discretization {
   auto backward_sampler() -> auto& { return *m_backward_sampler; }
   //----------------------------------------------------------------------------
   /// evaluates flow map
-  auto operator()(pos_t const& x, real_t const t, real_t const tau) const {
+  auto operator()(pos_type const& x, real_type const t, real_type const tau) const {
     if (t + tau < m_t0 || t + tau > m_t1) {
       throw std::runtime_error{"Flow map out of domain!"};
     }
@@ -187,14 +187,14 @@ struct regular_flowmap_discretization {
   /// advection time.
   /// \param x position
   /// \returns phi(x, t0, t1 - t0)
-  auto sample_forward(pos_t const& x) const { return m_forward_sampler(x); }
+  auto sample_forward(pos_type const& x) const { return m_forward_sampler(x); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// Evaluates flow map in forward direction at time t0 with an advection time
   /// of tau.
   /// \param x position
   /// \param tau advection time (needs to be positive)
   /// \returns phi(x, t0, tau)
-  auto sample_forward(pos_t const& x, real_t const tau) const {
+  auto sample_forward(pos_type const& x, real_type const tau) const {
     assert(tau > 0);
     return interpolation::linear{
         x, m_forward_sampler(x)}((tau - m_t0) / (m_t1 - m_t0));
@@ -204,22 +204,22 @@ struct regular_flowmap_discretization {
   /// advection time.
   /// \param x position
   /// \returns phi(x, t0, t0 - t1)
-  auto sample_backward(pos_t const& x) const { return m_backward_sampler(x); }
+  auto sample_backward(pos_type const& x) const { return m_backward_sampler(x); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// Evaluates flow map in backward direction at time t1 with an advection time
   /// of tau.
   /// \param x position
   /// \param tau advection time (needs to be negative)
   /// \returns phi(x, t1, tau)
-  auto sample_backward(pos_t const& x, real_t const tau) const {
+  auto sample_backward(pos_type const& x, real_type const tau) const {
     assert(tau < 0);
     return interpolation::linear{
         x, m_backward_sampler(x)}((-tau - m_t0) / (m_t1 - m_t0));
   }
   //----------------------------------------------------------------------------
   /// TODO Implement!
-  auto find_position_at_t0(pos_t const& /*x*/, real_t const /*t*/) const {
-    return pos_t::fill(real_t(0) / real_t(0));
+  auto find_position_at_t0(pos_type const& /*x*/, real_type const /*t*/) const {
+    return pos_type::fill(real_type(0) / real_type(0));
   }
 };
 //==============================================================================

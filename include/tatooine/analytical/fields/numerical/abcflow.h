@@ -9,21 +9,21 @@ namespace tatooine::analytical::fields::numerical {
 /// \brief The Arnold–Beltrami–Childress (ABC) flow is a three-dimensional
 ///        incompressible velocity field which is an exact solution of Euler's
 ///        equation.
-template <typename real_t>
-struct abcflow : vectorfield<abcflow<real_t>, real_t, 3> {
-  using this_t   = abcflow<real_t>;
-  using parent_type = vectorfield<this_t, real_t, 3>;
-  using typename parent_type::pos_t;
-  using typename parent_type::tensor_t;
+template <typename real_type>
+struct abcflow : vectorfield<abcflow<real_type>, real_type, 3> {
+  using this_type   = abcflow<real_type>;
+  using parent_type = vectorfield<this_type, real_type, 3>;
+  using typename parent_type::pos_type;
+  using typename parent_type::tensor_type;
 
   //============================================================================
  private:
-  real_t m_a, m_b, m_c;
+  real_type m_a, m_b, m_c;
 
   //============================================================================
  public:
-  explicit constexpr abcflow(real_t const a = 1, real_t const b = 1,
-                             real_t const c = 1)
+  explicit constexpr abcflow(real_type const a = 1, real_type const b = 1,
+                             real_type const c = 1)
       : m_a{a}, m_b{b}, m_c{c} {}
   constexpr abcflow(const abcflow& other)            = default;
   constexpr abcflow(abcflow&& other)                 = default;
@@ -32,14 +32,14 @@ struct abcflow : vectorfield<abcflow<real_t>, real_t, 3> {
   ~abcflow() override = default;
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  [[nodiscard]] constexpr auto evaluate(pos_t const& x,
-                                        real_t const /*t*/) const -> tensor_t {
-    return tensor_t{m_a * std::sin(x(2)) + m_c * std::cos(x(1)),
+  [[nodiscard]] constexpr auto evaluate(pos_type const& x,
+                                        real_type const /*t*/) const -> tensor_type {
+    return tensor_type{m_a * std::sin(x(2)) + m_c * std::cos(x(1)),
                     m_b * std::sin(x(0)) + m_a * std::cos(x(2)),
                     m_c * std::sin(x(1)) + m_b * std::cos(x(0))};
   }
-  [[nodiscard]] constexpr auto in_domain(pos_t const& /*x*/,
-                                         real_t const /*t*/) const -> bool {
+  [[nodiscard]] constexpr auto in_domain(pos_type const& /*x*/,
+                                         real_type const /*t*/) const -> bool {
     return true;
   }
 };
@@ -58,18 +58,18 @@ namespace tatooine::symbolic {
 /// \brief The Arnold–Beltrami–Childress (ABC) flow is a three-dimensional
 ///        incompressible velocity field which is an exact solution of Euler's
 ///        equation.
-template <typename real_t>
-struct abcflow : field<real_t, 3, 3> {
-  using this_t   = abcflow<real_t>;
-  using parent_type = field<real_t, 3, 3>;
-  using typename parent_type::pos_t;
-  using typename parent_type::tensor_t;
-  using typename parent_type::symtensor_t;
+template <typename real_type>
+struct abcflow : field<real_type, 3, 3> {
+  using this_type   = abcflow<real_type>;
+  using parent_type = field<real_type, 3, 3>;
+  using typename parent_type::pos_type;
+  using typename parent_type::tensor_type;
+  using typename parent_type::symtensor_type;
 
   //============================================================================
  public:
-  explicit constexpr abcflow(const real_t a = 1, const real_t b = 1,
-                    const real_t c = 1) {
+  explicit constexpr abcflow(const real_type a = 1, const real_type b = 1,
+                    const real_type c = 1) {
     this->set_expr(vec{a * sin(symbol::x(2)) + c * cos(symbol::x(1)),
                        b * sin(symbol::x(0)) + a * cos(symbol::x(2)),
                        c * sin(symbol::x(1)) + b * cos(symbol::x(0))});

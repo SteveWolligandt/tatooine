@@ -24,8 +24,8 @@ TEST_CASE("unary_operation_field_identity_ref", "[unary_operation_field][identit
   auto v_id = v | identity;
   using V = decltype(v);
   using VId = decltype(v_id);
-  REQUIRE(std::is_same_v<V::real_t, VId::real_t>);
-  REQUIRE(std::is_same_v<V::tensor_t, VId::tensor_t>);
+  REQUIRE(std::is_same_v<V::real_type, VId::real_type>);
+  REQUIRE(std::is_same_v<V::tensor_type, VId::tensor_type>);
   for (auto t : linspace(0.0, 10.0, 10)) {
     for (auto y : linspace(0.0, 1.0, 10)) {
       for (auto x : linspace(0.0, 2.0, 20)) {
@@ -47,8 +47,8 @@ TEST_CASE("unary_operation_field_identity_ptr",
   using V   = decltype(v);
   using VId = decltype(v_id);
   REQUIRE(v_ptr == v_id.internal_field());
-  REQUIRE(std::is_same_v<V::real_t, VId::real_t>);
-  REQUIRE(std::is_same_v<V::tensor_t, VId::tensor_t>);
+  REQUIRE(std::is_same_v<V::real_type, VId::real_type>);
+  REQUIRE(std::is_same_v<V::tensor_type, VId::tensor_type>);
   for (auto t : linspace(0.0, 10.0, 10)) {
     for (auto y : linspace(0.0, 1.0, 10)) {
       for (auto x : linspace(0.0, 2.0, 20)) {
@@ -64,8 +64,8 @@ TEST_CASE("unary_operation_field_length", "[unary_operation_field][length]") {
   auto v_len = v | [](auto const& v) { return length(v); };
   using V   = decltype(v);
   using VLen = decltype(v_len);
-  REQUIRE(std::is_same_v<V::real_t, VLen::real_t>);
-  REQUIRE(std::is_same_v<VLen::tensor_t, double>);
+  REQUIRE(std::is_same_v<V::real_type, VLen::real_type>);
+  REQUIRE(std::is_same_v<VLen::tensor_type, double>);
   for (auto t : linspace(0.0, 10.0, 10)) {
     for (auto y : linspace(0.0, 1.0, 10)) {
       for (auto x : linspace(0.0, 2.0, 20)) {
@@ -89,8 +89,8 @@ TEST_CASE("unary_operation_field_concat",
   REQUIRE(std::is_reference_v<VDLenIntInt>);
   REQUIRE(std::is_same_v<std::decay_t<VDLenIntInt>, V>);
 
-  REQUIRE(std::is_same_v<V::real_t, VDLen::real_t>);
-  REQUIRE(std::is_same_v<VDLen::tensor_t, double>);
+  REQUIRE(std::is_same_v<V::real_type, VDLen::real_type>);
+  REQUIRE(std::is_same_v<VDLen::tensor_type, double>);
   for (auto t : linspace(0.0, 10.0, 10)) {
     for (auto y : linspace(0.0, 1.0, 10)) {
       for (auto x : linspace(0.0, 2.0, 20)) {

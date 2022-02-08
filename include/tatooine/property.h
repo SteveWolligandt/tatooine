@@ -10,7 +10,7 @@ namespace tatooine {
 //==============================================================================
 template <typename Handle>
 struct vector_property {
-  using this_t = vector_property<Handle>;
+  using this_type = vector_property<Handle>;
   //============================================================================
   vector_property()                                 = default;
   vector_property(const vector_property& other)     = default;
@@ -39,12 +39,12 @@ struct vector_property {
   /// for identifying type.
   [[nodiscard]] virtual auto type() const -> const std::type_info& = 0;
   //----------------------------------------------------------------------------
-  virtual auto clone() const -> std::unique_ptr<this_t> = 0;
+  virtual auto clone() const -> std::unique_ptr<this_type> = 0;
 };
 //==============================================================================
 template <typename Handle, typename T>
 struct vector_property_impl : vector_property<Handle> {
-  using this_t                 = vector_property_impl<Handle, T>;
+  using this_type                 = vector_property_impl<Handle, T>;
   using parent_type               = vector_property<Handle>;
   using container_t            = std::vector<T>;
   using value_type             = typename container_t::value_type;
@@ -165,13 +165,13 @@ struct vector_property_impl : vector_property<Handle> {
   [[nodiscard]] auto type() const -> const std::type_info& override { return typeid(T); }
   //----------------------------------------------------------------------------
   auto clone() const -> std::unique_ptr<parent_type> override {
-    return std::unique_ptr<this_t>{new this_t{*this}};
+    return std::unique_ptr<this_type>{new this_type{*this}};
   }
 };
 //==============================================================================
 template <typename Handle>
 struct deque_property {
-  using this_t = deque_property<Handle>;
+  using this_type = deque_property<Handle>;
   //============================================================================
   deque_property()                                 = default;
   deque_property(const deque_property& other)      = default;
@@ -200,12 +200,12 @@ struct deque_property {
   /// for identifying type.
   [[nodiscard]] virtual auto type() const -> const std::type_info& = 0;
   //----------------------------------------------------------------------------
-  virtual auto clone() const -> std::unique_ptr<this_t> = 0;
+  virtual auto clone() const -> std::unique_ptr<this_type> = 0;
 };
 //==============================================================================
 template <typename Handle, typename T>
 struct deque_property_impl : deque_property<Handle> {
-  using this_t                 = deque_property_impl<Handle, T>;
+  using this_type                 = deque_property_impl<Handle, T>;
   using parent_type               = deque_property<Handle>;
   using container_t            = std::deque<T>;
   using value_type             = typename container_t::value_type;
@@ -330,7 +330,7 @@ struct deque_property_impl : deque_property<Handle> {
   [[nodiscard]] auto type() const -> const std::type_info& override { return typeid(T); }
   //----------------------------------------------------------------------------
   auto clone() const -> std::unique_ptr<parent_type> override {
-    return std::unique_ptr<this_t>{new this_t{*this}};
+    return std::unique_ptr<this_type>{new this_type{*this}};
   }
 };
 

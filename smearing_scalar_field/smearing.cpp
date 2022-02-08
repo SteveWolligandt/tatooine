@@ -14,18 +14,18 @@ using namespace tatooine;
 //==============================================================================
 struct rotating_flow : vectorfield<rotating_flow, double, 2> {
   using parent_t = vectorfield<rotating_flow, double, 2>;
-  using parent_t::real_t;
-  using parent_t::pos_t;
-  using parent_t::tensor_t;
+  using parent_t::real_type;
+  using parent_t::pos_type;
+  using parent_t::tensor_type;
 
-  constexpr auto evaluate(pos_t const& p, real_t const /*t*/) const
-      -> tensor_t final {
+  constexpr auto evaluate(pos_type const& p, real_type const /*t*/) const
+      -> tensor_type final {
     return {-p.y() * (1 - p.x() * p.x() - p.y() * p.y()),
              p.x() * (1 - p.x() * p.x() - p.y() * p.y())};
   }
-  constexpr auto in_domain(pos_t const& p, real_t const /*t*/) const
+  constexpr auto in_domain(pos_type const& p, real_type const /*t*/) const
       -> bool final {
-    constexpr auto half = real_t(1) / real_t(2);
+    constexpr auto half = real_type(1) / real_type(2);
     return -half <= p.x() && p.x() <= half && -half <= p.y() && p.y() <= half;
   }
 };

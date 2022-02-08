@@ -85,22 +85,22 @@ constexpr auto operator/(ScalarReal const                  scalar,
   return V{f.as_derived()} | [scalar](auto const& t) { return scalar / t; };
 }
 //------------------------------------------------------------------------------
-// template <typename lhs_tensor_t, typename Real0,
-//          typename rhs_tensor_t, typename Real1,
+// template <typename lhs_tensor_type, typename Real0,
+//          typename rhs_tensor_type, typename Real1,
 //          size_t... Dims>
 // constexpr auto operator-(
-//    const base_tensor<lhs_tensor_t, Real0, Dims...>& lhs,
-//    const base_tensor<rhs_tensor_t, Real1, Dims...>& rhs) {
+//    const base_tensor<lhs_tensor_type, Real0, Dims...>& lhs,
+//    const base_tensor<rhs_tensor_type, Real1, Dims...>& rhs) {
 //  return binary_operation(std::minus<common_type<Real0, Real1>>{}, lhs,
 //                          rhs);
 //}
 //
 //------------------------------------------------------------------------------
 ///// matrix-vector-multiplication
-// template <typename lhs_tensor_t, typename Real0,
-//          typename rhs_tensor_t, typename Real1, size_t M, size_t N>
-// constexpr auto operator*(const base_tensor<lhs_tensor_t, Real0, M, N>& lhs,
-//                         const base_tensor<rhs_tensor_t, Real1, N>& rhs) {
+// template <typename lhs_tensor_type, typename Real0,
+//          typename rhs_tensor_type, typename Real1, size_t M, size_t N>
+// constexpr auto operator*(const base_tensor<lhs_tensor_type, Real0, M, N>& lhs,
+//                         const base_tensor<rhs_tensor_type, Real1, N>& rhs) {
 //  tensor<common_type<Real0, Real1>, M> product;
 //  for (size_t i = 0; i < M; ++i) {
 //    product(i) = dot(lhs.template slice<0>(i), rhs);

@@ -10,13 +10,13 @@ namespace tatooine {
 template <typename V, typename Real, size_t N>
 struct spacetime_vectorfield
     : vectorfield<spacetime_vectorfield<V, Real, N>, Real, N> {
-  using this_t   = spacetime_vectorfield<V, Real, N>;
-  using parent_type = vectorfield<this_t, Real, N>;
-  using typename parent_type::pos_t;
-  using typename parent_type::tensor_t;
+  using this_type   = spacetime_vectorfield<V, Real, N>;
+  using parent_type = vectorfield<this_type, Real, N>;
+  using typename parent_type::pos_type;
+  using typename parent_type::tensor_type;
   static constexpr auto holds_field_pointer = is_pointer<V>;
 
-  static_assert(std::remove_pointer_t<std::decay_t<V>>::tensor_t::rank() == 1);
+  static_assert(std::remove_pointer_t<std::decay_t<V>>::tensor_type::rank() == 1);
   static_assert(std::remove_pointer_t<std::decay_t<V>>::num_dimensions() ==
                 N - 1);
 
@@ -59,8 +59,8 @@ struct spacetime_vectorfield
   //============================================================================
   // methods
   //============================================================================
-  [[nodiscard]] constexpr auto evaluate(pos_t const& x, Real /*t*/) const
-      -> tensor_t final {
+  [[nodiscard]] constexpr auto evaluate(pos_type const& x, Real /*t*/) const
+      -> tensor_type final {
     tensor<Real, N - 1> spatial_position;
     Real                temporal_position = x(N - 1);
     for (size_t i = 0; i < N - 1; ++i) {
@@ -68,7 +68,7 @@ struct spacetime_vectorfield
     }
 
     auto const sample = v()(spatial_position, temporal_position);
-    tensor_t   t_out;
+    tensor_type   t_out;
     for (size_t i = 0; i < N - 1; ++i) {
       t_out(i) = sample(i);
     }
@@ -76,7 +76,7 @@ struct spacetime_vectorfield
     return t_out;
   }
   //----------------------------------------------------------------------------
-  [[nodiscard]] constexpr auto in_domain(pos_t const& x, Real /*t*/) const
+  [[nodiscard]] constexpr auto in_domain(pos_type const& x, Real /*t*/) const
       -> bool final {
     tensor<Real, N - 1> spatial_position;
     Real                temporal_position = x(N - 1);
@@ -139,16 +139,16 @@ struct spacetime_vectorfield<symbolic::field<Real, N - 1>, Real, N>
     : symbolic::field<Real, N> {
   //============================================================================
   using V        = symbolic::field<Real, N - 1>;
-  using this_t   = spacetime_vectorfield<V, Real, N>;
+  using this_type   = spacetime_vectorfield<V, Real, N>;
   using parent_type = symbolic::field<Real, N>;
-  using typename parent_type::pos_t;
-  using typename parent_type::symtensor_t;
-  using typename parent_type::tensor_t;
+  using typename parent_type::pos_type;
+  using typename parent_type::symtensor_type;
+  using typename parent_type::tensor_type;
 
   //============================================================================
   spacetime_vectorfield(
       field<symbolic::field<Real, N - 1> const, Real, N - 1>& v) {
-    symtensor_t ex;
+    symtensor_type ex;
     for (size_t i = 0; i < N - 1; ++i) {
       ex(i) = symbolic::ev(v.as_derived().expr()(i),
                            symbolic::symbol::t() == symbolic::symbol::x(N - 1));

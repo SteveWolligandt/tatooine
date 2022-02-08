@@ -136,9 +136,9 @@ using type_set = typename type_set_constructor<type_list<>, Ts...>::type;
 /// Inherits from a type_list with only unique types.
 template <typename... Ts>
 struct type_set_impl : type_list<Ts...> {
-  using this_t   = type_set_impl<Ts...>;
+  using this_type   = type_set_impl<Ts...>;
   template <typename T>
-  using insert = type_set_insert<this_t, T>;
+  using insert = type_set_insert<this_type, T>;
 };
 //==============================================================================
 /// \}

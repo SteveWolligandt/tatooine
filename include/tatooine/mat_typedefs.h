@@ -5,11 +5,11 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <size_t M, size_t N>
-using Mat = mat<real_t, M, N>;
-template <size_t M, size_t N>
+template <std::size_t M, std::size_t N>
+using Mat = mat<real_number, M, N>;
+template <std::size_t M, std::size_t N>
 using MatD = mat<double, M, N>;
-template <size_t M, size_t N>
+template <std::size_t M, std::size_t N>
 using MatF = mat<float, M, N>;
 template <typename T>
 using Mat22 = mat<T, 2, 2>;
@@ -140,21 +140,21 @@ using Mat98 = mat<T, 9, 8>;
 template <typename T>
 using Mat99 = mat<T, 9, 9>;
 template <typename T>
-using Mat2  = Mat22<T>;
+using Mat2 = Mat22<T>;
 template <typename T>
-using Mat3  = Mat33<T>;
+using Mat3 = Mat33<T>;
 template <typename T>
-using Mat4  = Mat44<T>;
+using Mat4 = Mat44<T>;
 template <typename T>
-using Mat5  = Mat55<T>;
+using Mat5 = Mat55<T>;
 template <typename T>
-using Mat6  = Mat66<T>;
+using Mat6 = Mat66<T>;
 template <typename T>
-using Mat7  = Mat77<T>;
+using Mat7 = Mat77<T>;
 template <typename T>
-using Mat8  = Mat88<T>;
+using Mat8 = Mat88<T>;
 template <typename T>
-using Mat9  = Mat99<T>;
+using Mat9 = Mat99<T>;
 
 using mat22 = Mat<2, 2>;
 using mat23 = Mat<2, 3>;
@@ -229,7 +229,7 @@ using mat7  = mat77;
 using mat8  = mat88;
 using mat9  = mat99;
 
-using mat22f  = MatF<2, 2>;
+using mat22f = MatF<2, 2>;
 using mat23f = MatF<2, 3>;
 using mat24f = MatF<2, 4>;
 using mat25f = MatF<2, 5>;
@@ -375,13 +375,13 @@ using mat7d  = mat77d;
 using mat8d  = mat88d;
 using mat9d  = mat99d;
 
-template <typename T, size_t M, size_t N>
+template <typename T, std::size_t M, std::size_t N>
 using complex_mat = mat<std::complex<T>, M, N>;
-template <size_t M, size_t N>
-using ComplexMat = complex_mat<real_t, M, N>;
-template <size_t M, size_t N>
+template <std::size_t M, std::size_t N>
+using ComplexMat = complex_mat<real_number, M, N>;
+template <std::size_t M, std::size_t N>
 using ComplexMatD = complex_mat<double, M, N>;
-template <size_t M, size_t N>
+template <std::size_t M, std::size_t N>
 using ComplexMatF = complex_mat<float, M, N>;
 
 using complex_mat22 = ComplexMat<2, 2>;

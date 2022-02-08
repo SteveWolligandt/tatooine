@@ -21,7 +21,7 @@ struct mat : tensor<T, M, N> {
   //============================================================================
   // typedefs
   //============================================================================
-  using this_t   = mat<T, M, N>;
+  using this_type   = mat<T, M, N>;
   using parent_type = tensor<T, M, N>;
 
   //============================================================================
@@ -35,24 +35,24 @@ struct mat : tensor<T, M, N> {
   //============================================================================
   // factories
   //============================================================================
-  static auto constexpr zeros() { return this_t{tag::fill<T>{0}}; }
+  static auto constexpr zeros() { return this_type{tag::fill<T>{0}}; }
   //----------------------------------------------------------------------------
-  static auto constexpr ones() { return this_t{tag::fill<T>{1}}; }
+  static auto constexpr ones() { return this_type{tag::fill<T>{1}}; }
   //----------------------------------------------------------------------------
   template <typename = void>
   requires (is_quadratic_mat())
-  static auto constexpr eye() { return this_t{tag::eye}; }
+  static auto constexpr eye() { return this_type{tag::eye}; }
   //----------------------------------------------------------------------------
   template <typename RandEng = std::mt19937_64>
   static auto constexpr randu(T min = 0, T max = 1,
                               RandEng&& eng = RandEng{std::random_device{}()}) {
-    return this_t{random::uniform{min, max, std::forward<RandEng>(eng)}};
+    return this_type{random::uniform{min, max, std::forward<RandEng>(eng)}};
   }
   //----------------------------------------------------------------------------
   template <typename RandEng = std::mt19937_64>
   static auto constexpr randn(T mean = 0, T stddev = 1,
                               RandEng&& eng = RandEng{std::random_device{}()}) {
-    return this_t{random::normal<T>{eng, mean, stddev}};
+    return this_type{random::normal<T>{eng, mean, stddev}};
   }
 
   //============================================================================
@@ -110,11 +110,11 @@ struct mat : tensor<T, M, N> {
   //============================================================================
   // factory functions
   //============================================================================
-  static auto constexpr eye() { return this_t{tag::eye}; }
+  static auto constexpr eye() { return this_type{tag::eye}; }
   //----------------------------------------------------------------------------
   template <typename OtherTensor>
   static auto constexpr vander(base_tensor<OtherTensor, T, N> const & v) {
-    this_t V;
+    this_type V;
     auto   factor_up_row = [row = std::size_t(0), &V](auto x) mutable {
       V(row, 0) = 1;
       for (std::size_t col = 1; col < N; ++col) {
@@ -129,7 +129,7 @@ struct mat : tensor<T, M, N> {
   template <convertible_to<T> ...Xs>
   static auto constexpr vander(Xs&&... xs) {
     static_assert(sizeof...(xs) == num_columns());
-    this_t V;
+    this_type V;
     auto   factor_up_row = [row = std::size_t(0), &V](auto x) mutable {
       V(row, 0) = 1;
       for (std::size_t col = 1; col < N; ++col) {

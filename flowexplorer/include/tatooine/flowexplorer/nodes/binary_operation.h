@@ -13,12 +13,12 @@ struct binary_operation : ui::node<binary_operation> {
 
   template <size_t LhsN, size_t RhsN, typename Op>
   using op_field_vec_vec =
-      binary_operation_field<polymorphic::vectorfield<real_t, LhsN>*,
-                             polymorphic::vectorfield<real_t, RhsN>*, Op>;
+      binary_operation_field<polymorphic::vectorfield<real_type, LhsN>*,
+                             polymorphic::vectorfield<real_type, RhsN>*, Op>;
   template <size_t LhsN, size_t RhsN, typename Op>
   using op_field_mat_vec =
-      binary_operation_field<polymorphic::matrixfield<real_t, LhsN>*,
-                             polymorphic::vectorfield<real_t, RhsN>*, Op>;
+      binary_operation_field<polymorphic::matrixfield<real_type, LhsN>*,
+                             polymorphic::vectorfield<real_type, RhsN>*, Op>;
 
   enum class operation_t : int {
     addition,
@@ -45,7 +45,7 @@ struct binary_operation : ui::node<binary_operation> {
 
   // output data
   std::variant<std::monostate,
-               real_t,
+               real_type,
                dot_field2_t,
                dot_field3_t,
                mat_vec_mult_field2_t,

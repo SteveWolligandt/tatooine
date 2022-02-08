@@ -103,25 +103,25 @@ struct axis_aligned_bounding_box
                                             Real, N> {
   static_assert(is_arithmetic<Real>);
   //============================================================================
-  using real_t = Real;
-  using this_t = axis_aligned_bounding_box<Real, N>;
+  using real_type = Real;
+  using this_type = axis_aligned_bounding_box<Real, N>;
   using vec_t  = vec<Real, N>;
-  using pos_t  = vec_t;
+  using pos_type  = vec_t;
 
   static constexpr auto num_dimensions() { return N; }
   static constexpr auto infinite() {
-    return this_t{pos_t::ones() * -std::numeric_limits<real_t>::max(),
-                  pos_t::ones() * std::numeric_limits<real_t>::max()};
+    return this_type{pos_type::ones() * -std::numeric_limits<real_type>::max(),
+                  pos_type::ones() * std::numeric_limits<real_type>::max()};
   };
   //============================================================================
  private:
-  pos_t m_min;
-  pos_t m_max;
+  pos_type m_min;
+  pos_type m_max;
   //============================================================================
  public:
   constexpr axis_aligned_bounding_box()
-      : m_min{pos_t::ones() * std::numeric_limits<real_t>::max()},
-        m_max{pos_t::ones() * -std::numeric_limits<real_t>::max()} {}
+      : m_min{pos_type::ones() * std::numeric_limits<real_type>::max()},
+        m_max{pos_type::ones() * -std::numeric_limits<real_type>::max()} {}
   constexpr axis_aligned_bounding_box(axis_aligned_bounding_box const& other) =
       default;
   constexpr axis_aligned_bounding_box(
@@ -165,7 +165,7 @@ struct axis_aligned_bounding_box
     return (m_max(i) + m_min(i)) * Real(0.5);
   }
   //----------------------------------------------------------------------------
-  auto constexpr is_inside(pos_t const& p) const {
+  auto constexpr is_inside(pos_type const& p) const {
     for (std::size_t i = 0; i < N; ++i) {
       if (p(i) < m_min(i) || m_max(i) < p(i)) {
         return false;
@@ -456,7 +456,7 @@ struct axis_aligned_bounding_box
     return true;
   }
   //----------------------------------------------------------------------------
-  constexpr auto operator+=(pos_t const& point) {
+  constexpr auto operator+=(pos_type const& point) {
     for (std::size_t i = 0; i < point.num_components(); ++i) {
       m_min(i) = std::min(m_min(i), point(i));
       m_max(i) = std::max(m_max(i), point(i));
@@ -485,7 +485,7 @@ struct axis_aligned_bounding_box
   template <typename RandomEngine = std::mt19937_64>
   auto random_point(RandomEngine&& random_engine = RandomEngine{
                         std::random_device{}()}) const {
-    pos_t p;
+    pos_type p;
     for (std::size_t i = 0; i < N; ++i) {
       std::uniform_real_distribution<Real> distribution{m_min(i), m_max(i)};
       p(i) = distribution(random_engine);
@@ -496,7 +496,7 @@ struct axis_aligned_bounding_box
   auto write_vtk(filesystem::path const& path) {
     vtk::legacy_file_writer f{path, vtk::dataset_type::polydata};
     f.write_header();
-    std::vector<vec<real_t, 3>>           positions;
+    std::vector<vec<real_type, 3>>           positions;
     std::vector<std::vector<std::size_t>> indices;
 
     positions.push_back(vec{min(0), min(1), min(2)});
@@ -526,11 +526,11 @@ using aabb = axis_aligned_bounding_box<Real, N>;
 
 using aabb2d = aabb<double, 2>;
 using aabb2f = aabb<float, 2>;
-using aabb2  = aabb<real_t, 2>;
+using aabb2  = aabb<real_number, 2>;
 
 using aabb3d = aabb<double, 3>;
 using aabb3f = aabb<float, 3>;
-using aabb3  = aabb<real_t, 3>;
+using aabb3  = aabb<real_number, 3>;
 //==============================================================================
 // deduction guides
 //==============================================================================

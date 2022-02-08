@@ -11,14 +11,14 @@ int main(int, char** argv) {
   double t = std::stod(argv[2]);
   fixed_time_field v_fixed{v, t};
 
-  std::vector<parameterized_line<V::real_t, 3, interpolation::linear>>
+  std::vector<parameterized_line<V::real_type, 3, interpolation::linear>>
                pathlines;
   size_t const num_pathlines = 100;
   pathlines.reserve(2 * num_pathlines);
-  ode::vclibs::rungekutta43<V::real_t, 3> solver;
+  ode::vclibs::rungekutta43<V::real_type, 3> solver;
 
   auto              bb = v.m_w_grid.boundingbox();
-  vec<V::real_t, 4> xt;
+  vec<V::real_type, 4> xt;
   bool              in_domain = false;
   for (size_t i = 0; i < num_pathlines; ++i) {
     do {

@@ -9,13 +9,13 @@ namespace tatooine::analytical::fields::symbolic {
 //==============================================================================
 template <typename Real>
 struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
-  using this_t   = doublegyre<Real>;
+  using this_type   = doublegyre<Real>;
   using parent_type = field<Real, 2, 2>;
   using parent_type::t;
   using parent_type::x;
-  using typename parent_type::pos_t;
-  using typename parent_type::symtensor_t;
-  using typename parent_type::tensor_t;
+  using typename parent_type::pos_type;
+  using typename parent_type::symtensor_type;
+  using typename parent_type::tensor_type;
 
   explicit doublegyre(const GiNaC::ex& eps   = GiNaC::numeric{1, 4},
                       const GiNaC::ex& omega = 2 * GiNaC::Pi *
@@ -31,7 +31,7 @@ struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
   }
 
   //----------------------------------------------------------------------------
-  constexpr auto in_domain(const pos_t& x, Real) const -> bool {
+  constexpr auto in_domain(const pos_type& x, Real) const -> bool {
     return x(0) >= 0 && x(0) <= 2 && x(1) >= 0 && x(1) <= 1;
   }
 };

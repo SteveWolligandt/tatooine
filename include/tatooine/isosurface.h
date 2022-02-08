@@ -25,20 +25,20 @@ template <
     detail::rectilinear_grid::dimension YDomain,
     detail::rectilinear_grid::dimension ZDomain, arithmetic Isolevel,
     invocable<size_t const, size_t const, size_t const,
-              vec<typename grid<XDomain, YDomain, ZDomain>::real_t, 3> const&>
+              vec<typename grid<XDomain, YDomain, ZDomain>::real_type, 3> const&>
         GetScalars>
 auto isosurface(GetScalars&&                           get_scalars,
                 grid<XDomain, YDomain, ZDomain> const& g,
                 Isolevel const                         isolevel) {
-  using real_t = typename grid<XDomain, YDomain, ZDomain>::real_t;
-  using pos_t  = vec<real_t, 3>;
-  unstructured_triangular_grid<real_t, 3> iso_volume;
+  using real_type = typename grid<XDomain, YDomain, ZDomain>::real_type;
+  using pos_type  = vec<real_type, 3>;
+  unstructured_triangular_grid<real_type, 3> iso_volume;
 
 #if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
   std::mutex mutex;
 #endif
   auto process_cube = [&](auto ix, auto iy, auto iz) {
-    auto       vertlist = make_array<pos_t, 12>();
+    auto       vertlist = make_array<pos_type, 12>();
     std::array p{g(ix, iy, iz + 1),     g(ix + 1, iy, iz + 1),
                  g(ix + 1, iy, iz),     g(ix, iy, iz),
                  g(ix, iy + 1, iz + 1), g(ix + 1, iy + 1, iz + 1),
@@ -86,51 +86,51 @@ auto isosurface(GetScalars&&                           get_scalars,
 
     // Find the vertices where the surface intersects the cube
     if (marchingcubes_lookup::edge_table[cube_index] & 1) {
-      real_t const s = (isolevel - s0) / (s1 - s0);
+      real_type const s = (isolevel - s0) / (s1 - s0);
       vertlist[0]    = p[0] * (1 - s) + p[1] * s;
     }
     if (marchingcubes_lookup::edge_table[cube_index] & 2) {
-      real_t const s = (isolevel - s1) / (s2 - s1);
+      real_type const s = (isolevel - s1) / (s2 - s1);
       vertlist[1]    = p[1] * (1 - s) + p[2] * s;
     }
     if (marchingcubes_lookup::edge_table[cube_index] & 4) {
-      real_t const s = (isolevel - s2) / (s3 - s2);
+      real_type const s = (isolevel - s2) / (s3 - s2);
       vertlist[2]    = p[2] * (1 - s) + p[3] * s;
     }
     if (marchingcubes_lookup::edge_table[cube_index] & 8) {
-      real_t const s = (isolevel - s3) / (s0 - s3);
+      real_type const s = (isolevel - s3) / (s0 - s3);
       vertlist[3]    = p[3] * (1 - s) + p[0] * s;
     }
     if (marchingcubes_lookup::edge_table[cube_index] & 16) {
-      real_t const s = (isolevel - s4) / (s5 - s4);
+      real_type const s = (isolevel - s4) / (s5 - s4);
       vertlist[4]    = p[4] * (1 - s) + p[5] * s;
     }
     if (marchingcubes_lookup::edge_table[cube_index] & 32) {
-      real_t const s = (isolevel - s5) / (s6 - s5);
+      real_type const s = (isolevel - s5) / (s6 - s5);
       vertlist[5]    = p[5] * (1 - s) + p[6] * s;
     }
     if (marchingcubes_lookup::edge_table[cube_index] & 64) {
-      real_t const s = (isolevel - s6) / (s7 - s6);
+      real_type const s = (isolevel - s6) / (s7 - s6);
       vertlist[6]    = p[6] * (1 - s) + p[7] * s;
     }
     if (marchingcubes_lookup::edge_table[cube_index] & 128) {
-      real_t const s = (isolevel - s7) / (s4 - s7);
+      real_type const s = (isolevel - s7) / (s4 - s7);
       vertlist[7]    = p[7] * (1 - s) + p[4] * s;
     }
     if (marchingcubes_lookup::edge_table[cube_index] & 256) {
-      real_t const s = (isolevel - s0) / (s4 - s0);
+      real_type const s = (isolevel - s0) / (s4 - s0);
       vertlist[8]    = p[0] * (1 - s) + p[4] * s;
     }
     if (marchingcubes_lookup::edge_table[cube_index] & 512) {
-      real_t const s = (isolevel - s1) / (s5 - s1);
+      real_type const s = (isolevel - s1) / (s5 - s1);
       vertlist[9]    = p[1] * (1 - s) + p[5] * s;
     }
     if (marchingcubes_lookup::edge_table[cube_index] & 1024) {
-      real_t const s = (isolevel - s2) / (s6 - s2);
+      real_type const s = (isolevel - s2) / (s6 - s2);
       vertlist[10]   = p[2] * (1 - s) + p[6] * s;
     }
     if (marchingcubes_lookup::edge_table[cube_index] & 2048) {
-      real_t const s = (isolevel - s3) / (s7 - s3);
+      real_type const s = (isolevel - s3) / (s7 - s3);
       vertlist[11]   = p[3] * (1 - s) + p[7] * s;
     }
 

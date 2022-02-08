@@ -7,11 +7,11 @@
 namespace tatooine::scivis_contest_2020 {
 //==============================================================================
 template <typename V>
-auto integrate_pathline(V&& v, typename V::pos_t const& x, arithmetic auto t,
+auto integrate_pathline(V&& v, typename V::pos_type const& x, arithmetic auto t,
                         double btau, double ftau) {
   parameterized_line<double, 3, interpolation::linear> pathline;
 
-  ode::vclibs::rungekutta43<typename V::real_t, 3> solver;
+  ode::vclibs::rungekutta43<typename V::real_type, 3> solver;
   double const                            max_ftau = v.t_axis.back() - t;
   double const                            min_btau = v.t_axis.front() - t;
   double const                            eps  = 1e-6;

@@ -92,7 +92,7 @@ TEST_CASE("hdf5_read_chunk", "[hdf5][read][chunk]") {
 }
 //==============================================================================
 TEST_CASE("hdf5_unlimited_1d", "[hdf5][unlimited][1d]") {
-  using value_type        = linspace<real_t>;
+  using value_type        = linspace<real_type>;
   auto const dataset_name = "foo";
   auto const filepath = filesystem::path{"hdf5_unittest_unlimited_1d.h5"};
 

@@ -28,24 +28,24 @@ void rbc::read_from_binary() {
 }
 
 //------------------------------------------------------------------------------
-auto rbc::evaluate(const rbc::pos_t& pos, rbc::real_t t) const -> tensor_t {
+auto rbc::evaluate(const rbc::pos_type& pos, rbc::real_type t) const -> tensor_type {
   const auto& times = domain.dimension(2);
   for (size_t i = 0; i < grids.size() - 1; ++i)
     if (times[i] <= t && t <= times[i + 1]) {
-      real_t f = (t - times[i]) / (times[i + 1] - times[i]);
+      real_type f = (t - times[i]) / (times[i + 1] - times[i]);
       return (1 - f) * grids[i](pos(0), pos(1)) +
              f * grids[i + 1](pos(0), pos(1));
     }
-  return tensor_t{0,0};
+  return tensor_type{0,0};
 }
 
 //==============================================================================
-// FlappingWing::vec_t FlappingWing::evaluate(const FlappingWing::pos_t& pos,
-//                                           FlappingWing::real_t       t) const
+// FlappingWing::vec_t FlappingWing::evaluate(const FlappingWing::pos_type& pos,
+//                                           FlappingWing::real_type       t) const
 //                                           {
 //  for (size_t i = 0; i < grids.size() - 1; ++i)
 //    if (times[i] <= t && t <= times[i + 1]) {
-//      real_t f = (t - times[i]) / (times[i + 1] - times[i]);
+//      real_type f = (t - times[i]) / (times[i + 1] - times[i]);
 //      return (1 - f) * grids[i](pos(0), pos(1)) +
 //             f * grids[i + 1](pos(0), pos(1));
 //    }
@@ -53,7 +53,7 @@ auto rbc::evaluate(const rbc::pos_t& pos, rbc::real_t t) const -> tensor_t {
 //}
 //
 ////------------------------------------------------------------------------------
-// bool FlappingWing::in_domain(const FlappingWing::vec_t& p, real_t t) const {
+// bool FlappingWing::in_domain(const FlappingWing::vec_t& p, real_type t) const {
 //  return times.front() <= t && t <= times.back() &&
 //         grids.front().in_domain(p(0), p(1));
 //}
@@ -74,7 +74,7 @@ auto rbc::evaluate(const rbc::pos_t& pos, rbc::real_t t) const -> tensor_t {
 //    while (std::getline(times_file, line)) times.push_back(stod(line));
 //    times_file.close();
 //
-//    std::vector<real_t>lower_res_times;
+//    std::vector<real_type>lower_res_times;
 //    for (size_t i = 0; i < times.size(); i+=100)
 //      lower_res_times.push_back(times[i]);
 //    lower_res_times.push_back(times.back());

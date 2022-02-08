@@ -12,10 +12,10 @@ template <floating_point... Xs>
 auto finite_differences_coefficients(std::size_t const derivative_order,
                                      Xs... xs) {
   constexpr auto N    = sizeof...(xs);
-  using real_t        = common_type<std::decay_t<Xs>...>;
-  auto V              = mat<real_t, N, N>::vander(xs...);
+  using real_type        = common_type<std::decay_t<Xs>...>;
+  auto V              = mat<real_type, N, N>::vander(xs...);
   V                   = transposed(V);
-  auto b              = vec<real_t, N>::zeros();
+  auto b              = vec<real_type, N>::zeros();
   b(derivative_order) = factorial(derivative_order);
   return solve(V, b);
 }

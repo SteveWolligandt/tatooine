@@ -76,7 +76,7 @@ struct vertex_property_sampler<Real, NumDimensions, Prop,
       auto const rpotential = stencil_size - (rv.index() - lv.index() + 1);
       lv = rpotential > lv.index() ? handle_type{0} : lv - rpotential;
 
-      std::vector<real_t> ts(stencil_size);
+      std::vector<real_number> ts(stencil_size);
       std::size_t         i = 0;
       for (auto vi = lv; vi <= rv; ++vi, ++i) {
         ts[i] = m_parameterization[vi] - m_parameterization[v];

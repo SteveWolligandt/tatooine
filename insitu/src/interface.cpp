@@ -247,7 +247,7 @@ auto interface::update(int const iteration, double const time) -> void {
   m_last_end_time = std::chrono::system_clock::now();
 }
 //----------------------------------------------------------------------------
-auto interface::advect_tracer(interface::pos_t& tracer_pos) -> bool {
+auto interface::advect_tracer(interface::pos_type& tracer_pos) -> bool {
   tracer_pos +=
       (m_time - m_prev_time) * m_velocity_field->evaluate(tracer_pos, m_time);
 

@@ -7,7 +7,7 @@ namespace tatooine {
 //==============================================================================
 template <typename Real, std::size_t NumDimensions>
 struct edgeset : unstructured_simplicial_grid<Real, NumDimensions, 1> {
-  using this_t   = edgeset<Real, NumDimensions>;
+  using this_type   = edgeset<Real, NumDimensions>;
   using parent_type = unstructured_simplicial_grid<Real, NumDimensions, 1>;
   using parent_type::parent_type;
   using typename parent_type::vertex_handle;
@@ -30,7 +30,7 @@ struct edgeset : unstructured_simplicial_grid<Real, NumDimensions, 1> {
   }
 };
 template <std::size_t NumDimensions>
-using Edgeset = edgeset<real_t, NumDimensions>;
+using Edgeset = edgeset<real_number, NumDimensions>;
 template <typename Real>
 using Edgeset2 = edgeset<Real, 2>;
 template <typename Real>
@@ -64,7 +64,7 @@ auto write_edgeset_container_to_vtk(
     for (auto const& m : grids) {
       num_pts += m.vertices().size();
     }
-    std::vector<std::array<typename MeshCont::value_type::real_t, 3>> points;
+    std::vector<std::array<typename MeshCont::value_type::real_type, 3>> points;
     std::vector<std::vector<std::size_t>>                             faces;
     points.reserve(num_pts);
     faces.reserve(grids.size());
@@ -115,7 +115,7 @@ auto write_edgeset_container_to_vtp(range auto const&            grids,
        << "\">";
   file << "<PolyData>\n";
   for (auto const& g : grids) {
-    using real_t = typename std::decay_t<decltype(g)>::real_t;
+    using real_type = typename std::decay_t<decltype(g)>::real_type;
     file << "<Piece"
          << " NumberOfPoints=\"" << g.vertices().size() << "\""
          << " NumberOfPolys=\"" << g.cells().size() << "\""
@@ -131,10 +131,10 @@ auto write_edgeset_container_to_vtp(range auto const&            grids,
          << " offset=\"" << offset << "\""
          << " type=\""
          << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<real_t>())
+                vtk::xml::data_array::to_type<real_type>())
          << "\" NumberOfComponents=\"" << g.num_dimensions() << "\"/>";
     auto const num_bytes_points =
-        header_type(sizeof(real_t) * g.num_dimensions() *
+        header_type(sizeof(real_type) * g.num_dimensions() *
                     g.vertices().data_container().size());
     offset += num_bytes_points + sizeof(header_type);
     file << "</Points>\n";
@@ -169,8 +169,8 @@ auto write_edgeset_container_to_vtp(range auto const&            grids,
   auto arr_size = header_type{};
 
   for (auto const& g : grids) {
-    using real_t = typename std::decay_t<decltype(g)>::real_t;
-    arr_size     = header_type(sizeof(real_t) * g.num_dimensions() *
+    using real_type = typename std::decay_t<decltype(g)>::real_type;
+    arr_size     = header_type(sizeof(real_type) * g.num_dimensions() *
                                g.vertices().data_container().size());
     file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
     file.write(reinterpret_cast<char const*>(g.vertices().data()), arr_size);

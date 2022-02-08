@@ -6,11 +6,11 @@ namespace tatooine {
 //==============================================================================
 TEST_CASE("uniform_tree_hierarchy_ellipses",
           "[uniform_tree_hierarchy][ellipse]") {
-  std::vector<geometry::ellipse<real_t>> ellipses{{0.4, vec2{-0.5, -0.5}},
+  std::vector<geometry::ellipse<real_type>> ellipses{{0.4, vec2{-0.5, -0.5}},
                                                   {0.4, vec2{ 0.5, -0.5}},
                                                   {0.4, vec2{-0.5,  0.5}},
                                                   {0.4, vec2{ 0.5,  0.5}}};
-  uniform_tree_hierarchy<std::vector<geometry::ellipse<real_t>>> hierarchy{
+  uniform_tree_hierarchy<std::vector<geometry::ellipse<real_type>>> hierarchy{
       vec2{-1, -1}, vec2{1, 1}, ellipses, 3};
   REQUIRE(hierarchy.is_splitted());
   REQUIRE_FALSE(hierarchy.child_at(0, 0)->is_splitted());

@@ -32,11 +32,9 @@ struct first_person_window : gl::window {
   virtual ~first_person_window() = default;
   //============================================================================
   auto width() const { return m_width; }
-  //----------------------------------------------------------------------------
   auto height() const { return m_height; }
   //----------------------------------------------------------------------------
   auto camera_controller() -> auto& { return m_camera_controller; }
-  //----------------------------------------------------------------------------
   auto camera_controller() const -> auto const& { return m_camera_controller; }
   //----------------------------------------------------------------------------
   template <typename Event>
@@ -82,7 +80,7 @@ struct first_person_window : gl::window {
       camera_controller().use_perspective_camera();
       camera_controller().use_fps_controller();
     } else if (k == gl::KEY_F4) {
-      camera_controller().look_at({0, 0, 0}, {0, 0, -1});
+      camera_controller().look_at({0, 0, 0}, {0, 0, 1});
     }
   }
 };

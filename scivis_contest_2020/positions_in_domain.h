@@ -9,7 +9,7 @@ namespace tatooine::scivis_contest_2020 {
 template <typename V, typename Grid>
 auto positions_in_domain(V const& v, Grid const& g) {
   struct positions_t {
-    alignas(64) std::vector<typename Grid::pos_t> vector;
+    alignas(64) std::vector<typename Grid::pos_type> vector;
   };
   struct indices_t {
     alignas(64) std::vector<vec<size_t, 3>> vector;

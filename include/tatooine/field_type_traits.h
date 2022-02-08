@@ -6,12 +6,12 @@
 namespace tatooine{
 //==============================================================================
 template <typename Field>
-using field_real_t =
-    typename std::decay_t<std::remove_pointer_t<Field>>::real_t;
+using field_real_type =
+    typename std::decay_t<std::remove_pointer_t<Field>>::real_type;
 //==============================================================================
 template <typename Field>
-using field_tensor_t =
-    typename std::decay_t<std::remove_pointer_t<Field>>::tensor_t;
+using field_tensor_type =
+    typename std::decay_t<std::remove_pointer_t<Field>>::tensor_type;
 //==============================================================================
 template <typename Field>
 static constexpr auto field_num_dimensions =

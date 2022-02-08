@@ -170,7 +170,7 @@ auto eddy_detection(std::vector<std::string> const& ensemble_ids) {
                                 pathline;
 
                             using solver_t =
-                                ode::vclibs::rungekutta43<typename V::real_t,
+                                ode::vclibs::rungekutta43<typename V::real_type,
                                                           3>;
                             solver_t solver;
                             auto     evaluator = [&v, &Jf](auto const& y,

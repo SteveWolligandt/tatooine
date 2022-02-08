@@ -11,14 +11,14 @@ struct constant_vectorfield : field<constant_vectorfield<Real, N>, Real, N, N> {
   //============================================================================
   // typedefs
   //============================================================================
-  using this_t   = constant_vectorfield<Real, N>;
-  using parent_type = field<this_t, Real, N, N>;
-  using typename parent_type::pos_t;
-  using typename parent_type::tensor_t;
+  using this_type   = constant_vectorfield<Real, N>;
+  using parent_type = field<this_type, Real, N, N>;
+  using typename parent_type::pos_type;
+  using typename parent_type::tensor_type;
   //============================================================================
   // members
   //============================================================================
-  const tensor_t m_vector;
+  const tensor_type m_vector;
   //============================================================================
   // ctors
   //============================================================================
@@ -39,11 +39,11 @@ struct constant_vectorfield : field<constant_vectorfield<Real, N>, Real, N, N> {
    //============================================================================
    // methods
    //============================================================================
-   constexpr tensor_t evaluate(const pos_t& /*x*/, Real /*t*/) const {
+   constexpr tensor_type evaluate(const pos_type& /*x*/, Real /*t*/) const {
      return m_vector;
   }
   //----------------------------------------------------------------------------
-  constexpr bool in_domain(const pos_t& /*x*/, Real /*t*/) const {
+  constexpr bool in_domain(const pos_type& /*x*/, Real /*t*/) const {
     return true;
   }
 };

@@ -33,19 +33,19 @@ struct streamsurface {
   static constexpr auto num_dimensions() {
     return flowmap_t::num_dimensions();
   }
-  using real_t      = typename flowmap_t::real_t;
-  using this_t      = streamsurface<Flowmap, SeedcurveInterpolationKernel>;
-  using seedcurve_t = parameterized_line<real_t, num_dimensions(),
+  using real_type      = typename flowmap_t::real_type;
+  using this_type      = streamsurface<Flowmap, SeedcurveInterpolationKernel>;
+  using seedcurve_t = parameterized_line<real_type, num_dimensions(),
                                          SeedcurveInterpolationKernel>;
-  using vec2        = vec<real_t, 2>;
-  using pos_t       = vec<real_t, num_dimensions()>;
-  using vec_t       = vec<real_t, num_dimensions()>;
+  using vec2        = vec<real_type, 2>;
+  using pos_type       = vec<real_type, num_dimensions()>;
+  using vec_t       = vec<real_type, num_dimensions()>;
 
  private:
   Flowmap     m_flowmap;
-  real_t      m_t0_u0, m_t0_u1;
+  real_type      m_t0_u0, m_t0_u1;
   seedcurve_t m_seedcurve;
-  real_t      m_min_u, m_max_u;
+  real_type      m_min_u, m_max_u;
 
   //----------------------------------------------------------------------------
  public:
@@ -53,8 +53,8 @@ struct streamsurface {
   streamsurface(_Flowmap&& flowmap, arithmetic auto t0u0,
                 arithmetic auto t0u1, const seedcurve_t& seedcurve)
       : m_flowmap{std::forward<_Flowmap>(flowmap)},
-        m_t0_u0{static_cast<real_t>(t0u0)},
-        m_t0_u1{static_cast<real_t>(t0u1)},
+        m_t0_u0{static_cast<real_type>(t0u0)},
+        m_t0_u1{static_cast<real_type>(t0u1)},
         m_seedcurve(seedcurve),
         m_min_u{std::min(m_seedcurve.front_parameterization(),
                          m_seedcurve.back_parameterization())},
@@ -65,8 +65,8 @@ struct streamsurface {
   streamsurface(_Flowmap&& flowmap, arithmetic auto t0,
                 const seedcurve_t& seedcurve)
       : m_flowmap{std::forward<_Flowmap>(flowmap)},
-        m_t0_u0{static_cast<real_t>(t0)},
-        m_t0_u1{static_cast<real_t>(t0)},
+        m_t0_u0{static_cast<real_type>(t0)},
+        m_t0_u1{static_cast<real_type>(t0)},
         m_seedcurve(seedcurve),
         m_min_u{std::min(m_seedcurve.front_parameterization(),
                          m_seedcurve.back_parameterization())},
@@ -75,20 +75,20 @@ struct streamsurface {
   template <flowmap_c _Flowmap>
   streamsurface(_Flowmap&& flowmap, const seedcurve_t& seedcurve)
       : m_flowmap{std::forward<_Flowmap>(flowmap)},
-        m_t0_u0{static_cast<real_t>(0)},
-        m_t0_u1{static_cast<real_t>(0)},
+        m_t0_u0{static_cast<real_type>(0)},
+        m_t0_u1{static_cast<real_type>(0)},
         m_seedcurve(seedcurve),
         m_min_u{std::min(m_seedcurve.front_parameterization(),
                          m_seedcurve.back_parameterization())},
         m_max_u{std::max(m_seedcurve.front_parameterization(),
                          m_seedcurve.back_parameterization())} {}
   template <typename V>
-  streamsurface(const vectorfield<V, real_t, num_dimensions()>& v,
+  streamsurface(const vectorfield<V, real_type, num_dimensions()>& v,
                 arithmetic auto t0u0, arithmetic auto t0u1,
                 const seedcurve_t& seedcurve)
       : m_flowmap{tatooine::flowmap(v)},
-        m_t0_u0{static_cast<real_t>(t0u0)},
-        m_t0_u1{static_cast<real_t>(t0u1)},
+        m_t0_u0{static_cast<real_type>(t0u0)},
+        m_t0_u1{static_cast<real_type>(t0u1)},
         m_seedcurve(seedcurve),
         m_min_u{std::min(m_seedcurve.front_parameterization(),
                          m_seedcurve.back_parameterization())},
@@ -96,11 +96,11 @@ struct streamsurface {
                          m_seedcurve.back_parameterization())} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename V>
-  streamsurface(const vectorfield<V, real_t, num_dimensions()>& v,
+  streamsurface(const vectorfield<V, real_type, num_dimensions()>& v,
                 arithmetic auto t0, const seedcurve_t& seedcurve)
       : m_flowmap{tatooine::flowmap(v)},
-        m_t0_u0{static_cast<real_t>(t0)},
-        m_t0_u1{static_cast<real_t>(t0)},
+        m_t0_u0{static_cast<real_type>(t0)},
+        m_t0_u1{static_cast<real_type>(t0)},
         m_seedcurve(seedcurve),
         m_min_u{std::min(m_seedcurve.front_parameterization(),
                          m_seedcurve.back_parameterization())},
@@ -108,11 +108,11 @@ struct streamsurface {
                          m_seedcurve.back_parameterization())} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename V>
-  streamsurface(const vectorfield<V, real_t, num_dimensions()>& v,
+  streamsurface(const vectorfield<V, real_type, num_dimensions()>& v,
                 const seedcurve_t&                              seedcurve)
       : m_flowmap{tatooine::flowmap(v)},
-        m_t0_u0{real_t(0)},
-        m_t0_u1{real_t(0)},
+        m_t0_u0{real_type(0)},
+        m_t0_u1{real_type(0)},
         m_seedcurve(seedcurve),
         m_min_u{std::min(m_seedcurve.front_parameterization(),
                          m_seedcurve.back_parameterization())},
@@ -124,7 +124,7 @@ struct streamsurface {
   streamsurface& operator=(const streamsurface& other) = default;
   streamsurface& operator=(streamsurface&& other) = default;
   //============================================================================
-  auto t0(real_t u) const {
+  auto t0(real_type u) const {
     return (u - m_seedcurve.front_parameterization()) /
                (m_seedcurve.back_parameterization() -
                 m_seedcurve.front_parameterization()) *
@@ -144,7 +144,7 @@ struct streamsurface {
   }
   //----------------------------------------------------------------------------
   /// calculates position of streamsurface
-  vec_t sample(real_t u, real_t v) const {
+  vec_t sample(real_type u, real_type v) const {
     if (u < m_min_u || u > m_max_u) {
       throw out_of_domain_error{};
     }
@@ -165,7 +165,7 @@ struct streamsurface {
   //----------------------------------------------------------------------------
   auto distance(const vec2& uv0, const vec2& uv1, size_t num_samples) const {
     auto   step = (uv1 - uv0) / (num_samples - 1);
-    real_t d    = 0;
+    real_type d    = 0;
     for (size_t i = 0; i < num_samples - 1; ++i) {
       d += tatooine::distance(sample(uv0 + step * i),
                               sample(uv0 + step * (i + 1)));
@@ -173,7 +173,7 @@ struct streamsurface {
     return d;
   }
   //----------------------------------------------------------------------------
-  auto operator()(real_t u, real_t v) const {
+  auto operator()(real_type u, real_type v) const {
     return sample(u, v);
   }
   //----------------------------------------------------------------------------
@@ -206,7 +206,7 @@ streamsurface(
 template <typename V, floating_point Real, size_t N,
           template <typename> typename SeedcurveInterpolationKernel>
 streamsurface(const vectorfield<V, Real, N>& v, arithmetic auto t0,
-              const parameterized_line<typename V::real_t, N,
+              const parameterized_line<typename V::real_type, N,
                                        SeedcurveInterpolationKernel>& seedcurve)
     -> streamsurface<std::decay_t<decltype(flowmap(v))>,
                      SeedcurveInterpolationKernel>;
@@ -222,7 +222,7 @@ streamsurface(
 template <typename Flowmap,
           template <typename> typename SeedcurveInterpolationKernel>
 streamsurface(Flowmap const&, arithmetic auto u0t0, arithmetic auto u1t0,
-              const parameterized_line<typename Flowmap::real_t,
+              const parameterized_line<typename Flowmap::real_type,
                                        Flowmap::num_dimensions(),
                                        SeedcurveInterpolationKernel>& seedcurve)
     -> streamsurface<Flowmap const&, SeedcurveInterpolationKernel>;
@@ -230,7 +230,7 @@ streamsurface(Flowmap const&, arithmetic auto u0t0, arithmetic auto u1t0,
 template <typename Flowmap,
           template <typename> typename SeedcurveInterpolationKernel>
 streamsurface(Flowmap const&, arithmetic auto t0,
-              const parameterized_line<typename Flowmap::real_t,
+              const parameterized_line<typename Flowmap::real_type,
                                        Flowmap::num_dimensions(),
                                        SeedcurveInterpolationKernel>& seedcurve)
     -> streamsurface<Flowmap const&, SeedcurveInterpolationKernel>;
@@ -238,7 +238,7 @@ streamsurface(Flowmap const&, arithmetic auto t0,
 template <typename Flowmap,
           template <typename> typename SeedcurveInterpolationKernel>
 streamsurface(Flowmap const&,
-              const parameterized_line<typename Flowmap::real_t,
+              const parameterized_line<typename Flowmap::real_type,
                                        Flowmap::num_dimensions(),
                                        SeedcurveInterpolationKernel>&)
     -> streamsurface<Flowmap const&, SeedcurveInterpolationKernel>;
@@ -246,7 +246,7 @@ streamsurface(Flowmap const&,
 template <typename Flowmap,
           template <typename> typename SeedcurveInterpolationKernel>
 streamsurface(Flowmap&&, arithmetic auto u0t0, arithmetic auto u1t0,
-              const parameterized_line<typename Flowmap::real_t,
+              const parameterized_line<typename Flowmap::real_type,
                                        Flowmap::num_dimensions(),
                                        SeedcurveInterpolationKernel>& seedcurve)
     -> streamsurface<std::decay_t<Flowmap>, SeedcurveInterpolationKernel>;
@@ -254,7 +254,7 @@ streamsurface(Flowmap&&, arithmetic auto u0t0, arithmetic auto u1t0,
 template <typename Flowmap,
           template <typename> typename SeedcurveInterpolationKernel>
 streamsurface(Flowmap&&, arithmetic auto t0,
-              const parameterized_line<typename Flowmap::real_t,
+              const parameterized_line<typename Flowmap::real_type,
                                        Flowmap::num_dimensions(),
                                        SeedcurveInterpolationKernel>& seedcurve)
     -> streamsurface<std::decay_t<Flowmap>, SeedcurveInterpolationKernel>;
@@ -262,7 +262,7 @@ streamsurface(Flowmap&&, arithmetic auto t0,
 template <typename Flowmap,
           template <typename> typename SeedcurveInterpolationKernel>
 streamsurface(Flowmap&&,
-              const parameterized_line<typename Flowmap::real_t,
+              const parameterized_line<typename Flowmap::real_type,
                                        Flowmap::num_dimensions(),
                                        SeedcurveInterpolationKernel>&)
     -> streamsurface<std::decay_t<Flowmap>, SeedcurveInterpolationKernel>;
@@ -286,7 +286,7 @@ streamsurface(Flowmap&&,
 template <typename Flowmap,
           template <typename> typename SeedcurveInterpolationKernel>
 struct front_evolving_streamsurface_discretization
-    : public unstructured_triangular_grid<typename Flowmap::real_t,
+    : public unstructured_triangular_grid<typename Flowmap::real_type,
                              Flowmap::num_dimensions()> {
   //============================================================================
   // typedefs
@@ -294,18 +294,18 @@ struct front_evolving_streamsurface_discretization
   static constexpr auto num_dimensions() {
     return Flowmap::num_dimensions();
   }
-  using real_t = typename Flowmap::real_t;
-  using this_t =
+  using real_type = typename Flowmap::real_type;
+  using this_type =
       front_evolving_streamsurface_discretization<Flowmap,
                                                   SeedcurveInterpolationKernel>;
-  using parent_type = unstructured_triangular_grid<real_t, num_dimensions()>;
+  using parent_type = unstructured_triangular_grid<real_type, num_dimensions()>;
   using parent_type::at;
-  using typename parent_type::pos_t;
+  using typename parent_type::pos_type;
   using parent_type::operator[];
   using typename parent_type::cell_handle;
   using typename parent_type::vertex_handle;
 
-  using vec2          = vec<real_t, 2>;
+  using vec2          = vec<real_type, 2>;
   using uv_t          = vec2;
   using uv_property_t = typename parent_type::template vertex_property_t<uv_t>;
 
@@ -333,22 +333,22 @@ struct front_evolving_streamsurface_discretization
   front_evolving_streamsurface_discretization(ssf_t* _ssf)
       : ssf{_ssf}, m_uv_property{&add_uv_prop()} {}
   //----------------------------------------------------------------------------
-  front_evolving_streamsurface_discretization(const this_t& other)
+  front_evolving_streamsurface_discretization(const this_type& other)
       : parent_type{other}, ssf{other.ssf}, m_uv_property{&find_uv_prop()} {}
   //----------------------------------------------------------------------------
-  front_evolving_streamsurface_discretization(this_t&& other) noexcept
+  front_evolving_streamsurface_discretization(this_type&& other) noexcept
       : parent_type{std::move(other)},
         ssf{other.ssf},
         m_uv_property{&find_uv_prop()} {}
   //----------------------------------------------------------------------------
-  auto& operator=(const this_t& other) {
+  auto& operator=(const this_type& other) {
     parent_type::operator=(other);
     ssf               = other.ssf;
     m_uv_property     = &find_uv_prop();
     return *this;
   }
   //----------------------------------------------------------------------------
-  auto& operator=(this_t&& other) noexcept {
+  auto& operator=(this_type&& other) noexcept {
     parent_type::operator=(std::move(other));
     ssf               = other.ssf;
     m_uv_property     = &find_uv_prop();
@@ -373,29 +373,29 @@ struct front_evolving_streamsurface_discretization
     return m_uv_property->at(v);
   }
   //----------------------------------------------------------------------------
-  auto t0(real_t u) const {
+  auto t0(real_type u) const {
     return ssf->t0(u);
   }
   //----------------------------------------------------------------------------
-  auto insert_vertex(const pos_t& p, const uv_t& p_uv) {
+  auto insert_vertex(const pos_type& p, const uv_t& p_uv) {
     auto v = parent_type::insert_vertex(p);
     uv(v)  = p_uv;
     return v;
   }
   //----------------------------------------------------------------------------
-  auto insert_vertex(pos_t&& p, const uv_t& p_uv) {
+  auto insert_vertex(pos_type&& p, const uv_t& p_uv) {
     auto v = parent_type::insert_vertex(std::move(p));
     uv(v)  = p_uv;
     return v;
   }
   //----------------------------------------------------------------------------
-  auto insert_vertex(const pos_t& p, uv_t&& p_uv) {
+  auto insert_vertex(const pos_type& p, uv_t&& p_uv) {
     auto v = parent_type::insert_vertex(p);
     uv(v)  = std::move(p_uv);
     return v;
   }
   //----------------------------------------------------------------------------
-  auto insert_vertex(pos_t&& p, uv_t&& p_uv) {
+  auto insert_vertex(pos_type&& p, uv_t&& p_uv) {
     auto v = parent_type::insert_vertex(std::move(p));
     uv(v)  = std::move(p_uv);
     return v;
@@ -417,8 +417,8 @@ struct front_evolving_streamsurface_discretization
       while (next(left0) != end0 || next(left1) != end1) {
         assert(left0 != end0);
         assert(left1 != end1);
-        real_t     lower_edge_len = std::numeric_limits<real_t>::max();
-        real_t     upper_edge_len = std::numeric_limits<real_t>::max();
+        real_type     lower_edge_len = std::numeric_limits<real_type>::max();
+        real_type     upper_edge_len = std::numeric_limits<real_type>::max();
         const auto right0         = next(left0);
         const auto right1         = next(left1);
 
@@ -476,12 +476,12 @@ struct front_evolving_streamsurface_discretization
     return front;
   }
   //----------------------------------------------------------------------------
-  real_t average_segment_length(const subfront_t& subfront) const {
+  real_type average_segment_length(const subfront_t& subfront) const {
     return average_segment_length(subfront.first);
   }
   //----------------------------------------------------------------------------
-  real_t average_segment_length(const vertex_list_t& vs) const {
-    real_t dist_acc = 0;
+  real_type average_segment_length(const vertex_list_t& vs) const {
+    real_type dist_acc = 0;
     for (auto v = begin(vs); v != prev(end(vs)); ++v) {
       dist_acc += norm(at(*v) - at(*next(v)));
     }
@@ -489,12 +489,12 @@ struct front_evolving_streamsurface_discretization
     return dist_acc / (vs.size() - 1);
   }
   //--------------------------------------------------------------------------
-  void subdivide(front_t& front, real_t desired_spatial_dist) {
+  void subdivide(front_t& front, real_type desired_spatial_dist) {
     auto find_best_predecessor = [this](const auto v, const auto& pred_range) {
-      real_t min_u_dist = std::numeric_limits<real_t>::max();
+      real_type min_u_dist = std::numeric_limits<real_type>::max();
       auto   best_it    = pred_range.second;
       for (auto it = pred_range.first; it != pred_range.second; ++it) {
-        if (real_t u_dist = std::abs(uv(*v)(0) - uv(*it)(0));
+        if (real_type u_dist = std::abs(uv(*v)(0) - uv(*it)(0));
             u_dist < min_u_dist) {
           min_u_dist = u_dist;
           best_it    = it;
@@ -512,7 +512,7 @@ struct front_evolving_streamsurface_discretization
         auto& pred_range = subfront->second;
 
         for (auto v = begin(vs); v != prev(end(vs)); ++v) {
-          real_t d;
+          real_type d;
           try {
             d = this->ssf->distance(uv(*v), uv(*next(v)), 5);
           } catch (std::exception&) {
@@ -522,7 +522,7 @@ struct front_evolving_streamsurface_discretization
           bool stop = false;
           while (d > desired_spatial_dist * 1.5) {
             // split front if u distance to small
-            real_t u_dist = std::abs(uv(*v)(0) - uv(*next(v))(0));
+            real_type u_dist = std::abs(uv(*v)(0) - uv(*next(v))(0));
             if (u_dist < 1e-5) {
               const auto best_pred = find_best_predecessor(v, pred_range);
               front.emplace(next(subfront), vertex_list_t{next(v), end(vs)},
@@ -565,7 +565,7 @@ struct front_evolving_streamsurface_discretization
     }
   }
   //---------------------------------------------------------------------------
-  void reduce(front_t& front, real_t desired_spatial_dist) {
+  void reduce(front_t& front, real_type desired_spatial_dist) {
     for (auto& subfront : front) {
       auto& vs = subfront.first;
       if (vs.size() >= 3) {
@@ -599,7 +599,7 @@ struct front_evolving_streamsurface_discretization
 //          template <typename> typename SeedcurveInterpolationKernel>
 // struct simple_discretization : front_evolving_streamsurface_discretization<
 //                                   Flowmap, SeedcurveInterpolationKernel> {
-//  using real_t = typename Flowmap::real_t;
+//  using real_type = typename Flowmap::real_type;
 //  static constexpr auto num_dimensions() { return Flowmap::num_dimensions(); }
 //  using parent_type =
 //      front_evolving_streamsurface_discretization<Flowmap,
@@ -627,9 +627,9 @@ struct front_evolving_streamsurface_discretization
 //      default;
 //  ~simple_discretization() = default;
 //  //============================================================================
-//  simple_discretization(ssf_t* ssf, size_t seedline_resolution, real_t
+//  simple_discretization(ssf_t* ssf, size_t seedline_resolution, real_type
 //  stepsize,
-//                        real_t backward_tau, real_t forward_tau)
+//                        real_type backward_tau, real_type forward_tau)
 //      : parent_type{ssf} {
 //    assert(forward_tau >= 0);
 //    assert(backward_tau <= 0);
@@ -642,7 +642,7 @@ struct front_evolving_streamsurface_discretization
 //    if (backward_tau < 0) {
 //      auto   cur_stepsize    = stepsize;
 //      auto   cur_front       = seed_front;
-//      real_t integrated_time = 0;
+//      real_type integrated_time = 0;
 //      while (integrated_time > backward_tau) {
 //        if (integrated_time - cur_stepsize < backward_tau) {
 //          cur_stepsize = std::abs(backward_tau - integrated_time);
@@ -655,7 +655,7 @@ struct front_evolving_streamsurface_discretization
 //    if (forward_tau > 0) {
 //      auto   cur_stepsize    = stepsize;
 //      auto   cur_front       = seed_front;
-//      real_t integrated_time = 0;
+//      real_type integrated_time = 0;
 //      while (integrated_time < forward_tau) {
 //        if (integrated_time + cur_stepsize > forward_tau) {
 //          cur_stepsize = forward_tau - integrated_time;
@@ -667,7 +667,7 @@ struct front_evolving_streamsurface_discretization
 //  }
 //
 //  //============================================================================
-//  auto evolve(const front_t& front, real_t step) {
+//  auto evolve(const front_t& front, real_type step) {
 //    auto integrated_front = integrate(front, step);
 //
 //    this->triangulate_timeline(integrated_front);
@@ -675,8 +675,8 @@ struct front_evolving_streamsurface_discretization
 //  }
 //
 //  //============================================================================
-//  auto integrate(const front_t& old_front, real_t step, real_t backward_tau,
-//                 real_t forward_tau) {
+//  auto integrate(const front_t& old_front, real_type step, real_type backward_tau,
+//                 real_type forward_tau) {
 //    auto new_front          = old_front;
 //    auto& [vertices, range] = new_front.front();
 //    range.first             = begin(old_front.front().first);
@@ -697,8 +697,8 @@ template <typename Flowmap,
           template <typename> typename SeedcurveInterpolationKernel>
 struct hultquist_discretization : front_evolving_streamsurface_discretization<
                                       Flowmap, SeedcurveInterpolationKernel> {
-  using real_t = typename Flowmap::real_t;
-  using this_t =
+  using real_type = typename Flowmap::real_type;
+  using this_type =
       hultquist_discretization<Flowmap, SeedcurveInterpolationKernel>;
   using parent_type =
       front_evolving_streamsurface_discretization<Flowmap,
@@ -719,8 +719,8 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
   using typename parent_type::vertex_vec_t;
   //----------------------------------------------------------------------------
   hultquist_discretization(ssf_t* ssf, size_t seedline_resolution,
-                           real_t stepsize, real_t backward_tau,
-                           real_t forward_tau)
+                           real_type stepsize, real_type backward_tau,
+                           real_type forward_tau)
       : parent_type(ssf) {
     assert(forward_tau >= 0);
     assert(backward_tau <= 0);
@@ -731,13 +731,13 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
     if (seed_front.empty()) {
       return;
     }
-    real_t desired_spatial_dist =
+    real_type desired_spatial_dist =
         this->average_segment_length(seed_front.front());
 
     if (backward_tau < 0) {
       auto   cur_stepsize    = stepsize;
       auto   cur_front       = seed_front;
-      real_t integrated_time = 0;
+      real_type integrated_time = 0;
       while (integrated_time > backward_tau) {
         if (integrated_time - cur_stepsize < backward_tau) {
           cur_stepsize = std::abs(backward_tau - integrated_time);
@@ -750,7 +750,7 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
     if (forward_tau > 0) {
       auto   cur_stepsize    = stepsize;
       auto   cur_front       = seed_front;
-      real_t integrated_time = 0;
+      real_type integrated_time = 0;
       while (integrated_time < forward_tau) {
         if (integrated_time + cur_stepsize > forward_tau) {
           cur_stepsize = forward_tau - integrated_time;
@@ -761,13 +761,13 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
     }
   }
   //----------------------------------------------------------------------------
-  hultquist_discretization(const this_t& other)     = default;
-  hultquist_discretization(this_t&& other) noexcept = default;
-  hultquist_discretization& operator=(const this_t& other) = default;
-  hultquist_discretization& operator=(this_t&& other) noexcept = default;
+  hultquist_discretization(const this_type& other)     = default;
+  hultquist_discretization(this_type&& other) noexcept = default;
+  hultquist_discretization& operator=(const this_type& other) = default;
+  hultquist_discretization& operator=(this_type&& other) noexcept = default;
   ~hultquist_discretization()                                  = default;
   //============================================================================
-  auto integrate(const subfront_t& subfront, real_t step) {
+  auto integrate(const subfront_t& subfront, real_type step) {
     assert(step != 0);
     struct integrated_t {
       vertex_handle     v;
@@ -881,7 +881,7 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
   }
 
   //--------------------------------------------------------------------------
-  auto integrate(const front_t& front, real_t step) {
+  auto integrate(const front_t& front, real_type step) {
     front_t new_front;
     for (const auto& subfront : front) {
       if (subfront.first.size() > 1) {
@@ -891,7 +891,7 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
     return new_front;
   }
   //----------------------------------------------------------------------------
-  auto evolve(const front_t& front, real_t step, real_t desired_spatial_dist) {
+  auto evolve(const front_t& front, real_type step, real_type desired_spatial_dist) {
     auto integrated_front = integrate(front, step);
 
     this->subdivide(integrated_front, desired_spatial_dist);
@@ -906,7 +906,7 @@ template <typename Flowmap,
           template <typename> typename SeedcurveInterpolationKernel>
 struct schulze_discretization : front_evolving_streamsurface_discretization<
                                     Flowmap, SeedcurveInterpolationKernel> {
-  using real_t = typename Flowmap::real_t;
+  using real_type = typename Flowmap::real_type;
   static constexpr auto num_dimensions() {
     return Flowmap::num_dimensions();
   }
@@ -926,18 +926,18 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
   using parent_type::insert_vertex;
   using parent_type::uv;
 
-  vertex_property_t<real_t>& alpha_prop;
-  vertex_property_t<real_t>& second_derivate_alpha_prop;
+  vertex_property_t<real_type>& alpha_prop;
+  vertex_property_t<real_type>& second_derivate_alpha_prop;
 
   //----------------------------------------------------------------------------
   schulze_discretization(ssf_t* ssf, size_t seedline_resolution,
                          size_t num_iterations)
       : parent_type(ssf),
-        alpha_prop(this->template add_vertex_property<real_t>("alpha")),
-        second_derivate_alpha_prop(this->template add_vertex_property<real_t>(
+        alpha_prop(this->template add_vertex_property<real_type>("alpha")),
+        second_derivate_alpha_prop(this->template add_vertex_property<real_type>(
             "second_derivative_alpha")) {
     auto const initial_front = this->seedcurve_to_front(seedline_resolution);
-    real_t     desired_spatial_dist =
+    real_type     desired_spatial_dist =
         this->average_segment_length(initial_front.front());
 
     // evolve front
@@ -1011,7 +1011,7 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
     return integrated_front;
   }
   //----------------------------------------------------------------------------
-  auto evolve(const front_t& front, real_t desired_spatial_dist) {
+  auto evolve(const front_t& front, real_type desired_spatial_dist) {
     auto integrated_front = integrate(front);
     // triangulate
     std::vector<std::vector<cell_handle>> faces;
@@ -1021,14 +1021,14 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
     return integrated_front;
   }
   //----------------------------------------------------------------------------
-  std::vector<real_t> optimal_stepsizes(const vertex_list_t& vs) {
+  std::vector<real_type> optimal_stepsizes(const vertex_list_t& vs) {
     const auto& v        = this->ssf->flowmap().vectorfield();
     auto        jacobian = diff(v, 1e-7);
 
     auto                num_pnts = size(vs);
-    std::vector<real_t> p(num_pnts - 1), q(num_pnts - 1), null(num_pnts),
+    std::vector<real_type> p(num_pnts - 1), q(num_pnts - 1), null(num_pnts),
         r(num_pnts);
-    std::vector<vec<real_t, num_dimensions()>> ps(num_pnts);
+    std::vector<vec<real_type, num_dimensions()>> ps(num_pnts);
 
     // TODO: get t0 at u, not at 0
     size_t i = 0;
@@ -1036,7 +1036,7 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
       ps[i++] = v(at(vertex_handle), this->t0(0) + uv(vertex_handle)(1));
 
     i              = 0;
-    real_t avg_len = 0;
+    real_type avg_len = 0;
     for (auto vertex_handle = begin(vs); vertex_handle != prev(end(vs));
          ++vertex_handle, ++i) {
       auto tm = this->t0(0) +
@@ -1055,7 +1055,7 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
     avg_len /= num_pnts - 1;
     solve_qr(num_pnts - 1, &p[0], &q[0], &r[0], &null[0]);
 
-    // real_t nrm{0};
+    // real_type nrm{0};
     // for (auto x : null) nrm += x * x;
     // nrm = sqrt(nrm);
     // for (size_t i = 0; i < null.size(); ++i) null[i] /= nrm;
@@ -1071,7 +1071,7 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
     // r[i] += (num_pnts / 10.0) * k_plus_factor * null[i];
 
     // apply step width
-    real_t h = std::numeric_limits<real_t>::max();
+    real_type h = std::numeric_limits<real_type>::max();
     for (size_t i = 0; i < num_pnts; ++i)
       h = std::min(h, avg_len / (std::abs(r[i]) * norm(ps[i])));
     for (size_t i = 0; i < r.size(); ++i)
@@ -1081,17 +1081,17 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
   }
 
   //----------------------------------------------------------------------------
-  auto detect_peaks(const std::vector<real_t>& alpha, const vertex_list_t& vs,
-                    real_t threshold = 100) {
+  auto detect_peaks(const std::vector<real_type>& alpha, const vertex_list_t& vs,
+                    real_type threshold = 100) {
     // calculate second derivative
-    std::vector<real_t> snd_der(alpha.size(), 0);
+    std::vector<real_type> snd_der(alpha.size(), 0);
     auto                v = next(begin(vs));
     for (size_t i = 1; i < alpha.size() - 1; ++i, ++v) {
-      mat<real_t, 3, 3> A{
-          {real_t(1), uv(*prev(v))(0), uv(*prev(v))(0) * uv(*prev(v))(0)},
-          {real_t(1), uv(*v)(0), uv(*v)(0) * uv(*v)(0)},
-          {real_t(1), uv(*next(v))(0), uv(*next(v))(0) * uv(*next(v))(0)}};
-      vec<real_t, 3> b{alpha[i - 1], alpha[i], alpha[i + 1]};
+      mat<real_type, 3, 3> A{
+          {real_type(1), uv(*prev(v))(0), uv(*prev(v))(0) * uv(*prev(v))(0)},
+          {real_type(1), uv(*v)(0), uv(*v)(0) * uv(*v)(0)},
+          {real_type(1), uv(*next(v))(0), uv(*next(v))(0) * uv(*next(v))(0)}};
+      vec<real_type, 3> b{alpha[i - 1], alpha[i], alpha[i + 1]};
       snd_der[i]                     = 2 * solve(A, b)(2);
       second_derivate_alpha_prop[*v] = std::abs(snd_der[i]);
     }

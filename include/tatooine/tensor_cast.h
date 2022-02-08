@@ -26,7 +26,7 @@ struct cast_tensor_real {
 };
 
 template <typename CastedReal, typename Tensor>
-using cast_tensor_real_t = typename cast_tensor_real<CastedReal, Tensor>::type;
+using cast_tensor_real_type = typename cast_tensor_real<CastedReal, Tensor>::type;
 
 //==============================================================================
 template <typename NewReal, typename Tensor, typename Real, size_t... Dims>

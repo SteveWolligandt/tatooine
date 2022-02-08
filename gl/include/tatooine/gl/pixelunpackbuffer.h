@@ -20,7 +20,7 @@ class pixelunpackbuffer : public buffer<GL_PIXEL_UNPACK_BUFFER, T> {
   //----------------------------------------------------------------------------
  public:
   using parent_type                         = buffer<GL_PIXEL_UNPACK_BUFFER, T>;
-  using this_t                           = pixelunpackbuffer<T>;
+  using this_type                           = pixelunpackbuffer<T>;
   static constexpr usage_t default_usage = usage_t::STATIC_COPY;
   //----------------------------------------------------------------------------
   // ctors

@@ -7,8 +7,8 @@
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 struct scalar : ui::node<scalar> {
-  real_t m_value          = 0;
-  real_t m_speed          = 0.01;
+  real_type m_value          = 0;
+  real_type m_speed          = 0.01;
   bool   m_vary           = false;
 
   scalar(flowexplorer::scene& s);

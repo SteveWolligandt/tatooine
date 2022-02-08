@@ -10,7 +10,7 @@ auto operator>>(std::istream& in, type_t& t) -> std::istream&;
 //==============================================================================
 struct options_t {
   type_t type;
-  real_t radius;
+  real_type radius;
   size_t output_res_x, output_res_y, num_datapoints;
 };
 //==============================================================================
@@ -25,7 +25,7 @@ auto main(int argc, char const** argv) -> int {
   random::uniform                       rand{-1.0, 1.0, std::mt19937_64{1234}};
   auto                                  ps          = pointset2{};
   pointset2::vertex_property_t<vec3>*   vector_prop = nullptr;
-  pointset2::vertex_property_t<real_t>* scalar_prop = nullptr;
+  pointset2::vertex_property_t<real_type>* scalar_prop = nullptr;
   switch (options.type) {
     case type_t::scalar:
       scalar_prop = &ps.scalar_vertex_property("scalar");
@@ -90,7 +90,7 @@ auto main(int argc, char const** argv) -> int {
 auto parse_args(int const argc, char const** argv) -> std::optional<options_t> {
   namespace po = boost::program_options;
   type_t type;
-  real_t radius;
+  real_type radius;
   size_t output_res_x, output_res_y, num_datapoints;
 
   auto desc = po::options_description{"Allowed options"};
@@ -99,7 +99,7 @@ auto parse_args(int const argc, char const** argv) -> std::optional<options_t> {
   // Declare supported options.
   desc.add_options()("help", "produce help message")(
       "type", po::value<type_t>(), "scalar or vector")(
-      "radius", po::value<real_t>(), "search radius")(
+      "radius", po::value<real_type>(), "search radius")(
       "num_datapoints", po::value<size_t>(), "number of data points")(
       "output_res_x", po::value<size_t>(), "set outputresolution width")(
       "output_res_y", po::value<size_t>(), "set outputresolution height");
@@ -118,7 +118,7 @@ auto parse_args(int const argc, char const** argv) -> std::optional<options_t> {
     return std::nullopt;
   }
   if (vm.count("radius") > 0) {
-    radius = vm["radius"].as<real_t>();
+    radius = vm["radius"].as<real_type>();
   } else {
     std::cerr << "--radius not specified!\n";
     return std::nullopt;

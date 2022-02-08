@@ -14,7 +14,7 @@ struct hyper_ellipse {
   static_assert(NumDimensions > 1);
   using this_type = hyper_ellipse<Real, NumDimensions>;
   using vec_t     = vec<Real, NumDimensions>;
-  using pos_t     = vec_t;
+  using pos_type     = vec_t;
   using mat_t     = mat<Real, NumDimensions, NumDimensions>;
   using real_type = Real;
   static auto constexpr num_dimensions() { return NumDimensions; }
@@ -64,7 +64,7 @@ struct hyper_ellipse {
   /// Sets up a sphere with specified radii.
   constexpr hyper_ellipse(arithmetic auto const... radii) requires(
       sizeof...(radii) > 1)
-      : m_center{pos_t::zeros()}, m_S(diag(vec{static_cast<Real>(radii)...})) {
+      : m_center{pos_type::zeros()}, m_S(diag(vec{static_cast<Real>(radii)...})) {
     static_assert(sizeof...(radii) == NumDimensions,
                   "Number of radii does not match number of dimensions.");
   }
@@ -90,28 +90,28 @@ struct hyper_ellipse {
   auto center(std::size_t const i) const { return m_center(i); }
   auto center(std::size_t const i) -> auto& { return m_center(i); }
   //----------------------------------------------------------------------------
-  auto local_coordinate(pos_t const& x) const {
+  auto local_coordinate(pos_type const& x) const {
     return solve(S(), (x - center()));
   }
   //----------------------------------------------------------------------------
-  auto squared_euclidean_distance_to_center(pos_t const& x) const {
+  auto squared_euclidean_distance_to_center(pos_type const& x) const {
     return squared_euclidean_distance(x, center());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto euclidean_distance_to_center(pos_t const& x) const {
+  auto euclidean_distance_to_center(pos_type const& x) const {
     return distance(x, center());
   }
   //----------------------------------------------------------------------------
-  auto squared_local_euclidean_distance_to_center(pos_t const& x) const {
+  auto squared_local_euclidean_distance_to_center(pos_type const& x) const {
     return squared_euclidean_length(local_coordinate(x));
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto local_distance_to_center(pos_t const& x) const {
+  auto local_distance_to_center(pos_type const& x) const {
     return euclidean_length(local_coordinate(x));
   }
   //----------------------------------------------------------------------------
   /// Computes euclidean distance to nearest boundary point
-  constexpr auto distance_to_boundary(pos_t const& x) const {
+  constexpr auto distance_to_boundary(pos_type const& x) const {
     auto const x_local                  = local_coordinate();
     auto const local_distance_to_point  = euclidian_length(x_local);
     auto const local_point_on_boundary  = x_local / local_distance_to_point;
@@ -119,12 +119,12 @@ struct hyper_ellipse {
     return euclidian_length(m_S * local_offset_to_boundary);
   }
   //----------------------------------------------------------------------------
-  auto local_nearest_point_boundary(pos_t const& x) const {
+  auto local_nearest_point_boundary(pos_type const& x) const {
     auto const local_point_on_boundary = normalize(local_coordinate());
     return local_point_on_boundary;
   }
   //----------------------------------------------------------------------------
-  auto nearest_point_boundary(pos_t const& x) const {
+  auto nearest_point_boundary(pos_type const& x) const {
     return S() * local_nearest_point_boundary(x) + center();
   }
   //============================================================================
@@ -167,7 +167,7 @@ struct hyper_ellipse {
   /// Checks if a point x is inside the ellipse.
   /// \param x point to check
   /// \returns true if x is inside ellipse.
-  constexpr auto is_inside(pos_t const& x) const {
+  constexpr auto is_inside(pos_type const& x) const {
     return squared_euclidean_length(solve(m_S, x - m_center)) <= 1;
   }
   //----------------------------------------------------------------------------
@@ -273,6 +273,8 @@ auto discretize(hyper_ellipse<Real, NumDimensions> const& s,
                 std::size_t const n = 0) {
   return s.discretize(n);
 }
+template <std::size_t NumDimensions>
+using HyperEllipse = hyper_ellipse<real_number, NumDimensions>;
 //==============================================================================
 }  // namespace tatooine::geometry
 //==============================================================================
@@ -305,7 +307,7 @@ static auto constexpr is_derived_from_hyper_ellipse =
     detail::geometry::hyper_ellipse::is_derived_from_hyper_ellipse_impl<
         T>::value;
 static_assert(
-    is_derived_from_hyper_ellipse<geometry::hyper_ellipse<real_t, 2>>);
+    is_derived_from_hyper_ellipse<geometry::HyperEllipse<2>>);
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

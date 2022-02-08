@@ -78,15 +78,15 @@ auto points_geom          = std::unique_ptr<rendering::pointset<vec2f>>{};
 //==============================================================================
 auto v = doublegyre{};
 auto disc =
-    std::unique_ptr<autonomous_particle_flowmap_discretization<real_t, 2>>{};
+    std::unique_ptr<autonomous_particle_flowmap_discretization<real_type, 2>>{};
 auto initial_particles   = std::vector<autonomous_particle2>{};
 auto center_of_square    = vec2{1.0, 0.5};
 auto local_pos_in_square = vec2{0.5, 0.5};
 auto x0                  = center_of_square;
 auto x1                  = x0;
-auto radius              = real_t(0.01);
-auto t0                  = real_t(0.0);
-auto tau                 = real_t(3.0);
+auto radius              = real_type(0.01);
+auto t0                  = real_type(0.0);
+auto tau                 = real_type(3.0);
 auto error               = 0.0;
 auto physical_pos_in_square() {
   return (1 - local_pos_in_square(0)) * (1 - local_pos_in_square(1)) *
@@ -353,7 +353,7 @@ auto update_initial_particles() -> void {
 //------------------------------------------------------------------------------
 auto update_advected_particles() -> void {
   disc =
-      std::make_unique<autonomous_particle_flowmap_discretization<real_t, 2>>(
+      std::make_unique<autonomous_particle_flowmap_discretization<real_type, 2>>(
           flowmap(v), t0, tau, 0.01, initial_particles);
   auto phi = flowmap(v);
   square_t1_geom->vertexbuffer()[0] =

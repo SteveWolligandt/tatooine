@@ -13,7 +13,7 @@ template <size_t N>
 struct rectilinear_grid_renderer;
 template <>
 struct rectilinear_grid_renderer<2>
-    : tatooine::nonuniform_rectilinear_grid<real_t, 2> {
+    : tatooine::nonuniform_rectilinear_grid<real_type, 2> {
   gl::indexeddata<vec3f> m_inner_geometry;
   gl::indexeddata<vec3f> m_outer_geometry;
   //----------------------------------------------------------------------------
@@ -95,7 +95,7 @@ struct rectilinear_grid_renderer<2>
 };
 template <>
 struct rectilinear_grid_renderer<3>
-    : tatooine::nonuniform_rectilinear_grid<real_t, 3> {
+    : tatooine::nonuniform_rectilinear_grid<real_type, 3> {
   gl::indexeddata<vec3f> m_outer_geometry;
   gl::indexeddata<vec3f> m_left_geometry;
   gl::indexeddata<vec3f> m_right_geometry;
@@ -418,11 +418,11 @@ struct rectilinear_grid : renderable<rectilinear_grid<N>>,
   rectilinear_grid(flowexplorer::scene& s)
       : renderable<rectilinear_grid<N>>{
             "Rectilinear Grid", s,
-            *dynamic_cast<tatooine::nonuniform_rectilinear_grid<real_t, N>*>(
+            *dynamic_cast<tatooine::nonuniform_rectilinear_grid<real_type, N>*>(
                 this)} {
     for (size_t i = 0; i < N; ++i) {
       m_input_pins[i] =
-          &this->template insert_input_pin<linspace<real_t>>("dim");
+          &this->template insert_input_pin<linspace<real_type>>("dim");
     }
   }
   //----------------------------------------------------------------------------
@@ -453,7 +453,7 @@ struct rectilinear_grid : renderable<rectilinear_grid<N>>,
     return all_linked;
   }
   //----------------------------------------------------------------------------
-  using nonuniform_rectilinear_grid<real_t, N>::dimension;
+  using nonuniform_rectilinear_grid<real_type, N>::dimension;
   auto dimension(size_t i) -> auto& {
     if (i == 0) {
       return this->template dimension<0>();
@@ -474,8 +474,8 @@ struct rectilinear_grid : renderable<rectilinear_grid<N>>,
     for (auto ptr : m_input_pins) {
       auto& pin = *ptr;
       if (pin.is_linked()) {
-        if (pin.linked_type() == typeid(linspace<real_t>)) {
-          auto& data = pin.template get_linked_as<linspace<real_t>>();
+        if (pin.linked_type() == typeid(linspace<real_type>)) {
+          auto& data = pin.template get_linked_as<linspace<real_type>>();
           auto& d    = dimension(i);
           d.clear();
           boost::copy(data, std::back_inserter(d));
@@ -497,8 +497,8 @@ struct rectilinear_grid : renderable<rectilinear_grid<N>>,
   auto on_pin_connected(ui::input_pin& p, ui::output_pin&) -> void override {
     for (size_t i = 0; i < N; ++i) {
       if (&p == m_input_pins[i]) {
-        if (p.linked_type() == typeid(linspace<real_t>)) {
-          auto& data = p.get_linked_as<linspace<real_t>>();
+        if (p.linked_type() == typeid(linspace<real_type>)) {
+          auto& data = p.get_linked_as<linspace<real_type>>();
           auto& d    = dimension(i);
           d.clear();
           boost::copy(data, std::back_inserter(d));
