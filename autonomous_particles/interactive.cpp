@@ -2,8 +2,10 @@
 #include <tatooine/analytical/fields/saddle.h>
 #include <tatooine/rendering/interactive.h>
 #include <tatooine/rendering/interactive/shaders.h>
+#include <tatooine/autonomous_particle_flowmap_discretization.h>
+#include <tatooine/agranovsky_flowmap_discretization.h>
 using namespace tatooine;
-struct movable_line {
+struct vis {
   using pass_through =
       rendering::interactive::shaders::colored_pass_through_2d_without_matrices;
   struct hoverable_shader : gl::shader {
@@ -120,8 +122,8 @@ struct movable_line {
       set_uniform_mat4("projection_matrix", P.data().data());
     }
     //------------------------------------------------------------------------------
-    auto set_view_matrix(Mat4<GLfloat> const& MV) -> void {
-      set_uniform_mat4("view_matrix", MV.data().data());
+    auto set_view_matrix(Mat4<GLfloat> const& V) -> void {
+      set_uniform_mat4("view_matrix", V.data().data());
     }
   };
   //----------------------------------------------------------------------------
@@ -137,18 +139,20 @@ struct movable_line {
   gl::indexeddata<Vec2<GLfloat>, int>      locals_gpu;
   bool                                     mouse_down = false;
   std::vector<std::size_t>                 hovered_indices;
-  //static auto constexpr minimap_range = 10;
+  // static auto constexpr minimap_range = 10;
   static auto constexpr minimap_range = 0.25;
 
   //----------------------------------------------------------------------------
  public:
   //----------------------------------------------------------------------------
-  movable_line(auto const& advected_particles)
+  vis(auto const& advected_particles)
       : hovered(size(advected_particles), false),
         cam{Vec3<GLfloat>{0, 0, 0},
             Vec3<GLfloat>{0, 0, -1},
-            -minimap_range, minimap_range,
-            -minimap_range, minimap_range,
+            -minimap_range,
+            minimap_range,
+            -minimap_range,
+            minimap_range,
             -1,
             1,
             Vec4<std::size_t>{10, 10, 500, 500}},
@@ -268,8 +272,9 @@ struct movable_line {
     for (auto const& p : advected_particles) {
       auto s    = p.sampler();
       locals[i] = s.nabla_phi_inv() * (current_point - s.ellipse1().center());
-      //locals[i] = *inv(s.ellipse1().S()) * (current_point - s.ellipse1().center());
-      map[i]    = {vec2f{locals[i]}, hovered[i] ? 1 : 0};
+      // locals[i] = *inv(s.ellipse1().S()) * (current_point -
+      // s.ellipse1().center());
+      map[i] = {vec2f{locals[i]}, hovered[i] ? 1 : 0};
       ++i;
     }
   }
@@ -304,27 +309,61 @@ struct movable_line {
 };
 //------------------------------------------------------------------------------
 auto main() -> int {
-  auto g = rectilinear_grid{linspace{-2.0, 2.0, 101}, linspace{-2.0, 2.0, 101}};
-  auto dg = analytical::fields::numerical::doublegyre{};
-  auto s = analytical::fields::numerical::saddle{};
-  discretize(dg, g, "velocity_doublegyre", execution_policy::parallel);
+  auto g = rectilinear_grid{linspace{-1.0, 1.0, 1001}, linspace{-1.0, 1.0, 1001}};
+  auto& flowmap_autonomous_particles_backward_prop =
+      g.vec2_vertex_property("flowmap_autonomous_particles_backward");
+  auto& flowmap_agranovsky_backward_prop =
+      g.vec2_vertex_property("flowmap_agranovksy_backward");
+  auto s  = analytical::fields::numerical::saddle{};
   discretize(s, g, "velocity_saddle", execution_policy::parallel);
+  auto phi = flowmap(s);
 
-  auto uuid_generator = std::atomic_uint64_t{};
-  auto p = autonomous_particle2{vec2{1, 0.5}, 0, 0.1, uuid_generator};
-  auto initial_grid =
-      rectilinear_grid{linspace{-0.1, 0.1, 3}, linspace{-0.1, 0.1, 3}};
-  auto initial_particles =
-      std::vector<autonomous_particle2>{
-        {vec2{0.1, 0}, 0, 0.05, uuid_generator},
-        {vec2{-0.1, 0}, 0, 0.05, uuid_generator},
-        {vec2{0, 0.1}, 0, 0.05, uuid_generator},
-        {vec2{0, -0.1}, 0, 0.05, uuid_generator}
-      };
-  auto const [advected_particles, advected_simple_particles, edges] =
-      autonomous_particle2::advect_with_three_splits(flowmap(s), 0.01, 0, 1,
-                                                     initial_grid);
+  auto const t0                = 0;
+  auto const t_end             = 1;
+  auto       uuid_generator    = std::atomic_uint64_t{};
+  auto constexpr cos           = gcem::cos(M_PI / 4);
+  auto constexpr sin           = gcem::sin(M_PI / 4);
+  auto const r                 = 0.1;
+  auto const initial_particles = std::vector<autonomous_particle2>{
+      {vec2{cos * r - sin * r, sin * r + cos * r}, t0, r, uuid_generator},
+      {vec2{cos * -r - sin * r, sin * -r + cos * r}, t0, r, uuid_generator},
+      {vec2{cos * r - sin * -r, sin * r + cos * -r}, t0, r, uuid_generator},
+      {vec2{cos * -r - sin * -r, sin * -r + cos * -r}, t0, r, uuid_generator}};
+
+  auto flowmap_autonomous_particles = autonomous_particle_flowmap_discretization{
+      phi, t_end, 0.01, initial_particles, uuid_generator};
+  auto const num_particles_after_advection =
+      flowmap_autonomous_particles.num_particles();
+
+  auto const agranovsky_delta_t = 0.1;
+  auto const num_agranovksy_steps =
+      static_cast<std::size_t>(std::ceil(agranovsky_delta_t / t_end));
+  auto const regularized_height_agranovksky =
+      static_cast<std::size_t>(std::ceil(
+          std::sqrt((num_particles_after_advection) / num_agranovksy_steps)));
+  auto const regularized_width_agranovksky = regularized_height_agranovksky;
+  auto flowmap_agranovsky =
+      agranovsky_flowmap_discretization2{phi,
+                                         t0,
+                                         t_end - t0,
+                                         agranovsky_delta_t,
+                                         vec2{-2 * r, -2 * r},
+                                         vec2{2 * r, 2 * r},
+                                         regularized_width_agranovksky,
+                                         regularized_height_agranovksky};
+
+  g.vertices().iterate_indices(
+      [&](auto const... is) {
+        auto       copy_phi = phi;
+        auto const x        = g.vertex_at(is...);
+        flowmap_autonomous_particles_backward_prop(is...) =
+            flowmap_autonomous_particles.sample_backward(x);
+        flowmap_agranovsky_backward_prop(is...) =
+            flowmap_agranovsky.sample_backward(x);
+      },
+      execution_policy::parallel);
+
   rendering::interactive::pre_setup();
-  auto m = movable_line{advected_particles};
-  rendering::interactive::render(m, advected_particles, g);
+  auto m = vis{flowmap_autonomous_particles.advected_particles()};
+  rendering::interactive::render(g, m, initial_particles, advected_particles);
 }

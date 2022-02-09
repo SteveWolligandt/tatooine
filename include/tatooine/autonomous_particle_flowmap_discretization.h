@@ -15,9 +15,9 @@ template <typename Real, std::size_t NumDimensions,
           typename SplitBehavior = autonomous_particle<
               Real, NumDimensions>::split_behaviors::three_splits>
 struct autonomous_particle_flowmap_discretization {
-  using real_type              = Real;
+  using real_type           = Real;
   using vec_t               = vec<Real, NumDimensions>;
-  using pos_type               = vec_t;
+  using pos_type            = vec_t;
   using particle_type       = autonomous_particle<Real, NumDimensions>;
   using sampler_type        = typename particle_type::sampler_type;
   using sampler_container_t = std::vector<sampler_type>;
@@ -57,14 +57,14 @@ struct autonomous_particle_flowmap_discretization {
   //----------------------------------------------------------------------------
   template <typename Flowmap>
   autonomous_particle_flowmap_discretization(
-      Flowmap&& flowmap, arithmetic auto const t0, arithmetic auto const tau,
+      Flowmap&& flowmap, arithmetic auto const t_end,
       arithmetic auto const             tau_step,
       std::vector<particle_type> const& initial_particles,
       std::atomic_uint64_t&             uuid_generator) {
     static_assert(
         std::decay_t<Flowmap>::num_dimensions() == NumDimensions,
         "Number of dimensions of flowmap does not match number of dimensions.");
-    fill(std::forward<Flowmap>(flowmap), initial_particles, t0 + tau, tau_step,
+    fill(std::forward<Flowmap>(flowmap), initial_particles, t_end, tau_step,
          uuid_generator);
   }
   //----------------------------------------------------------------------------
@@ -164,19 +164,6 @@ struct autonomous_particle_flowmap_discretization {
   //       });
   //   fill(std::forward<Flowmap>(flowmap), particles, t0 + tau, tau_step);
   // }
-  //  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename Flowmap>
-  autonomous_particle_flowmap_discretization(
-      Flowmap&& flowmap, arithmetic auto const tau,
-      arithmetic auto const             tau_step,
-      std::vector<particle_type> const& initial_particles,
-      std::atomic_uint64_t&             uuid_generator) {
-    static_assert(
-        std::decay_t<Flowmap>::num_dimensions() == NumDimensions,
-        "Number of dimensions of flowmap does not match number of dimensions.");
-    fill(std::forward<Flowmap>(flowmap), initial_particles, tau, tau_step,
-         uuid_generator);
-  }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename Flowmap>
   autonomous_particle_flowmap_discretization(
@@ -244,28 +231,28 @@ struct autonomous_particle_flowmap_discretization {
   //----------------------------------------------------------------------------
   template <typename Flowmap>
   auto fill(Flowmap&& flowmap, range auto const& initial_particles,
-            arithmetic auto const tau, arithmetic auto const tau_step,
+            arithmetic auto const t_end, arithmetic auto const tau_step,
             std::atomic_uint64_t& uuid_generator) {
     // if (m_path) {
     //   particle_type::template advect<SplitBehavior>(
-    //       std::forward<Flowmap>(flowmap), tau_step, tau, initial_particles,
+    //       std::forward<Flowmap>(flowmap), tau_step, t_end, initial_particles,
     //       *m_path);
     // } else {
-    auto [autonomous_particles, simple_particles, edges] =
+    auto [advected_particles, simple_particles, edges] =
         particle_type::template advect<SplitBehavior>(
-            std::forward<Flowmap>(flowmap), tau_step, tau, initial_particles,
+            std::forward<Flowmap>(flowmap), tau_step, t_end, initial_particles,
             uuid_generator);
     m_samplers.clear();
-    m_samplers.reserve(size(autonomous_particles));
+    m_samplers.reserve(size(advected_particles));
     using namespace std::ranges;
     auto get_sampler = [](auto const& p) { return p.sampler(); };
-    copy(autonomous_particles | views::transform(get_sampler),
+    copy(advected_particles | views::transform(get_sampler),
          std::back_inserter(m_samplers));
     //}
   }
   //----------------------------------------------------------------------------
   template <std::size_t... VertexSeq>
-  [[nodiscard]] auto sample(pos_type const&                       p0,
+  [[nodiscard]] auto sample(pos_type const&                    p0,
                             forward_or_backward_tag auto const tag,
                             std::index_sequence<VertexSeq...> /*seq*/) const {
     auto nearest_sampler_it = end(m_samplers);
@@ -285,7 +272,7 @@ struct autonomous_particle_flowmap_discretization {
   //----------------------------------------------------------------------------
  public:
   //----------------------------------------------------------------------------
-  [[nodiscard]] auto sample(pos_type const&                       x,
+  [[nodiscard]] auto sample(pos_type const&                    x,
                             forward_or_backward_tag auto const tag) const {
     return sample(x, tag, std::make_index_sequence<NumDimensions + 1>{});
   }
@@ -303,7 +290,7 @@ struct autonomous_particle_flowmap_discretization {
 //==============================================================================
 template <std::size_t NumDimensions>
 using AutonomousParticleFlowmapDiscretization =
-    autonomous_particle_flowmap_discretization<real_type, NumDimensions>;
+    autonomous_particle_flowmap_discretization<real_number, NumDimensions>;
 using autonomous_particle_flowmap_discretization2 =
     AutonomousParticleFlowmapDiscretization<2>;
 using autonomous_particle_flowmap_discretization3 =
@@ -316,7 +303,8 @@ using staggered_autonomous_particle_flowmap_discretization =
 //------------------------------------------------------------------------------
 template <std::size_t NumDimensions>
 using StaggeredAutonomousParticleFlowmapDiscretization =
-    staggered_autonomous_particle_flowmap_discretization<real_type, NumDimensions>;
+    staggered_autonomous_particle_flowmap_discretization<real_number,
+                                                         NumDimensions>;
 using staggered_autonomous_particle_flowmap_discretization2 =
     StaggeredAutonomousParticleFlowmapDiscretization<2>;
 using staggered_autonomous_particle_flowmap_discretization3 =

@@ -80,7 +80,7 @@ struct first_person_window : gl::window {
       camera_controller().use_perspective_camera();
       camera_controller().use_fps_controller();
     } else if (k == gl::KEY_F4) {
-      camera_controller().look_at({0, 0, 0}, {0, 0, 1});
+      camera_controller().look_at({0, 0, -1}, {0, 0, 0});
     }
   }
 };
