@@ -6,12 +6,16 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Real, size_t N>
-using agranovsky_flowmap_discretization =
-    staggered_flowmap_discretization<regular_flowmap_discretization<Real, N>>;
-template <size_t N>
+template <typename Real, std::size_t NumDimensions>
+using agranovsky_flowmap_discretization = staggered_flowmap_discretization<
+    regular_flowmap_discretization<Real, NumDimensions>>;
+template <std::size_t NumDimensions>
 using AgranovskyFlowmapDiscretization =
-    agranovsky_flowmap_discretization<real_type, N>;
+    agranovsky_flowmap_discretization<real_number, NumDimensions>;
+using agranovsky_flowmap_discretization2 =
+    agranovsky_flowmap_discretization<real_number, 2>;
+using agranovsky_flowmap_discretization3 =
+    agranovsky_flowmap_discretization<real_number, 3>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

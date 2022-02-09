@@ -6,6 +6,13 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(TATOOINE_USE_NATIVE_ARCH
   "use native architecture to build" TRUE)
 
+set(REAL_NUMBER double float)
+set(TATOOINE_REAL_NUMBER_TYPE double CACHE STRING "Floating point type for real numbers")
+set_property(CACHE TATOOINE_REAL_NUMBER_TYPE PROPERTY STRINGS ${REAL_NUMBER})
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/real.h.in
+  ${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/real.h)
+
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # filesystem check
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 

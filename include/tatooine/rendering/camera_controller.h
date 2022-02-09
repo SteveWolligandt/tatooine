@@ -347,21 +347,21 @@ struct fps_camera_controller : camera_controller_interface<Real> {
       auto offset_y = std::ceil(y) - m_mouse_pos_y;
 
       auto const look_dir = normalize(controller().lookat() - controller().eye());
-      auto theta = std::atan2(look_dir(2), look_dir(0));
-      auto phi = std::acos(look_dir(1));
+      auto yaw = std::atan2(look_dir(2), look_dir(0));
+      auto pitch = std::acos(look_dir(1));
 
-      theta -= offset_x * Real(0.01);
-      phi -= offset_y * Real(0.01);
-      //phi = std::min<Real>(
-      //    M_PI - Real(0.3),
-      //    std::max<Real>(Real(0.3), phi - offset_y * Real(0.01)));
+      yaw -= offset_x * Real(0.01);
+      pitch = std::min<Real>(
+          M_PI - Real(0.3),
+          std::max<Real>(Real(0.3), pitch - offset_y * Real(0.01)));
 
+      auto const sin_pitch = gcem::sin(pitch);
+      auto const cos_pitch = gcem::cos(pitch);
+      auto const sin_yaw   = gcem::sin(yaw);
+      auto const cos_yaw   = gcem::cos(yaw);
       auto const new_look_dir =
-          vec{std::sin(phi) * std::cos(theta),
-              std::cos(phi),
-              std::sin(phi) * std::sin(theta)};
-      controller().look_at(controller().eye(),
-                           controller().eye() + new_look_dir);
+          vec{sin_pitch * cos_yaw, cos_pitch, sin_pitch * sin_yaw};
+      controller().set_lookat(controller().eye() + new_look_dir);
     }                          
     m_mouse_pos_x = std::ceil(x);
     m_mouse_pos_y = std::ceil(y);
@@ -383,13 +383,13 @@ struct fps_camera_controller : camera_controller_interface<Real> {
     if (m_w_down) {
       auto const look_dir =
           normalize(controller().lookat() - controller().eye());
-      auto const new_eye = controller().eye() - look_dir * ms * speed();
+      auto const new_eye = controller().eye() + look_dir * ms * speed();
       controller().look_at(new_eye, new_eye + look_dir);
     }
     if (m_s_down) {
       auto const look_dir =
           normalize(controller().lookat() - controller().eye());
-      auto const new_eye = controller().eye() + look_dir * ms * speed();
+      auto const new_eye = controller().eye() - look_dir * ms * speed();
       controller().look_at(new_eye, new_eye + look_dir);
     }
     if (m_q_down) {
@@ -411,14 +411,14 @@ struct fps_camera_controller : camera_controller_interface<Real> {
     if (m_a_down) {
       auto const look_dir =
           normalize(controller().lookat() - controller().eye());
-      auto const right   = cross(vec{0, 1, 0}, look_dir);
+      auto const right   = cross(look_dir, vec{0, 1, 0});
       auto const new_eye = controller().eye() - right * ms * speed();
       controller().look_at(new_eye, new_eye + look_dir);
     }
     if (m_d_down) {
       auto const look_dir =
           normalize(controller().lookat() - controller().eye());
-      auto const right   = cross(vec{0, 1, 0}, look_dir);
+      auto const right   = cross(look_dir, vec{0, 1, 0});
       auto const new_eye = controller().eye() + right * ms * speed();
       controller().look_at(new_eye, new_eye + look_dir);
     }
@@ -481,8 +481,8 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
       new_eye(1) -= static_cast<Real>(offset_y) /
                     controller().orthographic_camera().plane_height() *
                     controller().orthographic_camera().height();
-      new_eye(2) = 0;
-      controller().look_at(new_eye, new_eye + vec{0, 0, 1});
+      new_eye(2) = -1;
+      this->look_at(new_eye, new_eye + vec{0, 0, 1});
     }
     m_mouse_pos_x = std::ceil(x);
     m_mouse_pos_y = std::ceil(y);
