@@ -2,6 +2,7 @@
 #define TATOOINE_RENDERING_INTERACTIVE_RECTILINEAR_GRID_H
 //==============================================================================
 #include <tatooine/color_scales/viridis.h>
+#include <tatooine/color_scales/GYPi.h>
 #include <tatooine/gl/indexeddata.h>
 #include <tatooine/gl/shader.h>
 #include <tatooine/rectilinear_grid.h>
@@ -12,20 +13,50 @@ namespace tatooine::rendering::interactive {
 //==============================================================================
 template <typename Axis0, typename Axis1>
 struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
+  static constexpr std::array<std::string_view, 5> vector_items = {
+      "magnitude", "x", "y", "z", "w"};
   using renderable_type = tatooine::rectilinear_grid<Axis0, Axis1>;
   //==============================================================================
-  struct color_scale : gl::indexeddata<Vec2<GLfloat>> {
-    struct viridis_t {
-      gl::tex1rgb32f tex;
-      viridis_t() : tex{} {
-        auto s = color_scales::viridis<GLfloat>{};
-        tex.upload_data(s.data(), 256);
-        tex.set_wrap_mode(gl::WrapMode::CLAMP_TO_EDGE);
+  struct color_scales : gl::indexeddata<Vec2<GLfloat>> {
+    struct GYPi_t {
+      gl::tex1rgba32f tex;
+      gl::tex2rgba32f tex_2d;
+
+     private:
+      GYPi_t() : tex{} {
+        tex    = tatooine::color_scales::GYPi<float>{}.to_gpu_tex();
+        tex_2d = to_2d(tex, 4);
+      }
+
+     public:
+      static auto get() -> auto& {
+        static auto instance = GYPi_t{};
+        return instance;
       }
     };
+    struct viridis_t {
+      gl::tex1rgba32f tex;
+      gl::tex2rgba32f tex_2d;
+
+     private:
+      viridis_t() : tex{} {
+        tex    = tatooine::color_scales::viridis<float>{}.to_gpu_tex();
+        tex_2d = to_2d(tex, 4);
+      }
+
+     public:
+      static auto get() -> auto& {
+        static auto instance = viridis_t{};
+        return instance;
+      }
+    };
+
+   public:
     static auto viridis() -> auto& {
-      static auto instance = viridis_t{};
-      return instance;
+      return viridis_t::get();
+    }
+    static auto GYPi() -> auto& {
+      return GYPi_t::get();
     }
   };
   //============================================================================
@@ -84,6 +115,7 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
         "out vec4 out_color;\n"
         "void main() {\n"
         "  float scalar = texture(data, texcoord).r;\n"
+        "  if (isnan(scalar)) { discard; }\n"
         "  scalar = clamp((scalar - min) / (max - min), 0, 1);\n"
         "  vec3 col = texture(color_scale, scalar).rgb;\n"
         "  out_color = vec4(col, 1);\n"
@@ -184,18 +216,26 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
   };
   //==============================================================================
  private:
+  enum class color_scale { viridis, GYPi };
+  struct property_settings {
+    GLint   texid;
+    GLint   tex2did;
+    GLfloat min_scalar;
+    GLfloat max_scalar;
+  };
   int                line_width             = 1;
   bool               show_grid              = true;
   bool               show_property          = false;
   Vec4<GLfloat>      color                  = {0, 0, 0, 1};
   std::string const* selected_property_name = nullptr;
+  std::unordered_map<std::string, property_settings> settings;
   typename renderable_type::vertex_property_t const* selected_property =
       nullptr;
+  
   bool        vector_property    = false;
-  char const* selected_component = nullptr;
+  std::string_view const* selected_component = nullptr;
 
   gl::indexeddata<Vec2<GLfloat>> geometry;
-  GLfloat                        min_scalar = 0, max_scalar = 1;
   gl::tex2r32f                   tex;
 
  public:
@@ -230,6 +270,32 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
     }
 
     tex.resize(grid.template size<0>(), grid.template size<1>());
+
+    for (auto const& [name, prop] : grid.vertex_properties()) {
+      grid.vertices().iterate_indices([&](auto const... is) {
+        if (prop_holds_scalar(prop)) {
+          auto min_scalar = std::numeric_limits<GLfloat>::max();
+          auto max_scalar = -std::numeric_limits<GLfloat>::max();
+          retrieve_typed_scalar_prop(prop.get(), [&](auto const& prop) {
+            auto const p = prop.at(is...);
+            min_scalar   = std::min<GLfloat>(min_scalar, p);
+            max_scalar   = std::max<GLfloat>(max_scalar, p);
+          });
+          settings[name] = {color_scales::viridis().tex.id(),
+                            color_scales::viridis().tex_2d.id(), min_scalar, max_scalar};
+        } else if (prop_holds_vector(prop)) {
+          retrieve_typed_vec_prop(prop.get(), [&](auto const& prop) {
+            auto const p = prop.at(is...);
+            auto const n = p.num_components();
+            for (std::size_t i = 0; i < n + 1; ++i) {
+              settings[name + "_" + std::string{vector_items[i]}] = {
+                  color_scales::viridis().tex.id(),
+                  color_scales::viridis().tex_2d.id(), 0.0f, 1.0f};
+            }
+          });
+        }
+      });
+    }
   }
   //==============================================================================
   template <typename T>
@@ -238,46 +304,50 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
                            typed_vertex_property_interface_t<T, false> const*>(
         prop);
   }
+  //------------------------------------------------------------------------------
+  auto retrieve_typed_scalar_prop(auto&& prop, auto&& f) {
+    if (prop->type() == typeid(float)) {
+      return f(*cast_prop<float>(prop));
+    } else if (prop->type() == typeid(double)) {
+      return f(*cast_prop<double>(prop));
+    }
+  }
+  //------------------------------------------------------------------------------
+  auto prop_holds_scalar(auto const& prop) {
+    return prop->type() == typeid(float) || prop->type() == typeid(double);
+  }
+  //------------------------------------------------------------------------------
+  auto retrieve_typed_vec_prop(auto&& prop, auto&& f) {
+    if (prop->type() == typeid(vec2d)) {
+      return f(*cast_prop<vec2d>(prop));
+    } else if (prop->type() == typeid(vec2f)) {
+      return f(*cast_prop<vec2f>(prop));
+    } else if (prop->type() == typeid(vec3d)) {
+      return f(*cast_prop<vec3d>(prop));
+    } else if (prop->type() == typeid(vec3f)) {
+      return f(*cast_prop<vec3f>(prop));
+    } else if (prop->type() == typeid(vec4d)) {
+      return f(*cast_prop<vec4d>(prop));
+    } else if (prop->type() == typeid(vec4f)) {
+      return f(*cast_prop<vec4f>(prop));
+    }
+  }
+  //------------------------------------------------------------------------------
+  auto prop_holds_vector(auto const& prop) {
+    return prop->type() == typeid(vec2f) || prop->type() == typeid(vec2d) ||
+           prop->type() == typeid(vec3f) || prop->type() == typeid(vec3d) ||
+           prop->type() == typeid(vec4f) || prop->type() == typeid(vec4d);
+  }
   //==============================================================================
   auto properties(renderable_type const& grid) {
-    static const char* vector_items[] = {"magnitude", "x", "y", "z", "w"};
     auto               upload         = [&](auto&& prop, auto&& get_data) {
       auto texdata = std::vector<GLfloat>{};
       texdata.reserve(grid.vertices().size());
-      min_scalar = std::numeric_limits<GLfloat>::max();
-      max_scalar = -std::numeric_limits<GLfloat>::max();
 
-      grid.vertices().iterate_indices([&](auto const... is) {
-        auto const p = get_data(prop, is...);
-        min_scalar   = std::min<GLfloat>(min_scalar, p);
-        max_scalar   = std::max<GLfloat>(max_scalar, p);
-        texdata.push_back(p);
-                            });
+      grid.vertices().iterate_indices(
+          [&](auto const... is) { texdata.push_back(get_data(prop, is...)); });
       tex.upload_data(texdata, grid.template size<0>(),
-                                            grid.template size<1>());
-    };
-    auto retrieve_typed_scalar_prop = [](auto&& prop, auto&& f) {
-      if (prop->type() == typeid(float)) {
-        return f(*cast_prop<float>(prop));
-      } else if (prop->type() == typeid(double)) {
-        return f(*cast_prop<double>(prop));
-      }
-    };
-    auto retrieve_typed_vec_prop = [](auto&& prop, auto&& f) {
-      if (prop->type() == typeid(vec2d)) {
-        return f(*cast_prop<vec2d>(prop));
-      } else if (prop->type() == typeid(vec2f)) {
-        return f(*cast_prop<vec2f>(prop));
-      } else if (prop->type() == typeid(vec3d)) {
-        return f(*cast_prop<vec3d>(prop));
-      } else if (prop->type() == typeid(vec3f)) {
-        return f(*cast_prop<vec3f>(prop));
-      } else if (prop->type() == typeid(vec4d)) {
-        return f(*cast_prop<vec4d>(prop));
-      } else if (prop->type() == typeid(vec4f)) {
-        return f(*cast_prop<vec4f>(prop));
-      }
-      throw std::runtime_error{"property does not hold a vector type"};
+                      grid.template size<1>());
     };
     auto upload_scalar = [&](auto&& prop) {
       upload(prop,
@@ -347,18 +417,12 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
           if (ImGui::Selectable(name.c_str(), is_selected)) {
             selected_property      = prop.get();
             selected_property_name = &name;
-            if (prop->type() == typeid(float) ||
-                prop->type() == typeid(double)) {
+            if (prop_holds_scalar(prop)) {
               retrieve_typed_scalar_prop(prop.get(), upload_scalar);
-            } else if (prop->type() == typeid(vec2f) ||
-                       prop->type() == typeid(vec2d) ||
-                       prop->type() == typeid(vec3f) ||
-                       prop->type() == typeid(vec3d) ||
-                       prop->type() == typeid(vec4f) ||
-                       prop->type() == typeid(vec4d)) {
+            } else if (prop_holds_vector(prop)) {
               retrieve_typed_vec_prop(prop.get(), upload_magnitude);
               vector_property    = true;
-              selected_component = vector_items[0];
+              selected_component = &vector_items[0];
             }
           }
           if (is_selected) {
@@ -370,14 +434,17 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
     }
     //}
     if (vector_property) {
-      if (ImGui::BeginCombo("##combo2", selected_component)) {
+      if (ImGui::BeginCombo("##combo2",
+                            selected_component == nullptr
+                                ? nullptr
+                                : std::string{*selected_component}.c_str())) {
         auto n = retrieve_typed_vec_prop(selected_property, [](auto&& prop) {
           return std::decay_t<decltype(prop)>::value_type::num_components();
         });
         for (std::size_t i = 0; i < n + 1; ++i) {
-          auto const is_selected = selected_component == vector_items[i];
-          if (ImGui::Selectable(vector_items[i], is_selected)) {
-            selected_component = vector_items[i];
+          auto const is_selected = selected_component == &vector_items[i];
+          if (ImGui::Selectable(std::string{vector_items[i]}.c_str(), is_selected)) {
+            selected_component = &vector_items[i];
             if (i == 0) {
               retrieve_typed_vec_prop(selected_property, upload_magnitude);
             } else if (i == 1) {
@@ -393,9 +460,42 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
         }
         ImGui::EndCombo();
       }
-      ImGui::DragFloat("Min", &min_scalar, 0.01f, -FLT_MAX, max_scalar);
-      ImGui::DragFloat("Max", &max_scalar, 0.01f, min_scalar, FLT_MAX);
+      //ImGui::DragFloat("Min", &min_scalar, 0.01f, -FLT_MAX, max_scalar, "%.06f");
+      //ImGui::DragFloat("Max", &max_scalar, 0.01f, min_scalar, FLT_MAX, "%.06f");
+    } else {
+      ImGui::DragFloat("Min", &settings[*selected_property_name].min_scalar, 0.01f, -FLT_MAX, settings[*selected_property_name].max_scalar, "%.06f");
+      ImGui::DragFloat("Max", &settings[*selected_property_name].max_scalar, 0.01f, settings[*selected_property_name].min_scalar, FLT_MAX, "%.06f");
     }
+
+    ImVec2 combo_pos = ImGui::GetCursorScreenPos();
+    if (ImGui::BeginCombo("##combocolor", selected_property_name != nullptr
+                                              ? selected_property_name->c_str()
+                                              : nullptr)) {
+      auto is_selected    = false;
+
+      ImGui::PushID("##viridis");
+      auto viridis_selected = ImGui::Selectable("", is_selected);
+      ImGui::PopID();
+      ImGui::SameLine();
+      ImGui::Image((void*)(std::intptr_t)color_scales::viridis().tex_2d.id(),
+                   ImVec2(256, 20));
+
+      ImGui::PushID("##GYPi");
+      auto gypi_selected = ImGui::Selectable("", is_selected);
+      ImGui::PopID();
+      ImGui::SameLine();
+      ImGui::Image((void*)(std::intptr_t)color_scales::GYPi().tex_2d.id(),
+                   ImVec2(256, 20));
+      ImGui::EndCombo();
+    }
+
+    ImVec2      backup_pos = ImGui::GetCursorScreenPos();
+    ImGuiStyle& style      = ImGui::GetStyle();
+    ImGui::SetCursorScreenPos(
+        ImVec2(combo_pos.x + style.FramePadding.x, combo_pos.y));
+    ImGui::Image((void*)(std::intptr_t)color_scales::GYPi().tex_2d.id(),
+                 ImVec2(256, 20));
+    ImGui::SetCursorScreenPos(backup_pos);
   }
   //==============================================================================
   auto render() {
@@ -470,9 +570,13 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
   auto render_property() {
     property_shader::get().bind();
     tex.bind(0);
-    color_scale::viridis().tex.bind(1);
-    property_shader::get().set_min(min_scalar);
-    property_shader::get().set_max(max_scalar);
+    if (selected_property_name != nullptr){
+      property_shader::get().set_min(
+          settings.at(*selected_property_name).min_scalar);
+      property_shader::get().set_max(
+          settings.at(*selected_property_name).max_scalar);
+    }
+    color_scales::viridis().tex.bind(1);
     gl::line_width(line_width);
     geometry::get().draw_triangles();
   }

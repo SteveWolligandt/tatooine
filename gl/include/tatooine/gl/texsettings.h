@@ -2,7 +2,6 @@
 #define TATOOINE_GL_TEXSETTINGS_H
 //==============================================================================
 #include "glincludes.h"
-
 #include "gltype.h"
 #include "texcomponents.h"
 //==============================================================================
@@ -15,8 +14,8 @@ struct settings;
 //------------------------------------------------------------------------------
 template <>
 struct settings<GLubyte, R> {
-  using real_type                            = GLubyte;
-  using comp_t                            = R;
+  using real_type                         = GLubyte;
+  using components_type                            = R;
   static constexpr GLint  internal_format = GL_R8UI;
   static constexpr GLenum format          = GL_RED;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -24,8 +23,8 @@ struct settings<GLubyte, R> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLubyte, RG> {
-  using real_type                            = GLubyte;
-  using comp_t                            = RG;
+  using real_type                         = GLubyte;
+  using components_type                            = RG;
   static constexpr GLint  internal_format = GL_RG8UI;
   static constexpr GLenum format          = GL_RG;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -33,8 +32,8 @@ struct settings<GLubyte, RG> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLubyte, RGB> {
-  using real_type                            = GLubyte;
-  using comp_t                            = RGB;
+  using real_type                         = GLubyte;
+  using components_type                            = RGB;
   static constexpr GLint  internal_format = GL_RGB8UI;
   static constexpr GLenum format          = GL_RGB;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -42,8 +41,8 @@ struct settings<GLubyte, RGB> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLubyte, RGBA> {
-  using real_type                            = GLubyte;
-  using comp_t                            = RGBA;
+  using real_type                         = GLubyte;
+  using components_type                            = RGBA;
   static constexpr GLint  internal_format = GL_RGBA;
   static constexpr GLenum format          = GL_RGBA;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -51,8 +50,8 @@ struct settings<GLubyte, RGBA> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLubyte, BGR> {
-  using real_type                            = GLubyte;
-  using comp_t                            = BGR;
+  using real_type                         = GLubyte;
+  using components_type                            = BGR;
   static constexpr GLint  internal_format = GL_RGB8UI;
   static constexpr GLenum format          = GL_BGR;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -60,8 +59,8 @@ struct settings<GLubyte, BGR> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLubyte, BGRA> {
-  using real_type                            = GLubyte;
-  using comp_t                            = BGRA;
+  using real_type                         = GLubyte;
+  using components_type                            = BGRA;
   static constexpr GLint  internal_format = GL_RGBA8UI;
   static constexpr GLenum format          = GL_BGRA;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -71,8 +70,8 @@ struct settings<GLubyte, BGRA> {
 //------------------------------------------------------------------------------
 template <>
 struct settings<GLbyte, R> {
-  using real_type                            = GLbyte;
-  using comp_t                            = R;
+  using real_type                         = GLbyte;
+  using components_type                            = R;
   static constexpr GLint  internal_format = GL_R8I;
   static constexpr GLenum format          = GL_RED;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -80,8 +79,8 @@ struct settings<GLbyte, R> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLbyte, RG> {
-  using real_type                            = GLbyte;
-  using comp_t                            = RG;
+  using real_type                         = GLbyte;
+  using components_type                            = RG;
   static constexpr GLint  internal_format = GL_RG8I;
   static constexpr GLenum format          = GL_RG;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -89,8 +88,8 @@ struct settings<GLbyte, RG> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLbyte, RGB> {
-  using real_type                            = GLbyte;
-  using comp_t                            = RGB;
+  using real_type                         = GLbyte;
+  using components_type                            = RGB;
   static constexpr GLint  internal_format = GL_RGB8I;
   static constexpr GLenum format          = GL_RGB;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -98,8 +97,8 @@ struct settings<GLbyte, RGB> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLbyte, RGBA> {
-  using real_type                            = GLbyte;
-  using comp_t                            = RGBA;
+  using real_type                         = GLbyte;
+  using components_type                            = RGBA;
   static constexpr GLint  internal_format = GL_RGBA8I;
   static constexpr GLenum format          = GL_RGBA;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -107,8 +106,8 @@ struct settings<GLbyte, RGBA> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLbyte, BGR> {
-  using real_type                            = GLbyte;
-  using comp_t                            = BGR;
+  using real_type                         = GLbyte;
+  using components_type                            = BGR;
   static constexpr GLint  internal_format = GL_RGB8I;
   static constexpr GLenum format          = GL_BGR;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -116,8 +115,8 @@ struct settings<GLbyte, BGR> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLbyte, BGRA> {
-  using real_type                            = GLbyte;
-  using comp_t                            = BGRA;
+  using real_type                         = GLbyte;
+  using components_type                            = BGRA;
   static constexpr GLint  internal_format = GL_RGBA8I;
   static constexpr GLenum format          = GL_BGRA;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -126,8 +125,8 @@ struct settings<GLbyte, BGRA> {
 // GLushort
 template <>
 struct settings<GLushort, R> {
-  using real_type                            = GLushort;
-  using comp_t                            = R;
+  using real_type                         = GLushort;
+  using components_type                            = R;
   static constexpr GLint  internal_format = GL_R16UI;
   static constexpr GLenum format          = GL_RED;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -135,8 +134,8 @@ struct settings<GLushort, R> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLushort, RG> {
-  using real_type                            = GLushort;
-  using comp_t                            = RG;
+  using real_type                         = GLushort;
+  using components_type                            = RG;
   static constexpr GLint  internal_format = GL_RG16UI;
   static constexpr GLenum format          = GL_RG;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -144,8 +143,8 @@ struct settings<GLushort, RG> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLushort, RGB> {
-  using real_type                            = GLushort;
-  using comp_t                            = RGB;
+  using real_type                         = GLushort;
+  using components_type                            = RGB;
   static constexpr GLint  internal_format = GL_RGB16UI;
   static constexpr GLenum format          = GL_RGB;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -153,8 +152,8 @@ struct settings<GLushort, RGB> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLushort, RGBA> {
-  using real_type                            = GLushort;
-  using comp_t                            = RGBA;
+  using real_type                         = GLushort;
+  using components_type                            = RGBA;
   static constexpr GLint  internal_format = GL_RGBA16UI;
   static constexpr GLenum format          = GL_RGBA;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -162,8 +161,8 @@ struct settings<GLushort, RGBA> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLushort, BGR> {
-  using real_type                            = GLushort;
-  using comp_t                            = BGR;
+  using real_type                         = GLushort;
+  using components_type                            = BGR;
   static constexpr GLint  internal_format = GL_RGB16UI;
   static constexpr GLenum format          = GL_BGR;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -171,8 +170,8 @@ struct settings<GLushort, BGR> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLushort, BGRA> {
-  using real_type                            = GLushort;
-  using comp_t                            = BGRA;
+  using real_type                         = GLushort;
+  using components_type                            = BGRA;
   static constexpr GLint  internal_format = GL_RGBA16UI;
   static constexpr GLenum format          = GL_BGRA;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -182,8 +181,8 @@ struct settings<GLushort, BGRA> {
 //------------------------------------------------------------------------------
 template <>
 struct settings<GLshort, R> {
-  using real_type                            = GLshort;
-  using comp_t                            = R;
+  using real_type                         = GLshort;
+  using components_type                            = R;
   static constexpr GLint  internal_format = GL_R16I;
   static constexpr GLenum format          = GL_RED;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -191,8 +190,8 @@ struct settings<GLshort, R> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLshort, RG> {
-  using real_type                            = GLshort;
-  using comp_t                            = RG;
+  using real_type                         = GLshort;
+  using components_type                            = RG;
   static constexpr GLint  internal_format = GL_RG16I;
   static constexpr GLenum format          = GL_RG;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -200,8 +199,8 @@ struct settings<GLshort, RG> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLshort, RGB> {
-  using real_type                            = GLshort;
-  using comp_t                            = RGB;
+  using real_type                         = GLshort;
+  using components_type                            = RGB;
   static constexpr GLint  internal_format = GL_RGB16I;
   static constexpr GLenum format          = GL_RGB;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -209,8 +208,8 @@ struct settings<GLshort, RGB> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLshort, RGBA> {
-  using real_type                            = GLshort;
-  using comp_t                            = RGBA;
+  using real_type                         = GLshort;
+  using components_type                            = RGBA;
   static constexpr GLint  internal_format = GL_RGBA16I;
   static constexpr GLenum format          = GL_RGBA;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -218,8 +217,8 @@ struct settings<GLshort, RGBA> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLshort, BGR> {
-  using real_type                            = GLshort;
-  using comp_t                            = BGR;
+  using real_type                         = GLshort;
+  using components_type                            = BGR;
   static constexpr GLint  internal_format = GL_RGB16I;
   static constexpr GLenum format          = GL_BGR;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -227,8 +226,8 @@ struct settings<GLshort, BGR> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLshort, BGRA> {
-  using real_type                            = GLshort;
-  using comp_t                            = BGRA;
+  using real_type                         = GLshort;
+  using components_type                            = BGRA;
   static constexpr GLint  internal_format = GL_RGBA16I;
   static constexpr GLenum format          = GL_BGRA;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -238,8 +237,8 @@ struct settings<GLshort, BGRA> {
 //------------------------------------------------------------------------------
 template <>
 struct settings<GLuint, R> {
-  using real_type                            = GLuint;
-  using comp_t                            = R;
+  using real_type                         = GLuint;
+  using components_type                            = R;
   static constexpr GLint  internal_format = GL_R32UI;
   static constexpr GLenum format          = GL_RED_INTEGER;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -247,8 +246,8 @@ struct settings<GLuint, R> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLuint, RG> {
-  using real_type                            = GLuint;
-  using comp_t                            = RG;
+  using real_type                         = GLuint;
+  using components_type                            = RG;
   static constexpr GLint  internal_format = GL_RG32UI;
   static constexpr GLenum format          = GL_RG_INTEGER;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -256,8 +255,8 @@ struct settings<GLuint, RG> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLuint, RGB> {
-  using real_type                            = GLuint;
-  using comp_t                            = RGB;
+  using real_type                         = GLuint;
+  using components_type                            = RGB;
   static constexpr GLint  internal_format = GL_RGB32UI;
   static constexpr GLenum format          = GL_RGB_INTEGER;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -265,8 +264,8 @@ struct settings<GLuint, RGB> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLuint, RGBA> {
-  using real_type                            = GLuint;
-  using comp_t                            = RGBA;
+  using real_type                         = GLuint;
+  using components_type                            = RGBA;
   static constexpr GLint  internal_format = GL_RGBA32UI;
   static constexpr GLenum format          = GL_RGBA_INTEGER;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -274,8 +273,8 @@ struct settings<GLuint, RGBA> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLuint, BGR> {
-  using real_type                            = GLuint;
-  using comp_t                            = BGR;
+  using real_type                         = GLuint;
+  using components_type                            = BGR;
   static constexpr GLint  internal_format = GL_RGB32UI;
   static constexpr GLenum format          = GL_BGR_INTEGER;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -283,8 +282,8 @@ struct settings<GLuint, BGR> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLuint, BGRA> {
-  using real_type                            = GLuint;
-  using comp_t                            = BGRA;
+  using real_type                         = GLuint;
+  using components_type                            = BGRA;
   static constexpr GLint  internal_format = GL_RGBA32UI;
   static constexpr GLenum format          = GL_BGRA_INTEGER;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -294,8 +293,8 @@ struct settings<GLuint, BGRA> {
 //------------------------------------------------------------------------------
 template <>
 struct settings<GLint, R> {
-  using real_type                            = GLint;
-  using comp_t                            = R;
+  using real_type                         = GLint;
+  using components_type                            = R;
   static constexpr GLint  internal_format = GL_R32I;
   static constexpr GLenum format          = GL_RED_INTEGER;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -303,8 +302,8 @@ struct settings<GLint, R> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLint, RG> {
-  using real_type                            = GLint;
-  using comp_t                            = RG;
+  using real_type                         = GLint;
+  using components_type                            = RG;
   static constexpr GLint  internal_format = GL_RG32I;
   static constexpr GLenum format          = GL_RG_INTEGER;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -312,8 +311,8 @@ struct settings<GLint, RG> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLint, RGB> {
-  using real_type                            = GLint;
-  using comp_t                            = RGB;
+  using real_type                         = GLint;
+  using components_type                            = RGB;
   static constexpr GLint  internal_format = GL_RGB32I;
   static constexpr GLenum format          = GL_RGB_INTEGER;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -321,8 +320,8 @@ struct settings<GLint, RGB> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLint, RGBA> {
-  using real_type                            = GLint;
-  using comp_t                            = RGBA;
+  using real_type                         = GLint;
+  using components_type                            = RGBA;
   static constexpr GLint  internal_format = GL_RGBA32I;
   static constexpr GLenum format          = GL_RGBA_INTEGER;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -330,8 +329,8 @@ struct settings<GLint, RGBA> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLint, BGR> {
-  using real_type                            = GLint;
-  using comp_t                            = BGR;
+  using real_type                         = GLint;
+  using components_type                            = BGR;
   static constexpr GLint  internal_format = GL_RGB32I;
   static constexpr GLenum format          = GL_BGR_INTEGER;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -339,8 +338,8 @@ struct settings<GLint, BGR> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLint, BGRA> {
-  using real_type                            = GLint;
-  using comp_t                            = BGRA;
+  using real_type                         = GLint;
+  using components_type                            = BGRA;
   static constexpr GLint  internal_format = GL_RGBA32I;
   static constexpr GLenum format          = GL_BGRA_INTEGER;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -350,8 +349,8 @@ struct settings<GLint, BGRA> {
 //------------------------------------------------------------------------------
 template <>
 struct settings<gl_half, R> {
-  using real_type                            = GLhalf;
-  using comp_t                            = R;
+  using real_type                         = GLhalf;
+  using components_type                            = R;
   static constexpr GLint  internal_format = GL_R16F;
   static constexpr GLenum format          = GL_RED;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -359,8 +358,8 @@ struct settings<gl_half, R> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<gl_half, RG> {
-  using real_type                            = GLhalf;
-  using comp_t                            = RG;
+  using real_type                         = GLhalf;
+  using components_type                            = RG;
   static constexpr GLint  internal_format = GL_RG16F;
   static constexpr GLenum format          = GL_RG;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -368,8 +367,8 @@ struct settings<gl_half, RG> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<gl_half, RGB> {
-  using real_type                            = GLhalf;
-  using comp_t                            = RGB;
+  using real_type                         = GLhalf;
+  using components_type                            = RGB;
   static constexpr GLint  internal_format = GL_RGB16F;
   static constexpr GLenum format          = GL_RGB;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -377,8 +376,8 @@ struct settings<gl_half, RGB> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<gl_half, RGBA> {
-  using real_type                            = GLhalf;
-  using comp_t                            = RGBA;
+  using real_type                         = GLhalf;
+  using components_type                            = RGBA;
   static constexpr GLint  internal_format = GL_RGBA16F;
   static constexpr GLenum format          = GL_RGBA;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -386,8 +385,8 @@ struct settings<gl_half, RGBA> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<gl_half, BGR> {
-  using real_type                            = GLhalf;
-  using comp_t                            = BGR;
+  using real_type                         = GLhalf;
+  using components_type                            = BGR;
   static constexpr GLint  internal_format = GL_RGB16F;
   static constexpr GLenum format          = GL_BGR;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -395,8 +394,8 @@ struct settings<gl_half, BGR> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<gl_half, BGRA> {
-  using real_type                            = GLhalf;
-  using comp_t                            = BGRA;
+  using real_type                         = GLhalf;
+  using components_type                            = BGRA;
   static constexpr GLint  internal_format = GL_RGBA16F;
   static constexpr GLenum format          = GL_BGRA;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -405,8 +404,8 @@ struct settings<gl_half, BGRA> {
 // GLfloat
 template <>
 struct settings<GLfloat, R> {
-  using real_type                            = GLfloat;
-  using comp_t                            = R;
+  using real_type                         = GLfloat;
+  using components_type                            = R;
   static constexpr GLint  internal_format = GL_R32F;
   static constexpr GLenum format          = GL_RED;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -414,8 +413,8 @@ struct settings<GLfloat, R> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLfloat, RG> {
-  using real_type                            = GLfloat;
-  using comp_t                            = RG;
+  using real_type                         = GLfloat;
+  using components_type                            = RG;
   static constexpr GLint  internal_format = GL_RG32F;
   static constexpr GLenum format          = GL_RG;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -423,8 +422,8 @@ struct settings<GLfloat, RG> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLfloat, RGB> {
-  using real_type                            = GLfloat;
-  using comp_t                            = RGB;
+  using real_type                         = GLfloat;
+  using components_type                            = RGB;
   static constexpr GLint  internal_format = GL_RGB32F;
   static constexpr GLenum format          = GL_RGB;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -432,8 +431,8 @@ struct settings<GLfloat, RGB> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLfloat, RGBA> {
-  using real_type                            = GLfloat;
-  using comp_t                            = RGBA;
+  using real_type                         = GLfloat;
+  using components_type                            = RGBA;
   static constexpr GLint  internal_format = GL_RGBA32F;
   static constexpr GLenum format          = GL_RGBA;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -441,8 +440,8 @@ struct settings<GLfloat, RGBA> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLfloat, BGR> {
-  using real_type                            = GLfloat;
-  using comp_t                            = BGR;
+  using real_type                         = GLfloat;
+  using components_type                            = BGR;
   static constexpr GLint  internal_format = GL_RGB32F;
   static constexpr GLenum format          = GL_BGR;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -450,8 +449,8 @@ struct settings<GLfloat, BGR> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLfloat, BGRA> {
-  using real_type                            = GLfloat;
-  using comp_t                            = BGRA;
+  using real_type                         = GLfloat;
+  using components_type                            = BGRA;
   static constexpr GLint  internal_format = GL_RGBA32F;
   static constexpr GLenum format          = GL_BGRA;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -460,8 +459,8 @@ struct settings<GLfloat, BGRA> {
 // Depth
 template <>
 struct settings<GLushort, Depth> {
-  using real_type                            = GLushort;
-  using comp_t                            = Depth;
+  using real_type                         = GLushort;
+  using components_type                            = Depth;
   static constexpr GLint  internal_format = GL_DEPTH_COMPONENT16;
   static constexpr GLenum format          = GL_DEPTH_COMPONENT;
   static constexpr GLenum type            = gl_type_v<real_type>;
@@ -469,18 +468,18 @@ struct settings<GLushort, Depth> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLuint, Depth> {
-  using real_type                            = GLint;
-  using comp_t                            = Depth;
+  using real_type                         = GLint;
+  using components_type                            = Depth;
   static constexpr GLint  internal_format = GL_DEPTH_COMPONENT32;
   static constexpr GLenum format          = GL_DEPTH_COMPONENT;
   static constexpr GLenum type            = gl_type_v<real_type>;
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-struct depth24{};
+struct depth24 {};
 template <>
 struct settings<depth24, Depth> {
-  using real_type                            = depth24;
-  using comp_t                            = Depth;
+  using real_type                         = depth24;
+  using components_type                            = Depth;
   static constexpr GLint  internal_format = GL_DEPTH_COMPONENT24;
   static constexpr GLenum format          = GL_DEPTH_COMPONENT;
   static constexpr GLenum type            = GL_UNSIGNED_BYTE;
@@ -488,8 +487,8 @@ struct settings<depth24, Depth> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct settings<GLfloat, Depth> {
-  using real_type                            = GLint;
-  using comp_t                            = Depth;
+  using real_type                         = GLint;
+  using components_type                            = Depth;
   static constexpr GLint  internal_format = GL_DEPTH_COMPONENT32F;
   static constexpr GLenum format          = GL_DEPTH_COMPONENT;
   static constexpr GLenum type            = gl_type_v<real_type>;

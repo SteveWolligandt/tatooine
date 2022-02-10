@@ -73,6 +73,7 @@ DLL_API auto bound_texture(GLenum binding) -> GLuint;
 DLL_API auto bound_texture1d() -> GLuint;
 DLL_API auto bound_texture2d() -> GLuint;
 DLL_API auto bound_texture3d() -> GLuint;
+DLL_API auto max_texture_image_units() -> GLuint;
 //==============================================================================
 DLL_API auto max_compute_shared_memory_size() -> GLint;
 DLL_API auto barrier() -> void;

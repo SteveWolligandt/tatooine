@@ -22,7 +22,7 @@ struct staggered_flowmap_discretization {
                                    arithmetic auto const delta_t,
                                    InternalFlowmapArgs&&... args) {
     auto const t1     = t0 + tau;
-    auto cur_t0 = t0;
+    real_type cur_t0 = t0;
     while (std::abs(cur_t0 - (t0 + tau)) > 1e-10) {
       auto cur_tau = delta_t;
       if (cur_t0 + cur_tau > t1) {
