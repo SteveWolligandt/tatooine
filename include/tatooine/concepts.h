@@ -11,6 +11,12 @@ namespace tatooine {
 //==============================================================================
 // typedefs
 //==============================================================================
+template <typename T0, typename T1>
+concept same_as = std::same_as<T0, T1>;
+//------------------------------------------------------------------------------
+template <typename T, typename... Ts>
+concept either_of = (same_as<T, Ts> || ...);
+//------------------------------------------------------------------------------
 template <typename T>
 concept integral = std::integral<T>;
 //------------------------------------------------------------------------------
@@ -111,7 +117,11 @@ concept floating_point_range =
 //------------------------------------------------------------------------------
 template <typename T, typename S>
 concept range_of =
-    range<T> && std::same_as<std::ranges::range_value_t<T>, S>;
+    range<T> && same_as<std::ranges::range_value_t<T>, S>;
+//------------------------------------------------------------------------------
+template <typename T, typename... Ss>
+concept range_of_either =
+    range<T> && either_of<std::ranges::range_value_t<T>, Ss...>;
 //==============================================================================
 // indexable
 //==============================================================================

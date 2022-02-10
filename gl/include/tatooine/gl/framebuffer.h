@@ -18,7 +18,7 @@ class framebuffer : public id_holder<GLuint> {
     unsigned int i = 0;
     // attach textures one after another, incrementing i if texture is a color
     // texture
-    (void)std::array{(is_depth_component<typename Textures::components>::value
+    (void)std::array{(texture_depth_component<typename Textures::components>
                           ? attach(textures)
                           : attach(textures, i++))...};
 
@@ -28,7 +28,7 @@ class framebuffer : public id_holder<GLuint> {
       using TA         = decltype(tex);
       using Texture    = typename std::decay_t<TA>;
       using Components = typename Texture::components;
-      if constexpr (is_color_component<Components>::value) {
+      if constexpr (texture_color_component<Components>) {
         colbufs[j] = GL_COLOR_ATTACHMENT0 + j;
         return GL_COLOR_ATTACHMENT0 + j++;
       }
@@ -59,7 +59,7 @@ class framebuffer : public id_holder<GLuint> {
  private:
   template <typename... Cs>
   static constexpr auto num_color_components() {
-    return sum((is_color_component<Cs>::value ? 1 : 0)...);
+    return sum((texture_color_component<Cs> ? 1 : 0)...);
   }
   //============================================================================
   template <typename... Ts>

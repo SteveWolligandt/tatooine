@@ -4,7 +4,9 @@
 #include <tatooine/rendering/interactive/shaders.h>
 #include <tatooine/autonomous_particle_flowmap_discretization.h>
 #include <tatooine/agranovsky_flowmap_discretization.h>
+//==============================================================================
 using namespace tatooine;
+//==============================================================================
 struct vis {
   using pass_through =
       rendering::interactive::shaders::colored_pass_through_2d_without_matrices;
@@ -129,38 +131,35 @@ struct vis {
   //----------------------------------------------------------------------------
  private:
   //----------------------------------------------------------------------------
-  vec2d                                    cursor_pos;
-  vec2d                                    current_point;
-  std::vector<bool>                        hovered;
-  int                                      point_size = 20;
-  rendering::orthographic_camera<GLfloat>  cam;
-  std::vector<autonomous_particle2> const& advected_particles;
-  std::vector<vec2>                        locals;
-  gl::indexeddata<Vec2<GLfloat>, int>      locals_gpu;
-  bool                                     mouse_down = false;
-  std::vector<std::size_t>                 hovered_indices;
+  vec2d                                                  cursor_pos;
+  vec2d                                                  current_point;
+  std::vector<bool>                                      hovered;
+  int                                                    point_size = 20;
+  rendering::orthographic_camera<GLfloat>                cam;
+  std::vector<autonomous_particle2::sampler_type> const& samplers;
+  std::vector<vec2>                                      locals;
+  gl::indexeddata<Vec2<GLfloat>, int>                    locals_gpu;
+  bool                                                   mouse_down = false;
+  std::vector<std::size_t>                               hovered_indices;
   // static auto constexpr minimap_range = 10;
   static auto constexpr minimap_range = 0.25;
 
   //----------------------------------------------------------------------------
  public:
   //----------------------------------------------------------------------------
-  vis(auto const& advected_particles)
-      : hovered(size(advected_particles), false),
+  vis(auto const& samplers)
+      : hovered(size(samplers), false),
         cam{Vec3<GLfloat>{0, 0, 0},
             Vec3<GLfloat>{0, 0, -1},
-            -minimap_range,
-            minimap_range,
-            -minimap_range,
-            minimap_range,
-            -1,
-            1,
+            -minimap_range, minimap_range,
+            -minimap_range, minimap_range,
+            -1, 1,
             Vec4<std::size_t>{10, 10, 500, 500}},
-        advected_particles{advected_particles},
-        locals(size(advected_particles), vec2::zeros()) {
-    locals_gpu.vertexbuffer().resize(size(advected_particles));
-    locals_gpu.indexbuffer().resize(size(advected_particles));
-    for (std::size_t i = 0; i < size(advected_particles); ++i) {
+        samplers{samplers},
+        locals(size(samplers), vec2::zeros()) {
+    locals_gpu.vertexbuffer().resize(size(samplers));
+    locals_gpu.indexbuffer().resize(size(samplers));
+    for (std::size_t i = 0; i < size(samplers); ++i) {
       locals_gpu.indexbuffer()[i] = i;
     }
   }
@@ -198,8 +197,8 @@ struct vis {
         ellipse_shader.set_model_view_matrix(
             cam.view_matrix() *
             rendering::interactive::renderer<geometry::ellipse<double>>::
-                construct_model_matrix(advected_particles[i].S(),
-                                       advected_particles[i].center()));
+                construct_model_matrix(samplers[i].ellipse1().S(),
+                                       samplers[i].ellipse1().center()));
         ellipse_geometry.draw_line_loop();
       }
     }
@@ -269,8 +268,7 @@ struct vis {
 
     auto i   = std::size_t{};
     auto map = locals_gpu.vertexbuffer().wmap();
-    for (auto const& p : advected_particles) {
-      auto s    = p.sampler();
+    for (auto const& s : samplers) {
       locals[i] = s.nabla_phi_inv() * (current_point - s.ellipse1().center());
       // locals[i] = *inv(s.ellipse1().S()) * (current_point -
       // s.ellipse1().center());
@@ -290,7 +288,7 @@ struct vis {
       auto const proj  = this->cam.project(vec2f{locals[i]}).xy();
       auto const proj2 = vec2{cam.unproject(vec2f{cursor_pos}).xy()};
       hovered[i]       = euclidean_distance(proj, cursor_pos) < 10 ||
-                   advected_particles[i].is_inside(proj2);
+                   samplers[i].ellipse1().is_inside(proj2);
       locals_gpu.vertexbuffer()[i] = {vec2f{locals[i]}, hovered[i] ? 1 : 0};
     }
   }
@@ -307,19 +305,29 @@ struct vis {
     }
   }
 };
-//------------------------------------------------------------------------------
+//==============================================================================
 auto main() -> int {
-  auto g = rectilinear_grid{linspace{-1.0, 1.0, 1001}, linspace{-1.0, 1.0, 1001}};
+  auto g =
+      rectilinear_grid{linspace{-1.0, 1.0, 101}, linspace{-1.0, 1.0, 101}};
+  auto& flowmap_numerical_backward_prop =
+      g.vec2_vertex_property("flowmap_numerical_backward");
   auto& flowmap_autonomous_particles_backward_prop =
       g.vec2_vertex_property("flowmap_autonomous_particles_backward");
   auto& flowmap_agranovsky_backward_prop =
       g.vec2_vertex_property("flowmap_agranovksy_backward");
+  auto& flowmap_error_autonomous_particles_backward_prop =
+      g.scalar_vertex_property("flowmap_error_autonomous_particles_backward");
+  auto& flowmap_error_agranovksy_backward_prop =
+      g.scalar_vertex_property("flowmap_error_agranovksy_backward");
+  auto& flowmap_error_diff_backward_prop =
+      g.scalar_vertex_property("flowmap_error_diff_backward");
   auto s  = analytical::fields::numerical::saddle{};
   discretize(s, g, "velocity_saddle", execution_policy::parallel);
   auto phi = flowmap(s);
 
   auto const t0                = 0;
   auto const t_end             = 1;
+  auto const tau               = t_end - t0;
   auto       uuid_generator    = std::atomic_uint64_t{};
   auto constexpr cos           = gcem::cos(M_PI / 4);
   auto constexpr sin           = gcem::sin(M_PI / 4);
@@ -342,28 +350,51 @@ auto main() -> int {
       static_cast<std::size_t>(std::ceil(
           std::sqrt((num_particles_after_advection) / num_agranovksy_steps)));
   auto const regularized_width_agranovksky = regularized_height_agranovksky;
+  std::cout << "num_particles_after_advection: " << num_particles_after_advection << '\n';
+  std::cout << "num_agranovksy_steps: " << num_agranovksy_steps << '\n';
+  std::cout << "regularized_width_agranovksky: " << regularized_width_agranovksky << '\n';
+  std::cout << "regularized_height_agranovksky: " << regularized_height_agranovksky << '\n';
   auto flowmap_agranovsky =
       agranovsky_flowmap_discretization2{phi,
                                          t0,
                                          t_end - t0,
                                          agranovsky_delta_t,
-                                         vec2{-2 * r, -2 * r},
-                                         vec2{2 * r, 2 * r},
+                                         vec2{-1, -1},
+                                         vec2{1, 1},
                                          regularized_width_agranovksky,
                                          regularized_height_agranovksky};
-
   g.vertices().iterate_indices(
       [&](auto const... is) {
-        auto       copy_phi = phi;
-        auto const x        = g.vertex_at(is...);
+        auto       copy_phi                    = phi;
+        auto const x                           = g.vertex_at(is...);
+        flowmap_numerical_backward_prop(is...) = copy_phi(x, t_end, tau);
         flowmap_autonomous_particles_backward_prop(is...) =
             flowmap_autonomous_particles.sample_backward(x);
-        flowmap_agranovsky_backward_prop(is...) =
-            flowmap_agranovsky.sample_backward(x);
+        try {
+          flowmap_agranovsky_backward_prop(is...) =
+              flowmap_agranovsky.sample_backward(x);
+        } catch (...) {
+          flowmap_agranovsky_backward_prop(is...) = vec2{0.0 / 0.0, 0.0 / 0.0};
+        }
+        flowmap_error_autonomous_particles_backward_prop(is...) =
+            euclidean_distance(
+                flowmap_numerical_backward_prop(is...),
+                flowmap_autonomous_particles_backward_prop(is...));
+        flowmap_error_agranovksy_backward_prop(is...) =
+            euclidean_distance(flowmap_numerical_backward_prop(is...),
+                               flowmap_agranovsky_backward_prop(is...));
+        flowmap_error_diff_backward_prop(is...) =
+            flowmap_error_agranovksy_backward_prop(is...) -
+            flowmap_error_autonomous_particles_backward_prop(is...);
       },
       execution_policy::parallel);
 
   rendering::interactive::pre_setup();
-  auto m = vis{flowmap_autonomous_particles.advected_particles()};
-  rendering::interactive::render(g, m, initial_particles, advected_particles);
+  auto m = vis{flowmap_autonomous_particles.samplers()};
+  auto advected_particles = std::vector<geometry::ellipse<real_number>>{};
+  std::ranges::copy(
+      flowmap_autonomous_particles.samplers() |
+          std::views::transform([](auto const& s) { return s.ellipse1(); }),
+      std::back_inserter(advected_particles));
+  rendering::interactive::render(initial_particles, advected_particles, m, g);
 }

@@ -1,21 +1,20 @@
 #ifndef TATOOINE_GL_SHADER_H
 #define TATOOINE_GL_SHADER_H
 //==============================================================================
-#include <string>
 #include <array>
-#include <optional>
-
 #include <map>
+#include <optional>
+#include <string>
 #include <type_traits>
 #include <unordered_set>
+
 #include "computeshader.h"
+#include "dllexport.h"
 #include "fragmentshader.h"
 #include "geometryshader.h"
 #include "tesselationcontrolshader.h"
 #include "tesselationevaluationshader.h"
 #include "vertexshader.h"
-#include "dllexport.h"
-
 #include "windowsundefines.h"
 //==============================================================================
 namespace tatooine::gl {
@@ -24,7 +23,9 @@ class shader : public id_holder<GLuint> {
  public:
   shader() = default;
   ~shader() {
-    if (m_delete) { delete_shader(); }
+    if (m_delete) {
+      delete_shader();
+    }
   }
 
   template <typename T, typename... Args>
@@ -35,10 +36,10 @@ class shader : public id_holder<GLuint> {
   DLL_API void create();
   DLL_API void delete_shader();
 
-  DLL_API void         bind() const;
-  DLL_API void         unbind() const;
-  DLL_API void         add_uniform(const std::string& uniformVarName);
-  DLL_API void         add_attribute(const std::string& attributeVarName);
+  DLL_API void  bind() const;
+  DLL_API void  unbind() const;
+  DLL_API void  add_uniform(const std::string& uniformVarName);
+  DLL_API void  add_attribute(const std::string& attributeVarName);
   DLL_API GLint uniform(const std::string& uniformVarName);
   DLL_API GLint attribute(const std::string& attributeVarName);
 
@@ -49,7 +50,8 @@ class shader : public id_holder<GLuint> {
 
   DLL_API void set_uniform(const std::string&, GLfloat, GLfloat);
   DLL_API void set_uniform(const std::string&, GLfloat, GLfloat, GLfloat);
-  DLL_API void set_uniform(const std::string&, GLfloat, GLfloat, GLfloat, GLfloat);
+  DLL_API void set_uniform(const std::string&, GLfloat, GLfloat, GLfloat,
+                           GLfloat);
 
   DLL_API void set_uniform(const std::string&,
                            std::array<GLfloat, 2> const& data);
@@ -60,8 +62,7 @@ class shader : public id_holder<GLuint> {
 
   DLL_API void set_uniform(const std::string&, GLint, GLint);
   DLL_API void set_uniform(const std::string&, GLint, GLint, GLint);
-  DLL_API void set_uniform(const std::string&, GLint, GLint, GLint,
-                           GLint);
+  DLL_API void set_uniform(const std::string&, GLint, GLint, GLint, GLint);
 
   DLL_API void set_uniform(const std::string&,
                            std::array<GLint, 2> const& data);
@@ -72,8 +73,7 @@ class shader : public id_holder<GLuint> {
 
   DLL_API void set_uniform(const std::string&, GLuint, GLuint);
   DLL_API void set_uniform(const std::string&, GLuint, GLuint, GLuint);
-  DLL_API void set_uniform(const std::string&, GLuint, GLuint, GLuint,
-                           GLuint);
+  DLL_API void set_uniform(const std::string&, GLuint, GLuint, GLuint, GLuint);
 
   DLL_API void set_uniform(const std::string&,
                            std::array<GLuint, 2> const& data);
@@ -82,7 +82,7 @@ class shader : public id_holder<GLuint> {
   DLL_API void set_uniform(const std::string&,
                            std::array<GLuint, 4> const& data);
 
-  DLL_API void set_uniform_vec2(const std::string&, GLfloat const *);
+  DLL_API void set_uniform_vec2(const std::string&, GLfloat const*);
   DLL_API void set_uniform_vec2(const std::string&, GLint const*);
   DLL_API void set_uniform_vec2(const std::string&, GLuint const*);
 
@@ -94,9 +94,9 @@ class shader : public id_holder<GLuint> {
   DLL_API void set_uniform_vec4(const std::string&, GLint const*);
   DLL_API void set_uniform_vec4(const std::string&, GLuint const*);
 
-  DLL_API void set_uniform_mat2(const std::string&, GLfloat const *);
-  DLL_API void set_uniform_mat3(const std::string&, GLfloat const *);
-  DLL_API void set_uniform_mat4(const std::string&, GLfloat const *);
+  DLL_API void set_uniform_mat2(const std::string&, GLfloat const*);
+  DLL_API void set_uniform_mat3(const std::string&, GLfloat const*);
+  DLL_API void set_uniform_mat4(const std::string&, GLfloat const*);
 
   DLL_API std::optional<std::string> info_log();
 

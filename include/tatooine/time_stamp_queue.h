@@ -7,7 +7,7 @@
 namespace tatooine {
 //==============================================================================
 template <typename T, typename Timer>
-class time_stamp_queue_comp_t {
+class time_stamp_queue_components_type {
  public:
   auto operator()(std::pair<T, std::chrono::time_point<Timer>> const& lhs,
                   std::pair<T, std::chrono::time_point<Timer>> const& rhs) const
@@ -21,11 +21,11 @@ class time_stamp_queue
     : public std::priority_queue<
           std::pair<T, std::chrono::time_point<Timer>>,
           std::vector<std::pair<T, std::chrono::time_point<Timer>>>,
-          time_stamp_queue_comp_t<T, Timer>> {
+          time_stamp_queue_components_type<T, Timer>> {
   using parent_t = std::priority_queue<
       std::pair<T, std::chrono::time_point<Timer>>,
       std::vector<std::pair<T, std::chrono::time_point<Timer>>>,
-      time_stamp_queue_comp_t<T, Timer>>;
+      time_stamp_queue_components_type<T, Timer>>;
   //============================================================================
  public:
   using parent_t::parent_t;

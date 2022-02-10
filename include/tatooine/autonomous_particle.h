@@ -45,8 +45,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   using pos_type          = vec_t;
   using container_type    = std::vector<this_type>;
   using simple_particle_container_t = std::vector<simple_particle_t>;
-  using ellipse_t   = geometry::hyper_ellipse<Real, NumDimensions>;
-  using parent_type = ellipse_t;
+  using ellipse_type   = geometry::hyper_ellipse<Real, NumDimensions>;
+  using parent_type = ellipse_type;
   using sampler_type =
       detail::autonomous_particle::sampler<Real, NumDimensions>;
   using hierarchy_pair = detail::autonomous_particle::hierarchy_pair;
@@ -87,7 +87,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   explicit autonomous_particle(std::atomic_uint64_t& uuid_generator)
       : autonomous_particle{uuid_generator++} {}
   //----------------------------------------------------------------------------
-  autonomous_particle(ellipse_t const& ell, real_type const t,
+  autonomous_particle(ellipse_type const& ell, real_type const t,
                       std::uint64_t const id)
       : parent_type{ell},
         m_x0{ell.center()},
@@ -95,7 +95,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
         m_nabla_phi{mat_t::eye()},
         m_id{id} {}
   //----------------------------------------------------------------------------
-  autonomous_particle(ellipse_t const& ell, real_type const t,
+  autonomous_particle(ellipse_type const& ell, real_type const t,
                       std::atomic_uint64_t& uuid_generator)
       : autonomous_particle{ell, t, uuid_generator++} {}
   //----------------------------------------------------------------------------
@@ -111,12 +111,12 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
                       std::atomic_uint64_t& uuid_generator)
       : autonomous_particle{x, t, r, uuid_generator++} {}
   //----------------------------------------------------------------------------
-  autonomous_particle(ellipse_t const& ell, real_type const t,
+  autonomous_particle(ellipse_type const& ell, real_type const t,
                       pos_type const& x0, mat_t const& nabla_phi,
                       std::uint64_t const id)
       : parent_type{ell}, m_x0{x0}, m_t{t}, m_nabla_phi{nabla_phi}, m_id{id} {}
   //----------------------------------------------------------------------------
-  autonomous_particle(ellipse_t const& ell, real_type const t,
+  autonomous_particle(ellipse_type const& ell, real_type const t,
                       pos_type const& x0, mat_t const& nabla_phi,
                       std::atomic_uint64_t& uuid_generator)
       : autonomous_particle{ell, t, x0, nabla_phi, uuid_generator++} {}
@@ -145,7 +145,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     return eig_vecs * diag(eig_vals) * transposed(eig_vecs);
   }
   //----------------------------------------------------------------------------
-  auto initial_ellipse() const { return ellipse_t{x0(), S0()}; }
+  auto initial_ellipse() const { return ellipse_type{x0(), S0()}; }
   //----------------------------------------------------------------------------
   auto id() const { return m_id; }
   //============================================================================
@@ -733,7 +733,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
         ghosts_forward, ghosts_backward, prev_ghosts_forward,
         prev_ghosts_backward;
     auto        min_step_size_reached = false;
-    auto        advected_ellipse      = ellipse_t{*this};
+    auto        advected_ellipse      = ellipse_type{*this};
     auto        current_radii         = vec_t{};
     auto        eig_HHt               = std::pair<mat_t, vec_t>{};
     auto        sqr_cond_H            = real_type(1);
@@ -818,7 +818,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
           auto const new_eigvals    = current_radii * split_radii[i];
           auto const offset2        = advected_B * split_offsets[i];
           auto const offset0        = solve(assembled_nabla_phi, offset2);
-          auto       offset_ellipse = ellipse_t{
+          auto       offset_ellipse = ellipse_type{
               advected_ellipse.center() + offset2,
               eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt)};
 

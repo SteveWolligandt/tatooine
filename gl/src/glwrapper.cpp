@@ -244,16 +244,7 @@ GLint max_compute_shared_memory_size() {
   return s;
 }
 //------------------------------------------------------------------------------
-void barrier() {
-  gl::memory_barrier(
-      GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT |
-      GL_UNIFORM_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT |
-      GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_COMMAND_BARRIER_BIT |
-      GL_PIXEL_BUFFER_BARRIER_BIT | GL_TEXTURE_UPDATE_BARRIER_BIT |
-      GL_BUFFER_UPDATE_BARRIER_BIT | GL_FRAMEBUFFER_BARRIER_BIT |
-      GL_TRANSFORM_FEEDBACK_BARRIER_BIT | GL_ATOMIC_COUNTER_BARRIER_BIT |
-      GL_SHADER_STORAGE_BARRIER_BIT);
-}
+void barrier() { gl::memory_barrier(GL_ALL_BARRIER_BITS); }
 //------------------------------------------------------------------------------
 void shader_storage_barrier() {
   gl::memory_barrier(GL_SHADER_STORAGE_BARRIER_BIT);

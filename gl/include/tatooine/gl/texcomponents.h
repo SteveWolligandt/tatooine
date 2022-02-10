@@ -1,7 +1,8 @@
 #ifndef TATOOINE_GL_TEX_COMPONENTS_H
 #define TATOOINE_GL_TEX_COMPONENTS_H
 //==============================================================================
-#include "glincludes.h"
+#include <tatooine/gl/glincludes.h>
+#include <tatooine/concepts.h>
 //==============================================================================
 namespace tatooine::gl {
 //==============================================================================
@@ -27,16 +28,16 @@ struct Depth {
   static constexpr std::size_t num_components = 1;
 };
 //==============================================================================
-template <typename C> struct is_depth_component : std::false_type {};
-template <> struct is_depth_component<Depth> : std::true_type {};
+template <typename T>
+static auto constexpr texture_depth_component = either_of<T, Depth>;
 //------------------------------------------------------------------------------
-template <typename C> struct is_color_component : std::false_type {};
-template <> struct is_color_component<R> : std::true_type {};
-template <> struct is_color_component<RG> : std::true_type {};
-template <> struct is_color_component<RGB> : std::true_type {};
-template <> struct is_color_component<RGBA> : std::true_type {};
-template <> struct is_color_component<BGR> : std::true_type {};
-template <> struct is_color_component<BGRA> : std::true_type {};
+template <typename T>
+static auto constexpr texture_color_component =
+    either_of<T, R, RG, RGB, RGBA, BGR, BGRA>;
+//==============================================================================
+template <typename T>
+concept texture_component =
+    texture_color_component<T> || texture_depth_component<T>;
 //==============================================================================
 }  // namespace tatooine::gl
 //==============================================================================
