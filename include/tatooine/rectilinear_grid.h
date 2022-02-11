@@ -53,10 +53,10 @@ class rectilinear_grid {
 
   // general property types
   using vertex_property_t = detail::rectilinear_grid::vertex_property<this_type>;
-  template <typename ValueType, bool HasNonConstReference>
+  template <typename ValueType, bool HasNonConstReference = false>
   using typed_vertex_property_interface_t =
-      detail::rectilinear_grid::typed_vertex_property_interface<this_type, ValueType,
-                                           HasNonConstReference>;
+      detail::rectilinear_grid::typed_vertex_property_interface<
+          this_type, ValueType, HasNonConstReference>;
   template <typename Container>
   using typed_vertex_property_t =
       detail::rectilinear_grid::typed_vertex_property<

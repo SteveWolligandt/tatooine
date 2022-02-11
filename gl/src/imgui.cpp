@@ -2,56 +2,98 @@
 //==============================================================================
 namespace ImGui {
 //==============================================================================
-bool InputDouble2(const char* label, double v[2], const char* format,
-                  ImGuiInputTextFlags flags) {
+auto ToggleButton(const char* str_id, bool* v) -> bool {
+  auto colors    = ImGui::GetStyle().Colors;
+  auto p         = ImGui::GetCursorScreenPos();
+  auto draw_list = ImGui::GetWindowDrawList();
+
+  auto const  height = ImGui::GetFrameHeight();
+  float const width  = height * 1.55f;
+  float const radius = height * 0.50f;
+
+  ImGui::InvisibleButton(str_id, ImVec2(width, height));
+  auto const clicked = ImGui::IsItemClicked();
+  if (clicked) {
+    *v = !*v;
+  }
+  float t = *v ? 1.0f : 0.0f;
+  auto& gg         = *GImGui;
+  float constexpr anim_speed = 0.085f;
+  if (gg.LastActiveId == gg.CurrentWindow->GetID(
+                             str_id)) {  // && g.LastActiveIdTimer < anim_speed)
+    float const t_anim = ImSaturate(gg.LastActiveIdTimer / anim_speed);
+    t                  = *v ? (t_anim) : (1.0f - t_anim);
+  }
+  if (ImGui::IsItemHovered()) {
+    draw_list->AddRectFilled(
+        p, ImVec2(p.x + width, p.y + height),
+        ImGui::GetColorU32(*v ? colors[ImGuiCol_ButtonActive]
+                              : ImVec4(0.78f, 0.78f, 0.78f, 1.0f)),
+        height * 0.5f);
+  } else {
+    draw_list->AddRectFilled(
+        p, ImVec2(p.x + width, p.y + height),
+        ImGui::GetColorU32(*v ? colors[ImGuiCol_Button]
+                              : ImVec4(0.85f, 0.85f, 0.85f, 1.0f)),
+        height * 0.50f);
+  }
+  draw_list->AddCircleFilled(
+      ImVec2(p.x + radius + t * (width - radius * 2.0f),
+             p.y + radius),
+      radius - 1.5f, IM_COL32(255, 255, 255, 255));
+  return clicked;
+}
+//------------------------------------------------------------------------------
+auto InputDouble2(const char* label, double v[2], const char* format,
+                  ImGuiInputTextFlags flags) -> bool {
   return InputScalarN(label, ImGuiDataType_Double, v, 2, nullptr, nullptr,
                       format, flags);
 }
 //------------------------------------------------------------------------------
-bool InputDouble3(const char* label, double v[3], const char* format,
-                  ImGuiInputTextFlags flags) {
+auto InputDouble3(const char* label, double v[3], const char* format,
+                  ImGuiInputTextFlags flags) -> bool {
   return InputScalarN(label, ImGuiDataType_Double, v, 3, nullptr, nullptr,
                       format, flags);
 }
 //------------------------------------------------------------------------------
-bool InputDouble4(const char* label, double v[4], const char* format,
-                  ImGuiInputTextFlags flags) {
+auto InputDouble4(const char* label, double v[4], const char* format,
+                  ImGuiInputTextFlags flags) -> bool {
   return InputScalarN(label, ImGuiDataType_Double, v, 4, nullptr, nullptr,
                       format, flags);
 }
 //------------------------------------------------------------------------------
-bool DragSizeT(char const* label, size_t* v, size_t v_speed, size_t v_min,
-               size_t v_max) {
+auto DragSizeT(char const* label, size_t* v, size_t v_speed, size_t v_min,
+               size_t v_max) -> bool {
   return DragScalar(label, ImGuiDataTypeTraits<size_t>::value, v, v_speed,
                     &v_min, &v_max, ImGuiDataTypeTraits<size_t>::format);
 }
 //------------------------------------------------------------------------------
-bool DragDouble(const char* label, double* v, double v_speed, double v_min,
-                double v_max, const char* format, float power) {
+auto DragDouble(const char* label, double* v, double v_speed, double v_min,
+                double v_max, const char* format, float power) -> bool {
   return DragScalar(label, ImGuiDataType_Double, v, v_speed, &v_min, &v_max,
                     format, power);
 }
 //------------------------------------------------------------------------------
-bool DragDouble2(const char* label, double v[2], double v_speed, double v_min,
-                 double v_max, const char* format, float power) {
+auto DragDouble2(const char* label, double v[2], double v_speed, double v_min,
+                 double v_max, const char* format, float power) -> bool {
   return DragScalarN(label, ImGuiDataType_Double, v, 2, v_speed, &v_min, &v_max,
                      format, power);
 }
 //------------------------------------------------------------------------------
-bool DragDouble3(const char* label, double v[3], double v_speed, double v_min,
-                 double v_max, const char* format, float power) {
+auto DragDouble3(const char* label, double v[3], double v_speed, double v_min,
+                 double v_max, const char* format, float power) -> bool {
   return DragScalarN(label, ImGuiDataType_Double, v, 3, v_speed, &v_min, &v_max,
                      format, power);
 }
 //------------------------------------------------------------------------------
-bool DragDouble4(const char* label, double v[4], double v_speed, double v_min,
-                 double v_max, const char* format, float power) {
+auto DragDouble4(const char* label, double v[4], double v_speed, double v_min,
+                 double v_max, const char* format, float power) -> bool {
   return DragScalarN(label, ImGuiDataType_Double, v, 4, v_speed, &v_min, &v_max,
                      format, power);
 }
 //------------------------------------------------------------------------------
-bool BufferingBar(const char* label, float value, const ImVec2& size_arg,
-                  const ImU32& bg_col, const ImU32& fg_col) {
+auto BufferingBar(const char* label, float value, const ImVec2& size_arg,
+                  const ImU32& bg_col, const ImU32& fg_col) -> bool {
   ImGuiWindow* window = GetCurrentWindow();
   if (window->SkipItems) return false;
 
@@ -101,8 +143,8 @@ bool BufferingBar(const char* label, float value, const ImVec2& size_arg,
   return true;
 }
 //------------------------------------------------------------------------------
-bool Spinner(const char* label, float radius, int thickness,
-             const ImU32& color) {
+auto Spinner(const char* label, float radius, int thickness,
+             const ImU32& color) -> bool {
   ImGuiWindow* window = GetCurrentWindow();
   if (window->SkipItems) return false;
 
@@ -141,7 +183,7 @@ bool Spinner(const char* label, float radius, int thickness,
   return true;
 }
 //------------------------------------------------------------------------------
-void StdStringNonStdResize(std::string& s, int size) {
+auto StdStringNonStdResize(std::string& s, int size) -> void {
   IM_ASSERT(size >= 0);
   const int oldLength = s.length();
   if (size < oldLength)

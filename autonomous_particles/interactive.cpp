@@ -321,7 +321,7 @@ auto main() -> int {
       g.scalar_vertex_property("flowmap_error_agranovksy_backward");
   auto& flowmap_error_diff_backward_prop =
       g.scalar_vertex_property("flowmap_error_diff_backward");
-  auto s  = analytical::fields::numerical::saddle{};
+  auto s  = analytical::fields::numerical::rotated_saddle{};
   discretize(s, g, "velocity_saddle", execution_policy::parallel);
   auto phi = flowmap(s);
 

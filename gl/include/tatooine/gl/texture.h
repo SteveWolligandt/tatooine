@@ -886,7 +886,6 @@ auto to_2d(tex1<float, C>const & t1, std::size_t const height,
      << "    imageStore(t2, pixel_coords, imageLoad(t1, pixel_coords.x));\n"
      << "  }\n"
      << "}\n";
-  std::cout << ss.str();
   s.add_stage<computeshader>(gl::shadersource{ss.str()});
   s.create();
   s.bind();
