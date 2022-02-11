@@ -307,8 +307,8 @@ struct vis {
 };
 //==============================================================================
 auto main() -> int {
-  auto g =
-      rectilinear_grid{linspace{-1.0, 1.0, 101}, linspace{-1.0, 1.0, 101}};
+  auto uuid_generator = std::atomic_uint64_t{};
+  auto g = rectilinear_grid{linspace{0.0, 2.0, 201}, linspace{0.0, 1.0, 101}};
   auto& flowmap_numerical_backward_prop =
       g.vec2_vertex_property("flowmap_numerical_backward");
   auto& flowmap_autonomous_particles_backward_prop =
@@ -321,80 +321,102 @@ auto main() -> int {
       g.scalar_vertex_property("flowmap_error_agranovksy_backward");
   auto& flowmap_error_diff_backward_prop =
       g.scalar_vertex_property("flowmap_error_diff_backward");
-  auto s  = analytical::fields::numerical::rotated_saddle{};
-  discretize(s, g, "velocity_saddle", execution_policy::parallel);
-  auto phi = flowmap(s);
 
-  auto const t0                = 0;
-  auto const t_end             = 1;
-  auto const tau               = t_end - t0;
-  auto       uuid_generator    = std::atomic_uint64_t{};
-  auto constexpr cos           = gcem::cos(M_PI / 4);
-  auto constexpr sin           = gcem::sin(M_PI / 4);
-  auto const r                 = 0.1;
-  auto const initial_particles = std::vector<autonomous_particle2>{
+  auto const t0    = 0;
+  auto const t_end = 1;
+  auto const tau   = t_end - t0;
+  auto doit = [&](auto const& v, auto const& initial_particles) {
+    discretize(v, g, "velocity", execution_policy::parallel);
+    auto phi = flowmap(v);
+
+
+    auto flowmap_autonomous_particles =
+        autonomous_particle_flowmap_discretization{
+            phi, t_end, 0.01, initial_particles, uuid_generator};
+    //auto const num_particles_after_advection =
+    //    flowmap_autonomous_particles.num_particles();
+    //
+    //auto const agranovsky_delta_t = 0.1;
+    //auto const num_agranovksy_steps =
+    //    static_cast<std::size_t>(std::ceil(agranovsky_delta_t / t_end));
+    //auto const regularized_height_agranovksky =
+    //    static_cast<std::size_t>(std::ceil(
+    //        std::sqrt((num_particles_after_advection) / num_agranovksy_steps)));
+    //auto const regularized_width_agranovksky = regularized_height_agranovksky;
+    //std::cout << "num_particles_after_advection: "
+    //          << num_particles_after_advection << '\n';
+    //std::cout << "num_agranovksy_steps: " << num_agranovksy_steps << '\n';
+    //std::cout << "regularized_width_agranovksky: "
+    //          << regularized_width_agranovksky << '\n';
+    //std::cout << "regularized_height_agranovksky: "
+    //          << regularized_height_agranovksky << '\n';
+    //auto flowmap_agranovsky =
+    //    agranovsky_flowmap_discretization2{phi,
+    //                                       t0,
+    //                                       t_end - t0,
+    //                                       agranovsky_delta_t,
+    //                                       vec2{g.front<0>(), g.front<1>()},
+    //                                       vec2{g.back<0>(), g.back<1>()},
+    //                                       regularized_width_agranovksky,
+    //                                       regularized_height_agranovksky};
+    g.vertices().iterate_indices(
+        [&](auto const... is) {
+          auto       copy_phi                    = phi;
+          auto const x                           = g.vertex_at(is...);
+          flowmap_numerical_backward_prop(is...) = copy_phi(x, t_end, tau);
+          //flowmap_autonomous_particles_backward_prop(is...) =
+          //    flowmap_autonomous_particles.sample_backward(x);
+          //try {
+          //  //flowmap_agranovsky_backward_prop(is...) =
+          //  //    flowmap_agranovsky.sample_backward(x);
+          //} catch (...) {
+          //  flowmap_agranovsky_backward_prop(is...) =
+          //      vec2{0.0 / 0.0, 0.0 / 0.0};
+          //}
+          //flowmap_error_autonomous_particles_backward_prop(is...) =
+          //    euclidean_distance(
+          //        flowmap_numerical_backward_prop(is...),
+          //        flowmap_autonomous_particles_backward_prop(is...));
+          //flowmap_error_agranovksy_backward_prop(is...) =
+          //    euclidean_distance(flowmap_numerical_backward_prop(is...),
+          //                       flowmap_agranovsky_backward_prop(is...));
+          //flowmap_error_diff_backward_prop(is...) =
+          //    flowmap_error_agranovksy_backward_prop(is...) -
+          //    flowmap_error_autonomous_particles_backward_prop(is...);
+        },
+        execution_policy::parallel);
+
+    rendering::interactive::pre_setup();
+    auto m                  = vis{flowmap_autonomous_particles.samplers()};
+    auto advected_particles = std::vector<geometry::ellipse<real_number>>{};
+    std::ranges::copy(
+        flowmap_autonomous_particles.samplers() |
+            std::views::transform([](auto const& s) { return s.ellipse1(); }),
+        std::back_inserter(advected_particles));
+    rendering::interactive::render(initial_particles, advected_particles, /*m,*/ g);
+  };
+
+  auto s             = analytical::fields::numerical::saddle{};
+  auto rs            = analytical::fields::numerical::rotated_saddle{};
+  auto dg            = analytical::fields::numerical::doublegyre{};
+  auto constexpr cos = gcem::cos(M_PI / 4);
+  auto constexpr sin = gcem::sin(M_PI / 4);
+  auto const r       = 0.01;
+  auto const initial_particles_saddle = std::vector<autonomous_particle2>{
       {vec2{cos * r - sin * r, sin * r + cos * r}, t0, r, uuid_generator},
       {vec2{cos * -r - sin * r, sin * -r + cos * r}, t0, r, uuid_generator},
       {vec2{cos * r - sin * -r, sin * r + cos * -r}, t0, r, uuid_generator},
       {vec2{cos * -r - sin * -r, sin * -r + cos * -r}, t0, r, uuid_generator}};
-
-  auto flowmap_autonomous_particles = autonomous_particle_flowmap_discretization{
-      phi, t_end, 0.01, initial_particles, uuid_generator};
-  auto const num_particles_after_advection =
-      flowmap_autonomous_particles.num_particles();
-
-  auto const agranovsky_delta_t = 0.1;
-  auto const num_agranovksy_steps =
-      static_cast<std::size_t>(std::ceil(agranovsky_delta_t / t_end));
-  auto const regularized_height_agranovksky =
-      static_cast<std::size_t>(std::ceil(
-          std::sqrt((num_particles_after_advection) / num_agranovksy_steps)));
-  auto const regularized_width_agranovksky = regularized_height_agranovksky;
-  std::cout << "num_particles_after_advection: " << num_particles_after_advection << '\n';
-  std::cout << "num_agranovksy_steps: " << num_agranovksy_steps << '\n';
-  std::cout << "regularized_width_agranovksky: " << regularized_width_agranovksky << '\n';
-  std::cout << "regularized_height_agranovksky: " << regularized_height_agranovksky << '\n';
-  auto flowmap_agranovsky =
-      agranovsky_flowmap_discretization2{phi,
-                                         t0,
-                                         t_end - t0,
-                                         agranovsky_delta_t,
-                                         vec2{-1, -1},
-                                         vec2{1, 1},
-                                         regularized_width_agranovksky,
-                                         regularized_height_agranovksky};
-  g.vertices().iterate_indices(
-      [&](auto const... is) {
-        auto       copy_phi                    = phi;
-        auto const x                           = g.vertex_at(is...);
-        flowmap_numerical_backward_prop(is...) = copy_phi(x, t_end, tau);
-        flowmap_autonomous_particles_backward_prop(is...) =
-            flowmap_autonomous_particles.sample_backward(x);
-        try {
-          flowmap_agranovsky_backward_prop(is...) =
-              flowmap_agranovsky.sample_backward(x);
-        } catch (...) {
-          flowmap_agranovsky_backward_prop(is...) = vec2{0.0 / 0.0, 0.0 / 0.0};
-        }
-        flowmap_error_autonomous_particles_backward_prop(is...) =
-            euclidean_distance(
-                flowmap_numerical_backward_prop(is...),
-                flowmap_autonomous_particles_backward_prop(is...));
-        flowmap_error_agranovksy_backward_prop(is...) =
-            euclidean_distance(flowmap_numerical_backward_prop(is...),
-                               flowmap_agranovsky_backward_prop(is...));
-        flowmap_error_diff_backward_prop(is...) =
-            flowmap_error_agranovksy_backward_prop(is...) -
-            flowmap_error_autonomous_particles_backward_prop(is...);
-      },
-      execution_policy::parallel);
-
-  rendering::interactive::pre_setup();
-  auto m = vis{flowmap_autonomous_particles.samplers()};
-  auto advected_particles = std::vector<geometry::ellipse<real_number>>{};
-  std::ranges::copy(
-      flowmap_autonomous_particles.samplers() |
-          std::views::transform([](auto const& s) { return s.ellipse1(); }),
-      std::back_inserter(advected_particles));
-  rendering::interactive::render(initial_particles, advected_particles, m, g);
+  auto const initial_particles_dg =
+      // std::vector<autonomous_particle2>{
+      //   {vec2{1 - r, 0.5 - r}, t0, r, uuid_generator},
+      //   {vec2{1 + r, 0.5 - r}, t0, r, uuid_generator},
+      //   {vec2{1 - r, 0.5 + r}, t0, r, uuid_generator},
+      //   {vec2{1 + r, 0.5 + r}, t0, r, uuid_generator}};
+      autonomous_particle2::particles_from_grid(
+          t0,
+          rectilinear_grid{linspace{0.0 + 1e-6, 2.0 - 1e-6, 21},
+                           linspace{0.0 + 1e-6, 1.0 - 1e-6, 11}},
+          uuid_generator);
+  doit(dg, initial_particles_dg);
 }
