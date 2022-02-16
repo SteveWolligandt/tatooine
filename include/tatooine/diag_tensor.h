@@ -39,9 +39,8 @@ struct diag_tensor
     return 0;
   }
   //----------------------------------------------------------------------------
-  template <typename _Tensor = tensor_type,
-            enable_if<std::is_const_v<std::remove_reference_t<_Tensor>>> = true>
-  auto internal_tensor() -> auto& {
+  auto internal_tensor()
+      -> auto& requires(is_const<std::remove_reference_t<tensor_type>>) {
     return m_internal_tensor;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

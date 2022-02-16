@@ -15,24 +15,24 @@
 namespace tatooine::einstein_notation {
 //==============================================================================
 template <std::size_t I>
-struct index {
+struct index_t {
   static auto constexpr get() { return I; }
 };
-using i_t = index<0>;
-using j_t = index<1>;
-using k_t = index<2>;
-using l_t = index<3>;
-using m_t = index<4>;
-using n_t = index<5>;
-using o_t = index<6>;
-using p_t = index<7>;
-using q_t = index<8>;
-using r_t = index<9>;
-using s_t = index<10>;
-using t_t = index<11>;
-using u_t = index<12>;
-using v_t = index<13>;
-using w_t = index<14>;
+using i_t = index_t<0>;
+using j_t = index_t<1>;
+using k_t = index_t<2>;
+using l_t = index_t<3>;
+using m_t = index_t<4>;
+using n_t = index_t<5>;
+using o_t = index_t<6>;
+using p_t = index_t<7>;
+using q_t = index_t<8>;
+using r_t = index_t<9>;
+using s_t = index_t<10>;
+using t_t = index_t<11>;
+using u_t = index_t<12>;
+using v_t = index_t<13>;
+using w_t = index_t<14>;
 
 [[maybe_unused]] static auto constexpr inline i = i_t{};
 [[maybe_unused]] static auto constexpr inline j = j_t{};
@@ -53,9 +53,11 @@ using w_t = index<14>;
 template <typename T>
 struct is_index_impl : std::false_type{};
 template <std::size_t N>
-struct is_index_impl<index<N>> : std::true_type{};
+struct is_index_impl<index_t<N>> : std::true_type{};
 template <typename... Ts>
 static auto constexpr is_index = (is_index_impl<Ts>::value && ...);
+template <typename T>
+concept index = is_index<T>;
 //==============================================================================
 template <typename... IndexedTensors>
 struct contracted_tensor;
@@ -112,18 +114,17 @@ struct indexed_tensor {
     return type_list<Indices...>::template contains<E>;
   }
   //============================================================================
-  template <typename... ContractedTensors, std::size_t... Seq,
-            typename Tensor_                                       = Tensor,
-            enable_if<!is_const<std::remove_reference_t<Tensor_>>> = true>
+  template <typename... ContractedTensors, std::size_t... Seq>
+  requires (!is_const<std::remove_reference_t<Tensor>>)
   auto assign(added_contracted_tensor<ContractedTensors...> other,
-              std::index_sequence<Seq...>/*seq*/) {
+      std::index_sequence<Seq...> /*seq*/) {
     ([&] { *this += other.template at<Seq>(); }(), ...);
   }
   //----------------------------------------------------------------------------
   template <typename... IndexedTensors, std::size_t... FreeIndexSequence,
             std::size_t... ContractedIndexSequence,
-            std::size_t... ContractedTensorsSequence, typename Tensor_ = Tensor,
-            enable_if<!is_const<std::remove_reference_t<Tensor_>>> = true>
+            std::size_t... ContractedTensorsSequence>
+  requires (!is_const<std::remove_reference_t<Tensor>>)
   auto add(contracted_tensor<IndexedTensors...> other,
            std::index_sequence<FreeIndexSequence...> /*seq*/,
            std::index_sequence<ContractedIndexSequence...> /*seq*/,
@@ -216,8 +217,8 @@ struct indexed_tensor {
         tensor_type::dimension(FreeIndexSequence)...);
   }
   //----------------------------------------------------------------------------
-  template <typename... IndexedTensors, typename Tensor_ = Tensor,
-            enable_if<!is_const<std::remove_reference_t<Tensor_>>> = true>
+  template <typename... IndexedTensors>
+  requires (!is_const<std::remove_reference_t<Tensor>>)
   auto operator+=(contracted_tensor<IndexedTensors...> other)
       -> indexed_tensor& {
     add(other, std::make_index_sequence<rank()>{},
@@ -227,8 +228,8 @@ struct indexed_tensor {
     return *this;
   }
   //----------------------------------------------------------------------------
-  template <typename... IndexedTensors, typename Tensor_ = Tensor,
-            enable_if<!is_const<std::remove_reference_t<Tensor_>>> = true>
+  template <typename... IndexedTensors>
+  requires (!is_const<std::remove_reference_t<Tensor>>)
   auto assign(contracted_tensor<IndexedTensors...> other) {
     m_tensor = tensor_type{tag::fill{0}};
     add(other, std::make_index_sequence<rank()>{},
@@ -237,16 +238,16 @@ struct indexed_tensor {
         std::make_index_sequence<sizeof...(IndexedTensors)>{});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... IndexedTensors, typename Tensor_ = Tensor,
-            enable_if<!is_const<std::remove_reference_t<Tensor_>>> = true>
+  template <typename... IndexedTensors>
+  requires (!is_const<std::remove_reference_t<Tensor>>)
   auto operator=(contracted_tensor<IndexedTensors...> other)
       -> indexed_tensor& {
     assign(other);
     return *this;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... ContractedTensors, typename Tensor_ = Tensor,
-            enable_if<!is_const<std::remove_reference_t<Tensor_>>> = true>
+  template <typename... ContractedTensors>
+  requires (!is_const<std::remove_reference_t<Tensor>>)
   auto operator=(added_contracted_tensor<ContractedTensors...> other)
       -> indexed_tensor& {
     m_tensor = tensor_type{tag::fill{0}};
@@ -254,8 +255,8 @@ struct indexed_tensor {
     return *this;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename Tensors, typename... Is, typename Tensor_ = Tensor,
-            enable_if<!is_const<std::remove_reference_t<Tensor_>>> = true>
+  template <typename Tensors, typename... Is>
+  requires (!is_const<std::remove_reference_t<Tensor>>)
   auto operator=(indexed_tensor<Tensors, Is...> other) -> indexed_tensor& {
     m_tensor = tensor_type{tag::fill{0}};
     *this += contracted_tensor{other};
@@ -263,9 +264,7 @@ struct indexed_tensor {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// A(i,k) = B(i,j) * C(j, k)
-  template <typename LHS, typename RHS, typename I, typename J,typename K,
-            size_t ThisRank                         = rank(),
-            enable_if<ThisRank == rank(), ThisRank> = true>
+  template <typename LHS, typename RHS, typename I, typename J,typename K>
   auto operator=(
       contracted_tensor<indexed_tensor<LHS, I, J>,
                         indexed_tensor<RHS, J, K>>
@@ -297,9 +296,9 @@ struct indexed_tensors_to_index_list_impl<type_list<AccumulatedIndices...>,
 //------------------------------------------------------------------------------
 template <typename... AccumulatedIndices, size_t I, typename... Ts>
 struct indexed_tensors_to_index_list_impl<type_list<AccumulatedIndices...>,
-                                          index<I>, Ts...> {
+                                          index_t<I>, Ts...> {
   using type = typename indexed_tensors_to_index_list_impl<
-      type_list<AccumulatedIndices..., index<I>>, Ts...>::type;
+      type_list<AccumulatedIndices..., index_t<I>>, Ts...>::type;
 };
 //------------------------------------------------------------------------------
 template <typename... AccumulatedIndices>
@@ -436,9 +435,8 @@ struct contracted_tensor {
   }
 
   template <std::size_t... ContractedIndexSequence,
-            std::size_t... ContractedTensorsSequence,
-            bool free_indices_empty       = free_indices::empty,
-            enable_if<free_indices_empty> = true>
+            std::size_t... ContractedTensorsSequence>
+  requires free_indices::empty
   auto to_scalar(
       std::index_sequence<ContractedIndexSequence...> /*seq*/,
       std::index_sequence<ContractedTensorsSequence...> /*seq*/) const {

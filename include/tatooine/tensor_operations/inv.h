@@ -6,7 +6,7 @@ namespace tatooine {
 /// invert symmetric matrix
 /// A = [a,b]
 ///     [b,c]
-template <typename Tensor, typename Real, enable_if_floating_point<Real> = true>
+template <typename Tensor, floating_point Real>
 constexpr auto inv_sym(base_tensor<Tensor, Real, 2, 2> const& A)
     -> std::optional<mat<Real, 2, 2>> {
   decltype(auto) a   = A(0, 0);

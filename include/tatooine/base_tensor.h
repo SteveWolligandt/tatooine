@@ -102,16 +102,14 @@ struct base_tensor : crtp<Tensor> {
         [this, &other](auto const... is) { this->at(is...) = other(is...); });
   }
   //----------------------------------------------------------------------------
-  template <typename... Is,
-            enable_if<einstein_notation::is_index<Is...>> = true>
+  template <einstein_notation::index... Is>
   auto constexpr at(Is const... /*is*/) {
     static_assert(sizeof...(Is) == rank(),
                   "number of indices does not match rank");
     return einstein_notation::indexed_tensor<Tensor&, Is...>{as_derived()};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... Is,
-            enable_if<einstein_notation::is_index<Is...>> = true>
+  template <einstein_notation::index... Is>
   auto constexpr at(Is const... /*is*/) const {
     static_assert(sizeof...(Is) == rank(),
                   "number of indices does not match rank");
@@ -119,16 +117,14 @@ struct base_tensor : crtp<Tensor> {
         as_derived()};
   }
   //----------------------------------------------------------------------------
-  template <typename... Is,
-            enable_if<einstein_notation::is_index<Is...>> = true>
+  template <einstein_notation::index... Is>
   auto constexpr operator()(Is const... is) const {
     static_assert(sizeof...(Is) == rank(),
                   "Number of indices does not match number of dimensions.");
     return at(is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... Is,
-            enable_if<einstein_notation::is_index<Is...>> = true>
+  template <einstein_notation::index... Is>
   auto constexpr operator()(Is const... is) {
     static_assert(sizeof...(Is) == rank(),
                   "Number of indices does not match number of dimensions.");
@@ -223,8 +219,7 @@ struct base_tensor : crtp<Tensor> {
     return *this;
   }
   //----------------------------------------------------------------------------
-  template <typename OtherT, enable_if<is_convertible<OtherT, T>> = true>
-  auto operator+=(OtherT const& other) -> auto& {
+  auto operator+=(convertible_to<T> auto const& other) -> auto& {
     for_indices([&](auto const... is) { at(is...) += other; });
     return *this;
   }
@@ -236,20 +231,17 @@ struct base_tensor : crtp<Tensor> {
     return *this;
   }
   //----------------------------------------------------------------------------
-  template <typename OtherT, enable_if<is_convertible<OtherT, T>> = true>
-  auto operator-=(OtherT const& other) -> auto& {
+  auto operator-=(convertible_to<T> auto const& other) -> auto& {
     for_indices([&](auto const... is) { at(is...) -= other; });
     return *this;
   }
   //----------------------------------------------------------------------------
-  template <typename OtherT, enable_if<is_convertible<OtherT, T>> = true>
-  auto operator*=(OtherT const& other) -> auto& {
+  auto operator*=(convertible_to<T> auto const& other) -> auto& {
     for_indices([&](auto const... is) { at(is...) *= other; });
     return *this;
   }
   //----------------------------------------------------------------------------
-  template <typename OtherT, enable_if<is_convertible<OtherT, T>> = true>
-  auto operator/=(OtherT const& other) -> auto& {
+  auto operator/=(convertible_to<T> auto const& other) -> auto& {
     for_indices([&](auto const... is) { at(is...) /= other; });
     return *this;
   }

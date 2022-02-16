@@ -113,9 +113,7 @@ struct program {
     init_communicator(g.num_dimensions(), std::move(global_grid_dimensions));
   }
   //----------------------------------------------------------------------------
-  template <typename... GlobalGridDimensions,
-            enable_if<is_arithmetic<GlobalGridDimensions...>> = true>
-  auto init_communicator(GlobalGridDimensions const... ggd) -> void {
+  auto init_communicator(arithmetic auto const... ggd) -> void {
     constexpr auto num_dimensions = sizeof...(GlobalGridDimensions);
     init_communicator(
         num_dimensions,

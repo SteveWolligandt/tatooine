@@ -79,10 +79,6 @@ template <typename T0, typename T1, typename... Ts>
 struct are_symbolic<T0, T1, Ts...>
     : std::integral_constant<bool, are_symbolic_v<T0> &&
                                        are_symbolic_v<T1, Ts...>> {};
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//template <typename... Ts>
-//using enable_if_symbolic =
-//    std::enable_if_t<sizeof...(Ts) == 0 || are_symbolic_v<Ts...>, bool>;
 //------------------------------------------------------------------------------
 template <typename... Ts>
 struct are_arithmetic_or_symbolic
@@ -92,10 +88,6 @@ struct are_arithmetic_or_symbolic
 template <typename... Ts>
 static constexpr auto are_arithmetic_or_symbolic_v =
     are_arithmetic_or_symbolic<Ts...>::value;
-//------------------------------------------------------------------------------
-//template <typename... Ts>
-//using enable_if_arithmetic_or_symbolic = typename std::enable_if_t<
-//    sizeof...(Ts) == 0 || are_arithmetic_or_symbolic_v<Ts...>, bool>;
 //==============================================================================
 template <typename... Ts>
 struct are_arithmetic_complex_or_symbolic
@@ -106,10 +98,6 @@ struct are_arithmetic_complex_or_symbolic
 template <typename... Ts>
 static constexpr auto are_arithmetic_complex_or_symbolic_v =
     are_arithmetic_complex_or_symbolic<Ts...>::value;
-//------------------------------------------------------------------------------
-//template <typename... Ts>
-//using enable_if_arithmetic_complex_or_symbolic = typename std::enable_if_t<
-//    sizeof...(Ts) == 0 || are_arithmetic_complex_or_symbolic_v<Ts...>, bool>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

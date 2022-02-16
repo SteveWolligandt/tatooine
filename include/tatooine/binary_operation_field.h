@@ -98,18 +98,18 @@ struct binary_operation_field
     }
   }
   //----------------------------------------------------------------------------
-  template <bool Cond = is_pointer<LHSInternalField>, enable_if<Cond> = true>
-  auto set_v0(LHSInternalField lhs) -> void {
+  auto set_v0(LHSInternalField lhs)
+      -> void requires(is_pointer<LHSInternalField>) {
     m_lhs = lhs;
   }
   //----------------------------------------------------------------------------
-  template <bool Cond = is_pointer<RHSInternalField>, enable_if<Cond> = true>
-  auto set_v1(RHSInternalField rhs) -> void {
+  auto set_v1(RHSInternalField rhs)
+      -> void requires(is_pointer<RHSInternalField>) {
     m_rhs = rhs;
   }
   //----------------------------------------------------------------------------
-  template <bool Cond = is_pointer<LHSInternalField>, enable_if<Cond> = true>
-  auto fields_available() const -> bool {
+  auto fields_available() const -> bool requires(
+      is_pointer<LHSInternalField>&& is_pointer<RHSInternalField>) {
     return m_lhs != nullptr && m_rhs != nullptr;
   }
 };

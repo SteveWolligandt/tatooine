@@ -257,7 +257,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
                          std::vector<UInt> const& size)
       : parent_type{size}, m_data(num_components(), 0) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename UInt, enable_if<is_unsigned_integral<UInt> > = true>
+  template <unsigned_integral UInt>
   dynamic_multidim_array(tag::ones_t const& /*o*/,
                          std::vector<UInt> const& size)
       : parent_type{size}, m_data(num_components(), 1) {}

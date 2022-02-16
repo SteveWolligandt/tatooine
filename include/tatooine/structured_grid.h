@@ -107,10 +107,9 @@ struct structured_grid : pointset<Real, NumDimensions>,
   auto read(filesystem::path const& path) -> void;
   auto read_vts(filesystem::path const& path) -> void;
   //----------------------------------------------------------------------------
-  template <typename... Indices, enable_if_integral<Indices...> = true>
-  auto local_cell_coordinates(pos_type const x, Indices const... is) const
+  auto local_cell_coordinates(pos_type const x, integral auto const... is) const
       -> pos_type {
-    static auto constexpr num_indices = sizeof...(Indices);
+    static auto constexpr num_indices = sizeof...(is);
     static_assert(num_indices == num_dimensions(),
                   "Number of Indices does not match number of dimensions");
     return local_cell_coordinates(x,

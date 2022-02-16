@@ -31,8 +31,8 @@ struct steady_field
     -> steady_field& = default;
 
   //============================================================================
-  template <typename F_, typename TReal, enable_if<is_arithmetic<TReal>> = true>
-  constexpr steady_field(F_&& f, TReal fixed_time)
+  template <typename F_>
+  constexpr steady_field(F_&& f, arithmetic auto fixed_time)
       : m_internal_field{std::forward<F_>(f)},
         m_fixed_time{static_cast<real_type>(fixed_time)} {}
   //----------------------------------------------------------------------------

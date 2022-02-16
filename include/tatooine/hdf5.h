@@ -107,10 +107,9 @@ struct property_list : id_holder {
     }
   }
   //----------------------------------------------------------------------------
-  template <typename... Size, enable_if_integral<Size...> = true>
-  auto set_chunk(Size const... size) {
+  auto set_chunk(integral auto const... size) {
     auto dim = std::array{static_cast<hsize_t>(size)...};
-    H5Pset_chunk(id(), sizeof...(Size), dim.data());
+    H5Pset_chunk(id(), sizeof...(size), dim.data());
   }
 };
 //==============================================================================
@@ -123,8 +122,7 @@ struct dataspace : id_holder {
   //----------------------------------------------------------------------------
   explicit dataspace(hid_t const id) : id_holder{id} {}
   //----------------------------------------------------------------------------
-  template <typename... Size, enable_if_integral<Size...> = true>
-  explicit dataspace(Size const... size)
+  explicit dataspace(integral auto const... size)
       : dataspace{std::array{static_cast<hsize_t>(size)...}} {}
   //----------------------------------------------------------------------------
   explicit dataspace(std::vector<hsize_t> cur_resolution)
@@ -438,12 +436,12 @@ struct dataset : id_holder, attribute_creator<dataset<T>> {
     H5Dset_extent(id(), extent.data());
   }
   //----------------------------------------------------------------------------
-  template <typename Integral, enable_if_integral<Integral>>
+  template <integral Integral>
   auto resize(std::vector<Integral> const& extent) {
     resize(std::vector<hsize_t>(begin(extent), end(extent)));
   }
   //----------------------------------------------------------------------------
-  template <typename Integral, std::size_t N, enable_if_integral<Integral>>
+  template <integral Integral, std::size_t N>
   auto resize(std::array<Integral, N> const& extent) {
     resize(std::array<hsize_t, N>(begin(extent), end(extent)));
   }
@@ -658,7 +656,7 @@ struct dataset : id_holder, attribute_creator<dataset<T>> {
     read(memory_space.id(), dataset_space.id(), H5P_DEFAULT, data.data());
   }
   //----------------------------------------------------------------------------
-  template <typename Int0, typename Int1, enable_if_integral<Int0, Int1> = true>
+  template <integral Int0, integral Int1>
   auto read_as_vector(std::vector<Int0> const& offset,
                       std::vector<Int1> const& count) const {
     return read_as_vector(std::vector<hsize_t>(begin(offset), end(offset)),

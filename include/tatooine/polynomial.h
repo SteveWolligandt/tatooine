@@ -380,9 +380,6 @@ struct is_polynomial_impl<polynomial<Real, Degree>> : std::true_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
 static constexpr bool is_polynomial = is_polynomial_impl<T>::value;
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// template <typename ... Ts>
-// using enable_if_polynomial = enable_if<is_polynomial<Ts>...>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
