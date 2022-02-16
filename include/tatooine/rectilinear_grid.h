@@ -115,8 +115,6 @@ class rectilinear_grid {
     }
   }
   //----------------------------------------------------------------------------
-  /// The enable if is needed due to gcc bug 80871. See here:
-  /// https://stackoverflow.com/questions/46848129/variadic-deduction-guide-not-taken-by-g-taken-by-clang-who-is-correct
   template <typename... Dimensions_>
   requires(sizeof...(Dimensions_) == sizeof...(Dimensions)) &&
       (detail::rectilinear_grid::dimension<std::decay_t<Dimensions_>> &&
@@ -186,8 +184,8 @@ class rectilinear_grid {
     return std::get<I>(m_dimensions);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <bool Cond = is_same<Dimensions...>, enable_if<Cond> = true>
-  constexpr auto dimension(std::size_t const i) -> auto& {
+  constexpr auto dimension(std::size_t const i)
+      -> auto& requires(is_same<Dimensions...>) {
     if (i == 0) {
       return dimension<0>();
     }
@@ -244,8 +242,8 @@ class rectilinear_grid {
     return dimension<0>();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <bool Cond = is_same<Dimensions...>, enable_if<Cond> = true>
-  constexpr auto dimension(std::size_t const i) const -> auto const& {
+  constexpr auto dimension(std::size_t const i) const
+      -> auto const& requires(is_same<Dimensions...>) {
     if (i == 0) {
       return dimension<0>();
     }

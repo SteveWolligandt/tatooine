@@ -49,8 +49,8 @@ constexpr auto operator*(const field<V0, Real0, N, Tensor>& lhs,
 template <typename V, arithmetic VReal, size_t N, arithmetic ScalarReal,
           typename Tensor>
 #else
-template <typename V, typename VReal, size_t N, typename ScalarReal,
-          typename Tensor, enable_if<is_arithmetic<VReal, ScalarReal>> = true>
+template <typename V, arithmetic VReal, size_t N, arithmetic ScalarReal,
+          typename Tensor>
 #endif
 constexpr auto operator*(const field<V, VReal, N, Tensor>& f,
                          const ScalarReal                  scalar) {
@@ -61,25 +61,23 @@ constexpr auto operator*(const field<V, VReal, N, Tensor>& f,
 template <typename V, arithmetic VReal, size_t N, arithmetic ScalarReal,
           typename Tensor>
 #else
-template <typename V, typename VReal, size_t N, typename ScalarReal,
-          typename Tensor, enable_if<is_arithmetic<VReal, ScalarReal>> = true>
+template <typename V, arithmetic VReal, size_t N, arithmetic ScalarReal,
+          typename Tensor>
 #endif
 constexpr auto operator*(const ScalarReal                  scalar,
                          const field<V, VReal, N, Tensor>& f) {
   return V{f.as_derived()} | [scalar](auto const& t) { return t * scalar; };
 }
 //------------------------------------------------------------------------------
-template <typename V, typename VReal, size_t N, typename ScalarReal,
-          typename Tensor,
-          enable_if<is_arithmetic<ScalarReal> || is_complex<ScalarReal>> = true>
+template <typename V, typename VReal, size_t N, arithmetic_or_complex ScalarReal,
+          typename Tensor>
 constexpr auto operator/(field<V, VReal, N, Tensor> const& f,
                          ScalarReal const                  scalar) {
   return V{f.as_derived()} | [scalar](auto const& t) { return t / scalar; };
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename V, typename VReal, size_t N, typename ScalarReal,
-          typename Tensor,
-          enable_if<is_arithmetic<ScalarReal> || is_complex<ScalarReal>> = true>
+template <typename V, typename VReal, size_t N, arithmetic_or_complex ScalarReal,
+          typename Tensor>
 constexpr auto operator/(ScalarReal const                  scalar,
                          field<V, VReal, N, Tensor> const& f) {
   return V{f.as_derived()} | [scalar](auto const& t) { return scalar / t; };

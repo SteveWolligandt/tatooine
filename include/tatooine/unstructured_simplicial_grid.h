@@ -1084,11 +1084,9 @@ struct unstructured_simplicial_grid
          << "</VTKFile>";
   }
   //----------------------------------------------------------------------------
-  template <std::size_t SimplexDim_     = SimplexDim,
-            enable_if<SimplexDim_ == 2> = true>
   auto write_unstructured_triangular_grid_vtk(std::filesystem::path const& path,
                                               std::string const& title) const
-      -> bool {
+      -> bool requires (SimplexDim == 2) {
     using namespace std::ranges;
     auto writer =
         vtk::legacy_file_writer{path, vtk::dataset_type::unstructured_grid};
@@ -1148,11 +1146,9 @@ struct unstructured_simplicial_grid
     return false;
   }
   //----------------------------------------------------------------------------
-  template <std::size_t SimplexDim_     = SimplexDim,
-            enable_if<SimplexDim_ == 3> = true>
   auto write_unstructured_tetrahedral_grid_vtk(
       std::filesystem::path const& path, std::string const& title) const
-      -> bool {
+      -> bool requires (SimplexDim == 2) {
     using boost::copy;
     using boost::adaptors::transformed;
     vtk::legacy_file_writer writer(path, vtk::dataset_type::unstructured_grid);
@@ -1205,9 +1201,8 @@ struct unstructured_simplicial_grid
     }
   }
   //----------------------------------------------------------------------------
-  template <std::size_t NumDimensions_ = NumDimensions,
-            enable_if<NumDimensions_ == 2 || NumDimensions_ == 3> = true>
-  auto read_vtk(std::filesystem::path const& path) {
+  auto read_vtk(std::filesystem::path const& path) requires(
+      NumDimensions == 2 || NumDimensions == 3) {
     struct listener_t : vtk::legacy_file_listener {
       unstructured_simplicial_grid& grid;
       std::vector<int>              simplices;

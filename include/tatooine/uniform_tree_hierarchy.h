@@ -81,16 +81,14 @@ struct base_uniform_tree_hierarchy : aabb<Real, NumDims> {
   }
   //----------------------------------------------------------------------------
  public:
-  template <typename... Is, enable_if_integral<Is...> = true>
-  static constexpr auto index(Is const... is) {
-    static_assert(sizeof...(Is) == NumDims,
+  static constexpr auto index(integral auto const... is) {
+    static_assert(sizeof...(is) == NumDims,
                   "Number of indices does not match number of dimensions.");
     return index(std::make_index_sequence<NumDims>{}, is...);
   }
   //------------------------------------------------------------------------------
-  template <typename... Is, enable_if_integral<Is...> = true>
-  auto child_at(Is const... is) const -> auto const& {
-    static_assert(sizeof...(Is) == NumDims,
+  auto child_at(integral auto const... is) const -> auto const& {
+    static_assert(sizeof...(is) == NumDims,
                   "Number of indices does not match number of dimensions.");
     return m_children[index(is...)];
   }

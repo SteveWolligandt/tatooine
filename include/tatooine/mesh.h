@@ -220,9 +220,7 @@ class mesh : public edgeset<Real, N> {
   constexpr const auto& operator[](face f) const { return at(f); }
 
   //----------------------------------------------------------------------------
-  template <typename... Vs,
-            enable_if<(std::is_same_v<vertex, Vs> && ...)> = true>
-  constexpr auto insert_face(Vs... vs) {
+  constexpr auto insert_face(same_as<vertex> auto const... vs) {
     return insert_face(std::vector<vertex>{vs...});
   }
 
@@ -292,8 +290,7 @@ class mesh : public edgeset<Real, N> {
 
 #ifdef USE_TRIANGLE
   //----------------------------------------------------------------------------
-  template <size_t _N = N, enable_if<_N == 2> = true>
-  void triangulate_face(const std::vector<vertex>& polygon) {
+  void triangulate_face(const std::vector<vertex>& polygon) requires (N == 2){
     if (polygon.size() == 3)
       insert_face(polygon[0], polygon[1], polygon[2]);
     else if (polygon.size() == 4) {
@@ -328,8 +325,7 @@ class mesh : public edgeset<Real, N> {
   }
 
   //----------------------------------------------------------------------------
-  template <size_t _N = N, enable_if<_N == 2> = true>
-  inline auto triangulate_face(face f) {
+  inline auto triangulate_face(face f) requires(N == 2) {
     std::vector<vertex> polygon;
     polygon.reserve(num_vertices(f));
     for (auto v : vertices(f)) polygon.push_back(v);
@@ -615,8 +611,7 @@ class mesh : public edgeset<Real, N> {
   }
 
   //----------------------------------------------------------------------------
-  template <size_t _N = N, enable_if<_N == 2 || _N == 3> = true>
-  void write_obj(const std::string& path) {
+  void write_obj(const std::string& path) requires(N == 2 || N == 3) {
     std::ofstream fout(path);
     if (fout) {
       for (auto v : vertices())
@@ -633,9 +628,8 @@ class mesh : public edgeset<Real, N> {
   }
 
   //----------------------------------------------------------------------------
-  template <size_t _N = N, enable_if<_N == 2 || _N == 3> = true>
   void write_vtk(const std::string& path,
-                 const std::string& title = "tatooine mesh") const {
+                 const std::string& title = "tatooine mesh") const  requires(N == 2 || N == 3){
     vtk::legacy_file_writer writer(path, vtk::POLYDATA);
     if (writer.is_open()) {
       writer.set_title(title);
@@ -883,8 +877,8 @@ class mesh : public edgeset<Real, N> {
   }
 
   //----------------------------------------------------------------------------
-  template <size_t _N = N, enable_if_t<_N == 2> = true>
-  bool polygon_is_counter_clockwise(const std::vector<vertex>& polygon) {
+  bool polygon_is_counter_clockwise(
+      const std::vector<vertex>& polygon) requires(N == 2) {
     size_t left_turns  = 0;
     size_t right_turns = 0;
     for (size_t i_0 = 0; i_0 < polygon.size(); ++i_0) {

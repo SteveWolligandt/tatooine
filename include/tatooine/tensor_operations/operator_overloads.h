@@ -34,10 +34,9 @@ constexpr auto operator-(base_tensor<Tensor, T, Dims...> const& t) {
   return unary_operation([](auto const& c) { return -c; }, t);
 }
 //------------------------------------------------------------------------------
-template <typename Tensor0, typename T0, typename T1, std::size_t... Dims,
-          enable_if<is_arithmetic_or_complex<T1>> = true>
+template <typename Tensor0, arithmetic_or_complex T0, std::size_t... Dims>
 constexpr auto operator+(base_tensor<Tensor0, T0, Dims...> const& lhs,
-                         T1                                       scalar) {
+                         arithmetic_or_complex auto const                                       scalar) {
   return unary_operation([scalar](auto const& c) { return c + scalar; }, lhs);
 }
 //------------------------------------------------------------------------------
@@ -57,7 +56,8 @@ constexpr auto operator*(base_tensor<Tensor0, T0, M, N> const& lhs,
 //------------------------------------------------------------------------------
 /// component-wise multiplication
 template <typename Tensor0, typename T0, typename Tensor1, typename T1,
-          std::size_t... Dims, enable_if<(sizeof...(Dims) != 2)> = true>
+          std::size_t... Dims>
+requires (sizeof...(Dims) != 2)
 constexpr auto operator*(base_tensor<Tensor0, T0, Dims...> const& lhs,
                          base_tensor<Tensor1, T1, Dims...> const& rhs) {
   return binary_operation(std::multiplies<common_type<T0, T1>>{}, lhs, rhs);
@@ -77,8 +77,7 @@ constexpr auto operator+(base_tensor<Tensor0, T0, Dims...> const& lhs,
   return binary_operation(std::plus<common_type<T0, T1>>{}, lhs, rhs);
 }
 //------------------------------------------------------------------------------
-template <typename Tensor, typename TensorT, typename Scalar,
-          enable_if<is_arithmetic_or_complex<Scalar>> = true,
+template <typename Tensor, typename TensorT, arithmetic_or_complex Scalar,
           std::size_t... Dims>
 constexpr auto operator*(base_tensor<Tensor, TensorT, Dims...> const& t,
                          Scalar const                                 scalar) {
@@ -86,8 +85,7 @@ constexpr auto operator*(base_tensor<Tensor, TensorT, Dims...> const& t,
       [scalar](auto const& component) { return component * scalar; }, t);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Tensor, typename TensorT, typename Scalar,
-          enable_if<is_arithmetic_or_complex<Scalar>> = true,
+template <typename Tensor, typename TensorT, arithmetic_or_complex Scalar,
           std::size_t... Dims>
 constexpr auto operator*(Scalar const                                 scalar,
                          base_tensor<Tensor, TensorT, Dims...> const& t) {
@@ -95,8 +93,7 @@ constexpr auto operator*(Scalar const                                 scalar,
       [scalar](auto const& component) { return component * scalar; }, t);
 }
 //------------------------------------------------------------------------------
-template <typename Tensor, typename TensorT, typename Scalar,
-          enable_if<is_arithmetic_or_complex<Scalar>> = true,
+template <typename Tensor, typename TensorT, arithmetic_or_complex Scalar,
           std::size_t... Dims>
 constexpr auto operator/(base_tensor<Tensor, TensorT, Dims...> const& t,
                          Scalar const                                 scalar) {
@@ -104,8 +101,7 @@ constexpr auto operator/(base_tensor<Tensor, TensorT, Dims...> const& t,
       [scalar](auto const& component) { return component / scalar; }, t);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Tensor, typename TensorT, typename Scalar,
-          enable_if<is_arithmetic_or_complex<Scalar>> = true,
+template <typename Tensor, typename TensorT, arithmetic_or_complex Scalar,
           std::size_t... Dims>
 constexpr auto operator/(Scalar const                                 scalar,
                          base_tensor<Tensor, TensorT, Dims...> const& t) {
