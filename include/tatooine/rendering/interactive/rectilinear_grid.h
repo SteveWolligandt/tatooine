@@ -462,9 +462,6 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
       }
       ImGui::EndCombo();
     }
-    // ImGui::DragFloat("Min", &min_scalar, 0.01f, -FLT_MAX, max_scalar,
-    // "%.06f"); ImGui::DragFloat("Max", &max_scalar, 0.01f, min_scalar,
-    // FLT_MAX, "%.06f");
   }
   //----------------------------------------------------------------------------
   auto color_scale_selection(renderable_type const& grid) {
@@ -594,9 +591,9 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
     if (selected_property != nullptr) {
       auto& setting = settings[selected_settings_name()];
       ImGui::DragFloat("Min", &setting.min_scalar, 0.01f, -FLT_MAX,
-                       setting.max_scalar, "%.06f");
+                       setting.max_scalar, "%.12f");
       ImGui::DragFloat("Max", &setting.max_scalar, 0.01f, setting.min_scalar,
-                       FLT_MAX, "%.06f");
+                       FLT_MAX, "%.12f");
     }
 
     color_scale_selection(grid);

@@ -1,6 +1,7 @@
 #ifndef TATOOINE_FOR_LOOP_H
 #define TATOOINE_FOR_LOOP_H
 //==============================================================================
+#include <tatooine/cache_alignment.h>
 #include <tatooine/concepts.h>
 #include <tatooine/packages.h>
 #include <tatooine/tags.h>
@@ -14,6 +15,17 @@
 #endif
 //==============================================================================
 namespace tatooine {
+template <typename T>
+auto create_aligned_data_for_parallel() {
+  auto num_threads = std::size_t{};
+#pragma omp parallel
+  {
+    if (omp_get_thread_num()) {
+      num_threads = omp_get_num_threads();
+    }
+  }
+  return std::vector<aligned<T>>(num_threads);
+}
 //==============================================================================
 namespace detail::for_loop {
 //==============================================================================
@@ -440,17 +452,39 @@ auto for_loop(Iteration&& iteration, ExecutionPolicy pol,
            std::make_index_sequence<N>{});
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-///
 template <typename Iteration, std::size_t N>
 auto for_loop(Iteration&& iteration, std::array<size_t, N> const& sizes) {
   for_loop(std::forward<Iteration>(iteration), execution_policy::sequential,
            sizes);
 }
+//------------------------------------------------------------------------------
+template <typename Iteration>
+auto for_loop(Iteration&& iteration, execution_policy::parallel_t,
+                     range auto const& r) {
+#pragma omp parallel for
+  for (auto it = begin(r); it < end(r); it++) {
+    iteration(*it);
+  }
+}
+//------------------------------------------------------------------------------
+template <typename Iteration>
+auto for_loop(Iteration&& iteration, execution_policy::sequential_t,
+              range auto const& r) {
+  for (auto const& s : r) {
+    iteration(s);
+  }
+}
+//------------------------------------------------------------------------------
+template <typename Iteration>
+auto for_loop(Iteration&& iteration,
+              range auto const& r) {
+  for_loop(std::forward<Iteration>(iteration), execution_policy::sequential, r);
+}
 //==============================================================================
 template <typename Int = std::size_t, integral... Ends>
 constexpr auto chunked_for_loop(
-    invocable<decltype(((void)std::declval<Ends>(), std::declval<Int>()))...> auto&&
-         iteration,
+    invocable<decltype(((void)std::declval<Ends>(),
+                        std::declval<Int>()))...> auto&& iteration,
     auto exec_policy, integral auto const chunk_size, Ends const... ends)
     -> void requires(
         is_same<execution_policy::parallel_t, decltype(exec_policy)> ||

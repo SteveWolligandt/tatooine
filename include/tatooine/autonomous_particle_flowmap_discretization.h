@@ -78,7 +78,7 @@ struct autonomous_particle_flowmap_discretization {
         std::decay_t<Flowmap>::num_dimensions() == NumDimensions,
         "Number of dimensions of flowmap does not match number of dimensions.");
     auto initial_particle_distribution = g.copy_without_properties();
-    std::vector<particle_type> particles;
+    auto particles                     = std::vector<particle_type>{};
     for (std::size_t i = 0; i < NumDimensions; ++i) {
       auto const spacing = initial_particle_distribution.dimension(i).spacing();
       initial_particle_distribution.dimension(i).pop_front();
@@ -167,13 +167,13 @@ struct autonomous_particle_flowmap_discretization {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename Flowmap>
   autonomous_particle_flowmap_discretization(
-      Flowmap&& flowmap, arithmetic auto const tau,
+      Flowmap&& flowmap, arithmetic auto const t_end,
       arithmetic auto const tau_step, particle_type const& initial_particle,
       std::atomic_uint64_t& uuid_generator) {
     static_assert(
         std::decay_t<Flowmap>::num_dimensions() == NumDimensions,
         "Number of dimensions of flowmap does not match number of dimensions.");
-    fill(std::forward<Flowmap>(flowmap), std::vector{initial_particle}, tau,
+    fill(std::forward<Flowmap>(flowmap), std::vector{initial_particle}, t_end,
          tau_step, uuid_generator);
   }
   //============================================================================
@@ -233,62 +233,159 @@ struct autonomous_particle_flowmap_discretization {
   auto fill(Flowmap&& flowmap, range auto const& initial_particles,
             arithmetic auto const t_end, arithmetic auto const tau_step,
             std::atomic_uint64_t& uuid_generator) {
+    std::cout << "filling...\n";
     // if (m_path) {
     //   particle_type::template advect<SplitBehavior>(
     //       std::forward<Flowmap>(flowmap), tau_step, t_end, initial_particles,
     //       *m_path);
     // } else {
+    m_samplers.clear();
+    std::cout << "advecting...\n";
     auto [advected_particles, simple_particles, edges] =
         particle_type::template advect<SplitBehavior>(
             std::forward<Flowmap>(flowmap), tau_step, t_end, initial_particles,
             uuid_generator);
-    m_samplers.clear();
+    std::cout << "advecting done!\n";
     m_samplers.reserve(size(advected_particles));
     using namespace std::ranges;
     auto get_sampler = [](auto const& p) { return p.sampler(); };
+    std::cout << "transforming to samplers...\n";
     copy(advected_particles | views::transform(get_sampler),
          std::back_inserter(m_samplers));
+    std::cout << "transforming to samplers done!\n";
     //}
+    std::cout << "filling done!\n";
   }
   //----------------------------------------------------------------------------
   template <std::size_t... VertexSeq>
-  [[nodiscard]] auto sample(pos_type const&                    p0,
+  [[nodiscard]] auto sample(pos_type const&                    p,
                             forward_or_backward_tag auto const tag,
+                            execution_policy::parallel_t /*pol*/,
                             std::index_sequence<VertexSeq...> /*seq*/) const {
-    auto nearest_sampler_it = end(m_samplers);
-    auto min_dist           = std::numeric_limits<Real>::max();
-    for (auto sampler_it = begin(m_samplers); sampler_it != end(m_samplers);
-         ++sampler_it) {
-      auto const p1 = sampler_it->sample(p0, tag);
-      if (auto const cur_dist =
-              euclidean_length(sampler_it->opposite_center(tag) - p1);
-          cur_dist < min_dist) {
-        min_dist           = cur_dist;
-        nearest_sampler_it = sampler_it;
+    struct data {
+      Real                min_dist        = std::numeric_limits<Real>::max();
+      sampler_type const* nearest_sampler = nullptr;
+      pos_type            p;
+    };
+    auto best_per_thread = create_aligned_data_for_parallel<data>();
+
+    for_loop(
+        [&](auto const& sampler) {
+          auto&      best = *best_per_thread[omp_get_thread_num()];
+          auto const p1   = sampler.sample(p, tag);
+          if (auto const cur_dist =
+                  euclidean_length(sampler.opposite_center(tag) - p1);
+              cur_dist < best.min_dist) {
+            best.min_dist         = cur_dist;
+            best.nearest_sampler = &sampler;
+            best.p                = p1;
+          }
+        },
+        execution_policy::parallel, m_samplers);
+
+    auto best = data{};
+    for (auto const b : best_per_thread) {
+      auto const& [min_dist, sampler, p] = *b;
+      if (min_dist < best.min_dist) {
+        best.min_dist         = min_dist;
+        best.nearest_sampler = sampler;
+        best.p                = p;
       }
     }
-    return nearest_sampler_it->sample(p0, tag);
+    return best.p;
+  }
+  //----------------------------------------------------------------------------
+  template <std::size_t... VertexSeq>
+  [[nodiscard]] auto sample(pos_type const&                    p,
+                            forward_or_backward_tag auto const tag,
+                            execution_policy::sequential_t /*pol*/,
+                            std::index_sequence<VertexSeq...> /*seq*/) const {
+    // Real                min_dist        = std::numeric_limits<Real>::max();
+    // sampler_type const* nearest_sampler = nullptr;
+    // pos_type            best_p;
+    //
+    //  for (auto const& sampler : m_samplers) {
+    //   auto const p1   = sampler.sample(p, tag);
+    //   if (auto const cur_dist =
+    //           euclidean_length(sampler.opposite_center(tag) - p1);
+    //       cur_dist < min_dist) {
+    //     min_dist        = cur_dist;
+    //     nearest_sampler = &sampler;
+    //     best_p               = p1;
+    //   }
+    // }
+    //  return best_p;
+    auto  ps             = pointset<Real, NumDimensions>{};
+    auto& initial_points = ps.template vertex_property<pos_type>("ps");
+
+    for (auto const& s : m_samplers) {
+      auto v =
+          ps.insert_vertex(s.nabla_phi_inv() * (p - s.ellipse1().center()));
+      initial_points[v] = s.ellipse0().center();
+    }
+    auto [indices, distances] = ps.nearest_neighbors_raw(pos_type::zeros(), 1);
+    auto sum                  = Real{};
+    for (auto& d : distances) {
+      d = 1 / d;
+      sum += d;
+    }
+    for (auto& d : distances) {
+      d /= sum;
+    }
+
+    auto p_ret = pos_type{};
+
+    for (std::size_t i = 0; i < indices.size(); ++i) {
+      auto v = typename pointset<Real, NumDimensions>::vertex_handle{
+          std::size_t(indices[i])};
+      p_ret += (ps[v] + initial_points[v]) * distances[i];
+    }
+    return p_ret;
   }
   //----------------------------------------------------------------------------
  public:
   //----------------------------------------------------------------------------
-  [[nodiscard]] auto sample(pos_type const&                    x,
+  [[nodiscard]] auto sample(pos_type const&                    p,
+                            forward_or_backward_tag auto const tag,
+                            execution_policy::policy auto const pol) const {
+    return sample(p, tag, pol, std::make_index_sequence<NumDimensions + 1>{});
+  }
+  //----------------------------------------------------------------------------
+  [[nodiscard]] auto sample(pos_type const&                    p,
                             forward_or_backward_tag auto const tag) const {
-    return sample(x, tag, std::make_index_sequence<NumDimensions + 1>{});
+    return sample(p, tag, execution_policy::sequential);
   }
   //----------------------------------------------------------------------------
-  [[nodiscard]] auto sample_forward(pos_type const& x) const {
-    return sample(x, forward);
+  [[nodiscard]] auto sample_forward(
+      pos_type const& p, execution_policy::policy auto const pol) const {
+    return sample(p, forward, pol);
   }
   //----------------------------------------------------------------------------
-  auto sample_backward(pos_type const& x) const { return sample(x, backward); }
+  [[nodiscard]] auto sample_forward(pos_type const& p) const {
+    return sample(p, forward, execution_policy::sequential);
+  }
   //----------------------------------------------------------------------------
-  auto operator()(pos_type const& x, forward_or_backward_tag auto tag) const {
-    return sample(x, tag);
+  auto sample_backward(pos_type const& p) const {
+    return sample(p, backward, execution_policy::sequential);
+  }
+  auto sample_backward(pos_type const&                     p,
+                       execution_policy::policy auto const pol) const {
+    return sample(p, backward, pol);
+  }
+  //----------------------------------------------------------------------------
+  auto operator()(pos_type const& p, forward_or_backward_tag auto tag) const {
+    return sample(p, tag, execution_policy::sequential);
+  }
+  //----------------------------------------------------------------------------
+  auto operator()(pos_type const& p, forward_or_backward_tag auto tag,
+                  execution_policy::policy auto const pol) const {
+    return sample(p, tag, pol);
   }
 };
 //==============================================================================
-template <std::size_t NumDimensions>
+template <std::size_t NumDimensions,
+          typename SplitBehavior = typename autonomous_particle<
+              real_number, NumDimensions>::split_behaviors::three_splits>
 using AutonomousParticleFlowmapDiscretization =
     autonomous_particle_flowmap_discretization<real_number, NumDimensions>;
 using autonomous_particle_flowmap_discretization2 =

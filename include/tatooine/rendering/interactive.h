@@ -179,6 +179,13 @@ auto render(std::index_sequence<Is...> /*seq*/, Renderables&&... renderables) {
         ImGui::EndGroup();
         ImGui::PopID();
       }
+      if constexpr (requires { renderer.properties(); }) {
+        ImGui::PushID(i);
+        ImGui::BeginGroup();
+        renderer.properties();
+        ImGui::EndGroup();
+        ImGui::PopID();
+      }
       if constexpr (requires { renderer.render(); }) {
         renderer.render();
       }
