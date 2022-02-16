@@ -1,5 +1,6 @@
 #ifndef TATOOINE_POINTSET_H
 #define TATOOINE_POINTSET_H
+
 //==============================================================================
 #include <tatooine/available_libraries.h>
 #include <tatooine/iterator_facade.h>
@@ -42,7 +43,7 @@ struct pointset {
   static constexpr auto num_dimensions() { return NumDimensions; }
   using real_type = Real;
   using this_type = pointset<Real, NumDimensions>;
-  using vec_t  = vec<Real, NumDimensions>;
+  using vec_t     = vec<Real, NumDimensions>;
   using pos_type  = vec_t;
 #if TATOOINE_FLANN_AVAILABLE
   using flann_index_t = flann::Index<flann::L2<Real>>;
@@ -62,7 +63,7 @@ struct pointset {
       std::map<std::string, std::unique_ptr<vector_property<vertex_handle>>>;
   //============================================================================
  private:
-  std::vector<pos_type>          m_vertex_position_data;
+  std::vector<pos_type>       m_vertex_position_data;
   std::set<vertex_handle>     m_invalid_vertices;
   vertex_property_container_t m_vertex_properties;
 #if TATOOINE_FLANN_AVAILABLE
@@ -152,7 +153,9 @@ struct pointset {
     return vertex_position_data()[v.index()];
   }
   //----------------------------------------------------------------------------
-  auto vertex_at(std::size_t const i) -> auto& { return vertex_position_data()[i]; }
+  auto vertex_at(std::size_t const i) -> auto& {
+    return vertex_position_data()[i];
+  }
   auto vertex_at(std::size_t const i) const -> auto const& {
     return vertex_position_data()[i];
   }
@@ -429,7 +432,7 @@ struct pointset {
   }
   //----------------------------------------------------------------------------
   auto insert_scalar_vertex_property(
-      std::string const&     name,
+      std::string const&          name,
       tatooine::real_number const value = tatooine::real_number{}) -> auto& {
     return insert_vertex_property<tatooine::real_number>(name, value);
   }
@@ -563,8 +566,8 @@ struct pointset {
     using verts_offset_int_t       = verts_connectivity_int_t;
     auto const num_bytes_points =
         header_type(sizeof(Real) * 3 * vertices().size());
-    auto const num_bytes_verts_connectivity = vertices().size() *
-                                              sizeof(verts_connectivity_int_t);
+    auto const num_bytes_verts_connectivity =
+        vertices().size() * sizeof(verts_connectivity_int_t);
     auto const num_bytes_verts_offsets =
         sizeof(verts_offset_int_t) * vertices().size();
     file << "<VTKFile"
@@ -659,9 +662,10 @@ struct pointset {
 
     // Writing verts connectivity data to appended data section
     {
-      auto connectivity_data = std::vector<verts_connectivity_int_t>(
-          vertices().size());
-      copy(views::iota(verts_connectivity_int_t(0), verts_connectivity_int_t(vertices().size())),
+      auto connectivity_data =
+          std::vector<verts_connectivity_int_t>(vertices().size());
+      copy(views::iota(verts_connectivity_int_t(0),
+                       verts_connectivity_int_t(vertices().size())),
            begin(connectivity_data));
       file.write(reinterpret_cast<char const*>(&num_bytes_verts_connectivity),
                  sizeof(header_type));
@@ -671,8 +675,7 @@ struct pointset {
 
     // Writing verts offsets to appended data section
     {
-      auto offsets = std::vector<verts_offset_int_t>(
-          vertices().size(), 1);
+      auto offsets = std::vector<verts_offset_int_t>(vertices().size(), 1);
       for (std::size_t i = 1; i < size(offsets); ++i) {
         offsets[i] += offsets[i - 1];
       };
@@ -695,42 +698,42 @@ struct pointset {
          << "</VTKFile>";
   }
   //----------------------------------------------------------------------------
-  private:
+ private:
   //----------------------------------------------------------------------------
-   template <typename T, typename header_type>
-   auto write_vertex_property_data_array_vtp(auto const& name, auto const& prop,
-                                             auto& file, auto offset) const
-       -> std::size_t {
-     if (prop->type() == typeid(T)) {
-       file << "<DataArray"
-            << " Name=\"" << name << "\""
-            << " format=\"appended\""
-            << " offset=\"" << offset << "\""
-            << " type=\""
-            << vtk::xml::data_array::to_string(
-                   vtk::xml::data_array::to_type<internal_value_type<T>>())
-            << "\" NumberOfComponents=\""<<num_components<T><<"\"/>\n";
-       return vertices().size() * sizeof(T) + sizeof(header_type);
-     }
-     return 0;
-   }
-   //----------------------------------------------------------------------------
-   template <typename T, typename header_type>
-   auto write_vertex_property_appended_data_vtp(auto const& prop,
-                                                auto&       file) const {
-     if (prop->type() == typeid(T)) {
-       auto const num_bytes = header_type(
-           sizeof(internal_value_type<T>) * num_components<T> * vertices().size());
-       file.write(reinterpret_cast<char const*>(&num_bytes),
-                  sizeof(header_type));
-       file.write(
-           reinterpret_cast<char const*>(
-               dynamic_cast<vertex_property_t<T>*>(prop.get())->data().data()),
-           num_bytes);
-     }
-   }
-   //----------------------------------------------------------------------------
-  public:
+  template <typename T, typename header_type>
+  auto write_vertex_property_data_array_vtp(auto const& name, auto const& prop,
+                                            auto& file, auto offset) const
+      -> std::size_t {
+    if (prop->type() == typeid(T)) {
+      file << "<DataArray"
+           << " Name=\"" << name << "\""
+           << " format=\"appended\""
+           << " offset=\"" << offset << "\""
+           << " type=\""
+           << vtk::xml::data_array::to_string(
+                  vtk::xml::data_array::to_type<internal_value_type<T>>())
+           << "\" NumberOfComponents=\"" << num_components<T> << "\"/>\n";
+      return vertices().size() * sizeof(T) + sizeof(header_type);
+    }
+    return 0;
+  }
+  //----------------------------------------------------------------------------
+  template <typename T, typename header_type>
+  auto write_vertex_property_appended_data_vtp(auto const& prop,
+                                               auto&       file) const {
+    if (prop->type() == typeid(T)) {
+      auto const num_bytes = header_type(sizeof(internal_value_type<T>) *
+                                         num_components<T> * vertices().size());
+      file.write(reinterpret_cast<char const*>(&num_bytes),
+                 sizeof(header_type));
+      file.write(
+          reinterpret_cast<char const*>(
+              dynamic_cast<vertex_property_t<T>*>(prop.get())->data().data()),
+          num_bytes);
+    }
+  }
+  //----------------------------------------------------------------------------
+ public:
   //----------------------------------------------------------------------------
 #if TATOOINE_FLANN_AVAILABLE
   auto rebuild_kd_tree() {
@@ -753,29 +756,29 @@ struct pointset {
   //----------------------------------------------------------------------------
  public:
   auto nearest_neighbor(pos_type const& x) const {
-    flann::Matrix<Real> qm{const_cast<Real*>(x.data_ptr()), 1,  // NOLINT
-                           num_dimensions()};
-    std::vector<std::vector<int>>  indices;
-    std::vector<std::vector<Real>> distances;
-    flann::SearchParams            params;
+    auto qm        = flann::Matrix<Real>{const_cast<Real*>(x.data_ptr()), 1,
+                                  num_dimensions()};
+    auto indices   = std::vector<std::vector<int>>{};
+    auto distances = std::vector<std::vector<Real>>{};
+    auto params    = flann::SearchParams{};
     kd_tree().knnSearch(qm, indices, distances, 1, params);
     return vertex_handle{static_cast<std::size_t>(indices.front().front())};
   }
   //----------------------------------------------------------------------------
   /// Takes the raw output indices of flann without converting them into vertex
   /// handles.
-  auto nearest_neighbors_raw(pos_type const& x, std::size_t const num_nearest_neighbors,
+  auto nearest_neighbors_raw(pos_type const&           x,
+                             std::size_t const         num_nearest_neighbors,
                              flann::SearchParams const params = {}) const {
     auto qm  = flann::Matrix<Real>{const_cast<Real*>(x.data_ptr()), 1,
                                   num_dimensions()};
-    auto ret = std::pair{std::vector<std::vector<std::size_t>>{},
-                         std::vector<std::vector<Real>>{}};
-    auto& [indices, distances] = ret;
+    auto indices   = std::vector<std::vector<int>>{};
+    auto distances = std::vector<std::vector<Real>>{};
     kd_tree().knnSearch(qm, indices, distances, num_nearest_neighbors, params);
-    return ret;
+    return std::pair{std::move(indices.front()), std::move(distances.front())};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto nearest_neighbors(pos_type const& x,
+  auto nearest_neighbors(pos_type const&   x,
                          std::size_t const num_nearest_neighbors) const {
     auto const [indices, distances] =
         nearest_neighbors_raw(x, num_nearest_neighbors);
@@ -840,7 +843,7 @@ using pointset5 = Pointset<5>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-#include <tatooine/detail/pointset/vertex_container.h>
 #include <tatooine/detail/pointset/inverse_distance_weighting_sampler.h>
 #include <tatooine/detail/pointset/moving_least_squares_sampler.h>
+#include <tatooine/detail/pointset/vertex_container.h>
 #endif

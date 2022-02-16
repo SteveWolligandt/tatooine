@@ -19,10 +19,8 @@
 namespace tatooine::autonomous_particles {
 auto doublegyre_grid(args_t<2> const& args) -> void;
 using autonomous_particle_flowmap_discretization =
-    tatooine::autonomous_particle_flowmap_discretization<
-        real_type, 2,
-        autonomous_particle<real_type,
-                            2>::split_behaviors::three_splits>;
+    tatooine::AutonomousParticleFlowmapDiscretization<
+        2, AutonomousParticle<2>::split_behaviors::three_splits>;
 }
 //==============================================================================
 auto main(int argc, char** argv) -> int {

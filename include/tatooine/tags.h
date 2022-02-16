@@ -22,6 +22,8 @@ static constexpr parallel_t parallel;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 struct sequential_t {};
 static constexpr sequential_t sequential;
+template <typename T>
+concept policy = std::same_as<T, parallel_t> || std::same_as<T, sequential_t>;
 //==============================================================================
 }  // namespace tatooine::execution_policy
 //==============================================================================

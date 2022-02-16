@@ -75,9 +75,9 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   autonomous_particle(autonomous_particle const& other)     = default;
   autonomous_particle(autonomous_particle&& other) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator               =(autonomous_particle const& other)
+  auto operator=(autonomous_particle const& other)
       -> autonomous_particle& = default;
-  auto operator               =(autonomous_particle&& other) noexcept
+  auto operator=(autonomous_particle&& other) noexcept
       -> autonomous_particle& = default;
   //----------------------------------------------------------------------------
   ~autonomous_particle() = default;
