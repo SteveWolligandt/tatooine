@@ -34,7 +34,7 @@ struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
   ~doublegyre() override = default;
   //----------------------------------------------------------------------------
   [[nodiscard]] constexpr auto evaluate(
-      fixed_size_vec<NumDimensions> auto const& x, Real const t) const
+      fixed_size_vec<2> auto const& x, Real const t) const
       -> tensor_type {
     if (!m_infinite_domain && (x(0) < 0 || x(0) > 2 || x(1) < 0 || x(1) > 1)) {
       return parent_type::ood_tensor();
