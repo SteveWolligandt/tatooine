@@ -257,64 +257,49 @@ struct autonomous_particle_flowmap_discretization {
     std::cout << "filling done!\n";
   }
   //----------------------------------------------------------------------------
-  template <std::size_t... VertexSeq>
-  [[nodiscard]] auto sample(pos_type const&                    p,
-                            forward_or_backward_tag auto const tag,
-                            execution_policy::parallel_t /*pol*/,
-                            std::index_sequence<VertexSeq...> /*seq*/) const {
-    struct data {
-      Real                min_dist        = std::numeric_limits<Real>::max();
-      sampler_type const* nearest_sampler = nullptr;
-      pos_type            p;
-    };
-    auto best_per_thread = create_aligned_data_for_parallel<data>();
-
-    for_loop(
-        [&](auto const& sampler) {
-          auto&      best = *best_per_thread[omp_get_thread_num()];
-          auto const p1   = sampler.sample(p, tag);
-          if (auto const cur_dist =
-                  euclidean_length(sampler.opposite_center(tag) - p1);
-              cur_dist < best.min_dist) {
-            best.min_dist         = cur_dist;
-            best.nearest_sampler = &sampler;
-            best.p                = p1;
-          }
-        },
-        execution_policy::parallel, m_samplers);
-
-    auto best = data{};
-    for (auto const b : best_per_thread) {
-      auto const& [min_dist, sampler, p] = *b;
-      if (min_dist < best.min_dist) {
-        best.min_dist         = min_dist;
-        best.nearest_sampler = sampler;
-        best.p                = p;
-      }
-    }
-    return best.p;
-  }
+  //template <std::size_t... VertexSeq>
+  //[[nodiscard]] auto sample(pos_type const&                    p,
+  //                          forward_or_backward_tag auto const tag,
+  //                          execution_policy::parallel_t [>pol<],
+  //                          std::index_sequence<VertexSeq...> [>seq<]) const {
+  //  struct data {
+  //    Real                min_dist        = std::numeric_limits<Real>::max();
+  //    sampler_type const* nearest_sampler = nullptr;
+  //    pos_type            p;
+  //  };
+  //  auto best_per_thread = create_aligned_data_for_parallel<data>();
+  //
+  //  for_loop(
+  //      [&](auto const& sampler) {
+  //        auto&      best = *best_per_thread[omp_get_thread_num()];
+  //        auto const p1   = sampler.sample(p, tag);
+  //        if (auto const cur_dist =
+  //                euclidean_length(sampler.opposite_center(tag) - p1);
+  //            cur_dist < best.min_dist) {
+  //          best.min_dist         = cur_dist;
+  //          best.nearest_sampler = &sampler;
+  //          best.p                = p1;
+  //        }
+  //      },
+  //      execution_policy::parallel, m_samplers);
+  //
+  //  auto best = data{};
+  //  for (auto const b : best_per_thread) {
+  //    auto const& [min_dist, sampler, p] = *b;
+  //    if (min_dist < best.min_dist) {
+  //      best.min_dist         = min_dist;
+  //      best.nearest_sampler = sampler;
+  //      best.p                = p;
+  //    }
+  //  }
+  //  return best.p;
+  //}
   //----------------------------------------------------------------------------
   template <std::size_t... VertexSeq>
   [[nodiscard]] auto sample(pos_type const&                    p,
                             forward_or_backward_tag auto const tag,
                             execution_policy::sequential_t /*pol*/,
                             std::index_sequence<VertexSeq...> /*seq*/) const {
-    // Real                min_dist        = std::numeric_limits<Real>::max();
-    // sampler_type const* nearest_sampler = nullptr;
-    // pos_type            best_p;
-    //
-    //  for (auto const& sampler : m_samplers) {
-    //   auto const p1   = sampler.sample(p, tag);
-    //   if (auto const cur_dist =
-    //           euclidean_length(sampler.opposite_center(tag) - p1);
-    //       cur_dist < min_dist) {
-    //     min_dist        = cur_dist;
-    //     nearest_sampler = &sampler;
-    //     best_p               = p1;
-    //   }
-    // }
-    //  return best_p;
     auto  ps             = pointset<Real, NumDimensions>{};
     auto& initial_points = ps.template vertex_property<pos_type>("ps");
 
@@ -323,7 +308,7 @@ struct autonomous_particle_flowmap_discretization {
           ps.insert_vertex(s.nabla_phi_inv() * (p - s.ellipse1().center()));
       initial_points[v] = s.ellipse0().center();
     }
-    auto [indices, distances] = ps.nearest_neighbors_raw(pos_type::zeros(), 1);
+    auto [indices, distances] = ps.nearest_neighbors_raw(pos_type::zeros(), 5);
     auto sum                  = Real{};
     for (auto& d : distances) {
       d = 1 / d;
