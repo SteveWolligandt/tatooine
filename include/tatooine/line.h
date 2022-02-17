@@ -53,7 +53,7 @@ struct line {
                                                vertex_handle>;
 
   template <typename T>
-  using vertex_property_type = deque_property_impl<vertex_handle, T>;
+  using vertex_property_type = typed_deque_property<vertex_handle, T>;
   using vertex_property_container_type =
       std::map<std::string, std::unique_ptr<deque_property<vertex_handle>>>;
 

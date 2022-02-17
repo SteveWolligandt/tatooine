@@ -147,7 +147,7 @@ auto operator*(LhsTensor const& lhs, RhsTensor const& rhs)
                                  typename RhsTensor::value_type>> {
   using out_t = tensor<std::common_type_t<typename LhsTensor::value_type,
                                           typename RhsTensor::value_type>>;
-  out_t out;
+  auto out    = out_t{};
   // matrix-matrix-multiplication
   if (lhs.num_dimensions() == 2 && rhs.num_dimensions() == 2 &&
       lhs.size(1) == rhs.size(0)) {

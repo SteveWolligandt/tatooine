@@ -95,7 +95,7 @@ struct parent<Mesh, Real, 3, 2> : pointset<Real, 3>,
                                   ray_intersectable<Real, 3> {
   using parent_pointset_t          = pointset<Real, 3>;
   using parent_ray_intersectable_t = ray_intersectable<Real, 3>;
-  using real_type                     = Real;
+  using real_type                  = Real;
   using typename pointset<real_type, 3>::vertex_handle;
   using hierarchy_t = hierarchy<Mesh, real_type, 3, 2>;
   using const_simplex_at_return_type =
@@ -179,11 +179,12 @@ struct unstructured_simplicial_grid
     : detail::unstructured_simplicial_grid::parent<
           unstructured_simplicial_grid<Real, NumDimensions, SimplexDim>, Real,
           NumDimensions, SimplexDim> {
-  using this_type = unstructured_simplicial_grid<Real, NumDimensions, SimplexDim>;
+  using this_type =
+      unstructured_simplicial_grid<Real, NumDimensions, SimplexDim>;
   using real_type = Real;
   using parent_t =
-      detail::unstructured_simplicial_grid::parent<this_type, Real, NumDimensions,
-                                                   SimplexDim>;
+      detail::unstructured_simplicial_grid::parent<this_type, Real,
+                                                   NumDimensions, SimplexDim>;
   friend struct detail::unstructured_simplicial_grid::parent<
       this_type, Real, NumDimensions, SimplexDim>;
   using parent_t::at;
@@ -202,8 +203,9 @@ struct unstructured_simplicial_grid
   using typename parent_t::simplex_at_return_type;
 
   template <typename T>
-  using vertex_property_t = typename parent_t::template vertex_property_t<T>;
-  using hierarchy_t       = typename parent_t::hierarchy_t;
+  using typed_vertex_property_t =
+      typename parent_t::template typed_vertex_property_t<T>;
+  using hierarchy_t = typename parent_t::hierarchy_t;
   static constexpr auto num_vertices_per_simplex() { return SimplexDim + 1; }
   static constexpr auto simplex_dimension() { return SimplexDim; }
   //----------------------------------------------------------------------------
@@ -215,18 +217,19 @@ struct unstructured_simplicial_grid
         unstructured_simplicial_grid<Real, NumDimensions, SimplexDim>;
     using this_type = vertex_property_sampler_t<T>;
 
-    grid_t const&               m_grid;
-    vertex_property_t<T> const& m_prop;
+    grid_t const&                     m_grid;
+    typed_vertex_property_t<T> const& m_prop;
     //--------------------------------------------------------------------------
    public:
-    vertex_property_sampler_t(grid_t const&               grid,
-                              vertex_property_t<T> const& prop)
+    vertex_property_sampler_t(grid_t const&                     grid,
+                              typed_vertex_property_t<T> const& prop)
         : m_grid{grid}, m_prop{prop} {}
     //--------------------------------------------------------------------------
     auto grid() const -> auto const& { return m_grid; }
     auto property() const -> auto const& { return m_prop; }
     //--------------------------------------------------------------------------
-    [[nodiscard]] auto evaluate(pos_type const& x, real_type const /*t*/) const -> T {
+    [[nodiscard]] auto evaluate(pos_type const& x, real_type const /*t*/) const
+        -> T {
       return evaluate(x,
                       std::make_index_sequence<num_vertices_per_simplex()>{});
     }
@@ -263,7 +266,7 @@ struct unstructured_simplicial_grid
 
           b(r) = x(r) - m_grid[std::get<0>(vs)](r);
         }
-        auto const   barycentric_coord = solve(A, b);
+        auto const barycentric_coord = solve(A, b);
         Real const eps               = 1e-8;
         if (((barycentric_coord(VertexSeq) >= -eps) && ...) &&
             ((barycentric_coord(VertexSeq) <= 1 + eps) && ...)) {
@@ -291,7 +294,7 @@ struct unstructured_simplicial_grid
       Real, NumDimensions, SimplexDim>;
   //----------------------------------------------------------------------------
   template <typename T>
-  using simplex_property_t = vector_property_impl<simplex_handle, T>;
+  using simplex_property_t = typed_vector_property<simplex_handle, T>;
   using simplex_property_container_t =
       std::map<std::string, std::unique_ptr<vector_property<simplex_handle>>>;
   //============================================================================
@@ -378,8 +381,9 @@ struct unstructured_simplicial_grid
  public:
   template <detail::rectilinear_grid::dimension DimX,
             detail::rectilinear_grid::dimension DimY>
-  requires(NumDimensions == 2) && (SimplexDim == 2)
-  explicit unstructured_simplicial_grid(rectilinear_grid<DimX, DimY> const& g) {
+  requires(NumDimensions == 2) &&
+      (SimplexDim == 2) explicit unstructured_simplicial_grid(
+          rectilinear_grid<DimX, DimY> const& g) {
     auto const gv = g.vertices();
     for (auto v : gv) {
       insert_vertex(gv[v]);
@@ -1086,7 +1090,7 @@ struct unstructured_simplicial_grid
   //----------------------------------------------------------------------------
   auto write_unstructured_triangular_grid_vtk(std::filesystem::path const& path,
                                               std::string const& title) const
-      -> bool requires (SimplexDim == 2) {
+      -> bool requires(SimplexDim == 2) {
     using namespace std::ranges;
     auto writer =
         vtk::legacy_file_writer{path, vtk::dataset_type::unstructured_grid};
@@ -1123,19 +1127,22 @@ struct unstructured_simplicial_grid
       for (auto const& [name, prop] : vertex_properties()) {
         if (prop->type() == typeid(vec<Real, 4>)) {
           auto const& casted_prop =
-              *dynamic_cast<vertex_property_t<vec<Real, 4>> const*>(prop.get());
+              *dynamic_cast<typed_vertex_property_t<vec<Real, 4>> const*>(
+                  prop.get());
           writer.write_scalars(name, casted_prop.data());
         } else if (prop->type() == typeid(vec<Real, 3>)) {
           auto const& casted_prop =
-              *dynamic_cast<vertex_property_t<vec<Real, 3>> const*>(prop.get());
+              *dynamic_cast<typed_vertex_property_t<vec<Real, 3>> const*>(
+                  prop.get());
           writer.write_scalars(name, casted_prop.data());
         } else if (prop->type() == typeid(vec<Real, 2>)) {
           auto const& casted_prop =
-              *dynamic_cast<vertex_property_t<vec<Real, 2>> const*>(prop.get());
+              *dynamic_cast<typed_vertex_property_t<vec<Real, 2>> const*>(
+                  prop.get());
           writer.write_scalars(name, casted_prop.data());
         } else if (prop->type() == typeid(Real)) {
           auto const& casted_prop =
-              *dynamic_cast<vertex_property_t<Real> const*>(prop.get());
+              *dynamic_cast<typed_vertex_property_t<Real> const*>(prop.get());
           writer.write_scalars(name, casted_prop.data());
         }
       }
@@ -1148,7 +1155,7 @@ struct unstructured_simplicial_grid
   //----------------------------------------------------------------------------
   auto write_unstructured_tetrahedral_grid_vtk(
       std::filesystem::path const& path, std::string const& title) const
-      -> bool requires (SimplexDim == 2) {
+      -> bool requires(SimplexDim == 2) {
     using boost::copy;
     using boost::adaptors::transformed;
     vtk::legacy_file_writer writer(path, vtk::dataset_type::unstructured_grid);
@@ -1176,11 +1183,12 @@ struct unstructured_simplicial_grid
         } else if (prop->type() == typeid(vec<Real, 3>)) {
         } else if (prop->type() == typeid(vec<Real, 2>)) {
           auto const& casted_prop =
-              *dynamic_cast<vertex_property_t<vec<Real, 2>> const*>(prop.get());
+              *dynamic_cast<typed_vertex_property_t<vec<Real, 2>> const*>(
+                  prop.get());
           writer.write_scalars(name, casted_prop.data());
         } else if (prop->type() == typeid(Real)) {
           auto const& casted_prop =
-              *dynamic_cast<vertex_property_t<Real> const*>(prop.get());
+              *dynamic_cast<typed_vertex_property_t<Real> const*>(prop.get());
           writer.write_scalars(name, casted_prop.data());
         }
       }
@@ -1191,8 +1199,7 @@ struct unstructured_simplicial_grid
     return false;
   }
   //----------------------------------------------------------------------------
- public:
-  auto read(std::filesystem::path const& path) {
+ public : auto read(std::filesystem::path const& path) {
     auto ext = path.extension();
     if constexpr (NumDimensions == 2 || NumDimensions == 3) {
       if (ext == ".vtk") {
@@ -1383,7 +1390,7 @@ struct unstructured_simplicial_grid
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  auto sampler(vertex_property_t<T> const& prop) const {
+  auto sampler(typed_vertex_property_t<T> const& prop) const {
     if (m_hierarchy == nullptr) {
       build_hierarchy();
     }
@@ -1409,8 +1416,8 @@ unstructured_simplicial_grid(std::string const&)
     ->unstructured_simplicial_grid<double, 3>;
 template <typename... Dims>
 unstructured_simplicial_grid(rectilinear_grid<Dims...> const& g)
-    -> unstructured_simplicial_grid<typename rectilinear_grid<Dims...>::real_type,
-                                    sizeof...(Dims)>;
+    -> unstructured_simplicial_grid<
+        typename rectilinear_grid<Dims...>::real_type, sizeof...(Dims)>;
 //==============================================================================
 namespace detail::unstructured_simplicial_grid {
 //==============================================================================
