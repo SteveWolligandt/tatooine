@@ -468,9 +468,9 @@ struct differentiated_sampler<GridVertexProperty, interpolation::linear,
     auto const dx    = k * v + b - a;
     auto const dy    = k * u + c - a;
     using value_type = typename std::decay_t<decltype(m_sampler)>::value_type;
-    if constexpr (is_arithmetic<value_type>) {
+    if constexpr (arithmetic<value_type>) {
       return vec{dx, dy};
-    } else if constexpr (is_vec<value_type>) {
+    } else if constexpr (static_vec<value_type>) {
       return mat{{dx(0), dy(0)}, {dx(1), dy(1)}};
     }
   }
@@ -520,9 +520,9 @@ struct differentiated_sampler<GridVertexProperty, interpolation::linear,
     auto const dy = (k * u + g - e - c + a) * w + (d - c - b + a) * u + c - a;
     auto const dz = (k * u + g - e - c + a) * v + (f - e - b + a) * u + e - a;
     using value_type = typename std::decay_t<decltype(m_sampler)>::value_type;
-    if constexpr (is_arithmetic<value_type>) {
+    if constexpr (arithmetic<value_type>) {
       return vec{dx, dy, dz};
-    } else if constexpr (is_vec<value_type>) {
+    } else if constexpr (static_vec<value_type>) {
       return mat{
           {dx(0), dy(0), dz(0)}, {dx(1), dy(1), dz(1)}, {dx(2), dy(2), dz(2)}};
     }

@@ -40,14 +40,13 @@ auto operator<<(std::ostream& out, const base_tensor<Tensor, T, M, N>& m)
 }
 //==============================================================================
 /// printing dynamic tensors
-template <typename DynamicTensor>
-requires is_dynamic_tensor<DynamicTensor>
-auto operator<<(std::ostream& out, DynamicTensor const& v) -> auto& {
+auto operator<<(std::ostream& out, dynamic_tensor auto const& v) -> auto& {
   if (v.num_dimensions() == 1) {
     out << "[ ";
     out << std::scientific;
     for (size_t i = 0; i < v.size(0); ++i) {
-      if constexpr (!is_complex<typename DynamicTensor::value_type>) {
+      if constexpr (!is_complex<
+                        typename std::decay_t<decltype(v)>::value_type>) {
       }
       out << v(i) << ' ';
     }

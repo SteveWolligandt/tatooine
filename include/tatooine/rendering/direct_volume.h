@@ -19,7 +19,7 @@ auto direct_volume(camera<CameraReal> const&                     cam,
   using color_t   = std::invoke_result_t<Shader, pos_type, viewdir_t>;
   using rgb_t     = vec<typename color_t::value_type, 3>;
   using alpha_t   = typename color_t::value_type;
-  static_assert(is_vec<color_t> && color_t::num_components() == 4,
+  static_assert(static_vec<color_t> && color_t::num_components() == 4,
                 "Shader must return a vector with 4 components.");
   rectilinear_grid<linspace<CameraReal>, linspace<CameraReal>> rendered_image{
       linspace<CameraReal>{0.0, cam.plane_width() - 1, cam.plane_width()},

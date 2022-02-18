@@ -31,6 +31,7 @@ struct renderer<tatooine::pointset<Real, 2>> {
         "uniform mat4 projection_matrix;\n"
         "uniform mat4 view_matrix;\n"
         "void main() {\n"
+        "  prop_frag = prop;\n"
         "  gl_Position = projection_matrix * view_matrix *\n"
         "                vec4(position, 0, 1);\n"
         "}\n";
@@ -56,7 +57,7 @@ struct renderer<tatooine::pointset<Real, 2>> {
         "      scalar = 1 - scalar;\n"
         "    }\n"
         "    vec3 col = texture(color_scale, scalar).rgb;\n"
-        "    out_color = vec4(vec3(scalar), 1);\n"
+        "    out_color = vec4(col, 1);\n"
         "  }\n"
         "}\n";
     //------------------------------------------------------------------------------
@@ -212,7 +213,7 @@ struct renderer<tatooine::pointset<Real, 2>> {
         retrieve_typed_prop(prop.get(), [&](auto const& prop) {
           using prop_type  = std::decay_t<decltype(prop)>;
           using value_type = typename prop_type::value_type;
-          if constexpr (is_vec<value_type>) {
+          if constexpr (static_vec<value_type>) {
             auto constexpr num_comps = value_type::num_components();
             auto min_scalars         = std::vector<GLfloat>(
                 num_comps + 1, std::numeric_limits<GLfloat>::max());
@@ -280,7 +281,7 @@ struct renderer<tatooine::pointset<Real, 2>> {
     retrieve_typed_prop(prop, [&](auto&& prop) {
       using prop_type  = std::decay_t<decltype(prop)>;
       using value_type = typename prop_type::value_type;
-      if constexpr (is_vec<value_type>) {
+      if constexpr (static_vec<value_type>) {
         upload_data(
             prop,
             [](auto const& prop, auto const v) {
@@ -299,7 +300,7 @@ struct renderer<tatooine::pointset<Real, 2>> {
     retrieve_typed_prop(prop, [&](auto&& prop) {
       using prop_type  = std::decay_t<decltype(prop)>;
       using value_type = typename prop_type::value_type;
-      if constexpr (is_vec<value_type>) {
+      if constexpr (static_vec<value_type>) {
         upload_data(
             prop, [](auto const& prop, auto const v) { return prop[v].x(); },
             grid);
@@ -311,7 +312,7 @@ struct renderer<tatooine::pointset<Real, 2>> {
     retrieve_typed_prop(prop, [&](auto&& prop) {
       using prop_type  = std::decay_t<decltype(prop)>;
       using value_type = typename prop_type::value_type;
-      if constexpr (is_vec<value_type>) {
+      if constexpr (static_vec<value_type>) {
         upload_data(
             prop, [](auto const& prop, auto const v) { return prop[v].y(); },
             grid);
@@ -323,7 +324,7 @@ struct renderer<tatooine::pointset<Real, 2>> {
     retrieve_typed_prop(prop, [&](auto&& prop) {
       using prop_type  = std::decay_t<decltype(prop)>;
       using value_type = typename prop_type::value_type;
-      if constexpr (is_vec<value_type>) {
+      if constexpr (static_vec<value_type>) {
         if constexpr (value_type::num_components() > 2) {
           upload_data(
               prop, [](auto const& prop, auto const v) { return prop[v].z(); },
@@ -337,7 +338,7 @@ struct renderer<tatooine::pointset<Real, 2>> {
     retrieve_typed_prop(prop, [&](auto&& prop) {
       using prop_type  = std::decay_t<decltype(prop)>;
       using value_type = typename prop_type::value_type;
-      if constexpr (is_vec<value_type>) {
+      if constexpr (static_vec<value_type>) {
         if constexpr (value_type::num_components() > 3) {
           upload_data(
               prop, [](auto const& prop, auto const v) { return prop[v].w(); },
@@ -400,6 +401,7 @@ struct renderer<tatooine::pointset<Real, 2>> {
     shader::get().show_property(show);
     if (show) {
       auto& setting = settings[selected_settings_name()];
+      setting.c->tex.bind(0);
       shader::get().set_min(setting.min_scalar);
       shader::get().set_max(setting.max_scalar);
       shader::get().invert_scale(setting.scale_inverted);

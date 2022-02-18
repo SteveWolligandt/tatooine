@@ -15,7 +15,7 @@ namespace tatooine {
 template <typename VertexProperty>
 auto find_critical_points(sampler<VertexProperty, interpolation::linear,
                                   interpolation::linear> const& s) {
-  static_assert(is_vec<typename VertexProperty::value_type>,
+  static_assert(static_vec<typename VertexProperty::value_type>,
                 "container of sampler must hold vectors");
   static_assert(VertexProperty::value_type::dimension(0) == 2);
   using namespace boost;

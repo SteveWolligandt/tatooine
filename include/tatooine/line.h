@@ -126,12 +126,8 @@ struct line {
   line(pos_container_t&& data, bool is_closed = false)
       : m_vertices{std::move(data)}, m_is_closed{is_closed} {}
   //----------------------------------------------------------------------------
-  template <typename... Vertices>
-  requires((is_vec<std::decay_t<Vertices>> &&
-            std::is_arithmetic_v<typename std::decay_t<Vertices>::value_type> &&
-            std::decay_t<Vertices>::num_components() == NumDimensions) &&
-           ...) line(Vertices&&... vertices)
-      : m_vertices{pos_type{std::forward<Vertices>(vertices)}...},
+  line(fixed_size_real_vec<NumDimensions> auto&&... vs)
+      : m_vertices{pos_type{std::forward<decltype(vs)>(vs)}...},
         m_is_closed{false} {}
   //----------------------------------------------------------------------------
   //----------------------------------------------------------------------------

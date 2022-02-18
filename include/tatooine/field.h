@@ -356,11 +356,11 @@ auto discretize(polymorphic::field<VReal, NumDimensions, Tensor> const& f,
     if constexpr (is_arithmetic<Tensor>) {
       return discretized_domain.template insert_vertex_property<VReal>(
           property_name);
-    } else if constexpr (is_vec<Tensor>) {
+    } else if constexpr (static_vec<Tensor>) {
       return discretized_domain
           .template vertex_property<vec<VReal, Tensor::dimension(0)>>(
               property_name);
-    } else if constexpr (is_mat<Tensor>) {
+    } else if constexpr (static_mat<Tensor>) {
       return discretized_domain.template vertex_property<
           mat<VReal, Tensor::dimension(0), Tensor::dimension(1)>>(
           property_name);

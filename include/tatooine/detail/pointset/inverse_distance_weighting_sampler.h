@@ -16,7 +16,7 @@ struct inverse_distance_weighting_sampler
   using typename parent_type::real_type;
   using pointset_t        = tatooine::pointset<Real, NumDimensions>;
   using vertex_handle     = typename pointset_t::vertex_handle;
-  using vertex_property_t = typename pointset_t::template vertex_property_t<T>;
+  using vertex_property_t = typename pointset_t::template typed_vertex_property_t<T>;
   //==========================================================================
   pointset_t const&        m_pointset;
   vertex_property_t const& m_property;
@@ -49,8 +49,8 @@ struct inverse_distance_weighting_sampler
       throw std::runtime_error{
           "[inverse_distance_weighting_sampler] out of domain"};
     }
-    T    accumulated_prop_val{};
-    Real accumulated_weight = 0;
+    auto accumulated_prop_val = T{};
+    auto accumulated_weight   = Real{};
 
     auto index_it = begin(indices);
     auto dist_it  = begin(distances);

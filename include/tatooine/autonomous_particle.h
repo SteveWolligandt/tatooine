@@ -21,8 +21,8 @@ concept split_behavior = requires {
   floating_point<decltype(B::split_cond)>;
   range<decltype(B::radii)>;
   range<decltype(B::offsets)>;
-  is_vec<typename decltype(B::radii)::value_type>;
-  is_vec<typename decltype(B::offsets)::value_type>;
+  static_vec<typename decltype(B::radii)::value_type>;
+  static_vec<typename decltype(B::offsets)::value_type>;
 };
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions>

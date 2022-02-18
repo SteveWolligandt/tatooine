@@ -76,7 +76,10 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
         "out vec4 out_color;\n"
         "void main() {\n"
         "  float scalar = texture(data, texcoord).r;\n"
-        "  if (isnan(scalar)) { discard; }\n"
+        "  if (isnan(scalar)) {\n"
+        "    out_color = vec4(1,0,0,1);\n"
+        "    return;\n"
+        "  }\n"
         "  scalar = clamp((scalar - min) / (max - min), 0, 1);\n"
         "  if (invert_scale == 1) {\n"
         "    scalar = 1 - scalar;\n"
@@ -214,7 +217,7 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
         retrieve_typed_prop(prop.get(), [&](auto const& prop) {
           using prop_type  = std::decay_t<decltype(prop)>;
           using value_type = typename prop_type::value_type;
-          if constexpr (is_vec<value_type>) {
+          if constexpr (static_vec<value_type>) {
             auto constexpr num_comps = value_type::num_components();
             auto min_scalars         = std::vector<GLfloat>(
                 num_comps + 1, std::numeric_limits<GLfloat>::max());
@@ -308,7 +311,7 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
     retrieve_typed_prop(prop, [&](auto&& prop) {
       using prop_type  = std::decay_t<decltype(prop)>;
       using value_type = typename prop_type::value_type;
-      if constexpr (is_vec<value_type>) {
+      if constexpr (static_vec<value_type>) {
         upload_data_to_texture(
             prop,
             [](auto const& prop, auto const... is) {
@@ -327,7 +330,7 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
     retrieve_typed_prop(prop, [&](auto&& prop) {
       using prop_type  = std::decay_t<decltype(prop)>;
       using value_type = typename prop_type::value_type;
-      if constexpr (is_vec<value_type>) {
+      if constexpr (static_vec<value_type>) {
         upload_data_to_texture(
             prop,
             [](auto const& prop, auto const... is) { return prop(is...).x(); },
@@ -340,7 +343,7 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
     retrieve_typed_prop(prop, [&](auto&& prop) {
       using prop_type  = std::decay_t<decltype(prop)>;
       using value_type = typename prop_type::value_type;
-      if constexpr (is_vec<value_type>) {
+      if constexpr (static_vec<value_type>) {
         upload_data_to_texture(
             prop,
             [](auto const& prop, auto const... is) { return prop(is...).y(); },
@@ -353,7 +356,7 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
     retrieve_typed_prop(prop, [&](auto&& prop) {
       using prop_type  = std::decay_t<decltype(prop)>;
       using value_type = typename prop_type::value_type;
-      if constexpr (is_vec<value_type>) {
+      if constexpr (static_vec<value_type>) {
         if constexpr (value_type::num_components() > 2) {
           upload_data_to_texture(
               prop,
@@ -370,7 +373,7 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
     retrieve_typed_prop(prop, [&](auto&& prop) {
       using prop_type  = std::decay_t<decltype(prop)>;
       using value_type = typename prop_type::value_type;
-      if constexpr (is_vec<value_type>) {
+      if constexpr (static_vec<value_type>) {
         if constexpr (value_type::num_components() > 3) {
           upload_data_to_texture(
               prop,
@@ -435,7 +438,7 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
       retrieve_typed_prop(selected_property, [&](auto&& prop) {
         using prop_type  = std::decay_t<decltype(prop)>;
         using value_type = typename prop_type::value_type;
-        if constexpr (is_vec<value_type>) {
+        if constexpr (static_vec<value_type>) {
           n = value_type::num_components();
         }
       });
@@ -538,7 +541,7 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
       retrieve_typed_prop(selected_property, [&](auto const& prop) {
         using prop_type  = std::decay_t<decltype(prop)>;
         using value_type = typename prop_type::value_type;
-        if constexpr (is_vec<value_type>) {
+        if constexpr (static_vec<value_type>) {
           auto constexpr num_comps = value_type::num_components();
           grid.vertices().iterate_indices([&](auto const... is) {
             auto const p = prop.at(is...);

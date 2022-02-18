@@ -2,263 +2,176 @@
 #define TATOOINE_TRANSPOSED_TENSOR_H
 //==============================================================================
 #include <tatooine/base_tensor.h>
-#include <tatooine/is_transposed_tensor.h>
 #include <tatooine/concepts.h>
+#include <tatooine/invoke_reversed.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Tensor, size_t M, size_t N>
-struct const_transposed_tensor
-    : base_tensor<const_transposed_tensor<Tensor, M, N>,
-                  typename Tensor::value_type, M, N> {
-  static_assert(Tensor::dimension(0) == N);
-  static_assert(Tensor::dimension(1) == M);
+template <static_tensor Tensor>
+struct transposed_static_tensor {
+  static auto constexpr rank() { std::decay_t<Tensor>::rank(); }
+  static auto constexpr dimensions() {
+    return std::ranges::reverse(std::decay_t<Tensor>::dimensions());
+  }
+  static auto constexpr dimension(std::size_t const i) {
+    return std::decay_t<Tensor>::dimension(rank() - i - 1);
+  }
+  static auto constexpr is_tensor() { return true; }
+  static auto constexpr is_static() { return true; }
+  static auto constexpr is_transposed() { return true; }
+  using value_type = typename std::decay_t<Tensor>::value_type;
   //============================================================================
  private:
-  const Tensor& m_internal_tensor;
+  Tensor m_internal_tensor;
 
   //============================================================================
  public:
-  constexpr explicit const_transposed_tensor(
-      const base_tensor<Tensor, typename Tensor::value_type, N, M>&
-          internal_tensor)
-      : m_internal_tensor{internal_tensor.as_derived()} {}
+  constexpr explicit transposed_static_tensor(static_tensor auto&& t)
+      : m_internal_tensor{std::forward<decltype(t)>(t)} {}
   //----------------------------------------------------------------------------
-  constexpr auto operator()(const size_t r, const size_t c) const -> const
-      auto& {
-    return m_internal_tensor(c, r);
+  auto constexpr at(integral auto const... is) const -> decltype(auto) {
+    return invoke_reversed(
+        [this](auto const... is) -> decltype(auto) {
+          return internal_tensor()(is...);
+        },
+        is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto at(const size_t r, const size_t c) const -> const auto& {
-    return m_internal_tensor(c, r);
-  }
-  //----------------------------------------------------------------------------
-  auto internal_tensor() const -> const auto& { return m_internal_tensor; }
-};
-
-//==============================================================================
-template <typename Tensor, size_t M, size_t N>
-struct transposed_tensor : base_tensor<transposed_tensor<Tensor, M, N>,
-                                       typename Tensor::value_type, M, N> {
-  static_assert(Tensor::dimension(0) == N);
-  static_assert(Tensor::dimension(1) == M);
-  //============================================================================
- private:
-  Tensor& m_internal_tensor;
-
-  //============================================================================
- public:
-  constexpr explicit transposed_tensor(
-      base_tensor<Tensor, typename Tensor::value_type, N, M>& internal_tensor)
-      : m_internal_tensor{internal_tensor.as_derived()} {}
-  //----------------------------------------------------------------------------
-  constexpr auto operator()(const size_t r, const size_t c) const -> const
-      auto& {
-    return m_internal_tensor(c, r);
+  auto constexpr at(integral auto const... is) -> decltype(auto) {
+    return invoke_reversed(
+        [this](auto const... is) -> decltype(auto) {
+          return internal_tensor()(is...);
+        },
+        is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto operator()(const size_t r, const size_t c) -> auto& {
-    return m_internal_tensor(c, r);
-  }
-  //----------------------------------------------------------------------------
-  constexpr auto at(const size_t r, const size_t c) const -> const auto& {
-    return m_internal_tensor(c, r);
+  auto constexpr operator()(integral auto const... is) const -> decltype(auto) {
+    return at(is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto at(const size_t r, const size_t c) -> auto& {
-    return m_internal_tensor(c, r);
+  auto constexpr operator()(integral auto const... is) -> decltype(auto) {
+    return at(is...);
   }
-
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto constexpr at(integral_range auto is) const -> decltype(auto) {
+    std::ranges::reverse(is);
+    return internal_tensor()(is);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto constexpr at(integral_range auto is) -> decltype(auto) {
+    std::ranges::reverse(is);
+    return internal_tensor()(is);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto constexpr operator()(integral_range auto is) const -> decltype(auto) {
+    std::ranges::reverse(is);
+    return internal_tensor()(is);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto constexpr operator()(integral_range auto is) -> decltype(auto) {
+    std::ranges::reverse(is);
+    return internal_tensor()(is);
+  }
   //----------------------------------------------------------------------------
-  auto internal_tensor() -> auto& { return m_internal_tensor; }
-  auto internal_tensor() const -> const auto& { return m_internal_tensor; }
-};
-
-//------------------------------------------------------------------------------
-template <typename Tensor, typename Real, size_t M, size_t N>
-auto transposed(const base_tensor<Tensor, Real, M, N>& t) {
-  return const_transposed_tensor{t};
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Tensor, typename Real, size_t M, size_t N>
-constexpr auto transposed(base_tensor<Tensor, Real, M, N>& t) {
-  return transposed_tensor<Tensor, N, M>{t};
-}
-
-//------------------------------------------------------------------------------
-template <typename Tensor, typename Real, size_t M, size_t N>
-constexpr auto transposed(
-    base_tensor<transposed_tensor<Tensor, M, N>, Real, M, N>& transposed_tensor)
-    -> auto& {
-  return transposed_tensor.as_derived().internal_tensor();
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Tensor, typename Real, size_t M, size_t N>
-constexpr auto transposed(const base_tensor<transposed_tensor<Tensor, M, N>,
-                                            Real, M, N>& transposed_tensor)
-    -> const auto& {
-  return transposed_tensor.as_derived().internal_tensor();
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Tensor, typename Real, size_t M, size_t N>
-constexpr auto transposed(
-    const base_tensor<const_transposed_tensor<Tensor, M, N>, Real, M, N>&
-        transposed_tensor) -> const auto& {
-  return transposed_tensor.as_derived().internal_tensor();
-}
-//==============================================================================
-template <typename Tensor, size_t M, size_t N>
-struct is_transposed_tensor_impl<const_transposed_tensor<Tensor, M, N>>
-    : std::true_type {};
-//------------------------------------------------------------------------------
-template <typename Tensor, size_t M, size_t N>
-struct is_transposed_tensor_impl<transposed_tensor<Tensor, M, N>> : std::true_type {
+  auto internal_tensor() const -> auto const& { return internal_tensor(); }
 };
 //------------------------------------------------------------------------------
-template <typename Tensor, typename T, size_t M, size_t N>
-struct is_transposed_tensor_impl<
-    base_tensor<transposed_tensor<Tensor, M, N>, T, M, N>> : std::true_type {};
-//------------------------------------------------------------------------------
-template <typename Tensor, typename T, size_t M, size_t N>
-struct is_transposed_tensor_impl<
-    base_tensor<const_transposed_tensor<Tensor, M, N>, T, M, N>>
-    : std::true_type {};
+template <static_tensor T>
+transposed_static_tensor(T&&) -> transposed_static_tensor<std::decay_t<T>>;
+template <static_tensor T>
+transposed_static_tensor(T&) -> transposed_static_tensor<T&>;
+template <static_tensor T>
+transposed_static_tensor(T const&) -> transposed_static_tensor<T const&>;
 //==============================================================================
 // dynamic tensor
 //==============================================================================
-template <typename DynamicTensor>
-requires is_dynamic_tensor<DynamicTensor>
-struct const_transposed_dynamic_tensor {
-  using value_type = typename DynamicTensor::value_type;
-  DynamicTensor const& m_tensor;
-  //============================================================================
-  auto internal_tensor() -> auto& { return m_tensor; }
-  auto internal_tensor() const -> auto const& { return m_tensor; }
-  //----------------------------------------------------------------------------
-  auto size() const {
-    auto s = m_tensor.size();
-    std::reverse(begin(s), end(s));
-    return s;
-  }
-  //============================================================================
-  auto at(integral auto const... /*is*/) const -> value_type const& {
-    throw std::runtime_error{
-        "[const_transposed_dynamic_tensor::at] need exactly two indices"};
-  }
-  auto at(integral auto const r, integral auto const c) const
-      -> value_type const& {
-    return m_tensor(c, r);
-  }
-  //----------------------------------------------------------------------------
-  auto operator()(integral auto const... is) const -> value_type const& {
-    if (sizeof...(is) == 2) {
-      return at(is...);
-    }
-    throw std::runtime_error{
-        "[const_transposed_dynamic_tensor::operator()] need exactly two "
-        "indices"};
-  }
-  //----------------------------------------------------------------------------
-  static constexpr auto num_dimensions() { return 2; }
-  //----------------------------------------------------------------------------
-  auto size(size_t const i) const { return m_tensor.size(1 - i); }
-};
-//------------------------------------------------------------------------------
-template <typename DynamicTensor>
-struct is_dynamic_tensor_impl<const_transposed_dynamic_tensor<DynamicTensor>>
-    : std::true_type {};
-//------------------------------------------------------------------------------
-template <typename DynamicTensor>
-struct is_transposed_tensor_impl<const_transposed_dynamic_tensor<DynamicTensor>>
-    : std::true_type {};
-//==============================================================================
-template <typename DynamicTensor>
-requires is_dynamic_tensor<DynamicTensor>
+template <dynamic_tensor Tensor>
 struct transposed_dynamic_tensor {
-  using value_type = typename DynamicTensor::value_type;
-  DynamicTensor& m_tensor;
+  static auto constexpr is_tensor() { return true; }
+  static auto constexpr is_transposed() { return true; }
+  static auto constexpr is_dynamic() { return true; }
+  using value_type = typename std::decay_t<Tensor>::value_type;
   //============================================================================
-  auto internal_tensor() -> auto& { return m_tensor; }
-  auto internal_tensor() const -> auto const& { return m_tensor; }
-  //----------------------------------------------------------------------------
-  auto size() const {
-    auto s = m_tensor.size();
-    std::reverse(begin(s), end(s));
+  Tensor const& m_internal_tensor;
+  //============================================================================
+  transposed_dynamic_tensor(dynamic_tensor auto&& t)
+      : m_internal_tensor{std::forward<decltype(t)>(t)} {}
+  //============================================================================
+  auto internal_tensor() -> auto& { return m_internal_tensor; }
+  auto internal_tensor() const -> auto const& { return m_internal_tensor; }
+  //------------------------------------------------------------------------------
+  auto constexpr rank() const { return internal_tensor().rank(); }
+  auto constexpr dimensions() const {
+    auto s = internal_tensor().dimensions();
+    std::ranges::reverse(s);
     return s;
   }
+  auto constexpr dimension(std::size_t const i) const {
+    return internal_tensor().dimension(rank() - i - 1);
+  }
   //============================================================================
-  auto at(integral auto const... /*is*/) const -> value_type const& {
-    throw std::runtime_error{
-        "[transposed_dynamic_tensor::at] need exactly two indices"};
-  }
-  auto at(integral auto const... /*is*/) -> value_type& {
-    throw std::runtime_error{
-        "[transposed_dynamic_tensor::at] need exactly two indices"};
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto at(integral auto const r, integral auto const c) const
-      -> value_type const& {
-    return m_tensor(c, r);
+  auto constexpr at(integral auto const... is) const -> decltype(auto) {
+    return invoke_reversed(
+        [this](auto const... is) -> decltype(auto) {
+          return internal_tensor()(is...);
+        },
+        is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator()(integral_range auto const& indices) const -> auto const& {
-    return at(indices);
+  auto constexpr at(integral auto const... is) -> decltype(auto) {
+    return invoke_reversed(
+        [this](auto const... is) -> decltype(auto) {
+          return internal_tensor()(is...);
+        },
+        is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator()(integral_range auto const& indices) -> auto& {
-    return at(indices);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto at(integral_range auto indices) -> auto& {
-    assert(indices.size() == num_dimensions());
-    std::reverse(begin(indices), end(indices));
-    return m_tensor(indices);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto at(integral_range auto indices) const -> auto const& {
-    assert(indices.size() == num_dimensions());
-    std::reverse(begin(indices), end(indices));
-    return m_tensor(indices);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto at(integral auto const r, integral auto const c) -> value_type& {
-    return m_tensor(c, r);
-  }
-  //----------------------------------------------------------------------------
-  auto operator()(integral auto const... is) const -> value_type const& {
+  auto constexpr operator()(integral auto const... is) const -> decltype(auto) {
     return at(is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator()(integral auto const... is) -> value_type& {
+  auto constexpr operator()(integral auto const... is) -> decltype(auto) {
     return at(is...);
   }
-  //----------------------------------------------------------------------------
-  static constexpr auto num_dimensions() { return 2; }
-  //----------------------------------------------------------------------------
-  auto size(size_t const i) const { return m_tensor.size(1 - i); }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto constexpr at(integral_range auto is) const -> decltype(auto) {
+    std::ranges::reverse(is);
+    return internal_tensor()(is);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto constexpr at(integral_range auto is) -> decltype(auto) {
+    std::ranges::reverse(is);
+    return internal_tensor()(is);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto constexpr operator()(integral_range auto is) const -> decltype(auto) {
+    std::ranges::reverse(is);
+    return internal_tensor()(is);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto constexpr operator()(integral_range auto is) -> decltype(auto) {
+    std::ranges::reverse(is);
+    return internal_tensor()(is);
+  }
 };
 //------------------------------------------------------------------------------
-template <typename DynamicTensor>
-struct is_dynamic_tensor_impl<transposed_dynamic_tensor<DynamicTensor>>
-    : std::true_type {};
-//------------------------------------------------------------------------------
-template <typename DynamicTensor>
-struct is_transposed_tensor_impl<transposed_dynamic_tensor<DynamicTensor>>
-    : std::true_type {};
+template <dynamic_tensor T>
+transposed_dynamic_tensor(T&&) -> transposed_dynamic_tensor<std::decay_t<T>>;
+template <dynamic_tensor T>
+transposed_dynamic_tensor(T&) -> transposed_dynamic_tensor<T&>;
+template <dynamic_tensor T>
+transposed_dynamic_tensor(T const&) -> transposed_dynamic_tensor<T const&>;
 //==============================================================================
-template <typename DynamicTensor>
-requires is_dynamic_tensor<DynamicTensor>
-auto transposed(DynamicTensor const& A) {
-  assert(A.num_dimensions() == 2);
-  return const_transposed_dynamic_tensor<DynamicTensor>{A};
+auto transposed(dynamic_tensor auto&& t) {
+  return transposed_dynamic_tensor{std::forward<decltype(t)>(t)};
 }
 //------------------------------------------------------------------------------
-template <typename DynamicTensor>
-requires is_dynamic_tensor<DynamicTensor>
-auto transposed(DynamicTensor& A) {
-  assert(A.num_dimensions() == 2);
-  return transposed_dynamic_tensor<DynamicTensor>{A};
+auto constexpr transposed(static_tensor auto&& t) {
+  return transposed_static_tensor{std::forward<decltype(t)>(t)};
+}
+//------------------------------------------------------------------------------
+auto constexpr transposed(transposed_tensor auto&& t) {
+  return t.internal_tensor();
 }
 //==============================================================================
 }  // namespace tatooine

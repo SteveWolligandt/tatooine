@@ -1,9 +1,9 @@
 #ifndef TATOOINE_MAT_H
 #define TATOOINE_MAT_H
 //==============================================================================
+#include <tatooine/hdf5.h>
 #include <tatooine/real.h>
 #include <tatooine/tensor.h>
-#include <tatooine/hdf5.h>
 //==============================================================================
 #include <tatooine/random.h>
 #include <tatooine/tags.h>
@@ -27,7 +27,6 @@ struct mat : tensor<T, M, N> {
   //============================================================================
   // inherited methods
   //============================================================================
-  using parent_type::is_quadratic_mat;
   using parent_type::parent_type;
   using parent_type::operator();
   using parent_type::at;
@@ -39,8 +38,6 @@ struct mat : tensor<T, M, N> {
   //----------------------------------------------------------------------------
   static auto constexpr ones() { return this_type{tag::fill<T>{1}}; }
   //----------------------------------------------------------------------------
-  template <typename = void>
-  requires (is_quadratic_mat())
   static auto constexpr eye() { return this_type{tag::eye}; }
   //----------------------------------------------------------------------------
   template <typename RandEng = std::mt19937_64>
@@ -53,6 +50,37 @@ struct mat : tensor<T, M, N> {
   static auto constexpr randn(T mean = 0, T stddev = 1,
                               RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_type{random::normal<T>{eng, mean, stddev}};
+  }
+  //----------------------------------------------------------------------------
+  template <typename OtherTensor>
+  static auto constexpr vander(base_tensor<OtherTensor, T, N> const& v) {
+    this_type V;
+    auto      factor_up_row = [row = std::size_t(0), &V](auto x) mutable {
+      V(row, 0) = 1;
+      for (std::size_t col = 1; col < N; ++col) {
+        V(row, col) = V(row, col - 1) * x;
+      }
+      ++row;
+    };
+    for (size_t i = 0; i < N; ++i) {
+      factor_up_row(v(i));
+    }
+    return V;
+  }
+  //----------------------------------------------------------------------------
+  template <convertible_to<T>... Xs>
+  static auto constexpr vander(Xs&&... xs) {
+    static_assert(sizeof...(xs) == num_columns());
+    this_type V;
+    auto      factor_up_row = [row = std::size_t(0), &V](auto x) mutable {
+      V(row, 0) = 1;
+      for (std::size_t col = 1; col < N; ++col) {
+        V(row, col) = V(row, col - 1) * x;
+      }
+      ++row;
+    };
+    (factor_up_row(xs), ...);
+    return V;
   }
 
   //============================================================================
@@ -87,7 +115,9 @@ struct mat : tensor<T, M, N> {
   //----------------------------------------------------------------------------
   /// Constructs an identity matrix.
   explicit constexpr mat(tag::eye_t /*flag*/) : parent_type{tag::zeros} {
-    for (size_t i = 0; i < std::min(M, N); ++i) { at(i, i) = 1; }
+    for (size_t i = 0; i < std::min(M, N); ++i) {
+      at(i, i) = 1;
+    }
   }
   //============================================================================
   // assign operators
@@ -106,40 +136,6 @@ struct mat : tensor<T, M, N> {
   // destructor
   //============================================================================
   ~mat() = default;
-
-  //============================================================================
-  // factory functions
-  //============================================================================
-  static auto constexpr eye() { return this_type{tag::eye}; }
-  //----------------------------------------------------------------------------
-  template <typename OtherTensor>
-  static auto constexpr vander(base_tensor<OtherTensor, T, N> const & v) {
-    this_type V;
-    auto   factor_up_row = [row = std::size_t(0), &V](auto x) mutable {
-      V(row, 0) = 1;
-      for (std::size_t col = 1; col < N; ++col) {
-        V(row, col) = V(row, col - 1) * x;
-      }
-      ++row;
-    };
-    for (size_t i = 0; i < N; ++i) { factor_up_row(v(i)); }
-    return V;
-  }
-  //----------------------------------------------------------------------------
-  template <convertible_to<T> ...Xs>
-  static auto constexpr vander(Xs&&... xs) {
-    static_assert(sizeof...(xs) == num_columns());
-    this_type V;
-    auto   factor_up_row = [row = std::size_t(0), &V](auto x) mutable {
-      V(row, 0) = 1;
-      for (std::size_t col = 1; col < N; ++col) {
-        V(row, col) = V(row, col - 1) * x;
-      }
-      ++row;
-    };
-    (factor_up_row(xs), ...);
-    return V;
-  }
 
   //============================================================================
   // methods
