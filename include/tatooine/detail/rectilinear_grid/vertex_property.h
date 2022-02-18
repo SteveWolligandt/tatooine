@@ -230,7 +230,7 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
                  internal_value_type<ValueType>       min = 0,
                  internal_value_type<ValueType> const max = 1) const
       -> void requires(num_dimensions() == 2) &&
-      ((is_vec<ValueType>) || (is_arithmetic<ValueType>)) {
+      ((static_vec<ValueType>) || (arithmetic<ValueType>)) {
     png::image<png::rgb_pixel> image{
         static_cast<png::uint_32>(this->grid().size(0)),
         static_cast<png::uint_32>(this->grid().size(1))};
@@ -248,7 +248,7 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
           image[image.get_height() - 1 - y][x].red =
               image[image.get_height() - 1 - y][x].green =
                   image[image.get_height() - 1 - y][x].blue = d * 255;
-        } else if constexpr (is_vec<ValueType>) {
+        } else if constexpr (static_vec<ValueType>) {
           if (std::isnan(d(0))) {
             for (auto& c : d) {
               c = 0;

@@ -18,23 +18,23 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename IndexOrder, size_t... Resolution>
+template <typename IndexOrder, std::size_t... Resolution>
 struct static_multidim_size {
   static constexpr auto num_dimensions() { return sizeof...(Resolution); }
   static constexpr auto num_components() { return (Resolution * ...); }
   //----------------------------------------------------------------------------
   static constexpr auto size() { return std::array{Resolution...}; }
   //----------------------------------------------------------------------------
-  static constexpr auto size(size_t const i) { return size()[i]; }
+  static constexpr auto size(std::size_t const i) { return size()[i]; }
   //----------------------------------------------------------------------------
   static constexpr auto in_range(integral auto const... indices) requires(
       sizeof...(indices) == num_dimensions()) {
     return ((indices >= 0) && ...) &&
-           ((static_cast<size_t>(indices) < Resolution) && ...);
+           ((static_cast<std::size_t>(indices) < Resolution) && ...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   static constexpr auto in_range(integral_range auto const& indices) {
-    for (size_t i = 0; i < indices.size(); ++i) {
+    for (std::size_t i = 0; i < indices.size(); ++i) {
       if (indices[i] >= size(i)) {
         return false;
       }
@@ -64,7 +64,7 @@ class dynamic_multidim_size {
   //----------------------------------------------------------------------------
   // members
   //----------------------------------------------------------------------------
-  std::vector<size_t> m_size;
+  std::vector<std::size_t> m_size;
 
   //----------------------------------------------------------------------------
   // ctors
@@ -103,9 +103,9 @@ class dynamic_multidim_size {
   }
   //----------------------------------------------------------------------------
   explicit dynamic_multidim_size(integral auto const... size)
-      : m_size{static_cast<size_t>(size)...} {}
+      : m_size{static_cast<std::size_t>(size)...} {}
   //----------------------------------------------------------------------------
-  explicit dynamic_multidim_size(std::vector<size_t>&& size)
+  explicit dynamic_multidim_size(std::vector<std::size_t>&& size)
       : m_size(std::move(size)) {}
   //----------------------------------------------------------------------------
   explicit dynamic_multidim_size(integral_range auto const& size)
@@ -118,7 +118,7 @@ class dynamic_multidim_size {
     if (num_dimensions() != other.num_dimensions()) {
       return false;
     }
-    for (size_t i = 0; i < num_dimensions(); ++i) {
+    for (std::size_t i = 0; i < num_dimensions(); ++i) {
       if (m_size[i] != other.size(i)) {
         return false;
       }
@@ -131,7 +131,7 @@ class dynamic_multidim_size {
     if (num_dimensions() == other.num_dimensions()) {
       return false;
     }
-    for (size_t i = 0; i < num_dimensions(); ++i) {
+    for (std::size_t i = 0; i < num_dimensions(); ++i) {
       if (m_size[i] == other.size(i)) {
         return false;
       }
@@ -147,33 +147,33 @@ class dynamic_multidim_size {
   //----------------------------------------------------------------------------
   [[nodiscard]] auto size() const -> auto const& { return m_size; }
   /// \return size of dimensions i
-  auto size(size_t const i) const { return m_size[i]; }
+  auto size(std::size_t const i) const { return m_size[i]; }
   //----------------------------------------------------------------------------
   auto num_components() const {
-    return std::accumulate(begin(m_size), end(m_size), size_t(1),
-                           std::multiplies<size_t>{});
+    return std::accumulate(begin(m_size), end(m_size), std::size_t(1),
+                           std::multiplies<std::size_t>{});
   }
   //----------------------------------------------------------------------------
   void resize(integral auto const... size) {
-    m_size = {static_cast<size_t>(size)...};
+    m_size = {static_cast<std::size_t>(size)...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   void resize(integral_range auto const& size) {
-    m_size = std::vector<size_t>(begin(size), end(size));
+    m_size = std::vector<std::size_t>(begin(size), end(size));
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void resize(std::vector<size_t>&& size) { m_size = std::move(size); }
+  void resize(std::vector<std::size_t>&& size) { m_size = std::move(size); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void resize(std::vector<size_t> const& size) { m_size = size; }
+  void resize(std::vector<std::size_t> const& size) { m_size = size; }
   //----------------------------------------------------------------------------
   constexpr auto in_range(integral auto const... indices) const {
     assert(sizeof...(indices) == num_dimensions());
-    return in_range(std::array{static_cast<size_t>(indices)...});
+    return in_range(std::array{static_cast<std::size_t>(indices)...});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr auto in_range(integral_range auto const& indices) const {
     assert(indices.size() == num_dimensions());
-    for (size_t i = 0; i < indices.size(); ++i) {
+    for (std::size_t i = 0; i < indices.size(); ++i) {
       if (indices[i] >= size(i)) {
         return false;
       }
@@ -193,7 +193,7 @@ class dynamic_multidim_size {
     return IndexOrder::plain_index(m_size, indices);
   }
   //----------------------------------------------------------------------------
-  constexpr auto multi_index(size_t const gi) const {
+  constexpr auto multi_index(std::size_t const gi) const {
     return IndexOrder::multi_index(m_size, gi);
   }
   //----------------------------------------------------------------------------

@@ -15,16 +15,16 @@ constexpr auto rank(Scalar&&) {
   return 0;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Tensor>
-requires is_tensor<Tensor>
+template <static_tensor Tensor>
 constexpr auto rank() {
   return std::decay_t<Tensor>::rank();
 }
-template <typename Tensor>
-requires is_tensor<Tensor>
-constexpr auto rank(Tensor &&) {
-  return std::decay_t<Tensor>::rank();
-}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <static_tensor Tensor>
+constexpr auto rank(Tensor &&) { return std::decay_t<Tensor>::rank(); }
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <dynamic_tensor Tensor>
+constexpr auto rank(Tensor && t) { return t.rank(); }
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

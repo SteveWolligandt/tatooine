@@ -40,7 +40,7 @@ auto download(gl::texture<2, GPUReal, gl::RGBA> const& tex) {
 template <floating_point GPUReal = float, typename Tensor>
 auto upload_tex(std::vector<Tensor> const& data,
                 integral auto const... res) requires
-    std::is_floating_point_v<Tensor> || is_vec<Tensor> {
+    std::is_floating_point_v<Tensor> || static_vec<Tensor> {
   using namespace gl;
   std::vector<GPUReal> gpu_data;
   for (auto const& d : data) {
@@ -67,14 +67,14 @@ template <size_t Dimensions, typename TexComps, floating_point GPUReal = float,
           typename Tensor, size_t... Is>
 auto upload_tex(dynamic_multidim_array<Tensor> const& data,
                 std::index_sequence<Is...> /*seq*/) requires
-    std::is_floating_point_v<Tensor> || is_vec<Tensor> {
+    std::is_floating_point_v<Tensor> || static_vec<Tensor> {
   return upload_tex<TexComps, GPUReal>(data.data(), data.size(Is)...);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <size_t Dimensions, typename TexComps, typename GPUReal = float,
           typename Tensor>
 auto upload_tex(dynamic_multidim_array<Tensor> const& data) requires
-    std::is_floating_point_v<Tensor> || is_vec<Tensor> {
+    std::is_floating_point_v<Tensor> || static_vec<Tensor> {
   static_assert(Dimensions >= 1 && Dimensions <= 3);
   return upload_tex<Dimensions, TexComps, GPUReal>(
       data, std::make_index_sequence<Dimensions>{});
@@ -82,7 +82,7 @@ auto upload_tex(dynamic_multidim_array<Tensor> const& data) requires
 //------------------------------------------------------------------------------
 template <typename GPUReal = float, typename Tensor>
 auto upload_tex1d(dynamic_multidim_array<Tensor> const& data) requires
-    std::is_floating_point_v<Tensor> || is_vec<Tensor> {
+    std::is_floating_point_v<Tensor> || static_vec<Tensor> {
   using namespace gl;
   if constexpr (rank<Tensor>() == 0) {
     return upload_tex<1, R, GPUReal>(data);
@@ -97,7 +97,7 @@ auto upload_tex1d(dynamic_multidim_array<Tensor> const& data) requires
 //------------------------------------------------------------------------------
 template <typename GPUReal = float, typename Tensor>
 auto upload_tex2d(const dynamic_multidim_array<Tensor>& data) requires
-    std::is_floating_point_v<Tensor> || is_vec<Tensor> {
+    std::is_floating_point_v<Tensor> || static_vec<Tensor> {
   using namespace gl;
   if constexpr (rank<Tensor>() == 0) {
     return upload_tex<2, R, GPUReal>(data);
@@ -112,7 +112,7 @@ auto upload_tex2d(const dynamic_multidim_array<Tensor>& data) requires
 //------------------------------------------------------------------------------
 template <typename GPUReal = float, typename Tensor>
 auto upload_tex3d(const dynamic_multidim_array<Tensor>& data) requires
-    std::is_floating_point_v<Tensor> || is_vec<Tensor> {
+    std::is_floating_point_v<Tensor> || static_vec<Tensor> {
   using namespace gl;
   if constexpr (rank<Tensor>() == 0) {
     return upload_tex<3, R, GPUReal>(data);

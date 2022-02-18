@@ -5,6 +5,30 @@
 //==============================================================================
 namespace tatooine::variadic {
 //==============================================================================
+template <std::size_t I, std::size_t... Is>
+struct front_number_impl {
+  static auto constexpr value = I;
+};
+//------------------------------------------------------------------------------
+template <std::size_t... Is>
+static auto constexpr front_number = front_number_impl<Is...>::value;
+//==============================================================================
+template <std::size_t... I>
+struct back_number_impl;
+//------------------------------------------------------------------------------
+template <std::size_t I>
+struct back_number_impl<I> {
+  static auto constexpr value = I;
+};
+//------------------------------------------------------------------------------
+template <std::size_t I, std::size_t... Is>
+struct back_number_impl<I, Is...> {
+  static auto constexpr value = back_number_impl<Is...>::value;
+};
+//------------------------------------------------------------------------------
+template <std::size_t... Is>
+static auto constexpr back_number = back_number_impl<Is...>::value;
+//==============================================================================
 template <typename T, typename... Ts>
 struct front_impl {
   using type = T;

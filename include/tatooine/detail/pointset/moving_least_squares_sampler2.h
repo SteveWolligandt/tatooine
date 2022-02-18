@@ -19,17 +19,17 @@ struct moving_least_squares_sampler<Real, 2, T>
   using typename parent_type::pos_type;
   using typename parent_type::real_type;
   using typename parent_type::tensor_type;
-  using pointset_t        = tatooine::pointset<Real, 2>;
-  using vertex_property_t = typename pointset_t::template typed_vertex_property_t<T>;
-  using vertex_handle     = typename pointset_t::vertex_handle;
+  using pointset_type = tatooine::pointset<Real, 2>;
+  using property_type =
+      typename pointset_type::template typed_vertex_property_t<T>;
+  using vertex_handle = typename pointset_type::vertex_handle;
   //==========================================================================
-  pointset_t const&        m_pointset;
-  vertex_property_t const& m_property;
-  Real                     m_radius = 1;
+  pointset_type const& m_pointset;
+  property_type const& m_property;
+  Real                 m_radius;
   //==========================================================================
-  moving_least_squares_sampler(pointset_t const&        ps,
-                               vertex_property_t const& property,
-                               Real const               radius = 1)
+  moving_least_squares_sampler(pointset_type const& ps,
+                               property_type const& property, Real const radius)
       : m_pointset{ps}, m_property{property}, m_radius{radius} {}
   //--------------------------------------------------------------------------
   moving_least_squares_sampler(moving_least_squares_sampler const&) = default;
@@ -54,11 +54,14 @@ struct moving_least_squares_sampler<Real, 2, T>
     }
   }
   //------------------------------------------------------------------------------
-  [[nodiscard]] auto evaluate_1_neighbors(std::vector<int> const& indices) const {
-      return m_property[vertex_handle{indices[0]}];
+  [[nodiscard]] auto evaluate_1_neighbors(
+      std::vector<int> const& indices) const {
+    return m_property[vertex_handle{indices[0]}];
   }
   //------------------------------------------------------------------------------
-  [[nodiscard]] auto evaluate_2_neighbors(std::vector<int> const& indices, std::vector<Real> const& distances) const {
+  [[nodiscard]] auto evaluate_2_neighbors(
+      std::vector<int> const&  indices,
+      std::vector<Real> const& distances) const {
     auto const& p0 = m_property[vertex_handle{indices[0]}];
     auto const& p1 = m_property[vertex_handle{indices[1]}];
 
@@ -73,23 +76,19 @@ struct moving_least_squares_sampler<Real, 2, T>
   }
   //------------------------------------------------------------------------------
   [[nodiscard]] auto evaluate_more_than_2_neighbors(
-      std::vector<int> const& indices,
-      std::vector<Real>& distances, pos_type const& q) const {
+      std::vector<int> const& indices, std::vector<Real> const& distances,
+      pos_type const& q) const {
     auto const num_neighbors = size(indices);
-    for (auto& d : distances) {
-      d /= m_radius;
-      d = 1 - d;
-    }
-    auto const w   = construct_w(num_neighbors, distances);
-    auto const F   = construct_F(num_neighbors, indices);
-    auto const B   = construct_B(num_neighbors, indices, q);
-    auto const BtW = transposed(B) * diag(w);
+    auto const w             = construct_weights(num_neighbors, distances);
+    auto const F             = construct_F(num_neighbors, indices);
+    auto const B             = construct_B(num_neighbors, indices, q);
+    auto const BtW           = transposed(B) * diag(w);
+    auto const C             = solve(BtW * B, BtW * F);
 
     if constexpr (num_components<T> == 1) {
-      return solve(BtW * B, BtW * F)(0);
+      return C(0);
     } else {
-      T    ret{};
-      auto C = solve(BtW * B, BtW * F);
+      auto ret = T{};
       for (std::size_t i = 0; i < num_components<T>; ++i) {
         ret(i) = C(0, i);
       }
@@ -97,57 +96,24 @@ struct moving_least_squares_sampler<Real, 2, T>
     }
   }
   //------------------------------------------------------------------------------
-  auto construct_linear_part_of_B(std::size_t const       num_neighbors,
-                                  std::vector<int> const& indices,
-                                  pos_type const& q, auto& B) const {
-    for (std::size_t i = 0; i < num_neighbors; ++i) {
-      B(i, 1) = m_pointset.vertex_at(indices[i]).x() - q.x();
+  auto construct_B(std::size_t const       num_neighbors,
+                   std::vector<int> const& indices, pos_type const& q) const {
+    auto B               = allocate_B(num_neighbors);
+    auto local_positions = std::vector<pos_type>(num_neighbors);
+    std::ranges::copy(indices | std::views::transform([&](auto const i) {
+                        return m_pointset.vertex_at(i) - q;
+                      }),
+                      begin(local_positions));
+    if (num_neighbors >= 3) {
+      construct_linear_part_of_B(local_positions, q, B);
     }
-    for (std::size_t i = 0; i < num_neighbors; ++i) {
-      B(i, 2) = m_pointset.vertex_at(indices[i]).y() - q.y();
+    if (num_neighbors >= 6) {
+      construct_quadratic_part_of_B(local_positions, q, B);
     }
-  }
-  //------------------------------------------------------------------------------
-  auto construct_quadratic_part_of_B(std::size_t const       num_neighbors,
-                                     std::vector<int> const& indices,
-                                     pos_type const& q, auto& B) const {
-    for (std::size_t i = 0; i < num_neighbors; ++i) {
-      B(i, 3) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                (m_pointset.vertex_at(indices[i]).x() - q.x());
+    if (num_neighbors >= 10) {
+      construct_cubic_part_of_B(local_positions, q, B);
     }
-    for (std::size_t i = 0; i < num_neighbors; ++i) {
-      B(i, 4) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                (m_pointset.vertex_at(indices[i]).y() - q.y());
-    }
-    for (std::size_t i = 0; i < num_neighbors; ++i) {
-      B(i, 5) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
-                (m_pointset.vertex_at(indices[i]).y() - q.y());
-    }
-  }
-  //------------------------------------------------------------------------------
-  auto construct_cubic_part_of_B(std::size_t const       num_neighbors,
-                                 std::vector<int> const& indices,
-                                 pos_type const& q, auto& B) const {
-    for (std::size_t i = 0; i < num_neighbors; ++i) {
-      B(i, 6) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                (m_pointset.vertex_at(indices[i]).x() - q.x());
-    }
-    for (std::size_t i = 0; i < num_neighbors; ++i) {
-      B(i, 7) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                (m_pointset.vertex_at(indices[i]).y() - q.y());
-    }
-    for (std::size_t i = 0; i < num_neighbors; ++i) {
-      B(i, 8) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                (m_pointset.vertex_at(indices[i]).y() - q.y()) *
-                (m_pointset.vertex_at(indices[i]).y() - q.y());
-    }
-    for (std::size_t i = 0; i < num_neighbors; ++i) {
-      B(i, 9) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
-                (m_pointset.vertex_at(indices[i]).y() - q.y()) *
-                (m_pointset.vertex_at(indices[i]).y() - q.y());
-    }
+    return B;
   }
   //------------------------------------------------------------------------------
   auto allocate_B(std::size_t const num_neighbors) const {
@@ -163,29 +129,46 @@ struct moving_least_squares_sampler<Real, 2, T>
     return tensor<Real>::ones(1, 1);
   }
   //------------------------------------------------------------------------------
-  auto construct_B(std::size_t const       num_neighbors,
-                   std::vector<int> const& indices, pos_type const& q) const {
-    auto B = allocate_B(num_neighbors);
-    if (num_neighbors >= 3) {
-      construct_linear_part_of_B(num_neighbors, indices, q, B);
+  auto construct_linear_part_of_B(std::vector<pos_type> const& local_positions,
+                                  pos_type const& q, auto& B) const {
+    auto i = std::size_t{};
+    for (auto const& x : local_positions) {
+      B(i, 1) = x.x();
+      B(i, 2) = x.y();
+      ++i;
     }
-    if (num_neighbors >= 6) {
-      construct_quadratic_part_of_B(num_neighbors, indices, q, B);
+  }
+  //------------------------------------------------------------------------------
+  auto construct_quadratic_part_of_B(
+      std::vector<pos_type> const& local_positions, pos_type const& q,
+      auto& B) const {
+    auto i = std::size_t{};
+    for (auto const& x : local_positions) {
+      B(i, 3) = x.x() * x.x();
+      B(i, 4) = x.x() * x.y();
+      B(i, 5) = x.y() * x.y();
+      ++i;
     }
-    // cubic terms of polynomial
-    if (num_neighbors >= 10) {
-      construct_cubic_part_of_B(num_neighbors, indices, q, B);
+  }
+  //------------------------------------------------------------------------------
+  auto construct_cubic_part_of_B(std::vector<pos_type> const& local_positions,
+                                 pos_type const& q, auto& B) const {
+    auto i = std::size_t{};
+    for (auto const& x : local_positions) {
+      B(i, 6) = x.x() * x.x() * x.x();
+      B(i, 7) = x.x() * x.x() * x.y();
+      B(i, 8) = x.x() * x.y() * x.y();
+      B(i, 9) = x.y() * x.y() * x.y();
+      ++i;
     }
-    return B;
   }
   //----------------------------------------------------------------------------
-  auto construct_w(std::size_t const        num_neighbors,
-                   std::vector<Real> const& distances) const {
-    auto w = tensor<Real>::zeros(num_neighbors);
-    // build w
+  auto construct_weights(std::size_t const        num_neighbors,
+                         std::vector<Real> const& distances) const {
+    auto w                  = tensor<Real>::zeros(num_neighbors);
     auto weighting_function = [&](auto const d) {
-      return 1 / d - 1 / m_radius;
-      // return std::exp(-d * d);
+      auto const s =  1 - d / m_radius;//normalized_distance
+      return 1 - 6 * s * s + 8 * s * s * s - 3 * s * s * s * s;
     };
     for (std::size_t i = 0; i < num_neighbors; ++i) {
       w(i) = weighting_function(distances[i]);
@@ -193,6 +176,7 @@ struct moving_least_squares_sampler<Real, 2, T>
     return w;
   }
   //----------------------------------------------------------------------------
+  /// Represents function values f(x_i)
   auto construct_F(std::size_t const       num_neighbors,
                    std::vector<int> const& indices) const {
     auto F = num_components<T> > 1

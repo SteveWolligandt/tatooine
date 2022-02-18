@@ -12,6 +12,8 @@ static constexpr backward_tag backward;
 template <typename T>
 concept forward_or_backward_tag =
     (std::same_as<T, forward_tag>) || (std::same_as<T, backward_tag>);
+constexpr auto opposite(forward_tag const /*tag*/) { return backward_tag{}; }
+constexpr auto opposite(backward_tag const /*tag*/) { return forward_tag{}; }
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

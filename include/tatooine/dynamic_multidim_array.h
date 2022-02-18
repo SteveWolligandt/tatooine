@@ -420,20 +420,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
     m_data.resize(num_components());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <unsigned_integral UInt>
-  void resize(std::vector<UInt> const& res, T const value = T{}) {
-    parent_type::resize(res);
-    m_data.resize(num_components(), value);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <unsigned_integral UInt>
-  void resize(std::vector<UInt>&& res, T const value = T{}) {
-    parent_type::resize(std::move(res));
-    m_data.resize(num_components(), value);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <integral Int, size_t N>
-  void resize(std::array<Int, N> const& res, T const value = T{}) {
+  void resize(integral_range auto const& res, T const value = T{}) {
     parent_type::resize(res);
     m_data.resize(num_components(), value);
   }

@@ -37,9 +37,8 @@ auto finite_differences_coefficients(std::size_t const derivative_order,
 template <floating_point T>
 auto finite_differences_coefficients(std::size_t const     derivative_order,
                                      std::vector<T> const& v) {
-  auto V              = tensor<T>::vander(v, v.size());
-  V                   = transposed(V);
-  auto b              = tensor<T>::zeros(v.size());
+  auto const V        = transposed(tensor<T>::vander(v, v.size()));
+  auto       b        = tensor<T>::zeros(v.size());
   b(derivative_order) = factorial(derivative_order);
   return solve(V, b).data();
 }

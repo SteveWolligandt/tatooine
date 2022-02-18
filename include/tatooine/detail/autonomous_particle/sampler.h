@@ -2,9 +2,9 @@
 #define TATOOINE_DETAIL_AUTONOMOUS_PARTICLE_SAMPLER_H
 //==============================================================================
 #include <tatooine/concepts.h>
-#include <tatooine/vec.h>
-#include <tatooine/mat.h>
 #include <tatooine/geometry/hyper_ellipse.h>
+#include <tatooine/mat.h>
+#include <tatooine/vec.h>
 //==============================================================================
 namespace tatooine::detail::autonomous_particle {
 //==============================================================================
@@ -13,17 +13,17 @@ struct sampler {
   //============================================================================
   // TYPEDEFS
   //============================================================================
-  using vec_t     = vec<Real, NumDimensions>;
-  using pos_type     = vec_t;
-  using mat_t     = mat<Real, NumDimensions, NumDimensions>;
-  using ellipse_t = tatooine::geometry::hyper_ellipse<Real, NumDimensions>;
+  using vec_type     = vec<Real, NumDimensions>;
+  using pos_type     = vec_type;
+  using mat_type     = mat<Real, NumDimensions, NumDimensions>;
+  using ellipse_type = tatooine::geometry::hyper_ellipse<Real, NumDimensions>;
 
  private:
   //============================================================================
   // MEMBERS
   //============================================================================
-  ellipse_t m_ellipse0, m_ellipse1;
-  mat_t     m_nabla_phi, m_nabla_phi_inv;
+  ellipse_type m_ellipse0, m_ellipse1;
+  mat_type     m_nabla_phi, m_nabla_phi_inv;
 
  public:
   //============================================================================
@@ -38,7 +38,8 @@ struct sampler {
   sampler()  = default;
   ~sampler() = default;
   //----------------------------------------------------------------------------
-  sampler(ellipse_t const& e0, ellipse_t const& e1, mat_t const& nabla_phi)
+  sampler(ellipse_type const& e0, ellipse_type const& e1,
+          mat_type const& nabla_phi)
       : m_ellipse0{e0},
         m_ellipse1{e1},
         m_nabla_phi{nabla_phi},
@@ -46,66 +47,48 @@ struct sampler {
   //============================================================================
   // GETTERS / SETTERS
   //============================================================================
-  auto ellipse(forward_tag /*tag*/) const -> auto const& {
-    return m_ellipse0;
+  auto ellipse(forward_tag /*tag*/) const -> auto const& { return m_ellipse0; }
+  auto ellipse(backward_tag /*tag*/) const -> auto const& { return m_ellipse1; }
+  //----------------------------------------------------------------------------
+  auto nabla_phi(forward_tag const /*tag*/) const -> auto const& {
+    return m_nabla_phi;
   }
-  auto ellipse(backward_tag /*tag*/) const -> auto const& {
-    return m_ellipse1;
+  auto nabla_phi(backward_tag const /*tag*/) const -> auto const& {
+    return m_nabla_phi_inv;
   }
-  auto ellipse0() const -> auto const& { return m_ellipse0; }
-  auto ellipse1() const -> auto const& { return m_ellipse1; }
   //============================================================================
   // METHODS
   //============================================================================
-  auto sample_forward(pos_type const& x) const {
-    return ellipse1().center() + nabla_phi() * (x - ellipse0().center());
+  auto local_pos(pos_type const&                    x,
+                 forward_or_backward_tag auto const tag) const {
+    return nabla_phi(tag) * (x - center(tag));
   }
-  auto operator()(pos_type const& x, forward_tag /*tag*/) const {
-    return sample_forward(x);
+  //----------------------------------------------------------------------------
+  auto sample(pos_type const& x, forward_or_backward_tag auto const tag) const {
+    return center(opposite(tag)) + local_pos(x, tag);
   }
-  auto sample(pos_type const& x, forward_tag /*tag*/) const {
-    return sample_forward(x);
+  //----------------------------------------------------------------------------
+  auto operator()(pos_type const&                    x,
+                  forward_or_backward_tag auto const tag) const {
+    return sample(x, tag);
   }
-  auto sample_backward(pos_type const& x) const {
-    return ellipse0().center() + nabla_phi_inv() * (x - ellipse1().center());
+  //----------------------------------------------------------------------------
+  auto is_inside(pos_type const& x, forward_or_backward_tag auto const tag) const {
+    return ellipse(tag).is_inside(x);
   }
-  auto sample(pos_type const& x, backward_tag /*tag*/) const {
-    return sample_backward(x);
+  //----------------------------------------------------------------------------
+  auto center(forward_or_backward_tag auto const tag) const -> auto const& {
+    return ellipse(tag).center();
   }
-  auto operator()(pos_type const& x, backward_tag /*tag*/) const {
-    return sample_backward(x);
+  //----------------------------------------------------------------------------
+  auto distance_sqr(pos_type const&                    x,
+                    forward_or_backward_tag auto const tag) const {
+    return tatooine::euclidean_length(local_pos(tag));
   }
-  auto is_inside0(pos_type const& x) const { return m_ellipse0.is_inside(x); }
-  auto is_inside(pos_type const& x, forward_tag /*tag*/) const {
-    return is_inside0(x);
-  }
-  auto is_inside1(pos_type const& x) const { return m_ellipse1.is_inside(x); }
-  auto is_inside(pos_type const& x, backward_tag /*tag*/) const {
-    return is_inside1(x);
-  }
-  auto center(forward_tag /*tag*/) const -> auto const& {
-    return m_ellipse0.center();
-  }
-  auto center(backward_tag /*tag*/) const -> auto const& {
-    return m_ellipse1.center();
-  }
-  auto opposite_center(forward_tag /*tag*/) const -> auto const& {
-    return m_ellipse1.center();
-  }
-  auto opposite_center(backward_tag /*tag*/) const -> auto const& {
-    return m_ellipse0.center();
-  }
-  auto distance_sqr(pos_type const& x, forward_tag tag) const {
-    return tatooine::euclidean_length(nabla_phi() * (x - center(tag)));
-  }
-  auto distance_sqr(pos_type const& x, backward_tag tag) const {
-    return tatooine::length(solve(nabla_phi(), (x - center(tag))));
-  }
+  //----------------------------------------------------------------------------
   auto distance(pos_type const& x, auto const tag) const {
     return gcem::sqrt(distance_sqr(x, tag));
   }
-  auto nabla_phi() const -> auto const& { return m_nabla_phi; }
-  auto nabla_phi_inv() const -> auto const& { return m_nabla_phi_inv; }
 };
 //==============================================================================
 }  // namespace tatooine::detail::autonomous_particle

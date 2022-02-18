@@ -147,16 +147,20 @@ struct pointset {
   }
   //----------------------------------------------------------------------------
   auto vertex_at(vertex_handle const v) -> auto& {
+    assert(v.index() < vertex_position_data().size());
     return vertex_position_data()[v.index()];
   }
   auto vertex_at(vertex_handle const v) const -> auto const& {
+    assert(v.index() < vertex_position_data().size());
     return vertex_position_data()[v.index()];
   }
   //----------------------------------------------------------------------------
   auto vertex_at(std::size_t const i) -> auto& {
+    assert(i < vertex_position_data().size());
     return vertex_position_data()[i];
   }
   auto vertex_at(std::size_t const i) const -> auto const& {
+    assert(i < vertex_position_data().size());
     return vertex_position_data()[i];
   }
   //----------------------------------------------------------------------------
@@ -767,7 +771,7 @@ struct pointset {
     auto  params    = flann::SearchParams{};
     auto& h         = kd_tree();
     {
-      auto lock = std::scoped_lock{m_flann_mutex};
+      //auto lock = std::scoped_lock{m_flann_mutex};
       h.knnSearch(qm, indices, distances, 1, params);
     }
     return vertex_handle{static_cast<std::size_t>(indices.front().front())};
@@ -784,7 +788,7 @@ struct pointset {
     auto  distances = std::vector<std::vector<Real>>{};
     auto& h         = kd_tree();
     {
-      auto lock = std::scoped_lock{m_flann_mutex};
+      //auto lock = std::scoped_lock{m_flann_mutex};
       h.knnSearch(qm, indices, distances, num_nearest_neighbors, params);
     }
     return std::pair{std::move(indices.front()), std::move(distances.front())};
@@ -815,7 +819,7 @@ struct pointset {
     std::vector<std::vector<Real>> distances;
     auto&                          h = kd_tree();
     {
-      auto lock = std::scoped_lock{m_flann_mutex};
+      //auto lock = std::scoped_lock{m_flann_mutex};
       h.radiusSearch(qm, indices, distances, radius, params);
     }
     return {std::move(indices.front()), std::move(distances.front())};

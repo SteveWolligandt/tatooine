@@ -45,7 +45,7 @@ auto direct_isosurface(camera auto const&                        cam,
                                        vec<std::size_t, 2>>;
   using rgb_t   = vec<typename color_t::value_type, 3>;
   using alpha_t = typename color_t::value_type;
-  static_assert(is_vec<color_t>,
+  static_assert(static_vec<color_t>,
                 "Shader must return a vector with 3 or 4 components.");
   static_assert(
       color_t::num_components() == 3 || color_t::num_components() == 4,
@@ -462,7 +462,7 @@ auto direct_isosurface(camera auto const&                            cam,
   using alpha_t = typename color_t::value_type;
   static_assert(is_floating_point<value_t>,
                 "DataEvaluator must return scalar type.");
-  static_assert(is_vec<color_t>,
+  static_assert(static_vec<color_t>,
                 "ColorScale must return scalar type or tatooine::vec.");
   static_assert(
       color_t::num_components() == 3 || color_t::num_components() == 4,

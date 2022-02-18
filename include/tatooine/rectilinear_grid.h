@@ -2005,7 +2005,7 @@ class rectilinear_grid {
       vertices().iterate_indices(
           [&](auto const... is) { data.push_back(prop(is...)); });
       dataset.write(H5S_ALL, H5S_ALL, H5P_DEFAULT, data.data());
-    } else if constexpr (is_vec<T>) {
+    } else if constexpr (static_vec<T>) {
       using vec_t          = T;
       auto              g  = f.group(name);
       auto              gg = g.sub_group(name);

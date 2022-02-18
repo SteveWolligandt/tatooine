@@ -14,9 +14,18 @@ struct tuple<Head, Tail...> {
   Head           head;
   tuple<Tail...> tail;
   //============================================================================
+  template <typename... Tail_>
+  tuple(Head&& head_, Tail_&&... tail_)
+      : head{std::move(head_)}, tail{std::forward<Tail_>(tail_)...} {}
+  //----------------------------------------------------------------------------
+  template <typename... Tail_>
+  tuple(Head const& head_, Tail_&&... tail_)
+      : head{head_}, tail{std::forward<Tail_>(tail_)...} {}
+  //----------------------------------------------------------------------------
   template <std::convertible_to<Head> Head_, typename... Tail_>
-  tuple(Head_&& head_, Tail_&&... tail_)
-      : head{std::forward<Head_>(head_)}, tail{std::forward<Tail_>(tail_)...} {}
+  tuple(Head&& head_, Tail_&&... tail_)
+      : head{static_cast<Head>(std::forward<Head_>(head_))},
+        tail{std::forward<Tail_>(tail_)...} {}
   //----------------------------------------------------------------------------
   tuple()                 = default;
   tuple(tuple const&)     = default;
@@ -38,8 +47,12 @@ template <typename Head>
 struct tuple<Head> {
   Head head;
   //============================================================================
+  tuple(Head&& head_) : head{std::move(head_)} {}
+  //----------------------------------------------------------------------------
+  tuple(Head const& head_) : head{head_} {}
+  //----------------------------------------------------------------------------
   template <std::convertible_to<Head> Head_>
-  tuple(Head_&& head_) : head{std::forward<Head_>(head_)} {}
+  tuple(Head_&& head_) : head{static_cast<Head>(std::forward<Head_>(head_))} {}
   //----------------------------------------------------------------------------
   tuple()                 = default;
   tuple(tuple const&)     = default;

@@ -228,8 +228,8 @@ struct vis {
         ellipse_shader.set_model_view_matrix(
             cam.view_matrix() *
             rendering::interactive::renderer<geometry::ellipse<double>>::
-                construct_model_matrix(samplers[i].ellipse1().S(),
-                                       samplers[i].ellipse1().center()));
+                construct_model_matrix(samplers[i].ellipse(backward).S(),
+                                       samplers[i].center(backward)));
         ellipse_geometry.draw_line_loop();
       }
     }
@@ -301,10 +301,9 @@ struct vis {
     for_loop(
         [&](auto const i) {
           auto const& s = samplers[i];
-          locals[i] =
-              s.nabla_phi_inv() * (current_point - s.ellipse1().center());
-          // locals[i] = *inv(s.ellipse1().S()) * (current_point -
-          // s.ellipse1().center());
+          locals[i]     = s.local_pos(current_point, backward);
+          // locals[i] = *inv(s.ellipse(backward).S()) * (current_point -
+          // s.ellipse(backward).center());
           map[i] = {vec2f{locals[i]}, hovered[i] ? 1 : 0};
         },
         execution_policy::parallel, samplers.size());
@@ -328,7 +327,7 @@ struct vis {
       auto const proj  = this->cam.project(vec2f{locals[i]}).xy();
       auto const proj2 = vec2{cam.unproject(vec2f{cursor_pos}).xy()};
       hovered[i]       = euclidean_distance(proj, cursor_pos) < 10 ||
-                   samplers[i].ellipse1().is_inside(proj2);
+                   samplers[i].is_inside(proj2, backward);
       locals_gpu.vertexbuffer()[i] = {vec2f{locals[i]}, hovered[i] ? 1 : 0};
     }
   }
@@ -448,65 +447,73 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
   rendering::interactive::pre_setup();
   auto m                  = vis{g, flowmap_autonomous_particles.samplers()};
   auto advected_particles = std::vector<geometry::ellipse<real_number>>{};
-  std::ranges::copy(
-      flowmap_autonomous_particles.samplers() |
-          std::views::transform([](auto const& s) { return s.ellipse1(); }),
-      std::back_inserter(advected_particles));
+  std::ranges::copy(flowmap_autonomous_particles.samplers() |
+                        std::views::transform(
+                            [](auto const& s) { return s.ellipse(backward); }),
+                    std::back_inserter(advected_particles));
   rendering::interactive::render(/*initial_particles, */ advected_particles, m,
                                  g);
 };
 //==============================================================================
 auto main() -> int {
-  auto       uuid_generator = std::atomic_uint64_t{};
+  auto                        uuid_generator = std::atomic_uint64_t{};
   [[maybe_unused]] auto const r              = 0.01;
-  auto const t0             = 0;
-  auto const t_end          = 1;
+  [[maybe_unused]] auto const t0             = 0;
+  [[maybe_unused]] auto const t_end          = 1;
 
-  auto rand = random::uniform{0.0, 1.0};
-  auto ps = pointset2{};
+  auto  rand    = random::uniform{0.0, 1.0};
+  auto  ps      = pointset2{};
   auto& prop_ps = ps.scalar_vertex_property("prop");
-  for (std::size_t i = 0; i < 100; ++i) {
+  for (std::size_t i = 0; i < 1000; ++i) {
     auto v     = ps.insert_vertex(rand() * 2, rand());
     prop_ps[v] = rand();
   }
 
   auto dg = analytical::fields::numerical::doublegyre{};
-  auto g  = rectilinear_grid{linspace{0.0, 2.0, 101}, linspace{0.0, 1.0, 51}};
-  auto prop_ps_sampler = ps.moving_least_squares_sampler(prop_ps, 0.1);
-  discretize(prop_ps_sampler, g, "moving_least_squares_sampler", execution_policy::parallel);
+  auto g  = rectilinear_grid{linspace{0.0, 2.0, 401}, linspace{0.0, 1.0, 201}};
+  auto const sampler_radius = 0.01;
+  auto       prop_ps_sampler_mls =
+      ps.moving_least_squares_sampler(prop_ps, sampler_radius);
+  discretize(prop_ps_sampler_mls, g, "moving_least_squares",
+             execution_policy::sequential);
+  auto prop_ps_sampler_inv_dist =
+      ps.inverse_distance_weighting_sampler(prop_ps, sampler_radius);
+  discretize(prop_ps_sampler_inv_dist, g, "inverse_distance_weighting",
+             execution_policy::parallel);
   rendering::interactive::render(ps, g);
-  auto const eps                  = 1e-3;
-  auto const initial_particles_dg = autonomous_particle2::particles_from_grid(
-      t0,
-      rectilinear_grid{linspace{0.0 + eps, 2.0 - eps, 21},
-                       linspace{0.0 + eps, 1.0 - eps, 11}},
-      uuid_generator);
-  // auto const initial_particles_dg = std::vector<autonomous_particle2>{
-  //     {vec2{1 - r, 0.5 - r}, t0, r, uuid_generator},
-  //     {vec2{1 + r, 0.5 - r}, t0, r, uuid_generator},
-  //     {vec2{1 - r, 0.5 + r}, t0, r, uuid_generator},
-  //     {vec2{1 + r, 0.5 + r}, t0, r, uuid_generator}};
-  //doit(g, dg, initial_particles_dg, uuid_generator, t0, t_end);
+
+  //auto const eps                  = 1e-3;
+  //auto const initial_particles_dg = autonomous_particle2::particles_from_grid(
+  //    t0,
+  //    rectilinear_grid{linspace{0.0 + eps, 2.0 - eps, 21},
+  //                     linspace{0.0 + eps, 1.0 - eps, 11}},
+  //    uuid_generator);
+  //// auto const initial_particles_dg = std::vector<autonomous_particle2>{
+  ////     {vec2{1 - r, 0.5 - r}, t0, r, uuid_generator},
+  ////     {vec2{1 + r, 0.5 - r}, t0, r, uuid_generator},
+  ////     {vec2{1 - r, 0.5 + r}, t0, r, uuid_generator},
+  ////     {vec2{1 + r, 0.5 + r}, t0, r, uuid_generator}};
+  // doit(g, dg, initial_particles_dg, uuid_generator, t0, t_end);
 
   //============================================================================
-  // auto s  = analytical::fields::numerical::saddle{};
-  // auto rs = analytical::fields::numerical::rotated_saddle{};
-  // auto constexpr cos = gcem::cos(M_PI / 4);
-  // auto constexpr sin = gcem::sin(M_PI / 4);
-  // auto const initial_particles_saddle =
-  //    std::vector<autonomous_particle2>{{vec2{r, r}, t0, r, uuid_generator},
-  //                                      {vec2{r, -r}, t0, r, uuid_generator},
-  //                                      {vec2{-r, r}, t0, r, uuid_generator},
-  //                                      {vec2{-r, -r}, t0, r,
-  //                                      uuid_generator}};
-  // auto const initial_rotated_particles_saddle =
-  //    std::vector<autonomous_particle2>{
-  //        {vec2{cos * r - sin * r, sin * r + cos * r}, t0, r, uuid_generator},
-  //        {vec2{cos * -r - sin * r, sin * -r + cos * r}, t0, r,
-  //        uuid_generator}, {vec2{cos * r - sin * -r, sin * r + cos * -r}, t0,
-  //        r, uuid_generator}, {vec2{cos * -r - sin * -r, sin * -r + cos * -r},
-  //        t0, r,
-  //         uuid_generator}};
-  //
-  // doit(g, rs, initial_particles_saddle, uuid_generator, t0, t_end);
+   //auto s  = analytical::fields::numerical::saddle{};
+   //auto rs = analytical::fields::numerical::rotated_saddle{};
+   //auto constexpr cos = gcem::cos(M_PI / 4);
+   //auto constexpr sin = gcem::sin(M_PI / 4);
+   //auto const initial_particles_saddle =
+   //   std::vector<autonomous_particle2>{{vec2{r, r}, t0, r, uuid_generator},
+   //                                     {vec2{r, -r}, t0, r, uuid_generator},
+   //                                     {vec2{-r, r}, t0, r, uuid_generator},
+   //                                     {vec2{-r, -r}, t0, r,
+   //                                     uuid_generator}};
+   //auto const initial_rotated_particles_saddle =
+   //   std::vector<autonomous_particle2>{
+   //       {vec2{cos * r - sin * r, sin * r + cos * r}, t0, r, uuid_generator},
+   //       {vec2{cos * -r - sin * r, sin * -r + cos * r}, t0, r,
+   //       uuid_generator}, {vec2{cos * r - sin * -r, sin * r + cos * -r}, t0,
+   //       r, uuid_generator}, {vec2{cos * -r - sin * -r, sin * -r + cos * -r},
+   //       t0, r,
+   //        uuid_generator}};
+   //
+   //doit(g, rs, initial_particles_saddle, uuid_generator, t0, t_end);
 }

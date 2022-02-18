@@ -64,8 +64,8 @@ auto solve_lu_lapack(base_tensor<TensorA, Real, N, N> const& A_base,
   return B;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Real>
-auto solve_lu_lapack(tensor<Real> A, tensor<Real> B) {
+template <typename T>
+auto solve_lu_lapack(tensor<T> A, tensor<T> B) {
   assert(A.rank() == 2);
   assert(A.dimension(0) == A.dimension(1));
   assert(A.dimension(0) == B.dimension(0));
@@ -118,7 +118,9 @@ auto solve_qr_lapack(base_tensor<TensorA, Real, M, N> const& A_base,
 }
 //------------------------------------------------------------------------------
 template <typename Real>
-auto solve_qr_lapack(tensor<Real> A, tensor<Real> B) {
+auto solve_qr_lapack(tensor<Real> A, tensor<Real> B) requires
+    is_same<typename std::decay_t<decltype(A)>::value_type,
+            typename std::decay_t<decltype(B)>::value_type> {
   assert(A.rank() == 2);
   assert(B.rank() == 1 || B.rank() == 2);
   assert(A.dimension(0) == B.dimension(0));
@@ -178,17 +180,19 @@ auto solve(base_tensor<TensorA, Real, M, N> const& A,
   }
 }
 //------------------------------------------------------------------------------
-template <typename T>
-auto solve(tensor<T> const& A, tensor<T> const& B) {
+auto solve(dynamic_tensor auto const& A, dynamic_tensor auto const& B) {
   assert(A.rank() == 2);
   assert(B.rank() == 1 || B.rank() == 2);
   assert(B.dimension(0) == A.dimension(0));
   auto const M = A.dimension(0);
   auto const N = A.dimension(1);
+  using common_t = common_type<typename std::decay_t<decltype(A)>::value_type,
+                               typename std::decay_t<decltype(B)>::value_type>;
+  using tensor_t = tensor<common_t>;
   if (M == N) {
-    return solve_lu_lapack(A, B);
+    return solve_lu_lapack(tensor_t{A}, tensor_t{B});
   } else if (M > N) {
-    return solve_qr_lapack(A, B);
+    return solve_qr_lapack(tensor_t{A}, tensor_t{B});
   } else {
     throw std::runtime_error{"System is under-determined."};
   }
