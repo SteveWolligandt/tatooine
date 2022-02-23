@@ -9,9 +9,9 @@ namespace tatooine {
 //==============================================================================
 template <static_vec Tensor, std::size_t M, std::size_t N>
 struct diag_static_tensor {
-  static auto constexpr is_tensor() {return true;}
-  static auto constexpr is_diag() {return true;}
-  static auto constexpr is_static() {return true;}
+  static auto constexpr is_tensor() { return true; }
+  static auto constexpr is_diag() { return true; }
+  static auto constexpr is_static() { return true; }
   static auto constexpr rank() { return 2; }
   static auto constexpr dimensions() { return std::array{M, N}; }
   static auto constexpr dimension(std::size_t const i) {
@@ -26,23 +26,19 @@ struct diag_static_tensor {
   //============================================================================
   using tensor_type = Tensor;
   using this_type   = diag_static_tensor<Tensor, M, N>;
-  using parent_type =
-      base_tensor<this_type, typename std::decay_t<tensor_type>::value_type, M, N>;
-  using typename parent_type::value_type;
+  using value_type  = tensor_value_type<Tensor>;
   //============================================================================
  private:
   tensor_type m_internal_tensor;
 
   //============================================================================
  public:
-  // TODO use concept
   constexpr explicit diag_static_tensor(static_vec auto&& v)
       : m_internal_tensor{std::forward<decltype(v)>(v)} {}
   //----------------------------------------------------------------------------
-  constexpr auto at(integral auto const... is) const
-      -> value_type {
+  constexpr auto at(integral auto const... is) const -> value_type {
     if constexpr (sizeof...(is) == 2) {
-      auto i = std::array{is...};
+      auto i = std::array{static_cast<std::size_t>(is)...};
       assert(i[0] < M);
       assert(i[1] < N);
       if (i[0] == i[1]) {
@@ -58,8 +54,7 @@ struct diag_static_tensor {
     return at(is...);
   }
   //----------------------------------------------------------------------------
-  constexpr auto at(integral_range auto const& is) const
-      -> value_type {
+  constexpr auto at(integral_range auto const& is) const -> value_type {
     assert(is.size() == 2);
     return at(is[0], is[1]);
   }
@@ -77,7 +72,8 @@ struct diag_static_tensor {
 //==============================================================================
 template <static_vec Tensor>
 diag_static_tensor(Tensor const& t)
-    -> diag_static_tensor<Tensor const&, Tensor::dimension(0), Tensor::dimension(0)>;
+    -> diag_static_tensor<Tensor const&, Tensor::dimension(0),
+                          Tensor::dimension(0)>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <static_vec Tensor>
 diag_static_tensor(Tensor& t)
@@ -111,8 +107,8 @@ constexpr auto diag_rect(static_vec auto&& t) {
 //==============================================================================
 template <typename Tensor, std::size_t N>
 constexpr auto inv(diag_static_tensor<Tensor, N, N> const& A) -> std::optional<
-    diag_static_tensor<vec<typename std::decay_t<Tensor>::value_type, N>, N, N>> {
-  using value_type = typename std::decay_t<Tensor>::value_type;
+    diag_static_tensor<vec<tensor_value_type<Tensor>, N>, N, N>> {
+  using value_type = tensor_value_type<Tensor>;
   for (std::size_t i = 0; i < N; ++i) {
     if (std::abs(A.internal_tensor()(i)) < 1e-10) {
       return {};
@@ -124,71 +120,45 @@ constexpr auto inv(diag_static_tensor<Tensor, N, N> const& A) -> std::optional<
 #include <tatooine/vec.h>
 //------------------------------------------------------------------------------
 template <typename TensorA, static_vec TensorB, std::size_t N>
-requires(std::decay_t<TensorB>::rank() ==
-         N) constexpr auto solve(diag_static_tensor<TensorA, N, N> const& A,
-                                 TensorB&&                                b)
-    -> std::optional<
-        vec<std::common_type_t<typename std::decay_t<TensorA>::value_type,
-                               typename std::decay_t<TensorB>::value_type>,
-            N>> {
-  for (std::size_t i = 0; i < N; ++i) {
-    if (std::abs(A.internal_tensor()(i)) < 1e-10) {
-      return {};
-    }
-  }
+requires(tensor_dimensions<TensorB>[0] == N)
+constexpr auto solve(diag_static_tensor<TensorA, N, N> const& A,
+                     TensorB&&                                b) {
   return A.internal_tensor() / b;
 }
 //------------------------------------------------------------------------------
-template <typename TensorA, typename TensorB, typename BReal, std::size_t N>
-constexpr auto operator*(diag_static_tensor<TensorA, N, N> const&     A,
-                         base_tensor<TensorB, BReal, N> const& b)
+template <typename TensorA, std::size_t M, std::size_t N>
+constexpr auto operator*(diag_static_tensor<TensorA, M, N> const& A,
+                         static_vec auto const&                   b)
     -> vec<
-        std::common_type_t<typename std::decay_t<TensorA>::value_type, BReal>,
-        N> {
-  vec<std::common_type_t<typename std::decay_t<TensorA>::value_type, BReal>, N>
+        common_type<tensor_value_type<TensorA>, tensor_value_type<decltype(b)>>,
+        M>
+requires(N == decltype(b)::dimension(0)) {
+  vec<common_type<tensor_value_type<TensorA>, tensor_value_type<decltype(b)>>,
+      M>
       ret = b;
   for (std::size_t i = 0; i < N; ++i) {
     ret(i) *= A.internal_tensor()(i);
   }
   return ret;
 }
-//------------------------------------------------------------------------------
-template <typename TensorA, typename TensorB, typename BReal, std::size_t N>
-constexpr auto operator*(base_tensor<TensorB, BReal, N> const& b,
-                         diag_static_tensor<TensorA, N, N> const&     A) {
-  return A * b;
-}
+////------------------------------------------------------------------------------
+// template <typename TensorA, typename TensorB, typename BReal, std::size_t N>
+// constexpr auto operator*(base_tensor<TensorB, BReal, N> const& b,
+//                          diag_static_tensor<TensorA, N, N> const&     A) {
+//   return A * b;
+// }
 //------------------------------------------------------------------------------
 #include <tatooine/mat.h>
 //------------------------------------------------------------------------------
-template <typename TensorA, static_mat TensorB, std::size_t N>
-requires  (std::decay_t<TensorB>::dimension(0) == N)
-constexpr auto solve(diag_static_tensor<TensorA, N, N> const& A, TensorB&& B)
-        -> std::optional<
-            mat<std::common_type_t<typename std::decay_t<TensorA>::value_type,
-                                   typename std::decay_t<TensorB>::value_type>,
-                N, N>> {
-  for (std::size_t i = 0; i < N; ++i) {
-    if (std::abs(A.internal_tensor()(i)) < 1e-10) {
-      return {};
-    }
-  }
-  auto ret = mat<std::common_type_t<typename std::decay_t<TensorA>::value_type,
-                                    typename std::decay_t<TensorB>::value_type>,
-                 N, N>{B};
-  for (std::size_t i = 0; i < N; ++i) {
-    ret.row(i) /= A.internal_tensor()(i);
-  }
-  return ret;
-}
-//------------------------------------------------------------------------------
-template <typename TensorA, typename TensorB, typename BReal, std::size_t M,
-          std::size_t N>
-constexpr auto operator*(diag_static_tensor<TensorA, M, M> const&        A,
-                         base_tensor<TensorB, BReal, M, N> const& B) {
-  using mat_t =
-      mat<std::common_type_t<typename std::decay_t<TensorA>::value_type, BReal>,
-          M, N>;
+template <typename TensorA, std::size_t M, std::size_t N>
+constexpr auto operator*(
+    diag_static_tensor<TensorA, M, N> const& A,
+    static_mat auto const&                   B) requires(N ==
+                                       std::decay_t<decltype(B)>::dimension(
+                                           0)) {
+  using mat_t = mat<
+      common_type<tensor_value_type<TensorA>, tensor_value_type<decltype(B)>>,
+      M, decltype(B)::dimension(1)>;
   auto ret = mat_t{B};
   for (std::size_t i = 0; i < M; ++i) {
     ret.row(i) *= A.internal_tensor()(i);
@@ -196,18 +166,29 @@ constexpr auto operator*(diag_static_tensor<TensorA, M, M> const&        A,
   return ret;
 }
 //------------------------------------------------------------------------------
-template <typename TensorA, typename TensorB, typename BReal, std::size_t M,
-          std::size_t N>
-constexpr auto operator*(base_tensor<TensorB, BReal, M, N> const& B,
-                         diag_static_tensor<TensorA, N, N> const&        A)
-    -> mat<
-        std::common_type_t<typename std::decay_t<TensorA>::value_type, BReal>,
-        M, N> {
-  using common_type =
-      common_type<typename std::decay_t<TensorA>::value_type, BReal>;
-  auto ret = mat<common_type, M, N>{B};
+template <typename TensorA, std::size_t M, std::size_t N>
+constexpr auto operator*(
+    static_tensor auto const& B,
+    diag_static_tensor<TensorA, M, N> const&
+        A) requires(std::decay_t<decltype(B)>::dimension(1) == M) {
+  auto ret = mat<
+      common_type<tensor_value_type<TensorA>, tensor_value_type<decltype(B)>>,
+      std::decay_t<decltype(B)>::dimension(0), N>{B};
   for (std::size_t i = 0; i < N; ++i) {
     ret.col(i) *= A.internal_tensor()(i);
+  }
+  return ret;
+}
+//------------------------------------------------------------------------------
+template <typename TensorA, static_mat TensorB, std::size_t N>
+requires(tensor_dimensions<TensorB>[0] == N)
+constexpr auto solve(diag_static_tensor<TensorA, N, N> const& A,
+                     TensorB&&                                B) {
+  auto ret =
+      mat<common_type<tensor_value_type<TensorA>, tensor_value_type<TensorB>>,
+          N, N>{B};
+  for (std::size_t i = 0; i < N; ++i) {
+    ret.row(i) /= A.internal_tensor()(i);
   }
   return ret;
 }
@@ -216,15 +197,15 @@ constexpr auto operator*(base_tensor<TensorB, BReal, M, N> const& B,
 //==============================================================================
 template <dynamic_tensor Tensor>
 struct diag_dynamic_tensor {
-  using value_type = typename std::decay_t<Tensor>::value_type;
-  static auto constexpr is_tensor() {return true;}
-  static auto constexpr is_diag() {return true;}
-  static auto constexpr is_dynamic() {return true;}
+  using value_type = tensor_value_type<Tensor>;
+  static auto constexpr is_tensor() { return true; }
+  static auto constexpr is_diag() { return true; }
+  static auto constexpr is_dynamic() { return true; }
   //============================================================================
-  Tensor  m_internal_tensor;
+  Tensor m_internal_tensor;
   //----------------------------------------------------------------------------
-  auto    internal_tensor() const -> auto const& { return m_internal_tensor; }
-  auto    internal_tensor() -> auto& { return m_internal_tensor; }
+  auto internal_tensor() const -> auto const& { return m_internal_tensor; }
+  auto internal_tensor() -> auto& { return m_internal_tensor; }
   //----------------------------------------------------------------------------
   static auto constexpr rank() { return 2; }
   auto dimensions() const {
@@ -247,12 +228,9 @@ struct diag_dynamic_tensor {
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator()(integral auto const... is) const {
-    return at(is...);
-  }
+  auto operator()(integral auto const... is) const { return at(is...); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto at(integral_range auto const& is) const
-      -> value_type {
+  constexpr auto at(integral_range auto const& is) const -> value_type {
     assert(is.size() == 2);
     return at(is[0], is[1]);
   }
@@ -280,13 +258,12 @@ auto diag(dynamic_tensor auto&& A) {
 }
 //------------------------------------------------------------------------------
 template <typename Lhs, dynamic_tensor Rhs>
-requires (dynamic_tensor<Lhs> && diag_tensor<Lhs>)
-auto operator*(Lhs const& lhs, Rhs const& rhs)
-    -> tensor<std::common_type_t<typename Lhs::value_type,
-                                 typename Rhs::value_type>> {
-  using out_t = tensor<std::common_type_t<typename Lhs::value_type,
-                                          typename Rhs::value_type>>;
-  auto out    = out_t{};
+requires(dynamic_tensor<Lhs>&& diag_tensor<Lhs>) auto operator*(Lhs const& lhs,
+                                                                Rhs const& rhs)
+    -> tensor<common_type<tensor_value_type<Lhs>, tensor_value_type<Rhs>>> {
+  using out_t =
+      tensor<common_type<tensor_value_type<Lhs>, tensor_value_type<Rhs>>>;
+  auto out = out_t{};
   // matrix-matrix-multiplication
   if (lhs.rank() == 2 && rhs.rank() == 2 &&
       lhs.internal_tensor().dimension(0) == rhs.dimension(0)) {
@@ -299,7 +276,7 @@ auto operator*(Lhs const& lhs, Rhs const& rhs)
     }
     return out;
 
-  // matrix-vector-multiplication
+    // matrix-vector-multiplication
   } else if (lhs.rank() == 2 && rhs.rank() == 1 &&
              lhs.dimension(1) == rhs.dimension(0)) {
     auto out = out_t::zeros(lhs.dimension(0));

@@ -25,13 +25,13 @@ namespace tatooine {
 //============================================================================
 namespace detail::line {
 //============================================================================
-template <typename Real, std::size_t NumDimensions, typename T,
+template <floating_point Real, std::size_t NumDimensions, typename T,
           template <typename> typename InterpolationKernel>
 struct vertex_property_sampler;
 //============================================================================
 }  // namespace detail::line
 //============================================================================
-template <typename Real, std::size_t NumDimensions>
+template <floating_point Real, std::size_t NumDimensions>
 struct line {
   //============================================================================
   using this_type       = line<Real, NumDimensions>;
@@ -838,7 +838,7 @@ using line5 = Line<5>;
 //==============================================================================
 // implementations
 //==============================================================================
-template <typename Real, std::size_t NumDimensions>
+template <floating_point Real, std::size_t NumDimensions>
 template <typename Pred>
 std::vector<line<Real, NumDimensions>> line<Real, NumDimensions>::filter(
     Pred&& pred) const {

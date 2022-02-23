@@ -70,6 +70,22 @@ template <typename T, std::size_t N>
 using complex_vec = vec<std::complex<T>, N>;
 template <std::size_t N>
 using ComplexVec   = vec<std::complex<real_number>, N>;
+template <typename T>
+using ComplexVec2   = vec<std::complex<T>, 2>;
+template <typename T>
+using ComplexVec3   = vec<std::complex<T>, 3>;
+template <typename T>
+using ComplexVec4   = vec<std::complex<T>, 4>;
+template <typename T>
+using ComplexVec5   = vec<std::complex<T>, 5>;
+template <typename T>
+using ComplexVec6   = vec<std::complex<T>, 6>;
+template <typename T>
+using ComplexVec7   = vec<std::complex<T>, 7>;
+template <typename T>
+using ComplexVec8   = vec<std::complex<T>, 8>;
+template <typename T>
+using ComplexVec9   = vec<std::complex<T>, 9>;
 using complex_vec2 = ComplexVec<2>;
 using complex_vec3 = ComplexVec<3>;
 using complex_vec4 = ComplexVec<4>;

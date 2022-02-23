@@ -1,14 +1,19 @@
 #ifndef TATOOINE_TENSOR_OPERATIONS_INV_H
 #define TATOOINE_TENSOR_OPERATIONS_INV_H
 //==============================================================================
+#include <tatooine/tensor_concepts.h>
+#include <tatooine/tensor_type_traits.h>
+#include <tatooine/mat.h>
+#include <optional>
+//==============================================================================
 namespace tatooine {
 //==============================================================================
 /// invert symmetric matrix
 /// A = [a,b]
 ///     [b,c]
-template <typename Tensor, floating_point Real>
-constexpr auto inv_sym(base_tensor<Tensor, Real, 2, 2> const& A)
-    -> std::optional<mat<Real, 2, 2>> {
+template <fixed_size_quadratic_mat<2> Mat>
+constexpr auto inv_sym(Mat&& A)
+    -> std::optional<mat<tensor_value_type<Mat>, 2, 2>> {
   decltype(auto) a   = A(0, 0);
   decltype(auto) b   = A(1, 0);
   decltype(auto) c   = A(1, 1);
@@ -24,9 +29,9 @@ constexpr auto inv_sym(base_tensor<Tensor, Real, 2, 2> const& A)
 /// invert matrix
 /// A = [a,b]
 ///     [c,d]
-template <typename Tensor, floating_point Real>
-constexpr auto inv(base_tensor<Tensor, Real, 2, 2> const& A)
-    -> std::optional<mat<Real, 2, 2>> {
+template <fixed_size_quadratic_mat<2> Mat>
+constexpr auto inv(Mat&& A)
+    -> std::optional<mat<tensor_value_type<Mat>, 2, 2>> {
   decltype(auto) b = A(0, 1);
   decltype(auto) c = A(1, 0);
   if (std::abs(b - c) < 1e-10) {
@@ -46,9 +51,9 @@ constexpr auto inv(base_tensor<Tensor, Real, 2, 2> const& A)
 /// A = [a,b,c]
 ///     [b,d,e]
 ///     [c,e,f]
-template <typename Tensor, floating_point Real>
-constexpr auto inv_sym(base_tensor<Tensor, Real, 3, 3> const& A)
-    -> std::optional<mat<Real, 3, 3>> {
+template <fixed_size_tensor<3, 3> Mat>
+constexpr auto inv_sym(Mat&& A)
+    -> std::optional<mat<tensor_value_type<Mat>, 3, 3>> {
   decltype(auto) a = A(0, 0);
   decltype(auto) b = A(1, 0);
   decltype(auto) c = A(2, 0);
@@ -71,9 +76,9 @@ constexpr auto inv_sym(base_tensor<Tensor, Real, 3, 3> const& A)
 /// A = [a,b,c]
 ///     [d,e,f]
 ///     [g,h,i]
-template <typename Tensor, floating_point Real>
-constexpr auto inv(base_tensor<Tensor, Real, 3, 3> const& A)
-    -> std::optional<mat<Real, 3, 3>> {
+template <fixed_size_quadratic_mat<3> Mat>
+constexpr auto inv(Mat&& A)
+    -> std::optional<mat<tensor_value_type<Mat>, 3, 3>> {
   decltype(auto) b = A(0, 1);
   decltype(auto) c = A(0, 2);
   decltype(auto) d = A(1, 0);
@@ -104,8 +109,9 @@ constexpr auto inv(base_tensor<Tensor, Real, 3, 3> const& A)
 ///     [b,e,f,g]
 ///     [c,f,h,i]
 ///     [d,g,i,j]
-template <typename Tensor, floating_point Real>
-constexpr auto inv_sym(base_tensor<Tensor, Real, 4, 4> const& A) {
+template <fixed_size_quadratic_mat<4> Mat>
+constexpr auto inv_sym(Mat&& A)
+    -> std::optional<mat<tensor_value_type<Mat>, 4, 4>> {
   decltype(auto) a = A(0, 0);
   decltype(auto) b = A(1, 0);
   decltype(auto) c = A(2, 0);
@@ -158,9 +164,9 @@ constexpr auto inv_sym(base_tensor<Tensor, Real, 4, 4> const& A) {
 ///     [e,f,g,h]
 ///     [i,j,k,l]
 ///     [m,n,o,p]
-template <typename Tensor, floating_point Real>
-constexpr auto inv(base_tensor<Tensor, Real, 4, 4> const& A)
-    -> std::optional<mat<Real, 4, 4>> {
+template <fixed_size_quadratic_mat<4> Mat>
+constexpr auto inv(Mat && A)
+    -> std::optional<mat<tensor_value_type<Mat>, 4, 4>> {
   decltype(auto) b = A(0, 1);
   decltype(auto) c = A(0, 2);
   decltype(auto) d = A(0, 3);

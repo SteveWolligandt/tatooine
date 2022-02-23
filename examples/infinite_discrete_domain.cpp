@@ -17,10 +17,9 @@ int main() {
 
   auto& discretized_data =
       discretized_domain.insert_contiguous_vertex_property<vec2>("foo");
-  auto const s = discretized_domain.size();
-  for_loop(
+  for_loop_unpacked(
       [&](auto const... is) { discretized_data((is)...) = vec2::randu(-1, 1); },
-      s);
+      discretized_domain.size());
 
   repeat_for_infinite<0>(discretized_data);
 

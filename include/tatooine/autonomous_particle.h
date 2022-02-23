@@ -727,7 +727,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     static constexpr auto      split_offsets      = SplitBehavior::offsets;
     auto const [eigvecs_S, eigvals_S]             = this->main_axes();
     auto const B = eigvecs_S * diag(eigvals_S);  // current main axes
-    auto const K = *solve(diag(eigvals_S), transposed(eigvecs_S));
+    auto const K = solve(diag(eigvals_S), transposed(eigvecs_S));
 
     mat_t H, HHt, advected_nabla_phi, assembled_nabla_phi, advected_B,
         ghosts_forward, ghosts_backward, prev_ghosts_forward,

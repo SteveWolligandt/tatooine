@@ -5,7 +5,7 @@
 //==============================================================================
 namespace tatooine::detail::line {
 //==============================================================================
-template <typename Real, std::size_t NumDimensions, typename Prop,
+template <floating_point Real, std::size_t NumDimensions, typename Prop,
           template <typename> typename InterpolationKernel>
 struct vertex_property_sampler {
   using line_type   = tatooine::line<Real, NumDimensions>;
@@ -42,7 +42,7 @@ struct vertex_property_sampler {
     return InterpolationKernel{m_prop[range.first], m_prop[range.second]}(t);
   }
 };
-template <typename Real, std::size_t NumDimensions, typename Prop>
+template <floating_point Real, std::size_t NumDimensions, typename Prop>
 struct vertex_property_sampler<Real, NumDimensions, Prop,
                                interpolation::cubic> {
   using line_type   = tatooine::line<Real, NumDimensions>;

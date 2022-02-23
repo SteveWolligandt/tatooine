@@ -1422,7 +1422,7 @@ class rectilinear_grid {
       try {
         prop(is...) = f(vertices()(is...));
       } catch (std::exception&) {
-        if constexpr (num_components<T> == 1) {
+        if constexpr (tensor_num_components<T> == 1) {
           prop(is...) = T{0.0 / 0.0};
         } else {
           prop(is...) = T{tag::fill{0.0 / 0.0}};
@@ -1823,9 +1823,9 @@ class rectilinear_grid {
            << back<2>() << ",\n";
     header << "    CoordType \"uniform\"\n";
     header << "}\n";
-    if constexpr (num_components < T >> 1) {
+    if constexpr (tensor_num_components<T> > 1) {
       header << "Lattice { " << type_name<internal_data_type_t<T>>() << "["
-             << num_components<T> << "] Data } @1\n\n";
+             << tensor_num_components<T> << "] Data } @1\n\n";
     } else {
       header << "Lattice { " << type_name<internal_data_type_t<T>>()
              << " Data } @1\n\n";

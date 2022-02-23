@@ -2,7 +2,6 @@
 #define TATOOINE_FIELD_H
 //==============================================================================
 #include <tatooine/tensor.h>
-#include <tatooine/tensor_type.h>
 #include <tatooine/type_traits.h>
 
 #include <vector>
@@ -185,7 +184,7 @@ using scalarfield = field<V, Real, NumDimensions, Real>;
 template <std::size_t NumDimensions, typename F>
 struct lambda_field
     : field<lambda_field<NumDimensions, F>,
-            internal_value_type<std::invoke_result_t<
+            tensor_value_type<std::invoke_result_t<
                 F, vec<tatooine::real_number, NumDimensions>,
                 tatooine::real_number>>,
             NumDimensions,
@@ -195,7 +194,7 @@ struct lambda_field
   constexpr lambda_field(F&& f) : m_f{std::forward<F>(f)} {}
   using parent_type = field<
       lambda_field<NumDimensions, F>,
-      internal_value_type<std::invoke_result_t<
+      tensor_value_type<std::invoke_result_t<
           F, vec<tatooine::real_number, NumDimensions>, tatooine::real_number>>,
       NumDimensions,
       std::invoke_result_t<F, vec<tatooine::real_number, NumDimensions>,

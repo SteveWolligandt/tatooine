@@ -3,7 +3,7 @@
 //==============================================================================
 namespace tatooine::detail::pointset {
 //==============================================================================
-template <typename Real, std::size_t N, typename T>
+template <floating_point Real, std::size_t N, typename T>
 struct moving_least_squares_sampler;
 //==============================================================================
 }  // namespace tatooine::detail::pointset

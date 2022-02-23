@@ -544,7 +544,7 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
     }
 
     // outer loop iterates over chunks
-    for_loop(
+    for_loop_unpacked(
         [&](auto const& outer_indices) {
           for (std::size_t i = 0; i < num_dimensions(); ++i) {
             auto chunk_size = m_internal_chunk_size[i];
@@ -557,7 +557,7 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
             inner_ranges[i] = {0, chunk_size};
           }
           // inner loop iterates indices of current chunk
-          for_loop(
+          for_loop_unpacked(
               [&](auto const& inner_indices) {
                 std::vector<std::size_t> global_indices(num_dimensions());
 

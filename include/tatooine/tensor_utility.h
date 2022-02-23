@@ -6,13 +6,11 @@
 namespace tatooine {
 //==============================================================================
 /// for comparison
-template <typename Tensor0, typename Real0,
-          typename Tensor1, typename Real1,
-          size_t... Dims>
-constexpr auto approx_equal(const base_tensor<Tensor0, Real0, Dims...>& lhs,
-                            const base_tensor<Tensor1, Real1, Dims...>& rhs,
-                            common_type<Real0, Real1> eps = 1e-6) {
-  bool equal = true;
+template <static_tensor T0, static_tensor T1>
+requires(same_dimensions<T0, T1>()) constexpr auto approx_equal(
+    T0 const& lhs, T1 const& rhs,
+    common_type<tensor_value_type<T0>, tensor_value_type<T1>> eps = 1e-6) {
+  auto equal = true;
   lhs.for_indices([&](const auto... is) {
     if (std::abs(lhs(is...) - rhs(is...)) > eps) { equal = false; }
   });

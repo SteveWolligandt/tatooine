@@ -9,9 +9,11 @@ namespace tatooine {
 //==============================================================================
 template <static_tensor Tensor>
 struct transposed_static_tensor {
-  static auto constexpr rank() { std::decay_t<Tensor>::rank(); }
+  static auto constexpr rank() { return std::decay_t<Tensor>::rank(); }
   static auto constexpr dimensions() {
-    return std::ranges::reverse(std::decay_t<Tensor>::dimensions());
+    auto dims = std::decay_t<Tensor>::dimensions();
+    std::ranges::reverse(dims);
+    return dims;
   }
   static auto constexpr dimension(std::size_t const i) {
     return std::decay_t<Tensor>::dimension(rank() - i - 1);
@@ -73,7 +75,8 @@ struct transposed_static_tensor {
     return internal_tensor()(is);
   }
   //----------------------------------------------------------------------------
-  auto internal_tensor() const -> auto const& { return internal_tensor(); }
+  auto internal_tensor() const -> auto const& { return m_internal_tensor; }
+  auto internal_tensor() -> auto& { return m_internal_tensor; }
 };
 //------------------------------------------------------------------------------
 template <static_tensor T>
@@ -92,7 +95,7 @@ struct transposed_dynamic_tensor {
   static auto constexpr is_dynamic() { return true; }
   using value_type = typename std::decay_t<Tensor>::value_type;
   //============================================================================
-  Tensor const& m_internal_tensor;
+  Tensor m_internal_tensor;
   //============================================================================
   transposed_dynamic_tensor(dynamic_tensor auto&& t)
       : m_internal_tensor{std::forward<decltype(t)>(t)} {}
@@ -166,11 +169,13 @@ auto transposed(dynamic_tensor auto&& t) {
   return transposed_dynamic_tensor{std::forward<decltype(t)>(t)};
 }
 //------------------------------------------------------------------------------
-auto constexpr transposed(static_tensor auto&& t) {
-  return transposed_static_tensor{std::forward<decltype(t)>(t)};
+template <static_tensor T>
+requires (!transposed_tensor<T>)
+auto constexpr transposed(T&& t) {
+  return transposed_static_tensor{std::forward<T>(t)};
 }
 //------------------------------------------------------------------------------
-auto constexpr transposed(transposed_tensor auto&& t) {
+auto constexpr transposed(transposed_tensor auto&& t) -> decltype(auto) {
   return t.internal_tensor();
 }
 //==============================================================================

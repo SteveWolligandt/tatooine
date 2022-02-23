@@ -5,14 +5,14 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Real, std::size_t NumDimensions>
+template <floating_point Real, std::size_t NumDimensions>
 struct line;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
 namespace tatooine::detail::line {
 //============================================================================
-template <typename Real, std::size_t NumDimensions, typename Handle>
+template <floating_point Real, std::size_t NumDimensions, typename Handle>
 struct vertex_container {
   //============================================================================
   // typedefs

@@ -227,8 +227,8 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
   //----------------------------------------------------------------------------
 #if TATOOINE_PNG_AVAILABLE
   auto write_png(filesystem::path const&              path,
-                 internal_value_type<ValueType>       min = 0,
-                 internal_value_type<ValueType> const max = 1) const
+                 tensor_value_type<ValueType>       min = 0,
+                 tensor_value_type<ValueType> const max = 1) const
       -> void requires(num_dimensions() == 2) &&
       ((static_vec<ValueType>) || (arithmetic<ValueType>)) {
     png::image<png::rgb_pixel> image{

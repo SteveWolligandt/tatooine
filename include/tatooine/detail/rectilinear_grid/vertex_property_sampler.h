@@ -6,7 +6,7 @@
 #include <tatooine/crtp.h>
 #include <tatooine/exceptions.h>
 #include <tatooine/field.h>
-#include <tatooine/internal_value_type.h>
+#include <tatooine/tensor_type_traits.h>
 #include <tatooine/interpolation.h>
 #include <tatooine/invoke_unpacked.h>
 
@@ -81,7 +81,7 @@ struct base_vertex_property_sampler {
     return sizeof...(TailInterpolationKernels) + 1;
   }
   static constexpr auto num_components() {
-    return tatooine::num_components<value_type>;
+    return tatooine::tensor_num_components<value_type>;
   }
   //----------------------------------------------------------------------------
   /// returns casted as_derived data
@@ -248,7 +248,8 @@ struct base_vertex_property_sampler {
   //------------------------------------------------------------------------------
   template <size_t... Is>
   constexpr auto sample(std::index_sequence<Is...> /*seq*/,
-                        arithmetic auto const... xs) const {
+                        arithmetic auto const... xs) const
+      requires(sizeof...(Is) == sizeof...(xs)) {
     return interpolate_cell(cell_index<Is>(xs)...);
   }
 };
@@ -281,7 +282,7 @@ struct vertex_property_sampler
     return sizeof...(InterpolationKernels);
   }
   //----------------------------------------------------------------------------
-  static_assert(is_floating_point<internal_value_type<value_type>>);
+  static_assert(is_floating_point<tensor_value_type<value_type>>);
   //============================================================================
  private:
   property_t const& m_property;

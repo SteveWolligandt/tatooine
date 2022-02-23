@@ -137,7 +137,9 @@ struct vis {
   //----------------------------------------------------------------------------
   uniform_rectilinear_grid<double, 2>     grid;
   double                                  agranovsky_error           = 0;
-  double                                  autonomous_particles_error = 0;
+  double                                  autonomous_particles_barycentric_coordinate_error = 0;
+  double                                  autonomous_particles_nearest_neighbor_error = 0;
+  double                                  autonomous_particles_inverse_distance_error = 0;
   vec2d                                   cursor_pos;
   vec2d                                   current_point;
   std::vector<bool>                       hovered;
@@ -190,9 +192,18 @@ struct vis {
              Vec4<std::size_t>{10, 10, 500, 500}};
     }
     ImGui::Text("Agran error: %e", agranovsky_error);
-    ImGui::Text("Auton error: %e ", autonomous_particles_error);
-    ImGui::Text("error diff:  %e ",
-                agranovsky_error - autonomous_particles_error);
+
+    ImGui::Text("barycentric coordinate error: %e ", autonomous_particles_barycentric_coordinate_error);
+    ImGui::Text("barycentric coordinate diff:  %e ",
+                agranovsky_error - autonomous_particles_barycentric_coordinate_error);
+
+    ImGui::Text("nearest neighbor error: %e ", autonomous_particles_nearest_neighbor_error);
+    ImGui::Text("nearest neighbor diff:  %e ",
+                agranovsky_error - autonomous_particles_nearest_neighbor_error);
+
+    ImGui::Text("inverse distance error: %e ", autonomous_particles_inverse_distance_error);
+    ImGui::Text("inverse distance diff:  %e ",
+                agranovsky_error - autonomous_particles_inverse_distance_error);
   }
   //----------------------------------------------------------------------------
   auto render(auto const& renderable, rendering::camera auto const& cam) {
@@ -307,12 +318,16 @@ struct vis {
           map[i] = {vec2f{locals[i]}, hovered[i] ? 1 : 0};
         },
         execution_policy::parallel, samplers.size());
-    agranovsky_error =
-        grid.scalar_vertex_property("flowmap_error_agranovksy_backward")
+    agranovsky_error = grid.scalar_vertex_property("error_agranovksy")
+                           .linear_sampler()(current_point);
+    autonomous_particles_barycentric_coordinate_error =
+        grid.scalar_vertex_property("error_barycentric_coordinate")
             .linear_sampler()(current_point);
-    autonomous_particles_error =
-        grid.scalar_vertex_property(
-                "flowmap_error_autonomous_particles_backward")
+    autonomous_particles_nearest_neighbor_error =
+        grid.scalar_vertex_property("error_nearest_neighbor")
+            .linear_sampler()(current_point);
+    autonomous_particles_inverse_distance_error =
+        grid.scalar_vertex_property("error_inverse_distance")
             .linear_sampler()(current_point);
   }
   //----------------------------------------------------------------------------
@@ -348,18 +363,30 @@ struct vis {
 auto doit(auto& g, auto const& v, auto const& initial_particles,
           auto& uuid_generator, auto const t0, auto const t_end) {
   auto const tau = t_end - t0;
-  auto&      flowmap_numerical_backward_prop =
-      g.vec2_vertex_property("flowmap_numerical_backward");
-  auto& flowmap_autonomous_particles_backward_prop =
-      g.vec2_vertex_property("flowmap_autonomous_particles_backward");
-  auto& flowmap_agranovsky_backward_prop =
-      g.vec2_vertex_property("flowmap_agranovksy_backward");
-  auto& flowmap_error_autonomous_particles_backward_prop =
-      g.scalar_vertex_property("flowmap_error_autonomous_particles_backward");
-  auto& flowmap_error_agranovksy_backward_prop =
-      g.scalar_vertex_property("flowmap_error_agranovksy_backward");
-  auto& flowmap_error_diff_backward_prop =
-      g.scalar_vertex_property("flowmap_error_diff_backward");
+  auto&      flowmap_numerical_prop =
+      g.vec2_vertex_property("numerical");
+  auto& flowmap_autonomous_particles_barycentric_coordinate_prop =
+      g.vec2_vertex_property("barycentric_coordinate");
+  auto& flowmap_autonomous_particles_nearest_neighbor_prop =
+      g.vec2_vertex_property("nearest_neighbor");
+  auto& flowmap_autonomous_particles_inverse_distance_prop =
+      g.vec2_vertex_property("inverse_distance");
+  auto& flowmap_agranovsky_prop =
+      g.vec2_vertex_property("agranovksy");
+  auto& flowmap_error_autonomous_particles_barycentric_coordinate_prop =
+      g.scalar_vertex_property("error_barycentric_coordinate");
+  auto& flowmap_error_autonomous_particles_nearest_neighbor_prop =
+      g.scalar_vertex_property("error_nearest_neighbor");
+  auto& flowmap_error_autonomous_particles_inverse_distance_prop =
+      g.scalar_vertex_property("error_inverse_distance");
+  auto& flowmap_error_agranovksy_prop =
+      g.scalar_vertex_property("error_agranovksy");
+  auto& flowmap_error_diff_barycentric_coordinate_prop =
+      g.scalar_vertex_property("error_diff_barycentric_coordinate");
+  auto& flowmap_error_diff_nearest_neighbor_prop =
+      g.scalar_vertex_property("error_diff_nearest_neighbor");
+  auto& flowmap_error_diff_inverse_distance_prop =
+      g.scalar_vertex_property("error_diff_inverse_distance");
   discretize(v, g, "velocity", execution_policy::parallel);
   auto phi = flowmap(v);
 
@@ -368,13 +395,13 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
   auto const num_particles_after_advection =
       flowmap_autonomous_particles.num_particles();
 
-  auto const agranovsky_delta_t = 0.1;
+  auto const agranovsky_delta_t = 0.5;
   auto const num_agranovksy_steps =
-      static_cast<std::size_t>(std::ceil(agranovsky_delta_t / t_end));
+      static_cast<std::size_t>(std::ceil((t_end - t0) / agranovsky_delta_t));
   auto const regularized_height_agranovksky =
       static_cast<std::size_t>(std::ceil(
-          std::sqrt((num_particles_after_advection) / num_agranovksy_steps)));
-  auto const regularized_width_agranovksky = regularized_height_agranovksky;
+          std::sqrt((num_particles_after_advection/2) / num_agranovksy_steps)));
+  auto const regularized_width_agranovksky = regularized_height_agranovksky*2;
   std::cout << "num_particles_after_advection: "
             << num_particles_after_advection << '\n';
   std::cout << "num_agranovksy_steps: " << num_agranovksy_steps << '\n';
@@ -397,17 +424,24 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
       [&](auto const... is) {
         auto       copy_phi                    = phi;
         auto const x                           = g.vertex_at(is...);
-        flowmap_numerical_backward_prop(is...) = copy_phi(x, t_end, -tau);
+        flowmap_numerical_prop(is...) = copy_phi(x, t_end, -tau);
       },
-      execution_policy::parallel);
+      execution_policy::sequential);
   std::cout << "measuring numerical flowmap done\n";
   std::cout << "measuring autonomous particles flowmap...\n";
   g.vertices().iterate_indices(
       [&](auto const... is) {
         auto       copy_phi = phi;
         auto const x        = g.vertex_at(is...);
-        flowmap_autonomous_particles_backward_prop(is...) =
-            flowmap_autonomous_particles.sample_backward(x);
+        flowmap_autonomous_particles_barycentric_coordinate_prop(is...) =
+            flowmap_autonomous_particles.sample_barycentric_coordinate(
+                x, backward, execution_policy::sequential);
+        flowmap_autonomous_particles_nearest_neighbor_prop(is...) =
+            flowmap_autonomous_particles.sample_nearest_neighbor(
+                x, backward, execution_policy::sequential);
+        flowmap_autonomous_particles_inverse_distance_prop(is...) =
+            flowmap_autonomous_particles.sample_inverse_distance(
+                x, backward, execution_policy::sequential);
       },
       execution_policy::parallel);
   std::cout << "measuring autonomous particles flowmap done\n";
@@ -417,10 +451,10 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
         auto       copy_phi = phi;
         auto const x        = g.vertex_at(is...);
         try {
-          flowmap_agranovsky_backward_prop(is...) =
+          flowmap_agranovsky_prop(is...) =
               flowmap_agranovsky.sample_backward(x);
         } catch (...) {
-          flowmap_agranovsky_backward_prop(is...) = vec2{0.0 / 0.0, 0.0 / 0.0};
+          flowmap_agranovsky_prop(is...) = vec2{0.0 / 0.0, 0.0 / 0.0};
         }
       },
       execution_policy::parallel);
@@ -430,16 +464,33 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
       [&](auto const... is) {
         auto       copy_phi = phi;
         auto const x        = g.vertex_at(is...);
-        flowmap_error_autonomous_particles_backward_prop(is...) =
+        flowmap_error_autonomous_particles_barycentric_coordinate_prop(is...) =
             euclidean_distance(
-                flowmap_numerical_backward_prop(is...),
-                flowmap_autonomous_particles_backward_prop(is...));
-        flowmap_error_agranovksy_backward_prop(is...) =
-            euclidean_distance(flowmap_numerical_backward_prop(is...),
-                               flowmap_agranovsky_backward_prop(is...));
-        flowmap_error_diff_backward_prop(is...) =
-            flowmap_error_agranovksy_backward_prop(is...) -
-            flowmap_error_autonomous_particles_backward_prop(is...);
+                flowmap_numerical_prop(is...),
+                flowmap_autonomous_particles_barycentric_coordinate_prop(is...));
+
+        flowmap_error_autonomous_particles_nearest_neighbor_prop(is...) =
+            euclidean_distance(
+                flowmap_numerical_prop(is...),
+                flowmap_autonomous_particles_nearest_neighbor_prop(is...));
+
+        flowmap_error_autonomous_particles_inverse_distance_prop(is...) =
+            euclidean_distance(
+                flowmap_numerical_prop(is...),
+                flowmap_autonomous_particles_inverse_distance_prop(is...));
+
+        flowmap_error_agranovksy_prop(is...) =
+            euclidean_distance(flowmap_numerical_prop(is...),
+                               flowmap_agranovsky_prop(is...));
+        flowmap_error_diff_barycentric_coordinate_prop(is...) =
+            flowmap_error_agranovksy_prop(is...) -
+            flowmap_error_autonomous_particles_barycentric_coordinate_prop(is...);
+        flowmap_error_diff_nearest_neighbor_prop(is...) =
+            flowmap_error_agranovksy_prop(is...) -
+            flowmap_error_autonomous_particles_nearest_neighbor_prop(is...);
+        flowmap_error_diff_inverse_distance_prop(is...) =
+            flowmap_error_agranovksy_prop(is...) -
+            flowmap_error_autonomous_particles_inverse_distance_prop(is...);
       },
       execution_policy::parallel);
   std::cout << "measuring errors done\n";
@@ -455,65 +506,49 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
                                  g);
 };
 //==============================================================================
-auto main() -> int {
+auto main(int argc, char** argv) -> int {
   auto                        uuid_generator = std::atomic_uint64_t{};
   [[maybe_unused]] auto const r              = 0.01;
   [[maybe_unused]] auto const t0             = 0;
-  [[maybe_unused]] auto const t_end          = 1;
-
-  auto  rand    = random::uniform{0.0, 1.0};
-  auto  ps      = pointset2{};
-  auto& prop_ps = ps.scalar_vertex_property("prop");
-  for (std::size_t i = 0; i < 1000; ++i) {
-    auto v     = ps.insert_vertex(rand() * 2, rand());
-    prop_ps[v] = rand();
+  [[maybe_unused]] auto  t_end          = 4;
+  if (argc > 1) {
+    t_end = std::stoi(argv[1]);
   }
-
-  auto dg = analytical::fields::numerical::doublegyre{};
-  auto g  = rectilinear_grid{linspace{0.0, 2.0, 401}, linspace{0.0, 1.0, 201}};
-  auto const sampler_radius = 0.01;
-  auto       prop_ps_sampler_mls =
-      ps.moving_least_squares_sampler(prop_ps, sampler_radius);
-  discretize(prop_ps_sampler_mls, g, "moving_least_squares",
-             execution_policy::sequential);
-  auto prop_ps_sampler_inv_dist =
-      ps.inverse_distance_weighting_sampler(prop_ps, sampler_radius);
-  discretize(prop_ps_sampler_inv_dist, g, "inverse_distance_weighting",
-             execution_policy::parallel);
-  rendering::interactive::render(ps, g);
-
-  //auto const eps                  = 1e-3;
-  //auto const initial_particles_dg = autonomous_particle2::particles_from_grid(
-  //    t0,
-  //    rectilinear_grid{linspace{0.0 + eps, 2.0 - eps, 21},
-  //                     linspace{0.0 + eps, 1.0 - eps, 11}},
-  //    uuid_generator);
-  //// auto const initial_particles_dg = std::vector<autonomous_particle2>{
-  ////     {vec2{1 - r, 0.5 - r}, t0, r, uuid_generator},
-  ////     {vec2{1 + r, 0.5 - r}, t0, r, uuid_generator},
-  ////     {vec2{1 - r, 0.5 + r}, t0, r, uuid_generator},
-  ////     {vec2{1 + r, 0.5 + r}, t0, r, uuid_generator}};
-  // doit(g, dg, initial_particles_dg, uuid_generator, t0, t_end);
-
   //============================================================================
-   //auto s  = analytical::fields::numerical::saddle{};
-   //auto rs = analytical::fields::numerical::rotated_saddle{};
-   //auto constexpr cos = gcem::cos(M_PI / 4);
-   //auto constexpr sin = gcem::sin(M_PI / 4);
-   //auto const initial_particles_saddle =
-   //   std::vector<autonomous_particle2>{{vec2{r, r}, t0, r, uuid_generator},
-   //                                     {vec2{r, -r}, t0, r, uuid_generator},
-   //                                     {vec2{-r, r}, t0, r, uuid_generator},
-   //                                     {vec2{-r, -r}, t0, r,
-   //                                     uuid_generator}};
-   //auto const initial_rotated_particles_saddle =
-   //   std::vector<autonomous_particle2>{
-   //       {vec2{cos * r - sin * r, sin * r + cos * r}, t0, r, uuid_generator},
-   //       {vec2{cos * -r - sin * r, sin * -r + cos * r}, t0, r,
-   //       uuid_generator}, {vec2{cos * r - sin * -r, sin * r + cos * -r}, t0,
-   //       r, uuid_generator}, {vec2{cos * -r - sin * -r, sin * -r + cos * -r},
-   //       t0, r,
-   //        uuid_generator}};
-   //
-   //doit(g, rs, initial_particles_saddle, uuid_generator, t0, t_end);
+  auto dg = analytical::fields::numerical::doublegyre{};
+  auto g  = rectilinear_grid{linspace{0.0, 2.0, 51}, linspace{0.0, 1.0, 26}};
+  auto const eps                  = 1e-3;
+  auto const initial_particles_dg = autonomous_particle2::particles_from_grid(
+      t0,
+      rectilinear_grid{linspace{0.0 + eps, 2.0 - eps, 21},
+                       linspace{0.0 + eps, 1.0 - eps, 11}},
+      uuid_generator);
+  // auto const initial_particles_dg = std::vector<autonomous_particle2>{
+  //     {vec2{1 - r, 0.5 - r}, t0, r, uuid_generator},
+  //     {vec2{1 + r, 0.5 - r}, t0, r, uuid_generator},
+  //     {vec2{1 - r, 0.5 + r}, t0, r, uuid_generator},
+  //     {vec2{1 + r, 0.5 + r}, t0, r, uuid_generator}};
+   doit(g, dg, initial_particles_dg, uuid_generator, t0, t_end);
+  //============================================================================
+  // //auto s  = analytical::fields::numerical::saddle{};
+  //auto g  = rectilinear_grid{linspace{-0.1, 0.1, 51}, linspace{-0.1, 0.1, 51}};
+  // auto rs = analytical::fields::numerical::rotated_saddle{};
+  // auto constexpr cos = gcem::cos(M_PI / 4);
+  // auto constexpr sin = gcem::sin(M_PI / 4);
+  // auto const initial_particles_saddle =
+  //    std::vector<autonomous_particle2>{{vec2{r, r}, t0, r, uuid_generator},
+  //                                      {vec2{r, -r}, t0, r, uuid_generator},
+  //                                      {vec2{-r, r}, t0, r, uuid_generator},
+  //                                      {vec2{-r, -r}, t0, r,
+  //                                      uuid_generator}};
+  // auto const initial_rotated_particles_saddle =
+  //    std::vector<autonomous_particle2>{
+  //        {vec2{cos * r - sin * r, sin * r + cos * r}, t0, r, uuid_generator},
+  //        {vec2{cos * -r - sin * r, sin * -r + cos * r}, t0, r,
+  //        uuid_generator}, {vec2{cos * r - sin * -r, sin * r + cos * -r}, t0,
+  //        r, uuid_generator}, {vec2{cos * -r - sin * -r, sin * -r + cos * -r},
+  //        t0, r,
+  //         uuid_generator}};
+  //
+  // doit(g, rs, initial_particles_saddle, uuid_generator, t0, t_end);
 }

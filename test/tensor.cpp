@@ -72,11 +72,13 @@ TEST_CASE("tensor_slice", "[tensor][slice]") {
   REQUIRE(v.dimension(0) == 3);
   REQUIRE(v.num_components() == 3);
 
-  vec v2{1.0, 2.0};
+  auto v2 = vec{1.0, 2.0};
   REQUIRE(v(0) == 1);
   REQUIRE(v(1) == 2);
 
-  mat m{{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}};
+  auto m = mat{{1.0, 2.0},
+               {3.0, 4.0},
+               {5.0, 6.0}};
   REQUIRE(m(0, 0) == 1);
   REQUIRE(m(0, 1) == 2);
   REQUIRE(m(1, 0) == 3);
@@ -88,7 +90,7 @@ TEST_CASE("tensor_slice", "[tensor][slice]") {
   REQUIRE(m.dimension(1) == 2);
   REQUIRE(m.num_components() == 6);
 
-  auto c0 = m.col(0);
+  auto const c0 = m.col(0);
   REQUIRE(c0(0) == 1);
   REQUIRE(c0(1) == 3);
   REQUIRE(c0(2) == 5);
@@ -104,21 +106,21 @@ TEST_CASE("tensor_slice", "[tensor][slice]") {
   REQUIRE(c1.dimension(0) == 3);
   REQUIRE(c1.num_components() == 3);
 
-  auto r0 = m.row(0);
+  auto const r0 = m.row(0);
   REQUIRE(r0(0) == 1);
   REQUIRE(r0(1) == 2);
   REQUIRE(r0.rank() == 1);
   REQUIRE(r0.dimension(0) == 2);
   REQUIRE(r0.num_components() == 2);
 
-  auto r1 = m.row(1);
+  auto const r1 = m.row(1);
   REQUIRE(r1(0) == 3);
   REQUIRE(r1(1) == 4);
   REQUIRE(r1.rank() == 1);
   REQUIRE(r1.dimension(0) == 2);
   REQUIRE(r1.num_components() == 2);
 
-  auto r2 = m.row(2);
+  auto const r2 = m.row(2);
   REQUIRE(r2(0) == 5);
   REQUIRE(r2(1) == 6);
   REQUIRE(r2.rank() == 1);
@@ -126,7 +128,7 @@ TEST_CASE("tensor_slice", "[tensor][slice]") {
   REQUIRE(r2.num_components() == 2);
 
   REQUIRE(dot(m.col(0), m.col(1)) == (1 * 2 + 3 * 4 + 5 * 6));
-  auto prod = m * v2;
+  auto const prod = m * v2;
   REQUIRE(prod(0) == (1 * 1 + 2 * 2));
   REQUIRE(prod(1) == (1 * 3 + 2 * 4));
   REQUIRE(prod(2) == (1 * 5 + 2 * 6));
@@ -571,10 +573,10 @@ TEST_CASE("tensor_inverse", "[tensor][inverse]") {
                       -3.215960238699798e-01, 2.386123500582727e-01}};
       INFO("A = \n" << A);
       INFO("inv(A) = \n" << *inv(A));
-      INFO("inv_sym(A) = \n" << inv_sym(A));
+      INFO("inv_sym(A) = \n" << *inv_sym(A));
       INFO("invA = \n" << invA);
       REQUIRE(approx_equal(*inv(A), invA));
-      REQUIRE(approx_equal(inv_sym(A), invA));
+      REQUIRE(approx_equal(*inv_sym(A), invA));
     }
     SECTION("non-symmetric") {
       mat const A{{2.819414707372358e+00, 5.092058185719120e+00,
@@ -837,11 +839,11 @@ TEST_CASE("tensor_solve_qr", "[tensor][solve][qr]") {
     }
   }
   SECTION("dynamic size") {
-    using tensor_type = tensor<real_type>;
+    using tensor_type = tensor<real_number>;
     SECTION("[3x2] * x = [3]") {
       auto const A = tensor_type{{0.558452565029228, 0.588181218880352},
-                                    {0.310060713289403, 0.745229548770475},
-                                    {0.574182859934675, 0.672548212017124}};
+                                 {0.310060713289403, 0.745229548770475},
+                                 {0.574182859934675, 0.672548212017124}};
       auto const b =
           tensor_type{0.959108917701253, 0.824089907371562, 0.216504922237786};
       auto const x = solve_qr_lapack(A, b);
