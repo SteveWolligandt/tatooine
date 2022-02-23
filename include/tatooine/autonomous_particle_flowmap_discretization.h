@@ -27,11 +27,13 @@ struct autonomous_particle_flowmap_discretization {
  private:
   //----------------------------------------------------------------------------
   // std::optional<filesystem::path> m_path;
-  std::vector<sampler_type>                              m_samplers = {};
-  mutable std::unique_ptr<pointset<real_type, NumDimensions>> m_centers0 = nullptr;
-  mutable std::mutex                                     m_centers0_mutex = {};
-  mutable std::unique_ptr<pointset<real_type, NumDimensions>> m_centers1 = nullptr;
-  mutable std::mutex                                     m_centers1_mutex = {};
+  std::vector<sampler_type>                                   m_samplers = {};
+  mutable std::unique_ptr<pointset<real_type, NumDimensions>> m_centers0 =
+      nullptr;
+  mutable std::mutex m_centers0_mutex = {};
+  mutable std::unique_ptr<pointset<real_type, NumDimensions>> m_centers1 =
+      nullptr;
+  mutable std::mutex m_centers1_mutex = {};
   //----------------------------------------------------------------------------
  public:
   //----------------------------------------------------------------------------
@@ -295,12 +297,58 @@ struct autonomous_particle_flowmap_discretization {
   //  return best.p;
   //}
   //----------------------------------------------------------------------------
+  public:
   template <std::size_t... VertexSeq>
   [[nodiscard]] auto sample(pos_type const&                    q,
                             forward_or_backward_tag auto const tag,
                             execution_policy::sequential_t     pol,
                             std::index_sequence<VertexSeq...> /*seq*/) const {
-    return sample_inverse_distance(q, tag, pol);
+    //return sample_inverse_distance(q, tag, pol);
+    return sample_barycentric_coordinate(q, tag, pol);
+    //return sample_nearest_neighbor(q, tag, pol);
+  }
+  //----------------------------------------------------------------------------
+  [[nodiscard]] auto sample_nearest_neighbor(
+      pos_type const& q, forward_or_backward_tag auto const tag,
+      execution_policy::sequential_t /*pol*/) const {
+    auto  ps                  = pointset<real_type, NumDimensions>{};
+    auto& initial_positions   = ps.template vertex_property<pos_type>("ps");
+    for (auto const& s : m_samplers) {
+      auto v               = ps.insert_vertex(s.local_pos(q, tag));
+      initial_positions[v] = s.center(opposite(tag));
+    }
+    auto [v, dist] = ps.nearest_neighbor(q);
+    return ps[v] + initial_positions[v];
+  }
+  //----------------------------------------------------------------------------
+  [[nodiscard]] auto sample_barycentric_coordinate(
+      pos_type const& q, forward_or_backward_tag auto const tag,
+      execution_policy::sequential_t /*pol*/) const {
+    auto  ps                  = pointset<real_type, NumDimensions>{};
+    auto& initial_positions   = ps.template vertex_property<pos_type>("ps");
+    for (auto const& s : m_samplers) {
+      auto v               = ps.insert_vertex(s.local_pos(q, tag));
+      initial_positions[v] = s.center(opposite(tag));
+    }
+    auto [indices, distances] = ps.nearest_neighbors(q, 3);
+
+    auto const v0 = indices[0];
+    auto const v1 = indices[1];
+    auto const v2 = indices[2];
+
+    auto const p0 = ps[v0] - q;
+    auto const p1 = ps[v1] - q;
+    auto const p2 = ps[v2] - q;
+    auto       barycentric_coordinates =
+        vec{p1.x() * p2.y() - p2.x() * p1.y(),
+            p2.x() * p0.y() - p0.x() * p2.y(),
+            p0.x() * p1.y() - p1.x() * p0.y()} /
+        ((p1.x() - p0.x()) * p2.y() +
+         (p0.x() - p2.x()) * p1.y() +
+         (p2.x() - p1.x()) * p0.y());
+    return (ps[v0] + initial_positions[v0]) * barycentric_coordinates(0) + 
+           (ps[v1] + initial_positions[v1]) * barycentric_coordinates(1) + 
+           (ps[v2] + initial_positions[v2]) * barycentric_coordinates(2); 
   }
   //----------------------------------------------------------------------------
   [[nodiscard]] auto sample_inverse_distance(
@@ -308,25 +356,19 @@ struct autonomous_particle_flowmap_discretization {
       execution_policy::sequential_t /*pol*/) const {
     auto  ps                  = pointset<real_type, NumDimensions>{};
     auto& initial_positions   = ps.template vertex_property<pos_type>("ps");
-    auto [indices, distances] = ps.nearest_neighbors_radius_raw(q, 0.1);
     for (auto const& s : m_samplers) {
       auto v               = ps.insert_vertex(s.local_pos(q, tag));
       initial_positions[v] = s.center(opposite(tag));
     }
-    // if (indices.empty()) {
-    //   throw std::runtime_error{
-    //       "[inverse_distance_weighting_sampler] out of domain"};
-    // }
+    auto [indices, distances] = ps.nearest_neighbors(q, 3);
     auto accumulated_position = pos_type{};
     auto accumulated_weight   = real_type{};
 
     auto index_it = begin(indices);
     auto dist_it  = begin(distances);
     for (; index_it != end(indices); ++index_it, ++dist_it) {
-      auto const v =
-          typename pointset<real_type, NumDimensions>::vertex_handle{*index_it};
-      auto const& initial_pos = initial_positions[v];
-      auto const& local_pos   = ps[v];
+      auto const& initial_pos = initial_positions[*index_it];
+      auto const& local_pos   = ps[*index_it];
       if (*dist_it == 0) {
         return local_pos + initial_pos;
       };
@@ -367,8 +409,6 @@ struct autonomous_particle_flowmap_discretization {
     }
     return p_ret;
   }
-  //----------------------------------------------------------------------------
- public:
   //----------------------------------------------------------------------------
   [[nodiscard]] auto sample(pos_type const&                     q,
                             forward_or_backward_tag auto const  tag,

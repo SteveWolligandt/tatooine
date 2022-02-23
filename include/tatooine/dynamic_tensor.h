@@ -1,8 +1,8 @@
 #ifndef TATOOINE_DYNAMIC_TENSOR_H
 #define TATOOINE_DYNAMIC_TENSOR_H
 //==============================================================================
-#include <tatooine/multidim_array.h>
 #include <tatooine/einstein_notation/indexed_dynamic_tensor.h>
+#include <tatooine/multidim_array.h>
 
 #include <ostream>
 #include <sstream>
@@ -14,11 +14,12 @@ struct tensor<T> : dynamic_multidim_array<T> {
   using this_type   = tensor<T>;
   using parent_type = dynamic_multidim_array<T>;
   template <einstein_notation::index... Is>
-  using const_indexed_type = einstein_notation::indexed_dynamic_tensor<this_type const&, Is...>;
+  using const_indexed_type =
+      einstein_notation::indexed_dynamic_tensor<this_type const&, Is...>;
   template <einstein_notation::index... Is>
-  using indexed_type = einstein_notation::indexed_dynamic_tensor<this_type&, Is...>;
+  using indexed_type =
+      einstein_notation::indexed_dynamic_tensor<this_type&, Is...>;
   using parent_type::at;
-  using parent_type::parent_type;
   using parent_type::operator();
 
   static auto constexpr is_tensor() { return true; }
@@ -129,12 +130,57 @@ struct tensor<T> : dynamic_multidim_array<T> {
   //============================================================================
   // constructors
   //============================================================================
-  explicit constexpr tensor(dynamic_tensor auto&& other) {
+  explicit tensor(dynamic_tensor auto&& other) {
     assign(other);
   }
   //----------------------------------------------------------------------------
-  explicit constexpr tensor(integral auto const... dimensions) {
+  /// Resizes Tensor to given dimensions and initializes values to 0.
+  explicit tensor(integral auto const... dimensions)
+  requires(!integral<T>) {
     this->resize(dimensions...);
+  }
+  //----------------------------------------------------------------------------
+ private:
+  template <std::size_t... Is>
+  explicit tensor(std::index_sequence<Is...> /*seq*/,
+                            convertible_to<T> auto&&... components)
+    requires ((!integral<std::decay_t<decltype(components)>> &&...))
+      : parent_type{sizeof...(components)} {
+    ([&](auto const i) { at(i) = static_cast<T>(components); }(Is), ...);
+  }
+  //----------------------------------------------------------------------------
+ public:
+  explicit tensor(tag::ones_t tag, integral auto... dimensions)
+      : parent_type{tag, dimensions...} {}
+  //----------------------------------------------------------------------------
+  explicit tensor(tag::ones_t tag, integral_range auto&& dimensions)
+      : parent_type{tag, std::forward<decltype(dimensions)>(dimensions)} {}
+  //----------------------------------------------------------------------------
+  explicit tensor(tag::zeros_t tag, integral auto... dimensions)
+      : parent_type{tag, dimensions...} {}
+  //----------------------------------------------------------------------------
+  explicit tensor(tag::zeros_t tag, integral_range auto&& dimensions)
+      : parent_type{tag, std::forward<decltype(dimensions)>(dimensions)} {}
+  //----------------------------------------------------------------------------
+  /// Constructs a rank 1 tensor aka vector.
+  explicit tensor(convertible_to<T> auto&&... components)
+    requires ((!integral<std::decay_t<decltype(components)>> &&...))
+      : tensor{std::make_index_sequence<sizeof...(components)>{},
+               std::forward<decltype(components)>(components)...} {}
+  //----------------------------------------------------------------------------
+  /// Constructs a rank 2 tensor aka matrix.
+  template <arithmetic_or_complex... Rows, std::size_t N>
+  explicit tensor(Rows(&&... rows)[N])
+      : parent_type{sizeof...(Rows), N} {
+    // lambda inserting row into data block
+    auto insert_row = [r = std::size_t(0), this](auto const& row) mutable {
+      for (std::size_t c = 0; c < N; ++c) {
+        at(r, c) = static_cast<T>(row[c]);
+      }
+      ++r;
+    };
+
+    for_each(insert_row, rows...);
   }
   //============================================================================
   // operators
@@ -193,24 +239,23 @@ struct tensor<T> : dynamic_multidim_array<T> {
   auto rank() const { return this->num_dimensions(); }
   //----------------------------------------------------------------------------
   template <einstein_notation::index... Is>
-  requires(sizeof...(Is) == rank()) auto constexpr at(Is const... /*is*/) {
+  requires(sizeof...(Is) == rank()) auto at(Is const... /*is*/) {
     return indexed_type<Is...>{*this};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <einstein_notation::index... Is>
-  requires(sizeof...(Is) ==
-           rank()) auto constexpr at(Is const... /*is*/) const {
+  requires(sizeof...(Is) == rank())
+  auto at(Is const... /*is*/) const {
     return const_indexed_type<Is...>{*this};
   }
   //----------------------------------------------------------------------------
-  template <einstein_notation::index... Is>
-  requires(sizeof...(Is) == rank()) auto constexpr operator()(
-      Is const... is) const {
+  auto operator()(einstein_notation::index auto const... is) const 
+  requires(sizeof...(is) == rank()) {
     return at(is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <einstein_notation::index... Is>
-  requires(sizeof...(Is) == rank()) auto constexpr operator()(Is const... is) {
+  auto operator()(einstein_notation::index auto const... is) 
+  requires(sizeof...(is) == rank()) {
     return at(is...);
   }
 };

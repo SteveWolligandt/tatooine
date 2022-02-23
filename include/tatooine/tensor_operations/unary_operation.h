@@ -12,14 +12,16 @@ constexpr auto unary_operation(F&& f, Tensor const& t,
   auto constexpr rank = Tensor::rank();
   auto t_out          = [&] {
     if constexpr (rank == 1) {
-      return vec<TOut, Tensor::dimension(Seq)...>{t};
+      return vec<TOut, Tensor::dimension(Seq)...>{};
     } else if constexpr (rank == 2) {
-      return mat<TOut, Tensor::dimension(Seq)...>{t};
+      return mat<TOut, Tensor::dimension(Seq)...>{};
     } else {
-      return tensor<TOut, Tensor::dimension(Seq)...>{t};
+      return tensor<TOut, Tensor::dimension(Seq)...>{};
     };
   }();
-  t_out.unary_operation(std::forward<F>(f));
+  t_out.for_indices([&](auto const... is) {
+    t_out(is...) = f(t(is...));
+  });
   return t_out;
 }
 //------------------------------------------------------------------------------

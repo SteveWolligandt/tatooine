@@ -1,6 +1,5 @@
 #ifndef TATOOINE_POINTSET_H
 #define TATOOINE_POINTSET_H
-
 //==============================================================================
 #include <tatooine/available_libraries.h>
 #include <tatooine/iterator_facade.h>
@@ -26,17 +25,17 @@
 namespace tatooine {
 //==============================================================================
 namespace detail::pointset {
-template <typename Real, std::size_t NumDimensions, typename T>
+template <floating_point Real, std::size_t NumDimensions, typename T>
 struct moving_least_squares_sampler;
 //==============================================================================
-template <typename Real, std::size_t NumDimensions, typename T>
+template <floating_point Real, std::size_t NumDimensions, typename T>
 struct inverse_distance_weighting_sampler;
 //==============================================================================
-template <typename Real, std::size_t NumDimensions>
+template <floating_point Real, std::size_t NumDimensions>
 struct vertex_container;
 }  // namespace detail::pointset
 //==============================================================================
-template <typename Real, std::size_t NumDimensions>
+template <floating_point Real, std::size_t NumDimensions>
 struct pointset {
   // static constexpr std::size_t triangle_dims = 2;
   // static constexpr std::size_t tetgen_dims = 3;
@@ -224,7 +223,7 @@ struct pointset {
   }
   //----------------------------------------------------------------------------
   constexpr auto is_valid(vertex_handle const v) const -> bool {
-    return std::ranges::find(invalid_vertices(), v) == end(invalid_vertices());
+    return v.is_valid() && std::ranges::find(invalid_vertices(), v) == end(invalid_vertices());
   }
 
   //----------------------------------------------------------------------------
@@ -715,8 +714,8 @@ struct pointset {
            << " offset=\"" << offset << "\""
            << " type=\""
            << vtk::xml::data_array::to_string(
-                  vtk::xml::data_array::to_type<internal_value_type<T>>())
-           << "\" NumberOfComponents=\"" << num_components<T> << "\"/>\n";
+                  vtk::xml::data_array::to_type<tensor_value_type<T>>())
+           << "\" NumberOfComponents=\"" << tensor_num_components<T> << "\"/>\n";
       return vertices().size() * sizeof(T) + sizeof(header_type);
     }
     return 0;
@@ -726,8 +725,8 @@ struct pointset {
   auto write_vertex_property_appended_data_vtp(auto const& prop,
                                                auto&       file) const {
     if (prop->type() == typeid(T)) {
-      auto const num_bytes = header_type(sizeof(internal_value_type<T>) *
-                                         num_components<T> * vertices().size());
+      auto const num_bytes = header_type(sizeof(tensor_value_type<T>) *
+                                         tensor_num_components<T> * vertices().size());
       file.write(reinterpret_cast<char const*>(&num_bytes),
                  sizeof(header_type));
       file.write(
@@ -751,7 +750,7 @@ struct pointset {
  private:
   auto kd_tree() const -> auto& {
     auto lock = std::scoped_lock{m_flann_mutex};
-    if (m_kd_tree == nullptr) {
+    if (m_kd_tree == nullptr && vertices().size() > 0) {
       flann::Matrix<Real> dataset{
           const_cast<Real*>(vertex_position_data().front().data_ptr()),
           vertices().size(), num_dimensions()};
@@ -759,22 +758,24 @@ struct pointset {
           dataset, flann::KDTreeSingleIndexParams{});
       m_kd_tree->buildIndex();
     }
-    return *m_kd_tree;
+    return m_kd_tree;
   }
   //----------------------------------------------------------------------------
  public:
   auto nearest_neighbor(pos_type const& x) const {
+    auto& h         = kd_tree();
+    if (h == nullptr) {
+      return std::pair{vertex_handle::invalid(), Real(1) / Real(0)};
+    }
     auto  qm        = flann::Matrix<Real>{const_cast<Real*>(x.data_ptr()), 1,
                                   num_dimensions()};
     auto  indices   = std::vector<std::vector<int>>{};
     auto  distances = std::vector<std::vector<Real>>{};
     auto  params    = flann::SearchParams{};
-    auto& h         = kd_tree();
-    {
-      //auto lock = std::scoped_lock{m_flann_mutex};
-      h.knnSearch(qm, indices, distances, 1, params);
-    }
-    return vertex_handle{static_cast<std::size_t>(indices.front().front())};
+    h->knnSearch(qm, indices, distances, 1, params);
+    return std::pair{
+        vertex_handle{static_cast<std::size_t>(indices.front().front())},
+        distances.front().front()};
   }
   //----------------------------------------------------------------------------
   /// Takes the raw output indices of flann without converting them into vertex
@@ -782,29 +783,27 @@ struct pointset {
   auto nearest_neighbors_raw(pos_type const&           x,
                              std::size_t const         num_nearest_neighbors,
                              flann::SearchParams const params = {}) const {
+    auto& h         = kd_tree();
+    if (h == nullptr) {
+      return std::pair{std::vector<int>{}, std::vector<Real>{}};
+    }
     auto  qm        = flann::Matrix<Real>{const_cast<Real*>(x.data_ptr()), 1,
                                   num_dimensions()};
     auto  indices   = std::vector<std::vector<int>>{};
     auto  distances = std::vector<std::vector<Real>>{};
-    auto& h         = kd_tree();
-    {
-      //auto lock = std::scoped_lock{m_flann_mutex};
-      h.knnSearch(qm, indices, distances, num_nearest_neighbors, params);
-    }
+    h->knnSearch(qm, indices, distances, num_nearest_neighbors, params);
     return std::pair{std::move(indices.front()), std::move(distances.front())};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto nearest_neighbors(pos_type const&   x,
                          std::size_t const num_nearest_neighbors) const {
-    auto const [indices, distances] =
-        nearest_neighbors_raw(x, num_nearest_neighbors);
-    auto handles = std::vector<std::vector<vertex_handle>>{};
-    handles.reserve(size(indices));
-    // TODO make it work
-    // for (auto const& i : indices) {
-    //
-    //  handles.emplace_back(static_cast<std::size_t>(i));
-    //}
+    auto [indices, distances] = nearest_neighbors_raw(x, num_nearest_neighbors);
+    auto handles = std::pair{std::vector<vertex_handle>(size(indices)),
+                             std::move(distances)};
+    std::ranges::copy(indices | std::views::transform([](auto const i) {
+                        return vertex_handle{i};
+                      }),
+                      begin(handles.first));
     return handles;
   }
   //----------------------------------------------------------------------------
@@ -813,25 +812,29 @@ struct pointset {
   auto nearest_neighbors_radius_raw(pos_type const& x, Real const radius,
                                     flann::SearchParams const params = {}) const
       -> std::pair<std::vector<int>, std::vector<Real>> {
+    auto& h = kd_tree();
+    if (h == nullptr) {
+      return std::pair{std::vector<int>{}, std::vector<Real>{}};
+    }
     flann::Matrix<Real>           qm{const_cast<Real*>(x.data_ptr()),  // NOLINT
                            1, num_dimensions()};
     std::vector<std::vector<int>> indices;
     std::vector<std::vector<Real>> distances;
-    auto&                          h = kd_tree();
     {
       //auto lock = std::scoped_lock{m_flann_mutex};
-      h.radiusSearch(qm, indices, distances, radius, params);
+      h->radiusSearch(qm, indices, distances, radius, params);
     }
     return {std::move(indices.front()), std::move(distances.front())};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto nearest_neighbors_radius(pos_type const& x, Real const radius) const {
     auto const [indices, distances] = nearest_neighbors_radius_raw(x, radius);
-    std::vector<vertex_handle> handles;
-    handles.reserve(size(indices));
-    for (auto const i : indices) {
-      handles.emplace_back(static_cast<std::size_t>(i));
-    }
+    auto handles = std::pair{std::vector<vertex_handle>(size(indices)),
+                             std::move(distances)};
+    std::ranges::copy(indices | std::views::transform([](auto const i) {
+                        return vertex_handle{i};
+                      }),
+                      begin(handles.first));
     return handles;
   }
 #endif

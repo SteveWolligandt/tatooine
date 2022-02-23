@@ -1,6 +1,11 @@
 #ifndef TATOOINE_TENSOR_OPERATIONS_EIGENVALUES_H
 #define TATOOINE_TENSOR_OPERATIONS_EIGENVALUES_H
 //==============================================================================
+#include <tatooine/tensor.h>
+#include <tatooine/tensor_typedefs.h>
+#include <tatooine/vec_typedefs.h>
+#include <tatooine/mat_typedefs.h>
+//==============================================================================
 namespace tatooine {
 //==============================================================================
 // template <typename Tensor, typename Real>
@@ -34,42 +39,57 @@ namespace tatooine {
 //  return out;
 //}
 //------------------------------------------------------------------------------
-template <typename Tensor, typename Real, size_t N>
-auto eigenvectors_sym(base_tensor<Tensor, Real, N, N> const& A) {
-  auto W = std::pair{mat<Real, N, N>{A}, vec<Real, N>{}};
+template <static_quadratic_mat Mat>
+auto eigenvectors_sym(Mat&& A) {
+  auto constexpr N = A.dimension(0);
+
+  auto W = std::pair{mat<tensor_value_type<Mat>, N, N>{std::forward<Mat>(A)},
+                     vec<tensor_value_type<Mat>, N>{}};
   lapack::syev(::lapack::Job::Vec, ::lapack::Uplo::Upper, W.first, W.second);
   return W;
 }
 //==============================================================================
-template <typename Tensor, typename Real>
-constexpr auto eigenvalues_sym(base_tensor<Tensor, Real, 2, 2> const& A) {
+template <fixed_size_quadratic_mat<2> Mat>
+constexpr auto eigenvalues_sym(Mat&& A) {
   decltype(auto) b = A(1, 0);
   if (std::abs(b) <= 1e-11) {
-    return vec<Real, 2>{A(0, 0), A(1, 1)};
+    return vec<tensor_value_type<Mat>, 2>{A(0, 0), A(1, 1)};
   }
-  decltype(auto) a      = A(0, 0);
-  decltype(auto) d      = A(1, 1);
-  auto const     e_sqr  = d * d - 2 * a * d + 4 * b * b + a * a;
-  auto const     e      = std::sqrt(e_sqr);
-  constexpr auto half   = 1 / Real(2);
-  auto           lambda = vec<Real, 2>{-e + d + a, e + d + a} * half;
+  decltype(auto) a     = A(0, 0);
+  decltype(auto) d     = A(1, 1);
+  auto const     e_sqr = d * d - 2 * a * d + 4 * b * b + a * a;
+  auto const     e     = std::sqrt(e_sqr);
+  constexpr auto half  = 1 / tensor_value_type<Mat>(2);
+  auto lambda = vec<tensor_value_type<Mat>, 2>{-e + d + a, e + d + a} * half;
   if (lambda(0) > lambda(1)) {
     std::swap(lambda(0), lambda(1));
   }
   return lambda;
 }
 //------------------------------------------------------------------------------
-template <typename Tensor, typename Real, size_t N>
-constexpr auto eigenvalues_sym(base_tensor<Tensor, Real, N, N> const& A) {
-  auto W  = vec<Real, N>{};
-  auto A2 = mat<Real, N, N>{A};
+template <static_quadratic_mat Mat>
+constexpr auto eigenvalues_sym(Mat&& A) {
+  auto constexpr N = tensor_dimensions<Mat>[0];
+  auto W           = vec<tensor_value_type<Mat>, N>{};
+  auto A2          = mat<tensor_value_type<Mat>, N, N>{std::forward<Mat>(A)};
   lapack::syev(::lapack::Job::NoVec, ::lapack::Uplo::Upper, A2, W);
   return W;
 }
 //------------------------------------------------------------------------------
-template <typename Tensor, typename Real>
-constexpr auto eigenvalues_22(base_tensor<Tensor, Real, 2, 2> const& A)
-    -> vec<std::complex<Real>, 2> {
+template <static_quadratic_mat Mat>
+constexpr auto eigenvalues(Mat&& A) {
+  using Real       = tensor_value_type<Mat>;
+  auto constexpr N = tensor_dimensions<Mat>[0];
+  auto A2  = tensor<Real, N, N>{std::forward<Mat>(A)};
+  auto eig = complex_tensor<Real, N>{};
+  [[maybe_unused]] auto const info = lapack::geev(A2, eig);
+  return eig;
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <fixed_size_quadratic_mat<2> Mat>
+constexpr auto eigenvalues(Mat&& A)
+    -> complex_vec<tensor_value_type<Mat>, 2> {
+  using value_t    = tensor_value_type<Mat>;
   decltype(auto) b = A(1, 0);
   decltype(auto) c = A(0, 1);
   // if (std::abs(b - c) < 1e-10) {
@@ -79,7 +99,7 @@ constexpr auto eigenvalues_22(base_tensor<Tensor, Real, 2, 2> const& A)
   decltype(auto) d   = A(1, 1);
   auto const     sqr = d * d - 2 * a * d + 4 * b * c + a * a;
 
-  vec<std::complex<Real>, 2> s;
+  auto s = ComplexVec2<value_t>{};
   if (sqr >= 0) {
     s(0).real(-(std::sqrt(sqr) - d - a) / 2);
     s(1).real((std::sqrt(sqr) + d + a) / 2);
@@ -91,38 +111,20 @@ constexpr auto eigenvalues_22(base_tensor<Tensor, Real, 2, 2> const& A)
   }
   return s;
 }
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Tensor, typename Real, size_t N>
-constexpr auto eigenvalues(base_tensor<Tensor, Real, N, N> const& A) {
-  return eigenvalues(tensor<Real, N, N>{A});
-}
 //------------------------------------------------------------------------------
-template <typename Real, size_t N>
-constexpr auto eigenvalues(tensor<Real, N, N> A) -> vec<std::complex<Real>, N> {
-  if constexpr (N == 2) {
-    return eigenvalues_22(A);
-  } else {
-    auto                        eig  = tensor<std::complex<Real>, N>{};
-    [[maybe_unused]] auto const info = lapack::geev(A, eig);
-
-    return eig;
-  }
-}
-//------------------------------------------------------------------------------
-template <typename Tensor, typename Real, size_t N>
-auto eigenvectors(base_tensor<Tensor, Real, N, N> const& A) {
-  return eigenvectors(tensor<Real, N, N>{A});
-}
-template <typename Real, size_t N>
-auto eigenvectors(tensor<Real, N, N> A) {
-  std::pair<mat<std::complex<Real>, N, N>, vec<std::complex<Real>, N>> eig;
-  auto&                       V = eig.first;
-  auto&                       W = eig.second;
-  mat<Real, N, N>             VR;
+template <static_quadratic_mat Mat>
+auto eigenvectors(Mat&& B) {
+  auto constexpr N = tensor_dimensions<Mat>[0];
+  using Real       = tensor_value_type<Mat>;
+  auto  A          = tensor<Real, N, N>{B};
+  auto  eig = std::pair{complex_mat<Real, N, N>{}, complex_vec<Real, N>{}};
+  auto& V   = eig.first;
+  auto& W   = eig.second;
+  auto  VR  = mat<Real, N, N>{};
   [[maybe_unused]] auto const info = lapack::geev_right(A, W, VR);
 
-  for (size_t j = 0; j < N; ++j) {
-    for (size_t i = 0; i < N; ++i) {
+  for (std::size_t j = 0; j < N; ++j) {
+    for (std::size_t i = 0; i < N; ++i) {
       if (W[j].imag() == 0) {
         V(i, j) = {VR[i + j * N], 0};
       } else {

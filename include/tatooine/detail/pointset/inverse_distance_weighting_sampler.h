@@ -3,7 +3,7 @@
 //==============================================================================
 namespace tatooine::detail::pointset {
 //==============================================================================
-template <typename Real, std::size_t NumDimensions, typename T>
+template <floating_point Real, std::size_t NumDimensions, typename T>
 struct inverse_distance_weighting_sampler
     : field<inverse_distance_weighting_sampler<Real, NumDimensions, T>, Real,
             NumDimensions, T> {

@@ -4,26 +4,27 @@
 #include <tatooine/base_tensor.h>
 //==============================================================================
 #include <tatooine/math.h>
+#include <tatooine/tensor_operations/same_dimensions.h>
 #include <tatooine/multidim_array.h>
 #include <tatooine/tags.h>
 #include <tatooine/utility.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <arithmetic_or_complex T, size_t... Dims>
-struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,
-                static_multidim_array<T, x_fastest, tag::stack, Dims...> {
+template <arithmetic_or_complex T, std::size_t... Dims>
+struct tensor : static_multidim_array<T, x_fastest, tag::stack, Dims...>,
+                base_tensor<tensor<T, Dims...>, T, Dims...> {
   //============================================================================
   using this_type          = tensor<T, Dims...>;
-  using tensor_parent_t = base_tensor<this_type, T, Dims...>;
-  using value_type      = typename tensor_parent_t::value_type;
-  using array_parent_t =
+  using tensor_parent_type = base_tensor<this_type, T, Dims...>;
+  using value_type      = typename tensor_parent_type::value_type;
+  using array_parent_type =
       static_multidim_array<T, x_fastest, tag::stack, Dims...>;
 
-  using tensor_parent_t::dimension;
-  using tensor_parent_t::num_components;
-  using tensor_parent_t::rank;
-  using tensor_parent_t::tensor_parent_t;
+  using tensor_parent_type::dimension;
+  using tensor_parent_type::num_components;
+  using tensor_parent_type::rank;
+  using tensor_parent_type::tensor_parent_type;
   //============================================================================
  public:
   constexpr tensor()                        = default;
@@ -33,91 +34,90 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,
   constexpr auto operator=(tensor&& other) noexcept -> tensor& = default;
   ~tensor()                                                    = default;
   //============================================================================
-  template <typename... Is>
-  auto constexpr at(Is const... is) -> decltype(auto) {
-    if constexpr (einstein_notation::is_index<Is...>) {
-      return tensor_parent_t::at(is...);
-    } else {
-      return array_parent_t::at(is...);
-    }
+  auto constexpr at(integral auto const... is) -> decltype(auto) {
+    return array_parent_type::at(is...);
   }
-  template <typename... Is>
-  auto constexpr at(Is const... is) const -> decltype(auto) {
-    if constexpr (einstein_notation::is_index<Is...>) {
-      return tensor_parent_t::at(is...);
-    } else {
-      return array_parent_t::at(is...);
-    }
+  auto constexpr at(integral auto const... is) const -> decltype(auto) {
+    return array_parent_type::at(is...);
+  }
+  auto constexpr at(einstein_notation::index auto const... is)
+      -> decltype(auto) {
+    return tensor_parent_type::at(is...);
+  }
+  auto constexpr at(einstein_notation::index auto const... is) const
+      -> decltype(auto) {
+    return tensor_parent_type::at(is...);
   }
   //----------------------------------------------------------------------------
   template <typename... Is>
+  requires((einstein_notation::index<Is> && ...) || (integral<Is> && ...))
   auto constexpr operator()(Is const... is) -> decltype(auto) {
     return at(is...);
   }
+  //----------------------------------------------------------------------------
   template <typename... Is>
+  requires((einstein_notation::index<Is> && ...) || (integral<Is> && ...))
   auto constexpr operator()(Is const... is) const -> decltype(auto) {
     return at(is...);
   }
   //----------------------------------------------------------------------------
   template <convertible_to<T>... Ts>
-  requires(tensor_parent_t::rank() == 1) &&
-      (tensor_parent_t::dimension(0) ==
-       sizeof...(Ts)) explicit constexpr tensor(Ts const&... ts)
-      : array_parent_t{ts...} {}
+  requires(tensor_parent_type::num_components() == sizeof...(Ts))
+  explicit constexpr tensor(Ts const&... ts)
+      : array_parent_type{ts...} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
   explicit constexpr tensor(tag::zeros_t zeros) requires is_arithmetic<T>
-      : array_parent_t{zeros} {}
+      : array_parent_type{zeros} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
   explicit constexpr tensor(tag::ones_t ones) requires is_arithmetic<T>
-      : array_parent_t{ones} {}
+      : array_parent_type{ones} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename FillReal>
   requires is_arithmetic<T>
-  explicit constexpr tensor(tag::fill<FillReal> f) : array_parent_t{f} {}
+  explicit constexpr tensor(tag::fill<FillReal> f) : array_parent_type{f} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename RandomReal, typename Engine>
   requires is_arithmetic<T>
   explicit constexpr tensor(random::uniform<RandomReal, Engine>&& rand)
-      : array_parent_t{std::move(rand)} {}
+      : array_parent_type{std::move(rand)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <arithmetic RandomReal, typename Engine>
   explicit constexpr tensor(random::uniform<RandomReal, Engine>& rand)
-      : array_parent_t{rand} {}
+      : array_parent_type{rand} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <arithmetic RandomReal, typename Engine>
   requires is_arithmetic<T>
   explicit constexpr tensor(random::normal<RandomReal, Engine>&& rand)
-      : array_parent_t{std::move(rand)} {}
+      : array_parent_type{std::move(rand)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <arithmetic RandomReal, typename Engine>
   requires is_arithmetic<T>
   explicit constexpr tensor(random::normal<RandomReal, Engine>& rand)
-      : array_parent_t{rand} {}
+      : array_parent_type{rand} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename OtherTensor, typename OtherT>
-  explicit constexpr tensor(
-      base_tensor<OtherTensor, OtherT, Dims...> const& other) {
-    this->assign_other_tensor(other);
-  }
+  template <static_tensor OtherTensor>
+  requires(same_dimensions<this_type, OtherTensor>())
+  explicit constexpr tensor(OtherTensor&& other)
+      : tensor_parent_type{std::forward<OtherTensor>(other)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename OtherTensor, typename OtherT>
-  constexpr auto operator=(
-      base_tensor<OtherTensor, OtherT, Dims...> const& other) -> tensor& {
+  template <static_tensor OtherTensor>
+  requires (same_dimensions<this_type, OtherTensor>())
+  constexpr auto operator=(OtherTensor&& other) -> tensor& {
     // Check if the same matrix gets assigned as its transposed version. If yes
     // just swap components.
     if constexpr (transposed_tensor<OtherTensor>) {
       if (this == &other.as_derived().internal_tensor()) {
-        for (size_t col = 0; col < dimension(1) - 1; ++col) {
-          for (size_t row = col + 1; row < dimension(0); ++row) {
+        for (std::size_t col = 0; col < dimension(1) - 1; ++col) {
+          for (std::size_t row = col + 1; row < dimension(0); ++row) {
             std::swap(at(row, col), at(col, row));
           }
         }
         return *this;
       }
     }
-    this->assign_other_tensor(other);
+    this->assign(std::forward<OtherTensor>(other));
     return *this;
   }
   //----------------------------------------------------------------------------
@@ -146,7 +146,7 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,
   //============================================================================
   template <typename F>
   auto unary_operation(F&& f) -> auto& {
-    array_parent_t::unary_operation(std::forward<F>(f));
+    array_parent_type::unary_operation(std::forward<F>(f));
     return *this;
   }
   //----------------------------------------------------------------------------
@@ -154,7 +154,7 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,
   auto binary_operation(F&&                                              f,
                         base_tensor<OtherTensor, OtherT, Dims...> const& other)
       -> decltype(auto) {
-    tensor_parent_t::binary_operation(std::forward<F>(f), other);
+    tensor_parent_type::binary_operation(std::forward<F>(f), other);
     return *this;
   }
 };
@@ -179,13 +179,14 @@ using tensor333333 = Tensor<3, 3, 3, 3, 3, 3>;
 using tensor444444 = Tensor<4, 4, 4, 4, 4, 4>;
 //==============================================================================
 namespace reflection {
-template <typename T, size_t... Dims>
+template <typename T, std::size_t... Dims>
 TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
     (tensor<T, Dims...>), TATOOINE_REFLECTION_INSERT_METHOD(data, data()))
 }  // namespace reflection
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
+#include <tatooine/tensor_typedefs.h>
 #include <tatooine/dynamic_tensor.h>
 //==============================================================================
 #include <tatooine/mat.h>

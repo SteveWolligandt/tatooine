@@ -14,6 +14,8 @@ template <typename Child, unsigned_integral Int = std::size_t>
 struct handle {
   using int_t                       = Int;
   static constexpr auto invalid_idx = std::numeric_limits<Int>::max();
+  //----------------------------------------------------------------------------
+  static constexpr auto invalid() { return Child{invalid_idx}; }
   //============================================================================
  private:
   Int i{};
@@ -31,30 +33,28 @@ struct handle {
     return *this;
   }
   constexpr auto operator=(handle&&) noexcept -> handle& = default;
-  constexpr auto operator==(integral auto const other) const {
-    return this->i == static_cast<Int>(other);
-  }
-  constexpr auto operator==(handle<Child, Int> const other) const {
-    return this->i == other.i;
-  }
-  constexpr auto operator!=(handle<Child, Int> const other) const {
-    return this->i != other.i;
-  }
-  constexpr auto operator<(handle<Child, Int> const other) const {
-    return this->i < other.i;
-  }
-  constexpr auto operator<=(handle<Child, Int> const other) const {
-    return this->i <= other.i;
-  }
-  constexpr auto operator>(handle<Child, Int> const other) const {
-    return this->i > other.i;
-  }
-  constexpr auto operator>=(handle<Child, Int> const other) const {
-    return this->i >= other.i;
-  }
-  static constexpr auto invalid() {
-    return handle<Child, Int>{handle<handle<Child, Int>>::invalid_idx};
-  }
+  //constexpr auto operator==(integral auto const other) const {
+  //  return this->i == static_cast<Int>(other);
+  //}
+  //constexpr auto operator==(handle<Child, Int> const other) const {
+  //  return this->i == other.i;
+  //}
+  //constexpr auto operator!=(handle<Child, Int> const other) const {
+  //  return this->i != other.i;
+  //}
+  //constexpr auto operator<(handle<Child, Int> const other) const {
+  //  return this->i < other.i;
+  //}
+  //constexpr auto operator<=(handle<Child, Int> const other) const {
+  //  return this->i <= other.i;
+  //}
+  //constexpr auto operator>(handle<Child, Int> const other) const {
+  //  return this->i > other.i;
+  //}
+  //constexpr auto operator>=(handle<Child, Int> const other) const {
+  //  return this->i >= other.i;
+  //}
+  constexpr auto operator<=>(handle<Child, Int> const& other) const = default;
   //============================================================================
   constexpr auto operator++() -> auto& {
     ++this->i;
@@ -83,6 +83,7 @@ struct handle {
   constexpr auto operator/=(integral auto const j) { i /= j; }
 
   auto index() const { return i; }
+  auto constexpr is_valid() const { return i != invalid_idx; }
 };
 //==============================================================================
 template <typename Child, unsigned_integral Int>

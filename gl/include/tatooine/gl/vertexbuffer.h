@@ -6,7 +6,6 @@
 #include <tatooine/gl/glincludes.h>
 #include <tatooine/gl/utility.h>
 #include <tatooine/gl/vbohelpers.h>
-#include <tatooine/num_components.h>
 #include <tatooine/tensor.h>
 #include <tatooine/tuple.h>
 
@@ -34,7 +33,7 @@ class vertexbuffer
 
   static constexpr auto num_attributes = sizeof...(Ts);
   static constexpr std::array<std::size_t, num_attributes> num_components{
-      tatooine::num_components<Ts>...};
+      tatooine::tensor_num_components<Ts>...};
   static constexpr std::array<GLenum, num_attributes> types{
       value_type_v<Ts>...};
   static constexpr std::array<std::size_t, num_attributes> offsets =

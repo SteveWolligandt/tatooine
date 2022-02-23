@@ -8,23 +8,20 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <arithmetic_or_complex T, size_t N>
+template <arithmetic_or_complex T, std::size_t N>
 struct vec : tensor<T, N> {
   using this_type   = vec<T, N>;
-  using parent_t = tensor<T, N>;
-  using parent_t::at;
-  using parent_t::dimension;
-  using parent_t::parent_t;
-  using parent_t::operator();
-  //----------------------------------------------------------------------------
-  template <typename... Ts>
-  requires((is_convertible<Ts, T> && ...)) &&
-      (parent_t::dimension(0) == sizeof...(Ts)) constexpr vec(Ts const&... ts)
-      : parent_t{ts...} {}
-
-  using iterator = typename parent_t::array_parent_t::container_t::iterator;
+  using parent_type = tensor<T, N>;
+  using parent_type::at;
+  using parent_type::dimension;
+  using parent_type::parent_type;
+  using parent_type::operator();
+  //============================================================================
+  using iterator =
+      typename parent_type::array_parent_type::container_t::iterator;
+  //============================================================================
   using const_iterator =
-      typename parent_t::array_parent_t::container_t::const_iterator;
+      typename parent_type::array_parent_type::container_t::const_iterator;
   //============================================================================
   static auto constexpr zeros() { return this_type{tag::fill<T>{0}}; }
   //----------------------------------------------------------------------------
@@ -47,22 +44,25 @@ struct vec : tensor<T, N> {
   constexpr vec(vec const&)           = default;
   constexpr vec(vec&& other) noexcept = default;
   //----------------------------------------------------------------------------
-  auto constexpr operator=(vec const&) -> vec& = default;
-  auto constexpr operator=(vec&& other) noexcept -> vec& = default;
+  constexpr vec(convertible_to<T> auto&&... ts)
+  requires(parent_type::dimension(0) == sizeof...(ts))
+      : parent_type{std::forward<decltype(ts)>(ts)...} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename OtherTensor, typename OtherReal>
   explicit constexpr vec(base_tensor<OtherTensor, OtherReal, N> const& other)
-      : parent_t{other} {}
+      : parent_type{other} {}
+  //----------------------------------------------------------------------------
+  auto constexpr operator=(vec const&) -> vec& = default;
+  auto constexpr operator=(vec&& other) noexcept -> vec& = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename OtherTensor, typename OtherReal>
-  auto constexpr operator=(base_tensor<OtherTensor, OtherReal, N> const& other)
+  auto constexpr operator=(static_tensor auto&& other)
       -> vec& {
-    this->assign_other_tensor(other);
+    this->assign(std::forward<decltype(other)>(other));
     return *this;
   }
   //----------------------------------------------------------------------------
   ~vec() = default;
-
+  //----------------------------------------------------------------------------
   auto begin() const { return this->data().begin(); }
   auto begin() { return this->data().begin(); }
   auto end() const { return this->data().end(); }
@@ -95,10 +95,10 @@ struct vec : tensor<T, N> {
   auto constexpr w() const -> auto const& requires(N >= 4) { return at(3); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto constexpr w() -> auto& requires(N >= 4) { return at(3); }
-
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename Archive>
   auto serialize(Archive& ar, unsigned int const /*version*/) -> void {
-    for (size_t i = 0; i < N; ++i) {
+    for (std::size_t i = 0; i < N; ++i) {
       ar& at(i);
     }
   }
@@ -106,12 +106,12 @@ struct vec : tensor<T, N> {
 //==============================================================================
 // type traits
 //==============================================================================
-template <typename T, size_t N>
+template <typename T, std::size_t N>
 auto begin(vec<T, N> const& v) {
   return v.begin();
 }
 //------------------------------------------------------------------------------
-template <typename T, size_t N>
+template <typename T, std::size_t N>
 auto end(vec<T, N> const& v) {
   return v.ned();
 }
@@ -123,7 +123,7 @@ template <typename V, typename T, std::size_t N>
 vec(base_tensor<V, T, N> const&) -> vec<T, N>;
 //==============================================================================
 namespace reflection {
-template <typename T, size_t N>
+template <typename T, std::size_t N>
 TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
     (vec<T, N>), TATOOINE_REFLECTION_INSERT_METHOD(data, data()))
 }  // namespace reflection

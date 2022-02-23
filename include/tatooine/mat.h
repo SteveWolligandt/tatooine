@@ -10,7 +10,7 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <arithmetic_or_complex T, size_t M, size_t N>
+template <arithmetic_or_complex T, std::size_t M, std::size_t N>
 struct mat : tensor<T, M, N> {
   //============================================================================
   // static methods
@@ -52,26 +52,24 @@ struct mat : tensor<T, M, N> {
     return this_type{random::normal<T>{eng, mean, stddev}};
   }
   //----------------------------------------------------------------------------
-  template <typename OtherTensor>
-  static auto constexpr vander(base_tensor<OtherTensor, T, N> const& v) {
-    this_type V;
-    auto      factor_up_row = [row = std::size_t(0), &V](auto x) mutable {
+  static auto constexpr vander(fixed_size_vec<N> auto const& v) {
+    auto V             = this_type{};
+    auto factor_up_row = [row = std::size_t(0), &V](auto x) mutable {
       V(row, 0) = 1;
       for (std::size_t col = 1; col < N; ++col) {
         V(row, col) = V(row, col - 1) * x;
       }
       ++row;
     };
-    for (size_t i = 0; i < N; ++i) {
+    for (std::size_t i = 0; i < N; ++i) {
       factor_up_row(v(i));
     }
     return V;
   }
   //----------------------------------------------------------------------------
-  template <convertible_to<T>... Xs>
-  static auto constexpr vander(Xs&&... xs) {
+  static auto constexpr vander(convertible_to<T> auto&&... xs) {
     static_assert(sizeof...(xs) == num_columns());
-    this_type V;
+    auto V = this_type {};
     auto      factor_up_row = [row = std::size_t(0), &V](auto x) mutable {
       V(row, 0) = 1;
       for (std::size_t col = 1; col < N; ++col) {
@@ -91,9 +89,10 @@ struct mat : tensor<T, M, N> {
   constexpr mat(mat&& other) noexcept = default;
   //----------------------------------------------------------------------------
   /// Copies any other tensor with same dimensions.
-  template <typename OtherTensor, typename OtherT>
-  explicit constexpr mat(base_tensor<OtherTensor, OtherT, M, N> const& other)
-      : parent_type{other} {}
+  template <static_tensor Other>
+  requires(same_dimensions<this_type, Other>())
+  explicit constexpr mat(Other&& other)
+      : parent_type{std::forward<Other>(other)} {}
   //----------------------------------------------------------------------------
   template <typename... Rows>
   explicit constexpr mat(Rows(&&... rows)[parent_type::dimension(1)]) {
@@ -104,7 +103,7 @@ struct mat : tensor<T, M, N> {
 
     // lambda inserting row into data block
     auto insert_row = [r = std::size_t(0), this](auto const& row) mutable {
-      for (size_t c = 0; c < parent_type::dimension(1); ++c) {
+      for (std::size_t c = 0; c < parent_type::dimension(1); ++c) {
         at(r, c) = static_cast<T>(row[c]);
       }
       ++r;
@@ -115,7 +114,7 @@ struct mat : tensor<T, M, N> {
   //----------------------------------------------------------------------------
   /// Constructs an identity matrix.
   explicit constexpr mat(tag::eye_t /*flag*/) : parent_type{tag::zeros} {
-    for (size_t i = 0; i < std::min(M, N); ++i) {
+    for (std::size_t i = 0; i < std::min(M, N); ++i) {
       at(i, i) = 1;
     }
   }
@@ -126,37 +125,37 @@ struct mat : tensor<T, M, N> {
   //----------------------------------------------------------------------------
   auto constexpr operator=(mat&& other) noexcept -> mat& = default;
   //----------------------------------------------------------------------------
-  template <typename OtherTensor, typename OtherT>
-  auto constexpr operator=(
-      base_tensor<OtherTensor, OtherT, M, N> const& other) noexcept -> mat& {
-    parent_type::operator=(other);
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <static_tensor Other>
+  requires(same_dimensions<this_type, Other>())
+  auto constexpr operator=(Other const& other) noexcept -> mat& {
+    parent_type::operator=(std::forward<Other>(other));
     return *this;
   }
   //============================================================================
   // destructor
   //============================================================================
   ~mat() = default;
-
   //============================================================================
   // methods
   //============================================================================
-  auto constexpr row(size_t i) { return this->template slice<0>(i); }
-  auto constexpr row(size_t i) const { return this->template slice<0>(i); }
+  auto constexpr row(std::size_t i) { return this->template slice<0>(i); }
+  auto constexpr row(std::size_t i) const { return this->template slice<0>(i); }
   //------------------------------------------------------------------------------
-  auto constexpr col(size_t i) { return this->template slice<1>(i); }
-  auto constexpr col(size_t i) const { return this->template slice<1>(i); }
+  auto constexpr col(std::size_t i) { return this->template slice<1>(i); }
+  auto constexpr col(std::size_t i) const { return this->template slice<1>(i); }
 };
 //==============================================================================
 // deduction guides
 //==============================================================================
-template <size_t C, typename... Rows>
+template <std::size_t C, typename... Rows>
 mat(Rows const(&&... rows)[C]) -> mat<common_type<Rows...>, sizeof...(Rows), C>;
 //------------------------------------------------------------------------------
 template <typename Mat, typename T, std::size_t M, std::size_t N>
 mat(base_tensor<Mat, T, M, N>) -> mat<T, M, N>;
 //==============================================================================
 namespace reflection {
-template <typename T, size_t M, size_t N>
+template <typename T, std::size_t M, std::size_t N>
 TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
     (mat<T, M, N>), TATOOINE_REFLECTION_INSERT_METHOD(data, data()))
 }  // namespace reflection

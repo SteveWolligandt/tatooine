@@ -10,7 +10,7 @@ namespace tatooine::detail::pointset {
 /// \see <em>An As-Short-As-Possible Introduction to the Least Squares,
 /// Weighted Least Squares and Moving Least Squares Methods for Scattered Data
 /// Approximation and Interpolation</em> \cite nealen2004LeastSquaresIntro.
-template <typename Real, typename T>
+template <floating_point Real, typename T>
 struct moving_least_squares_sampler<Real, 2, T>
     : field<moving_least_squares_sampler<Real, 2, T>, Real, 2, T> {
   static_assert(flann_available(), "Moving Least Squares Sampler needs FLANN!");
@@ -85,11 +85,11 @@ struct moving_least_squares_sampler<Real, 2, T>
     auto const BtW           = transposed(B) * diag(w);
     auto const C             = solve(BtW * B, BtW * F);
 
-    if constexpr (num_components<T> == 1) {
+    if constexpr (tensor_num_components<T> == 1) {
       return C(0);
     } else {
       auto ret = T{};
-      for (std::size_t i = 0; i < num_components<T>; ++i) {
+      for (std::size_t i = 0; i < tensor_num_components<T>; ++i) {
         ret(i) = C(0, i);
       }
       return ret;
@@ -179,14 +179,14 @@ struct moving_least_squares_sampler<Real, 2, T>
   /// Represents function values f(x_i)
   auto construct_F(std::size_t const       num_neighbors,
                    std::vector<int> const& indices) const {
-    auto F = num_components<T> > 1
-                 ? tensor<Real>::zeros(num_neighbors, num_components<T>)
+    auto F = tensor_num_components<T> > 1
+                 ? tensor<Real>::zeros(num_neighbors, tensor_num_components<T>)
                  : tensor<Real>::zeros(num_neighbors);
     for (std::size_t i = 0; i < num_neighbors; ++i) {
-      if constexpr (num_components<T> == 1) {
+      if constexpr (tensor_num_components<T> == 1) {
         F(i) = m_property[vertex_handle{indices[i]}];
       } else {
-        for (std::size_t j = 0; j < num_components<T>; ++j) {
+        for (std::size_t j = 0; j < tensor_num_components<T>; ++j) {
           F(i, j) = m_property[vertex_handle{indices[i]}](j);
         }
       }

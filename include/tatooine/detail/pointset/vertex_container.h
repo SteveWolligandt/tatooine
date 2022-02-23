@@ -5,7 +5,7 @@
 //==============================================================================
 namespace tatooine::detail::pointset {
 //==============================================================================
-template <typename Real, std::size_t NumDimensions>
+template <floating_point Real, std::size_t NumDimensions>
 struct vertex_container {
   using pointset_t      = tatooine::pointset<Real, NumDimensions>;
   using vertex_handle_t = typename pointset_t::vertex_handle;

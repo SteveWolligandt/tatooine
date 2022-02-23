@@ -2,8 +2,7 @@
 #define TATOOINE_TENSOR_TYPE_OPERATIONS_H
 //==============================================================================
 #include <tatooine/base_tensor.h>
-#include <tatooine/internal_value_type.h>
-#include <tatooine/num_components.h>
+#include <tatooine/tensor_type_traits.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================

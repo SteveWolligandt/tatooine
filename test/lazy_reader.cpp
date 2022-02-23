@@ -188,7 +188,7 @@ TEST_CASE("lazy_reader_hdf5", "[lazy_reader][hdf5]") {
 
   auto m = std::mutex{};
   for (size_t i = 0; i < 3; ++i) {
-    for_loop(
+    for_loop_unpacked(
         [&](auto const x, auto const y, auto const z) {
           auto const j = x + y * full_size[0] + z * full_size[0] * full_size[1];
           //CAPTURE(i, j, x, y, z);

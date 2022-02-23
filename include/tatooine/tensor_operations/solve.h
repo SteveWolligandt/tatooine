@@ -1,18 +1,21 @@
 #ifndef TATOOINE_TENSOR_OPERATIONS_SOLVE_H
 #define TATOOINE_TENSOR_OPERATIONS_SOLVE_H
 //==============================================================================
-#include <tatooine/base_tensor.h>
+#include <tatooine/tensor_concepts.h>
 #include <tatooine/tensor_operations/determinant.h>
 
 #include <cstdint>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename TensorA, typename TensorB, typename Real, std::size_t K>
-auto solve_direct(base_tensor<TensorA, Real, 2, 2> const& A,
-                  base_tensor<TensorB, Real, 2, K> const& B) {
-  auto const p = 1 / (A(0, 0) * A(1, 1) - A(1, 0) * A(0, 1));
-  auto       X = mat<Real, 2, K>{};
+template <fixed_size_quadratic_mat<2> MatA, static_mat MatB>
+requires(tensor_dimensions<MatB>[0] == 2)
+auto solve_direct(MatA&& A, MatB&& B) {
+  using out_value_type =
+      common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>;
+  static constexpr auto K = tensor_dimensions<MatB>[1];
+  auto const            p = 1 / (A(0, 0) * A(1, 1) - A(1, 0) * A(0, 1));
+  auto                  X = mat<out_value_type, 2, K>{};
   for (std::size_t i = 0; i < K; ++i) {
     X(0, i) = -(A(0, 1) * B(1, i) - A(1, 1) * B(0, i)) * p;
     X(1, i) = (A(0, 0) * B(1, i) - A(1, 0) * B(0, i)) * p;
@@ -20,22 +23,26 @@ auto solve_direct(base_tensor<TensorA, Real, 2, 2> const& A,
   return X;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename TensorA, typename TensorB, typename Real>
-auto solve_direct(base_tensor<TensorA, Real, 2, 2> const& A,
-                  base_tensor<TensorB, Real, 2> const&    b) {
+template <fixed_size_mat<2, 2> MatA, fixed_size_vec<2> VecB>
+auto solve_direct(MatA&& A, VecB&& b) {
+  using out_value_type =
+      common_type<tensor_value_type<MatA>, tensor_value_type<VecB>>;
   auto const p = 1 / (A(0, 0) * A(1, 1) - A(1, 0) * A(0, 1));
-  return vec<Real, 2>{-(A(0, 1) * b(1) - A(1, 1) * b(0)) * p,
-                      (A(0, 0) * b(1) - A(1, 0) * b(0)) * p};
+  return vec<out_value_type, 2>{-(A(0, 1) * b(1) - A(1, 1) * b(0)) * p,
+                                (A(0, 0) * b(1) - A(1, 0) * b(0)) * p};
 }
 //------------------------------------------------------------------------------
-template <typename TensorA, typename TensorB, typename Real, std::size_t N>
-auto solve_cramer(base_tensor<TensorA, Real, N, N> const& A,
-                  base_tensor<TensorB, Real, N> const&    b) {
+template <static_quadratic_mat MatA, static_vec VecB>
+requires(tensor_dimensions<MatA>[1] == tensor_dimensions<VecB>[0])
+auto solve_cramer(MatA&& A, VecB& b) {
+  static constexpr auto N       = tensor_dimensions<MatA>[1];
+  using out_value_type =
+      common_type<tensor_value_type<MatA>, tensor_value_type<VecB>>;
   auto const det_inv = 1 / det(A);
-  auto       Y       = mat<Real, N, N>{A};
-  auto       tmp     = vec<Real, N>{};
-  auto       result  = vec<Real, N>{};
-  for (size_t i = 0; i < N; ++i) {
+  auto       Y       = mat<out_value_type, N, N>{A};
+  auto       tmp     = vec<out_value_type, N>{};
+  auto       result  = vec<out_value_type, N>{};
+  for (std::size_t i = 0; i < N; ++i) {
     tmp       = Y.col(i);
     Y.col(i)  = b;
     result(i) = det(Y) * det_inv;
@@ -44,45 +51,61 @@ auto solve_cramer(base_tensor<TensorA, Real, N, N> const& A,
   return result;
 }
 //------------------------------------------------------------------------------
-template <typename TensorA, typename TensorB, typename Real, size_t N>
-auto solve_lu_lapack(base_tensor<TensorA, Real, N, N> const& A_base,
-                     base_tensor<TensorB, Real, N> const&    b_base) {
-  auto                  A    = mat<Real, N, N>{A_base};
-  auto                  b    = vec<Real, N>{b_base};
+template <static_quadratic_mat MatA, static_vec VecB>
+requires (tensor_dimensions<MatA>[1] == tensor_dimensions<VecB>[0])
+auto solve_lu_lapack(MatA& A_base, VecB&& b_base) {
+  using out_value_type =
+      common_type<tensor_value_type<MatA>, tensor_value_type<VecB>>;
+  static constexpr auto N = tensor_dimensions<MatA>[1]; 
+  auto                  A    = mat<out_value_type, N, N>{A_base};
+  auto                  b    = vec<out_value_type, N>{b_base};
   auto                  ipiv = vec<std::int64_t, N>{};
   [[maybe_unused]] auto info = lapack::gesv(A, b, ipiv);
   return b;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename TensorA, typename TensorB, typename Real, size_t N, size_t K>
-auto solve_lu_lapack(base_tensor<TensorA, Real, N, N> const& A_base,
-                     base_tensor<TensorB, Real, N, K> const& B_base) {
-  auto                  A    = mat<Real, N, N>{A_base};
-  auto                  B    = mat<Real, N, K>{B_base};
+template <static_quadratic_mat MatA, static_mat MatB>
+requires(tensor_dimensions<MatA>[1] == tensor_dimensions<MatB>[0])
+  auto solve_lu_lapack(MatA& A_base, MatB& B_base) {
+  using out_value_type =
+      common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>;
+  static constexpr auto N = tensor_dimensions<MatA>[1]; 
+  static constexpr auto K = tensor_dimensions<MatB>[1]; 
+  auto                  A    = mat<out_value_type, N, N>{A_base};
+  auto                  B    = mat<out_value_type, N, K>{B_base};
   auto                  ipiv = vec<std::int64_t, N>{};
   [[maybe_unused]] auto info = lapack::gesv(A, B, ipiv);
   return B;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T>
-auto solve_lu_lapack(tensor<T> A, tensor<T> B) {
+template <dynamic_tensor TensorA, dynamic_tensor TensorB>
+auto solve_lu_lapack(TensorA &&A, TensorB && B) {
   assert(A.rank() == 2);
   assert(A.dimension(0) == A.dimension(1));
   assert(A.dimension(0) == B.dimension(0));
   assert(B.rank() == 1 || B.rank() == 2);
-  auto                  ipiv = tensor<std::int64_t>{A.dimension(0)};
-  [[maybe_unused]] auto info = lapack::gesv(A, B, ipiv);
-  return B;
+  using out_value_type =
+      common_type<tensor_value_type<TensorA>, tensor_value_type<TensorB>>;
+  auto A_copy = tensor<out_value_type>{A};
+  auto B_copy = tensor<out_value_type>{B};
+  auto                  ipiv = tensor<std::int64_t>::zeros(A_copy.dimension(0));
+  [[maybe_unused]] auto info = lapack::gesv(A_copy, B_copy, ipiv);
+  return B_copy;
 }
 //------------------------------------------------------------------------------
-template <typename TensorA, typename TensorB, typename Real, size_t M, size_t N,
-          size_t K>
-auto solve_qr_lapack(base_tensor<TensorA, Real, M, N> const& A_base,
-                     base_tensor<TensorB, Real, M, K> const& B_base) {
-  auto A   = mat<Real, M, N>{A_base};
-  auto B   = mat<Real, M, K>{B_base};
-  auto tau = vec<Real, (M < N ? M : N)>{};
-  auto X   = mat<Real, N, K>{};
+template <static_mat MatA, static_mat MatB>
+requires (tensor_dimensions<MatA>[0] == tensor_dimensions<MatB>[0])
+auto solve_qr_lapack(MatA && A_base, MatB && B_base) {
+  using out_value_type =
+      common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>;
+  static auto constexpr M = tensor_dimensions<MatA>[0];
+  static auto constexpr N = tensor_dimensions<MatA>[1];
+  static auto constexpr K = tensor_dimensions<MatB>[1];
+
+  auto A   = mat<out_value_type, M, N>{A_base};
+  auto B   = mat<out_value_type, M, K>{B_base};
+  auto tau = vec<out_value_type, (M < N ? M : N)>{};
+  auto X   = mat<out_value_type, N, K>{};
 
   // Q * R = A
   lapack::geqrf(A, tau);
@@ -92,17 +115,21 @@ auto solve_qr_lapack(base_tensor<TensorA, Real, M, N> const& A_base,
   lapack::trtrs(A, B, ::lapack::Uplo::Upper, ::lapack::Op::NoTrans,
                 ::lapack::Diag::NonUnit);
   for_loop(
-      [&, i = size_t(0)](auto const... is) mutable { X(is...) = B(is...); }, N,
+      [&, i = std::size_t(0)](auto const... is) mutable { X(is...) = B(is...); }, N,
       K);
   return X;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename TensorA, typename TensorB, typename Real, size_t M, size_t N>
-auto solve_qr_lapack(base_tensor<TensorA, Real, M, N> const& A_base,
-                     base_tensor<TensorB, Real, M> const&    b_base) {
-  auto A   = mat<Real, M, N>{A_base};
-  auto b   = vec<Real, M>{b_base};
-  auto tau = vec<Real, (M < N ? M : N)>{};
+template <static_mat MatA, static_vec VecB>
+requires (tensor_dimensions<MatA>[0] == tensor_dimensions<VecB>[0])
+auto solve_qr_lapack(MatA&& A_base, VecB &&b_base) {
+  using out_value_type =
+      common_type<tensor_value_type<MatA>, tensor_value_type<VecB>>;
+  static auto constexpr M = tensor_dimensions<MatA>[0];
+  static auto constexpr N = tensor_dimensions<MatA>[1];
+  auto A   = mat<out_value_type, M, N>{A_base};
+  auto b   = vec<out_value_type, M>{b_base};
+  auto tau = vec<out_value_type, (M < N ? M : N)>{};
 
   // Q * R = A
   lapack::geqrf(A, tau);
@@ -111,24 +138,26 @@ auto solve_qr_lapack(base_tensor<TensorA, Real, M, N> const& A_base,
   // Use back-substitution using the upper right part of A
   lapack::trtrs(A, b, ::lapack::Uplo::Upper, ::lapack::Op::NoTrans,
                 ::lapack::Diag::NonUnit);
-  for (size_t i = 0; i < tau.dimension(0); ++i) {
+  for (std::size_t i = 0; i < tau.dimension(0); ++i) {
     tau(i) = b(i);
   }
   return tau;
 }
 //------------------------------------------------------------------------------
-template <typename Real>
-auto solve_qr_lapack(tensor<Real> A, tensor<Real> B) requires
-    is_same<typename std::decay_t<decltype(A)>::value_type,
-            typename std::decay_t<decltype(B)>::value_type> {
-  assert(A.rank() == 2);
-  assert(B.rank() == 1 || B.rank() == 2);
-  assert(A.dimension(0) == B.dimension(0));
+template <dynamic_tensor TensorA, dynamic_tensor TensorB>
+auto solve_qr_lapack(TensorA&& A_base, TensorB&& B_base) {
+  using out_value_type =
+      common_type<tensor_value_type<TensorA>, tensor_value_type<TensorB>>;
+  assert(A_base.rank() == 2);
+  assert(B_base.rank() == 1 || B_base.rank() == 2);
+  assert(A_base.dimension(0) == B_base.dimension(0));
+  auto A = tensor<out_value_type>{A_base};
+  auto B = tensor<out_value_type>{B_base};
   auto const M   = A.dimension(0);
   auto const N   = A.dimension(1);
   auto const K   = (B.rank() == 1 ? 1 : B.dimension(1));
-  auto       tau = tensor<Real>{min(M, N)};
-  auto       X   = K > 1 ? tensor<Real>{N, K} : tensor<Real>{N};
+  auto       tau = tensor<out_value_type>{min(M, N)};
+  auto       X   = K > 1 ? tensor<out_value_type>{N, K} : tensor<out_value_type>{N};
 
   // Q * R = A
   lapack::geqrf(A, tau);
@@ -149,50 +178,53 @@ auto solve_qr_lapack(tensor<Real> A, tensor<Real> B) requires
   return X;
 }
 //------------------------------------------------------------------------------
-template <typename TensorA, typename TensorB, typename Real, size_t M, size_t N,
-          size_t K>
-auto solve(base_tensor<TensorA, Real, M, N> const& A,
-           base_tensor<TensorB, Real, M, K> const& B) {
+template <static_mat MatA, static_mat MatB>
+requires (tensor_dimensions<MatA>[0] == tensor_dimensions<MatB>[0])
+auto solve(MatA&& A, MatB&& B) {
+  static auto constexpr M = tensor_dimensions<MatA>[0];
+  static auto constexpr N = tensor_dimensions<MatA>[1];
+  static auto constexpr K = tensor_dimensions<MatB>[1];
   if constexpr (M == 2 && N == 2 && K >= M) {
-    return solve_direct(A, B);
+    return solve_direct(std::forward<MatA>(A), std::forward<MatB>(B));
   } else if constexpr (M == N) {
-    return solve_lu_lapack(A, B);
+    return solve_lu_lapack(std::forward<MatA>(A), std::forward<MatB>(B));
   } else if constexpr (M > N) {
-    return solve_qr_lapack(A, B);
+    return solve_qr_lapack(std::forward<MatA>(A), std::forward<MatB>(B));
   } else {
     throw std::runtime_error{"System is under-determined."};
   }
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename TensorA, typename TensorB, typename Real, size_t M, size_t N>
-auto solve(base_tensor<TensorA, Real, M, N> const& A,
-           base_tensor<TensorB, Real, M> const&    b) {
+template <static_mat MatA, static_vec VecB>
+requires (tensor_dimensions<MatA>[0] == tensor_dimensions<VecB>[0])
+auto solve(MatA&& A, VecB&& b) {
+  static auto constexpr M = tensor_dimensions<MatA>[0];
+  static auto constexpr N = tensor_dimensions<MatA>[1];
   if constexpr (M == 2 && N == 2) {
-    return solve_direct(A, b);
+    return solve_direct(std::forward<MatA>(A), std::forward<VecB>(b));
   } else if constexpr (M == 3 && N == 3) {
-    return solve_cramer(A, b);
+    return solve_cramer(std::forward<MatA>(A), std::forward<VecB>(b));
   } else if constexpr (M == N) {
-    return solve_lu_lapack(A, b);
+    return solve_lu_lapack(std::forward<MatA>(A), std::forward<VecB>(b));
   } else if constexpr (M > N) {
-    return solve_qr_lapack(A, b);
+    return solve_qr_lapack(std::forward<MatA>(A), std::forward<VecB>(b));
   } else {
     throw std::runtime_error{"System is under-determined."};
   }
 }
 //------------------------------------------------------------------------------
-auto solve(dynamic_tensor auto const& A, dynamic_tensor auto const& B) {
+auto solve(dynamic_tensor auto && A, dynamic_tensor auto && B) {
   assert(A.rank() == 2);
   assert(B.rank() == 1 || B.rank() == 2);
   assert(B.dimension(0) == A.dimension(0));
   auto const M = A.dimension(0);
   auto const N = A.dimension(1);
-  using common_t = common_type<typename std::decay_t<decltype(A)>::value_type,
-                               typename std::decay_t<decltype(B)>::value_type>;
-  using tensor_t = tensor<common_t>;
   if (M == N) {
-    return solve_lu_lapack(tensor_t{A}, tensor_t{B});
+    return solve_lu_lapack(std::forward<decltype(A)>(A),
+                           std::forward<decltype(B)>(B));
   } else if (M > N) {
-    return solve_qr_lapack(tensor_t{A}, tensor_t{B});
+    return solve_qr_lapack(std::forward<decltype(A)>(A),
+                           std::forward<decltype(B)>(B));
   } else {
     throw std::runtime_error{"System is under-determined."};
   }

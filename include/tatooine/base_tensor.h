@@ -7,6 +7,7 @@
 #include <tatooine/index_order.h>
 #include <tatooine/multidim_size.h>
 #include <tatooine/template_helper.h>
+#include <tatooine/tensor_operations/same_dimensions.h>
 #include <tatooine/type_traits.h>
 
 #include <boost/archive/text_iarchive.hpp>
@@ -53,56 +54,34 @@ struct base_tensor : crtp<Tensor> {
   //------------------------------------------------------------------------------
   static auto constexpr is_static() -> bool { return true; }
   static auto constexpr is_tensor() -> bool { return true; }
-  static auto constexpr is_square() -> bool {
-    return ((variadic::front_number<Dims...> == Dims) && ...);
-  }
   //------------------------------------------------------------------------------
   static auto constexpr indices() { return multidim_size_t::indices(); }
   //------------------------------------------------------------------------------
   template <typename F>
   static auto constexpr for_indices(F&& f) {
-    for (auto is : indices()) {
-      invoke_unpacked(std::forward<F>(f), unpack(is));
-    }
+    for_loop(std::forward<F>(f), Dims...);
   }
   //============================================================================
   constexpr base_tensor() = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename OtherTensor, typename OtherReal>
-  explicit constexpr base_tensor(
-      base_tensor<OtherTensor, OtherReal, Dims...> const& other) {
-    assign_other_tensor(other);
+  template <static_tensor Other>
+  requires (same_dimensions<this_type, Other>())
+  explicit constexpr base_tensor(Other&& other) {
+    assign(std::forward<Other>(other));
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename OtherTensor, typename OtherReal>
-  auto constexpr operator=(
-      base_tensor<OtherTensor, OtherReal, Dims...> const& other)
-      -> base_tensor& {
-    assign_other_tensor(other);
+  template <typename Other>
+  requires (same_dimensions<this_type, Other>())
+  auto constexpr operator=(Other&& other) -> base_tensor& {
+    assign(std::forward<Other>(other));
     return *this;
   }
   //============================================================================
-  template <typename F>
-  auto constexpr unary_operation(F&& f) -> auto& {
-    for_indices([this, &f](auto const... is) { at(is...) = f(at(is...)); });
-    return as_derived();
-  }
-  //----------------------------------------------------------------------------
-  template <typename F, typename OtherTensor, typename OtherReal>
-  auto constexpr binary_operation(
-      F&& f, base_tensor<OtherTensor, OtherReal, Dims...> const& other)
-      -> decltype(auto) {
-    for_indices([this, &f, &other](auto const... is) {
-      this->at(is...) = f(at(is...), other(is...));
-    });
-    return as_derived();
-  }
-  //----------------------------------------------------------------------------
-  template <typename OtherTensor, typename OtherReal>
-  auto constexpr assign_other_tensor(
-      base_tensor<OtherTensor, OtherReal, Dims...> const& other) -> void {
-    for_indices(
-        [this, &other](auto const... is) { this->at(is...) = other(is...); });
+  template <static_tensor Other>
+  auto constexpr assign(Other&& other) -> void {
+    for_indices([this, &other](auto const... is) {
+                  this->at(is...) = other(is...);
+                });
   }
   //----------------------------------------------------------------------------
   template <einstein_notation::index... Is>

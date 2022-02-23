@@ -2,17 +2,12 @@
 #define TATOOINE_INVOKE_UNPACKED_H
 //==============================================================================
 #include <functional>
-#include "map.h"
-#include "bind.h"
-#ifdef I
-#undef I
-#endif
+#include <tatooine/bind.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
 template <typename Container>
 struct unpack;
-
 //==============================================================================
 /// All arguments are bound -> just call f
 template <typename F>
@@ -26,7 +21,7 @@ constexpr decltype(auto) invoke_unpacked(F&& f) {
 /// \return Returns curried function.
 template <typename F, typename T, typename... Ts>
 constexpr decltype(auto) invoke_unpacked(F&& f, T&& t, Ts&&... ts) {
-  return invoke_unpacked(tatooine::bind(std::forward<F>(f), std::forward<T>(t)),
+  return invoke_unpacked(bind(std::forward<F>(f), std::forward<T>(t)),
                          std::forward<Ts>(ts)...);
 }
 
