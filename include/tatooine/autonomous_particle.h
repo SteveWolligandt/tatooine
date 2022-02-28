@@ -612,15 +612,21 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
         aligned<std::tuple<container_type, container_type, container_type,
                            simple_particle_container_t>>>(num_threads);
     while (particles.size() > 0) {
+      std::cout << "advecting " << size(particles) << " particles...\n";
+      std::cout << "distributing... \n";
       distribute_particles_to_thread_containers(num_threads, particles,
                                                 particles_per_thread);
+      std::cout << "advecting in parallel... \n";
       advect_particle_pools<SplitBehavior>(
           num_threads, std::forward<Flowmap>(phi), step_size, t_end,
           particles_per_thread, hierarchy_pairs, hierarchy_mutex,
           uuid_generator);
+      std::cout << "gathering... \n";
       gather_particles(particles, finished_particles, finished_simple_particles,
                        particles_per_thread);
+      std::cout << size(finished_particles) << " particles are finished\n";
     }
+    std::cout << "ready!\n";
     return std::tuple{std::move(finished_particles),
                       std::move(finished_simple_particles)};
   }
