@@ -203,6 +203,9 @@ class rwbuffer_map_element {
   ~rwbuffer_map_element() = default;
   /// for assigning single gpu data element.
   auto operator=(T const& data) -> auto& {
+    if (m_idx * buffer_t::data_size >= m_buffer->size() * buffer_t::data_size) {
+      std::cout << "attention!\n";
+    }
     gl::named_buffer_sub_data(m_buffer->id(), m_idx * buffer_t::data_size,
                               buffer_t::data_size, &data);
     return *this;

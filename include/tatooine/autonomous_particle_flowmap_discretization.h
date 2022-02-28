@@ -11,7 +11,7 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Real, std::size_t NumDimensions,
+template <floating_point Real, std::size_t NumDimensions,
           typename SplitBehavior = autonomous_particle<
               Real, NumDimensions>::split_behaviors::three_splits>
 struct autonomous_particle_flowmap_discretization {
@@ -235,28 +235,22 @@ struct autonomous_particle_flowmap_discretization {
   auto fill(Flowmap&& flowmap, range auto const& initial_particles,
             arithmetic auto const t_end, arithmetic auto const tau_step,
             std::atomic_uint64_t& uuid_generator) {
-    std::cout << "filling...\n";
     // if (m_path) {
     //   particle_type::template advect<SplitBehavior>(
     //       std::forward<Flowmap>(flowmap), tau_step, t_end, initial_particles,
     //       *m_path);
     // } else {
     m_samplers.clear();
-    std::cout << "advecting...\n";
     auto [advected_particles, simple_particles, edges] =
         particle_type::template advect<SplitBehavior>(
             std::forward<Flowmap>(flowmap), tau_step, t_end, initial_particles,
             uuid_generator);
-    std::cout << "advecting done!\n";
     m_samplers.reserve(size(advected_particles));
     using namespace std::ranges;
     auto get_sampler = [](auto const& p) { return p.sampler(); };
-    std::cout << "transforming to samplers...\n";
     copy(advected_particles | views::transform(get_sampler),
          std::back_inserter(m_samplers));
-    std::cout << "transforming to samplers done!\n";
     //}
-    std::cout << "filling done!\n";
   }
   //----------------------------------------------------------------------------
   // template <std::size_t... VertexSeq>
@@ -360,7 +354,7 @@ struct autonomous_particle_flowmap_discretization {
       auto v               = ps.insert_vertex(s.local_pos(q, tag));
       initial_positions[v] = s.center(opposite(tag));
     }
-    auto [indices, distances] = ps.nearest_neighbors(q, 3);
+    auto [indices, distances] = ps.nearest_neighbors_radius(q, 0.1);
     auto accumulated_position = pos_type{};
     auto accumulated_weight   = real_type{};
 

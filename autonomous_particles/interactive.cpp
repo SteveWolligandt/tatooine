@@ -14,17 +14,17 @@ using autonomous_particle_flowmap_type =
 struct vis {
   using pass_through =
       rendering::interactive::shaders::colored_pass_through_2d_without_matrices;
-  struct hoverable_shader : gl::shader {
+  struct shader : gl::shader {
     //------------------------------------------------------------------------------
     static constexpr std::string_view vertex_shader =
         "#version 330 core\n"
         "layout (location = 0) in vec2 position;\n"
-        "layout (location = 1) in int hovered;\n"
-        "flat out int frag_hovered;\n"
+        "layout (location = 1) in vec3 color;\n"
+        "out vec3 frag_color;\n"
         "uniform mat4 view_matrix;\n"
         "uniform mat4 projection_matrix;\n"
         "void main() {\n"
-        "  frag_hovered = hovered;\n"
+        "  frag_color = color;\n"
         "  gl_Position = projection_matrix *\n"
         "                view_matrix *\n"
         "                vec4(position, 0, 1);\n"
@@ -32,38 +32,28 @@ struct vis {
     //------------------------------------------------------------------------------
     static constexpr std::string_view fragment_shader =
         "#version 330 core\n"
-        "uniform vec4 color;\n"
+        "uniform vec3 frag_color;\n"
         "out vec4 out_color;\n"
-        "flat in int frag_hovered;\n"
         "void main() {\n"
-        "  if (frag_hovered == 1) {\n"
-        "    discard;\n"
-        "  }\n"
-        "  out_color = vec4(frag_hovered, 0, 0, 1);\n"
+        "  out_color = vec4(frag_color, 1);\n"
         "}\n";
     //------------------------------------------------------------------------------
     static auto get() -> auto& {
-      static auto s = hoverable_shader{};
+      static auto s = shader{};
       return s;
     }
     //------------------------------------------------------------------------------
    private:
     //------------------------------------------------------------------------------
-    hoverable_shader() {
+    shader() {
       add_stage<gl::vertexshader>(gl::shadersource{vertex_shader});
       add_stage<gl::fragmentshader>(gl::shadersource{fragment_shader});
       create();
-      set_color(0, 0, 0);
       set_projection_matrix(Mat4<GLfloat>::eye());
       set_view_matrix(Mat4<GLfloat>::eye());
     }
     //------------------------------------------------------------------------------
    public:
-    //------------------------------------------------------------------------------
-    auto set_color(GLfloat const r, GLfloat const g, GLfloat const b,
-                   GLfloat const a = 1) -> void {
-      set_uniform("color", r, g, b, a);
-    }
     //------------------------------------------------------------------------------
     auto set_projection_matrix(Mat4<GLfloat> const& P) -> void {
       set_uniform_mat4("projection_matrix", P.data().data());
@@ -73,85 +63,30 @@ struct vis {
       set_uniform_mat4("view_matrix", MV.data().data());
     }
   };
-  struct only_hovered_shader : gl::shader {
-    //------------------------------------------------------------------------------
-    static constexpr std::string_view vertex_shader =
-        "#version 330 core\n"
-        "layout (location = 0) in vec2 position;\n"
-        "layout (location = 1) in int hovered;\n"
-        "flat out int frag_hovered;\n"
-        "uniform mat4 view_matrix;\n"
-        "uniform mat4 projection_matrix;\n"
-        "void main() {\n"
-        "  frag_hovered = hovered;\n"
-        "  gl_Position = projection_matrix *\n"
-        "                view_matrix *\n"
-        "                vec4(position, 0, 1);\n"
-        "}\n";
-    //------------------------------------------------------------------------------
-    static constexpr std::string_view fragment_shader =
-        "#version 330 core\n"
-        "uniform vec4 color;\n"
-        "out vec4 out_color;\n"
-        "flat in int frag_hovered;\n"
-        "void main() {\n"
-        "  if (frag_hovered == 0) {\n"
-        "    discard;\n"
-        "  }\n"
-        "  out_color = vec4(frag_hovered, 0, 0, 1);\n"
-        "}\n";
-    //------------------------------------------------------------------------------
-    static auto get() -> auto& {
-      static auto s = only_hovered_shader{};
-      return s;
-    }
-    //------------------------------------------------------------------------------
-   private:
-    //------------------------------------------------------------------------------
-    only_hovered_shader() {
-      add_stage<gl::vertexshader>(gl::shadersource{vertex_shader});
-      add_stage<gl::fragmentshader>(gl::shadersource{fragment_shader});
-      create();
-      set_color(0, 0, 0);
-      set_projection_matrix(Mat4<GLfloat>::eye());
-      set_view_matrix(Mat4<GLfloat>::eye());
-    }
-    //------------------------------------------------------------------------------
-   public:
-    //------------------------------------------------------------------------------
-    auto set_color(GLfloat const r, GLfloat const g, GLfloat const b,
-                   GLfloat const a = 1) -> void {
-      set_uniform("color", r, g, b, a);
-    }
-    //------------------------------------------------------------------------------
-    auto set_projection_matrix(Mat4<GLfloat> const& P) -> void {
-      set_uniform_mat4("projection_matrix", P.data().data());
-    }
-    //------------------------------------------------------------------------------
-    auto set_view_matrix(Mat4<GLfloat> const& V) -> void {
-      set_uniform_mat4("view_matrix", V.data().data());
-    }
-  };
   //----------------------------------------------------------------------------
  private:
   //----------------------------------------------------------------------------
-  uniform_rectilinear_grid<double, 2>     grid;
-  double                                  agranovsky_error           = 0;
-  double                                  autonomous_particles_barycentric_coordinate_error = 0;
-  double                                  autonomous_particles_nearest_neighbor_error = 0;
-  double                                  autonomous_particles_inverse_distance_error = 0;
-  vec2d                                   cursor_pos;
-  vec2d                                   current_point;
-  std::vector<bool>                       hovered;
-  int                                     point_size = 20;
-  rendering::orthographic_camera<GLfloat> cam;
+  uniform_rectilinear_grid<double, 2> grid;
+  double                              agranovsky_error                = 0;
+  double            autonomous_particles_barycentric_coordinate_error = 0;
+  double            autonomous_particles_nearest_neighbor_error       = 0;
+  double            autonomous_particles_inverse_distance_error       = 0;
+  vec2d             cursor_pos;
+  vec2d             current_point;
+  std::vector<bool> hovered;
+  int               point_size = 20;
+  rendering::orthographic_camera<GLfloat>                cam;
   std::vector<autonomous_particle2::sampler_type> const& samplers;
-  std::vector<vec2>                                      locals;
-  gl::indexeddata<Vec2<GLfloat>, int>                    locals_gpu;
+  pointset2                                              locals;
+  gl::indexeddata<Vec2<GLfloat>, Vec3<GLfloat>>          locals_gpu;
   bool                                                   mouse_down = false;
   std::vector<std::size_t>                               hovered_indices;
   // static auto constexpr minimap_range = 10;
   float minimap_range = 0.25f;
+  enum class mode_t { number, radius };
+  mode_t      mode           = mode_t::number;
+  std::size_t nearest_number = 3;
+  double      nearest_radius = 0.1;
 
   //----------------------------------------------------------------------------
  public:
@@ -168,8 +103,7 @@ struct vis {
             -1,
             1,
             Vec4<std::size_t>{10, 10, 500, 500}},
-        samplers{samplers},
-        locals(size(samplers), vec2::zeros()) {
+        samplers{samplers} {
     locals_gpu.vertexbuffer().resize(size(samplers));
     locals_gpu.indexbuffer().resize(size(samplers));
     for (std::size_t i = 0; i < size(samplers); ++i) {
@@ -193,31 +127,62 @@ struct vis {
     }
     ImGui::Text("Agran error: %e", agranovsky_error);
 
-    ImGui::Text("barycentric coordinate error: %e ", autonomous_particles_barycentric_coordinate_error);
-    ImGui::Text("barycentric coordinate diff:  %e ",
-                agranovsky_error - autonomous_particles_barycentric_coordinate_error);
+    ImGui::Text("barycentric coordinate error: %e ",
+                autonomous_particles_barycentric_coordinate_error);
+    ImGui::Text(
+        "barycentric coordinate diff:  %e ",
+        agranovsky_error - autonomous_particles_barycentric_coordinate_error);
 
-    ImGui::Text("nearest neighbor error: %e ", autonomous_particles_nearest_neighbor_error);
+    ImGui::Text("nearest neighbor error: %e ",
+                autonomous_particles_nearest_neighbor_error);
     ImGui::Text("nearest neighbor diff:  %e ",
                 agranovsky_error - autonomous_particles_nearest_neighbor_error);
 
-    ImGui::Text("inverse distance error: %e ", autonomous_particles_inverse_distance_error);
+    ImGui::Text("inverse distance error: %e ",
+                autonomous_particles_inverse_distance_error);
     ImGui::Text("inverse distance diff:  %e ",
                 agranovsky_error - autonomous_particles_inverse_distance_error);
+
+    if (ImGui::BeginCombo("##combo",
+                          mode == mode_t::number ? "number" : "radius")) {
+      if (ImGui::Selectable("Number", mode == mode_t::number)) {
+        mode = mode_t::number;
+      }
+      if (mode == mode_t::number) {
+        ImGui::SetItemDefaultFocus();
+      }
+      if (ImGui::Selectable("Radius", mode == mode_t::radius)) {
+        mode = mode_t::radius;
+      }
+      if (mode == mode_t::radius) {
+        ImGui::SetItemDefaultFocus();
+      }
+      ImGui::EndCombo();
+    }
+    switch (mode) {
+      case mode_t::number:
+        ImGui::DragSizeT("number of nearest neighbors", &nearest_number, 1,
+                         1000);
+        break;
+      case mode_t::radius:
+        ImGui::DragDouble("nearest neighbor radius", &nearest_radius, 0.01, 0.0,
+                          FLT_MAX);
+        break;
+    }
   }
   //----------------------------------------------------------------------------
   auto render(auto const& renderable, rendering::camera auto const& cam) {
-    hoverable_shader::get().set_projection_matrix(cam.projection_matrix());
-    hoverable_shader::get().set_view_matrix(cam.view_matrix());
-    hoverable_shader::get().bind();
+    shader::get().set_projection_matrix(cam.projection_matrix());
+    shader::get().set_view_matrix(cam.view_matrix());
+    shader::get().bind();
     gl::point_size(point_size);
     {
-      auto p = gl::indexeddata<Vec2<GLfloat>, int>{};
+      auto p = gl::indexeddata<Vec2<GLfloat>, Vec3<GLfloat>>{};
       p.vertexbuffer().resize(1);
       p.indexbuffer().resize(1);
       {
         auto data = p.vertexbuffer().map();
-        data[0]   = {Vec2<GLfloat>{current_point}, 0};
+        data[0]   = {Vec2<GLfloat>{current_point}, Vec3<GLfloat>{0, 0, 0}};
       }
       {
         auto data = p.indexbuffer().map();
@@ -292,14 +257,9 @@ struct vis {
       axes.draw_lines();
     }
 
-    only_hovered_shader::get().set_projection_matrix(cam.projection_matrix());
-    only_hovered_shader::get().set_view_matrix(cam.view_matrix());
-    only_hovered_shader::get().bind();
-    gl::point_size(10);
-    locals_gpu.draw_points();
-    hoverable_shader::get().set_projection_matrix(cam.projection_matrix());
-    hoverable_shader::get().set_view_matrix(cam.view_matrix());
-    hoverable_shader::get().bind();
+    shader::get().set_projection_matrix(cam.projection_matrix());
+    shader::get().set_view_matrix(cam.view_matrix());
+    shader::get().bind();
     gl::point_size(5);
     locals_gpu.draw_points();
   }
@@ -311,11 +271,12 @@ struct vis {
     auto map = locals_gpu.vertexbuffer().wmap();
     for_loop(
         [&](auto const i) {
-          auto const& s = samplers[i];
-          locals[i]     = s.local_pos(current_point, backward);
-          // locals[i] = *inv(s.ellipse(backward).S()) * (current_point -
-          // s.ellipse(backward).center());
-          map[i] = {vec2f{locals[i]}, hovered[i] ? 1 : 0};
+          auto vertex_pos = samplers[i].local_pos(current_point, backward);
+          locals[pointset2::vertex_handle{i}] =
+              samplers[i].local_pos(current_point, backward);
+          map[i] = {
+              Vec2<GLfloat>{locals[pointset2::vertex_handle{i}]},
+              hovered[i] ? Vec3<GLfloat>{1, 0, 0} : Vec3<GLfloat>{0, 0, 0}};
         },
         execution_policy::parallel, samplers.size());
     agranovsky_error = grid.scalar_vertex_property("error_agranovksy")
@@ -334,16 +295,38 @@ struct vis {
   auto on_cursor_moved(double const cursor_x, double const cursor_y,
                        rendering::camera auto const& cam) {
     cursor_pos = {cursor_x, cursor_y};
+    auto const cursor_pos_projected =
+        vec2{cam.unproject(vec2f{cursor_pos}).xy()};
     if (mouse_down) {
+      auto nearest = [&](auto const& indices) {
+        for (auto const& v : indices) {
+          locals_gpu.vertexbuffer()[v.index()] = {Vec2<GLfloat>{locals[v]},
+                                                  Vec3<GLfloat>{0, 1, 0}};
+        }
+      };
       update_points(cam);
+      switch (mode) {
+        case mode_t::number:
+          nearest(locals.nearest_neighbors(cursor_pos_projected, nearest_number)
+                      .first);
+          break;
+        case mode_t::radius:
+          nearest(
+              locals
+                  .nearest_neighbors_radius(cursor_pos_projected, nearest_number)
+                  .first);
+          break;
+      }
     }
 
-    for (std::size_t i = 0; i < size(locals); ++i) {
-      auto const proj  = this->cam.project(vec2f{locals[i]}).xy();
-      auto const proj2 = vec2{cam.unproject(vec2f{cursor_pos}).xy()};
-      hovered[i]       = euclidean_distance(proj, cursor_pos) < 10 ||
-                   samplers[i].is_inside(proj2, backward);
-      locals_gpu.vertexbuffer()[i] = {vec2f{locals[i]}, hovered[i] ? 1 : 0};
+
+    for (auto const v : locals.vertices()) {
+      auto const proj = this->cam.project(vec2f{locals[v]}).xy();
+      hovered[v.index()] =
+          euclidean_distance(proj, cursor_pos) < 10 ||
+          samplers[v.index()].is_inside(cursor_pos_projected, backward);
+      locals_gpu.vertexbuffer()[v.index()] = {Vec2<GLfloat>{locals[v]},
+                                              Vec3<GLfloat>{1, 0, 0}};
     }
   }
   //----------------------------------------------------------------------------
@@ -362,17 +345,15 @@ struct vis {
 //------------------------------------------------------------------------------
 auto doit(auto& g, auto const& v, auto const& initial_particles,
           auto& uuid_generator, auto const t0, auto const t_end) {
-  auto const tau = t_end - t0;
-  auto&      flowmap_numerical_prop =
-      g.vec2_vertex_property("numerical");
-  auto& flowmap_autonomous_particles_barycentric_coordinate_prop =
+  auto const tau                    = t_end - t0;
+  auto&      flowmap_numerical_prop = g.vec2_vertex_property("numerical");
+  auto&      flowmap_autonomous_particles_barycentric_coordinate_prop =
       g.vec2_vertex_property("barycentric_coordinate");
   auto& flowmap_autonomous_particles_nearest_neighbor_prop =
       g.vec2_vertex_property("nearest_neighbor");
   auto& flowmap_autonomous_particles_inverse_distance_prop =
       g.vec2_vertex_property("inverse_distance");
-  auto& flowmap_agranovsky_prop =
-      g.vec2_vertex_property("agranovksy");
+  auto& flowmap_agranovsky_prop = g.vec2_vertex_property("agranovksy");
   auto& flowmap_error_autonomous_particles_barycentric_coordinate_prop =
       g.scalar_vertex_property("error_barycentric_coordinate");
   auto& flowmap_error_autonomous_particles_nearest_neighbor_prop =
@@ -399,9 +380,9 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
   auto const num_agranovksy_steps =
       static_cast<std::size_t>(std::ceil((t_end - t0) / agranovsky_delta_t));
   auto const regularized_height_agranovksky =
-      static_cast<std::size_t>(std::ceil(
-          std::sqrt((num_particles_after_advection/2) / num_agranovksy_steps)));
-  auto const regularized_width_agranovksky = regularized_height_agranovksky*2;
+      static_cast<std::size_t>(std::ceil(std::sqrt(
+          (num_particles_after_advection / 2) / num_agranovksy_steps)));
+  auto const regularized_width_agranovksky = regularized_height_agranovksky * 2;
   std::cout << "num_particles_after_advection: "
             << num_particles_after_advection << '\n';
   std::cout << "num_agranovksy_steps: " << num_agranovksy_steps << '\n';
@@ -422,8 +403,8 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
   std::cout << "measuring numerical flowmap...\n";
   g.vertices().iterate_indices(
       [&](auto const... is) {
-        auto       copy_phi                    = phi;
-        auto const x                           = g.vertex_at(is...);
+        auto       copy_phi           = phi;
+        auto const x                  = g.vertex_at(is...);
         flowmap_numerical_prop(is...) = copy_phi(x, t_end, -tau);
       },
       execution_policy::sequential);
@@ -467,7 +448,8 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
         flowmap_error_autonomous_particles_barycentric_coordinate_prop(is...) =
             euclidean_distance(
                 flowmap_numerical_prop(is...),
-                flowmap_autonomous_particles_barycentric_coordinate_prop(is...));
+                flowmap_autonomous_particles_barycentric_coordinate_prop(
+                    is...));
 
         flowmap_error_autonomous_particles_nearest_neighbor_prop(is...) =
             euclidean_distance(
@@ -479,12 +461,12 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
                 flowmap_numerical_prop(is...),
                 flowmap_autonomous_particles_inverse_distance_prop(is...));
 
-        flowmap_error_agranovksy_prop(is...) =
-            euclidean_distance(flowmap_numerical_prop(is...),
-                               flowmap_agranovsky_prop(is...));
+        flowmap_error_agranovksy_prop(is...) = euclidean_distance(
+            flowmap_numerical_prop(is...), flowmap_agranovsky_prop(is...));
         flowmap_error_diff_barycentric_coordinate_prop(is...) =
             flowmap_error_agranovksy_prop(is...) -
-            flowmap_error_autonomous_particles_barycentric_coordinate_prop(is...);
+            flowmap_error_autonomous_particles_barycentric_coordinate_prop(
+                is...);
         flowmap_error_diff_nearest_neighbor_prop(is...) =
             flowmap_error_agranovksy_prop(is...) -
             flowmap_error_autonomous_particles_nearest_neighbor_prop(is...);
@@ -510,7 +492,7 @@ auto main(int argc, char** argv) -> int {
   auto                        uuid_generator = std::atomic_uint64_t{};
   [[maybe_unused]] auto const r              = 0.01;
   [[maybe_unused]] auto const t0             = 0;
-  [[maybe_unused]] auto  t_end          = 4;
+  [[maybe_unused]] auto       t_end          = 4;
   if (argc > 1) {
     t_end = std::stoi(argv[1]);
   }
@@ -528,10 +510,11 @@ auto main(int argc, char** argv) -> int {
   //     {vec2{1 + r, 0.5 - r}, t0, r, uuid_generator},
   //     {vec2{1 - r, 0.5 + r}, t0, r, uuid_generator},
   //     {vec2{1 + r, 0.5 + r}, t0, r, uuid_generator}};
-   doit(g, dg, initial_particles_dg, uuid_generator, t0, t_end);
+  doit(g, dg, initial_particles_dg, uuid_generator, t0, t_end);
   //============================================================================
   // //auto s  = analytical::fields::numerical::saddle{};
-  //auto g  = rectilinear_grid{linspace{-0.1, 0.1, 51}, linspace{-0.1, 0.1, 51}};
+  // auto g  = rectilinear_grid{linspace{-0.1, 0.1, 51}, linspace{-0.1, 0.1,
+  // 51}};
   // auto rs = analytical::fields::numerical::rotated_saddle{};
   // auto constexpr cos = gcem::cos(M_PI / 4);
   // auto constexpr sin = gcem::sin(M_PI / 4);
