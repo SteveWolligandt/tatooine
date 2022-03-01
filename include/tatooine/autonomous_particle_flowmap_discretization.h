@@ -311,38 +311,44 @@ struct autonomous_particle_flowmap_discretization {
       auto v               = ps.insert_vertex(s.local_pos(q, tag));
       initial_positions[v] = s.center(opposite(tag));
     }
-    auto [v, dist] = ps.nearest_neighbor(q);
+    auto [v, dist] = ps.nearest_neighbor(pos_type::zeros());
     return ps[v] + initial_positions[v];
   }
   //----------------------------------------------------------------------------
   [[nodiscard]] auto sample_barycentric_coordinate(
       pos_type const& q, forward_or_backward_tag auto const tag,
       execution_policy::sequential_t /*pol*/) const {
-    auto  ps                  = pointset<real_type, NumDimensions>{};
-    auto& initial_positions   = ps.template vertex_property<pos_type>("ps");
+    auto  local_positions                  = pointset<real_type, NumDimensions>{};
+    auto& initial_positions   = local_positions.template vertex_property<pos_type>("local_positions");
     for (auto const& s : m_samplers) {
-      auto v               = ps.insert_vertex(s.local_pos(q, tag));
+      auto v               = local_positions.insert_vertex(s.local_pos(q, tag));
       initial_positions[v] = s.center(opposite(tag));
     }
-    auto [indices, distances] = ps.nearest_neighbors(q, 3);
+    auto nearest_vertices = local_positions.nearest_neighbors(pos_type::zeros(), 3).first;
 
-    auto const v0 = indices[0];
-    auto const v1 = indices[1];
-    auto const v2 = indices[2];
+    auto const v0 = nearest_vertices[0];
+    auto const v1 = nearest_vertices[1];
+    auto const v2 = nearest_vertices[2];
 
-    auto const p0 = ps[v0] - q;
-    auto const p1 = ps[v1] - q;
-    auto const p2 = ps[v2] - q;
-    auto       barycentric_coordinates =
-        vec{p1.x() * p2.y() - p2.x() * p1.y(),
-            p2.x() * p0.y() - p0.x() * p2.y(),
-            p0.x() * p1.y() - p1.x() * p0.y()} /
-        ((p1.x() - p0.x()) * p2.y() +
-         (p0.x() - p2.x()) * p1.y() +
-         (p2.x() - p1.x()) * p0.y());
-    return (ps[v0] + initial_positions[v0]) * barycentric_coordinates(0) + 
-           (ps[v1] + initial_positions[v1]) * barycentric_coordinates(1) + 
-           (ps[v2] + initial_positions[v2]) * barycentric_coordinates(2); 
+    auto const p0 = local_positions[v0] - q;
+    auto const p1 = local_positions[v1] - q;
+    auto const p2 = local_positions[v2] - q;
+
+    //auto       barycentric_coordinates =
+    //    vec{p1.x() * p2.y() - p2.x() * p1.y(),
+    //        p2.x() * p0.y() - p0.x() * p2.y(),
+    //        p0.x() * p1.y() - p1.x() * p0.y()} /
+    //    ((p1.x() - p0.x()) * p2.y() +
+    //     (p0.x() - p2.x()) * p1.y() +
+    //     (p2.x() - p1.x()) * p0.y());
+
+    auto A = Mat3<real_type>{{p0.x(), p1.x(), p2.x()},
+                             {p0.y(), p1.y(), p2.y()},
+                             {     1,      1,      1}};
+    auto const barycentric_coordinates = solve(A, vec<real_type, 3>{0, 0, 1});
+    return (local_positions[v0] + initial_positions[v0]) * barycentric_coordinates(0) +
+           (local_positions[v1] + initial_positions[v1]) * barycentric_coordinates(1) +
+           (local_positions[v2] + initial_positions[v2]) * barycentric_coordinates(2);
   }
   //----------------------------------------------------------------------------
   [[nodiscard]] auto sample_inverse_distance(
@@ -354,7 +360,8 @@ struct autonomous_particle_flowmap_discretization {
       auto v               = ps.insert_vertex(s.local_pos(q, tag));
       initial_positions[v] = s.center(opposite(tag));
     }
-    auto [indices, distances] = ps.nearest_neighbors_radius(q, 0.1);
+    //auto [indices, distances] = ps.nearest_neighbors_radius(pos_type::zeros(), 0.01);
+    auto [indices, distances] = ps.nearest_neighbors(pos_type::zeros(), 4);
     auto accumulated_position = pos_type{};
     auto accumulated_weight   = real_type{};
 

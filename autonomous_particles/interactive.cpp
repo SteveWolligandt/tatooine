@@ -32,7 +32,7 @@ struct vis {
     //------------------------------------------------------------------------------
     static constexpr std::string_view fragment_shader =
         "#version 330 core\n"
-        "uniform vec3 frag_color;\n"
+        "in vec3 frag_color;\n"
         "out vec4 out_color;\n"
         "void main() {\n"
         "  out_color = vec4(frag_color, 1);\n"
@@ -72,6 +72,7 @@ struct vis {
   double            autonomous_particles_nearest_neighbor_error       = 0;
   double            autonomous_particles_inverse_distance_error       = 0;
   vec2d             cursor_pos;
+  vec2d             cursor_pos_projected;
   vec2d             current_point;
   std::vector<bool> hovered;
   int               point_size = 20;
@@ -87,6 +88,7 @@ struct vis {
   mode_t      mode           = mode_t::number;
   std::size_t nearest_number = 3;
   double      nearest_radius = 0.1;
+  std::vector<pointset2::vertex_handle> nearest_neighbor_indices;
 
   //----------------------------------------------------------------------------
  public:
@@ -104,6 +106,7 @@ struct vis {
             1,
             Vec4<std::size_t>{10, 10, 500, 500}},
         samplers{samplers} {
+    locals.vertices().resize(size(samplers));
     locals_gpu.vertexbuffer().resize(size(samplers));
     locals_gpu.indexbuffer().resize(size(samplers));
     for (std::size_t i = 0; i < size(samplers); ++i) {
@@ -161,12 +164,16 @@ struct vis {
     }
     switch (mode) {
       case mode_t::number:
-        ImGui::DragSizeT("number of nearest neighbors", &nearest_number, 1,
-                         1000);
+        if (ImGui::DragSizeT("number of nearest neighbors", &nearest_number, 1,
+                             1, 1000)) {
+          update_nearest_neighbors();
+        }
         break;
       case mode_t::radius:
-        ImGui::DragDouble("nearest neighbor radius", &nearest_radius, 0.01, 0.0,
-                          FLT_MAX);
+        if (ImGui::DragDouble("nearest neighbor radius", &nearest_radius, 0.01,
+                              0.0, FLT_MAX)) {
+          update_nearest_neighbors();
+        }
         break;
     }
   }
@@ -209,15 +216,22 @@ struct vis {
         ellipse_geometry.draw_line_loop();
       }
     }
+    ellipse_shader.set_color(0, 1, 0);
+    for (auto v : nearest_neighbor_indices) {
+      ellipse_shader.set_model_view_matrix(
+          cam.view_matrix() *
+          rendering::interactive::renderer<geometry::ellipse<double>>::
+              construct_model_matrix(samplers[v.index()].ellipse(backward).S(),
+                                     samplers[v.index()].center(backward)));
+      ellipse_geometry.draw_line_loop();
+    }
   }
   //----------------------------------------------------------------------------
   auto late_render() {
     cam.set_gl_viewport();
-    pass_through::get().bind();
     {
       auto outline = gl::indexeddata<Vec2<GLfloat>>{};
       outline.vertexbuffer().resize(4);
-      outline.indexbuffer().resize(4);
       {
         auto data = outline.vertexbuffer().map();
         data[0]   = Vec2<GLfloat>{-0.999, -0.999};
@@ -225,6 +239,22 @@ struct vis {
         data[2]   = Vec2<GLfloat>{0.999, 0.999};
         data[3]   = Vec2<GLfloat>{-0.999, 0.999};
       }
+      outline.indexbuffer().resize(6);
+      {
+        auto data = outline.indexbuffer().map();
+        data[0]   = 0;
+        data[1]   = 1;
+        data[2]   = 3;
+        data[3]   = 1;
+        data[4]   = 2;
+        data[5]   = 3;
+      }
+      pass_through::get().bind();
+      pass_through::get().set_color(1, 1, 1);
+      gl::disable_depth_test();
+      outline.draw_triangles();
+
+      outline.indexbuffer().resize(4);
       {
         auto data = outline.indexbuffer().map();
         data[0]   = 0;
@@ -233,7 +263,9 @@ struct vis {
         data[3]   = 3;
       }
       gl::line_width(3);
+      pass_through::get().set_color(0, 0, 0);
       outline.draw_line_loop();
+      gl::enable_depth_test();
     }
     {
       auto axes = gl::indexeddata<Vec2<GLfloat>>{};
@@ -266,17 +298,16 @@ struct vis {
   //----------------------------------------------------------------------------
   auto update_points(rendering::camera auto const& cam) {
     current_point =
-        vec2{cam.unproject(vec2f{cursor_pos.x(), cursor_pos.y()}).xy()};
+        vec2{cam.unproject(vec2f{cursor_pos}).xy()};
 
+    locals.invalidate_kd_tree();
     auto map = locals_gpu.vertexbuffer().wmap();
     for_loop(
         [&](auto const i) {
           auto vertex_pos = samplers[i].local_pos(current_point, backward);
-          locals[pointset2::vertex_handle{i}] =
-              samplers[i].local_pos(current_point, backward);
-          map[i] = {
-              Vec2<GLfloat>{locals[pointset2::vertex_handle{i}]},
-              hovered[i] ? Vec3<GLfloat>{1, 0, 0} : Vec3<GLfloat>{0, 0, 0}};
+          auto v          = pointset2::vertex_handle{i};
+          locals[v]       = samplers[i].local_pos(current_point, backward);
+          get<0>(map[i])  = Vec2<GLfloat>{locals[pointset2::vertex_handle{i}]};
         },
         execution_policy::parallel, samplers.size());
     agranovsky_error = grid.scalar_vertex_property("error_agranovksy")
@@ -292,50 +323,67 @@ struct vis {
             .linear_sampler()(current_point);
   }
   //----------------------------------------------------------------------------
-  auto on_cursor_moved(double const cursor_x, double const cursor_y,
-                       rendering::camera auto const& cam) {
-    cursor_pos = {cursor_x, cursor_y};
-    auto const cursor_pos_projected =
-        vec2{cam.unproject(vec2f{cursor_pos}).xy()};
-    if (mouse_down) {
-      auto nearest = [&](auto const& indices) {
-        for (auto const& v : indices) {
-          locals_gpu.vertexbuffer()[v.index()] = {Vec2<GLfloat>{locals[v]},
-                                                  Vec3<GLfloat>{0, 1, 0}};
-        }
-      };
-      update_points(cam);
-      switch (mode) {
-        case mode_t::number:
-          nearest(locals.nearest_neighbors(cursor_pos_projected, nearest_number)
-                      .first);
-          break;
-        case mode_t::radius:
-          nearest(
-              locals
-                  .nearest_neighbors_radius(cursor_pos_projected, nearest_number)
-                  .first);
-          break;
+  auto update_nearest_neighbors() -> void {
+    switch (mode) {
+      case mode_t::number:
+        nearest_neighbor_indices =
+            locals.nearest_neighbors(vec2::zeros(), nearest_number)
+                .first;
+        break;
+      case mode_t::radius:
+        nearest_neighbor_indices =
+            locals
+                .nearest_neighbors_radius(vec2::zeros(), nearest_radius)
+                .first;
+        break;
+    }
+    {
+      auto map = locals_gpu.vertexbuffer().rwmap();
+      for (auto& v : map) {
+        get<1>(v) = Vec3<GLfloat>{0, 0, 0};
+      }
+      for (auto const& v : nearest_neighbor_indices) {
+        get<1>(map[v.index()]) = Vec3<GLfloat>{0, 1, 0};
       }
     }
-
-
+  }
+  //----------------------------------------------------------------------------
+  auto update_hovered() {
     for (auto const v : locals.vertices()) {
       auto const proj = this->cam.project(vec2f{locals[v]}).xy();
       hovered[v.index()] =
           euclidean_distance(proj, cursor_pos) < 10 ||
           samplers[v.index()].is_inside(cursor_pos_projected, backward);
-      locals_gpu.vertexbuffer()[v.index()] = {Vec2<GLfloat>{locals[v]},
-                                              Vec3<GLfloat>{1, 0, 0}};
+      if (hovered[v.index()]) {
+        locals_gpu.vertexbuffer().write_only_element_at(v.index()) = {
+            Vec2<GLfloat>{locals[v]}, Vec3<GLfloat>{1, 0, 0}};
+      //} else {
+      //  locals_gpu.vertexbuffer().write_only_element_at(v.index()) = {
+      //      Vec2<GLfloat>{locals[v]}, Vec3<GLfloat>{0, 0, 0}};
+      }
     }
+  }
+  //----------------------------------------------------------------------------
+  auto on_cursor_moved(double const cursor_x, double const cursor_y,
+                       rendering::camera auto const& cam) {
+    cursor_pos = {cursor_x, cursor_y};
+    cursor_pos_projected =
+        vec2{cam.unproject(vec2f{cursor_pos}).xy()};
+    if (mouse_down) {
+      update_points(cam);
+    }
+    update_nearest_neighbors();
+    update_hovered();
   }
   //----------------------------------------------------------------------------
   auto on_button_pressed(gl::button b, rendering::camera auto const& cam) {
     if (b == gl::button::left) {
       mouse_down = true;
       update_points(cam);
+      update_nearest_neighbors();
     }
   }
+  //----------------------------------------------------------------------------
   auto on_button_released(gl::button b) {
     if (b == gl::button::left) {
       mouse_down = false;
@@ -407,7 +455,7 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
         auto const x                  = g.vertex_at(is...);
         flowmap_numerical_prop(is...) = copy_phi(x, t_end, -tau);
       },
-      execution_policy::sequential);
+      execution_policy::parallel);
   std::cout << "measuring numerical flowmap done\n";
   std::cout << "measuring autonomous particles flowmap...\n";
   g.vertices().iterate_indices(
@@ -498,7 +546,7 @@ auto main(int argc, char** argv) -> int {
   }
   //============================================================================
   auto dg = analytical::fields::numerical::doublegyre{};
-  auto g  = rectilinear_grid{linspace{0.0, 2.0, 51}, linspace{0.0, 1.0, 26}};
+  auto g  = rectilinear_grid{linspace{0.0, 2.0, 201}, linspace{0.0, 1.0, 101}};
   auto const eps                  = 1e-3;
   auto const initial_particles_dg = autonomous_particle2::particles_from_grid(
       t0,

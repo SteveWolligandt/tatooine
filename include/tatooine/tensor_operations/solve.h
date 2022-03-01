@@ -33,8 +33,9 @@ auto solve_direct(MatA&& A, VecB&& b) {
 }
 //------------------------------------------------------------------------------
 template <static_quadratic_mat MatA, static_vec VecB>
-requires(tensor_dimensions<MatA>[1] == tensor_dimensions<VecB>[0])
-auto solve_cramer(MatA&& A, VecB& b) {
+requires(tensor_dimensions<MatA>[0] ==
+         tensor_dimensions<VecB>[0])
+auto solve_cramer(MatA const& A, VecB const& b) {
   static constexpr auto N       = tensor_dimensions<MatA>[1];
   using out_value_type =
       common_type<tensor_value_type<MatA>, tensor_value_type<VecB>>;

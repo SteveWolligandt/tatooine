@@ -33,6 +33,9 @@ struct inverse_distance_weighting_sampler;
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions>
 struct vertex_container;
+//==============================================================================
+template <floating_point Real, std::size_t NumDimensions>
+struct const_vertex_container;
 }  // namespace detail::pointset
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions>
@@ -55,6 +58,9 @@ struct pointset {
   //----------------------------------------------------------------------------
   using vertex_container =
       detail::pointset::vertex_container<Real, NumDimensions>;
+  //----------------------------------------------------------------------------
+  using const_vertex_container =
+      detail::pointset::const_vertex_container<Real, NumDimensions>;
   //----------------------------------------------------------------------------
   using vertex_property_t = vector_property<vertex_handle>;
   template <typename T>
@@ -166,7 +172,8 @@ struct pointset {
   auto operator[](vertex_handle const v) -> auto& { return at(v); }
   auto operator[](vertex_handle const v) const -> auto const& { return at(v); }
   //----------------------------------------------------------------------------
-  auto vertices() const { return vertex_container{this}; }
+  auto vertices() const { return const_vertex_container{this}; }
+  auto vertices() { return vertex_container{this}; }
   //----------------------------------------------------------------------------
  protected:
   auto vertex_position_data() -> auto& { return m_vertex_position_data; }
@@ -223,7 +230,8 @@ struct pointset {
   }
   //----------------------------------------------------------------------------
   constexpr auto is_valid(vertex_handle const v) const -> bool {
-    return v.is_valid() && std::ranges::find(invalid_vertices(), v) == end(invalid_vertices());
+    return v.is_valid() &&
+           std::ranges::find(invalid_vertices(), v) == end(invalid_vertices());
   }
 
   //----------------------------------------------------------------------------
@@ -547,7 +555,8 @@ struct pointset {
           }
         } else if (prop->type() == typeid(Real)) {
           for (auto const& scalar :
-               *dynamic_cast<typed_vertex_property_t<Real> const*>(prop.get())) {
+               *dynamic_cast<typed_vertex_property_t<Real> const*>(
+                   prop.get())) {
             data.push_back({scalar});
           }
         }
@@ -715,7 +724,8 @@ struct pointset {
            << " type=\""
            << vtk::xml::data_array::to_string(
                   vtk::xml::data_array::to_type<tensor_value_type<T>>())
-           << "\" NumberOfComponents=\"" << tensor_num_components<T> << "\"/>\n";
+           << "\" NumberOfComponents=\""
+           << tensor_num_components<T> << "\"/>\n";
       return vertices().size() * sizeof(T) + sizeof(header_type);
     }
     return 0;
@@ -725,14 +735,16 @@ struct pointset {
   auto write_vertex_property_appended_data_vtp(auto const& prop,
                                                auto&       file) const {
     if (prop->type() == typeid(T)) {
-      auto const num_bytes = header_type(sizeof(tensor_value_type<T>) *
-                                         tensor_num_components<T> * vertices().size());
+      auto const num_bytes =
+          header_type(sizeof(tensor_value_type<T>) * tensor_num_components<T> *
+                      vertices().size());
       file.write(reinterpret_cast<char const*>(&num_bytes),
                  sizeof(header_type));
-      file.write(
-          reinterpret_cast<char const*>(
-              dynamic_cast<typed_vertex_property_t<T>*>(prop.get())->data().data()),
-          num_bytes);
+      file.write(reinterpret_cast<char const*>(
+                     dynamic_cast<typed_vertex_property_t<T>*>(prop.get())
+                         ->data()
+                         .data()),
+                 num_bytes);
     }
   }
   //----------------------------------------------------------------------------
@@ -740,15 +752,12 @@ struct pointset {
   //----------------------------------------------------------------------------
 #if TATOOINE_FLANN_AVAILABLE
   auto rebuild_kd_tree() {
-    {
-      auto lock = std::scoped_lock{m_flann_mutex};
-      m_kd_tree.reset();
-    }
-    kd_tree();
+    invalidate_kd_tree();
+    build_kd_tree();
   }
   //----------------------------------------------------------------------------
  private:
-  auto kd_tree() const -> auto& {
+  auto build_kd_tree() const -> auto& {
     auto lock = std::scoped_lock{m_flann_mutex};
     if (m_kd_tree == nullptr && vertices().size() > 0) {
       flann::Matrix<Real> dataset{
@@ -762,16 +771,22 @@ struct pointset {
   }
   //----------------------------------------------------------------------------
  public:
+  //----------------------------------------------------------------------------
+  auto invalidate_kd_tree() const {
+    auto lock = std::scoped_lock{m_flann_mutex};
+    m_kd_tree.reset();
+  }
+  //----------------------------------------------------------------------------
   auto nearest_neighbor(pos_type const& x) const {
-    auto& h         = kd_tree();
+    auto& h = build_kd_tree();
     if (h == nullptr) {
       return std::pair{vertex_handle::invalid(), Real(1) / Real(0)};
     }
-    auto  qm        = flann::Matrix<Real>{const_cast<Real*>(x.data_ptr()), 1,
+    auto qm        = flann::Matrix<Real>{const_cast<Real*>(x.data_ptr()), 1,
                                   num_dimensions()};
-    auto  indices   = std::vector<std::vector<int>>{};
-    auto  distances = std::vector<std::vector<Real>>{};
-    auto  params    = flann::SearchParams{};
+    auto indices   = std::vector<std::vector<int>>{};
+    auto distances = std::vector<std::vector<Real>>{};
+    auto params    = flann::SearchParams{};
     h->knnSearch(qm, indices, distances, 1, params);
     return std::pair{
         vertex_handle{static_cast<std::size_t>(indices.front().front())},
@@ -783,14 +798,14 @@ struct pointset {
   auto nearest_neighbors_raw(pos_type const&           x,
                              std::size_t const         num_nearest_neighbors,
                              flann::SearchParams const params = {}) const {
-    auto& h         = kd_tree();
+    auto& h = build_kd_tree();
     if (h == nullptr) {
       return std::pair{std::vector<int>{}, std::vector<Real>{}};
     }
-    auto  qm        = flann::Matrix<Real>{const_cast<Real*>(x.data_ptr()), 1,
+    auto qm        = flann::Matrix<Real>{const_cast<Real*>(x.data_ptr()), 1,
                                   num_dimensions()};
-    auto  indices   = std::vector<std::vector<int>>{};
-    auto  distances = std::vector<std::vector<Real>>{};
+    auto indices   = std::vector<std::vector<int>>{};
+    auto distances = std::vector<std::vector<Real>>{};
     h->knnSearch(qm, indices, distances, num_nearest_neighbors, params);
     return std::pair{std::move(indices.front()), std::move(distances.front())};
   }
@@ -812,7 +827,7 @@ struct pointset {
   auto nearest_neighbors_radius_raw(pos_type const& x, Real const radius,
                                     flann::SearchParams const params = {}) const
       -> std::pair<std::vector<int>, std::vector<Real>> {
-    auto& h = kd_tree();
+    auto& h = build_kd_tree();
     if (h == nullptr) {
       return std::pair{std::vector<int>{}, std::vector<Real>{}};
     }
@@ -821,7 +836,7 @@ struct pointset {
     std::vector<std::vector<int>> indices;
     std::vector<std::vector<Real>> distances;
     {
-      //auto lock = std::scoped_lock{m_flann_mutex};
+      // auto lock = std::scoped_lock{m_flann_mutex};
       h->radiusSearch(qm, indices, distances, radius, params);
     }
     return {std::move(indices.front()), std::move(distances.front())};
@@ -840,8 +855,8 @@ struct pointset {
 #endif
   //============================================================================
   template <typename T>
-  auto inverse_distance_weighting_sampler(typed_vertex_property_t<T> const& prop,
-                                          Real const radius = 1) const {
+  auto inverse_distance_weighting_sampler(
+      typed_vertex_property_t<T> const& prop, Real const radius = 1) const {
     return detail::pointset::inverse_distance_weighting_sampler<
         Real, NumDimensions, T>{*this, prop, radius};
   }
@@ -855,6 +870,7 @@ struct pointset {
                                                              radius};
   }
   friend struct detail::pointset::vertex_container<Real, NumDimensions>;
+  friend struct detail::pointset::const_vertex_container<Real, NumDimensions>;
 };
 //==============================================================================
 template <std::size_t NumDimensions>

@@ -225,6 +225,40 @@ class rwbuffer_map_element {
   auto operator<(const T& t) const -> bool { return download() < t; }
   auto operator<=(const T& t) const -> bool { return download() <= t; }
 };
+//==============================================================================
+/// Returned by buffer::operator[] for reading and writing single elements
+/// Returned by buffer::operator[] for reading and writing single elements
+template <GLsizei array_type, typename T>
+class wbuffer_map_element {
+ public:
+  using buffer_t = buffer<array_type, T>;
+
+ private:
+  const buffer_t* m_buffer;
+  std::size_t     m_idx;
+
+ public:
+  wbuffer_map_element(const buffer_t* buffer, std::size_t idx)
+      : m_buffer{buffer}, m_idx{idx} {}
+  wbuffer_map_element(const wbuffer_map_element& other)     = default;
+  wbuffer_map_element(wbuffer_map_element&& other) noexcept = default;
+
+  auto operator=(const wbuffer_map_element& other)
+      -> wbuffer_map_element& = default;
+  auto operator=(wbuffer_map_element&& other) noexcept
+      -> wbuffer_map_element& = default;
+
+  ~wbuffer_map_element() = default;
+  /// for assigning single gpu data element.
+  auto operator=(T const& data) -> auto& {
+    if (m_idx * buffer_t::data_size >= m_buffer->size() * buffer_t::data_size) {
+      std::cout << "attention!\n";
+    }
+    gl::named_buffer_sub_data(m_buffer->id(), m_idx * buffer_t::data_size,
+                              buffer_t::data_size, &data);
+    return *this;
+  }
+};
 //------------------------------------------------------------------------------
 template <GLsizei array_type, typename T>
 inline auto operator<<(std::ostream&                        out,
@@ -387,8 +421,9 @@ class buffer : public id_holder<GLuint> {
   using this_type = buffer<array_type, T>;
   using data_t = T;
 
-  using relement_t  = rbuffer_map_element<array_type, T>;
-  using rwelement_t = rwbuffer_map_element<array_type, T>;
+  using read_only_element_type  = rbuffer_map_element<array_type, T>;
+  using read_write_element_type = rwbuffer_map_element<array_type, T>;
+  using write_only_element_type = wbuffer_map_element<array_type, T>;
 
   using iterator_t       = buffer_iterator<array_type, T>;
   using const_iterator_t = cbuffer_iterator<array_type, T>;
@@ -445,13 +480,18 @@ class buffer : public id_holder<GLuint> {
   template <typename... Ts>
   void emplace_back(Ts&&...);
 
-  [[nodiscard]] auto r_at(std::size_t idx) const {
-    return relement_t(this, idx);
+  [[nodiscard]] auto read_write_element_at(std::size_t idx) {
+    return read_write_element_type(this, idx);
   }
-  [[nodiscard]] auto rw_at(std::size_t idx) { return rwelement_t(this, idx); }
+  [[nodiscard]] auto read_element_at(std::size_t idx) const {
+    return read_only_element_type(this, idx);
+  }
+  [[nodiscard]] auto write_only_element_at(std::size_t idx) {
+    return write_only_element_type(this, idx);
+  }
 
-  [[nodiscard]] auto at(std::size_t idx) { return rw_at(idx); }
-  [[nodiscard]] auto at(std::size_t idx) const { return r_at(idx); }
+  [[nodiscard]] auto at(std::size_t idx) { return read_write_element_at(idx); }
+  [[nodiscard]] auto at(std::size_t idx) const { return read_element_at(idx); }
 
   [[nodiscard]] auto operator[](std::size_t idx) { return at(idx); }
   [[nodiscard]] auto operator[](std::size_t idx) const { return at(idx); }
