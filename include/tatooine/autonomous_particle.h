@@ -739,7 +739,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     mat_t H, HHt, advected_nabla_phi, assembled_nabla_phi, advected_B,
         ghosts_forward, ghosts_backward, prev_ghosts_forward,
         prev_ghosts_backward;
-    auto        min_step_size_reached = false;
+    auto        min_stepwidth_reached = false;
     auto        advected_ellipse      = ellipse_type{*this};
     auto        current_radii         = vec_t{};
     auto        eig_HHt               = std::pair<mat_t, vec_t>{};
@@ -768,7 +768,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     // simple massless particle
     auto t_advected = t();
     while (sqr_cond_H < split_sqr_cond || t_advected < t_end) {
-      if (!min_step_size_reached) {
+      if (!min_stepwidth_reached) {
         // backup state before advection
         prev_ghosts_forward  = ghosts_forward;
         prev_ghosts_backward = ghosts_backward;
@@ -777,11 +777,11 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
         t_prev               = t_advected;
 
         // increase time
-        if (t_advected + step_size > t_end) {
-          step_size  = t_end - t_advected;
+        if (t_advected + stepwidth > t_end) {
+          stepwidth  = t_end - t_advected;
           t_advected = t_end;
         } else {
-          t_advected += step_size;
+          t_advected += stepwidth;
         }
         auto const cur_stepwidth = t_advected - t_prev;
 
@@ -820,7 +820,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
       // check if particle's ellipse has reached its splitting wideness
       if ((sqr_cond_H >= split_sqr_cond &&
            sqr_cond_H <= split_sqr_cond + max_cond_overshoot) ||
-          min_step_size_reached) {
+          min_stepwidth_reached) {
         for (std::size_t i = 0; i < size(split_radii); ++i) {
           auto const new_eigvals    = current_radii * split_radii[i];
           auto const offset2        = advected_B * split_offsets[i];
@@ -839,13 +839,13 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
       }
       // check if particle's ellipse is wider than its splitting wideness
       if (sqr_cond_H > split_sqr_cond + max_cond_overshoot) {
-        auto const prev_step_size = step_size;
-        step_size *= half;
-        min_step_size_reached = step_size == prev_step_size;
-        if (step_size < min_tau_step) {
-          min_step_size_reached = true;
+        auto const prev_stepwidth = stepwidth;
+        stepwidth *= half;
+        min_stepwidth_reached = stepwidth == prev_stepwidth;
+        if (stepwidth < min_tau_step) {
+          min_stepwidth_reached = true;
         }
-        if (!min_step_size_reached) {
+        if (!min_stepwidth_reached) {
           sqr_cond_H                = prev_cond_HHt;
           ghosts_forward            = prev_ghosts_forward;
           ghosts_backward           = prev_ghosts_backward;
