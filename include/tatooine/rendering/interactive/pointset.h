@@ -18,8 +18,8 @@ struct renderer<tatooine::pointset<Real, 2>> {
       "magnitude", "x", "y", "z", "w"};
   using renderable_type = tatooine::pointset<Real, 2>;
   template <typename T>
-  using typed_vertex_property_t =
-      typename renderable_type::typed_vertex_property_t<T>;
+  using typed_vertex_property_type =
+      typename renderable_type::typed_vertex_property_type<T>;
   //==============================================================================
   struct shader : gl::shader {
     //------------------------------------------------------------------------------
@@ -127,7 +127,7 @@ struct renderer<tatooine::pointset<Real, 2>> {
   Vec4<GLfloat>                                      color      = {0, 0, 0, 1};
   gl::indexeddata<Vec2<GLfloat>, GLfloat>            geometry;
   vec2d                                              cursor_pos;
-  typename renderable_type::vertex_property_t const* selected_property =
+  typename renderable_type::vertex_property_type const* selected_property =
       nullptr;
   std::string const* selected_property_name = nullptr;
   std::unordered_map<std::string, property_settings> settings;
@@ -155,7 +155,7 @@ struct renderer<tatooine::pointset<Real, 2>> {
   //----------------------------------------------------------------------------
   template <typename T>
   static auto cast_prop(auto&& prop) {
-    return static_cast<typed_vertex_property_t<T> const*>(prop);
+    return static_cast<typed_vertex_property_type<T> const*>(prop);
   }
   //----------------------------------------------------------------------------
   auto retrieve_typed_prop(auto&& prop, auto&& f) {
