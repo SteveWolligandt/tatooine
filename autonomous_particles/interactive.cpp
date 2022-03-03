@@ -73,16 +73,16 @@ struct vis {
   double            autonomous_particles_inverse_distance_error       = 0;
   vec2d             cursor_pos;
   vec2d             cursor_pos_projected;
-  vec2d             current_point;
+  vec2d             current_point{1, 0.5};
   std::vector<bool> hovered;
   int               point_size = 20;
   rendering::orthographic_camera<GLfloat>                cam;
   std::vector<autonomous_particle2::sampler_type> const& samplers;
-  pointset2                                              locals;
-  gl::indexeddata<Vec2<GLfloat>, Vec3<GLfloat>>          locals_gpu;
+  unstructured_triangular_grid2                          local_positions;
+  gl::indexeddata<Vec2<GLfloat>, Vec3<GLfloat>>          local_positions_gpu;
+  gl::indexeddata<Vec2<GLfloat>, Vec3<GLfloat>> local_triangulation_gpu;
   bool                                                   mouse_down = false;
   std::vector<std::size_t>                               hovered_indices;
-  // static auto constexpr minimap_range = 10;
   float minimap_range = 0.25f;
   enum class mode_t { number, radius };
   mode_t      mode           = mode_t::number;
@@ -106,12 +106,13 @@ struct vis {
             1,
             Vec4<std::size_t>{10, 10, 500, 500}},
         samplers{samplers} {
-    locals.vertices().resize(size(samplers));
-    locals_gpu.vertexbuffer().resize(size(samplers));
-    locals_gpu.indexbuffer().resize(size(samplers));
+    local_positions.vertices().resize(size(samplers));
+    local_positions_gpu.vertexbuffer().resize(size(samplers));
+    local_positions_gpu.indexbuffer().resize(size(samplers));
     for (std::size_t i = 0; i < size(samplers); ++i) {
-      locals_gpu.indexbuffer()[i] = i;
+      local_positions_gpu.indexbuffer()[i] = i;
     }
+    update_points();
   }
   //----------------------------------------------------------------------------
   auto properties() {
@@ -289,27 +290,64 @@ struct vis {
       axes.draw_lines();
     }
 
+    shader::get().bind();
     shader::get().set_projection_matrix(cam.projection_matrix());
     shader::get().set_view_matrix(cam.view_matrix());
-    shader::get().bind();
     gl::point_size(5);
-    locals_gpu.draw_points();
+    local_positions_gpu.draw_points();
+    local_triangulation_gpu.draw_lines();
   }
   //----------------------------------------------------------------------------
-  auto update_points(rendering::camera auto const& cam) {
-    current_point =
-        vec2{cam.unproject(vec2f{cursor_pos}).xy()};
-
-    locals.invalidate_kd_tree();
-    auto map = locals_gpu.vertexbuffer().wmap();
-    for_loop(
-        [&](auto const i) {
-          auto vertex_pos = samplers[i].local_pos(current_point, backward);
-          auto v          = pointset2::vertex_handle{i};
-          locals[v]       = samplers[i].local_pos(current_point, backward);
-          get<0>(map[i])  = Vec2<GLfloat>{locals[pointset2::vertex_handle{i}]};
-        },
-        execution_policy::parallel, samplers.size());
+  auto update_points() {
+    local_positions.invalidate_kd_tree();
+    {
+      auto map = local_positions_gpu.vertexbuffer().wmap();
+      for_loop(
+          [&](auto const i) {
+            auto const vertex_pos =
+                samplers[i].local_pos(current_point, backward);
+            local_positions.vertex_at(i) = vertex_pos;
+            get<0>(map[i])               = Vec2<GLfloat>{vertex_pos};
+          },
+          execution_policy::parallel, samplers.size());
+    }
+    {
+      static auto const num_nearest_neighbors = std::size_t(30);
+      local_positions.build_delaunay_mesh();
+      //local_positions.build_sub_delaunay_mesh(
+      //    local_positions
+      //        .nearest_neighbors(vec2::zeros(), num_nearest_neighbors)
+      //        .first);
+      local_triangulation_gpu.vertexbuffer() =
+          local_positions_gpu.vertexbuffer();
+      //{
+      //  local_triangulation_gpu.vertexbuffer().resize(num_nearest_neighbors);
+      //  auto map = local_triangulation_gpu.vertexbuffer().wmap();
+      //  for_loop(
+      //      [&](auto const i) {
+      //        map[i] =
+      //            Vec2<GLfloat>{local_positions[pointset2::vertex_handle{i}]};
+      //      },
+      //      execution_policy::parallel, 30);
+      //}
+      if (local_positions.triangles().size() > 0) {
+        local_triangulation_gpu.indexbuffer().resize(
+            size(local_positions.triangles()) * 6);
+        auto map = local_triangulation_gpu.indexbuffer().wmap();
+        for_loop(
+            [&](auto const i) {
+              auto const [v0, v1, v2] =
+                  local_positions[unstructured_triangular_grid2::triangle_handle{i}];
+              map[i * 6]     = v0.index();
+              map[i * 6 + 1] = v1.index();
+              map[i * 6 + 2] = v1.index();
+              map[i * 6 + 3] = v2.index();
+              map[i * 6 + 4] = v2.index();
+              map[i * 6 + 5] = v0.index();
+            },
+            execution_policy::parallel, size(local_positions.triangles()));
+      }
+    }
     agranovsky_error = grid.scalar_vertex_property("error_agranovksy")
                            .linear_sampler()(current_point);
     autonomous_particles_barycentric_coordinate_error =
@@ -327,18 +365,18 @@ struct vis {
     switch (mode) {
       case mode_t::number:
         nearest_neighbor_indices =
-            locals.nearest_neighbors(vec2::zeros(), nearest_number)
+            local_positions.nearest_neighbors(vec2::zeros(), nearest_number)
                 .first;
         break;
       case mode_t::radius:
         nearest_neighbor_indices =
-            locals
+            local_positions
                 .nearest_neighbors_radius(vec2::zeros(), nearest_radius)
                 .first;
         break;
     }
     {
-      auto map = locals_gpu.vertexbuffer().rwmap();
+      auto map = local_positions_gpu.vertexbuffer().rwmap();
       for (auto& v : map) {
         get<1>(v) = Vec3<GLfloat>{0, 0, 0};
       }
@@ -349,17 +387,17 @@ struct vis {
   }
   //----------------------------------------------------------------------------
   auto update_hovered() {
-    for (auto const v : locals.vertices()) {
-      auto const proj = this->cam.project(vec2f{locals[v]}).xy();
+    for (auto const v : local_positions.vertices()) {
+      auto const proj = this->cam.project(vec2f{local_positions[v]}).xy();
       hovered[v.index()] =
           euclidean_distance(proj, cursor_pos) < 10 ||
           samplers[v.index()].is_inside(cursor_pos_projected, backward);
       if (hovered[v.index()]) {
-        locals_gpu.vertexbuffer().write_only_element_at(v.index()) = {
-            Vec2<GLfloat>{locals[v]}, Vec3<GLfloat>{1, 0, 0}};
+        local_positions_gpu.vertexbuffer().write_only_element_at(v.index()) = {
+            Vec2<GLfloat>{local_positions[v]}, Vec3<GLfloat>{1, 0, 0}};
       //} else {
-      //  locals_gpu.vertexbuffer().write_only_element_at(v.index()) = {
-      //      Vec2<GLfloat>{locals[v]}, Vec3<GLfloat>{0, 0, 0}};
+      //  local_positions_gpu.vertexbuffer().write_only_element_at(v.index()) = {
+      //      Vec2<GLfloat>{local_positions[v]}, Vec3<GLfloat>{0, 0, 0}};
       }
     }
   }
@@ -370,7 +408,9 @@ struct vis {
     cursor_pos_projected =
         vec2{cam.unproject(vec2f{cursor_pos}).xy()};
     if (mouse_down) {
-      update_points(cam);
+      current_point =
+          vec2{cam.unproject(vec2f{cursor_pos}).xy()};
+      update_points();
     }
     update_nearest_neighbors();
     update_hovered();
@@ -379,7 +419,9 @@ struct vis {
   auto on_button_pressed(gl::button b, rendering::camera auto const& cam) {
     if (b == gl::button::left) {
       mouse_down = true;
-      update_points(cam);
+      current_point =
+          vec2{cam.unproject(vec2f{cursor_pos}).xy()};
+      update_points();
       update_nearest_neighbors();
     }
   }
@@ -539,10 +581,10 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
 auto main(int argc, char** argv) -> int {
   auto                        uuid_generator = std::atomic_uint64_t{};
   [[maybe_unused]] auto const r              = 0.01;
-  [[maybe_unused]] auto const t0             = 0;
-  [[maybe_unused]] auto       t_end          = 4;
+  [[maybe_unused]] auto const t0             = double(0);
+  [[maybe_unused]] auto       t_end          = double(4);
   if (argc > 1) {
-    t_end = std::stoi(argv[1]);
+    t_end = std::stod(argv[1]);
   }
   //============================================================================
   auto dg = analytical::fields::numerical::doublegyre{};

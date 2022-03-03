@@ -6,16 +6,17 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Real, size_t N>
+template <typename Real, std::size_t NumDimensions>
 struct ray_intersectable {
-  using real_type                  = Real;
+  using real_type = Real;
   static_assert(is_floating_point<real_type>);
-  using intersection_t          = intersection<real_type, N>;
-  using optional_intersection_t = std::optional<intersection_t>;
-  using ray_t = ray<real_type, N>;
+  using intersection_type          = intersection<real_type, NumDimensions>;
+  using optional_intersection_type = std::optional<intersection_type>;
+  using ray_type                   = ray<real_type, NumDimensions>;
   //============================================================================
-  virtual auto check_intersection(ray_t const& r, real_type const min_t) const
-      -> optional_intersection_t = 0;
+  virtual auto check_intersection(ray_type const& r,
+                                  real_type const min_t) const
+      -> optional_intersection_type = 0;
 };
 //==============================================================================
 }  // namespace tatooine

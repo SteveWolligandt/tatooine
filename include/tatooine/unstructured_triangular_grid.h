@@ -6,9 +6,10 @@
 namespace tatooine {
 //==============================================================================
 template <typename Real, std::size_t NumDimensions>
-struct unstructured_triangular_grid : unstructured_simplicial_grid<Real, NumDimensions, 2> {
+struct unstructured_triangular_grid
+    : unstructured_simplicial_grid<Real, NumDimensions, 2> {
   using this_type = unstructured_triangular_grid<Real, NumDimensions>;
-  using parent_t = unstructured_simplicial_grid<Real, NumDimensions, 2>;
+  using parent_t  = unstructured_simplicial_grid<Real, NumDimensions, 2>;
   using parent_t::parent_t;
   using typename parent_t::vertex_handle;
   using triangle_handle = typename parent_t::simplex_handle;
