@@ -5,7 +5,7 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Real, std::size_t NumDimensions>
+template <floating_point Real, std::size_t NumDimensions>
 struct edgeset : unstructured_simplicial_grid<Real, NumDimensions, 1> {
   using this_type   = edgeset<Real, NumDimensions>;
   using parent_type = unstructured_simplicial_grid<Real, NumDimensions, 1>;
@@ -31,13 +31,13 @@ struct edgeset : unstructured_simplicial_grid<Real, NumDimensions, 1> {
 };
 template <std::size_t NumDimensions>
 using Edgeset = edgeset<real_number, NumDimensions>;
-template <typename Real>
+template <floating_point Real>
 using Edgeset2 = edgeset<Real, 2>;
-template <typename Real>
+template <floating_point Real>
 using Edgeset3 = edgeset<Real, 3>;
-template <typename Real>
+template <floating_point Real>
 using Edgeset4 = edgeset<Real, 4>;
-template <typename Real>
+template <floating_point Real>
 using Edgeset5 = edgeset<Real, 5>;
 using edgeset2 = Edgeset<2>;
 using edgeset3 = Edgeset<3>;
@@ -46,7 +46,7 @@ using edgeset5 = Edgeset<5>;
 //==============================================================================
 template <typename T>
 struct is_edgeset_impl : std::false_type {};
-template <typename Real, std::size_t NumDimensions>
+template <floating_point Real, std::size_t NumDimensions>
 struct is_edgeset_impl<edgeset<Real, NumDimensions>> : std::true_type {};
 template <typename T>
 static constexpr auto is_edgeset = is_edgeset_impl<T>::value;

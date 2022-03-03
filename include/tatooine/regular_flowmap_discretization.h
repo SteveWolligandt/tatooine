@@ -10,13 +10,13 @@
 namespace tatooine {
 //==============================================================================
 /// Samples a flow map by advecting particles from a uniform rectilinear grid.
-template <typename Real, size_t N>
+template <typename Real, std::size_t N>
 struct regular_flowmap_discretization {
   using real_type = Real;
   static auto constexpr num_dimensions() { return N; }
-  using vec_t = vec<Real, N>;
-  using pos_type = vec_t;
-  template <size_t M, typename... Ts>
+  using vec_type = vec<Real, N>;
+  using pos_type = vec_type;
+  template <std::size_t M, typename... Ts>
   struct grid_type_creator {
     using type = typename grid_type_creator<M - 1, linspace<Real>, Ts...>::type;
   };
@@ -26,11 +26,11 @@ struct regular_flowmap_discretization {
     using type = rectilinear_grid<Ts...>;
   };
   //----------------------------------------------------------------------------
-  using forward_grid_t = typename grid_type_creator<N>::type;
-  using grid_vertex_property_t =
-      detail::rectilinear_grid::typed_vertex_property_interface<forward_grid_t, pos_type, true>;
+  using forward_grid_type = typename grid_type_creator<N>::type;
+  using grid_vertex_property_type =
+      detail::rectilinear_grid::typed_vertex_property_interface<forward_grid_type, pos_type, true>;
   //----------------------------------------------------------------------------
-  template <size_t M, template <typename> typename... InterpolationKernels>
+  template <std::size_t M, template <typename> typename... InterpolationKernels>
   struct grid_sampler_type_creator {
     using type =
         typename grid_sampler_type_creator<M - 1, interpolation::linear,
@@ -40,33 +40,33 @@ struct regular_flowmap_discretization {
   template <template <typename> typename... InterpolationKernels>
   struct grid_sampler_type_creator<0, InterpolationKernels...> {
     using type = tatooine::detail::rectilinear_grid::vertex_property_sampler<
-        grid_vertex_property_t, InterpolationKernels...>;
+        grid_vertex_property_type, InterpolationKernels...>;
   };
-  using grid_vertex_property_sampler_t =
+  using grid_vertex_property_sampler_type =
       typename grid_sampler_type_creator<N>::type;
 
-  using backward_grid_t = unstructured_simplicial_grid<Real, N, N>;
-  using mesh_vertex_property_t =
-      typename backward_grid_t::template typed_vertex_property_t<pos_type>;
-  using mesh_vertex_property_sampler_t =
-      typename backward_grid_t::template vertex_property_sampler_t<pos_type>;
+  using backward_grid_type = unstructured_simplicial_grid<Real, N, N>;
+  using mesh_vertex_property_type =
+      typename backward_grid_type::template typed_vertex_property_type<pos_type>;
+  using mesh_vertex_property_sampler_type =
+      typename backward_grid_type::template vertex_property_sampler_type<pos_type>;
   //============================================================================
  private:
   Real m_t0;
   Real m_t1;
   Real m_tau;
 
-  forward_grid_t                 m_forward_grid;
-  grid_vertex_property_t*        m_forward_discretization;
-  grid_vertex_property_sampler_t m_forward_sampler;
+  forward_grid_type                 m_forward_grid;
+  grid_vertex_property_type*        m_forward_discretization;
+  grid_vertex_property_sampler_type m_forward_sampler;
 
-  backward_grid_t                m_backward_grid;
-  mesh_vertex_property_t*        m_backward_discretization;
-  mesh_vertex_property_sampler_t m_backward_sampler;
+  backward_grid_type                m_backward_grid;
+  mesh_vertex_property_type*        m_backward_discretization;
+  mesh_vertex_property_sampler_type m_backward_sampler;
   static constexpr auto default_execution_policy = execution_policy::parallel;
   //============================================================================
  private:
-  template <typename Flowmap, typename ExecutionPolicy, size_t... Is>
+  template <typename Flowmap, typename ExecutionPolicy, std::size_t... Is>
   regular_flowmap_discretization(std::index_sequence<Is...> /*seq*/,
                                  Flowmap&& flowmap, arithmetic auto const t0,
                                  arithmetic auto const tau, pos_type const& min,
@@ -77,7 +77,7 @@ struct regular_flowmap_discretization {
         m_t1{real_type(t0 + tau)},
         m_tau{real_type(tau)},
         m_forward_grid{linspace<Real>{min(Is), max(Is),
-                                      static_cast<size_t>(resolution)}...},
+                                      static_cast<std::size_t>(resolution)}...},
         m_forward_discretization{
             &m_forward_grid.template vertex_property<pos_type>(
                 "forward_discretization")},
@@ -148,11 +148,11 @@ struct regular_flowmap_discretization {
         execution_policy);
 
     for (auto v : m_forward_grid.vertices()) {
-      m_backward_discretization->at(typename backward_grid_t::vertex_handle{
+      m_backward_discretization->at(typename backward_grid_type::vertex_handle{
           v.plain_index()}) = m_forward_discretization->at(v);
     }
     for (auto v : m_backward_grid.vertices()) {
-      for (size_t i = 0; i < N; ++i) {
+      for (std::size_t i = 0; i < N; ++i) {
         std::swap(m_backward_discretization->at(v)(i), m_backward_grid[v](i));
       }
     }

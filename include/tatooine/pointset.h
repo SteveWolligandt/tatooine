@@ -8,6 +8,7 @@
 #if TATOOINE_FLANN_AVAILABLE
 #include <flann/flann.hpp>
 #endif
+#include <tatooine/concepts.h>
 #include <tatooine/field.h>
 #include <tatooine/handle.h>
 #include <tatooine/polynomial.h>
@@ -45,10 +46,10 @@ struct pointset {
   static constexpr auto num_dimensions() { return NumDimensions; }
   using real_type = Real;
   using this_type = pointset<Real, NumDimensions>;
-  using vec_t     = vec<Real, NumDimensions>;
-  using pos_type  = vec_t;
+  using vec_type     = vec<Real, NumDimensions>;
+  using pos_type  = vec_type;
 #if TATOOINE_FLANN_AVAILABLE
-  using flann_index_t = flann::Index<flann::L2<Real>>;
+  using flann_index_type = flann::Index<flann::L2<Real>>;
 #endif
   //----------------------------------------------------------------------------
   struct vertex_handle : handle<vertex_handle> {
@@ -62,18 +63,18 @@ struct pointset {
   using const_vertex_container =
       detail::pointset::const_vertex_container<Real, NumDimensions>;
   //----------------------------------------------------------------------------
-  using vertex_property_t = vector_property<vertex_handle>;
+  using vertex_property_type = vector_property<vertex_handle>;
   template <typename T>
-  using typed_vertex_property_t = typed_vector_property<vertex_handle, T>;
-  using vertex_property_container_t =
-      std::map<std::string, std::unique_ptr<vertex_property_t>>;
+  using typed_vertex_property_type = typed_vector_property<vertex_handle, T>;
+  using vertex_property_container_type =
+      std::map<std::string, std::unique_ptr<vertex_property_type>>;
   //============================================================================
  private:
-  std::vector<pos_type>       m_vertex_position_data;
-  std::set<vertex_handle>     m_invalid_vertices;
-  vertex_property_container_t m_vertex_properties;
+  std::vector<pos_type>          m_vertex_position_data;
+  std::set<vertex_handle>        m_invalid_vertices;
+  vertex_property_container_type m_vertex_properties;
 #if TATOOINE_FLANN_AVAILABLE
-  mutable std::unique_ptr<flann_index_t> m_kd_tree;
+  mutable std::unique_ptr<flann_index_type> m_kd_tree;
   mutable std::mutex                     m_flann_mutex;
 #endif
   //============================================================================
@@ -194,9 +195,8 @@ struct pointset {
     return vertex_handle{size(vertex_position_data()) - 1};
   }
   //----------------------------------------------------------------------------
-  template <typename Vec, typename OtherReal>
-  auto insert_vertex(base_tensor<Vec, OtherReal, NumDimensions> const& v) {
-    vertex_position_data().push_back(pos_type{v});
+  auto insert_vertex(pos_type const& v) {
+    vertex_position_data().push_back(v);
     for (auto& [key, prop] : vertex_properties()) {
       prop->push_back();
     }
@@ -354,7 +354,7 @@ struct pointset {
             boost::core::demangle(it->second->type().name()) +
             ") does not match specified type " + type_name<T>() + "."};
       }
-      return *dynamic_cast<typed_vertex_property_t<T>*>(
+      return *dynamic_cast<typed_vertex_property_type<T>*>(
           vertex_properties().at(name).get());
     }
   }
@@ -371,7 +371,7 @@ struct pointset {
             boost::core::demangle(it->second->type().name()) +
             ") does not match specified type " + type_name<T>() + "."};
       }
-      return *dynamic_cast<typed_vertex_property_t<T>*>(
+      return *dynamic_cast<typed_vertex_property_type<T>*>(
           vertex_properties().at(name).get());
     }
   }
@@ -435,9 +435,9 @@ struct pointset {
   template <typename T>
   auto insert_vertex_property(std::string const& name, T const& value = T{})
       -> auto& {
-    auto [it, suc] = vertex_properties().insert(
-        std::pair{name, std::make_unique<typed_vertex_property_t<T>>(value)});
-    auto prop = dynamic_cast<typed_vertex_property_t<T>*>(it->second.get());
+    auto [it, suc] = vertex_properties().insert(std::pair{
+        name, std::make_unique<typed_vertex_property_type<T>>(value)});
+    auto prop = dynamic_cast<typed_vertex_property_type<T>*>(it->second.get());
     prop->resize(vertex_position_data().size());
     return *prop;
   }
@@ -537,25 +537,25 @@ struct pointset {
 
         if (prop->type() == typeid(vec<Real, 4>)) {
           for (auto const& v4 :
-               *dynamic_cast<typed_vertex_property_t<vec<Real, 4>> const*>(
+               *dynamic_cast<typed_vertex_property_type<vec<Real, 4>> const*>(
                    prop.get())) {
             data.push_back({v4(0), v4(1), v4(2), v4(3)});
           }
         } else if (prop->type() == typeid(vec<Real, 3>)) {
           for (auto const& v3 :
-               *dynamic_cast<typed_vertex_property_t<vec<Real, 3>> const*>(
+               *dynamic_cast<typed_vertex_property_type<vec<Real, 3>> const*>(
                    prop.get())) {
             data.push_back({v3(0), v3(1), v3(2)});
           }
         } else if (prop->type() == typeid(vec<Real, 2>)) {
           for (auto const& v2 :
-               *dynamic_cast<typed_vertex_property_t<vec<Real, 2>> const*>(
+               *dynamic_cast<typed_vertex_property_type<vec<Real, 2>> const*>(
                    prop.get())) {
             data.push_back({v2(0), v2(1)});
           }
         } else if (prop->type() == typeid(Real)) {
           for (auto const& scalar :
-               *dynamic_cast<typed_vertex_property_t<Real> const*>(
+               *dynamic_cast<typed_vertex_property_type<Real> const*>(
                    prop.get())) {
             data.push_back({scalar});
           }
@@ -574,14 +574,14 @@ struct pointset {
     // tidy_up();
     auto offset                    = std::size_t{};
     using header_type              = std::uint64_t;
-    using verts_connectivity_int_t = std::int64_t;
-    using verts_offset_int_t       = verts_connectivity_int_t;
+    using verts_connectivity_int_type = std::int64_t;
+    using verts_offset_int_type       = verts_connectivity_int_type;
     auto const num_bytes_points =
         header_type(sizeof(Real) * 3 * vertices().size());
     auto const num_bytes_verts_connectivity =
-        vertices().size() * sizeof(verts_connectivity_int_t);
+        vertices().size() * sizeof(verts_connectivity_int_type);
     auto const num_bytes_verts_offsets =
-        sizeof(verts_offset_int_t) * vertices().size();
+        sizeof(verts_offset_int_type) * vertices().size();
     file << "<VTKFile"
          << " type=\"PolyData\""
          << " version=\"1.0\""
@@ -614,13 +614,13 @@ struct pointset {
          // Verts - connectivity
          << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
          << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<verts_connectivity_int_t>())
+                vtk::xml::data_array::to_type<verts_connectivity_int_type>())
          << "\" Name=\"connectivity\"/>\n";
     offset += num_bytes_verts_connectivity + sizeof(header_type);
     // Verts - offsets
     file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
          << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<verts_offset_int_t>())
+                vtk::xml::data_array::to_type<verts_offset_int_type>())
          << "\" Name=\"offsets\"/>\n";
     offset += num_bytes_verts_offsets + sizeof(header_type);
     file << "</Verts>\n";
@@ -675,9 +675,9 @@ struct pointset {
     // Writing verts connectivity data to appended data section
     {
       auto connectivity_data =
-          std::vector<verts_connectivity_int_t>(vertices().size());
-      copy(views::iota(verts_connectivity_int_t(0),
-                       verts_connectivity_int_t(vertices().size())),
+          std::vector<verts_connectivity_int_type>(vertices().size());
+      copy(views::iota(verts_connectivity_int_type(0),
+                       verts_connectivity_int_type(vertices().size())),
            begin(connectivity_data));
       file.write(reinterpret_cast<char const*>(&num_bytes_verts_connectivity),
                  sizeof(header_type));
@@ -687,7 +687,7 @@ struct pointset {
 
     // Writing verts offsets to appended data section
     {
-      auto offsets = std::vector<verts_offset_int_t>(vertices().size(), 1);
+      auto offsets = std::vector<verts_offset_int_type>(vertices().size(), 1);
       for (std::size_t i = 1; i < size(offsets); ++i) {
         offsets[i] += offsets[i - 1];
       };
@@ -741,7 +741,7 @@ struct pointset {
       file.write(reinterpret_cast<char const*>(&num_bytes),
                  sizeof(header_type));
       file.write(reinterpret_cast<char const*>(
-                     dynamic_cast<typed_vertex_property_t<T>*>(prop.get())
+                     dynamic_cast<typed_vertex_property_type<T>*>(prop.get())
                          ->data()
                          .data()),
                  num_bytes);
@@ -763,7 +763,7 @@ struct pointset {
       flann::Matrix<Real> dataset{
           const_cast<Real*>(vertex_position_data().front().data_ptr()),
           vertices().size(), num_dimensions()};
-      m_kd_tree = std::make_unique<flann_index_t>(
+      m_kd_tree = std::make_unique<flann_index_type>(
           dataset, flann::KDTreeSingleIndexParams{});
       m_kd_tree->buildIndex();
     }
@@ -856,13 +856,13 @@ struct pointset {
   //============================================================================
   template <typename T>
   auto inverse_distance_weighting_sampler(
-      typed_vertex_property_t<T> const& prop, Real const radius = 1) const {
+      typed_vertex_property_type<T> const& prop, Real const radius = 1) const {
     return detail::pointset::inverse_distance_weighting_sampler<
         Real, NumDimensions, T>{*this, prop, radius};
   }
   //============================================================================
   template <typename T>
-  auto moving_least_squares_sampler(typed_vertex_property_t<T> const& prop,
+  auto moving_least_squares_sampler(typed_vertex_property_type<T> const& prop,
                                     Real const radius = 1) const
       requires(NumDimensions == 3 || NumDimensions == 2) {
     return detail::pointset::moving_least_squares_sampler<Real, NumDimensions,
@@ -885,4 +885,5 @@ using pointset5 = Pointset<5>;
 #include <tatooine/detail/pointset/inverse_distance_weighting_sampler.h>
 #include <tatooine/detail/pointset/moving_least_squares_sampler.h>
 #include <tatooine/detail/pointset/vertex_container.h>
+//==============================================================================
 #endif
