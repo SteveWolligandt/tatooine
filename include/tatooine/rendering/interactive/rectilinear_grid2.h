@@ -410,6 +410,7 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
             prop->type() == typeid(vec4f) || prop->type() == typeid(vec4d)) {
           auto is_selected = selected_property == prop.get();
           if (ImGui::Selectable(name.c_str(), is_selected)) {
+            show_property = true;
             selected_property      = prop.get();
             selected_property_name = &name;
             if (prop_holds_scalar(prop)) {
