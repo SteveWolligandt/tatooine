@@ -29,6 +29,13 @@ concept policy = std::same_as<T, parallel_t> || std::same_as<T, sequential_t>;
 //==============================================================================
 }  // namespace tatooine::execution_policy
 //==============================================================================
+namespace tatooine {
+//==============================================================================
+template <typename T>
+concept execution_policy_tag = same_as<T, execution_policy::sequential_t> ||
+    same_as<T, execution_policy::parallel_t>;
+//==============================================================================
+}
 namespace tatooine::tag {
 //==============================================================================
 struct frobenius_t {};

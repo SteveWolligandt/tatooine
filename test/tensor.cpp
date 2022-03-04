@@ -721,6 +721,25 @@ TEST_CASE("tensor_diag_inverse", "[tensor][diag][inverse]") {
   }
 }
 //==============================================================================
+TEST_CASE("tensor_solve_symmetric", "[tensor][solve][symmetric]") {
+  auto const N = std::size_t(10);
+  auto const A = [] {
+    auto const tmp = tensor<real_number>::randu(N, N);
+    return tmp * transposed(tmp);
+  }();
+  auto const b     = tensor<real_number>::randu(N);
+  auto const x_opt = solve_symmetric_lapack(A, b);
+
+  CAPTURE(A.data(), b);
+  REQUIRE(x_opt.has_value());
+  auto const& x  = *x_opt;
+  CAPTURE(x);
+  auto const  b2 = A * x;
+  for (std::size_t i = 0; i < N; ++i) {
+    CHECK(b(i) == Approx(b2(i)));
+  }
+}
+//==============================================================================
 TEST_CASE("tensor_solve_cramer_vector_2d", "[tensor][solve][cramer][vector][2d]") {
   auto A = mat{{0.82298164267, 0.61268291865},
                {0.15295590868, 0.73512602280}};

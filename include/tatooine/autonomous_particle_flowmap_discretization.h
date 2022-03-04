@@ -308,7 +308,8 @@ struct autonomous_particle_flowmap_discretization {
   [[nodiscard]] auto sample_barycentric_coordinate(
       pos_type const& q, forward_or_backward_tag auto const tag,
       execution_policy::sequential_t /*pol*/) const {
-    auto  local_positions = unstructured_simplicial_grid<real_type, NumDimensions, NumDimensions>{};
+    auto local_positions =
+        unstructured_simplicial_grid<real_type, NumDimensions, NumDimensions>{};
     auto& initial_positions =
         local_positions.template vertex_property<pos_type>("local_positions");
     for (auto const& s : m_samplers) {
@@ -317,8 +318,6 @@ struct autonomous_particle_flowmap_discretization {
     }
 
     local_positions.build_delaunay_mesh();
-    //local_positions.build_sub_delaunay_mesh(
-    //    local_positions.nearest_neighbors(pos_type::zeros(), 30).first);
     static auto constexpr b = vec<real_type, 3>{0, 0, 1};
     for (auto const s : local_positions.simplices()) {
       auto const barycentric_coordinate =

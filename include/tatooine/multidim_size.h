@@ -20,20 +20,20 @@ namespace tatooine {
 //==============================================================================
 template <typename IndexOrder, std::size_t... Resolution>
 struct static_multidim_size {
-  static constexpr auto num_dimensions() { return sizeof...(Resolution); }
-  static constexpr auto num_components() { return (Resolution * ...); }
+  static auto constexpr num_dimensions() { return sizeof...(Resolution); }
+  static auto constexpr num_components() { return (Resolution * ...); }
   //----------------------------------------------------------------------------
-  static constexpr auto size() { return std::array{Resolution...}; }
+  static auto constexpr size() { return std::array{Resolution...}; }
   //----------------------------------------------------------------------------
-  static constexpr auto size(std::size_t const i) { return size()[i]; }
+  static auto constexpr size(std::size_t const i) { return size()[i]; }
   //----------------------------------------------------------------------------
-  static constexpr auto in_range(integral auto const... indices) requires(
+  static auto constexpr in_range(integral auto const... indices) requires(
       sizeof...(indices) == num_dimensions()) {
     return ((indices >= 0) && ...) &&
            ((static_cast<std::size_t>(indices) < Resolution) && ...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  static constexpr auto in_range(integral_range auto const& indices) {
+  static auto constexpr in_range(integral_range auto const& indices) {
     for (std::size_t i = 0; i < indices.size(); ++i) {
       if (indices[i] >= size(i)) {
         return false;
@@ -42,7 +42,7 @@ struct static_multidim_size {
     return true;
   }
   //----------------------------------------------------------------------------
-  static constexpr auto plain_index(integral auto const... indices) requires(
+  static auto constexpr plain_index(integral auto const... indices) requires(
       sizeof...(indices) == num_dimensions()) {
     return IndexOrder::plain_index(size(), indices...);
   }
@@ -51,12 +51,12 @@ struct static_multidim_size {
     return IndexOrder::plain_index(size(), indices);
   }
   //----------------------------------------------------------------------------
-  constexpr auto operator()(integral auto const... indices) const
+  auto constexpr operator()(integral auto const... indices) const
       requires(sizeof...(indices) == num_dimensions()) {
     return plain_index(indices...);
   }
   //----------------------------------------------------------------------------
-  static constexpr auto indices() { return static_multidim{Resolution...}; }
+  static auto constexpr indices() { return static_multidim{Resolution...}; }
 };
 //==============================================================================
 template <typename IndexOrder>
@@ -75,9 +75,9 @@ class dynamic_multidim_size {
   dynamic_multidim_size(dynamic_multidim_size const& other)     = default;
   dynamic_multidim_size(dynamic_multidim_size&& other) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator                 =(dynamic_multidim_size const& other)
+  auto operator=(dynamic_multidim_size const& other)
       -> dynamic_multidim_size& = default;
-  auto operator                 =(dynamic_multidim_size&& other) noexcept
+  auto operator=(dynamic_multidim_size&& other) noexcept
       -> dynamic_multidim_size& = default;
   //----------------------------------------------------------------------------
   ~dynamic_multidim_size() = default;
@@ -92,12 +92,14 @@ class dynamic_multidim_size {
       : m_size{std::move(other.m_size)} {}
 
   template <typename OtherIndexing>
-  auto operator=(dynamic_multidim_size const& other) -> dynamic_multidim_size& {
+  auto operator=(dynamic_multidim_size<OtherIndexing> const& other)
+      -> dynamic_multidim_size& {
     m_size = other.m_size;
     return *this;
   }
   template <typename OtherIndexing>
-  auto operator=(dynamic_multidim_size&& other) -> dynamic_multidim_size& {
+  auto operator=(dynamic_multidim_size<OtherIndexing>&& other)
+      -> dynamic_multidim_size& {
     m_size = std::move(other.m_size);
     return *this;
   }
@@ -154,24 +156,26 @@ class dynamic_multidim_size {
                            std::multiplies<std::size_t>{});
   }
   //----------------------------------------------------------------------------
-  void resize(integral auto const... size) {
+  auto resize(integral auto const... size) -> void {
     m_size = {static_cast<std::size_t>(size)...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void resize(integral_range auto const& size) {
+  auto resize(integral_range auto const& size) -> void {
     m_size = std::vector<std::size_t>(begin(size), end(size));
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void resize(std::vector<std::size_t>&& size) { m_size = std::move(size); }
+  auto resize(std::vector<std::size_t>&& size) -> void {
+    m_size = std::move(size);
+  }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void resize(std::vector<std::size_t> const& size) { m_size = size; }
+  auto resize(std::vector<std::size_t> const& size) -> void { m_size = size; }
   //----------------------------------------------------------------------------
-  constexpr auto in_range(integral auto const... indices) const {
+  auto constexpr in_range(integral auto const... indices) const {
     assert(sizeof...(indices) == num_dimensions());
     return in_range(std::array{static_cast<std::size_t>(indices)...});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto in_range(integral_range auto const& indices) const {
+  auto constexpr in_range(integral_range auto const& indices) const {
     assert(indices.size() == num_dimensions());
     for (std::size_t i = 0; i < indices.size(); ++i) {
       if (indices[i] >= size(i)) {
@@ -181,23 +185,23 @@ class dynamic_multidim_size {
     return true;
   }
   //----------------------------------------------------------------------------
-  constexpr auto plain_index(integral auto const... indices) const {
+  auto constexpr plain_index(integral auto const... indices) const {
     assert(sizeof...(indices) == num_dimensions());
     assert(in_range(indices...));
     return IndexOrder::plain_index(m_size, indices...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto plain_index(integral_range auto const& indices) const {
+  auto constexpr plain_index(integral_range auto const& indices) const {
     assert(indices.size() == num_dimensions());
     assert(in_range(indices));
     return IndexOrder::plain_index(m_size, indices);
   }
   //----------------------------------------------------------------------------
-  constexpr auto multi_index(std::size_t const gi) const {
+  auto constexpr multi_index(std::size_t const gi) const {
     return IndexOrder::multi_index(m_size, gi);
   }
   //----------------------------------------------------------------------------
-  constexpr auto indices() const { return dynamic_multidim{m_size}; }
+  auto constexpr indices() const { return dynamic_multidim{m_size}; }
 };
 //==============================================================================
 // deduction guides

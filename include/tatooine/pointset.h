@@ -32,6 +32,9 @@ struct moving_least_squares_sampler;
 template <floating_point Real, std::size_t NumDimensions, typename T>
 struct inverse_distance_weighting_sampler;
 //==============================================================================
+template <floating_point Real, std::size_t NumDimensions, typename T>
+struct radial_basis_functions_sampler;
+//==============================================================================
 template <floating_point Real, std::size_t NumDimensions>
 struct vertex_container;
 //==============================================================================
@@ -869,6 +872,14 @@ struct pointset {
                                                           T>{*this, prop,
                                                              radius};
   }
+  //============================================================================
+  template <typename T>
+  auto radial_basis_functions_sampler(typed_vertex_property_type<T> const& prop,
+                                      Real const epsilon) const {
+    return detail::pointset::radial_basis_functions_sampler<Real, NumDimensions,
+                                                            T>{*this, prop,
+                                                               epsilon};
+  }
   friend struct detail::pointset::vertex_container<Real, NumDimensions>;
   friend struct detail::pointset::const_vertex_container<Real, NumDimensions>;
 };
@@ -884,6 +895,7 @@ using pointset5 = Pointset<5>;
 //==============================================================================
 #include <tatooine/detail/pointset/inverse_distance_weighting_sampler.h>
 #include <tatooine/detail/pointset/moving_least_squares_sampler.h>
+#include <tatooine/detail/pointset/radial_basis_functions_sampler.h>
 #include <tatooine/detail/pointset/vertex_container.h>
 //==============================================================================
 #endif

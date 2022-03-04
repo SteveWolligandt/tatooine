@@ -312,24 +312,9 @@ struct vis {
           execution_policy::parallel, samplers.size());
     }
     {
-      static auto const num_nearest_neighbors = std::size_t(30);
       local_positions.build_delaunay_mesh();
-      //local_positions.build_sub_delaunay_mesh(
-      //    local_positions
-      //        .nearest_neighbors(vec2::zeros(), num_nearest_neighbors)
-      //        .first);
       local_triangulation_gpu.vertexbuffer() =
           local_positions_gpu.vertexbuffer();
-      //{
-      //  local_triangulation_gpu.vertexbuffer().resize(num_nearest_neighbors);
-      //  auto map = local_triangulation_gpu.vertexbuffer().wmap();
-      //  for_loop(
-      //      [&](auto const i) {
-      //        map[i] =
-      //            Vec2<GLfloat>{local_positions[pointset2::vertex_handle{i}]};
-      //      },
-      //      execution_policy::parallel, 30);
-      //}
       if (local_positions.triangles().size() > 0) {
         local_triangulation_gpu.indexbuffer().resize(
             size(local_positions.triangles()) * 6);
@@ -535,6 +520,7 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
       [&](auto const... is) {
         auto       copy_phi = phi;
         auto const x        = g.vertex_at(is...);
+
         flowmap_error_autonomous_particles_barycentric_coordinate_prop(is...) =
             euclidean_distance(
                 flowmap_numerical_prop(is...),
@@ -553,13 +539,16 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
 
         flowmap_error_agranovksy_prop(is...) = euclidean_distance(
             flowmap_numerical_prop(is...), flowmap_agranovsky_prop(is...));
+
         flowmap_error_diff_barycentric_coordinate_prop(is...) =
             flowmap_error_agranovksy_prop(is...) -
             flowmap_error_autonomous_particles_barycentric_coordinate_prop(
                 is...);
+
         flowmap_error_diff_nearest_neighbor_prop(is...) =
             flowmap_error_agranovksy_prop(is...) -
             flowmap_error_autonomous_particles_nearest_neighbor_prop(is...);
+
         flowmap_error_diff_inverse_distance_prop(is...) =
             flowmap_error_agranovksy_prop(is...) -
             flowmap_error_autonomous_particles_inverse_distance_prop(is...);
@@ -601,6 +590,21 @@ auto main(int argc, char** argv) -> int {
   //     {vec2{1 - r, 0.5 + r}, t0, r, uuid_generator},
   //     {vec2{1 + r, 0.5 + r}, t0, r, uuid_generator}};
   doit(g, dg, initial_particles_dg, uuid_generator, t0, t_end);
+  //============================================================================
+  //auto dg = analytical::fields::numerical::doublegyre{};
+  //auto g  = rectilinear_grid{linspace{0.0, 2.0, 201}, linspace{0.0, 1.0, 101}};
+  //auto const initial_particle =
+  //    autonomous_particle2{vec2{1, 0.5}, 0.0, 0.01, uuid_generator};
+  //auto const [advected_particles, _1, _2] = initial_particle.advect_with_three_splits(
+  //    flowmap(dg), 0.01, t_end, uuid_generator);
+  //auto ellipses = std::vector<geometry::ellipse<real_number>>{};
+  //std::ranges::copy(
+  //    advected_particles | std::views::transform([](auto const& p) {
+  //      return p.initial_ellipse();
+  //    }),
+  //    std::back_inserter(ellipses));
+  //rendering::interactive::render(advected_particles, g, ellipses,
+  //                               initial_particle);
   //============================================================================
   // //auto s  = analytical::fields::numerical::saddle{};
   // auto g  = rectilinear_grid{linspace{-0.1, 0.1, 51}, linspace{-0.1, 0.1,

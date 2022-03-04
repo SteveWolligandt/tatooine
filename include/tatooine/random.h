@@ -154,6 +154,24 @@ auto flip_coin(RandomEngine&& eng) {
   return coin(eng) == 0 ? HEADS : TAILS;
 }
 //==============================================================================
+}  // namespace tatooine::random
+//==============================================================================
+namespace tatooine {
+//==============================================================================
+template <typename T>
+struct is_random_number_generator_impl : std::false_type {};
+template <typename T, typename Engine>
+struct is_random_number_generator_impl<random::uniform<T, Engine>>
+    : std::true_type {};
+template <typename T, typename Engine>
+struct is_random_number_generator_impl<random::normal<T, Engine>>
+    : std::true_type {};
+template <typename T>
+static auto constexpr is_random_number_generator =
+    is_random_number_generator_impl<T>::value;
+template <typename T>
+concept random_number_generator = is_random_number_generator<std::decay_t<T>>;
+//==============================================================================
 }  // namespace tatooine
 //==============================================================================
 #endif

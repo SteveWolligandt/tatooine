@@ -58,64 +58,56 @@ struct tensor<T> : dynamic_multidim_array<T> {
         random::uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)},
         size};
   }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename RandEng = std::mt19937_64>
+  static auto randu(integral auto const... is) {
+    return this_type{random::uniform<T, RandEng>{
+                         T(0), T(1), RandEng{std::random_device{}()}},
+                     is...};
+  }
+  //------------------------------------------------------------------------------
+  template <typename RandEng = std::mt19937_64>
+  static auto randn(T const mean, T const stddev,
+                    integral_range auto const& size,
+                    RandEng&& eng = RandEng{std::random_device{}()}) {
+    return this_type{
+        random::uniform<T, RandEng>{mean, stddev, std::forward<RandEng>(eng)},
+        size};
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename RandEng = std::mt19937_64>
+  static auto randn(integral_range auto const& size, T mean = 0, T stddev = 1,
+                    RandEng&& eng = RandEng{std::random_device{}()}) {
+    return this_type{
+        random::uniform<T, RandEng>{mean, stddev, std::forward<RandEng>(eng)},
+        size};
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename RandEng = std::mt19937_64>
+  static auto randn(integral auto const... is) {
+    return this_type{random::uniform<T, RandEng>{
+                         T(1), T(1), RandEng{std::random_device{}()}},
+                     is...};
+  }
   //----------------------------------------------------------------------------
-  template <typename RandEng>
-  static auto rand(random::uniform<T, RandEng> const& rand,
-                   integral_range auto const&           size) {
-    return this_type{rand, size};
+  template <random_number_generator Rand, integral_range Size>
+  static auto rand(Rand&& rand, Size&& size) {
+    return this_type{std::forward<Rand>(rand), std::forward<Size>(size)};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename RandEng>
-  static auto rand(random::uniform<T, RandEng> const& rand, integral auto const... size) {
-    return this_type{rand, std::vector{static_cast<std::size_t>(size)...}};
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename RandEng>
-  static auto rand(random::uniform<T, RandEng>&& rand,
-                   integral_range auto const&    size) {
-    return this_type{std::move(rand), size};
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <std::size_t N, integral Size, typename RandEng>
-  static auto rand(random::uniform<T, RandEng>&& rand,
-                   std::array<Size, N> const&    size) {
-    return this_type{std::move(rand), size};
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename RandEng>
-  static auto rand(random::uniform<T, RandEng>&& rand, integral auto const... size) {
-    return this_type{std::move(rand), std::vector{static_cast<std::size_t>(size)...}};
-  }
-  //----------------------------------------------------------------------------
-  template <typename RandEng>
-  static auto rand(random::normal<T, RandEng> const& rand,
-                   integral_range auto const&          size) {
-    return this_type{rand, size};
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename RandEng>
-  static auto rand(random::normal<T, RandEng> const& rand, integral auto const... size) {
-    return this_type{rand, std::vector{static_cast<std::size_t>(size)...}};
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename RandEng>
-  static auto rand(random::normal<T, RandEng>&& rand,
-                   integral auto const&     size) {
-    return this_type{std::move(rand), size};
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename RandEng>
-  static auto rand(random::normal<T, RandEng>&& rand, integral auto const... size) {
-    return this_type{std::move(rand), std::vector{static_cast<std::size_t>(size)...}};
+  template <random_number_generator Rand>
+  static auto rand(Rand&& rand, integral auto const... size){
+    return this_type{std::forward<Rand>(rand), size...};
   }
   //----------------------------------------------------------------------------
   static auto vander(floating_point_range auto const& v) {
     return vander(v, v.size());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  static auto vander(floating_point_range auto const& v, integral auto const degree) {
-    auto V = this_type{v.size(), degree};
-    auto   factor_up_row = [row = 0ul, &V, degree](auto const x) mutable {
+  static auto vander(floating_point_range auto const& v,
+                     integral auto const              degree) {
+    auto V             = this_type{v.size(), degree};
+    auto factor_up_row = [row = 0ul, &V, degree](auto const x) mutable {
       V(row, 0) = 1;
       for (std::size_t col = 1; col < degree; ++col) {
         V(row, col) = V(row, col - 1) * x;
@@ -130,43 +122,49 @@ struct tensor<T> : dynamic_multidim_array<T> {
   //============================================================================
   // constructors
   //============================================================================
-  explicit tensor(dynamic_tensor auto&& other) {
-    assign(other);
-  }
+  tensor()                          = default;
+  tensor(tensor const& other)       = default;
+  tensor(tensor&& other) noexcept = default;
+  auto operator=(tensor const& other) -> tensor& = default;
+  auto operator=(tensor&& other) noexcept -> tensor& = default;
+  ~tensor() = default;
+  //============================================================================
+  explicit tensor(dynamic_tensor auto&& other) { assign(other); }
   //----------------------------------------------------------------------------
   /// Resizes Tensor to given dimensions and initializes values to 0.
+  /// Only works if value_type is non-integral.
   explicit tensor(integral auto const... dimensions)
   requires(!integral<T>) {
     this->resize(dimensions...);
   }
   //----------------------------------------------------------------------------
- private:
-  template <std::size_t... Is>
-  explicit tensor(std::index_sequence<Is...> /*seq*/,
-                            convertible_to<T> auto&&... components)
-    requires ((!integral<std::decay_t<decltype(components)>> &&...))
-      : parent_type{sizeof...(components)} {
-    ([&](auto const i) { at(i) = static_cast<T>(components); }(Is), ...);
-  }
-  //----------------------------------------------------------------------------
- public:
-  explicit tensor(tag::ones_t tag, integral auto... dimensions)
+  tensor(tag::ones_t tag, integral auto... dimensions)
       : parent_type{tag, dimensions...} {}
   //----------------------------------------------------------------------------
-  explicit tensor(tag::ones_t tag, integral_range auto&& dimensions)
+  tensor(tag::ones_t tag, integral_range auto&& dimensions)
       : parent_type{tag, std::forward<decltype(dimensions)>(dimensions)} {}
   //----------------------------------------------------------------------------
-  explicit tensor(tag::zeros_t tag, integral auto... dimensions)
+  tensor(tag::zeros_t tag, integral auto... dimensions)
       : parent_type{tag, dimensions...} {}
   //----------------------------------------------------------------------------
-  explicit tensor(tag::zeros_t tag, integral_range auto&& dimensions)
+  tensor(tag::zeros_t tag, integral_range auto&& dimensions)
       : parent_type{tag, std::forward<decltype(dimensions)>(dimensions)} {}
+  //----------------------------------------------------------------------------
+  template <random_number_generator Rand>
+  tensor(Rand&& rand, integral auto const... dimensions)
+      : parent_type{std::forward<Rand>(rand), dimensions...} {}
+  //----------------------------------------------------------------------------
+  template <random_number_generator Rand, integral_range Dimensions>
+  tensor(Rand&& rand, Dimensions&& dimensions)
+      : parent_type{std::forward<Rand>(rand),
+                    std::forward<Dimensions>(dimensions)} {}
   //----------------------------------------------------------------------------
   /// Constructs a rank 1 tensor aka vector.
-  explicit tensor(convertible_to<T> auto&&... components)
-    requires ((!integral<std::decay_t<decltype(components)>> &&...))
-      : tensor{std::make_index_sequence<sizeof...(components)>{},
-               std::forward<decltype(components)>(components)...} {}
+  template <convertible_to<T>... Components>
+  explicit tensor(Components&&... components) requires(
+      (!integral<std::decay_t<Components>> && ...))
+      : parent_type{std::vector<T>{std::forward<Components>(components)...},
+                    1} {}
   //----------------------------------------------------------------------------
   /// Constructs a rank 2 tensor aka matrix.
   template <arithmetic_or_complex... Rows, std::size_t N>
@@ -259,6 +257,7 @@ struct tensor<T> : dynamic_multidim_array<T> {
     return at(is...);
   }
 };
+//==============================================================================
 template <typename... Rows, std::size_t N>
 tensor(Rows(&&... rows)[N]) -> tensor<common_type<Rows...>>;
 

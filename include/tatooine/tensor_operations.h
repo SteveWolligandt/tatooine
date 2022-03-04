@@ -8,7 +8,6 @@
 #include <tatooine/vec.h>
 
 #include <optional>
-
 //==============================================================================
 #include <tatooine/tensor_operations/binary_operation.h>
 #include <tatooine/tensor_operations/cross.h>
