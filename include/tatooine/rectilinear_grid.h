@@ -1416,19 +1416,28 @@ class rectilinear_grid {
   //============================================================================
   template <invocable<pos_type> F>
   auto sample_to_vertex_property(F&& f, std::string const& name) -> auto& {
+    return sample_to_vertex_property(std::forward<F>(f), name,
+                                     execution_policy::sequential);
+  }
+  //----------------------------------------------------------------------------
+  template <invocable<pos_type> F>
+  auto sample_to_vertex_property(F&& f, std::string const& name,
+                                 execution_policy_tag auto tag) -> auto& {
     using T    = std::invoke_result_t<F, pos_type>;
     auto& prop = insert_vertex_property<T>(name);
-    vertices().iterate_indices([&](auto const... is) {
-      try {
-        prop(is...) = f(vertices()(is...));
-      } catch (std::exception&) {
-        if constexpr (tensor_num_components<T> == 1) {
-          prop(is...) = T{0.0 / 0.0};
-        } else {
-          prop(is...) = T{tag::fill{0.0 / 0.0}};
-        }
-      }
-    });
+    vertices().iterate_indices(
+        [&](auto const... is) {
+          try {
+            prop(is...) = f(vertices()(is...));
+          } catch (std::exception&) {
+            if constexpr (tensor_num_components<T> == 1) {
+              prop(is...) = T{0.0 / 0.0};
+            } else {
+              prop(is...) = T{tag::fill{0.0 / 0.0}};
+            }
+          }
+        },
+        tag);
     return prop;
   }
   //============================================================================

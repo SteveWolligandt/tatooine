@@ -5,6 +5,7 @@
 #include <tatooine/math.h>
 //==============================================================================
 namespace tatooine::lapack {
+using ::lapack::Uplo;
 //==============================================================================
 /// \defgroup lapack Lapack
 /// 
@@ -120,6 +121,96 @@ auto gesv(tensor<T>& A, tensor<T>& B, tensor<std::int64_t>& ipiv) {
 //==============================================================================
 /// \}
 //==============================================================================
+/// \defgroup lapack_sysv SYSV computes the solution to system of linear
+/// equations A * X = B for SY matrices.
+/// \ingroup lapack
+///
+/// - <a
+/// href='http://www.netlib.org/lapack/explore-html/d6/d0e/group__double_s_ysolve_ga9995c47692c9885ed5d6a6b431686f41.html#ga9995c47692c9885ed5d6a6b431686f41'>LAPACK
+/// documentation</a>
+/// \{
+//==============================================================================
+template <typename T, size_t N>
+auto sysv(tensor<T, N, N>& A, tensor<T, N>& b,  Uplo const uplo) {
+  auto       ipiv = std::unique_ptr<std::int64_t[]>(new std::int64_t[N]);
+  return ::lapack::sysv(uplo, N, 1, A.data_ptr(), N, ipiv.get(), b.data_ptr(),
+                        N);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Computes the solution to a system of linear equations \(A X = B\), where A
+/// is an n-by-n symmetric matrix and X and B are n-by-nrhs matrices.
+///
+/// The diagonal pivoting method is used to factor A as \(A = U D U^T\) if uplo
+/// = Upper, or \(A = L D L^T\) if uplo = Lower, where U (or L) is a product of
+/// permutation and unit upper (lower) triangular matrices, and D is symmetric
+/// and block diagonal with 1-by-1 and 2-by-2 diagonal blocks. The factored form
+/// of A is then used to solve the system of equations \(A X = B\).
+template <typename T>
+auto sysv(tensor<T>& A, tensor<T>& B, Uplo const uplo) {
+  assert(A.rank() == 2);
+  assert(B.rank() == 1 || B.rank() == 2);
+  assert(A.dimension(0) == A.dimension(1));
+  assert(A.dimension(0) == B.dimension(0));
+  auto const N    = A.dimension(0);
+  auto       ipiv = std::unique_ptr<std::int64_t[]>(new std::int64_t[N]);
+
+  return ::lapack::sysv(uplo, N, B.rank() == 1 ? 1 : B.dimension(1),
+                        A.data_ptr(), N, ipiv.get(), B.data_ptr(), N);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Computes the solution to a system of linear equations \(A X = B\), where A
+/// is an n-by-n symmetric matrix and X and B are n-by-nrhs matrices.
+///
+/// Aasen's algorithm is used to factor A as \(A = U T U^T\) if uplo = Upper, or
+/// \(A = L T L^T\) if uplo = Lower, where U (or L) is a product of permutation
+/// and unit upper (lower) triangular matrices, and T is symmetric tridiagonal.
+/// The factored form of A is then used to solve the system of equations \(A X =
+/// B\).
+template <typename T>
+auto sysv_aa(tensor<T>& A, tensor<T>& B, Uplo const uplo) {
+  assert(A.rank() == 2);
+  assert(B.rank() == 1 || B.rank() == 2);
+  assert(A.dimension(0) == A.dimension(1));
+  assert(A.dimension(0) == B.dimension(0));
+  auto const N    = A.dimension(0);
+  auto       ipiv = std::unique_ptr<std::int64_t[]>(new std::int64_t[N]);
+
+  return ::lapack::sysv_aa(uplo, N, B.dimension(1), A.data_ptr(), N, ipiv.get(),
+                           B.data_ptr(), N);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Computes the solution to a system of linear equations.
+///
+///\[ A X = B, \]
+///
+/// where A is an n-by-n symmetric matrix and X and B are n-by-nrhs matrices.
+///
+/// The bounded Bunch-Kaufman (rook) diagonal pivoting method is used to factor
+/// A as \(A = P U D U^T P^T\) if uplo = Upper, or \(A = P L D L^T P^T\) if uplo
+/// = Lower, where U (or L) is unit upper (or lower) triangular matrix, \(U^T\)
+/// (or
+///    \(L^T\)) is the transpose of U (or L), P is a permutation matrix, \(P^T\)
+/// is the transpose of P, and D is symmetric and block diagonal with 1-by-1 and
+/// 2-by-2 diagonal blocks.
+///
+/// lapack::sytrf_rk is called to compute the factorization of a symmetric
+/// matrix. The factored form of A is then used to solve the system of equations
+/// \(A X = B\) by calling lapack::sytrs_rk.
+template <typename T>
+auto sysv_rk(tensor<T>& A, tensor<T>& B, Uplo const uplo) {
+  assert(A.rank() == 2);
+  assert(B.rank() == 1 || B.rank() == 2);
+  assert(A.dimension(0) == A.dimension(1));
+  assert(A.dimension(0) == B.dimension(0));
+  auto const N    = A.dimension(0);
+  auto       ipiv = std::unique_ptr<std::int64_t[]>(new std::int64_t[N]);
+
+  return ::lapack::sysv_rk(uplo, N, B.rank() == 1 ? 1 : B.dimension(1),
+                           A.data_ptr(), N, ipiv.get(), B.data_ptr(), N);
+}
+//==============================================================================
+/// \}
+//==============================================================================
 /// \defgroup lapack_geqrf GEQRF General QR Factorization
 /// \ingroup lapack
 ///
@@ -227,7 +318,7 @@ auto ormqr(tensor<T>& A, tensor<T>& C, tensor<T>& tau,
 /// - `N`: \f$\mA\f$ is non-unit triangular
 /// - `U`: \f$\mA\f$ is unit triangular
 template <typename T, size_t M, size_t N, size_t NRHS>
-auto trtrs(tensor<T, M, N>& A, tensor<T, M, NRHS>& B, ::lapack::Uplo uplo,
+auto trtrs(tensor<T, M, N>& A, tensor<T, M, NRHS>& B, Uplo uplo,
            ::lapack::Op trans, ::lapack::Diag diag) {
   return ::lapack::trtrs(uplo, trans, diag, N, NRHS, A.data_ptr(), M,
                          B.data_ptr(), M);
@@ -243,7 +334,7 @@ auto trtrs(tensor<T, M, N>& A, tensor<T, M, NRHS>& B, ::lapack::Uplo uplo,
 /// - `N`: \f$\mA\f$ is non-unit triangular
 /// - `U`: \f$\mA\f$ is unit triangular
 template <typename T, size_t M, size_t N>
-auto trtrs(tensor<T, M, N>& A, tensor<T, M>& b, ::lapack::Uplo uplo,
+auto trtrs(tensor<T, M, N>& A, tensor<T, M>& b, Uplo uplo,
            ::lapack::Op trans, ::lapack::Diag diag) {
   return ::lapack::trtrs(uplo, trans, diag, N, 1, A.data_ptr(), M, b.data_ptr(),
                          M);
@@ -259,7 +350,7 @@ auto trtrs(tensor<T, M, N>& A, tensor<T, M>& b, ::lapack::Uplo uplo,
 /// - `N`: \f$\mA\f$ is non-unit triangular
 /// - `U`: \f$\mA\f$ is unit triangular
 template <typename T>
-auto trtrs(tensor<T>& A, tensor<T>& B, ::lapack::Uplo uplo,
+auto trtrs(tensor<T>& A, tensor<T>& B, Uplo uplo,
            ::lapack::Op trans, ::lapack::Diag diag) {
   assert(A.rank() == 2);
   assert(B.rank() == 1 || B.rank() == 2);
@@ -320,7 +411,7 @@ auto gecon(tensor<T, N, N>& A, ::lapack::Norm norm, T& rcond) {
 /// Computes all eigenvalues and, optionally, eigenvectors of a real symmetric
 /// matrix A.
 template <typename Real, size_t N>
-auto syev(::lapack::Job jobz, ::lapack::Uplo uplo, tensor<Real, N, N>& A,
+auto syev(::lapack::Job jobz, Uplo uplo, tensor<Real, N, N>& A,
           tensor<Real, N>& W) {
   return ::lapack::syev(jobz, uplo, N, A.data_ptr(), N, W.data_ptr());
 }

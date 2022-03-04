@@ -144,6 +144,18 @@ struct typed_vector_property : vector_property<Handle> {
   auto size() const { return m_data.size(); }
   //----------------------------------------------------------------------------
   /// Access the i'th element.
+  auto at(std::size_t const i) -> auto& {
+    assert(i < m_data.size());
+    return m_data.at(i);
+  }
+  //----------------------------------------------------------------------------
+  /// Const access to the i'th element.
+  auto at(std::size_t const i) const -> const auto& {
+    assert(i < m_data.size());
+    return m_data.at(i);
+  }
+  //----------------------------------------------------------------------------
+  /// Access the i'th element.
   auto at(Handle handle) -> auto& {
     assert(handle.index() < m_data.size());
     return m_data.at(handle.index());
@@ -165,6 +177,18 @@ struct typed_vector_property : vector_property<Handle> {
   auto operator[](Handle handle) const -> const auto& {
     assert(handle.index() < m_data.size());
     return m_data[handle.index()];
+  }
+  //----------------------------------------------------------------------------
+  /// Access the i'th element.
+  auto operator[](std::size_t const i) -> auto& {
+    assert(i < m_data.size());
+    return m_data[i];
+  }
+  //----------------------------------------------------------------------------
+  /// Const access to the i'th element.
+  auto operator[](std::size_t const i) const -> const auto& {
+    assert(i < m_data.size());
+    return m_data[i];
   }
   //----------------------------------------------------------------------------
   [[nodiscard]] auto type() const -> const std::type_info& override {

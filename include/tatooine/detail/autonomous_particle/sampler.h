@@ -50,6 +50,10 @@ struct sampler {
   auto ellipse(forward_tag /*tag*/) const -> auto const& { return m_ellipse0; }
   auto ellipse(backward_tag /*tag*/) const -> auto const& { return m_ellipse1; }
   //----------------------------------------------------------------------------
+  auto S(forward_or_backward_tag auto const tag) const -> auto const& {
+    return ellipse(tag).S();
+  }
+  //----------------------------------------------------------------------------
   auto nabla_phi(forward_tag const /*tag*/) const -> auto const& {
     return m_nabla_phi;
   }

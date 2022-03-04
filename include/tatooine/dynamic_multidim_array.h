@@ -20,9 +20,9 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   // typedefs
   //============================================================================
  public:
-  using value_type = T;
-  using this_type     = dynamic_multidim_array<T, IndexOrder>;
-  using parent_type   = dynamic_multidim_size<IndexOrder>;
+  using value_type  = T;
+  using this_type   = dynamic_multidim_array<T, IndexOrder>;
+  using parent_type = dynamic_multidim_size<IndexOrder>;
   using parent_type::in_range;
   using parent_type::indices;
   using parent_type::num_components;
@@ -41,147 +41,74 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
     return this_type{tag::zeros, size...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <integral Int>
-  static auto zeros(std::vector<Int> const& size) {
-    return this_type{tag::zeros, size};
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <size_t N, integral Int>
-  static auto zeros(std::array<Int, N> const& size) {
-    return this_type{tag::zeros, size};
+  template <integral_range Size>
+  static auto zeros(Size&& size) {
+    return this_type{tag::zeros, std::forward<Size>(size)};
   }
   //------------------------------------------------------------------------------
   static auto ones(integral auto const... size) {
     return this_type{tag::ones, size...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <integral Int>
-  static auto ones(std::vector<Int> const& size) {
-    return this_type{tag::ones, size};
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <size_t N, integral Int>
-  static auto ones(std::array<Int, N> const& size) {
-    return this_type{tag::ones, size};
-  }
-  //------------------------------------------------------------------------------
-  // template <unsigned_integral UInt, typename RandEng = std::mt19937_64>
-  // static auto randu(T min, T max, std::initializer_list<UInt>&& size,
-  //                  RandEng&& eng = RandEng{std::random_device{}()}) {
-  //  return this_type{random::uniform{min, max, std::forward<RandEng>(eng)},
-  //                std::vector<UInt>(std::move(size))};
-  //}
-  //// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  ///-
-  // template <unsigned_integral UInt, typename RandEng = std::mt19937_64>
-  // static auto randu(std::initializer_list<UInt>&& size, T min = 0, T
-  // max = 1,
-  //                  RandEng&& eng = RandEng{std::random_device{}()}) {
-  //  return this_type{random::uniform{min, max, std::forward<RandEng>(eng)},
-  //                std::vector<UInt>(std::move(size))};
-  //}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <unsigned_integral UInt, typename RandEng = std::mt19937_64>
-  static auto randu(T min, T max, std::vector<UInt> const& size,
-                    RandEng&& eng = RandEng{std::random_device{}()}) {
-    return this_type{
-        random::uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)},
-        size};
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <unsigned_integral UInt, typename RandEng = std::mt19937_64>
-  static auto randu(std::vector<UInt> const& size, T min = 0, T max = 1,
-                    RandEng&& eng = RandEng{std::random_device{}()}) {
-    return this_type{
-        random::uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)},
-        size};
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <size_t N, unsigned_integral UInt,
-            typename RandEng = std::mt19937_64>
-  static auto randu(T min, T max, std::array<UInt, N> const& size,
-                    RandEng&& eng = RandEng{std::random_device{}()}) {
-    return this_type{
-        random::uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)},
-        size};
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <size_t N, unsigned_integral UInt,
-            typename RandEng = std::mt19937_64>
-  static auto randu(std::array<UInt, N> const& size, T min = 0, T max = 1,
-                    RandEng&& eng = RandEng{std::random_device{}()}) {
-    return this_type{
-        random::uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)},
-        size};
+  template <integral_range Size>
+  static auto ones(Size&& size) {
+    return this_type{tag::ones, std::forward<Size>(size)};
   }
   //----------------------------------------------------------------------------
-  template <unsigned_integral UInt, typename RandEng>
-  static auto rand(random::uniform<T, RandEng> const& rand,
-                   std::vector<UInt> const&           size) {
-    return this_type{rand, size};
+  template <integral_range Size, typename RandEng = std::mt19937_64>
+  static auto randu(T const min, T const max, Size&& size,
+                    RandEng&& eng = RandEng{std::random_device{}()}) {
+    return this_type{
+        random::uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)},
+        std::forward<Size>(size)};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <size_t N, unsigned_integral UInt, typename RandEng>
-  static auto rand(random::uniform<T, RandEng> const& rand,
-                   std::array<UInt, N> const&         size) {
-    return this_type{rand, size};
+  template <integral_range Size, typename RandEng = std::mt19937_64>
+  static auto randu(Size&& size, T const min = 0, T const max = 1,
+                    RandEng&& eng = RandEng{std::random_device{}()}) {
+    return this_type{
+        random::uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)},
+        std::forward<Size>(size)};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename RandEng, integral... Size>
-  static auto rand(random::uniform<T, RandEng> const& rand,
-                   Size const... size) {
-    return this_type{rand, std::vector{static_cast<size_t>(size)...}};
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <unsigned_integral UInt, typename RandEng>
-  static auto rand(random::uniform<T, RandEng>&& rand,
-                   std::vector<UInt> const&      size) {
-    return this_type{std::move(rand), size};
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <size_t N, unsigned_integral UInt, typename RandEng>
-  static auto rand(random::uniform<T, RandEng>&& rand,
-                   std::array<UInt, N> const&    size) {
-    return this_type{std::move(rand), size};
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename RandEng, integral... Size>
-  static auto rand(random::uniform<T, RandEng>&& rand, Size const... size) {
-    return this_type{std::move(rand), std::vector{static_cast<size_t>(size)...}};
+  template <typename RandEng = std::mt19937_64>
+  static auto randu(integral auto const... is) {
+    return this_type{
+        random::uniform<T, RandEng>{T(0), T(1), RandEng{std::random_device{}()}},
+        is...};
   }
   //----------------------------------------------------------------------------
-  template <unsigned_integral UInt, typename RandEng>
-  static auto rand(random::normal<T, RandEng> const& rand,
-                   std::vector<UInt> const&          size) {
-    return this_type{rand, size};
+  template <integral_range Size, typename RandEng = std::mt19937_64>
+  static auto randn(T const mean, T const stddev, Size&& size,
+                    RandEng&& eng = RandEng{std::random_device{}()}) {
+    return this_type{
+        random::normal<T, RandEng>{mean, stddev, std::forward<RandEng>(eng)},
+        std::forward<Size>(size)};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <size_t N, unsigned_integral UInt, typename RandEng>
-  static auto rand(random::normal<T, RandEng> const& rand,
-                   std::array<UInt, N> const&        size) {
-    return this_type{rand, size};
+  template <integral_range Size, typename RandEng = std::mt19937_64>
+  static auto randn(Size&& size, T const mean, T const stddev,
+                    RandEng&& eng = RandEng{std::random_device{}()}) {
+    return this_type{
+        random::normal<T, RandEng>{mean, stddev, std::forward<RandEng>(eng)},
+        std::forward<Size>(size)};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename RandEng, integral... Size>
-  static auto rand(random::normal<T, RandEng> const& rand, Size const... size) {
-    return this_type{rand, std::vector{static_cast<size_t>(size)...}};
+  template <typename RandEng = std::mt19937_64>
+  static auto randn(integral auto const... is) {
+    return this_type{random::uniform<T, RandEng>{
+                         T(1), T(1), RandEng{std::random_device{}()}},
+                     is...};
+  }
+  //----------------------------------------------------------------------------
+  template <integral_range Size, random_number_generator Rand>
+  static auto rand(Rand&& rand, Size&& size) {
+    return this_type{std::forward<Rand>(rand), std::forward<Size>(size)};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <unsigned_integral UInt, typename RandEng>
-  static auto rand(random::normal<T, RandEng>&& rand,
-                   std::vector<UInt> const&     size) {
-    return this_type{std::move(rand), size};
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <size_t N, unsigned_integral UInt, typename RandEng>
-  static auto rand(random::normal<T, RandEng>&& rand,
-                   std::array<UInt, N> const&   size) {
-    return this_type{std::move(rand), size};
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename RandEng, integral... Size>
-  static auto rand(random::normal<T, RandEng>&& rand, Size... size) {
-    return this_type{std::move(rand), std::vector{static_cast<size_t>(size)...}};
+  template <random_number_generator Rand>
+  static auto rand(Rand&& rand, integral auto const... size) {
+    return this_type{std::forward<Rand>(rand), size...};
   }
   //============================================================================
   // ctors
@@ -191,9 +118,9 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   dynamic_multidim_array(dynamic_multidim_array const& other)     = default;
   dynamic_multidim_array(dynamic_multidim_array&& other) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator                  =(dynamic_multidim_array const& other)
+  auto operator=(dynamic_multidim_array const& other)
       -> dynamic_multidim_array& = default;
-  auto operator                  =(dynamic_multidim_array&& other) noexcept
+  auto operator=(dynamic_multidim_array&& other) noexcept
       -> dynamic_multidim_array& = default;
   //----------------------------------------------------------------------------
   ~dynamic_multidim_array() = default;
@@ -201,31 +128,22 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   template <typename OtherT, typename OtherIndexing>
   explicit constexpr dynamic_multidim_array(
       dynamic_multidim_array<OtherT, OtherIndexing> const& other)
-      : parent_type{other} {
-    auto it = begin(other.data());
-    for (auto& v : m_data) {
-      v = static_cast<T>(*(it++));
-    }
-  }
+      : parent_type{other}, m_data(other.m_data.begin(), other.m_data.end()) {}
   //----------------------------------------------------------------------------
   template <typename OtherT, typename OtherIndexing>
   auto operator=(dynamic_multidim_array<OtherT, OtherIndexing> const& other)
       -> dynamic_multidim_array& {
-    if (parent_type::operator!=(other)) {
-      resize(other.size());
-    }
     parent_type::operator=(other);
-    for (auto i : indices()) {
-      at(i) = other(i);
-    }
+    m_data = std::vector<T>(other.m_data.begin(), other.m_data.end());
     return *this;
   }
   //============================================================================
   explicit dynamic_multidim_array(integral auto const... size)
       : parent_type{size...}, m_data(num_components(), T{}) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename S, integral... Size>
-  explicit dynamic_multidim_array(tag::fill<S> const& f, Size const... size)
+  template <typename S>
+  explicit dynamic_multidim_array(tag::fill<S> const& f,
+                                  integral auto const... size)
       : parent_type{size...}, m_data(num_components(), f.value) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   explicit dynamic_multidim_array(tag::zeros_t const& /*z*/,
@@ -244,113 +162,43 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
                                   integral auto const... size)
       : parent_type{size...}, m_data(std::move(data)) {}
   //----------------------------------------------------------------------------
-  template <unsigned_integral UInt>
-  explicit dynamic_multidim_array(std::vector<UInt> const& size)
-      : parent_type{size}, m_data(num_components(), T{}) {}
+  template <integral_range Size>
+  explicit dynamic_multidim_array(Size&& size)
+      : parent_type{std::forward<Size>(size)}, m_data(num_components(), T{}) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename S, unsigned_integral UInt>
-  dynamic_multidim_array(tag::fill<S> const& f, std::vector<UInt> const& size)
-      : parent_type{size}, m_data(num_components(), f.value) {}
+  template <typename S, integral_range Size>
+  dynamic_multidim_array(tag::fill<S> const& f, Size&& size)
+      : parent_type{std::forward<Size>(size)},
+        m_data(num_components(), f.value) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <unsigned_integral UInt>
-  dynamic_multidim_array(tag::zeros_t const& /*z*/,
-                         std::vector<UInt> const& size)
-      : parent_type{size}, m_data(num_components(), 0) {}
+  template <integral_range Size>
+  dynamic_multidim_array(tag::zeros_t const& /*z*/, Size&& size)
+      : parent_type{std::forward<Size>(size)}, m_data(num_components(), 0) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <unsigned_integral UInt>
-  dynamic_multidim_array(tag::ones_t const& /*o*/,
-                         std::vector<UInt> const& size)
-      : parent_type{size}, m_data(num_components(), 1) {}
+  template <integral_range Size>
+  dynamic_multidim_array(tag::ones_t const& /*o*/, Size&& size)
+      : parent_type{std::forward<Size>(size)}, m_data(num_components(), 1) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <unsigned_integral UInt>
-  dynamic_multidim_array(std::vector<T> const&    data,
-                         std::vector<UInt> const& size)
-      : parent_type{size}, m_data(data) {}
+  template <integral_range Size>
+  dynamic_multidim_array(std::vector<T> const& data, Size&& size)
+      : parent_type{std::forward<Size>(size)}, m_data(data) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <unsigned_integral UInt>
-  dynamic_multidim_array(std::vector<T>&& data, std::vector<UInt> const& size)
-      : parent_type{size}, m_data(std::move(data)) {}
-  //----------------------------------------------------------------------------
-  template <size_t N, unsigned_integral UInt>
-  explicit dynamic_multidim_array(std::array<UInt, N> const& size)
-      : parent_type{size}, m_data(num_components(), T{}) {}
+  template <integral_range Size>
+  dynamic_multidim_array(std::vector<T>&& data, Size&& size)
+      : parent_type{std::forward<Size>(size)}, m_data(std::move(data)) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <size_t N, typename S, unsigned_integral UInt>
-  dynamic_multidim_array(tag::fill<S> const& f, std::array<UInt, N> const& size)
-      : parent_type{size}, m_data(num_components(), f.value) {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <size_t N, unsigned_integral UInt>
-  dynamic_multidim_array(tag::zeros_t const& /*z*/,
-                         std::array<UInt, N> const& size)
-      : parent_type{size}, m_data(num_components(), 0) {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <size_t N, unsigned_integral UInt>
-  dynamic_multidim_array(tag::ones_t const& /*o*/,
-                         std::array<UInt, N> const& size)
-      : parent_type{size}, m_data(num_components(), 1) {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <size_t N, unsigned_integral UInt>
-  dynamic_multidim_array(std::vector<T> const&      data,
-                         std::array<UInt, N> const& size)
-      : parent_type{size}, m_data(data) {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <size_t N, unsigned_integral UInt>
-  dynamic_multidim_array(std::vector<T>&& data, std::array<UInt, N> const& size)
-      : parent_type{size}, m_data(std::move(data)) {}
-  //----------------------------------------------------------------------------
-  template <unsigned_integral UInt, std::size_t N, arithmetic RandomReal,
-            typename Engine>
-  requires arithmetic<T> dynamic_multidim_array(
-      random::uniform<RandomReal, Engine> const& rand,
-      std::array<UInt, N> const&                 size)
-      : dynamic_multidim_array{size} {
-    this->unary_operation(
-        [&](auto const& /*c*/) { return static_cast<T>(rand.get()); });
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <unsigned_integral UInt, std::size_t N, arithmetic RandomReal,
-            typename Engine>
-  requires arithmetic<T> dynamic_multidim_array(
-      random::uniform<RandomReal, Engine>&& rand,
-      std::array<UInt, N> const&            size)
-      : dynamic_multidim_array{size} {
+  template <integral_range Size, random_number_generator Rand>
+  requires arithmetic<T>
+  dynamic_multidim_array(Rand&& rand, Size&& size)
+      : parent_type{std::forward<Size>(size)}, m_data(num_components()) {
     this->unary_operation(
         [&](auto const& /*c*/) { return static_cast<T>(rand.get()); });
   }
   //----------------------------------------------------------------------------
-  template <unsigned_integral UInt, arithmetic RandomReal, typename Engine>
-  requires arithmetic<T> dynamic_multidim_array(
-      random::uniform<RandomReal, Engine> const& rand,
-      std::vector<UInt> const&                   size)
-      : dynamic_multidim_array{size} {
-    this->unary_operation(
-        [&](auto const& /*c*/) { return static_cast<T>(rand.get()); });
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <unsigned_integral UInt, arithmetic RandomReal, typename Engine>
-  requires arithmetic<T> dynamic_multidim_array(
-      random::uniform<RandomReal, Engine>&& rand, std::vector<UInt> const& size)
-      : dynamic_multidim_array{size} {
-    this->unary_operation(
-        [&](auto const& /*c*/) { return static_cast<T>(rand.get()); });
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <unsigned_integral UInt, size_t N, arithmetic RandomReal,
-            typename Engine>
-  requires arithmetic<T> dynamic_multidim_array(
-      random::normal<RandomReal, Engine> const& rand,
-      std::array<UInt, N> const&                size)
-      : dynamic_multidim_array{size} {
-    this->unary_operation(
-        [&](auto const& /*c*/) { return static_cast<T>(rand.get()); });
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <unsigned_integral UInt, size_t N, arithmetic RandomReal,
-            typename Engine>
-  requires arithmetic<T> dynamic_multidim_array(
-      random::normal<RandomReal, Engine>&& rand,
-      std::array<UInt, N> const&           size)
-      : dynamic_multidim_array{size} {
+  template <random_number_generator Rand>
+  requires arithmetic<T>
+  dynamic_multidim_array(Rand&& rand, integral auto const... size)
+      : parent_type{size...}, m_data(num_components()) {
     this->unary_operation(
         [&](auto const& /*c*/) { return static_cast<T>(rand.get()); });
   }
@@ -412,8 +260,8 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
     return at(indices);
   }
   //----------------------------------------------------------------------------
-  auto operator[](size_t i) const -> auto const& { return m_data[i]; }
-  auto operator[](size_t i) -> auto& { return m_data[i]; }
+  auto operator[](std::size_t i) const -> auto const& { return m_data[i]; }
+  auto operator[](std::size_t i) -> auto& { return m_data[i]; }
   //----------------------------------------------------------------------------
   void resize(integral auto const... size) {
     parent_type::resize(size...);
@@ -428,15 +276,15 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   constexpr auto data() -> auto& { return m_data; }
   constexpr auto data() const -> auto const& { return m_data; }
   //----------------------------------------------------------------------------
-  [[nodiscard]] constexpr auto data(size_t const i) -> auto& {
+  [[nodiscard]] constexpr auto data(std::size_t const i) -> auto& {
     return m_data[i];
   }
-  [[nodiscard]] constexpr auto data(size_t const i) const -> auto const& {
+  [[nodiscard]] constexpr auto data(std::size_t const i) const -> auto const& {
     return m_data[i];
   }
   //----------------------------------------------------------------------------
-  constexpr auto data_ptr() -> T* { return m_data.data(); }
-  constexpr auto data_ptr() const -> T const* { return m_data.data(); }
+  constexpr auto data_ptr() { return m_data.data(); }
+  constexpr auto data_ptr() const { return m_data.data(); }
   //============================================================================
   template <typename F>
   void unary_operation(F&& f) {
@@ -462,7 +310,7 @@ dynamic_multidim_array(dynamic_multidim_array<T, IndexOrder> const&)
     -> dynamic_multidim_array<T, IndexOrder>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, typename IndexOrder>
-dynamic_multidim_array(dynamic_multidim_array<T, IndexOrder> &&)
+dynamic_multidim_array(dynamic_multidim_array<T, IndexOrder>&&)
     -> dynamic_multidim_array<T, IndexOrder>;
 //----------------------------------------------------------------------------
 template <typename T, typename UInt>
@@ -474,19 +322,19 @@ dynamic_multidim_array(std::vector<UInt> const&, std::vector<T> const&)
     -> dynamic_multidim_array<T, x_fastest>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, typename UInt>
-dynamic_multidim_array(std::vector<UInt> const&, std::vector<T> &&)
+dynamic_multidim_array(std::vector<UInt> const&, std::vector<T>&&)
     -> dynamic_multidim_array<T, x_fastest>;
 //----------------------------------------------------------------------------
-template <typename T, typename UInt, size_t N>
+template <typename T, typename UInt, std::size_t N>
 dynamic_multidim_array(std::array<UInt, N> const&, T const& initial)
     -> dynamic_multidim_array<T, x_fastest>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T, typename UInt, size_t N>
+template <typename T, typename UInt, std::size_t N>
 dynamic_multidim_array(std::array<UInt, N> const&, std::vector<T> const&)
     -> dynamic_multidim_array<T, x_fastest>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T, typename UInt, size_t N>
-dynamic_multidim_array(std::array<UInt, N> const&, std::vector<T> &&)
+template <typename T, typename UInt, std::size_t N>
+dynamic_multidim_array(std::array<UInt, N> const&, std::vector<T>&&)
     -> dynamic_multidim_array<T, x_fastest>;
 //==============================================================================
 template <typename IndexingOut = x_fastest, typename T0, typename T1,
