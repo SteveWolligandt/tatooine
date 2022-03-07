@@ -371,6 +371,35 @@ struct autonomous_particle_flowmap_discretization {
     return accumulated_position / accumulated_weight;
   }
   //----------------------------------------------------------------------------
+  [[nodiscard]] auto sample_radial_basis_functions(
+      pos_type const& q, forward_or_backward_tag auto const tag,
+      execution_policy::sequential_t /*pol*/) const {
+    auto  ps                  = pointset<real_type, NumDimensions>{};
+    auto& initial_positions   = ps.template vertex_property<pos_type>("ps");
+    for (auto const& s : m_samplers) {
+      auto v               = ps.insert_vertex(s.local_pos(q, tag));
+      initial_positions[v] = s.center(opposite(tag));
+    }
+    //auto [indices, distances] = ps.nearest_neighbors_radius(pos_type::zeros(), 0.01);
+    auto [indices, distances] = ps.nearest_neighbors(pos_type::zeros(), 30);
+    auto accumulated_position = pos_type{};
+    auto accumulated_weight   = real_type{};
+
+    auto index_it = begin(indices);
+    auto dist_it  = begin(distances);
+    for (; index_it != end(indices); ++index_it, ++dist_it) {
+      auto const& initial_pos = initial_positions[*index_it];
+      auto const& local_pos   = ps[*index_it];
+      if (*dist_it == 0) {
+        return local_pos + initial_pos;
+      };
+      auto const weight = 1 / *dist_it;
+      accumulated_position += (local_pos + initial_pos) * weight;
+      accumulated_weight += weight;
+    }
+    return accumulated_position / accumulated_weight;
+  }
+  //----------------------------------------------------------------------------
   template <std::size_t... VertexSeq>
   [[nodiscard]] auto sample_somehow(
       pos_type const& q, forward_or_backward_tag auto const tag,

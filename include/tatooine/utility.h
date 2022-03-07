@@ -98,6 +98,14 @@ auto repeat(size_t const n, F&& f, Args&&... args) {
   }
 }
 //==============================================================================
+auto copy_or_keep_if_rvalue(auto&& x) -> decltype(auto) {
+  if constexpr (std::is_rvalue_reference_v<decltype(x)>) {
+    return std::forward<decltype(x)>(x);
+  } else {
+    return std::decay_t<decltype(x)>{x};
+  }
+}
+//==============================================================================
 }  // namespace tatooine
 //==============================================================================
 #endif
