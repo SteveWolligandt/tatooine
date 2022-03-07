@@ -221,7 +221,7 @@ auto sysv_rk(tensor<T>& A, tensor<T>& B, Uplo const uplo) {
 //==============================================================================
 template <typename T, size_t M, size_t N>
 auto geqrf(tensor<T, M, N>& A, tensor<T, (M < N) ? M : N>& tau) {
-  ::lapack::geqrf(M, N, A.data_ptr(), M, tau.data_ptr());
+  return ::lapack::geqrf(M, N, A.data_ptr(), M, tau.data_ptr());
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
@@ -231,7 +231,7 @@ auto geqrf(tensor<T>& A, tensor<T>& tau) {
   auto const N = A.dimension(1);
   assert(tau.rank() == 1);
   assert(tau.dimension(0) >= tatooine::min(M, N));
-  ::lapack::geqrf(M, N, A.data_ptr(), M, tau.data_ptr());
+  return ::lapack::geqrf(M, N, A.data_ptr(), M, tau.data_ptr());
 }
 //==============================================================================
 /// \}

@@ -32,8 +32,13 @@ struct moving_least_squares_sampler;
 template <floating_point Real, std::size_t NumDimensions, typename T>
 struct inverse_distance_weighting_sampler;
 //==============================================================================
-template <floating_point Real, std::size_t NumDimensions, typename T>
+template <floating_point Real, std::size_t NumDimensions, typename T,
+          invocable<Real> F>
 struct radial_basis_functions_sampler;
+//==============================================================================
+template <floating_point Real, std::size_t NumDimensions, typename T,
+          invocable<Real> F>
+struct radial_basis_functions_sampler_with_polynomial;
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions>
 struct vertex_container;
@@ -874,12 +879,86 @@ struct pointset {
   }
   //============================================================================
   template <typename T>
-  auto radial_basis_functions_sampler(typed_vertex_property_type<T> const& prop,
-                                      Real const epsilon) const {
-    return detail::pointset::radial_basis_functions_sampler<Real, NumDimensions,
-                                                            T>{*this, prop,
-                                                               epsilon};
+  auto radial_basis_functions_sampler_with_polynomial_and_linear_kernel(
+      typed_vertex_property_type<T> const& prop) const {
+    return radial_basis_functions_sampler_with_polynomial(
+        prop, [](auto const sqr_dist) { return gcem::sqrt(sqr_dist); });
   }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto radial_basis_functions_sampler_with_polynomial_and_cubic_kernel(
+      typed_vertex_property_type<T> const& prop) const {
+    return radial_basis_functions_sampler_with_polynomial(
+        prop,
+        [](auto const sqr_dist) { return sqr_dist * gcem::sqrt(sqr_dist); });
+  }
+  //----------------------------------------------------------------------------
+  /// \param epsilon Shape parameter
+  template <typename T>
+  auto radial_basis_functions_sampler_with_polynomial_and_gaussian_kernel(
+      typed_vertex_property_type<T> const& prop, Real const epsilon) const {
+    return radial_basis_functions_sampler_with_polynomial(
+        prop, [epsilon](auto const sqr_dist) {
+          return gcem::exp(-epsilon * epsilon * sqr_dist);
+        });
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto
+  radial_basis_functions_sampler_with_polynomial_and_thin_plate_spline_kernel(
+      typed_vertex_property_type<T> const& prop) const {
+    return radial_basis_functions_sampler_with_polynomial(
+        prop, [](auto const sqr_dist) {
+          return sqr_dist * gcem::log(gcem::sqrt(sqr_dist));
+        });
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto radial_basis_functions_sampler_with_polynomial(
+      typed_vertex_property_type<T> const& prop, auto&& f) const {
+    return detail::pointset::radial_basis_functions_sampler_with_polynomial{
+        *this, prop, std::forward<decltype(f)>(f)};
+  }
+  //============================================================================
+  template <typename T>
+  auto radial_basis_functions_sampler_with_linear_kernel(
+      typed_vertex_property_type<T> const& prop) const {
+    return radial_basis_functions_sampler(
+        prop, [](auto const sqr_dist) { return gcem::sqrt(sqr_dist); });
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto radial_basis_functions_sampler_with_cubic_kernel(
+      typed_vertex_property_type<T> const& prop) const {
+    return radial_basis_functions_sampler(prop, [](auto const sqr_dist) {
+      return sqr_dist * gcem::sqrt(sqr_dist);
+    });
+  }
+  //----------------------------------------------------------------------------
+  /// \param epsilon Shape parameter
+  template <typename T>
+  auto radial_basis_functions_sampler_with_gaussian_kernel(
+      typed_vertex_property_type<T> const& prop, Real const epsilon) const {
+    return radial_basis_functions_sampler(prop, [epsilon](auto const sqr_dist) {
+      return std::exp(-(epsilon * epsilon * sqr_dist));
+    });
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto radial_basis_functions_sampler_with_thin_plate_spline_kernel(
+      typed_vertex_property_type<T> const& prop) const {
+    return radial_basis_functions_sampler(prop, [](auto const sqr_dist) {
+      return sqr_dist * gcem::log(gcem::sqrt(sqr_dist));
+    });
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto radial_basis_functions_sampler(typed_vertex_property_type<T> const& prop,
+                                      auto&& f) const {
+    return detail::pointset::radial_basis_functions_sampler{
+        *this, prop, std::forward<decltype(f)>(f)};
+  }
+  //----------------------------------------------------------------------------
   friend struct detail::pointset::vertex_container<Real, NumDimensions>;
   friend struct detail::pointset::const_vertex_container<Real, NumDimensions>;
 };
@@ -896,6 +975,7 @@ using pointset5 = Pointset<5>;
 #include <tatooine/detail/pointset/inverse_distance_weighting_sampler.h>
 #include <tatooine/detail/pointset/moving_least_squares_sampler.h>
 #include <tatooine/detail/pointset/radial_basis_functions_sampler.h>
+#include <tatooine/detail/pointset/radial_basis_functions_sampler_with_polynomial.h>
 #include <tatooine/detail/pointset/vertex_container.h>
 //==============================================================================
 #endif
