@@ -510,67 +510,62 @@ struct pointset {
   //----------------------------------------------------------------------------
   auto write_vtk(filesystem::path const& path,
                  std::string const&      title = "Tatooine pointset") const
-      -> void requires(NumDimensions == 3 || NumDimensions == 2) {
-    using namespace std::ranges;
-    vtk::legacy_file_writer writer(path, vtk::dataset_type::polydata);
+      -> void
+  requires(NumDimensions == 3 || NumDimensions == 2)
+  {
+    auto writer = vtk::legacy_file_writer {path, vtk::dataset_type::polydata};
     if (writer.is_open()) {
       writer.set_title(title);
       writer.write_header();
-
-      if constexpr (NumDimensions == 2) {
-        auto three_dims = [](vec<Real, 2> const& v2) {
-          return vec<Real, 3>{v2(0), v2(1), 0};
-        };
-        std::vector<vec<Real, 3>> v3s(vertices().size());
-        auto three_dimensional = views::transform(three_dims);
-        copy(vertex_position_data() | three_dimensional, begin(v3s));
-        writer.write_points(v3s);
-
-      } else if constexpr (NumDimensions == 3) {
-        writer.write_points(vertex_position_data());
-      }
-
-      auto vertex_indices = std::vector<std::vector<std::size_t>>(
-          1, std::vector<std::size_t>(vertices().size()));
-      copy(views::iota(std::size_t(0), vertices().size()),
-           vertex_indices.front().begin());
-      writer.write_vertices(vertex_indices);
-      if (!vertex_properties().empty()) {
-        writer.write_point_data(vertices().size());
-      }
-
-      for (auto const& [name, prop] : vertex_properties()) {
-        std::vector<std::vector<Real>> data;
-        data.reserve(vertex_position_data().size());
-
-        if (prop->type() == typeid(vec<Real, 4>)) {
-          for (auto const& v4 :
-               *dynamic_cast<typed_vertex_property_type<vec<Real, 4>> const*>(
-                   prop.get())) {
-            data.push_back({v4(0), v4(1), v4(2), v4(3)});
-          }
-        } else if (prop->type() == typeid(vec<Real, 3>)) {
-          for (auto const& v3 :
-               *dynamic_cast<typed_vertex_property_type<vec<Real, 3>> const*>(
-                   prop.get())) {
-            data.push_back({v3(0), v3(1), v3(2)});
-          }
-        } else if (prop->type() == typeid(vec<Real, 2>)) {
-          for (auto const& v2 :
-               *dynamic_cast<typed_vertex_property_type<vec<Real, 2>> const*>(
-                   prop.get())) {
-            data.push_back({v2(0), v2(1)});
-          }
-        } else if (prop->type() == typeid(Real)) {
-          for (auto const& scalar :
-               *dynamic_cast<typed_vertex_property_type<Real> const*>(
-                   prop.get())) {
-            data.push_back({scalar});
-          }
-        }
-        writer.write_scalars(name, data);
-      }
+      write_vertices_vtk(writer);
+      write_prop_vtk<int, float, double, vec2f, vec3f, vec4f, vec2d, vec3d,
+                     vec4d>(writer);
       writer.close();
+    }
+  }
+  //----------------------------------------------------------------------------
+ private:
+  auto write_vertices_vtk(vtk::legacy_file_writer& writer) const {
+    using namespace std::ranges;
+    if constexpr (NumDimensions == 2) {
+      auto three_dims = [](vec<Real, 2> const& v2) {
+        return vec<Real, 3>{v2(0), v2(1), 0};
+      };
+      std::vector<vec<Real, 3>> v3s(vertices().size());
+      auto three_dimensional = views::transform(three_dims);
+      copy(vertex_position_data() | three_dimensional, begin(v3s));
+      writer.write_points(v3s);
+
+    } else if constexpr (NumDimensions == 3) {
+      writer.write_points(vertex_position_data());
+    }
+
+    auto vertex_indices = std::vector<std::vector<std::size_t>>(
+        1, std::vector<std::size_t>(vertices().size()));
+    copy(views::iota(std::size_t(0), vertices().size()),
+         vertex_indices.front().begin());
+    writer.write_vertices(vertex_indices);
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto write_prop_vtk(
+      vtk::legacy_file_writer& writer, std::string const& name,
+      typed_vertex_property_type<T> const& prop)
+      const -> void {
+    writer.write_scalars(name, prop.container());
+  }
+  //----------------------------------------------------------------------------
+  template <typename... Ts>
+  auto write_prop_vtk(vtk::legacy_file_writer& writer) const -> void {
+    if (!vertex_properties().empty()) {
+      writer.write_point_data(vertices().size());
+    }
+    for (const auto& [name, prop] : this->m_vertex_properties) {
+      ([&] {
+        if (prop->type() == typeid(Ts)) {
+          write_prop_vtk(writer, name, prop->template cast_to_typed<Ts>());
+        }
+      }(), ...);
     }
   }
   //----------------------------------------------------------------------------

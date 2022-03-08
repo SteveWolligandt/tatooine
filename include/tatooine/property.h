@@ -8,6 +8,9 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
+template <typename Handle, typename T>
+struct typed_vector_property;
+//==============================================================================
 template <typename Handle>
 struct vector_property {
   using this_type = vector_property<Handle>;
@@ -45,6 +48,16 @@ struct vector_property {
   }
   //----------------------------------------------------------------------------
   virtual auto clone() const -> std::unique_ptr<this_type> = 0;
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto cast_to_typed() -> decltype(auto) {
+    return *static_cast<typed_vector_property<Handle, T>*>(this);
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto cast_to_typed() const -> decltype(auto) {
+    return *static_cast<typed_vector_property<Handle, T> const*>(this);
+  }
 };
 //==============================================================================
 template <typename Handle, typename T>
@@ -139,7 +152,9 @@ struct typed_vector_property : vector_property<Handle> {
     m_data.shrink_to_fit();
   }
   //----------------------------------------------------------------------------
-  auto data() const -> auto const& { return m_data; }
+  auto data() const { return m_data.data(); }
+  //----------------------------------------------------------------------------
+  auto container() const -> auto const& { return m_data; }
   //----------------------------------------------------------------------------
   auto size() const { return m_data.size(); }
   //----------------------------------------------------------------------------
@@ -325,11 +340,11 @@ struct typed_deque_property : deque_property<Handle> {
   auto end() const { return m_data.end(); }
   //----------------------------------------------------------------------------
   template <typename... Ts>
-  void emplace_back(Ts&&... ts) {
+  auto emplace_back(Ts&&... ts) -> void {
     m_data.emplace_back(std::forward<Ts>(ts)...);
   }
   //----------------------------------------------------------------------------
-  void clear() override {
+  auto clear() -> void override {
     m_data.clear();
     m_data.shrink_to_fit();
   }

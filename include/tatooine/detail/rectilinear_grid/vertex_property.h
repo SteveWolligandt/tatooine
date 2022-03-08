@@ -36,6 +36,9 @@ using repeated_interpolation_kernel_for_vertex_property =
         GridVertexProperty, DefaultInterpolationKernel,
         GridVertexProperty::num_dimensions()>::type;
 //==============================================================================
+template <typename Grid, typename ValueType, bool HasNonConstReference>
+struct typed_vertex_property_interface;
+//==============================================================================
 template <typename Grid>
 struct vertex_property {
   //============================================================================
@@ -65,6 +68,19 @@ struct vertex_property {
   auto grid() -> auto& { return *m_grid; }
   auto grid() const -> auto const& { return *m_grid; }
   auto set_grid(Grid const& g) { m_grid = &g; }
+  //----------------------------------------------------------------------------
+  template <typename T, bool HasNonConstReference = false>
+  auto cast_to_typed() -> auto& {
+    return *static_cast<
+        typed_vertex_property_interface<Grid, T, HasNonConstReference>*>(this);
+  }
+  //----------------------------------------------------------------------------
+  template <typename T, bool HasNonConstReference = false>
+  auto cast_to_typed() const -> auto const& {
+    return *static_cast<
+        typed_vertex_property_interface<Grid, T, HasNonConstReference> const*>(
+        this);
+  }
 };
 //==============================================================================
 template <typename Grid, typename ValueType, bool HasNonConstReference>

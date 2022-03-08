@@ -2,6 +2,7 @@
 #define TATOOINE_FOR_LOOP_H
 //==============================================================================
 #include <tatooine/cache_alignment.h>
+#include <vector>
 #include <tatooine/concepts.h>
 #include <tatooine/packages.h>
 #include <tatooine/tags.h>
@@ -563,6 +564,72 @@ template <typename Iteration>
 auto for_loop(Iteration&& iteration, std::vector<std::size_t> const& sizes) {
   for_loop(std::forward<Iteration>(iteration), execution_policy::sequential,
            sizes);
+}
+
+//------------------------------------------------------------------------------
+template <std::integral Int>
+auto for_loop(std::invocable<std::vector<Int>> auto&& iteration,
+              std::vector<Int> const& begin, std::vector<Int> const& end,
+              std::vector<Int>& status, Int const dim)
+    -> std::invoke_result_t<decltype(iteration), decltype(status)>
+requires
+  std::same_as<std::invoke_result_t<
+    decltype(iteration), std::vector<Int>>, void> ||
+  std::same_as<std::invoke_result_t<
+    decltype(iteration), std::vector<Int>>, bool>
+{
+  if (static_cast<std::size_t>(dim) == size(begin)) {
+    return iteration(status);
+  } else {
+    for (; status[dim] < end[dim]; ++status[dim]) {
+      if constexpr (std::same_as<std::invoke_result_t<decltype(iteration),
+                                                      std::vector<int>>,
+                                 bool>) {
+        auto const can_continue =
+            for_loop(iteration, begin, end, status, dim + 1);
+        if (!can_continue) {
+          return false;
+        }
+      } else {
+        for_loop(std::forward<decltype(iteration)>(iteration), begin, end,
+                 status, dim + 1);
+      }
+    }
+    status[dim] = begin[dim];
+  }
+  if constexpr (std::same_as<
+                    std::invoke_result_t<decltype(iteration), std::vector<int>>,
+                    bool>) {
+    return true;
+  }
+}
+//------------------------------------------------------------------------------
+template <std::integral Int>
+auto for_loop(std::invocable<std::vector<Int>> auto&& iteration,
+              std::vector<Int> const& begin, std::vector<Int> const& end)
+requires
+  std::same_as<std::invoke_result_t<
+    decltype(iteration), std::vector<Int>>, void> ||
+  std::same_as<std::invoke_result_t<
+    decltype(iteration), std::vector<Int>>, bool>
+{
+  auto status = std::vector{begin};
+  for_loop<Int>(std::forward<decltype(iteration)>(iteration), begin, end,
+                status, 0);
+}
+//------------------------------------------------------------------------------
+template <std::integral Int>
+auto for_loop(std::invocable<std::vector<Int>> auto&& iteration,
+              std::vector<Int> const& end)
+requires
+  std::same_as<std::invoke_result_t<
+    decltype(iteration), std::vector<Int>>, void> ||
+  std::same_as<std::invoke_result_t<
+    decltype(iteration), std::vector<Int>>, bool>
+{
+  auto status = std::vector<Int>(size(end), 0);
+  for_loop<Int>(std::forward<decltype(iteration)>(iteration),
+                std::vector<Int>(size(end), 0), end, status, 0);
 }
 //==============================================================================
 }  // namespace tatooine
