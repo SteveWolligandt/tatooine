@@ -380,23 +380,7 @@ struct autonomous_particle_flowmap_discretization {
       auto v               = ps.insert_vertex(s.local_pos(q, tag));
       initial_positions[v] = s.center(opposite(tag));
     }
-    //auto [indices, distances] = ps.nearest_neighbors_radius(pos_type::zeros(), 0.01);
-    auto [indices, distances] = ps.nearest_neighbors(pos_type::zeros(), 30);
-    auto accumulated_position = pos_type{};
-    auto accumulated_weight   = real_type{};
-
-    auto index_it = begin(indices);
-    auto dist_it  = begin(distances);
-    for (; index_it != end(indices); ++index_it, ++dist_it) {
-      auto const& initial_pos = initial_positions[*index_it];
-      auto const& local_pos   = ps[*index_it];
-      if (*dist_it == 0) {
-        return local_pos + initial_pos;
-      };
-      auto const weight = 1 / *dist_it;
-      accumulated_position += (local_pos + initial_pos) * weight;
-      accumulated_weight += weight;
-    }
+    ps
     return accumulated_position / accumulated_weight;
   }
   //----------------------------------------------------------------------------

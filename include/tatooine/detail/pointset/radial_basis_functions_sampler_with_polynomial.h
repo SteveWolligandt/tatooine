@@ -69,7 +69,7 @@ struct radial_basis_functions_sampler_with_polynomial
         m_weights_and_coeffs(i) = m_property[i];
       } else if constexpr (static_tensor<T>) {
         for (std::size_t j = 0; j < T::num_components(); ++j) {
-          m_weights_and_coeffs(i, j) = m_property[i](j);
+          m_weights_and_coeffs(i, j) = m_property[i].data()[j];
         }
       }
     }
