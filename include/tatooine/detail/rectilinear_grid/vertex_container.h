@@ -11,24 +11,25 @@ namespace tatooine {
 //==============================================================================
 template <detail::rectilinear_grid::dimension... Dimensions>
 class rectilinear_grid;
+//==============================================================================
 }  // namespace tatooine
 //==============================================================================
 namespace tatooine::detail::rectilinear_grid {
 template <typename... Dimensions>
 struct vertex_container {
-  using grid_t         = tatooine::rectilinear_grid<Dimensions...>;
+  using grid_type      = tatooine::rectilinear_grid<Dimensions...>;
   using iterator       = vertex_iterator<Dimensions...>;
   using const_iterator = iterator;
-  using handle         = typename grid_t::vertex_handle;
-  using pos_type       = typename grid_t::pos_type;
-  using seq_t          = typename grid_t::seq_t;
+  using handle         = typename grid_type::vertex_handle;
+  using pos_type       = typename grid_type::pos_type;
+  using sequence_type  = typename grid_type::sequence_type;
   static constexpr auto num_dimensions() { return sizeof...(Dimensions); }
   //----------------------------------------------------------------------------
  private:
-  grid_t const& m_grid;
+  grid_type const& m_grid;
   //----------------------------------------------------------------------------
  public:
-  vertex_container(grid_t const& g) : m_grid{g} {}
+  vertex_container(grid_type const& g) : m_grid{g} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
   auto at(integral auto const... is) const {
@@ -54,7 +55,7 @@ struct vertex_container {
   }
   //----------------------------------------------------------------------------
  public:
-  constexpr auto begin() const { return begin(seq_t{}); }
+  constexpr auto begin() const { return begin(sequence_type{}); }
   //----------------------------------------------------------------------------
  private:
   template <std::size_t... Is>
@@ -67,7 +68,7 @@ struct vertex_container {
   }
   //----------------------------------------------------------------------------
  public:
-  constexpr auto end() const { return end(seq_t{}); }
+  constexpr auto end() const { return end(sequence_type{}); }
   //----------------------------------------------------------------------------
  private:
   template <std::size_t... Is>
@@ -76,7 +77,7 @@ struct vertex_container {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
-  constexpr auto size() const { return size(seq_t{}); }
+  constexpr auto size() const { return size(sequence_type{}); }
   //----------------------------------------------------------------------------
  private:
   template <

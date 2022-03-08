@@ -81,16 +81,21 @@ auto main(int argc, char const** argv) -> int {
               *scalar_prop),
           "scalar_with_polynomial", execution_policy::parallel);
     } else if (options.kernel == kernel_t::cubic) {
-      auto sampler =
-          ps.radial_basis_functions_sampler_with_cubic_kernel(*scalar_prop);
-      gr.sample_to_vertex_property(sampler, "scalar",
-                                   execution_policy::parallel);
+      gr.sample_to_vertex_property(
+          ps.radial_basis_functions_sampler_with_cubic_kernel(*scalar_prop),
+          "scalar", execution_policy::parallel);
+      gr.sample_to_vertex_property(
+          ps.radial_basis_functions_sampler_with_polynomial_and_cubic_kernel(
+              *scalar_prop),
+          "scalar_with_polynomial", execution_policy::parallel);
     } else if (options.kernel == kernel_t::thin_plate_spline) {
-      auto sampler =
-          ps.radial_basis_functions_sampler_with_thin_plate_spline_kernel(
-              *scalar_prop);
-      gr.sample_to_vertex_property(sampler, "scalar",
-                                   execution_policy::parallel);
+      gr.sample_to_vertex_property(
+          ps.radial_basis_functions_sampler_with_thin_plate_spline_kernel(*scalar_prop),
+          "scalar", execution_policy::parallel);
+      gr.sample_to_vertex_property(
+          ps.radial_basis_functions_sampler_with_polynomial_and_thin_plate_spline_kernel(
+              *scalar_prop),
+          "scalar_with_polynomial", execution_policy::parallel);
     } else if (options.kernel == kernel_t::gaussian) {
       auto sampler = ps.radial_basis_functions_sampler_with_gaussian_kernel(
           *scalar_prop, options.epsilon);
@@ -101,23 +106,23 @@ auto main(int argc, char const** argv) -> int {
   auto sample_vector = [&] {
     if (options.kernel == kernel_t::linear) {
       auto sampler =
-          ps.radial_basis_functions_sampler_with_linear_kernel(
+          ps.radial_basis_functions_sampler_with_polynomial_and_linear_kernel(
               *vector_prop);
       gr.sample_to_vertex_property(sampler, "vector",
                                    execution_policy::parallel);
     } else if (options.kernel == kernel_t::cubic) {
       auto sampler =
-          ps.radial_basis_functions_sampler_with_cubic_kernel(*vector_prop);
+          ps.radial_basis_functions_sampler_with_polynomial_and_cubic_kernel(*vector_prop);
       gr.sample_to_vertex_property(sampler, "vector",
                                    execution_policy::parallel);
     } else if (options.kernel == kernel_t::thin_plate_spline) {
       auto sampler =
-          ps.radial_basis_functions_sampler_with_thin_plate_spline_kernel(
+          ps.radial_basis_functions_sampler_with_polynomial_and_thin_plate_spline_kernel(
               *vector_prop);
       gr.sample_to_vertex_property(sampler, "vector",
                                    execution_policy::parallel);
     } else if (options.kernel == kernel_t::gaussian) {
-      auto sampler = ps.radial_basis_functions_sampler_with_gaussian_kernel(
+      auto sampler = ps.radial_basis_functions_sampler_with_polynomial_and_gaussian_kernel(
           *vector_prop, options.epsilon);
       gr.sample_to_vertex_property(sampler, "vector",
                                    execution_policy::parallel);
