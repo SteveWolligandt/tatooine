@@ -53,7 +53,7 @@ struct radial_basis_functions_sampler
         m_weights(i) = m_property[i];
       } else if constexpr (static_tensor<T>) {
         for (std::size_t j = 0; j < T::num_components(); ++j) {
-          m_weights_and_coeffs(i, j) = m_property[i].data()[j];
+          m_weights(i, j) = m_property[i].data()[j];
         }
       }
     }
@@ -86,7 +86,7 @@ struct radial_basis_functions_sampler
       } else if constexpr (static_tensor<T>) {
         for (std::size_t j = 0; j < T::num_components(); ++j) {
           acc.data()[j] +=
-              m_weights_and_coeffs(v.index(), j) *
+              m_weights(v.index(), j) *
               m_kernel(squared_euclidean_distance(q, m_pointset[v]));
         }
       }
