@@ -17,8 +17,8 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
       "magnitude", "x", "y", "z", "w"};
   using renderable_type = tatooine::rectilinear_grid<Axis0, Axis1>;
   template <typename T>
-  using typed_vertex_property_interface_t =
-      typename renderable_type::typed_vertex_property_interface_t<T>;
+  using typed_vertex_property_interface_type =
+      typename renderable_type::typed_vertex_property_interface_type<T>;
   //============================================================================
   struct geometry : gl::indexeddata<Vec2<GLfloat>> {
     static auto get() -> auto& {
@@ -150,7 +150,7 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
   std::unordered_map<std::string, property_settings> settings;
   std::unordered_map<std::string, std::string_view>  selected_component;
   std::string const* selected_property_name = nullptr;
-  typename renderable_type::vertex_property_t const* selected_property =
+  typename renderable_type::vertex_property_type const* selected_property =
       nullptr;
 
   bool vector_property = false;
@@ -249,28 +249,23 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
     }
   }
   //============================================================================
-  template <typename T>
-  static auto cast_prop(auto&& prop) {
-    return static_cast<typed_vertex_property_interface_t<T> const*>(prop);
-  }
-  //----------------------------------------------------------------------------
   auto retrieve_typed_prop(auto&& prop, auto&& f) {
     if (prop->type() == typeid(float)) {
-      f(*cast_prop<float>(prop));
+      f(prop->template cast_to_typed<float>());
     } else if (prop->type() == typeid(double)) {
-      f(*cast_prop<double>(prop));
+      f(prop->template cast_to_typed<double>());
     } else if (prop->type() == typeid(vec2d)) {
-      f(*cast_prop<vec2d>(prop));
+      f(prop->template cast_to_typed<vec2d>());
     } else if (prop->type() == typeid(vec2f)) {
-      f(*cast_prop<vec2f>(prop));
+      f(prop->template cast_to_typed<vec2f>());
     } else if (prop->type() == typeid(vec3d)) {
-      f(*cast_prop<vec3d>(prop));
+      f(prop->template cast_to_typed<vec3d>());
     } else if (prop->type() == typeid(vec3f)) {
-      f(*cast_prop<vec3f>(prop));
+      f(prop->template cast_to_typed<vec3f>());
     } else if (prop->type() == typeid(vec4d)) {
-      f(*cast_prop<vec4d>(prop));
+      f(prop->template cast_to_typed<vec4d>());
     } else if (prop->type() == typeid(vec4f)) {
-      f(*cast_prop<vec4f>(prop));
+      f(prop->template cast_to_typed<vec4f>());
     }
   }
   //----------------------------------------------------------------------------

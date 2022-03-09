@@ -17,7 +17,7 @@ auto finite_differences_coefficients(std::size_t const derivative_order,
   V                   = transposed(V);
   auto b              = vec<real_type, N>::zeros();
   b(derivative_order) = factorial(derivative_order);
-  return solve(V, b);
+  return *solve(V, b);
 }
 //------------------------------------------------------------------------------
 /// read here for more information:
@@ -29,7 +29,7 @@ auto finite_differences_coefficients(std::size_t const derivative_order,
   V                   = transposed(V);
   auto b              = vec<T, N>::zeros();
   b(derivative_order) = factorial(derivative_order);
-  return solve(V, b);
+  return *solve(V, b);
 }
 //------------------------------------------------------------------------------
 /// read here for more information:
@@ -40,7 +40,7 @@ auto finite_differences_coefficients(std::size_t const     derivative_order,
   auto const V        = transposed(tensor<T>::vander(v, v.size()));
   auto       b        = tensor<T>::zeros(v.size());
   b(derivative_order) = factorial(derivative_order);
-  return solve(V, b).data();
+  return solve(V, b)->data();
 }
 //==============================================================================
 }  // namespace tatooine

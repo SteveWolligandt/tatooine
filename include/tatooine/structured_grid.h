@@ -246,7 +246,7 @@ auto structured_grid<Real, NumDimensions, IndexOrder>::local_cell_coordinates(
                   (1 - bary.y()) * v1.y() - (1 - bary.y()) * v0.y();
       Dff(1, 1) = bary.x() * v3.y() + (1 - bary.x()) * v2.y() -
                   bary.x() * v1.y() - (1 - bary.x()) * v0.y();
-      dx = solve(Dff, -ff);
+      dx = *solve(Dff, -ff);
       bary += dx;
       if (squared_euclidean_length(bary) > 100) {
         i = max_num_iterations;  // non convergent: just to save time
@@ -344,7 +344,7 @@ auto structured_grid<Real, NumDimensions, IndexOrder>::local_cell_coordinates(
                   ((a - 1) * b - a + 1) * z4 - a * b * z3 + (a - 1) * b * z2 +
                   (a * b - a) * z1 + ((1 - a) * b + a - 1) * z0;
 
-      dx = solve(Dff, -ff);
+      dx = *solve(Dff, -ff);
       bary += dx;
       if (squared_euclidean_length(bary) > 100) {
         i = max_num_iterations;  // non convergent: just to save time

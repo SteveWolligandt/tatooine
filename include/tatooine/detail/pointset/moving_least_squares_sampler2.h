@@ -83,7 +83,7 @@ struct moving_least_squares_sampler<Real, 2, T>
     auto const F             = construct_F(num_neighbors, indices);
     auto const B             = construct_B(num_neighbors, indices, q);
     auto const BtW           = transposed(B) * diag(w);
-    auto const C             = solve(BtW * B, BtW * F);
+    auto const C             = *solve(BtW * B, BtW * F);
 
     if constexpr (tensor_num_components<T> == 1) {
       return C(0);

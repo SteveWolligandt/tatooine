@@ -3,6 +3,7 @@
 //==============================================================================
 #include <tatooine/autonomous_particle.h>
 #include <tatooine/staggered_flowmap_discretization.h>
+#include <tatooine/huber_loss.h>
 #include <tatooine/uniform_tree_hierarchy.h>
 #include <tatooine/unstructured_simplicial_grid.h>
 
@@ -345,44 +346,71 @@ struct autonomous_particle_flowmap_discretization {
   [[nodiscard]] auto sample_inverse_distance(
       pos_type const& q, forward_or_backward_tag auto const tag,
       execution_policy::sequential_t /*pol*/) const {
-    auto  ps                  = pointset<real_type, NumDimensions>{};
-    auto& initial_positions   = ps.template vertex_property<pos_type>("ps");
-    for (auto const& s : m_samplers) {
-      auto v               = ps.insert_vertex(s.local_pos(q, tag));
-      initial_positions[v] = s.center(opposite(tag));
-    }
-    //auto [indices, distances] = ps.nearest_neighbors_radius(pos_type::zeros(), 0.01);
-    auto [indices, distances] = ps.nearest_neighbors(pos_type::zeros(), 30);
     auto accumulated_position = pos_type{};
     auto accumulated_weight   = real_type{};
 
-    auto index_it = begin(indices);
-    auto dist_it  = begin(distances);
-    for (; index_it != end(indices); ++index_it, ++dist_it) {
-      auto const& initial_pos = initial_positions[*index_it];
-      auto const& local_pos   = ps[*index_it];
-      if (*dist_it == 0) {
-        return local_pos + initial_pos;
+    auto ps = pointset<real_type, NumDimensions>{};
+    for (auto const& s : m_samplers) {
+      ps.insert_vertex(s.center(tag));
+    }
+
+    auto [vertices, dists] = ps.nearest_neighbors(q, 4);
+    auto dist_it = begin(dists);
+    for (auto const v : vertices) {
+      auto const  x    = m_samplers[v.index()](q, tag);
+      //auto const dist = *dist_it;
+      auto const dist = huber_loss(gcem::sqrt(*dist_it));
+      if (dist == 0) {
+        return x;
       };
-      auto const weight = 1 / *dist_it;
-      accumulated_position += (local_pos + initial_pos) * weight;
+      auto const weight = 1 / dist;
+      accumulated_position += x * weight;
       accumulated_weight += weight;
     }
     return accumulated_position / accumulated_weight;
   }
   //----------------------------------------------------------------------------
-  [[nodiscard]] auto sample_radial_basis_functions(
-      pos_type const& q, forward_or_backward_tag auto const tag,
-      execution_policy::sequential_t /*pol*/) const {
-    auto  ps                  = pointset<real_type, NumDimensions>{};
-    auto& initial_positions   = ps.template vertex_property<pos_type>("ps");
-    for (auto const& s : m_samplers) {
-      auto v               = ps.insert_vertex(s.local_pos(q, tag));
-      initial_positions[v] = s.center(opposite(tag));
-    }
-    ps
-    return accumulated_position / accumulated_weight;
-  }
+  //[[nodiscard]] auto sample_inverse_distance(
+  //    pos_type const& q, forward_or_backward_tag auto const tag,
+  //    execution_policy::sequential_t [>pol<]) const {
+  //  auto  ps                  = pointset<real_type, NumDimensions>{};
+  //  auto& initial_positions   = ps.template vertex_property<pos_type>("ps");
+  //  for (auto const& s : m_samplers) {
+  //    auto v               = ps.insert_vertex(s.local_pos(q, tag));
+  //    initial_positions[v] = s.center(opposite(tag));
+  //  }
+  //  //auto [indices, distances] = ps.nearest_neighbors_radius(pos_type::zeros(), 0.01);
+  //  auto [indices, distances] = ps.nearest_neighbors(pos_type::zeros(), 30);
+  //  auto accumulated_position = pos_type{};
+  //  auto accumulated_weight   = real_type{};
+  //
+  //  auto index_it = begin(indices);
+  //  auto dist_it  = begin(distances);
+  //  for (; index_it != end(indices); ++index_it, ++dist_it) {
+  //    auto const& initial_pos = initial_positions[*index_it];
+  //    auto const& local_pos   = ps[*index_it];
+  //    if (*dist_it == 0) {
+  //      return local_pos + initial_pos;
+  //    };
+  //    auto const weight = 1 / *dist_it;
+  //    accumulated_position += (local_pos + initial_pos) * weight;
+  //    accumulated_weight += weight;
+  //  }
+  //  return accumulated_position / accumulated_weight;
+  //}
+  //----------------------------------------------------------------------------
+  //[[nodiscard]] auto sample_radial_basis_functions(
+  //    pos_type const& q, forward_or_backward_tag auto const tag,
+  //    execution_policy::sequential_t [>pol<]) const {
+  //  auto  ps                  = pointset<real_type, NumDimensions>{};
+  //  auto& initial_positions   = ps.template vertex_property<pos_type>("ps");
+  //  for (auto const& s : m_samplers) {
+  //    auto v               = ps.insert_vertex(s.local_pos(q, tag));
+  //    initial_positions[v] = s.center(opposite(tag));
+  //  }
+  //  ps
+  //  return accumulated_position / accumulated_weight;
+  //}
   //----------------------------------------------------------------------------
   template <std::size_t... VertexSeq>
   [[nodiscard]] auto sample_somehow(

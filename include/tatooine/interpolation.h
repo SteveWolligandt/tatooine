@@ -152,7 +152,7 @@ struct cubic : polynomial<Real, 3> {
                             {zero, one, 2 * t0, 3 * t0 * t0},
                             {zero, one, 2 * t1, 3 * t1 * t1}};
     vec<Real, 4>          b{ft0, ft1, dft0_dt, dft1_dt};
-    this->set_coefficients(solve(A, b).data());
+    this->set_coefficients(solve(A, b)->data());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr cubic(const Real ft0, const Real ft1, const Real dft0_dt,
@@ -213,7 +213,7 @@ struct cubic<tensor<Real, N>> {
                             {1.0, t1, t1 * t1, t1 * t1 * t1},
                             {0.0, 1.0, 2 * t0, 3 * t0 * t0},
                             {0.0, 1.0, 2 * t1, 3 * t1 * t1}};
-    const auto            C = solve(A, B);
+    const auto            C = *solve(A, B);
     for (size_t i = 0; i < N; ++i) {
       m_polynomials[i].set_coefficients(C(0, i), C(1, i), C(2, i), C(3, i));
     }
@@ -281,7 +281,7 @@ struct quintic {
         {0.0, 0.0, 2.0, 6 * t0, 12 * t0 * t0, 20 * t0 * t0 * t0},
         {0.0, 0.0, 2.0, 6 * t1, 12 * t1 * t1, 20 * t1 * t1 * t1}};
     vec<Real, 6> b{ft0, ft1, dft0_dt, dft1_dt, ddft0_dtt, ddft1_dtt};
-    m_polynomial.set_coefficients(solve(A, b).data());
+    m_polynomial.set_coefficients(solve(A, b)->data());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr quintic(const Real ft0, const Real ft1, const Real dft0_dt,
@@ -390,7 +390,7 @@ struct quintic {
 //         5 * t1 * t1 * t1 * t1},
 //        {0.0, 0.0, 2.0, 6 * t0, 12 * t0 * t0, 20 * t0 * t0 * t0},
 //        {0.0, 0.0, 2.0, 6 * t1, 12 * t1 * t1, 20 * t1 * t1 * t1}};
-//    const auto C = solve(A, B);
+//    const auto C = *solve(A, B);
 //    for (size_t i = 0; i < N; ++i) {
 //      m_curve.polynomial(i).set_coefficients(C(0, i), C(1, i), C(2, i), C(3,
 //      i),

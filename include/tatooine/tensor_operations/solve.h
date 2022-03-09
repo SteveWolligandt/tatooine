@@ -9,26 +9,46 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
- template <fixed_size_quadratic_mat<2> MatA, static_mat MatB>
- requires(tensor_dimensions<MatB>[0] == 2)
-auto constexpr solve_direct(MatA&& A, MatB&& B) -> std::optional<
-    mat<common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>, 2,
-        tensor_dimensions<MatB>[1]>> {
-  using out_value_type =
-      common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>;
-  auto constexpr K        = tensor_dimensions<MatB>[1];
-  auto const div          = (A(0, 0) * A(1, 1) - A(1, 0) * A(0, 1));
-  if (div == 0) {
-    return std::nullopt;
-  }
-  auto const            p = 1 / div;
-  auto                  X = mat<out_value_type, 2, K>{};
-  for (std::size_t i = 0; i < K; ++i) {
-    X(0, i) = -(A(0, 1) * B(1, i) - A(1, 1) * B(0, i)) * p;
-    X(1, i) = (A(0, 0) * B(1, i) - A(1, 0) * B(0, i)) * p;
-  }
-  return X;
+auto copy_or_keep_if_rvalue_tensor_solve(dynamic_tensor auto&& x) -> decltype(auto) {
+  return tensor<tensor_value_type<decltype(x)>>{std::forward<decltype(x)>(x)};
 }
+template <typename T>
+auto copy_or_keep_if_rvalue_tensor_solve(tensor<T>&& x) -> decltype(auto) {
+  return std::move(x);
+}
+template <typename T, std::size_t... Dims>
+auto copy_or_keep_if_rvalue_tensor_solve(tensor<T, Dims...>&& x) -> decltype(auto) {
+  return std::move(x);
+}
+template <typename T>
+auto copy_or_keep_if_rvalue_tensor_solve(tensor<T> const& x) {
+  return tensor<T>{x};
+}
+template <typename T, std::size_t... Dims>
+auto copy_or_keep_if_rvalue_tensor_solve(tensor<T, Dims...> const& x) {
+  return tensor<T, Dims...>{x};
+}
+template <fixed_size_quadratic_mat<2> MatA, static_mat MatB>
+requires(tensor_dimensions<MatB>[0] == 2)
+auto constexpr solve_direct(MatA&& A, MatB&& B)
+    -> std::optional<
+        mat<common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>, 2,
+            tensor_dimensions<MatB>[1]>> {
+      using out_value_type =
+          common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>;
+      auto constexpr K = tensor_dimensions<MatB>[1];
+      auto const div   = (A(0, 0) * A(1, 1) - A(1, 0) * A(0, 1));
+      if (div == 0) {
+        return std::nullopt;
+      }
+      auto const p = 1 / div;
+      auto       X = mat<out_value_type, 2, K>{};
+      for (std::size_t i = 0; i < K; ++i) {
+        X(0, i) = -(A(0, 1) * B(1, i) - A(1, 1) * B(0, i)) * p;
+        X(1, i) = (A(0, 0) * B(1, i) - A(1, 0) * B(0, i)) * p;
+      }
+      return X;
+    }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <fixed_size_mat<2, 2> MatA, fixed_size_vec<2> VecB>
 auto solve_direct(MatA&& A, VecB&& b) -> std::optional<
@@ -204,8 +224,8 @@ auto solve_lu_lapack(TensorA&& A_, TensorB&& B_) -> std::optional<tensor<
   auto ipiv   = tensor<std::int64_t>::zeros(A_.dimension(0));
   if constexpr (same_as<tensor_value_type<TensorA>,
                         tensor_value_type<TensorB>>) {
-    decltype(auto) A = copy_or_keep_if_rvalue(A_);
-    decltype(auto) B = copy_or_keep_if_rvalue(B_);
+    decltype(auto) A = copy_or_keep_if_rvalue_tensor_solve(A_);
+    decltype(auto) B = copy_or_keep_if_rvalue_tensor_solve(B_);
     if (lapack::gesv(A, B, ipiv) != 0) {
       return std::nullopt;
     }
@@ -231,8 +251,8 @@ auto solve_qr_lapack(TensorA&& A_, TensorB&& B_)
   assert(A_.rank() == 2);
   assert(B_.rank() == 1 || B_.rank() == 2);
   assert(A_.dimension(0) == B_.dimension(0));
-  auto A = copy_or_keep_if_rvalue(A_);
-  auto B = copy_or_keep_if_rvalue(B_);
+  auto A = copy_or_keep_if_rvalue_tensor_solve(A_);
+  auto B = copy_or_keep_if_rvalue_tensor_solve(B_);
   auto const M   = A.dimension(0);
   auto const N   = A.dimension(1);
   auto const K   = (B.rank() == 1 ? 1 : B.dimension(1));
@@ -305,8 +325,8 @@ auto solve_symmetric_lapack(dynamic_tensor auto&& A_, dynamic_tensor auto&& B_,
   assert(B_.dimension(0) == A_.dimension(0));
   if constexpr (same_as<tensor_value_type<decltype(A_)>,
                         tensor_value_type<decltype(B_)>>) {
-    decltype(auto) A = copy_or_keep_if_rvalue(A_);
-    decltype(auto) B = copy_or_keep_if_rvalue(B_);
+    decltype(auto) A = copy_or_keep_if_rvalue_tensor_solve(A_);
+    decltype(auto) B = copy_or_keep_if_rvalue_tensor_solve(B_);
 
     auto const info = lapack::sysv(A, B, uplo);
     if (info > 0) {
@@ -369,8 +389,8 @@ auto solve_symmetric_lapack_aa(dynamic_tensor auto&& A_, dynamic_tensor auto&& B
   assert(B_.dimension(0) == A_.dimension(0));
   if constexpr (same_as<tensor_value_type<decltype(A_)>,
                         tensor_value_type<decltype(B_)>>) {
-    decltype(auto) A = copy_or_keep_if_rvalue(A_);
-    decltype(auto) B = copy_or_keep_if_rvalue(B_);
+    decltype(auto) A = copy_or_keep_if_rvalue_tensor_solve(A_);
+    decltype(auto) B = copy_or_keep_if_rvalue_tensor_solve(B_);
 
     auto const info = lapack::sysv_aa(A, B, uplo);
     if (info > 0) {
@@ -443,8 +463,8 @@ auto solve_symmetric_lapack_rk(dynamic_tensor auto&& A_,
   assert(B_.dimension(0) == A_.dimension(0));
   if constexpr (same_as<tensor_value_type<decltype(A_)>,
                         tensor_value_type<decltype(B_)>>) {
-    decltype(auto) A = copy_or_keep_if_rvalue(A_);
-    decltype(auto) B = copy_or_keep_if_rvalue(B_);
+    decltype(auto) A = copy_or_keep_if_rvalue_tensor_solve(A_);
+    decltype(auto) B = copy_or_keep_if_rvalue_tensor_solve(B_);
 
     auto const info = lapack::sysv_rk(A, B, uplo);
     if (info > 0) {
