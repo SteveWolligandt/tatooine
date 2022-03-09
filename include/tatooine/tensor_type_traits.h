@@ -15,8 +15,13 @@ struct tensor_value_type_impl<std::array<T, N>> {
   using type = T;
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <arithmetic_or_complex T>
+template <arithmetic T>
 struct tensor_value_type_impl<T> {
+  using type = T;
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <floating_point T>
+struct tensor_value_type_impl<std::complex<T>> {
   using type = T;
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

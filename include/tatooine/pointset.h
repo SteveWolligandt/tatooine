@@ -531,11 +531,10 @@ struct pointset {
       auto three_dims = [](vec<Real, 2> const& v2) {
         return vec<Real, 3>{v2(0), v2(1), 0};
       };
-      std::vector<vec<Real, 3>> v3s(vertices().size());
+      auto v3s               = std::vector<vec<Real, 3>>(vertices().size());
       auto three_dimensional = views::transform(three_dims);
       copy(vertex_position_data() | three_dimensional, begin(v3s));
       writer.write_points(v3s);
-
     } else if constexpr (NumDimensions == 3) {
       writer.write_points(vertex_position_data());
     }
@@ -665,7 +664,7 @@ struct pointset {
         constexpr auto to_3d = [](auto const& p) {
           return vec{p.x(), p.y(), Real(0)};
         };
-        copy(vertices() | views::transform(position) | views::transform(to_3d),
+        copy(vertex_position_data() | views::transform(to_3d),
              begin(point_data));
         file.write(reinterpret_cast<char const*>(point_data.data()),
                    num_bytes_points);
@@ -744,9 +743,7 @@ struct pointset {
       file.write(reinterpret_cast<char const*>(&num_bytes),
                  sizeof(header_type));
       file.write(reinterpret_cast<char const*>(
-                     dynamic_cast<typed_vertex_property_type<T>*>(prop.get())
-                         ->data()
-                         .data()),
+                     prop->template cast_to_typed<T>().data()),
                  num_bytes);
     }
   }

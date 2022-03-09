@@ -7,6 +7,7 @@
 #include <tatooine/chunked_multidim_array.h>
 #include <tatooine/concepts.h>
 #include <tatooine/detail/rectilinear_grid/cell_container.h>
+#include <tatooine/detail/rectilinear_grid/vtr_writer.h>
 #include <tatooine/detail/rectilinear_grid/creator.h>
 #include <tatooine/detail/rectilinear_grid/dimension.h>
 #include <tatooine/detail/rectilinear_grid/vertex_container.h>
@@ -1856,26 +1857,32 @@ class rectilinear_grid {
   auto write(filesystem::path const& path) const {
     auto const ext = path.extension();
 
-    if constexpr (num_dimensions() == 1 || num_dimensions() == 2 ||
-                  num_dimensions() == 3) {
+    if constexpr (num_dimensions() == 2 || num_dimensions() == 3) {
       if (ext == ".vtk") {
         write_vtk(path);
         return;
       }
+    }
+    if constexpr (num_dimensions() == 2 || num_dimensions() == 3) {
+      if (ext == ".vtr") {
+        write_vtr(path);
+        return;
+      }
+    }
+    if constexpr (num_dimensions() == 2 || num_dimensions() == 3) {
       if (ext == ".h5") {
         write_visitvs(path);
         return;
       }
     }
+    throw std::runtime_error{"Unsupported file extension: \"" + ext.string() +
+                             "\"."};
   }
   //----------------------------------------------------------------------------
   auto write_vtk(filesystem::path const& path,
-                 std::string const&      description =
-                     "tatooine rectilinear_grid") const -> void
-  requires (num_dimensions() == 1) ||
-           (num_dimensions() == 2) ||
-           (num_dimensions() == 3)
-  {
+                 std::string const& description = "tatooine rectilinear_grid")
+          const -> void requires(num_dimensions() == 2) ||
+      (num_dimensions() == 3) {
     auto writer = [this, &path, &description] {
       if constexpr (is_uniform) {
         auto writer =
@@ -1931,13 +1938,13 @@ class rectilinear_grid {
     }();
     // write vertex data
     writer.write_point_data(vertices().size());
-    write_prop_vtk<int, float, double, vec2f, vec3f, vec4f, vec2d, vec3d,
+    write_vtk_prop<int, float, double, vec2f, vec3f, vec4f, vec2d, vec3d,
                    vec4d>(writer);
   }
   //----------------------------------------------------------------------------
  private:
   template <typename T, bool HasNonConstReference>
-  auto write_prop_vtk(
+  auto write_vtk_prop(
       vtk::legacy_file_writer& writer, std::string const& name,
       typed_vertex_property_interface_type<T, HasNonConstReference> const& prop)
       const -> void {
@@ -1948,15 +1955,31 @@ class rectilinear_grid {
   }
   //----------------------------------------------------------------------------
   template <typename... Ts>
-  auto write_prop_vtk(vtk::legacy_file_writer& writer) const -> void {
+  auto write_vtk_prop(vtk::legacy_file_writer& writer) const -> void {
     for (const auto& [name, prop] : this->m_vertex_properties) {
-      ([&] {
-        if (prop->type() == typeid(Ts)) {
-          write_prop_vtk(writer, name, prop->template cast_to_typed<Ts>());
-        }
-      }(), ...);
+      (
+          [&] {
+            if (prop->type() == typeid(Ts)) {
+              write_vtk_prop(writer, name, prop->template cast_to_typed<Ts>());
+            }
+          }(),
+          ...);
     }
   }
+
+ public:
+  template <typename HeaderType = std::uint64_t>
+  auto write_vtr(filesystem::path const& path) const
+  requires(num_dimensions() == 2) || (num_dimensions() == 3) {
+    detail::rectilinear_grid::vtr_writer<this_type, HeaderType>{*this}.write(
+        path);
+  }
+ public:
+  auto write_visitvs(filesystem::path const& path) const -> void {
+    write_visitvs(path, std::make_index_sequence<num_dimensions()>{});
+  }
+
+ private:
   //----------------------------------------------------------------------------
   template <typename T, bool HasNonConstReference, std::size_t... Is>
   void write_prop_hdf5(
@@ -2067,11 +2090,6 @@ class rectilinear_grid {
                               vec2d, vec4f, vec4d, vec5f, vec5d>(f, name, *prop,
                                                                  seq);
     }
-  }
-  //----------------------------------------------------------------------------
- public:
-  auto write_visitvs(filesystem::path const& path) const -> void {
-    write_visitvs(path, std::make_index_sequence<num_dimensions()>{});
   }
 
  private:

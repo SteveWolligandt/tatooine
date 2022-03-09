@@ -140,8 +140,8 @@ auto main(int argc, char const** argv) -> int {
       std::cerr << "unknown type.\n";
       return 1;
   }
-  gr.write_vtk("radial_basis_functions_sampler.vtk");
-  ps.write_vtk("radial_basis_functions_data.vtk");
+  gr.write("radial_basis_functions_sampler.vtr");
+  ps.write("radial_basis_functions_data.vtp");
 }
 //==============================================================================
 auto parse_args(int const argc, char const** argv) -> std::optional<options_t> {
