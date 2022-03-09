@@ -91,7 +91,7 @@ struct hyper_ellipse {
   auto center(std::size_t const i) -> auto& { return m_center(i); }
   //----------------------------------------------------------------------------
   auto local_coordinate(pos_type const& x) const {
-    return solve(S(), (x - center()));
+    return *solve(S(), (x - center()));
   }
   //----------------------------------------------------------------------------
   auto squared_euclidean_distance_to_center(pos_type const& x) const {
@@ -161,14 +161,14 @@ struct hyper_ellipse {
   template <typename V, typename VReal>
   constexpr auto nearest_point_on_boundary(
       base_tensor<V, VReal, NumDimensions> const& x) const {
-    return m_S * normalize(solve(m_S, x - m_center)) + m_center;
+    return m_S * normalize(*solve(m_S, x - m_center)) + m_center;
   }
   //----------------------------------------------------------------------------
   /// Checks if a point x is inside the ellipse.
   /// \param x point to check
   /// \returns true if x is inside ellipse.
   constexpr auto is_inside(pos_type const& x) const {
-    return squared_euclidean_length(solve(m_S, x - m_center)) <= 1;
+    return squared_euclidean_length(*solve(m_S, x - m_center)) <= 1;
   }
   //----------------------------------------------------------------------------
   auto discretize(std::size_t const num_vertices = 33) const

@@ -212,8 +212,8 @@ struct vis {
         ellipse_shader.set_model_view_matrix(
             cam.view_matrix() *
             rendering::interactive::renderer<geometry::ellipse<double>>::
-                construct_model_matrix(samplers[i].ellipse(backward).S(),
-                                       samplers[i].center(backward)));
+                construct_model_matrix(samplers[i].ellipse(forward).S(),
+                                       samplers[i].center(forward)));
         ellipse_geometry.draw_line_loop();
       }
     }
@@ -222,8 +222,8 @@ struct vis {
       ellipse_shader.set_model_view_matrix(
           cam.view_matrix() *
           rendering::interactive::renderer<geometry::ellipse<double>>::
-              construct_model_matrix(samplers[v.index()].ellipse(backward).S(),
-                                     samplers[v.index()].center(backward)));
+              construct_model_matrix(samplers[v.index()].ellipse(forward).S(),
+                                     samplers[v.index()].center(forward)));
       ellipse_geometry.draw_line_loop();
     }
   }
@@ -305,7 +305,7 @@ struct vis {
       for_loop(
           [&](auto const i) {
             auto const vertex_pos =
-                samplers[i].local_pos(current_point, backward);
+                samplers[i].local_pos(current_point, forward);
             local_positions.vertex_at(i) = vertex_pos;
             get<0>(map[i])               = Vec2<GLfloat>{vertex_pos};
           },
@@ -376,7 +376,7 @@ struct vis {
       auto const proj = this->cam.project(vec2f{local_positions[v]}).xy();
       hovered[v.index()] =
           euclidean_distance(proj, cursor_pos) < 10 ||
-          samplers[v.index()].is_inside(cursor_pos_projected, backward);
+          samplers[v.index()].is_inside(cursor_pos_projected, forward);
       if (hovered[v.index()]) {
         local_positions_gpu.vertexbuffer().write_only_element_at(v.index()) = {
             Vec2<GLfloat>{local_positions[v]}, Vec3<GLfloat>{1, 0, 0}};
@@ -491,13 +491,13 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
         auto const x        = g.vertex_at(is...);
         flowmap_autonomous_particles_barycentric_coordinate_prop(is...) =
             flowmap_autonomous_particles.sample_barycentric_coordinate(
-                x, backward, execution_policy::sequential);
+                x, forward, execution_policy::sequential);
         flowmap_autonomous_particles_nearest_neighbor_prop(is...) =
             flowmap_autonomous_particles.sample_nearest_neighbor(
-                x, backward, execution_policy::sequential);
+                x, forward, execution_policy::sequential);
         flowmap_autonomous_particles_inverse_distance_prop(is...) =
             flowmap_autonomous_particles.sample_inverse_distance(
-                x, backward, execution_policy::sequential);
+                x, forward, execution_policy::sequential);
       },
       execution_policy::parallel);
   std::cout << "measuring autonomous particles flowmap done\n";
@@ -508,7 +508,7 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
         auto const x        = g.vertex_at(is...);
         try {
           flowmap_agranovsky_prop(is...) =
-              flowmap_agranovsky.sample_backward(x);
+              flowmap_agranovsky.sample_forward(x);
         } catch (...) {
           flowmap_agranovsky_prop(is...) = vec2{0.0 / 0.0, 0.0 / 0.0};
         }
@@ -561,7 +561,7 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
   auto advected_particles = std::vector<geometry::ellipse<real_number>>{};
   std::ranges::copy(flowmap_autonomous_particles.samplers() |
                         std::views::transform(
-                            [](auto const& s) { return s.ellipse(backward); }),
+                            [](auto const& s) { return s.ellipse(forward); }),
                     std::back_inserter(advected_particles));
   rendering::interactive::render(/*initial_particles, */ advected_particles, m,
                                  g);

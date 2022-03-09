@@ -70,7 +70,7 @@ struct vertex_property_sampler
 
         b(r) = x(r) - m_grid[std::get<0>(vs)](r);
       }
-      auto const barycentric_coord = solve(A, b);
+      auto const barycentric_coord = *solve(A, b);
       Real const eps               = 1e-8;
       if (((barycentric_coord(VertexSeq) >= -eps) && ...) &&
           ((barycentric_coord(VertexSeq) <= 1 + eps) && ...)) {

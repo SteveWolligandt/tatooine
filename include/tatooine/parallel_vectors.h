@@ -116,9 +116,9 @@ constexpr auto pv_on_tri(vec<Real, 3> const& p0, vec<Real, 3> const& v0,
   W.col(2) = w2;
 
   if (std::abs(det(V)) > 0) {
-    M = solve(V, W);
+    M = *solve(V, W);
   } else if (std::abs(det(W)) > 0) {
-    M = solve(W, V);
+    M = *solve(W, V);
   } else {
     return {};
   }

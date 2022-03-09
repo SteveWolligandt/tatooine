@@ -57,7 +57,7 @@ struct pointset {
   using vec_type     = vec<Real, NumDimensions>;
   using pos_type  = vec_type;
 #if TATOOINE_FLANN_AVAILABLE
-  using flann_index_type = flann::Index<flann::L2<Real>>;
+  using flann_index_type = flann::Index<flann::L2_Simple<Real>>;
 #endif
   //----------------------------------------------------------------------------
   struct vertex_handle : handle<vertex_handle> {

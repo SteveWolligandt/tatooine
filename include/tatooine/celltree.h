@@ -268,7 +268,7 @@ struct celltree : detail::celltree_parent<celltree<Mesh>, typename Mesh::real_ty
       for (size_t i = 0; i < num_dimensions(); ++i) {
         b(i) = x(i);
       }
-      auto const       barycentric_coordinates = solve(A, b);
+      auto const       barycentric_coordinates = *solve(A, b);
       auto             is_inside               = true;
       constexpr real_type eps                     = 1e-6;
       for (size_t i = 0; i < Mesh::num_vertices_per_simplex(); ++i) {

@@ -389,7 +389,7 @@ struct unstructured_simplicial_grid
         }(std::get<Seq>(at(s))),
         ...);
 
-    return solve(A,b);
+    return *solve(A,b);
   }
   //----------------------------------------------------------------------------
  public:

@@ -125,7 +125,7 @@ auto solving_a_linear_system() {
   auto const A = mat2{{1,2},
                       {3,4}};
   auto const b = vec2{5,6};
-  auto const x = solve(A, b);
+  auto const x = *solve(A, b);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 auto solving_a_linear_system() {
@@ -133,7 +133,7 @@ auto solving_a_linear_system() {
                       {3,4}};
   auto const B = mat2{{5,6},
                       {7,8}};
-  auto const X = solve(A, B);
+  auto const X = *solve(A, B);
 }
 \endcode
 \code{.cpp}
@@ -141,7 +141,7 @@ auto solving_a_linear_system() {
   auto const A = mat2{{1,2},
                       {3,4}};
   auto const b = vec2{5,6};
-  auto const x = solve(A, b);
+  auto const x = *solve(A, b);
 }
 \endcode
 \code{.cpp}

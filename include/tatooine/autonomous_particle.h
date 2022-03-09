@@ -736,7 +736,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     static constexpr auto      split_offsets      = SplitBehavior::offsets;
     auto const [eigvecs_S, eigvals_S]             = this->main_axes();
     auto const B = eigvecs_S * diag(eigvals_S);  // current main axes
-    auto const K = solve(diag(eigvals_S), transposed(eigvecs_S));
+    auto const K = *solve(diag(eigvals_S), transposed(eigvecs_S));
 
     mat_t H, HHt, advected_nabla_phi, assembled_nabla_phi, advected_B,
         ghosts_forward, ghosts_backward, prev_ghosts_forward,
@@ -826,7 +826,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
         for (std::size_t i = 0; i < size(split_radii); ++i) {
           auto const new_eigvals    = current_radii * split_radii[i];
           auto const offset2        = advected_B * split_offsets[i];
-          auto const offset0        = solve(assembled_nabla_phi, offset2);
+          auto const offset0        = *solve(assembled_nabla_phi, offset2);
           auto       offset_ellipse = ellipse_type{
               advected_ellipse.center() + offset2,
               eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt)};
@@ -893,7 +893,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //  static constexpr auto      split_offsets      = SplitBehavior::offsets;
   //  auto const [eigvecs_S, eigvals_S]             = this->main_axes();
   //  auto const B = eigvecs_S * diag(eigvals_S);  // current main axes
-  //  auto const K = solve(diag(eigvals_S), transposed(eigvecs_S));
+  //  auto const K = *solve(diag(eigvals_S), transposed(eigvecs_S));
   //
   //  mat_t H, HHt, D, advected_nabla_phi, assembled_nabla_phi, advected_B,
   //      ghosts_forward, ghosts_backward, prev_ghosts_forward,
@@ -971,7 +971,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //      for (std::size_t i = 0; i < size(split_radii); ++i) {
   //        auto const new_eigvals    = current_radii * split_radii[i];
   //        auto const offset2        = advected_B * split_offsets[i];
-  //        auto const offset0        = solve(assembled_nabla_phi, offset2);
+  //        auto const offset0        = *solve(assembled_nabla_phi, offset2);
   //        auto       offset_ellipse = ellipse_type{
   //            advected_ellipse.center() + offset2,
   //            eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt)};

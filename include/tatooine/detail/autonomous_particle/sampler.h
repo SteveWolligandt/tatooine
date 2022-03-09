@@ -63,35 +63,36 @@ struct sampler {
   //============================================================================
   // METHODS
   //============================================================================
-  auto local_pos(pos_type const&                    x,
+  auto local_pos(pos_type const&                    q,
                  forward_or_backward_tag auto const tag) const {
-    return nabla_phi(tag) * (x - center(tag));
+    return nabla_phi(tag) * (q - center(tag));
   }
   //----------------------------------------------------------------------------
-  auto sample(pos_type const& x, forward_or_backward_tag auto const tag) const {
-    return center(opposite(tag)) + local_pos(x, tag);
+  auto sample(pos_type const& q, forward_or_backward_tag auto const tag) const {
+    return center(opposite(tag)) + local_pos(q, tag);
   }
   //----------------------------------------------------------------------------
-  auto operator()(pos_type const&                    x,
+  auto operator()(pos_type const&                    q,
                   forward_or_backward_tag auto const tag) const {
-    return sample(x, tag);
+    return sample(q, tag);
   }
   //----------------------------------------------------------------------------
-  auto is_inside(pos_type const& x, forward_or_backward_tag auto const tag) const {
-    return ellipse(tag).is_inside(x);
+  auto is_inside(pos_type const&                    q,
+                 forward_or_backward_tag auto const tag) const {
+    return ellipse(tag).is_inside(q);
   }
   //----------------------------------------------------------------------------
   auto center(forward_or_backward_tag auto const tag) const -> auto const& {
     return ellipse(tag).center();
   }
   //----------------------------------------------------------------------------
-  auto distance_sqr(pos_type const&                    x,
+  auto distance_sqr(pos_type const&                    q,
                     forward_or_backward_tag auto const tag) const {
     return tatooine::euclidean_length(local_pos(tag));
   }
   //----------------------------------------------------------------------------
-  auto distance(pos_type const& x, auto const tag) const {
-    return gcem::sqrt(distance_sqr(x, tag));
+  auto distance(pos_type const& q, auto const tag) const {
+    return gcem::sqrt(distance_sqr(q, tag));
   }
 };
 //==============================================================================
