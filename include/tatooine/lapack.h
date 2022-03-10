@@ -121,7 +121,7 @@ auto gesv(tensor<T>& A, tensor<T>& B, tensor<std::int64_t>& ipiv) {
 //==============================================================================
 /// \}
 //==============================================================================
-/// \defgroup lapack_sysv Computes the solution to symmetric linear systems
+/// \defgroup lapack_sysv SYSV Computes the solution to symmetric linear systems
 /// \ingroup lapack
 ///
 /// Computes the solution to a system of linear equations \f$\mA\mX = \mB\f$,
