@@ -344,17 +344,19 @@ struct autonomous_particle_flowmap_discretization {
   }
   //----------------------------------------------------------------------------
   [[nodiscard]] auto sample_inverse_distance(
-      pos_type const& q, forward_or_backward_tag auto const tag,
+      std::size_t num_neighbors, pos_type const& q,
+      forward_or_backward_tag auto const tag,
       execution_policy::sequential_t /*pol*/) const {
     auto accumulated_position = pos_type{};
     auto accumulated_weight   = real_type{};
 
     auto ps = pointset<real_type, NumDimensions>{};
     for (auto const& s : m_samplers) {
-      ps.insert_vertex(s.center(tag));
+      //ps.insert_vertex(s.local_pos(q, tag));
+      ps.insert_vertex(s.x0(tag));
     }
 
-    auto [vertices, squared_dists] = ps.nearest_neighbors(q, 4);
+    auto [vertices, squared_dists] = ps.nearest_neighbors(q, num_neighbors);
     auto squared_dist_it = begin(squared_dists);
     for (auto const v : vertices) {
       auto const  x    = m_samplers[v.index()](q, tag);
@@ -366,6 +368,7 @@ struct autonomous_particle_flowmap_discretization {
       auto const weight = 1 / dist;
       accumulated_position += x * weight;
       accumulated_weight += weight;
+      ++squared_dist_it;
     }
     return accumulated_position / accumulated_weight;
   }
@@ -376,7 +379,7 @@ struct autonomous_particle_flowmap_discretization {
   //  auto  ps                  = pointset<real_type, NumDimensions>{};
   //  auto& initial_positions   = ps.template vertex_property<pos_type>("ps");
   //  for (auto const& s : m_samplers) {
-  //    auto v               = ps.insert_vertex(s.local_pos(q, tag));
+  //    auto v               = ps.insert_vertex(-s.local_pos(q, tag));
   //    initial_positions[v] = s.center(opposite(tag));
   //  }
   //  //auto [indices, distances] = ps.nearest_neighbors_radius(pos_type::zeros(), 0.01);

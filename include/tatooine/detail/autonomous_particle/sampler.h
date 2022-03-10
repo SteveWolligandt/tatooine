@@ -23,7 +23,7 @@ struct sampler {
   // MEMBERS
   //============================================================================
   ellipse_type m_ellipse0, m_ellipse1;
-  mat_type     m_nabla_phi_forward, m_nabla_phi_backward;
+  mat_type     m_nabla_phi0, m_nabla_phi1;
 
  public:
   //============================================================================
@@ -42,8 +42,8 @@ struct sampler {
           mat_type const& nabla_phi)
       : m_ellipse0{e0},
         m_ellipse1{e1},
-        m_nabla_phi_forward{nabla_phi},
-        m_nabla_phi_backward{*inv(nabla_phi)} {}
+        m_nabla_phi0{nabla_phi},
+        m_nabla_phi1{*inv(nabla_phi)} {}
   //============================================================================
   /// \{
   auto ellipse(forward_tag const /*tag*/) const -> auto const& {
@@ -57,21 +57,21 @@ struct sampler {
   //----------------------------------------------------------------------------
   /// \{
   auto nabla_phi(forward_tag const /*tag*/) const -> auto const& {
-    return m_nabla_phi_forward;
+    return m_nabla_phi0;
   }
   //----------------------------------------------------------------------------
   auto nabla_phi(backward_tag const /*tag*/) const -> auto const& {
-    return m_nabla_phi_backward;
+    return m_nabla_phi1;
   }
   /// \}
   //============================================================================
   auto local_pos(pos_type const&                    q,
                  forward_or_backward_tag auto const tag) const {
-    return nabla_phi(tag) * (q - center(tag));
+    return nabla_phi(tag) * (q - x0(tag));
   }
   //----------------------------------------------------------------------------
   auto sample(pos_type const& q, forward_or_backward_tag auto const tag) const {
-    return center(opposite(tag)) + local_pos(q, tag);
+    return phi(tag) + local_pos(q, tag);
   }
   //----------------------------------------------------------------------------
   auto operator()(pos_type const&                    q,
@@ -84,8 +84,12 @@ struct sampler {
     return ellipse(tag).is_inside(q);
   }
   //----------------------------------------------------------------------------
-  auto center(forward_or_backward_tag auto const tag) const -> auto const& {
+  auto x0(forward_or_backward_tag auto const tag) const -> auto const& {
     return ellipse(tag).center();
+  }
+  //----------------------------------------------------------------------------
+  auto phi(forward_or_backward_tag auto const tag) const -> auto const& {
+    return ellipse(opposite(tag)).center();
   }
   //----------------------------------------------------------------------------
   auto distance_sqr(pos_type const&                    q,

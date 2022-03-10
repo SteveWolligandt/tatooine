@@ -212,8 +212,8 @@ struct vis {
         ellipse_shader.set_model_view_matrix(
             cam.view_matrix() *
             rendering::interactive::renderer<geometry::ellipse<double>>::
-                construct_model_matrix(samplers[i].ellipse(forward).S(),
-                                       samplers[i].center(forward)));
+                construct_model_matrix(samplers[i].S(forward),
+                                       samplers[i].x0(forward)));
         ellipse_geometry.draw_line_loop();
       }
     }
@@ -222,8 +222,8 @@ struct vis {
       ellipse_shader.set_model_view_matrix(
           cam.view_matrix() *
           rendering::interactive::renderer<geometry::ellipse<double>>::
-              construct_model_matrix(samplers[v.index()].ellipse(forward).S(),
-                                     samplers[v.index()].center(forward)));
+              construct_model_matrix(samplers[v.index()].S(forward),
+                                     samplers[v.index()].x0(forward)));
       ellipse_geometry.draw_line_loop();
     }
   }
@@ -305,7 +305,7 @@ struct vis {
       for_loop(
           [&](auto const i) {
             auto const vertex_pos =
-                samplers[i].local_pos(current_point, forward);
+                -samplers[i].local_pos(current_point, forward);
             local_positions.vertex_at(i) = vertex_pos;
             get<0>(map[i])               = Vec2<GLfloat>{vertex_pos};
           },
@@ -419,7 +419,7 @@ struct vis {
 };
 //------------------------------------------------------------------------------
 auto doit(auto& g, auto const& v, auto const& initial_particles,
-          auto& uuid_generator, auto const t0, auto const t_end) {
+          auto& uuid_generator, auto const t0, auto const t_end, auto const inverse_distance_num_samples) {
   auto const tau                    = t_end - t0;
   auto&      flowmap_numerical_prop = g.vec2_vertex_property("numerical");
   auto&      flowmap_autonomous_particles_barycentric_coordinate_prop =
@@ -448,6 +448,11 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
 
   auto flowmap_autonomous_particles = autonomous_particle_flowmap_type{
       phi, t_end, 0.01, initial_particles, uuid_generator};
+
+  flowmap_autonomous_particles.sample_inverse_distance(
+      inverse_distance_num_samples, vec2{1, 0.5}, forward,
+      execution_policy::sequential);
+
   auto const num_particles_after_advection =
       flowmap_autonomous_particles.num_particles();
 
@@ -480,7 +485,8 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
       [&](auto const... is) {
         auto       copy_phi           = phi;
         auto const x                  = g.vertex_at(is...);
-        flowmap_numerical_prop(is...) = copy_phi(x, t_end, -tau);
+        //flowmap_numerical_prop(is...) = copy_phi(x, t_end, -tau);
+        flowmap_numerical_prop(is...) = copy_phi(x, t0, tau);
       },
       execution_policy::parallel);
   std::cout << "measuring numerical flowmap done\n";
@@ -497,7 +503,7 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
         //        x, forward, execution_policy::sequential);
         flowmap_autonomous_particles_inverse_distance_prop(is...) =
             flowmap_autonomous_particles.sample_inverse_distance(
-                x, forward, execution_policy::sequential);
+                inverse_distance_num_samples, x, forward, execution_policy::sequential);
       },
       execution_policy::parallel);
   std::cout << "measuring autonomous particles flowmap done\n";
@@ -572,8 +578,12 @@ auto main(int argc, char** argv) -> int {
   [[maybe_unused]] auto const r              = 0.01;
   [[maybe_unused]] auto const t0             = double(0);
   [[maybe_unused]] auto       t_end          = double(4);
+  [[maybe_unused]] auto       inverse_distance_num_samples          = std::size_t(5);
   if (argc > 1) {
     t_end = std::stod(argv[1]);
+  }
+  if (argc > 2) {
+    inverse_distance_num_samples = std::stoi(argv[2]);
   }
   //============================================================================
   auto dg = analytical::fields::numerical::doublegyre{};
@@ -589,7 +599,7 @@ auto main(int argc, char** argv) -> int {
   //     {vec2{1 + r, 0.5 - r}, t0, r, uuid_generator},
   //     {vec2{1 - r, 0.5 + r}, t0, r, uuid_generator},
   //     {vec2{1 + r, 0.5 + r}, t0, r, uuid_generator}};
-  doit(g, dg, initial_particles_dg, uuid_generator, t0, t_end);
+  doit(g, dg, initial_particles_dg, uuid_generator, t0, t_end, inverse_distance_num_samples);
   //============================================================================
   //auto dg = analytical::fields::numerical::doublegyre{};
   //auto g  = rectilinear_grid{linspace{0.0, 2.0, 201}, linspace{0.0, 1.0, 101}};
