@@ -10,41 +10,47 @@ namespace tatooine::detail::pointset {
 /// \see <em>An As-Short-As-Possible Introduction to the Least Squares,
 /// Weighted Least Squares and Moving Least Squares Methods for Scattered Data
 /// Approximation and Interpolation</em> \cite nealen2004LeastSquaresIntro.
-template <floating_point Real, typename T>
-struct moving_least_squares_sampler<Real, 2, T>
-    : field<moving_least_squares_sampler<Real, 2, T>, Real, 2, T> {
+template <floating_point Real, typename T, invocable<Real> Weighting>
+struct moving_least_squares_sampler<Real, 2, T, Weighting>
+    : field<moving_least_squares_sampler<Real, 2, T, Weighting>, Real, 2, T> {
   static_assert(flann_available(), "Moving Least Squares Sampler needs FLANN!");
-  using this_type   = moving_least_squares_sampler<Real, 2, T>;
+  using this_type   = moving_least_squares_sampler<Real, 2, T, Weighting>;
   using parent_type = field<this_type, Real, 2, T>;
   using typename parent_type::pos_type;
   using typename parent_type::real_type;
   using typename parent_type::tensor_type;
   using pointset_type = tatooine::pointset<Real, 2>;
   using property_type =
-      typename pointset_type::template typed_vertex_property_t<T>;
+      typename pointset_type::template typed_vertex_property_type<T>;
   using vertex_handle = typename pointset_type::vertex_handle;
-  //==========================================================================
+  //============================================================================
   pointset_type const& m_pointset;
   property_type const& m_property;
   Real                 m_radius;
-  //==========================================================================
-  moving_least_squares_sampler(pointset_type const& ps,
-                               property_type const& property, Real const radius)
-      : m_pointset{ps}, m_property{property}, m_radius{radius} {}
-  //--------------------------------------------------------------------------
+  Weighting            m_weighting;
+  //============================================================================
+  moving_least_squares_sampler(pointset_type const&             ps,
+                               property_type const&             property,
+                               arithmetic auto const            radius,
+                               convertible_to<Weighting> auto&& weighting)
+      : m_pointset{ps},
+        m_property{property},
+        m_radius{radius},
+        m_weighting{weighting} {}
+  //----------------------------------------------------------------------------
   moving_least_squares_sampler(moving_least_squares_sampler const&) = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   moving_least_squares_sampler(moving_least_squares_sampler&&) noexcept =
       default;
-  //--------------------------------------------------------------------------
+  //----------------------------------------------------------------------------
   auto operator                        =(moving_least_squares_sampler const&)
       -> moving_least_squares_sampler& = default;
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto operator=(moving_least_squares_sampler&&) noexcept
       -> moving_least_squares_sampler& = default;
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   ~moving_least_squares_sampler() = default;
-  //--------------------------------------------------------------------------
+  //----------------------------------------------------------------------------
  private:
   [[nodiscard]] auto evaluate_0_neighbors(pos_type const& q) const {
     if constexpr (is_arithmetic<tensor_type>) {
@@ -98,20 +104,21 @@ struct moving_least_squares_sampler<Real, 2, T>
   //------------------------------------------------------------------------------
   auto construct_B(std::size_t const       num_neighbors,
                    std::vector<int> const& indices, pos_type const& q) const {
-    auto B               = allocate_B(num_neighbors);
     auto local_positions = std::vector<pos_type>(num_neighbors);
     std::ranges::copy(indices | std::views::transform([&](auto const i) {
                         return m_pointset.vertex_at(i) - q;
                       }),
                       begin(local_positions));
+
+    auto B = allocate_B(num_neighbors);
     if (num_neighbors >= 3) {
-      construct_linear_part_of_B(local_positions, q, B);
+      construct_linear_part_of_B(local_positions, B);
     }
     if (num_neighbors >= 6) {
-      construct_quadratic_part_of_B(local_positions, q, B);
+      construct_quadratic_part_of_B(local_positions, B);
     }
     if (num_neighbors >= 10) {
-      construct_cubic_part_of_B(local_positions, q, B);
+      construct_cubic_part_of_B(local_positions, B);
     }
     return B;
   }
@@ -130,7 +137,7 @@ struct moving_least_squares_sampler<Real, 2, T>
   }
   //------------------------------------------------------------------------------
   auto construct_linear_part_of_B(std::vector<pos_type> const& local_positions,
-                                  pos_type const& q, auto& B) const {
+                                  auto&                        B) const {
     auto i = std::size_t{};
     for (auto const& x : local_positions) {
       B(i, 1) = x.x();
@@ -140,8 +147,7 @@ struct moving_least_squares_sampler<Real, 2, T>
   }
   //------------------------------------------------------------------------------
   auto construct_quadratic_part_of_B(
-      std::vector<pos_type> const& local_positions, pos_type const& q,
-      auto& B) const {
+      std::vector<pos_type> const& local_positions, auto& B) const {
     auto i = std::size_t{};
     for (auto const& x : local_positions) {
       B(i, 3) = x.x() * x.x();
@@ -152,7 +158,7 @@ struct moving_least_squares_sampler<Real, 2, T>
   }
   //------------------------------------------------------------------------------
   auto construct_cubic_part_of_B(std::vector<pos_type> const& local_positions,
-                                 pos_type const& q, auto& B) const {
+                                 auto&                        B) const {
     auto i = std::size_t{};
     for (auto const& x : local_positions) {
       B(i, 6) = x.x() * x.x() * x.x();
@@ -165,13 +171,9 @@ struct moving_least_squares_sampler<Real, 2, T>
   //----------------------------------------------------------------------------
   auto construct_weights(std::size_t const        num_neighbors,
                          std::vector<Real> const& distances) const {
-    auto w                  = tensor<Real>::zeros(num_neighbors);
-    auto weighting_function = [&](auto const d) {
-      auto const s =  1 - d / m_radius;//normalized_distance
-      return 1 - 6 * s * s + 8 * s * s * s - 3 * s * s * s * s;
-    };
+    auto w = tensor<Real>::zeros(num_neighbors);
     for (std::size_t i = 0; i < num_neighbors; ++i) {
-      w(i) = weighting_function(distances[i]);
+      w(i) = m_weighting(distances[i] / m_radius);
     }
     return w;
   }

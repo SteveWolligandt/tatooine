@@ -26,7 +26,8 @@
 namespace tatooine {
 //==============================================================================
 namespace detail::pointset {
-template <floating_point Real, std::size_t NumDimensions, typename T>
+template <floating_point Real, std::size_t NumDimensions, typename T,
+          invocable<Real> F>
 struct moving_least_squares_sampler;
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions, typename T>
@@ -194,6 +195,7 @@ struct pointset {
   auto invalid_vertices() const -> auto const& { return m_invalid_vertices; }
   //----------------------------------------------------------------------------
  public:
+  ///\{
   auto insert_vertex(arithmetic auto const... ts) requires(sizeof...(ts) ==
                                                            NumDimensions) {
     vertex_position_data().push_back(pos_type{static_cast<Real>(ts)...});
@@ -218,6 +220,7 @@ struct pointset {
     }
     return vertex_handle{size(vertex_position_data()) - 1};
   }
+  ///\}
   //----------------------------------------------------------------------------
   /// tidies up invalid vertices
   auto tidy_up() {
@@ -350,6 +353,7 @@ struct pointset {
   //   return io;
   // }
   //----------------------------------------------------------------------------
+  /// \{
   template <typename T>
   auto vertex_property(std::string const& name) -> auto& {
     if (auto it = vertex_properties().find(name);
@@ -491,7 +495,9 @@ struct pointset {
       -> auto& {
     return insert_vertex_property<mat4>(name, value);
   }
+  /// \}
   //----------------------------------------------------------------------------
+  /// \{
   auto write(filesystem::path const& path) const {
     auto const ext = path.extension();
     if constexpr (NumDimensions == 2 || NumDimensions == 3) {
@@ -747,10 +753,12 @@ struct pointset {
                  num_bytes);
     }
   }
+  /// \}
   //----------------------------------------------------------------------------
  public:
   //----------------------------------------------------------------------------
 #if TATOOINE_FLANN_AVAILABLE
+  /// \{
   auto rebuild_kd_tree() {
     invalidate_kd_tree();
     build_kd_tree();
@@ -852,24 +860,79 @@ struct pointset {
                       begin(handles.first));
     return handles;
   }
+  /// \}
 #endif
   //============================================================================
+  /// \{
   template <typename T>
   auto inverse_distance_weighting_sampler(
       typed_vertex_property_type<T> const& prop, Real const radius = 1) const {
     return detail::pointset::inverse_distance_weighting_sampler<
         Real, NumDimensions, T>{*this, prop, radius};
   }
+  /// \}
   //============================================================================
+  /// \{
+  /// \brief Moving Least Squares Sampler.
+  ///
+  /// Creates a field that interpolates scattered data with moving least squares.
+  ///
+  /// \param prop Some vertex property
+  /// \param radius Radius of local support
+  /// \param weighting Callable that gets as parameter the normalized distance.
+  ///                  1 means point is distant radius. 0 means point is exactly
+  ///                  at currently queried point.
   template <typename T>
   auto moving_least_squares_sampler(typed_vertex_property_type<T> const& prop,
-                                    Real const radius = 1) const
+                                    Real const                           radius,
+                                    invocable<real_type> auto&& weighting) const
       requires(NumDimensions == 3 || NumDimensions == 2) {
-    return detail::pointset::moving_least_squares_sampler<Real, NumDimensions,
-                                                          T>{*this, prop,
-                                                             radius};
+    return detail::pointset::moving_least_squares_sampler<
+        real_type, num_dimensions(), T, std::decay_t<decltype(weighting)>>{
+        *this, prop, radius, std::forward<decltype(weighting)>(weighting)};
   }
+  //----------------------------------------------------------------------------
+  /// \brief Moving Least Squares Sampler.
+  ///
+  /// Creates a field that interpolates scattered data with moving least squares
+  /// with predefind weighting function 
+  ///
+  /// \f$w(d) = 1 - 6\cdot d^2 + 8\cdot d^3 + 3\cdot d^4\f$,
+  ///
+  /// where d is the normalized distance.
+  ///
+  /// \param prop Some vertex property
+  /// \param radius Radius of local support
+  template <typename T>
+  auto moving_least_squares_sampler(typed_vertex_property_type<T> const& prop,
+                                    Real const radius) const
+      requires(NumDimensions == 3 || NumDimensions == 2) {
+    return moving_least_squares_sampler(
+        prop, radius,
+
+        [](auto const d) {
+          return 1 - 6 * d * d + 8 * d * d * d - 3 * d * d * d * d;
+        }
+
+        //[](auto const d) {
+        //  return std::exp(-d * d);
+        //}
+    );
+  }
+  ///\}
   //============================================================================
+  /// \{
+  /// \addtogroup radial_basis_functions Radial Basis Functions Interpolation
+  /// \{
+
+  /// \brief Constructs a radial basis functions interpolator.
+  ///
+  /// Constructs a radial basis functions interpolator with with polynomial
+  /// constraint kernel function:
+  ///
+  /// \f$k(d) = d\f$
+  ///
+  /// \param epsilon Shape parameter
   template <typename T>
   auto radial_basis_functions_sampler_with_polynomial_and_linear_kernel(
       typed_vertex_property_type<T> const& prop) const {
@@ -877,6 +940,14 @@ struct pointset {
         prop, [](auto const sqr_dist) { return gcem::sqrt(sqr_dist); });
   }
   //----------------------------------------------------------------------------
+  /// \brief Constructs a radial basis functions interpolator.
+  ///
+  /// Constructs a radial basis functions interpolator with polynomial
+  /// constraint and kernel function:
+  ///
+  /// \f$k(d) = d^3\f$
+  ///
+  /// \param epsilon Shape parameter
   template <typename T>
   auto radial_basis_functions_sampler_with_polynomial_and_cubic_kernel(
       typed_vertex_property_type<T> const& prop) const {
@@ -885,6 +956,13 @@ struct pointset {
         [](auto const sqr_dist) { return sqr_dist * gcem::sqrt(sqr_dist); });
   }
   //----------------------------------------------------------------------------
+  /// \brief Constructs a radial basis functions interpolator.
+  ///
+  /// Constructs a radial basis functions interpolator with polynomial
+  /// constraint kernel function:
+  ///
+  /// \f$k(d) = e^{-(\epsilon * d)^2}\f$
+  ///
   /// \param epsilon Shape parameter
   template <typename T>
   auto radial_basis_functions_sampler_with_polynomial_and_gaussian_kernel(
@@ -895,6 +973,13 @@ struct pointset {
         });
   }
   //----------------------------------------------------------------------------
+  /// \brief Constructs a radial basis functions interpolator.
+  ///
+  /// Constructs a radial basis functions interpolator with polynomial
+  /// constraint and a thin plate spline
+  /// kernel function:
+  ///
+  /// \f$k(d) = d^2 \cdot \log(d)\f$
   template <typename T>
   auto
   radial_basis_functions_sampler_with_polynomial_and_thin_plate_spline_kernel(
@@ -905,6 +990,10 @@ struct pointset {
         });
   }
   //----------------------------------------------------------------------------
+  /// \brief Constructs a radial basis functions interpolator.
+  ///
+  /// Constructs a radial basis functions interpolator with polynomial
+  /// constraint and a user-defined kernel function.
   template <typename T>
   auto radial_basis_functions_sampler_with_polynomial(
       typed_vertex_property_type<T> const& prop, auto&& f) const {
@@ -912,6 +1001,13 @@ struct pointset {
         *this, prop, std::forward<decltype(f)>(f)};
   }
   //============================================================================
+  /// \brief Constructs a radial basis functions interpolator.
+  ///
+  /// Constructs a radial basis functions interpolator with kernel function:
+  ///
+  /// \f$k(d) = d\f$
+  ///
+  /// \param epsilon Shape parameter
   template <typename T>
   auto radial_basis_functions_sampler_with_linear_kernel(
       typed_vertex_property_type<T> const& prop) const {
@@ -919,6 +1015,13 @@ struct pointset {
         prop, [](auto const sqr_dist) { return gcem::sqrt(sqr_dist); });
   }
   //----------------------------------------------------------------------------
+  /// \brief Constructs a radial basis functions interpolator.
+  ///
+  /// Constructs a radial basis functions interpolator with kernel function:
+  ///
+  /// \f$k(d) = d^3\f$
+  ///
+  /// \param epsilon Shape parameter
   template <typename T>
   auto radial_basis_functions_sampler_with_cubic_kernel(
       typed_vertex_property_type<T> const& prop) const {
@@ -927,6 +1030,12 @@ struct pointset {
     });
   }
   //----------------------------------------------------------------------------
+  /// \brief Constructs a radial basis functions interpolator.
+  ///
+  /// Constructs a radial basis functions interpolator with kernel function:
+  ///
+  /// \f$k(d) = e^{-(\epsilon * d)^2}\f$
+  ///
   /// \param epsilon Shape parameter
   template <typename T>
   auto radial_basis_functions_sampler_with_gaussian_kernel(
@@ -936,6 +1045,12 @@ struct pointset {
     });
   }
   //----------------------------------------------------------------------------
+  /// \brief Constructs a radial basis functions interpolator.
+  ///
+  /// Constructs a radial basis functions interpolator with a thin plate spline
+  /// kernel function:
+  ///
+  /// \f$k(d) = d^2 \cdot \log(d)\f$
   template <typename T>
   auto radial_basis_functions_sampler_with_thin_plate_spline_kernel(
       typed_vertex_property_type<T> const& prop) const {
@@ -944,12 +1059,18 @@ struct pointset {
     });
   }
   //----------------------------------------------------------------------------
+  /// \brief Constructs a radial basis functions interpolator.
+  ///
+  /// Constructs a radial basis functions interpolator with a user-defined
+  /// kernel function.
   template <typename T>
   auto radial_basis_functions_sampler(typed_vertex_property_type<T> const& prop,
                                       auto&& f) const {
     return detail::pointset::radial_basis_functions_sampler{
         *this, prop, std::forward<decltype(f)>(f)};
   }
+  ///\}
+  ///\}
   //----------------------------------------------------------------------------
   friend struct detail::pointset::vertex_container<Real, NumDimensions>;
   friend struct detail::pointset::const_vertex_container<Real, NumDimensions>;

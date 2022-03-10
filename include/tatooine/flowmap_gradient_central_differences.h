@@ -6,7 +6,7 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <flowmap_c Flowmap>
+template <typename Flowmap>
 struct flowmap_gradient_central_differences {
   //============================================================================
  public:
@@ -26,12 +26,12 @@ struct flowmap_gradient_central_differences {
 
   //============================================================================
  public:
-  template <fixed_dims_flowmap_c<num_dimensions()> _Flowmap>
+  template <typename _Flowmap>
   flowmap_gradient_central_differences(_Flowmap flowmap, real_type const epsilon)
       : m_flowmap{std::forward<_Flowmap>(flowmap)},
         m_epsilon{tag::fill{epsilon}} {}
   //----------------------------------------------------------------------------
-  template <fixed_dims_flowmap_c<num_dimensions()> _Flowmap>
+  template <typename _Flowmap>
   flowmap_gradient_central_differences(_Flowmap flowmap, vec_t const& epsilon)
       : m_flowmap{std::forward<_Flowmap>(flowmap)}, m_epsilon{epsilon} {}
   //============================================================================
@@ -64,16 +64,16 @@ struct flowmap_gradient_central_differences {
   auto flowmap() -> auto& { return m_flowmap; }
 };
 // copy when having rvalue
-template <flowmap_c Flowmap>
+template <typename Flowmap>
 flowmap_gradient_central_differences(Flowmap &&)
     -> flowmap_gradient_central_differences<Flowmap>;
 
 // keep reference when having lvalue
-template <flowmap_c Flowmap>
+template <typename Flowmap>
 flowmap_gradient_central_differences(Flowmap const&)
     -> flowmap_gradient_central_differences<const Flowmap&>;
 //==============================================================================
-template <flowmap_c Flowmap>
+template <typename Flowmap>
 constexpr bool is_flowmap_gradient_central_differences(
     const flowmap_gradient_central_differences<Flowmap>&) {
   return true;

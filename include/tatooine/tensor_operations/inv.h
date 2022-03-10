@@ -39,12 +39,13 @@ constexpr auto inv(Mat&& A)
   }
   decltype(auto) a   = A(0, 0);
   decltype(auto) d   = A(1, 1);
-  auto const     det = (a * d - b * c);
+  auto const     det = a * d - b * c;
   if (std::abs(det) < 1e-10) {
-    return {};
+    return std::nullopt;
   }
-  auto const e = 1 / det;
-  return mat{{d, -b}, {-c, a}} * e;
+  auto const div = 1 / det;
+  return mat{{ d, -b},
+             {-c,  a}} * div;
 }
 //------------------------------------------------------------------------------
 /// invert symmetric matrix
@@ -67,9 +68,9 @@ constexpr auto inv_sym(Mat&& A)
   }
   auto const div = 1 / det;
   return mat{
-      {(d * f - e * e) * div, -(b * f - c * e) * div, (b * e - c * d) * div},
-      {-(b * f - c * e) * div, (a * f - c * c) * div, -(a * e - b * c) * div},
-      {(b * e - c * d) * div, -(a * e - b * c) * div, (a * d - b * b) * div}};
+      { d * f - e * e, -b * f - c * e ,  b * e - c * d},
+      {-b * f - c * e,  a * f - c * c , -a * e - b * c},
+      { b * e - c * d, -a * e - b * c ,  a * d - b * b}} * div;
 }
 //------------------------------------------------------------------------------
 /// invert matrix
@@ -98,9 +99,9 @@ constexpr auto inv(Mat&& A)
     return {};
   }
   auto const div = 1 / det;
-  return mat{{(e * i - f * h), -(b * i - c * h), (b * f - c * e)},
-             {-(d * i - f * g), (a * i - c * g), -(a * f - c * d)},
-             {(d * h - e * g), -(a * h - b * g), (a * e - b * d)}} *
+  return mat{{ e * i - f * h, -b * i - c * h,  b * f - c * e},
+             {-d * i - f * g,  a * i - c * g, -a * f - c * d},
+             { d * h - e * g, -a * h - b * g,  a * e - b * d)}} *
          div;
 }
 //------------------------------------------------------------------------------
