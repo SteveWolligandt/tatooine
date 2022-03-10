@@ -121,9 +121,19 @@ auto gesv(tensor<T>& A, tensor<T>& B, tensor<std::int64_t>& ipiv) {
 //==============================================================================
 /// \}
 //==============================================================================
-/// \defgroup lapack_sysv SYSV computes the solution to system of linear
-/// equations A * X = B for SY matrices.
+/// \defgroup lapack_sysv Computes the solution to symmetric linear systems
 /// \ingroup lapack
+///
+/// Computes the solution to a system of linear equations \f$\mA\mX = \mB\f$,
+/// where \f$\mA\f$ is an \f$n\times n\f$ symmetric matrix and \f$\mX\f$ and
+/// \f$\mB\f$ are \f$n\times m\f$ matrices.
+///
+/// The diagonal pivoting method is used to factor \f$\mA\f$ as \f$\mA = \mU \mD
+/// \mU^\top\f$ if `uplo = Upper`, or \f$\mA = \mL \mD \mL^\top\f$ if `uplo =
+/// Lower`, where \f$\mU\f$ (or \f$\mL\f$) is a product of permutation and unit
+/// upper (lower) triangular matrices, and \f$\mD\f$ is symmetric and block
+/// diagonal with \f$1\times 1\f$ and \f$2\times 2\f$ diagonal blocks. The
+/// factored form of \f$\mA\f$ is then used to solve the system of equations T.
 ///
 /// - <a
 /// href='http://www.netlib.org/lapack/explore-html/d6/d0e/group__double_s_ysolve_ga9995c47692c9885ed5d6a6b431686f41.html#ga9995c47692c9885ed5d6a6b431686f41'>LAPACK
@@ -137,14 +147,6 @@ auto sysv(tensor<T, N, N>& A, tensor<T, N>& b,  Uplo const uplo) {
                         N);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Computes the solution to a system of linear equations \(A X = B\), where A
-/// is an n-by-n symmetric matrix and X and B are n-by-nrhs matrices.
-///
-/// The diagonal pivoting method is used to factor A as \(A = U D U^T\) if uplo
-/// = Upper, or \(A = L D L^T\) if uplo = Lower, where U (or L) is a product of
-/// permutation and unit upper (lower) triangular matrices, and D is symmetric
-/// and block diagonal with 1-by-1 and 2-by-2 diagonal blocks. The factored form
-/// of A is then used to solve the system of equations \(A X = B\).
 template <typename T>
 auto sysv(tensor<T>& A, tensor<T>& B, Uplo const uplo) {
   assert(A.rank() == 2);

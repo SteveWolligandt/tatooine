@@ -354,12 +354,12 @@ struct autonomous_particle_flowmap_discretization {
       ps.insert_vertex(s.center(tag));
     }
 
-    auto [vertices, dists] = ps.nearest_neighbors(q, 4);
-    auto dist_it = begin(dists);
+    auto [vertices, squared_dists] = ps.nearest_neighbors(q, 4);
+    auto squared_dist_it = begin(squared_dists);
     for (auto const v : vertices) {
       auto const  x    = m_samplers[v.index()](q, tag);
-      //auto const dist = *dist_it;
-      auto const dist = huber_loss(gcem::sqrt(*dist_it));
+      //auto const dist = *squared_dist_it;
+      auto const dist = huber_loss(gcem::sqrt(*squared_dist_it));
       if (dist == 0) {
         return x;
       };

@@ -489,12 +489,12 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
       [&](auto const... is) {
         auto       copy_phi = phi;
         auto const x        = g.vertex_at(is...);
-        flowmap_autonomous_particles_barycentric_coordinate_prop(is...) =
-            flowmap_autonomous_particles.sample_barycentric_coordinate(
-                x, forward, execution_policy::sequential);
-        flowmap_autonomous_particles_nearest_neighbor_prop(is...) =
-            flowmap_autonomous_particles.sample_nearest_neighbor(
-                x, forward, execution_policy::sequential);
+        //flowmap_autonomous_particles_barycentric_coordinate_prop(is...) =
+        //    flowmap_autonomous_particles.sample_barycentric_coordinate(
+        //        x, forward, execution_policy::sequential);
+        //flowmap_autonomous_particles_nearest_neighbor_prop(is...) =
+        //    flowmap_autonomous_particles.sample_nearest_neighbor(
+        //        x, forward, execution_policy::sequential);
         flowmap_autonomous_particles_inverse_distance_prop(is...) =
             flowmap_autonomous_particles.sample_inverse_distance(
                 x, forward, execution_policy::sequential);
@@ -521,16 +521,16 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
         auto       copy_phi = phi;
         auto const x        = g.vertex_at(is...);
 
-        flowmap_error_autonomous_particles_barycentric_coordinate_prop(is...) =
-            euclidean_distance(
-                flowmap_numerical_prop(is...),
-                flowmap_autonomous_particles_barycentric_coordinate_prop(
-                    is...));
-
-        flowmap_error_autonomous_particles_nearest_neighbor_prop(is...) =
-            euclidean_distance(
-                flowmap_numerical_prop(is...),
-                flowmap_autonomous_particles_nearest_neighbor_prop(is...));
+        //flowmap_error_autonomous_particles_barycentric_coordinate_prop(is...) =
+        //    euclidean_distance(
+        //        flowmap_numerical_prop(is...),
+        //        flowmap_autonomous_particles_barycentric_coordinate_prop(
+        //            is...));
+        //
+        //flowmap_error_autonomous_particles_nearest_neighbor_prop(is...) =
+        //    euclidean_distance(
+        //        flowmap_numerical_prop(is...),
+        //        flowmap_autonomous_particles_nearest_neighbor_prop(is...));
 
         flowmap_error_autonomous_particles_inverse_distance_prop(is...) =
             euclidean_distance(
@@ -540,14 +540,14 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
         flowmap_error_agranovksy_prop(is...) = euclidean_distance(
             flowmap_numerical_prop(is...), flowmap_agranovsky_prop(is...));
 
-        flowmap_error_diff_barycentric_coordinate_prop(is...) =
-            flowmap_error_agranovksy_prop(is...) -
-            flowmap_error_autonomous_particles_barycentric_coordinate_prop(
-                is...);
-
-        flowmap_error_diff_nearest_neighbor_prop(is...) =
-            flowmap_error_agranovksy_prop(is...) -
-            flowmap_error_autonomous_particles_nearest_neighbor_prop(is...);
+        //flowmap_error_diff_barycentric_coordinate_prop(is...) =
+        //    flowmap_error_agranovksy_prop(is...) -
+        //    flowmap_error_autonomous_particles_barycentric_coordinate_prop(
+        //        is...);
+        //
+        //flowmap_error_diff_nearest_neighbor_prop(is...) =
+        //    flowmap_error_agranovksy_prop(is...) -
+        //    flowmap_error_autonomous_particles_nearest_neighbor_prop(is...);
 
         flowmap_error_diff_inverse_distance_prop(is...) =
             flowmap_error_agranovksy_prop(is...) -

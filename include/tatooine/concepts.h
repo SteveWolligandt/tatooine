@@ -150,51 +150,8 @@ concept has_static_rank_method = requires {
 };
 //-----------------------------------------------------------------------------
 template <typename F, typename... Is>
-concept invocable_with_integrals = std::regular_invocable<F, Is...> &&
-                                   (std::is_integral_v<Is> && ...);
-//==============================================================================
-// types
-//==============================================================================
-template <typename Tensor, size_t... Dims>
-concept tensor_c =
-  has_static_rank_method<Tensor> &&
-  invocable_with_n_integrals_v<Tensor, Tensor::rank()> &&
-  has_defined_real_type<Tensor>;
-//-----------------------------------------------------------------------------
-template <typename Tensor, size_t N>
-concept vec_c = tensor_c<Tensor, N>;
-//-----------------------------------------------------------------------------
-template <typename Tensor, size_t M, size_t N>
-concept mat_c = tensor_c<Tensor, M, N>;
-//-----------------------------------------------------------------------------
-template <typename Tensor, typename... Is>
-concept field_c =
-    invocable_with_integrals<Tensor, Is...> &&
-    has_static_rank_method<Tensor>                 &&
-    has_defined_real_type<Tensor>&& requires(Tensor const t, Is const... is) {
-      { t(is...) } -> std::convertible_to<typename Tensor::real_type>;
-    }                                       &&
-    sizeof...(Is) == Tensor::rank();
-//-----------------------------------------------------------------------------
-template <typename Flowmap>
-concept flowmap_c =
-  has_defined_real_type<Flowmap> &&
-  has_defined_pos_type<Flowmap>&&
-  has_static_num_dimensions_method<Flowmap> &&
-  requires(Flowmap const flowmap,
-           typename Flowmap::pos_type const& x,
-           typename Flowmap::real_type const t,
-           typename Flowmap::real_type const tau) {
-    { flowmap(x, t, tau) }
-      -> std::convertible_to<typename Flowmap::pos_type>;
-    { flowmap.evaluate(x, t, tau) }
-      -> std::convertible_to<typename Flowmap::pos_type>;
-  };
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Flowmap, size_t N>
-concept fixed_dims_flowmap_c =
-  flowmap_c<Flowmap> &&
-  Flowmap::num_dimensions() == N;
+concept invocable_with_integrals = std::invocable<F, Is...> &&
+                                   (integral<Is> && ...);
 //==============================================================================
 // stuff
 //==============================================================================

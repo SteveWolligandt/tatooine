@@ -9,9 +9,9 @@ enum class type_t : std::uint8_t { scalar, vector, unknown };
 auto operator>>(std::istream& in, type_t& t) -> std::istream&;
 //==============================================================================
 struct options_t {
-  type_t type;
-  real_type radius;
-  size_t output_res_x, output_res_y, num_datapoints;
+  type_t      type;
+  real_number radius;
+  size_t      output_res_x, output_res_y, num_datapoints;
 };
 //==============================================================================
 auto parse_args(int const argc, char const** argv) -> std::optional<options_t>;
@@ -21,11 +21,11 @@ auto main(int argc, char const** argv) -> int {
   if (!options_opt) {
     return 1;
   }
-  auto const                            options = *options_opt;
-  random::uniform                       rand{-1.0, 1.0, std::mt19937_64{1234}};
-  auto                                  ps          = pointset2{};
-  pointset2::vertex_property_t<vec3>*   vector_prop = nullptr;
-  pointset2::vertex_property_t<real_type>* scalar_prop = nullptr;
+  auto const options = *options_opt;
+  auto       rand    = random::uniform{-1.0, 1.0, std::mt19937_64{1234}};
+  auto       ps      = pointset2{};
+  pointset2::typed_vertex_property_type<vec3>*      vector_prop = nullptr;
+  pointset2::typed_vertex_property_type<real_number>* scalar_prop = nullptr;
   switch (options.type) {
     case type_t::scalar:
       scalar_prop = &ps.scalar_vertex_property("scalar");
@@ -64,12 +64,12 @@ auto main(int argc, char const** argv) -> int {
   auto sample_scalar = [&] {
     auto sampler =
         ps.moving_least_squares_sampler(*scalar_prop, options.radius);
-    gr.sample_to_vertex_property(sampler, "scalar");
+    gr.sample_to_vertex_property(sampler, "scalar", execution_policy::parallel);
   };
   auto sample_vector = [&] {
     auto sampler =
         ps.moving_least_squares_sampler(*vector_prop, options.radius);
-    gr.sample_to_vertex_property(sampler, "vector");
+    gr.sample_to_vertex_property(sampler, "vector", execution_policy::parallel);
   };
   switch (options.type) {
     case type_t::scalar:
@@ -90,7 +90,7 @@ auto main(int argc, char const** argv) -> int {
 auto parse_args(int const argc, char const** argv) -> std::optional<options_t> {
   namespace po = boost::program_options;
   type_t type;
-  real_type radius;
+  real_number radius;
   size_t output_res_x, output_res_y, num_datapoints;
 
   auto desc = po::options_description{"Allowed options"};
@@ -99,7 +99,7 @@ auto parse_args(int const argc, char const** argv) -> std::optional<options_t> {
   // Declare supported options.
   desc.add_options()("help", "produce help message")(
       "type", po::value<type_t>(), "scalar or vector")(
-      "radius", po::value<real_type>(), "search radius")(
+      "radius", po::value<real_number>(), "search radius")(
       "num_datapoints", po::value<size_t>(), "number of data points")(
       "output_res_x", po::value<size_t>(), "set outputresolution width")(
       "output_res_y", po::value<size_t>(), "set outputresolution height");
@@ -118,7 +118,7 @@ auto parse_args(int const argc, char const** argv) -> std::optional<options_t> {
     return std::nullopt;
   }
   if (vm.count("radius") > 0) {
-    radius = vm["radius"].as<real_type>();
+    radius = vm["radius"].as<real_number>();
   } else {
     std::cerr << "--radius not specified!\n";
     return std::nullopt;

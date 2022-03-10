@@ -23,7 +23,7 @@ struct sampler {
   // MEMBERS
   //============================================================================
   ellipse_type m_ellipse0, m_ellipse1;
-  mat_type     m_nabla_phi, m_nabla_phi_inv;
+  mat_type     m_nabla_phi_forward, m_nabla_phi_backward;
 
  public:
   //============================================================================
@@ -42,26 +42,24 @@ struct sampler {
           mat_type const& nabla_phi)
       : m_ellipse0{e0},
         m_ellipse1{e1},
-        m_nabla_phi{nabla_phi},
-        m_nabla_phi_inv{*inv(nabla_phi)} {}
+        m_nabla_phi_forward{nabla_phi},
+        m_nabla_phi_backward{*inv(nabla_phi)} {}
   //============================================================================
-  // GETTERS / SETTERS
-  //============================================================================
+  /// \{
   auto ellipse(forward_tag /*tag*/) const -> auto const& { return m_ellipse0; }
+  //----------------------------------------------------------------------------
   auto ellipse(backward_tag /*tag*/) const -> auto const& { return m_ellipse1; }
+  /// \}
   //----------------------------------------------------------------------------
-  auto S(forward_or_backward_tag auto const tag) const -> auto const& {
-    return ellipse(tag).S();
-  }
-  //----------------------------------------------------------------------------
+  /// \{
   auto nabla_phi(forward_tag const /*tag*/) const -> auto const& {
-    return m_nabla_phi;
+    return m_nabla_phi_forward;
   }
+  //----------------------------------------------------------------------------
   auto nabla_phi(backward_tag const /*tag*/) const -> auto const& {
-    return m_nabla_phi_inv;
+    return m_nabla_phi_backward;
   }
-  //============================================================================
-  // METHODS
+  /// \}
   //============================================================================
   auto local_pos(pos_type const&                    q,
                  forward_or_backward_tag auto const tag) const {
@@ -93,6 +91,10 @@ struct sampler {
   //----------------------------------------------------------------------------
   auto distance(pos_type const& q, auto const tag) const {
     return gcem::sqrt(distance_sqr(q, tag));
+  }
+  //----------------------------------------------------------------------------
+  auto S(forward_or_backward_tag auto const tag) const -> auto const& {
+    return ellipse(tag).S();
   }
 };
 //==============================================================================

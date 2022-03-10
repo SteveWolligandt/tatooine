@@ -10,28 +10,33 @@ namespace tatooine::detail::pointset {
 /// \see <em>An As-Short-As-Possible Introduction to the Least Squares,
 /// Weighted Least Squares and Moving Least Squares Methods for Scattered Data
 /// Approximation and Interpolation</em> \cite nealen2004LeastSquaresIntro.
-template <floating_point Real, typename T>
-struct moving_least_squares_sampler<Real, 3, T>
-    : field<moving_least_squares_sampler<Real, 3, T>, Real, 3, T> {
+template <floating_point Real, typename T, invocable<Real> Weighting>
+struct moving_least_squares_sampler<Real, 3, T, Weighting>
+    : field<moving_least_squares_sampler<Real, 3, T, Weighting>, Real, 3, T> {
   static_assert(flann_available(), "Moving Least Squares Sampler needs FLANN!");
-  using this_type   = moving_least_squares_sampler<Real, 3, T>;
+  using this_type   = moving_least_squares_sampler<Real, 3, T, Weighting>;
   using parent_type = field<this_type, Real, 3, T>;
   using typename parent_type::pos_type;
   using typename parent_type::real_type;
   using typename parent_type::tensor_type;
-  using pointset_t = tatooine::pointset<Real, 3>;
-  using vertex_property_t =
-      typename pointset_t::template typed_vertex_property_t<T>;
-  using vertex_handle = typename pointset_t::vertex_handle;
+  using pointset_type = tatooine::pointset<Real, 3>;
+  using property_type =
+      typename pointset_type::template typed_vertex_property_type<T>;
+  using vertex_handle = typename pointset_type::vertex_handle;
   //==========================================================================
-  pointset_t const&        m_pointset;
-  vertex_property_t const& m_property;
-  Real                     m_radius;
+  pointset_type const& m_pointset;
+  property_type const& m_property;
+  Real                 m_radius;
+  Weighting            m_weighting;
   //==========================================================================
-  moving_least_squares_sampler(pointset_t const&        ps,
-                               vertex_property_t const& property,
-                               Real const               radius)
-      : m_pointset{ps}, m_property{property}, m_radius{radius} {}
+  moving_least_squares_sampler(pointset_type const&             ps,
+                               property_type const&             property,
+                               arithmetic auto const            radius,
+                               convertible_to<Weighting> auto&& weighting)
+      : m_pointset{ps},
+        m_property{property},
+        m_radius{radius},
+        m_weighting{std::forward<decltype(weighting)>(weighting)} {}
   //--------------------------------------------------------------------------
   moving_least_squares_sampler(moving_least_squares_sampler const&) = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -180,13 +185,9 @@ struct moving_least_squares_sampler<Real, 3, T>
   //----------------------------------------------------------------------------
   auto construct_weights(std::size_t const        num_neighbors,
                          std::vector<Real> const& distances) const {
-    auto w                  = tensor<Real>::zeros(num_neighbors);
-    auto weighting_function = [&](auto const d) {
-      return 1 - d / m_radius;
-      return std::exp(-d * d);
-    };
+    auto w = tensor<Real>::zeros(num_neighbors);
     for (std::size_t i = 0; i < num_neighbors; ++i) {
-      w(i) = weighting_function(distances[i]);
+      w(i) = m_weighting(distances[i] / m_radius);
     }
     return w;
   }
