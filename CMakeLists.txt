@@ -152,6 +152,7 @@ option(TATOOINE_BUILD_DOC "Builds the documentation" OFF)
 if (TATOOINE_BUILD_DOC) 
   option(TATOOINE_DOC_ONLY "Only builds documentation" OFF)
   add_subdirectory(doc)
+  target_compile_options(tatooine PUBLIC -DTATOOINE_DOC_ONLY)
 endif () 
 
 if (NOT TATOOINE_DOC_ONLY)
