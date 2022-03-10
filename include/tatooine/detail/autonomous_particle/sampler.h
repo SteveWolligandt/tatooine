@@ -46,9 +46,13 @@ struct sampler {
         m_nabla_phi_backward{*inv(nabla_phi)} {}
   //============================================================================
   /// \{
-  auto ellipse(forward_tag /*tag*/) const -> auto const& { return m_ellipse0; }
+  auto ellipse(forward_tag const /*tag*/) const -> auto const& {
+    return m_ellipse0;
+  }
   //----------------------------------------------------------------------------
-  auto ellipse(backward_tag /*tag*/) const -> auto const& { return m_ellipse1; }
+  auto ellipse(backward_tag const /*tag*/) const -> auto const& {
+    return m_ellipse1;
+  }
   /// \}
   //----------------------------------------------------------------------------
   /// \{

@@ -961,7 +961,7 @@ struct pointset {
   /// Constructs a radial basis functions interpolator with polynomial
   /// constraint kernel function:
   ///
-  /// \f$k(d) = e^{-(\epsilon * d)^2}\f$
+  /// \f$k(d) = e^{-(\epsilon d)^2}\f$
   ///
   /// \param epsilon Shape parameter
   template <typename T>
@@ -1034,7 +1034,7 @@ struct pointset {
   ///
   /// Constructs a radial basis functions interpolator with kernel function:
   ///
-  /// \f$k(d) = e^{-(\epsilon * d)^2}\f$
+  /// \f$k(d) = e^{-(\epsilon d)^2}\f$
   ///
   /// \param epsilon Shape parameter
   template <typename T>
