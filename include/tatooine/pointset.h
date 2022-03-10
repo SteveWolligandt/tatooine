@@ -57,7 +57,7 @@ struct pointset {
   using this_type = pointset<Real, NumDimensions>;
   using vec_type     = vec<Real, NumDimensions>;
   using pos_type  = vec_type;
-#if TATOOINE_FLANN_AVAILABLE
+#if TATOOINE_FLANN_AVAILABLE || defined(TATOOINE_DOC_ONLY)
   using flann_index_type = flann::Index<flann::L2_Simple<Real>>;
 #endif
   //----------------------------------------------------------------------------
@@ -82,7 +82,7 @@ struct pointset {
   std::vector<pos_type>          m_vertex_position_data;
   std::set<vertex_handle>        m_invalid_vertices;
   vertex_property_container_type m_vertex_properties;
-#if TATOOINE_FLANN_AVAILABLE
+#if TATOOINE_FLANN_AVAILABLE || defined(TATOOINE_DOC_ONLY)
   mutable std::unique_ptr<flann_index_type> m_kd_tree;
   mutable std::mutex                     m_flann_mutex;
 #endif
@@ -757,7 +757,7 @@ struct pointset {
   //----------------------------------------------------------------------------
  public:
   //----------------------------------------------------------------------------
-#if TATOOINE_FLANN_AVAILABLE
+#if TATOOINE_FLANN_AVAILABLE || defined(TATOOINE_DOC_ONLY)
   /// \{
   auto rebuild_kd_tree() {
     invalidate_kd_tree();
