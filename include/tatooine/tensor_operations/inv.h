@@ -17,13 +17,15 @@ constexpr auto inv_sym(Mat&& A)
   decltype(auto) a   = A(0, 0);
   decltype(auto) b   = A(1, 0);
   decltype(auto) c   = A(1, 1);
-  auto const     det = (a * c - b * b);
+  auto const     det = a * c - b * b;
   if (std::abs(det) < 1e-10) {
     return {};
   }
-  auto const d = 1 / det;
-  auto const e = -b * d;
-  return mat{{c * d, e}, {e, a * d}};
+  auto const div = 1 / det;
+  auto const e = -b * div;
+  return mat<tensor_value_type<Mat>, 2, 2>{
+    {c * div, e},
+    {e, a * div}};
 }
 //------------------------------------------------------------------------------
 /// invert matrix
@@ -44,8 +46,9 @@ constexpr auto inv(Mat&& A)
     return std::nullopt;
   }
   auto const div = 1 / det;
-  return mat{{ d, -b},
-             {-c,  a}} * div;
+  return mat<tensor_value_type<Mat>, 2, 2>{
+             { d* div, -b* div},
+             {-c* div,  a* div}} ;
 }
 //------------------------------------------------------------------------------
 /// invert symmetric matrix
@@ -67,10 +70,10 @@ constexpr auto inv_sym(Mat&& A)
     return {};
   }
   auto const div = 1 / det;
-  return mat{
-      { d * f - e * e, -b * f - c * e ,  b * e - c * d},
-      {-b * f - c * e,  a * f - c * c , -a * e - b * c},
-      { b * e - c * d, -a * e - b * c ,  a * d - b * b}} * div;
+  return mat<tensor_value_type<Mat>, 3, 3>{
+      {( d * f - e * e) * div, (-b * f - c * e) * div, ( b * e - c * d) * div},
+      {(-b * f - c * e) * div, ( a * f - c * c) * div, (-a * e - b * c) * div},
+      {( b * e - c * d) * div, (-a * e - b * c) * div, ( a * d - b * b) * div}};
 }
 //------------------------------------------------------------------------------
 /// invert matrix
@@ -96,13 +99,13 @@ constexpr auto inv(Mat&& A)
   auto const     det =
       ((a * e - b * d) * i + (c * d - a * f) * h + (b * f - c * e) * g);
   if (std::abs(det) < 1e-10) {
-    return {};
+    return std::nullopt;
   }
   auto const div = 1 / det;
-  return mat{{ e * i - f * h, -b * i - c * h,  b * f - c * e},
+  return mat<tensor_value_type<Mat>, 3, 3>{
+             { e * i - f * h, -b * i - c * h,  b * f - c * e},
              {-d * i - f * g,  a * i - c * g, -a * f - c * d},
-             { d * h - e * g, -a * h - b * g,  a * e - b * d)}} *
-         div;
+             { d * h - e * g, -a * h - b * g,  a * e - b * d}} * div;
 }
 //------------------------------------------------------------------------------
 /// invert symmetric matrix

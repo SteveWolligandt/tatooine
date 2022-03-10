@@ -5,7 +5,13 @@
 #include <tatooine/math.h>
 //==============================================================================
 namespace tatooine::lapack {
+//==============================================================================
 using ::lapack::Uplo;
+using ::lapack::Side;
+using ::lapack::Job;
+using ::lapack::Diag;
+using ::lapack::Norm;
+using ::lapack::Op;
 //==============================================================================
 /// \defgroup lapack Lapack
 /// 
@@ -44,6 +50,7 @@ using ::lapack::Uplo;
 /// \{
 //==============================================================================
 /// \defgroup lapack_getrf GETRF
+/// \brief Computes an LU factorization of a general matrix.
 /// \ingroup lapack
 ///
 /// - <a
@@ -69,13 +76,14 @@ auto getrf(tensor<T, M, N>& A, tensor<int, tatooine::min(M, N)>& p) {
 //==============================================================================
 /// \}
 //==============================================================================
-/// \defgroup lapack_gesv GESV General Solve
+/// \defgroup lapack_gesv GESV
+/// \brief General Solve
 /// \ingroup lapack
 ///
-/// **DGESV** computes the solution to a real system of linear equations
-/// \f$\mA * \mX = \mB\f$
-/// where \f$\mA\f$ is an `N-by-N` matrix and \f$\mX\f$ and \f$\mB\f$ are
-/// N-by-NRHS matrices.
+/// **GESV** computes the solution to a real system of linear equations
+/// \f$\mA\mX = \mB\f$
+/// where \f$\mA\f$ is an \f$n\times n\f$ matrix and \f$\mX\f$ and \f$\mB\f$ are
+/// \f$n\times m\f$ matrices.
 ///
 /// The LU decomposition with partial pivoting and row interchanges is
 /// used to factor \f$\mA\f$ as
@@ -121,7 +129,8 @@ auto gesv(tensor<T>& A, tensor<T>& B, tensor<std::int64_t>& ipiv) {
 //==============================================================================
 /// \}
 //==============================================================================
-/// \defgroup lapack_sysv SYSV Computes the solution to symmetric linear systems
+/// \defgroup lapack_sysv SYSV
+/// \brief Computes the solution to symmetric linear systems
 /// \ingroup lapack
 ///
 /// Computes the solution to a system of linear equations \f$\mA\mX = \mB\f$,
@@ -213,7 +222,8 @@ auto sysv_rk(tensor<T>& A, tensor<T>& B, Uplo const uplo) {
 //==============================================================================
 /// \}
 //==============================================================================
-/// \defgroup lapack_geqrf GEQRF General QR Factorization
+/// \defgroup lapack_geqrf GEQRF
+/// \brief General QR Factorization
 /// \ingroup lapack
 ///
 /// - <a
@@ -239,6 +249,7 @@ auto geqrf(tensor<T>& A, tensor<T>& tau) {
 /// \}
 //==============================================================================
 /// \defgroup lapack_ormqr ORMQR
+/// \brief 
 /// \ingroup lapack
 ///
 /// **ORMQR** overwrites the general real `M x N` matrix `C` with
@@ -263,21 +274,21 @@ auto geqrf(tensor<T>& A, tensor<T>& tau) {
 //==============================================================================
 template <typename T, size_t K, size_t M>
 auto ormqr(tensor<T, M, K>& A, tensor<T, M>& c, tensor<T, K>& tau,
-           ::lapack::Side side, ::lapack::Op trans) {
+           Side side, Op trans) {
   return ::lapack::ormqr(side, trans, M, 1, K, A.data_ptr(), M, tau.data_ptr(),
                          c.data_ptr(), M);
 }
 //==============================================================================
 template <typename T, size_t K, size_t M, size_t N>
 auto ormqr(tensor<T, M, K>& A, tensor<T, M, N>& C, tensor<T, K>& tau,
-           ::lapack::Side side, ::lapack::Op trans) {
+           Side side, Op trans) {
   return ::lapack::ormqr(side, trans, M, N, K, A.data_ptr(), M, tau.data_ptr(),
                          C.data_ptr(), M);
 }
 //==============================================================================
 template <typename T>
 auto ormqr(tensor<T>& A, tensor<T>& C, tensor<T>& tau,
-           ::lapack::Side side, ::lapack::Op trans) {
+           Side side, Op trans) {
   assert(A.rank() == 2);
   assert(C.rank() == 1 || C.rank() == 2);
   assert(tau.rank() == 1);
@@ -321,7 +332,7 @@ auto ormqr(tensor<T>& A, tensor<T>& C, tensor<T>& tau,
 /// - `U`: \f$\mA\f$ is unit triangular
 template <typename T, size_t M, size_t N, size_t NRHS>
 auto trtrs(tensor<T, M, N>& A, tensor<T, M, NRHS>& B, Uplo uplo,
-           ::lapack::Op trans, ::lapack::Diag diag) {
+           Op trans, Diag diag) {
   return ::lapack::trtrs(uplo, trans, diag, N, NRHS, A.data_ptr(), M,
                          B.data_ptr(), M);
 }
@@ -337,7 +348,7 @@ auto trtrs(tensor<T, M, N>& A, tensor<T, M, NRHS>& B, Uplo uplo,
 /// - `U`: \f$\mA\f$ is unit triangular
 template <typename T, size_t M, size_t N>
 auto trtrs(tensor<T, M, N>& A, tensor<T, M>& b, Uplo uplo,
-           ::lapack::Op trans, ::lapack::Diag diag) {
+           Op trans, Diag diag) {
   return ::lapack::trtrs(uplo, trans, diag, N, 1, A.data_ptr(), M, b.data_ptr(),
                          M);
 }
@@ -353,7 +364,7 @@ auto trtrs(tensor<T, M, N>& A, tensor<T, M>& b, Uplo uplo,
 /// - `U`: \f$\mA\f$ is unit triangular
 template <typename T>
 auto trtrs(tensor<T>& A, tensor<T>& B, Uplo uplo,
-           ::lapack::Op trans, ::lapack::Diag diag) {
+           Op trans, Diag diag) {
   assert(A.rank() == 2);
   assert(B.rank() == 1 || B.rank() == 2);
   assert(A.dimension(0) == B.dimension(0));
@@ -374,7 +385,7 @@ auto trtrs(tensor<T>& A, tensor<T>& B, Uplo uplo,
 /// the largest absolute value of any element of a general rectangular matrix.
 /// \param norm Describes which norm will be computed
 template <typename T, size_t M, size_t N>
-auto lange(tensor<T, M, N>& A, ::lapack::Norm norm) {
+auto lange(tensor<T, M, N>& A, Norm norm) {
   return ::lapack::lange(norm, M, N, A.data_ptr(), M);
 }
 //==============================================================================
@@ -397,7 +408,7 @@ auto lange(tensor<T, M, N>& A, ::lapack::Norm norm) {
 /// \{
 //==============================================================================
 template <typename T, size_t N>
-auto gecon(tensor<T, N, N>& A, ::lapack::Norm norm, T& rcond) {
+auto gecon(tensor<T, N, N>& A, Norm norm, T& rcond) {
   auto const n    = lange(A, norm);
   auto       ipiv = tensor<std::int64_t, N>{};
   getrf(A, ipiv);
@@ -413,34 +424,34 @@ auto gecon(tensor<T, N, N>& A, ::lapack::Norm norm, T& rcond) {
 /// Computes all eigenvalues and, optionally, eigenvectors of a real symmetric
 /// matrix A.
 template <typename Real, size_t N>
-auto syev(::lapack::Job jobz, Uplo uplo, tensor<Real, N, N>& A,
+auto syev(Job jobz, Uplo uplo, tensor<Real, N, N>& A,
           tensor<Real, N>& W) {
   return ::lapack::syev(jobz, uplo, N, A.data_ptr(), N, W.data_ptr());
 }
 //==============================================================================
 template <typename T, size_t N>
 auto geev(tensor<T, N, N>& A, tensor<std::complex<T>, N>& W) {
-  return ::lapack::geev(::lapack::Job::NoVec, ::lapack::Job::NoVec, N,
+  return ::lapack::geev(Job::NoVec, Job::NoVec, N,
                         A.data_ptr(), N, W.data_ptr(), nullptr, N, nullptr, N);
 }
 template <typename T, size_t N>
 auto geev_left(tensor<T, N, N>& A, tensor<std::complex<T>, N>& W,
                tensor<T, N, N>& VL) {
-  return ::lapack::geev(::lapack::Job::Vec, ::lapack::Job::NoVec, N,
+  return ::lapack::geev(Job::Vec, Job::NoVec, N,
                         A.data_ptr(), N, W.data_ptr(), VL.data_ptr(), N,
                         nullptr, N);
 }
 template <typename T, size_t N>
 auto geev_right(tensor<T, N, N>& A, tensor<std::complex<T>, N>& W,
                 tensor<T, N, N>& VR) {
-  return ::lapack::geev(::lapack::Job::NoVec, ::lapack::Job::Vec, N,
+  return ::lapack::geev(Job::NoVec, Job::Vec, N,
                         A.data_ptr(), N, W.data_ptr(), nullptr, N, VR.data_ptr(),
                         N);
 }
 template <typename T, size_t N>
 auto geev(tensor<T, N, N>& A, tensor<std::complex<T>, N>& W,
           tensor<T, N, N>& VL, tensor<T, N, N>& VR) {
-  return ::lapack::geev(::lapack::Job::Vec, ::lapack::Job::Vec, N, A.data_ptr(),
+  return ::lapack::geev(Job::Vec, Job::Vec, N, A.data_ptr(),
                         N, W.data_ptr(), VL.data_ptr(), N, VR.data_ptr(), N);
 }
 //==============================================================================
