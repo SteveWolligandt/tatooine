@@ -413,6 +413,24 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
               vector_property = false;
             } else if (prop_holds_vector(prop)) {
               upload_magnitude_to_texture(selected_property, grid);
+
+              for (std::size_t i = 0; i < 5; ++i) {
+                auto const is_selected =
+                    selected_component.at(*selected_property_name) ==
+                    vector_component_names[i];
+                if (is_selected && i == 0) {
+                  upload_magnitude_to_texture(selected_property, grid);
+                } else if (is_selected && i == 1) {
+                  upload_x_to_texture(selected_property, grid);
+                } else if (is_selected && i == 2) {
+                  upload_y_to_texture(selected_property, grid);
+                } else if (is_selected && i == 3) {
+                  upload_z_to_texture(selected_property, grid);
+                } else if (is_selected && i == 4) {
+                  upload_w_to_texture(selected_property, grid);
+                }
+              }
+
               vector_property = true;
             }
           }

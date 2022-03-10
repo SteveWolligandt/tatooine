@@ -125,6 +125,47 @@ using namespace analytical::fields::numerical;
 //  REQUIRE(distance(px1, phi(px0, t0, t1 - t0)) < 1e-4);
 //}
 //==============================================================================
+TEST_CASE("autonomous_particl_identity_flowmap",
+          "[autonomous_particle][identity_flowmap]") {
+  auto const v              = doublegyre{};
+  auto     const  phi            = flowmap(v);
+  auto       uuid_generator = std::atomic_uint64_t{};
+  auto const t0 = 0;
+  auto const r0 = 0.01;
+  auto const t_end = 2;
+  auto     const  part = autonomous_particle2{vec2{1, 0.5}, t0, r0, uuid_generator};
+  auto const [advected_autonomous_particles, advected_single_particles,
+              reconstructed_neighbors] =
+      part.advect_with_three_splits(phi, 1e-4, t_end, uuid_generator);
+  for (auto const& p : advected_autonomous_particles) {
+    auto const s = p.sampler();
+    SECTION("compare with self") {
+    //  SECTION("forward") {
+        CAPTURE(s(s.x0(forward), forward), s.x0(backward));
+        REQUIRE(approx_equal(s(s.x0(forward), forward), s.x0(backward)));
+      //}
+      //SECTION("backward") {
+        CAPTURE(s(s.x0(backward), backward), s.x0(forward));
+        REQUIRE(approx_equal(s(s.x0(backward), backward), s.x0(forward)));
+    //  }
+    }
+
+    SECTION("compare with numerical integration") {
+      auto const eps = 5e-4;
+      SECTION("forward") {
+        CAPTURE(s.x0(backward), phi(s.x0(forward), t0, t_end - t0));
+        REQUIRE(approx_equal(s.x0(backward), phi(s.x0(forward), t0, t_end - t0),
+                             eps));
+      }
+      SECTION("backward") {
+        CAPTURE(s.x0(forward), phi(s.x0(backward), t_end, t0 - t_end));
+        REQUIRE(approx_equal(s.x0(forward),
+                             phi(s.x0(backward), t_end, t0 - t_end), eps));
+      }
+    }
+  }
+}
+//==============================================================================
 TEST_CASE("autonomous_particle_post_triangulation_simple_cases",
           "[autonomous_particle][post_triangulation][simple_cases]") {
   using namespace detail::autonomous_particle;
