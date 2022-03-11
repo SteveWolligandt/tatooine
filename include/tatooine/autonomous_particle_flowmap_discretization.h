@@ -356,7 +356,7 @@ struct autonomous_particle_flowmap_discretization {
       ps.insert_vertex(s.x0(tag));
     }
 
-    auto [vertices, squared_dists] = ps.nearest_neighbors(q, num_neighbors);
+    auto [vertices, squared_dists] = ps.nearest_neighbors_radius(q, 0.1);
     auto squared_dist_it = begin(squared_dists);
     for (auto const v : vertices) {
       auto const  x    = m_samplers[v.index()](q, tag);

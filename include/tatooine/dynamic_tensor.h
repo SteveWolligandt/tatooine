@@ -100,12 +100,12 @@ struct tensor<T> : dynamic_multidim_array<T> {
     return this_type{std::forward<Rand>(rand), size...};
   }
   //----------------------------------------------------------------------------
-  static auto vander(floating_point_range auto const& v) {
+  static auto vander(arithmetic_range auto const& v) {
     return vander(v, v.size());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  static auto vander(floating_point_range auto const& v,
-                     integral auto const              degree) {
+  static auto vander(arithmetic_range auto const& v,
+                     integral auto const          degree) {
     auto V             = this_type{v.size(), degree};
     auto factor_up_row = [row = 0ul, &V, degree](auto const x) mutable {
       V(row, 0) = 1;
@@ -164,7 +164,7 @@ struct tensor<T> : dynamic_multidim_array<T> {
   explicit tensor(Components&&... components) requires(
       (!integral<std::decay_t<Components>> && ...))
       : parent_type{std::vector<T>{std::forward<Components>(components)...},
-                    1} {}
+                    sizeof...(Components)} {}
   //----------------------------------------------------------------------------
   /// Constructs a rank 2 tensor aka matrix.
   template <arithmetic_or_complex... Rows, std::size_t N>
@@ -237,23 +237,25 @@ struct tensor<T> : dynamic_multidim_array<T> {
   auto rank() const { return this->num_dimensions(); }
   //----------------------------------------------------------------------------
   template <einstein_notation::index... Is>
-  requires(sizeof...(Is) == rank()) auto at(Is const... /*is*/) {
+  auto at(Is const... /*is*/) {
+    assert(rank() == 0 || sizeof...(Is) == rank());
     return indexed_type<Is...>{*this};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <einstein_notation::index... Is>
-  requires(sizeof...(Is) == rank())
   auto at(Is const... /*is*/) const {
+    assert(rank() == 0 || sizeof...(Is) == rank());
     return const_indexed_type<Is...>{*this};
   }
   //----------------------------------------------------------------------------
   auto operator()(einstein_notation::index auto const... is) const 
-  requires(sizeof...(is) == rank()) {
+  {
+    assert(rank() == 0 || sizeof...(is) == rank());
     return at(is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator()(einstein_notation::index auto const... is) 
-  requires(sizeof...(is) == rank()) {
+  auto operator()(einstein_notation::index auto const... is) {
+    assert(rank() == 0 || sizeof...(is) == rank());
     return at(is...);
   }
 };

@@ -1,10 +1,12 @@
-#ifndef TATOOINE_EINSTEIN_NOTATION_ADDED_CONTACTED_TENSOR_H
-#define TATOOINE_EINSTEIN_NOTATION_ADDED_CONTACTED_TENSOR_H
+#ifndef TATOOINE_EINSTEIN_NOTATION_CONTRACTED_STATIC_TENSOR_H
+#define TATOOINE_EINSTEIN_NOTATION_CONTRACTED_STATIC_TENSOR_H
+//==============================================================================
+#include <tatooine/einstein_notation/type_traits.h>
 //==============================================================================
 namespace tatooine::einstein_notation {
 //==============================================================================
 template <typename... IndexedTensors>
-struct contracted_tensor {
+struct contracted_static_tensor {
   using real_type =
       common_type<typename IndexedTensors::tensor_type::value_type...>;
   using indices_per_tensor = type_list<typename IndexedTensors::indices...>;
@@ -32,7 +34,7 @@ struct contracted_tensor {
   std::tuple<IndexedTensors...> m_tensors;
 
  public:
-  contracted_tensor(IndexedTensors... tensors) : m_tensors{tensors...} {}
+  contracted_static_tensor(IndexedTensors... tensors) : m_tensors{tensors...} {}
 
   template <std::size_t I>
   auto at() const {
@@ -50,8 +52,8 @@ struct contracted_tensor {
       std::index_sequence<ContractedIndexSequence...> /*seq*/,
       std::index_sequence<ContractedTensorsSequence...> /*seq*/) const {
     using map_t              = std::map<std::size_t, std::size_t>;
-    using contracted_tensor  = contracted_tensor<IndexedTensors...>;
-    using contracted_indices = typename contracted_tensor::contracted_indices;
+    using contracted_static_tensor  = contracted_static_tensor<IndexedTensors...>;
+    using contracted_indices = typename contracted_static_tensor::contracted_indices;
 
     auto const contracted_indices_map = map_t{map_t::value_type{
         contracted_indices::template at<ContractedIndexSequence>::get(),
@@ -93,7 +95,7 @@ struct contracted_tensor {
                       std::get<ContractedTensorsSequence>(index_arrays)) *
                   ...);
         },
-        contracted_tensor::template size<
+        contracted_static_tensor::template size<
             typename contracted_indices::template at<
                 ContractedIndexSequence>>()...);
     return acc;

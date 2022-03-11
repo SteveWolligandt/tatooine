@@ -40,17 +40,31 @@ auto operator<<(std::ostream& out, const base_tensor<Tensor, T, M, N>& m)
 }
 //==============================================================================
 /// printing dynamic tensors
-auto operator<<(std::ostream& out, dynamic_tensor auto const& v) -> auto& {
-  if (v.num_dimensions() == 1) {
+auto operator<<(std::ostream& out, dynamic_tensor auto const& t) -> auto& {
+  if (t.rank() == 1) {
     out << "[ ";
     out << std::scientific;
-    for (size_t i = 0; i < v.size(0); ++i) {
-      if constexpr (!is_complex<
-                        typename std::decay_t<decltype(v)>::value_type>) {
+    for (size_t i = 0; i < t.dimension(0); ++i) {
+      if constexpr (!is_complex<tensor_value_type<decltype(t)>>) {
+        out << t(i) << ' ';
       }
-      out << v(i) << ' ';
     }
     out << "]";
+    out << std::defaultfloat;
+  } else if (t.rank() == 2) {
+    out << std::scientific;
+    for (size_t r = 0; r < t.dimension(0); ++r) {
+      out << "[ ";
+      for (size_t c = 0; c < t.dimension(1); ++c) {
+        if constexpr (!is_complex<tensor_value_type<decltype(t)>>) {
+          if (t(r, c) >= 0) {
+            out << ' ';
+          }
+        }
+        out << t(r, c) << ' ';
+      }
+      out << "]\n";
+    }
     out << std::defaultfloat;
   }
   return out;

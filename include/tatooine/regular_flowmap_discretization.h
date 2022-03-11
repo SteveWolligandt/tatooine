@@ -47,9 +47,11 @@ struct regular_flowmap_discretization {
 
   using backward_grid_type = unstructured_simplicial_grid<Real, N, N>;
   using mesh_vertex_property_type =
-      typename backward_grid_type::template typed_vertex_property_type<pos_type>;
+      typename backward_grid_type::template typed_vertex_property_type<
+          pos_type>;
   using mesh_vertex_property_sampler_type =
-      typename backward_grid_type::template vertex_property_sampler_type<pos_type>;
+      typename backward_grid_type::template vertex_property_sampler_type<
+          pos_type>;
   //============================================================================
  private:
   Real m_t0;
@@ -160,66 +162,40 @@ struct regular_flowmap_discretization {
     m_backward_grid.build_hierarchy();
   }
   //----------------------------------------------------------------------------
-  auto forward_grid() const -> auto const& { return m_forward_grid; }
-  auto forward_grid() -> auto& { return m_forward_grid; }
-  auto backward_grid() const -> auto const& { return m_backward_grid; }
-  auto backward_grid() -> auto& { return m_backward_grid; }
-  //----------------------------------------------------------------------------
-  auto forward_sampler() const -> auto const& { return *m_forward_sampler; }
-  auto forward_sampler() -> auto& { return *m_forward_sampler; }
-  auto backward_sampler() const -> auto const& { return *m_backward_sampler; }
-  auto backward_sampler() -> auto& { return *m_backward_sampler; }
-  //----------------------------------------------------------------------------
-  /// evaluates flow map
-  auto operator()(pos_type const& x, real_type const t, real_type const tau) const {
-    if (t + tau < m_t0 || t + tau > m_t1) {
-      throw std::runtime_error{"Flow map out of domain!"};
-    }
-    if (t == m_t0 && tau > 0) {
-      return sample_forward(x, tau);
-    } else if (t == m_t1 && tau < 0) {
-      return sample_backward(x, tau);
-    }
-    return sample_forward(find_position_at_t0(x, t), t - m_t0 + tau);
+  /// \{
+  auto grid(forward_tag const /*tag*/) const -> auto const& {
+    return m_forward_grid;
   }
+  auto grid(forward_tag const /*tag*/) -> auto& { return m_forward_grid; }
+  //----------------------------------------------------------------------------
+  auto grid(backward_tag const /*tag*/) const -> auto const& {
+    return m_backward_grid;
+  }
+  auto grid(backward_tag const /*tag*/) -> auto& { return m_backward_grid; }
+  /// \}
+  //----------------------------------------------------------------------------
+  /// \{
+  auto sampler(forward_tag const /*tag*/) const -> auto const& {
+    return m_forward_sampler;
+  }
+  auto sampler(forward_tag const /*tag*/) -> auto& {
+    return m_forward_sampler;
+  }
+  //----------------------------------------------------------------------------
+  auto sampler(backward_tag const /*tag*/) const -> auto const& {
+    return m_backward_sampler;
+  }
+  auto sampler(backward_tag const /*tag*/) -> auto& {
+    return m_backward_sampler;
+  }
+  /// \}
   //----------------------------------------------------------------------------
   /// Evaluates flow map in forward direction at time t0 with maximal available
   /// advection time.
   /// \param x position
   /// \returns phi(x, t0, t1 - t0)
-  auto sample_forward(pos_type const& x) const { return m_forward_sampler(x); }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /// Evaluates flow map in forward direction at time t0 with an advection time
-  /// of tau.
-  /// \param x position
-  /// \param tau advection time (needs to be positive)
-  /// \returns phi(x, t0, tau)
-  auto sample_forward(pos_type const& x, real_type const tau) const {
-    assert(tau > 0);
-    return interpolation::linear{
-        x, m_forward_sampler(x)}((tau - m_t0) / (m_t1 - m_t0));
-  }
-  //----------------------------------------------------------------------------
-  /// Evaluates flow map in backward direction at time t1 with maximal available
-  /// advection time.
-  /// \param x position
-  /// \returns phi(x, t0, t0 - t1)
-  auto sample_backward(pos_type const& x) const { return m_backward_sampler(x); }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /// Evaluates flow map in backward direction at time t1 with an advection time
-  /// of tau.
-  /// \param x position
-  /// \param tau advection time (needs to be negative)
-  /// \returns phi(x, t1, tau)
-  auto sample_backward(pos_type const& x, real_type const tau) const {
-    assert(tau < 0);
-    return interpolation::linear{
-        x, m_backward_sampler(x)}((-tau - m_t0) / (m_t1 - m_t0));
-  }
-  //----------------------------------------------------------------------------
-  /// TODO Implement!
-  auto find_position_at_t0(pos_type const& /*x*/, real_type const /*t*/) const {
-    return pos_type::fill(real_type(0) / real_type(0));
+  auto sample(pos_type const& x, forward_or_backward_tag auto const tag) const {
+    return sampler(tag)(x);
   }
 };
 //==============================================================================
