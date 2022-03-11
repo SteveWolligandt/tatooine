@@ -1,15 +1,15 @@
-#ifndef TATOOINE_EINSTEIN_NOTATION_ADDED_CONTACTED_TENSOR_H
-#define TATOOINE_EINSTEIN_NOTATION_ADDED_CONTACTED_TENSOR_H
+#ifndef TATOOINE_EINSTEIN_NOTATION_ADDED_CONTRACTED_DYNAMIC_TENSOR_H
+#define TATOOINE_EINSTEIN_NOTATION_ADDED_CONTRACTED_DYNAMIC_TENSOR_H
 //==============================================================================
 namespace tatooine::einstein_notation {
 //==============================================================================
 template <typename... ContractedTensors>
-struct added_contracted_tensor {
+struct added_contracted_dynamic_tensor {
  private:
   std::tuple<ContractedTensors...> m_tensors;
 
  public:
-  explicit added_contracted_tensor(ContractedTensors... tensors)
+  explicit added_contracted_dynamic_tensor(ContractedTensors... tensors)
       : m_tensors{tensors...} {}
   //----------------------------------------------------------------------------
   template <std::size_t I>

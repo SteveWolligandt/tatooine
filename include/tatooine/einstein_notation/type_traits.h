@@ -1,6 +1,9 @@
 #ifndef TATOOINE_EINSTEIN_NOTATION_TYPE_TRAITS_H
 #define TATOOINE_EINSTEIN_NOTATION_TYPE_TRAITS_H
 //==============================================================================
+#include <tatooine/type_set.h>
+#include <tatooine/type_counter.h>
+//==============================================================================
 namespace tatooine::einstein_notation {
 //==============================================================================
 template <typename IndexAcc, typename... Ts>
@@ -10,6 +13,15 @@ template <typename... AccumulatedIndices, typename Tensor, typename... Indices,
           typename... Ts>
 struct indexed_tensors_to_index_list_impl<
     type_list<AccumulatedIndices...>, indexed_static_tensor<Tensor, Indices...>,
+    Ts...> {
+  using type = typename indexed_tensors_to_index_list_impl<
+      type_list<AccumulatedIndices..., Indices...>, Ts...>::type;
+};
+//------------------------------------------------------------------------------
+template <typename... AccumulatedIndices, typename Tensor, typename... Indices,
+          typename... Ts>
+struct indexed_tensors_to_index_list_impl<
+    type_list<AccumulatedIndices...>, indexed_dynamic_tensor<Tensor, Indices...>,
     Ts...> {
   using type = typename indexed_tensors_to_index_list_impl<
       type_list<AccumulatedIndices..., Indices...>, Ts...>::type;

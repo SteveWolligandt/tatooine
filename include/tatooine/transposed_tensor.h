@@ -3,6 +3,8 @@
 //==============================================================================
 #include <tatooine/base_tensor.h>
 #include <tatooine/concepts.h>
+#include <tatooine/concepts.h>
+#include <tatooine/tensor_concepts.h>
 #include <tatooine/invoke_reversed.h>
 //==============================================================================
 namespace tatooine {
@@ -12,7 +14,7 @@ struct transposed_static_tensor {
   static auto constexpr rank() { return std::decay_t<Tensor>::rank(); }
   static auto constexpr dimensions() {
     auto dims = std::decay_t<Tensor>::dimensions();
-    std::ranges::reverse(dims);
+    std::reverse(begin(dims), end(dims));
     return dims;
   }
   static auto constexpr dimension(std::size_t const i) {
@@ -56,22 +58,22 @@ struct transposed_static_tensor {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto constexpr at(integral_range auto is) const -> decltype(auto) {
-    std::ranges::reverse(is);
+    std::reverse(begin(is), end(is));
     return internal_tensor()(is);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto constexpr at(integral_range auto is) -> decltype(auto) {
-    std::ranges::reverse(is);
+    std::reverse(begin(is), end(is));
     return internal_tensor()(is);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto constexpr operator()(integral_range auto is) const -> decltype(auto) {
-    std::ranges::reverse(is);
+    std::reverse(begin(is), end(is));
     return internal_tensor()(is);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto constexpr operator()(integral_range auto is) -> decltype(auto) {
-    std::ranges::reverse(is);
+    std::reverse(begin(is), end(is));
     return internal_tensor()(is);
   }
   //----------------------------------------------------------------------------
@@ -106,7 +108,7 @@ struct transposed_dynamic_tensor {
   auto constexpr rank() const { return internal_tensor().rank(); }
   auto constexpr dimensions() const {
     auto s = internal_tensor().dimensions();
-    std::ranges::reverse(s);
+    std::reverse(begin(s), end(s));
     return s;
   }
   auto constexpr dimension(std::size_t const i) const {
@@ -138,22 +140,22 @@ struct transposed_dynamic_tensor {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto constexpr at(integral_range auto is) const -> decltype(auto) {
-    std::ranges::reverse(is);
+    std::reverse(begin(is), end(is));
     return internal_tensor()(is);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto constexpr at(integral_range auto is) -> decltype(auto) {
-    std::ranges::reverse(is);
+    std::reverse(begin(is), end(is));
     return internal_tensor()(is);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto constexpr operator()(integral_range auto is) const -> decltype(auto) {
-    std::ranges::reverse(is);
+    std::reverse(begin(is), end(is));
     return internal_tensor()(is);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto constexpr operator()(integral_range auto is) -> decltype(auto) {
-    std::ranges::reverse(is);
+    std::reverse(begin(is), end(is));
     return internal_tensor()(is);
   }
 };

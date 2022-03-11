@@ -76,9 +76,9 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   autonomous_particle(autonomous_particle const& other)     = default;
   autonomous_particle(autonomous_particle&& other) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator=(autonomous_particle const& other)
+  auto operator               =(autonomous_particle const& other)
       -> autonomous_particle& = default;
-  auto operator=(autonomous_particle&& other) noexcept
+  auto operator               =(autonomous_particle&& other) noexcept
       -> autonomous_particle& = default;
   //----------------------------------------------------------------------------
   ~autonomous_particle() = default;
@@ -303,12 +303,12 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
                               {*this}, hierarchy_pairs, hierarchy_mutex,
                               uuid_generator);
     auto edges = edgeset<Real, NumDimensions>{};
-    //auto map   = std::unordered_map<
-    //    std::size_t, typename edgeset<Real, NumDimensions>::vertex_handle>{};
-    //for (auto const& p : advected_particles) {
-    //  map[p.id()] = edges.insert_vertex(p.center());
-    //}
-    //triangulate(edges, hierarchy{hierarchy_pairs, map, edges});
+    // auto map   = std::unordered_map<
+    //     std::size_t, typename edgeset<Real, NumDimensions>::vertex_handle>{};
+    // for (auto const& p : advected_particles) {
+    //   map[p.id()] = edges.insert_vertex(p.center());
+    // }
+    // triangulate(edges, hierarchy{hierarchy_pairs, map, edges});
     return std::tuple{std::move(advected_particles),
                       std::move(advected_simple_particles), std::move(edges)};
   }
@@ -518,25 +518,25 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
       map[p.id()] = edges.insert_vertex(p.center());
     }
     auto const h = hierarchy{hierarchy_pairs, map, edges};
-    //triangulate(edges, h);
+    // triangulate(edges, h);
     //
-    //auto const s = g.size();
+    // auto const s = g.size();
     //--s[0];
     //--s[1];
-    //for (std::size_t j = 0; j < s[1]; ++j) {
-    //  for (std::size_t i = 0; i < s[0] - 1; ++i) {
-    //    auto const id0 = i + j * s[0];
-    //    auto const id1 = (i + 1) + j * s[0];
-    //    triangulate(edges, h.find_by_id(id0), h.find_by_id(id1));
-    //  }
-    //}
-    //for (std::size_t i = 0; i < s[0]; ++i) {
-    //  for (std::size_t j = 0; j < s[1] - 1; ++j) {
-    //    auto const id0 = i + j * s[0];
-    //    auto const id1 = i + (j + 1) * s[0];
-    //    triangulate(edges, h.find_by_id(id0), h.find_by_id(id1));
-    //  }
-    //}
+    // for (std::size_t j = 0; j < s[1]; ++j) {
+    //   for (std::size_t i = 0; i < s[0] - 1; ++i) {
+    //     auto const id0 = i + j * s[0];
+    //     auto const id1 = (i + 1) + j * s[0];
+    //     triangulate(edges, h.find_by_id(id0), h.find_by_id(id1));
+    //   }
+    // }
+    // for (std::size_t i = 0; i < s[0]; ++i) {
+    //   for (std::size_t j = 0; j < s[1] - 1; ++j) {
+    //     auto const id0 = i + j * s[0];
+    //     auto const id1 = i + (j + 1) * s[0];
+    //     triangulate(edges, h.find_by_id(id0), h.find_by_id(id1));
+    //   }
+    // }
 
     return std::tuple{std::move(advected_particles),
                       std::move(advected_simple_particles), std::move(edges)};

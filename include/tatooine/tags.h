@@ -10,10 +10,30 @@ static constexpr forward_tag forward;
 struct backward_tag {};
 static constexpr backward_tag backward;
 template <typename T>
-concept forward_or_backward_tag =
-    (std::same_as<T, forward_tag>) || (std::same_as<T, backward_tag>);
+concept forward_or_backward_tag = (std::same_as<T, forward_tag>) ||
+                                  (std::same_as<T, backward_tag>);
 constexpr auto opposite(forward_tag const /*tag*/) { return backward_tag{}; }
 constexpr auto opposite(backward_tag const /*tag*/) { return forward_tag{}; }
+auto constexpr operator==(forward_tag const /*rhs*/,
+                          backward_tag const /*rhs*/) {
+  return false;
+}
+auto constexpr operator==(backward_tag const /*rhs*/,
+                          forward_tag const /*rhs*/) {
+  return false;
+}
+auto constexpr operator==(forward_tag const /*rhs*/,
+                          forward_tag const /*rhs*/) {
+  return true;
+}
+auto constexpr operator==(backward_tag const /*rhs*/,
+                          backward_tag const /*rhs*/) {
+  return true;
+}
+auto operator!=(forward_or_backward_tag auto const lhs,
+                forward_or_backward_tag auto const rhs) {
+  return !(lhs == rhs);
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
@@ -35,7 +55,7 @@ template <typename T>
 concept execution_policy_tag = same_as<T, execution_policy::sequential_t> ||
     same_as<T, execution_policy::parallel_t>;
 //==============================================================================
-}
+}  // namespace tatooine
 namespace tatooine::tag {
 //==============================================================================
 struct frobenius_t {};

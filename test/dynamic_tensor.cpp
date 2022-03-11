@@ -10,16 +10,15 @@ TEST_CASE("dynamic_tensor_transposed", "[dynamic][tensor][transpose][transposed]
   SECTION("non-const") {
     auto At = transposed(A);
     STATIC_REQUIRE(
-        std::is_same_v<decltype(At),
-                       transposed_dynamic_tensor<tensor<double>>>);
+        is_same<decltype(At), transposed_dynamic_tensor<tensor<double>&>>);
     REQUIRE(At(0, 1) == 3);
     REQUIRE(At(1, 2) == 5);
   }
   SECTION("const") {
     auto const B  = A;
     auto       Bt = transposed(B);
-    STATIC_REQUIRE(std::is_same_v<decltype(Bt), const_transposed_dynamic_tensor<
-                                                    tensor<double>>>);
+    STATIC_REQUIRE(is_same<decltype(Bt),
+                           transposed_dynamic_tensor<tensor<double> const&>>);
     REQUIRE(Bt(0, 1) == 3);
     REQUIRE(Bt(1, 2) == 5);
   }
@@ -32,7 +31,7 @@ TEST_CASE("dynamic_tensor_diag", "[dynamic][tensor][diag]"){
   SECTION("non-const") {
     auto A = diag(a);
     STATIC_REQUIRE(
-        std::is_same_v<decltype(A), diag_dynamic_tensor<decltype(a)>>);
+        is_same<decltype(A), diag_dynamic_tensor<decltype(a)&>>);
     REQUIRE(A(0, 0) == 1);
     REQUIRE(A(1, 0) == 0);
     REQUIRE(A(2, 0) == 0);
@@ -47,8 +46,8 @@ TEST_CASE("dynamic_tensor_diag", "[dynamic][tensor][diag]"){
     auto const b = a;
     auto       B = diag(b);
     STATIC_REQUIRE(
-        std::is_same_v<decltype(B),
-                       const_diag_dynamic_tensor<tensor<double>>>);
+        is_same<decltype(B),
+                       diag_dynamic_tensor<tensor<double>const&>>);
     REQUIRE(B(0, 0) == 1);
     REQUIRE(B(1, 0) == 0);
     REQUIRE(B(2, 0) == 0);
@@ -146,6 +145,96 @@ TEST_CASE("dynamic_tensor_vander", "[dynamic][tensor][vander]") {
   REQUIRE(V(0,2) == xs[0] * xs[0]);
   REQUIRE(V(1,2) == xs[1] * xs[1]);
   REQUIRE(V(2,2) == xs[2] * xs[2]);
+}
+//==============================================================================
+TEST_CASE("dynamic_tensor_einstein_notation",
+          "[dynamic][tensor][einstein_notation]") {
+  using namespace tatooine::einstein_notation;
+  SECTION("matrix-vector multiplication") {
+    auto const A = tensor<double>{{1.0,2.0,3.0},
+                                  {2.0,3.0,4.0}};
+    auto const b = tensor<double>{5.0,6.0,7.0};
+    auto       c = tensor<double>{};
+    c(i)         = A(i, j) * b(j);
+
+    CAPTURE(A, b, c);
+    REQUIRE(c.rank() == 1);
+    REQUIRE(c.dimension(0) == A.dimension(0));
+
+    for (std::size_t r = 0; r < A.dimension(0); ++r) {
+      auto expected = double{};
+      for (std::size_t i = 0; i < b.dimension(0); ++i) {
+        expected += A(r, i) * b(i);
+      }
+      REQUIRE(c(r) == Approx(expected));
+    }
+  }
+  //SECTION("matrix-vector multiplication and addition") {
+  //  auto const A = tensor<double>{{1.0,2.0,3.0},
+  //                                {2.0,3.0,4.0}};
+  //  auto const b = tensor<double>{5.0,6.0,7.0};
+  //  auto       c = tensor<double>{1.0, 1.0};
+  //  c(i)         += A(i, j) * b(j);
+  //
+  //  CAPTURE(A, b, c);
+  //  REQUIRE(c.rank() == 1);
+  //  REQUIRE(c.dimension(0) == A.dimension(0));
+  //
+  //  for (std::size_t r = 0; r < A.dimension(0); ++r) {
+  //    auto expected = double{};
+  //    for (std::size_t i = 0; i < b.dimension(0); ++i) {
+  //      expected += A(r, i) * b(i);
+  //    }
+  //    REQUIRE(c(r) == Approx(expected + 1));
+  //  }
+  //}
+  //SECTION("matrix-matrix multiplication") {
+  //  auto const A = tensor<double>{{1.0,2.0,3.0},
+  //                                {2.0,3.0,4.0}};
+  //  auto const B = tensor<double>{{1.0,2.0,3.0,4.0},
+  //                                {2.0,3.0,4.0,5.0},
+  //                                {3.0,4.0,5.0,6.0}};
+  //  auto       C = tensor<double>{};
+  //  C(i, k)      = A(i, j) * B(j, k);
+  //  CAPTURE(A, B, C.rank(), C);
+  //  REQUIRE(C.rank() == 2);
+  //  REQUIRE(C.dimension(0) == A.dimension(0));
+  //  REQUIRE(C.dimension(1) == B.dimension(1));
+  //
+  //  for (std::size_t r = 0; r < A.dimension(0); ++r) {
+  //    for (std::size_t c = 0; c < B.dimension(1); ++c) {
+  //      auto expected = double{};
+  //      for (std::size_t i = 0; i < B.dimension(0); ++i) {
+  //        expected += A(r, i) * B(i, c);
+  //      }
+  //      REQUIRE(C(r, c) == Approx(expected));
+  //    }
+  //  }
+  //}
+  //SECTION("matrix-matrix multiplication and addition") {
+  //  auto const A = tensor<double>{{1.0,2.0,3.0},
+  //                                {2.0,3.0,4.0}};
+  //  auto const B = tensor<double>{{1.0,2.0,3.0,4.0},
+  //                                {2.0,3.0,4.0,5.0},
+  //                                {3.0,4.0,5.0,6.0}};
+  //  auto       C = tensor<double>{{1.0, 1.0, 1.0, 1.0},
+  //                                {1.0, 1.0, 1.0, 1.0}};
+  //  C(i, k)      += A(i, j) * B(j, k);
+  //  CAPTURE(A, B, C.rank(), C);
+  //  REQUIRE(C.rank() == 2);
+  //  REQUIRE(C.dimension(0) == A.dimension(0));
+  //  REQUIRE(C.dimension(1) == B.dimension(1));
+  //
+  //  for (std::size_t r = 0; r < A.dimension(0); ++r) {
+  //    for (std::size_t c = 0; c < B.dimension(1); ++c) {
+  //      auto expected = double{};
+  //      for (std::size_t i = 0; i < B.dimension(0); ++i) {
+  //        expected += A(r, i) * B(i, c) ;
+  //      }
+  //      REQUIRE(C(r, c) == Approx(expected + 1));
+  //    }
+  //  }
+  //}
 }
 //==============================================================================
 }  // namespace tatooine::test
