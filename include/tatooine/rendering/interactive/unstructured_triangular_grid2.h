@@ -11,45 +11,43 @@
 //==============================================================================
 namespace tatooine::rendering::interactive {
 //==============================================================================
-template <floating_point Real, std::size_t NumDimensions>
-struct renderer<tatooine::unstructured_triangular_grid<Real, NumDimensions>> {
+template <floating_point Real>
+struct renderer<tatooine::unstructured_simplicial_grid<Real, 2, 2>> {
   static constexpr std::array<std::string_view, 5> vector_component_names = {
       "magnitude", "x", "y", "z", "w"};
   using renderable_type =
-      tatooine::unstructured_triangular_grid<Real, NumDimensions>;
+      tatooine::unstructured_simplicial_grid<Real, 2, 2>;
   template <typename T>
   using typed_vertex_property_interface_type =
-      typename renderable_type::typed_vertex_property_interface_type<T>;
+      typename renderable_type::typed_vertex_property_type<T>;
   //============================================================================
   struct property_shader : gl::shader {
     //--------------------------------------------------------------------------
     static constexpr std::string_view vertex_shader =
         "#version 330 core\n"
         "layout (location = 0) in vec2 position;\n"
+        "layout (location = 1) in float property;\n"
         "uniform mat4 model_view_matrix;\n"
         "uniform mat4 projection_matrix;\n"
-        "uniform vec2 extent;\n"
         "uniform vec2 pixel_width;\n"
-        "out vec2 texcoord;\n"
+        "out float property_frag;\n"
         "void main() {\n"
-        "  texcoord = (position * extent + pixel_width / 2) /\n"
-        "             (extent+pixel_width);\n"
         "  gl_Position = projection_matrix *\n"
         "                model_view_matrix *\n"
         "                vec4(position, 0, 1);\n"
+        "  property_frag = property;\n"
         "}\n";
     //--------------------------------------------------------------------------
     static constexpr std::string_view fragment_shader =
         "#version 330 core\n"
-        "uniform sampler2D data;\n"
         "uniform sampler1D color_scale;\n"
         "uniform float min;\n"
         "uniform float max;\n"
         "uniform int invert_scale;\n"
-        "in vec2 texcoord;\n"
+        "in float property_frag;\n"
         "out vec4 out_color;\n"
         "void main() {\n"
-        "  float scalar = texture(data, texcoord).r;\n"
+        "  float scalar = property_frag;"
         "  if (isnan(scalar)) {\n"
         "    out_color = vec4(1,0,0,1);\n"
         "    return;\n"
@@ -73,13 +71,13 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, NumDimensions>> {
       add_stage<gl::vertexshader>(gl::shadersource{vertex_shader});
       add_stage<gl::fragmentshader>(gl::shadersource{fragment_shader});
       create();
-      set_uniform("data", 0);
       set_uniform("color_scale", 1);
       set_projection_matrix(Mat4<GLfloat>::eye());
       set_model_view_matrix(Mat4<GLfloat>::eye());
       set_min(0);
       set_max(1);
       invert_scale(false);
+      set_uniform("color_scale", 0);
     }
     //--------------------------------------------------------------------------
    public:
@@ -90,14 +88,6 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, NumDimensions>> {
     //--------------------------------------------------------------------------
     auto set_model_view_matrix(Mat4<GLfloat> const& MV) -> void {
       set_uniform_mat4("model_view_matrix", MV.data().data());
-    }
-    //--------------------------------------------------------------------------
-    auto set_extent(Vec2<GLfloat> const& extent) -> void {
-      set_uniform_vec2("extent", extent.data().data());
-    }
-    //--------------------------------------------------------------------------
-    auto set_pixel_width(Vec2<GLfloat> const& pixel_width) -> void {
-      set_uniform_vec2("pixel_width", pixel_width.data().data());
     }
     //--------------------------------------------------------------------------
     auto set_min(GLfloat const min) -> void { set_uniform("min", min); }
@@ -117,10 +107,10 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, NumDimensions>> {
     GLfloat      max_scalar     = -std::numeric_limits<GLfloat>::max();
     bool         scale_inverted = false;
   };
-  bool                                               show_grid     = true;
+  bool                                               show_wireframe     = true;
   bool                                               show_property = false;
   int                                                line_width    = 1;
-  Vec4<GLfloat>                                      grid_color = {0, 0, 0, 1};
+  Vec4<GLfloat>                                      wireframe_color = {0, 0, 0, 1};
   std::unordered_map<std::string, property_settings> settings;
   std::unordered_map<std::string, std::string_view>  selected_component;
   std::string const* selected_property_name = nullptr;
@@ -141,37 +131,42 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, NumDimensions>> {
   }
   //----------------------------------------------------------------------------
   auto init_grid_geometry(renderable_type const& grid) {
-    auto const num_vertices =
-        grid.template size<0>() * 2 + grid.template size<1>() * 2;
-    geometry.vertexbuffer().resize(num_vertices);
-    geometry.indexbuffer().resize(num_vertices);
+    m_geometry.resize(grid.vertices().size());
+    m_triangles.resize(grid.simplices().size() * 3);
+    m_wireframe.resize(grid.simplices().size() * 6);
     {
-      auto data = geometry.vertexbuffer().wmap();
+      auto data = m_geometry.wmap();
       auto k    = std::size_t{};
-      for (std::size_t i = 0; i < grid.template size<0>(); ++i) {
-        data[k++] = Vec2<GLfloat>{grid.template dimension<0>()[i],
-                                  grid.template dimension<1>().front()};
-        data[k++] = Vec2<GLfloat>{grid.template dimension<0>()[i],
-                                  grid.template dimension<1>().back()};
-      }
-      for (std::size_t i = 0; i < grid.template size<1>(); ++i) {
-        data[k++] = Vec2<GLfloat>{grid.template dimension<0>().front(),
-                                  grid.template dimension<1>()[i]};
-        data[k++] = Vec2<GLfloat>{grid.template dimension<0>().back(),
-                                  grid.template dimension<1>()[i]};
+      for (auto const v : grid.vertices()) {
+        data[k++] = Vec2<GLfloat>{grid[v]};
       }
     }
     {
-      auto data = geometry.indexbuffer().wmap();
-      for (std::size_t i = 0; i < num_vertices; ++i) {
-        data[i] = i;
+      auto data = m_triangles.wmap();
+      auto k    = std::size_t{};
+      for (auto const s : grid.simplices()) {
+        auto const [v0, v1, v2] = grid[s];
+        data[k++] = v0.index();
+        data[k++] = v1.index();
+        data[k++] = v2.index();
+      }
+    }
+    {
+      auto data = m_wireframe.wmap();
+      auto k    = std::size_t{};
+      for (auto const s : grid.simplices()) {
+        auto const [v0, v1, v2] = grid[s];
+        data[k++] = v0.index();
+        data[k++] = v1.index();
+        data[k++] = v1.index();
+        data[k++] = v2.index();
+        data[k++] = v2.index();
+        data[k++] = v0.index();
       }
     }
   }
   //----------------------------------------------------------------------------
   auto init_properties(renderable_type const& grid) {
-    tex.resize(grid.template size<0>(), grid.template size<1>());
-
     for (auto const& [name, prop] : grid.vertex_properties()) {
       if (prop_holds_scalar(prop)) {
         auto min_scalar = std::numeric_limits<GLfloat>::max();
@@ -180,11 +175,11 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, NumDimensions>> {
           using prop_type  = std::decay_t<decltype(prop)>;
           using value_type = typename prop_type::value_type;
           if constexpr (is_arithmetic<value_type>) {
-            grid.vertices().iterate_indices([&](auto const... is) {
-              auto const p = prop.at(is...);
+            for (auto const v : grid.vertices()) {
+              auto const p = prop[v.index()];
               min_scalar   = std::min<GLfloat>(min_scalar, p);
               max_scalar   = std::max<GLfloat>(max_scalar, p);
-            });
+            }
           }
         });
         settings[name] = {&color_scale::viridis(), min_scalar, max_scalar};
@@ -198,8 +193,8 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, NumDimensions>> {
                 num_comps + 1, std::numeric_limits<GLfloat>::max());
             auto max_scalars = std::vector<GLfloat>(
                 num_comps + 1, -std::numeric_limits<GLfloat>::max());
-            grid.vertices().iterate_indices([&](auto const... is) {
-              auto const p   = prop.at(is...);
+            for (auto const v : grid.vertices()) {
+              auto const p   = prop[v.index()];
               auto       mag = typename value_type::value_type{};
               for (std::size_t j = 0; j < num_comps; ++j) {
                 mag += p(j) * p(j);
@@ -211,7 +206,7 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, NumDimensions>> {
               mag            = std::sqrt(mag);
               min_scalars[0] = std::min<GLfloat>(min_scalars[0], mag);
               max_scalars[0] = std::max<GLfloat>(max_scalars[0], mag);
-            });
+            }
 
             for (std::size_t j = 0; j < num_comps + 1; ++j) {
               settings[name + '_' + std::string{vector_component_names[j]}] = {
@@ -254,14 +249,11 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, NumDimensions>> {
            prop->type() == typeid(vec4f) || prop->type() == typeid(vec4d);
   }
   //----------------------------------------------------------------------------
-  auto upload_data_to_texture(auto&& prop, auto&& get_data,
-                              renderable_type const& grid) {
-    auto texdata = std::vector<GLfloat>{};
-    texdata.reserve(grid.vertices().size());
-
-    grid.vertices().iterate_indices(
-        [&](auto const... is) { texdata.push_back(get_data(prop, is...)); });
-    tex.upload_data(texdata, grid.template size<0>(), grid.template size<1>());
+  auto upload_data(auto&& prop, auto&& get_data, renderable_type const& grid) {
+    auto data    = m_geometry.rwmap();
+    for (std::size_t i = 0; i < grid.vertices().size(); ++i) {
+      get<1>(data[i]) = get_data(prop, i);
+    }
   };
   //----------------------------------------------------------------------------
   auto upload_scalar_to_texture(auto&& prop, renderable_type const& grid) {
@@ -269,9 +261,9 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, NumDimensions>> {
       using prop_type  = std::decay_t<decltype(prop)>;
       using value_type = typename prop_type::value_type;
       if constexpr (is_arithmetic<value_type>) {
-        upload_data_to_texture(
+        upload_data(
             prop,
-            [](auto const& prop, auto const... is) { return prop(is...); },
+            [](auto const& prop, auto const i) { return prop[i]; },
             grid);
       }
     });
@@ -282,12 +274,12 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, NumDimensions>> {
       using prop_type  = std::decay_t<decltype(prop)>;
       using value_type = typename prop_type::value_type;
       if constexpr (static_vec<value_type>) {
-        upload_data_to_texture(
+        upload_data(
             prop,
-            [](auto const& prop, auto const... is) {
+            [](auto const& prop, auto const i) {
               auto mag = typename value_type::value_type{};
               for (std::size_t j = 0; j < value_type::num_components(); ++j) {
-                mag += prop(is...)(j) * prop(is...)(j);
+                mag += prop[i](j) * prop[i](j);
               }
               return mag / value_type::num_components();
             },
@@ -301,9 +293,9 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, NumDimensions>> {
       using prop_type  = std::decay_t<decltype(prop)>;
       using value_type = typename prop_type::value_type;
       if constexpr (static_vec<value_type>) {
-        upload_data_to_texture(
+        upload_data(
             prop,
-            [](auto const& prop, auto const... is) { return prop(is...).x(); },
+            [](auto const& prop, auto const i) { return prop[i].x(); },
             grid);
       }
     });
@@ -314,9 +306,9 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, NumDimensions>> {
       using prop_type  = std::decay_t<decltype(prop)>;
       using value_type = typename prop_type::value_type;
       if constexpr (static_vec<value_type>) {
-        upload_data_to_texture(
+        upload_data(
             prop,
-            [](auto const& prop, auto const... is) { return prop(is...).y(); },
+            [](auto const& prop, auto const i) { return prop[i].y(); },
             grid);
       }
     });
@@ -328,10 +320,10 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, NumDimensions>> {
       using value_type = typename prop_type::value_type;
       if constexpr (static_vec<value_type>) {
         if constexpr (value_type::num_components() > 2) {
-          upload_data_to_texture(
+          upload_data(
               prop,
-              [](auto const& prop, auto const... is) {
-                return prop(is...).z();
+              [](auto const& prop, auto const i) {
+                return prop[i].z();
               },
               grid);
         }
@@ -345,10 +337,10 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, NumDimensions>> {
       using value_type = typename prop_type::value_type;
       if constexpr (static_vec<value_type>) {
         if constexpr (value_type::num_components() > 3) {
-          upload_data_to_texture(
+          upload_data(
               prop,
-              [](auto const& prop, auto const... is) {
-                return prop(is...).w();
+              [](auto const& prop, auto const i) {
+                return prop[i].w();
               },
               grid);
         }
@@ -519,11 +511,11 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, NumDimensions>> {
         using prop_type  = std::decay_t<decltype(prop)>;
         using value_type = typename prop_type::value_type;
         if constexpr (is_arithmetic<value_type>) {
-          grid.vertices().iterate_indices([&](auto const... is) {
-            auto const p = prop.at(is...);
+          for (auto const v :grid.vertices()) {
+            auto const p = prop[v.index()];
             min_scalar   = std::min<GLfloat>(min_scalar, p);
             max_scalar   = std::max<GLfloat>(max_scalar, p);
-          });
+          }
         }
       });
     } else if (prop_holds_vector(selected_property)) {
@@ -532,8 +524,8 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, NumDimensions>> {
         using value_type = typename prop_type::value_type;
         if constexpr (static_vec<value_type>) {
           auto constexpr num_comps = value_type::num_components();
-          grid.vertices().iterate_indices([&](auto const... is) {
-            auto const p = prop.at(is...);
+          for (auto const v : grid.vertices()) {
+            auto const p = prop[v.index()];
             if (selected_component.at(*selected_property_name) ==
                 vector_component_names[0]) {
               auto mag = typename value_type::value_type{};
@@ -565,7 +557,7 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, NumDimensions>> {
               min_scalar = std::min<GLfloat>(min_scalar, s);
               max_scalar = std::max<GLfloat>(max_scalar, s);
             }
-          });
+          }
         }
       });
     }
@@ -574,11 +566,11 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, NumDimensions>> {
   }
   //----------------------------------------------------------------------------
   auto properties(renderable_type const& grid) {
-    ImGui::Text("Rectilinear Grid");
-    ImGui::Checkbox("Show Grid", &show_grid);
+    //ImGui::Text("Triangular Grid");
+    ImGui::Checkbox("Show Grid", &show_wireframe);
     ImGui::Checkbox("Show Property", &show_property);
     ImGui::DragInt("Line width", &line_width, 1, 1, 20);
-    ImGui::ColorEdit4("Grid Color", grid_color.data().data());
+    ImGui::ColorEdit4("Wireframe Color", wireframe_color.data().data());
     grid_property_selection(grid);
     if (selected_property != nullptr && vector_property) {
       vector_component_selection(grid);
@@ -595,8 +587,8 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, NumDimensions>> {
   }
   //============================================================================
   auto render() {
-    if (show_grid) {
-      render_grid();
+    if (show_wireframe) {
+      render_wireframe();
     }
     if (show_property && selected_property != nullptr) {
       render_property();
@@ -607,7 +599,7 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, NumDimensions>> {
               camera auto const& cam) {
     using CamReal = typename std::decay_t<decltype(cam)>::real_type;
     static auto constexpr cam_is_float = is_same<GLfloat, CamReal>;
-    if (show_grid) {
+    if (show_wireframe) {
       if constexpr (cam_is_float) {
         line_shader::get().set_projection_matrix(cam.projection_matrix());
       } else {
@@ -631,50 +623,44 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, NumDimensions>> {
       }
 
       if constexpr (cam_is_float) {
-        property_shader::get().set_model_view_matrix(
-            cam.view_matrix() *
-            translation_matrix<GLfloat>(grid.template dimension<0>().front(),
-                                        grid.template dimension<1>().front(),
-                                        0) *
-            scale_matrix<GLfloat>(grid.template extent<0>(),
-                                  grid.template extent<1>(), 1));
+        property_shader::get().set_model_view_matrix(cam.view_matrix());
       } else {
         property_shader::get().set_model_view_matrix(
-            Mat4<GLfloat>{cam.view_matrix()} *
-            scale_matrix<GLfloat>(grid.template extent<0>(),
-                                  grid.template extent<1>(), 1) *
-            translation_matrix<GLfloat>(grid.template dimension<0>().front(),
-                                        grid.template dimension<1>().front(),
-                                        0));
+            Mat4<GLfloat>{cam.view_matrix()});
       }
-      property_shader::get().set_extent(Vec2<GLfloat>{grid.extent()});
-      property_shader::get().set_pixel_width(Vec2<GLfloat>{
-          grid.template dimension<0>()[1] - grid.template dimension<0>()[0],
-          grid.template dimension<1>()[1] - grid.template dimension<1>()[0]});
     }
   }
   //----------------------------------------------------------------------------
-  auto render_grid() {
+  auto render_wireframe() {
     auto& line_shader = line_shader::get();
     line_shader.bind();
 
-    line_shader.set_color(grid_color(0), grid_color(1), grid_color(2),
-                          grid_color(3));
+    line_shader.set_color(wireframe_color(0), wireframe_color(1), wireframe_color(2),
+                          wireframe_color(3));
     gl::line_width(line_width);
-    geometry.draw_lines();
+    auto vao = gl::vertexarray {};
+    vao.bind();
+    m_geometry.bind();
+    m_geometry.activate_attributes();
+    m_wireframe.bind();
+    vao.draw_lines(m_wireframe.size());
   }
   //----------------------------------------------------------------------------
   auto render_property() {
-    property_shader::get().bind();
-    tex.bind(0);
     if (selected_property_name != nullptr) {
       auto const name    = selected_settings_name();
       auto&      setting = settings.at(name);
+      setting.c->tex.bind(0);
       property_shader::get().set_min(setting.min_scalar);
       property_shader::get().set_max(setting.max_scalar);
       property_shader::get().invert_scale(setting.scale_inverted);
-      setting.c->tex.bind(1);
-      geometry::get().draw_triangles();
+      property_shader::get().bind();
+      auto vao = gl::vertexarray{};
+      vao.bind();
+      m_geometry.bind();
+      m_geometry.activate_attributes();
+      m_triangles.bind();
+      vao.draw_triangles(m_wireframe.size());
     }
   }
 };

@@ -1,6 +1,9 @@
 #ifndef TATOOINE_DETAIL_POINTSET_RADIAL_BASIS_FUNCTIONS_SAMPLER_H
 #define TATOOINE_DETAIL_POINTSET_RADIAL_BASIS_FUNCTIONS_SAMPLER_H
 //==============================================================================
+#include <tatooine/concepts.h>
+#include <tatooine/tags.h>
+//==============================================================================
 namespace tatooine::detail::pointset {
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions, typename T,
@@ -27,15 +30,62 @@ struct radial_basis_functions_sampler
   radial_basis_functions_sampler(pointset_type const&          ps,
                                  vertex_property_type const&   property,
                                  convertible_to<Kernel> auto&& kernel)
+      : radial_basis_functions_sampler{ps, property,
+                                       std::forward<decltype(kernel)>(kernel),
+                                       execution_policy::sequential} {}
+  //----------------------------------------------------------------------------
+  radial_basis_functions_sampler(pointset_type const&          ps,
+                                 vertex_property_type const&   property,
+                                 convertible_to<Kernel> auto&& kernel,
+                                 execution_policy::parallel_t /*pol*/)
       : m_pointset{ps},
         m_property{property},
         m_kernel{std::forward<decltype(kernel)>(kernel)} {
+    auto const N = m_pointset.vertices().size();
+    // construct lower part of symmetric matrix A
+    auto A = tensor<real_type>::zeros(N, N);
+#pragma omp parallel for collapse(2)
+    for (std::size_t c = 0; c < N; ++c) {
+      for (std::size_t r = c + 1; r < N; ++r) {
+        A(r, c) = m_kernel(squared_euclidean_distance(m_pointset.vertex_at(c),
+                                                      m_pointset.vertex_at(r)));
+      }
+    }
+    m_weights = [N] {
+      if constexpr (arithmetic<T>) {
+        return tensor<T>::zeros(N);
+      } else if constexpr (static_tensor<T>) {
+        return tensor<tensor_value_type<T>>::zeros(N, T::num_components());
+      }
+    }();
 
+#pragma omp parallel for
+    for (std::size_t i = 0; i < N; ++i) {
+      if constexpr (arithmetic<T>) {
+        m_weights(i) = m_property[i];
+      } else if constexpr (static_tensor<T>) {
+        for (std::size_t j = 0; j < T::num_components(); ++j) {
+          m_weights(i, j) = m_property[i].data()[j];
+        }
+      }
+    }
+    // do not copy by moving A and m_weights into solver
+    m_weights = *solve_symmetric_lapack(std::move(A), std::move(m_weights),
+                                        lapack::Uplo::Lower);
+  }
+  //----------------------------------------------------------------------------
+  radial_basis_functions_sampler(pointset_type const&          ps,
+                                 vertex_property_type const&   property,
+                                 convertible_to<Kernel> auto&& kernel,
+                                 execution_policy::sequential_t /*pol*/)
+      : m_pointset{ps},
+        m_property{property},
+        m_kernel{std::forward<decltype(kernel)>(kernel)} {
     auto const N = m_pointset.vertices().size();
     // construct lower part of symmetric matrix A
     auto A = tensor<real_type>::zeros(N, N);
     for (std::size_t c = 0; c < N; ++c) {
-      for (std::size_t r = c+1; r < N; ++r) {
+      for (std::size_t r = c + 1; r < N; ++r) {
         A(r, c) = m_kernel(squared_euclidean_distance(m_pointset.vertex_at(c),
                                                       m_pointset.vertex_at(r)));
       }
@@ -59,8 +109,8 @@ struct radial_basis_functions_sampler
     }
     // do not copy by moving A and m_weights into solver
     m_weights = *solve_symmetric_lapack(std::move(A), std::move(m_weights),
-                                lapack::Uplo::Lower);
-        }
+                                        lapack::Uplo::Lower);
+  }
   //--------------------------------------------------------------------------
   radial_basis_functions_sampler(radial_basis_functions_sampler const&) =
       default;
@@ -80,14 +130,15 @@ struct radial_basis_functions_sampler
       -> tensor_type {
     auto acc = T{};
     for (auto const v : m_pointset.vertices()) {
+      auto const sqr_dist = squared_euclidean_distance(q, m_pointset[v]);
+      if (sqr_dist == 0) {
+        return m_property[v];
+      }
       if constexpr (arithmetic<T>) {
-        acc += m_weights(v.index()) *
-               m_kernel(squared_euclidean_distance(q, m_pointset[v]));
+        acc += m_weights(v.index()) * m_kernel(sqr_dist);
       } else if constexpr (static_tensor<T>) {
         for (std::size_t j = 0; j < T::num_components(); ++j) {
-          acc.data()[j] +=
-              m_weights(v.index(), j) *
-              m_kernel(squared_euclidean_distance(q, m_pointset[v]));
+          acc.data()[j] += m_weights(v.index(), j) * m_kernel(sqr_dist);
         }
       }
     }

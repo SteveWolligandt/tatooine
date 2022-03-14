@@ -257,78 +257,116 @@ struct indexed_dynamic_tensor {
     *this += contracted_dynamic_tensor{other};
     return *this;
   }
-  //// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  ///// A(i,k) = B(i,j) * C(j, k) + A(i,k)
-  //template <typename LHS, typename RHS, typename I, typename J, typename K>
-  //auto operator+=(contracted_dynamic_tensor<indexed_dynamic_tensor<LHS, I, J>,
-  //                                          indexed_dynamic_tensor<RHS, J, K>>
-  //                   other) -> indexed_dynamic_tensor&
-  //requires(!is_const<std::remove_reference_t<Tensor>> &&
-  //         is_same<value_type, tensor_value_type<LHS>> &&
-  //         is_same<value_type, tensor_value_type<RHS>> &&
-  //         is_same<I, index_at<0>> &&
-  //         is_same<K, index_at<1>>)
-  //{
-  //  assert(m_tensor.dimension(0) == other.template at<0>().tensor().dimension(0));
-  //  assert(m_tensor.dimension(1) == other.template at<1>().tensor().dimension(1));
-  //  blas::gemm(value_type(1),
-  //             other.template at<0>().tensor(),
-  //             other.template at<1>().tensor(), value_type(1), m_tensor);
-  //  return *this;
-  //}
-  //// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  ///// A(i,k) = B(i,j) * C(j, k)
-  //template <typename LHS, typename RHS, typename I, typename J, typename K>
-  //auto operator=(contracted_dynamic_tensor<indexed_dynamic_tensor<LHS, I, J>,
-  //                                         indexed_dynamic_tensor<RHS, J, K>>
-  //                   other) -> indexed_dynamic_tensor&
-  //requires(!is_const<std::remove_reference_t<Tensor>> &&
-  //         is_same<value_type, tensor_value_type<LHS>> &&
-  //         is_same<value_type, tensor_value_type<RHS>> &&
-  //         is_same<I, index_at<0>> &&
-  //         is_same<K, index_at<1>>)
-  //{
-  //  m_tensor.resize(other.template at<0>().tensor().dimension(0),
-  //                  other.template at<1>().tensor().dimension(1));
-  //  blas::gemm(value_type(1),
-  //             other.template at<0>().tensor(),
-  //             other.template at<1>().tensor(), value_type(0), m_tensor);
-  //  return *this;
-  //}
-  //// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  ///// A(i) = B(i,j) * C(j)
-  //template <typename LHS, typename RHS, typename I, typename J>
-  //auto operator=(contracted_dynamic_tensor<indexed_dynamic_tensor<LHS, I, J>,
-  //                                         indexed_dynamic_tensor<RHS, J>>
-  //                   other) -> indexed_dynamic_tensor&
-  //requires(!is_const<std::remove_reference_t<Tensor>> &&
-  //         is_same<value_type, tensor_value_type<LHS>> &&
-  //         is_same<value_type, tensor_value_type<RHS>> &&
-  //         is_same<I, index_at<0>>)
-  //{
-  //  m_tensor.resize(other.template at<0>().tensor().dimension(0));
-  //  blas::gemm(value_type(1), other.template at<0>().tensor(),
-  //             other.template at<1>().tensor(), value_type(0), m_tensor);
-  //  return *this;
-  //}
-  //// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  ///// A(i) = B(i,j) * C(j) + A(i)
-  //template <typename LHS, typename RHS, typename I, typename J>
-  //auto operator+=(contracted_dynamic_tensor<indexed_dynamic_tensor<LHS, I, J>,
-  //                                          indexed_dynamic_tensor<RHS, J>>
-  //                    other)
-  //    -> indexed_dynamic_tensor&
-  //requires(!is_const<std::remove_reference_t<Tensor>> &&
-  //         is_same<value_type, tensor_value_type<LHS>> &&
-  //         is_same<value_type, tensor_value_type<RHS>> &&
-  //         is_same<I, index_at<0>>)
-  //{
-  //  assert(m_tensor.dimension(0) ==
-  //         other.template at<0>().tensor().dimension(0));
-  //  blas::gemm(value_type(1), other.template at<0>().tensor(),
-  //             other.template at<1>().tensor(), value_type(1), m_tensor);
-  //  return *this;
-  //}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /// A(i,k) = B(i,j) * C(j, k) + A(i,k)
+  template <typename LHS, typename RHS, typename I, typename J, typename K>
+  auto operator+=(contracted_dynamic_tensor<indexed_dynamic_tensor<LHS, I, J>,
+                                            indexed_dynamic_tensor<RHS, J, K>>
+                     other) -> indexed_dynamic_tensor&
+  requires(!is_const<std::remove_reference_t<Tensor>> &&
+           is_same<value_type, tensor_value_type<LHS>> &&
+           is_same<value_type, tensor_value_type<RHS>> &&
+           is_same<I, index_at<0>> &&
+           is_same<K, index_at<1>>)
+  {
+    assert(m_tensor.dimension(0) == other.template at<0>().tensor().dimension(0));
+    assert(m_tensor.dimension(1) == other.template at<1>().tensor().dimension(1));
+    blas::gemm(value_type(1),
+               other.template at<0>().tensor(),
+               other.template at<1>().tensor(), value_type(1), m_tensor);
+    return *this;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /// A(i,k) = B(i,j) * C(k, j)
+  template <typename LHS, typename RHS, typename I, typename J, typename K>
+  auto operator=(contracted_dynamic_tensor<indexed_dynamic_tensor<LHS, I, J>,
+                                           indexed_dynamic_tensor<RHS, K, J>>
+                     other) -> indexed_dynamic_tensor&
+  requires(!is_const<std::remove_reference_t<Tensor>> &&
+           is_same<value_type, tensor_value_type<LHS>> &&
+           is_same<value_type, tensor_value_type<RHS>> &&
+           is_same<I, index_at<0>> &&
+           is_same<K, index_at<1>>)
+  {
+    m_tensor.resize(other.template at<0>().tensor().dimension(0),
+                    other.template at<1>().tensor().dimension(1));
+    blas::gemm(blas::Op::NoTrans, blas::Op::Trans, value_type(1),
+               other.template at<0>().tensor(),
+               other.template at<1>().tensor(), value_type(0), m_tensor);
+    return *this;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /// A(i,k) = B(j,i) * C(j, k)
+  template <typename LHS, typename RHS, typename I, typename J, typename K>
+  auto operator=(contracted_dynamic_tensor<indexed_dynamic_tensor<LHS, J, I>,
+                                           indexed_dynamic_tensor<RHS, J, K>>
+                     other) -> indexed_dynamic_tensor&
+  requires(!is_const<std::remove_reference_t<Tensor>> &&
+           is_same<value_type, tensor_value_type<LHS>> &&
+           is_same<value_type, tensor_value_type<RHS>> &&
+           is_same<I, index_at<0>> &&
+           is_same<K, index_at<1>>)
+  {
+    m_tensor.resize(other.template at<0>().tensor().dimension(0),
+                    other.template at<1>().tensor().dimension(1));
+    blas::gemm(blas::Op::Trans, blas::Op::NoTrans, value_type(1),
+               other.template at<0>().tensor(),
+               other.template at<1>().tensor(), value_type(0), m_tensor);
+    return *this;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /// A(i,k) = B(i,j) * C(j, k)
+  template <typename LHS, typename RHS, typename I, typename J, typename K>
+  auto operator=(contracted_dynamic_tensor<indexed_dynamic_tensor<LHS, I, J>,
+                                           indexed_dynamic_tensor<RHS, J, K>>
+                     other) -> indexed_dynamic_tensor&
+  requires(!is_const<std::remove_reference_t<Tensor>> &&
+           is_same<value_type, tensor_value_type<LHS>> &&
+           is_same<value_type, tensor_value_type<RHS>> &&
+           is_same<I, index_at<0>> &&
+           is_same<K, index_at<1>>)
+  {
+    m_tensor.resize(other.template at<0>().tensor().dimension(0),
+                    other.template at<1>().tensor().dimension(1));
+    blas::gemm(value_type(1),
+               other.template at<0>().tensor(),
+               other.template at<1>().tensor(), value_type(0), m_tensor);
+    return *this;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /// A(i) = B(i,j) * C(j)
+  template <typename LHS, typename RHS, typename I, typename J>
+  auto operator=(contracted_dynamic_tensor<indexed_dynamic_tensor<LHS, I, J>,
+                                           indexed_dynamic_tensor<RHS, J>>
+                     other) -> indexed_dynamic_tensor&
+  requires(!is_const<std::remove_reference_t<Tensor>> &&
+           is_same<value_type, tensor_value_type<LHS>> &&
+           is_same<value_type, tensor_value_type<RHS>> &&
+           is_same<I, index_at<0>>)
+  {
+    m_tensor.resize(other.template at<0>().tensor().dimension(0));
+    blas::gemm(value_type(1), other.template at<0>().tensor(),
+               other.template at<1>().tensor(), value_type(0), m_tensor);
+    return *this;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /// A(i) = B(i,j) * C(j) + A(i)
+  template <typename LHS, typename RHS, typename I, typename J>
+  auto operator+=(contracted_dynamic_tensor<indexed_dynamic_tensor<LHS, I, J>,
+                                            indexed_dynamic_tensor<RHS, J>>
+                      other)
+      -> indexed_dynamic_tensor&
+  requires(!is_const<std::remove_reference_t<Tensor>> &&
+           is_same<value_type, tensor_value_type<LHS>> &&
+           is_same<value_type, tensor_value_type<RHS>> &&
+           is_same<I, index_at<0>>)
+  {
+    assert(m_tensor.dimension(0) ==
+           other.template at<0>().tensor().dimension(0));
+    blas::gemm(value_type(1), other.template at<0>().tensor(),
+               other.template at<1>().tensor(), value_type(1), m_tensor);
+    return *this;
+  }
 };
 //==============================================================================
 }  // namespace tatooine::einstein_notation

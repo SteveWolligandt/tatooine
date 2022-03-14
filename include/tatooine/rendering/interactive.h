@@ -5,6 +5,7 @@
 #include <tatooine/rendering/interactive/ellipse.h>
 #include <tatooine/rendering/interactive/pointset.h>
 #include <tatooine/rendering/interactive/rectilinear_grid.h>
+#include <tatooine/rendering/interactive/unstructured_triangular_grid2.h>
 #include <tatooine/type_set.h>
 //==============================================================================
 namespace tatooine::rendering::interactive {

@@ -117,14 +117,16 @@ struct radial_basis_functions_sampler_with_polynomial
     auto       acc = T{};
     // radial basis functions
     for (auto const v : m_pointset.vertices()) {
+      auto const sqr_dist = squared_euclidean_distance(q, m_pointset[v]);
+      if (sqr_dist == 0) {
+        return m_property[v];
+      }
       if constexpr (arithmetic<T>) {
-        acc += m_weights_and_coeffs(v.index()) *
-               m_kernel(squared_euclidean_distance(q, m_pointset[v]));
+        acc += m_weights_and_coeffs(v.index()) * m_kernel(sqr_dist);
       } else if constexpr (static_tensor<T>) {
         for (std::size_t j = 0; j < T::num_components(); ++j) {
           acc.data()[j] +=
-              m_weights_and_coeffs(v.index(), j) *
-              m_kernel(squared_euclidean_distance(q, m_pointset[v]));
+              m_weights_and_coeffs(v.index(), j) * m_kernel(sqr_dist);
         }
       }
     }

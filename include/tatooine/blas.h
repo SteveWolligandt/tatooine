@@ -14,8 +14,6 @@ struct tensor;
 //==============================================================================
 namespace tatooine::blas {
 //==============================================================================
-using ::blas::Layout;
-using ::blas::Op;
 /// \defgroup blas BLAS
 ///
 /// <table>
@@ -56,15 +54,11 @@ using ::blas::Op;
 ///
 ///  DGEMM  performs one of the matrix-matrix operations
 ///
-/// \f$C := \alpha\cdot\text{op}(\mA)\cdot \text{op}(\mB) + \beta\cdot\mC\f$
+/// \f[C=\alpha\cdot\text{op}(\mA)\cdot \text{op}(\mB) + \beta\cdot\mC\f]
 ///
 /// where \f$\text{op}(\mX)\f$ is one of
 ///
-/// \f$\text{op}(\mX)=\mX\f$
-///
-/// or
-///
-/// \f$\text{op}(\mX)=\mX^\top\f$,
+/// \f[\text{op}(\mX)=\mX\ \ \text{ or }\ \ \text{op}(\mX)=\mX^\top\f].
 ///
 /// \f$\alpha\f$ and \f$\beta\f$ are scalars, and \f$\mA\f$, \f$\mB\f$ and
 /// \f$\mC\f$ are matrices, with \f$\text{op}(\mA)\f$ an \f$m\times k\f$ matrix,
@@ -75,6 +69,10 @@ using ::blas::Op;
 /// href='http://www.netlib.org/lapack/explore-html/d1/d54/group__double__blas__level3_gaeda3cbd99c8fb834a60a6412878226e1.html'>BLAS
 /// documentation</a>
 /// \{
+using ::blas::Layout;
+using ::blas::Op;
+//==============================================================================
+/// See \ref blas_gemm.
 template <typename Real, size_t M, size_t N, size_t K>
 auto gemm(Real const alpha, tensor<Real, M, K> const& A,
           tensor<Real, K, N> const& B, Real const beta, tensor<Real, M, N>& C) {
@@ -83,8 +81,9 @@ auto gemm(Real const alpha, tensor<Real, M, K> const& A,
                       C.data_ptr(), M);
 }
 //------------------------------------------------------------------------------
+/// See \ref blas_gemm.
 template <typename Real>
-auto gemm(blas::Op transA, blas::Op transB, Real const alpha,
+auto gemm(blas::Op trans_A, blas::Op trans_B, Real const alpha,
           tensor<Real> const& A, tensor<Real> const& B, Real const beta,
           tensor<Real>& C) {
   assert(A.rank() == 2);
@@ -97,10 +96,11 @@ auto gemm(blas::Op transA, blas::Op transB, Real const alpha,
   assert(C.dimension(0) == M);
   assert(C.rank() == 1 || C.dimension(1) == N);
 
-  return ::blas::gemm(Layout::ColMajor, transA, transB, M, N, K, alpha,
+  return ::blas::gemm(Layout::ColMajor, trans_A, trans_B, M, N, K, alpha,
                       A.data_ptr(), M, B.data_ptr(), K, beta, C.data_ptr(), M);
 }
 //------------------------------------------------------------------------------
+/// See \ref blas_gemm.
 template <typename Real>
 auto gemm(Real const alpha, tensor<Real> const& A, tensor<Real> const& B,
           Real const beta, tensor<Real>& C) {
