@@ -985,9 +985,8 @@ struct pointset {
   radial_basis_functions_sampler_with_polynomial_and_thin_plate_spline_kernel(
       typed_vertex_property_type<T> const& prop) const {
     return radial_basis_functions_sampler_with_polynomial(
-        prop, [](auto const sqr_dist) {
-          return sqr_dist * gcem::log(gcem::sqrt(sqr_dist));
-        });
+        prop,
+        [](auto const sqr_dist) { return sqr_dist * gcem::log(sqr_dist) / 2; });
   }
   //----------------------------------------------------------------------------
   /// \brief Constructs a radial basis functions interpolator.
@@ -1055,7 +1054,7 @@ struct pointset {
   auto radial_basis_functions_sampler_with_thin_plate_spline_kernel(
       typed_vertex_property_type<T> const& prop) const {
     return radial_basis_functions_sampler(prop, [](auto const sqr_dist) {
-      return sqr_dist * gcem::log(gcem::sqrt(sqr_dist));
+      return sqr_dist * gcem::log(sqr_dist) / 2;
     });
   }
   //----------------------------------------------------------------------------

@@ -343,7 +343,7 @@ struct autonomous_particle_flowmap_discretization {
     return pos_type::fill(real_type(0) / real_type(0));
   }
   //----------------------------------------------------------------------------
-  [[nodiscard]] auto sample_inverse_distance(
+  [[nodiscard]] auto sample_inverse_distance_local(
       std::size_t num_neighbors, pos_type const& q,
       forward_or_backward_tag auto const tag,
       execution_policy::sequential_t /*pol*/) const {
@@ -352,16 +352,16 @@ struct autonomous_particle_flowmap_discretization {
 
     auto ps = pointset<real_type, NumDimensions>{};
     for (auto const& s : m_samplers) {
-      //ps.insert_vertex(s.local_pos(q, tag));
-      ps.insert_vertex(s.x0(tag));
+      ps.insert_vertex(s.local_pos(q, tag));
     }
 
-    auto [vertices, squared_dists] = ps.nearest_neighbors_radius(q, 0.1);
+    auto [vertices, squared_dists] =
+        ps.nearest_neighbors_radius(pos_type::zeros(), 0.1);
     auto squared_dist_it = begin(squared_dists);
     for (auto const v : vertices) {
-      auto const  x    = m_samplers[v.index()](q, tag);
-      //auto const dist = *squared_dist_it;
-      auto const dist = huber_loss(gcem::sqrt(*squared_dist_it));
+      auto const  x    = m_samplers[v.index()].phi(tag) + ps[v];
+      auto const dist = *squared_dist_it;
+      //auto const dist = huber_loss(gcem::sqrt(*squared_dist_it));
       if (dist == 0) {
         return x;
       };
@@ -373,47 +373,110 @@ struct autonomous_particle_flowmap_discretization {
     return accumulated_position / accumulated_weight;
   }
   //----------------------------------------------------------------------------
-  //[[nodiscard]] auto sample_inverse_distance(
-  //    pos_type const& q, forward_or_backward_tag auto const tag,
-  //    execution_policy::sequential_t [>pol<]) const {
-  //  auto  ps                  = pointset<real_type, NumDimensions>{};
-  //  auto& initial_positions   = ps.template vertex_property<pos_type>("ps");
-  //  for (auto const& s : m_samplers) {
-  //    auto v               = ps.insert_vertex(-s.local_pos(q, tag));
-  //    initial_positions[v] = s.center(opposite(tag));
-  //  }
-  //  //auto [indices, distances] = ps.nearest_neighbors_radius(pos_type::zeros(), 0.01);
-  //  auto [indices, distances] = ps.nearest_neighbors(pos_type::zeros(), 30);
-  //  auto accumulated_position = pos_type{};
-  //  auto accumulated_weight   = real_type{};
-  //
-  //  auto index_it = begin(indices);
-  //  auto dist_it  = begin(distances);
-  //  for (; index_it != end(indices); ++index_it, ++dist_it) {
-  //    auto const& initial_pos = initial_positions[*index_it];
-  //    auto const& local_pos   = ps[*index_it];
-  //    if (*dist_it == 0) {
-  //      return local_pos + initial_pos;
-  //    };
-  //    auto const weight = 1 / *dist_it;
-  //    accumulated_position += (local_pos + initial_pos) * weight;
-  //    accumulated_weight += weight;
-  //  }
-  //  return accumulated_position / accumulated_weight;
-  //}
+  [[nodiscard]] auto sample_inverse_distance(
+      std::size_t num_neighbors, pos_type const& q,
+      forward_or_backward_tag auto const tag,
+      execution_policy::sequential_t /*pol*/) const {
+    auto accumulated_position = pos_type{};
+    auto accumulated_weight   = real_type{};
+
+    auto ps = pointset<real_type, NumDimensions>{};
+    for (auto const& s : m_samplers) {
+      ps.insert_vertex(s.x0(tag));
+    }
+
+    auto [vertices, squared_dists] = ps.nearest_neighbors_radius(q, 0.1);
+    auto squared_dist_it = begin(squared_dists);
+    for (auto const v : vertices) {
+      auto const  x    = m_samplers[v.index()](q, tag);
+      auto const dist = *squared_dist_it;
+      //auto const dist = huber_loss(gcem::sqrt(*squared_dist_it));
+      if (dist == 0) {
+        return x;
+      };
+      auto const weight = 1 / dist;
+      accumulated_position += x * weight;
+      accumulated_weight += weight;
+      ++squared_dist_it;
+    }
+    return accumulated_position / accumulated_weight;
+  }
   //----------------------------------------------------------------------------
-  //[[nodiscard]] auto sample_radial_basis_functions(
-  //    pos_type const& q, forward_or_backward_tag auto const tag,
-  //    execution_policy::sequential_t [>pol<]) const {
-  //  auto  ps                  = pointset<real_type, NumDimensions>{};
-  //  auto& initial_positions   = ps.template vertex_property<pos_type>("ps");
-  //  for (auto const& s : m_samplers) {
-  //    auto v               = ps.insert_vertex(s.local_pos(q, tag));
-  //    initial_positions[v] = s.center(opposite(tag));
-  //  }
-  //  ps
-  //  return accumulated_position / accumulated_weight;
-  //}
+  [[nodiscard]] auto sample_inverse_distance_without_gradient(
+      std::size_t num_neighbors, pos_type const& q,
+      forward_or_backward_tag auto const tag,
+      execution_policy::sequential_t /*pol*/) const {
+    auto accumulated_position = pos_type{};
+    auto accumulated_weight   = real_type{};
+
+    auto ps = pointset<real_type, NumDimensions>{};
+    for (auto const& s : m_samplers) {
+      ps.insert_vertex(s.x0(tag));
+    }
+
+    auto [vertices, squared_dists] = ps.nearest_neighbors_radius(q, 0.1);
+    auto squared_dist_it = begin(squared_dists);
+    for (auto const v : vertices) {
+      auto const  x    = m_samplers[v.index()].phi(tag);
+      auto const dist = *squared_dist_it + 1e-10;
+      //auto const dist = huber_loss(gcem::sqrt(*squared_dist_it));
+      if (dist == 0) {
+        return x;
+      };
+      auto const weight = 1 / dist;
+      accumulated_position += x * weight;
+      accumulated_weight += weight;
+      ++squared_dist_it;
+    }
+    return accumulated_position / accumulated_weight;
+  }
+  //----------------------------------------------------------------------------
+  [[nodiscard]] auto sample_radial_basis_functions_without_gradient(
+      pos_type const& q, forward_or_backward_tag auto const tag,
+      execution_policy::sequential_t /* pol */) const {
+    auto ps = pointset<real_type, NumDimensions>{};
+    auto& flowmaps = ps.vertex_property<pos_type>("abc");
+    for (auto const& s : m_samplers) {
+      auto v      = ps.insert_vertex(s.local_pos(q, tag));
+      flowmaps[v] = ps[v] + s.phi(tag);
+    }
+
+    auto [vertices, squared_dists] = ps.nearest_neighbors_radius(q, 0.1);
+    auto const N = vertices.size();
+    auto const kernel = [](auto const sqr_dist) { return sqr_dist * gcem::log(sqr_dist) / 2; };
+    // construct lower part of symmetric matrix A
+    auto A = tensor<real_type>::zeros(N, N);
+    for (std::size_t c = 0; c < N; ++c) {
+      for (std::size_t r = c + 1; r < N; ++r) {
+        A(r, c) = kernel(squared_euclidean_distance(m_pointset.vertex_at(c),
+                                                      m_pointset.vertex_at(r)));
+      }
+    }
+    weights = [N] {
+      if constexpr (arithmetic<T>) {
+        return tensor<T>::zeros(N);
+      } else if constexpr (static_tensor<T>) {
+        return tensor<tensor_value_type<T>>::zeros(N, T::num_components());
+      }
+    }();
+
+    for (std::size_t i = 0; i < N; ++i) {
+      if constexpr (arithmetic<T>) {
+        weights(i) = m_property[i];
+      } else if constexpr (static_tensor<T>) {
+        for (std::size_t j = 0; j < T::num_components(); ++j) {
+          weights(i, j) = m_property[i].data()[j];
+        }
+      }
+    }
+    // do not copy by moving A and weights into solver
+    weights = *solve_symmetric_lapack(std::move(A), std::move(weights),
+                                        lapack::Uplo::Lower);
+    auto sampler =
+        ps_local.radial_basis_functions_sampler_with_polynomial_and_thin_plate_spline_kernel(
+            flowmaps);
+    return sampler(q);
+  }
   //----------------------------------------------------------------------------
   template <std::size_t... VertexSeq>
   [[nodiscard]] auto sample_somehow(
