@@ -454,83 +454,67 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
                    .count() / 1000.0
             << "s)\n";
 
+  //////
+  // flowmap discretizations
+  //////
   auto&      flowmap_numerical_prop = g2.vec2_vertex_property("numerical");
+  auto&      flowmap_regular_prop = g2.vec2_vertex_property("regular");
   //auto&      flowmap_autonomous_particles_barycentric_coordinate_prop =
   //    g2.vec2_vertex_property("barycentric_coordinate");
   //auto& flowmap_autonomous_particles_nearest_neighbor_prop =
   //    g2.vec2_vertex_property("nearest_neighbor");
   auto& flowmap_autonomous_particles_inverse_distance_prop =
       g2.vec2_vertex_property("inverse_distance");
-  auto& flowmap_autonomous_particles_inverse_distance_local_prop =
-      g2.vec2_vertex_property("inverse_distance_local");
+  //auto& flowmap_autonomous_particles_inverse_distance_local_prop =
+  //    g2.vec2_vertex_property("inverse_distance_local");
   auto& flowmap_autonomous_particles_inverse_distance_without_gradient_prop =
       g2.vec2_vertex_property("inverse_distance_without_gradient");
   //auto& flowmap_autonomous_particles_radial_basis_functions_prop =
-  //    g2.vec2_vertex_property("radial_basis_functions");
-  auto& flowmap_autonomous_particles_radial_basis_functions_without_gradient_prop =
-      g2.vec2_vertex_property("radial_basis_functions_without_gradient");
+  //    g2.vec2_vertex_property("radialbasis_functions");
   auto& flowmap_agranovsky_prop = g2.vec2_vertex_property("agranovksy");
+
+  //////
+  // flowmap errors
+  //////
+  auto& flowmap_error_regular_prop =
+      g2.scalar_vertex_property("error_regular");
   //auto& flowmap_error_autonomous_particles_barycentric_coordinate_prop =
   //    g2.scalar_vertex_property("error_barycentric_coordinate");
   //auto& flowmap_error_autonomous_particles_nearest_neighbor_prop =
   //    g2.scalar_vertex_property("error_nearest_neighbor");
   auto& flowmap_error_autonomous_particles_inverse_distance_prop =
       g2.scalar_vertex_property("error_inverse_distance");
-  auto& flowmap_error_autonomous_particles_inverse_distance_local_prop =
-      g2.scalar_vertex_property("error_inverse_distance_local");
+  //auto& flowmap_error_autonomous_particles_inverse_distance_local_prop =
+  //    g2.scalar_vertex_property("error_inverse_distance_local");
   auto& flowmap_error_autonomous_particles_inverse_distance_without_gradient_prop =
       g2.scalar_vertex_property("error_inverse_distance_without_gradients");
   //auto& flowmap_error_autonomous_particles_radial_basis_functions_prop =
   //    g2.scalar_vertex_property("error_radial_basis_functions");
-  auto& flowmap_error_autonomous_particles_radial_basis_functions_without_gradient_prop =
-      g2.scalar_vertex_property("error_radial_basis_functions_without_gradients");
   auto& flowmap_error_agranovksy_prop =
       g2.scalar_vertex_property("error_agranovksy");
+
+  //////
+  // flowmap comparisons
+  //////
+  auto& flowmap_error_diff_regular_prop =
+      g2.scalar_vertex_property("error_diff_regular");
   //auto& flowmap_error_diff_barycentric_coordinate_prop =
   //    g2.scalar_vertex_property("error_diff_barycentric_coordinate");
   //auto& flowmap_error_diff_nearest_neighbor_prop =
   //    g2.scalar_vertex_property("error_diff_nearest_neighbor");
   auto& flowmap_error_diff_inverse_distance_prop =
       g2.scalar_vertex_property("error_diff_inverse_distance");
-  auto& flowmap_error_diff_inverse_distance_local_prop =
-      g2.scalar_vertex_property("error_diff_inverse_distance_local");
+  //auto& flowmap_error_diff_inverse_distance_local_prop =
+  //    g2.scalar_vertex_property("error_diff_inverse_distance_local");
   auto& flowmap_error_diff_inverse_distance_without_gradient_prop =
       g2.scalar_vertex_property("error_diff_inverse_distance_without_gradient");
   //auto& flowmap_error_diff_radial_basis_functions_prop =
   //    g2.scalar_vertex_property("error_diff_radial_basis_functions");
-  auto& flowmap_error_diff_radial_basis_functions_without_gradient_prop =
-      g2.scalar_vertex_property("error_diff_radial_basis_functions_without_gradient");
 
 
   std::cout << "measuring autonomous particles flowmap...\n";
   before = clock::now();
 
-
-  //auto  radial_basis_pointset = pointset2{};
-  //auto& flowmaps =
-  //    radial_basis_pointset.vec2_vertex_property("flowmap");
-  //for (auto const& s : flowmap_autonomous_particles.samplers()) {
-  //  auto v = radial_basis_pointset.insert_vertex(
-  //      s.x0(advection_direction));
-  //  flowmaps[v] = s.phi(advection_direction);
-  //}
-  //auto radial_basis_sampler=
-  //    radial_basis_pointset
-  //        .radial_basis_functions_sampler_with_polynomial_and_thin_plate_spline_kernel(
-  //            flowmaps);
-
-  auto  radial_basis_without_gradient_pointset = pointset2{};
-  auto& flowmaps =
-      radial_basis_without_gradient_pointset.vec2_vertex_property("flowmap");
-  for (auto const& s : flowmap_autonomous_particles.samplers()) {
-    auto v = radial_basis_without_gradient_pointset.insert_vertex(
-        s.x0(advection_direction));
-    flowmaps[v] = s.phi(advection_direction);
-  }
-  auto radial_basis_sampler_without_gradient =
-      radial_basis_without_gradient_pointset
-          .radial_basis_functions_sampler_with_polynomial_and_thin_plate_spline_kernel(
-              flowmaps);
 
 #pragma omp parallel for
   for (std::size_t i = 0; i < g2.vertices().size(); ++i) {
@@ -549,10 +533,10 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
              inverse_distance_num_samples, q, advection_direction,
              execution_policy::sequential);
 
-     flowmap_autonomous_particles_inverse_distance_local_prop[v] =
-         flowmap_autonomous_particles.sample_inverse_distance_local(
-             inverse_distance_num_samples, q, advection_direction,
-             execution_policy::sequential);
+     //flowmap_autonomous_particles_inverse_distance_local_prop[v] =
+     //    flowmap_autonomous_particles.sample_inverse_distance_local(
+     //        inverse_distance_num_samples, q, advection_direction,
+     //        execution_policy::sequential);
 
      flowmap_autonomous_particles_inverse_distance_without_gradient_prop[v] =
          flowmap_autonomous_particles.sample_inverse_distance_without_gradient(
@@ -560,10 +544,11 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
              execution_policy::sequential);
 
     //flowmap_autonomous_particles_radial_basis_functions_prop
-    //    [v] = radial_basis_sampler(q);
+    //    [v] =
+    //     flowmap_autonomous_particles.sample_radial_basis_functions(
+    //         q, advection_direction,
+    //         execution_policy::sequential);
 
-    flowmap_autonomous_particles_radial_basis_functions_without_gradient_prop
-        [v] = radial_basis_sampler_without_gradient(q);
   }
   after = clock::now();
   std::cout << "measuring autonomous particles flowmap done! ("
@@ -597,12 +582,49 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
                    .count() / 1000.0
             << "s)\n";
 
+  auto const regularized_height = static_cast<std::size_t>(
+      std::ceil(std::sqrt((num_particles_after_advection / 2))));
+  auto const regularized_width = regularized_height * 2;
+  std::cout << "number of particles in regular sampler: "
+            << regularized_width * regularized_height<< '\n';
+  std::cout << "advecting regular flowmap...\n";
+  before = clock::now();
+  auto flowmap_regular = regular_flowmap_discretization2{
+      phi, t0, tau, g.front(), g.back(), regularized_width, regularized_height};
+  after = clock::now();
+  std::cout << "advecting regular flowmap... done! ("
+            << std::chrono::duration_cast<std::chrono::milliseconds>(after -
+                                                                     before)
+                   .count() / 1000.0
+            << "s)\n";
+
+
+  std::cout << "measuring regular flowmap...\n";
+  before = clock::now();
+#pragma omp parallel for
+  for (std::size_t i = 0; i < g2.vertices().size(); ++i) {
+    auto const v = unstructured_simplicial_grid<real_number, 2, 2>::vertex_handle{i};
+    auto       copy_phi = phi;
+    auto const q        = g2[v];
+    try {
+      flowmap_regular_prop[v] =
+          flowmap_regular.sample(q, advection_direction);
+    } catch (...) {
+      flowmap_regular_prop[v] = vec2{0.0 / 0.0, 0.0 / 0.0};
+    }
+  }
+  after = clock::now();
+  std::cout << "measuring regular flowmap done! ("
+            << std::chrono::duration_cast<std::chrono::milliseconds>(after -
+                                                                     before)
+                   .count() / 1000.0
+            << "s)\n";
+
   auto const agranovsky_delta_t = 0.5;
   auto const num_agranovksy_steps =
       static_cast<std::size_t>(std::ceil((t_end - t0) / agranovsky_delta_t));
   auto const regularized_height_agranovksky =
-      static_cast<std::size_t>(std::ceil(std::sqrt(
-          (num_particles_after_advection / 2) / num_agranovksy_steps)));
+      regularized_height / num_agranovksy_steps;
   auto const regularized_width_agranovksky = regularized_height_agranovksky * 2;
   std::cout << "num_agranovksy_steps: " << num_agranovksy_steps << '\n';
   std::cout << "regularized_width_agranovksky: "
@@ -627,7 +649,6 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
                                                                      before)
                    .count() / 1000.0
             << "s)\n";
-
   std::cout << "measuring agranovsky flowmap...\n";
   before = clock::now();
 #pragma omp parallel for
@@ -673,10 +694,10 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
             flowmap_numerical_prop[v],
             flowmap_autonomous_particles_inverse_distance_prop[v]);
 
-    flowmap_error_autonomous_particles_inverse_distance_local_prop[v] =
-        euclidean_distance(
-            flowmap_numerical_prop[v],
-            flowmap_autonomous_particles_inverse_distance_local_prop[v]);
+    //flowmap_error_autonomous_particles_inverse_distance_local_prop[v] =
+    //    euclidean_distance(
+    //        flowmap_numerical_prop[v],
+    //        flowmap_autonomous_particles_inverse_distance_local_prop[v]);
 
     flowmap_error_autonomous_particles_inverse_distance_without_gradient_prop[v] =
         euclidean_distance(
@@ -688,10 +709,8 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
     //        flowmap_numerical_prop[v],
     //        flowmap_autonomous_particles_radial_basis_functions_prop[v]);
 
-    flowmap_error_autonomous_particles_radial_basis_functions_without_gradient_prop[v] =
-        euclidean_distance(
-            flowmap_numerical_prop[v],
-            flowmap_autonomous_particles_radial_basis_functions_without_gradient_prop[v]);
+    flowmap_error_regular_prop[v] = euclidean_distance(
+        flowmap_numerical_prop[v], flowmap_regular_prop[v]);
 
     flowmap_error_agranovksy_prop[v] = euclidean_distance(
         flowmap_numerical_prop[v], flowmap_agranovsky_prop[v]);
@@ -703,14 +722,15 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
     // flowmap_error_diff_nearest_neighbor_prop[v] =
     //     flowmap_error_agranovksy_prop[v] -
     //     flowmap_error_autonomous_particles_nearest_neighbor_prop[v];
-    //
+
+
     flowmap_error_diff_inverse_distance_prop[v] =
         flowmap_error_agranovksy_prop[v] -
         flowmap_error_autonomous_particles_inverse_distance_prop[v];
 
-    flowmap_error_diff_inverse_distance_local_prop[v] =
-        flowmap_error_agranovksy_prop[v] -
-        flowmap_error_autonomous_particles_inverse_distance_local_prop[v];
+    //flowmap_error_diff_inverse_distance_local_prop[v] =
+    //    flowmap_error_agranovksy_prop[v] -
+    //    flowmap_error_autonomous_particles_inverse_distance_local_prop[v];
 
     flowmap_error_diff_inverse_distance_without_gradient_prop[v] =
         flowmap_error_agranovksy_prop[v] -
@@ -719,10 +739,6 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
     //flowmap_error_diff_radial_basis_functions_prop[v] =
     //    flowmap_error_agranovksy_prop[v] -
     //    flowmap_error_autonomous_particles_radial_basis_functions_prop[v];
-
-    flowmap_error_diff_radial_basis_functions_without_gradient_prop[v] =
-        flowmap_error_agranovksy_prop[v] -
-        flowmap_error_autonomous_particles_radial_basis_functions_without_gradient_prop[v];
   }
   after = clock::now();
   std::cout << "measuring errors done! ("
@@ -739,7 +755,12 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
                           return s.ellipse(advection_direction);
                         }),
                     std::back_inserter(advected_particles));
-  rendering::interactive::render(/*initial_particles, */ advected_particles, m,
+
+  auto regular_flowmap_grid =
+      rectilinear_grid{linspace{0.0, 2.0, regularized_width},
+                       linspace{0.0, 1.0, regularized_height}};
+
+  rendering::interactive::render(regular_flowmap_grid, /*initial_particles, */ advected_particles, m,
                                  g2);
 };
 //==============================================================================
@@ -757,7 +778,7 @@ auto main(int argc, char** argv) -> int {
   }
   //============================================================================
   auto dg = analytical::fields::numerical::doublegyre{};
-  auto g  = rectilinear_grid{linspace{0.0, 2.0, 201}, linspace{0.0, 1.0, 101}};
+  auto g  = rectilinear_grid{linspace{0.0, 2.0, 501}, linspace{0.0, 1.0, 251}};
   auto const eps                  = 1e-3;
   auto const initial_particles_dg = autonomous_particle2::particles_from_grid(
       t0,

@@ -27,30 +27,37 @@ struct regular_flowmap_discretization {
   };
   //----------------------------------------------------------------------------
   using forward_grid_type = typename grid_type_creator<N>::type;
-  using grid_vertex_property_type =
+  using forward_grid_vertex_property_type =
       detail::rectilinear_grid::typed_vertex_property_interface<forward_grid_type, pos_type, true>;
   //----------------------------------------------------------------------------
   template <std::size_t M, template <typename> typename... InterpolationKernels>
-  struct grid_sampler_type_creator {
+  struct forward_grid_sampler_type_creator {
     using type =
-        typename grid_sampler_type_creator<M - 1, interpolation::linear,
+        typename forward_grid_sampler_type_creator<M - 1, interpolation::linear,
                                            InterpolationKernels...>::type;
   };
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <template <typename> typename... InterpolationKernels>
-  struct grid_sampler_type_creator<0, InterpolationKernels...> {
+  struct forward_grid_sampler_type_creator<0, InterpolationKernels...> {
     using type = tatooine::detail::rectilinear_grid::vertex_property_sampler<
-        grid_vertex_property_type, InterpolationKernels...>;
+        forward_grid_vertex_property_type, InterpolationKernels...>;
   };
-  using grid_vertex_property_sampler_type =
-      typename grid_sampler_type_creator<N>::type;
+  //using forward_grid_vertex_property_sampler_type =
+  //    typename forward_grid_sampler_type_creator<N>::type;
+
+  using forward_grid_vertex_property_sampler_type =
+      typename forward_grid_vertex_property_type::
+          inverse_distance_weighting_sampler_type;
 
   using backward_grid_type = unstructured_simplicial_grid<Real, N, N>;
-  using mesh_vertex_property_type =
+  using backward_grid_vertex_property_type =
       typename backward_grid_type::template typed_vertex_property_type<
           pos_type>;
-  using mesh_vertex_property_sampler_type =
-      typename backward_grid_type::template vertex_property_sampler_type<
+  //using backward_grid_vertex_property_sampler_type =
+  //    typename backward_grid_type::template vertex_property_sampler_type<
+  //        pos_type>;
+  using backward_grid_vertex_property_sampler_type =
+      typename backward_grid_type::template inverse_distance_weighting_sampler_type<
           pos_type>;
   //============================================================================
  private:
@@ -58,13 +65,13 @@ struct regular_flowmap_discretization {
   Real m_t1;
   Real m_tau;
 
-  forward_grid_type                 m_forward_grid;
-  grid_vertex_property_type*        m_forward_discretization;
-  grid_vertex_property_sampler_type m_forward_sampler;
+  forward_grid_type                         m_forward_grid;
+  forward_grid_vertex_property_type*        m_forward_discretization;
+  forward_grid_vertex_property_sampler_type m_forward_sampler;
 
-  backward_grid_type                m_backward_grid;
-  mesh_vertex_property_type*        m_backward_discretization;
-  mesh_vertex_property_sampler_type m_backward_sampler;
+  backward_grid_type                         m_backward_grid;
+  backward_grid_vertex_property_type*        m_backward_discretization;
+  backward_grid_vertex_property_sampler_type m_backward_sampler;
   static constexpr auto default_execution_policy = execution_policy::parallel;
   //============================================================================
  private:
@@ -83,13 +90,13 @@ struct regular_flowmap_discretization {
         m_forward_discretization{
             &m_forward_grid.template vertex_property<pos_type>(
                 "forward_discretization")},
-        m_forward_sampler{m_forward_discretization->linear_sampler()},
+        m_forward_sampler{m_forward_discretization->inverse_distance_weighting_sampler(0.1)},
         m_backward_grid{m_forward_grid},
         m_backward_discretization{
             &m_backward_grid.template vertex_property<pos_type>(
                 "backward_discretization")},
         m_backward_sampler{
-            m_backward_grid.sampler(*m_backward_discretization)} {
+            m_backward_grid.inverse_distance_weighting_sampler(*m_backward_discretization)} {
     fill(std::forward<Flowmap>(flowmap), execution_policy);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -198,6 +205,9 @@ struct regular_flowmap_discretization {
     return sampler(tag)(x);
   }
 };
+//==============================================================================
+using regular_flowmap_discretization2 =
+    regular_flowmap_discretization<real_number, 2>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

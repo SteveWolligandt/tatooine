@@ -258,7 +258,7 @@ struct indexed_dynamic_tensor {
     return *this;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /// A(i,k) = B(i,j) * C(j, k) + A(i,k)
+  /// \f$\mA(i,k) = \mB(i,j) \mC(j, k) + \mA(i,k)\f$
   template <typename LHS, typename RHS, typename I, typename J, typename K>
   auto operator+=(contracted_dynamic_tensor<indexed_dynamic_tensor<LHS, I, J>,
                                             indexed_dynamic_tensor<RHS, J, K>>
@@ -277,7 +277,7 @@ struct indexed_dynamic_tensor {
     return *this;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /// A(i,k) = B(i,j) * C(k, j)
+  /// \f$\mA(i,k) = \mB(i,j) \mC(k, j)\f$
   template <typename LHS, typename RHS, typename I, typename J, typename K>
   auto operator=(contracted_dynamic_tensor<indexed_dynamic_tensor<LHS, I, J>,
                                            indexed_dynamic_tensor<RHS, K, J>>
@@ -296,7 +296,7 @@ struct indexed_dynamic_tensor {
     return *this;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /// A(i,k) = B(j,i) * C(j, k)
+  /// \f$\mA(i,k) = \mB(j,i) \mC(j, k)\f$
   template <typename LHS, typename RHS, typename I, typename J, typename K>
   auto operator=(contracted_dynamic_tensor<indexed_dynamic_tensor<LHS, J, I>,
                                            indexed_dynamic_tensor<RHS, J, K>>
@@ -315,7 +315,7 @@ struct indexed_dynamic_tensor {
     return *this;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /// A(i,k) = B(i,j) * C(j, k)
+  /// \f$\mA(i,k) = \mB(i,j) \mC(j, k)\f$
   template <typename LHS, typename RHS, typename I, typename J, typename K>
   auto operator=(contracted_dynamic_tensor<indexed_dynamic_tensor<LHS, I, J>,
                                            indexed_dynamic_tensor<RHS, J, K>>
@@ -334,7 +334,7 @@ struct indexed_dynamic_tensor {
     return *this;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /// A(i) = B(i,j) * C(j)
+  /// \f$\va(i) = \mB(i,j) \vc(j)\f$
   template <typename LHS, typename RHS, typename I, typename J>
   auto operator=(contracted_dynamic_tensor<indexed_dynamic_tensor<LHS, I, J>,
                                            indexed_dynamic_tensor<RHS, J>>
@@ -345,12 +345,12 @@ struct indexed_dynamic_tensor {
            is_same<I, index_at<0>>)
   {
     m_tensor.resize(other.template at<0>().tensor().dimension(0));
-    blas::gemm(value_type(1), other.template at<0>().tensor(),
+    blas::gemv(value_type(1), other.template at<0>().tensor(),
                other.template at<1>().tensor(), value_type(0), m_tensor);
     return *this;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /// A(i) = B(i,j) * C(j) + A(i)
+  /// \f$\va(i) = \mB(i,j) \vc(j) + \va(i)\f$
   template <typename LHS, typename RHS, typename I, typename J>
   auto operator+=(contracted_dynamic_tensor<indexed_dynamic_tensor<LHS, I, J>,
                                             indexed_dynamic_tensor<RHS, J>>

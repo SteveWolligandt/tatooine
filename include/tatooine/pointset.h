@@ -2,6 +2,7 @@
 #define TATOOINE_POINTSET_H
 //==============================================================================
 #include <tatooine/available_libraries.h>
+#include <tatooine/thin_plate_spline.h>
 #include <tatooine/iterator_facade.h>
 
 #include <boost/range/algorithm/find.hpp>
@@ -58,7 +59,7 @@ struct pointset {
   using vec_type     = vec<Real, NumDimensions>;
   using pos_type  = vec_type;
 #if TATOOINE_FLANN_AVAILABLE || defined(TATOOINE_DOC_ONLY)
-  using flann_index_type = flann::Index<flann::L2_Simple<Real>>;
+  using flann_index_type = flann::Index<flann::L2<Real>>;
 #endif
   //----------------------------------------------------------------------------
   struct vertex_handle : handle<vertex_handle> {
@@ -77,6 +78,10 @@ struct pointset {
   using typed_vertex_property_type = typed_vector_property<vertex_handle, T>;
   using vertex_property_container_type =
       std::map<std::string, std::unique_ptr<vertex_property_type>>;
+  template <typename T>
+  using inverse_distance_weighting_sampler_type =
+      detail::pointset::inverse_distance_weighting_sampler<Real, NumDimensions,
+                                                           T>;
   //============================================================================
  private:
   std::vector<pos_type>          m_vertex_position_data;
@@ -270,14 +275,6 @@ struct pointset {
 
     return duplicates;
   }
-  //----------------------------------------------------------------------------
-  auto resize(std::size_t const s) {
-    vertex_position_data().resize(s);
-    for (auto& [key, prop] : vertex_properties()) {
-      prop->resize(s);
-    }
-  }
-
   //#ifdef USE_TRIANGLE
   //----------------------------------------------------------------------------
   //  template <typename = void>
@@ -867,8 +864,7 @@ struct pointset {
   template <typename T>
   auto inverse_distance_weighting_sampler(
       typed_vertex_property_type<T> const& prop, Real const radius = 1) const {
-    return detail::pointset::inverse_distance_weighting_sampler<
-        Real, NumDimensions, T>{*this, prop, radius};
+    return inverse_distance_weighting_sampler_type<T>{*this, prop, radius};
   }
   /// \}
   //============================================================================
@@ -984,9 +980,8 @@ struct pointset {
   auto
   radial_basis_functions_sampler_with_polynomial_and_thin_plate_spline_kernel(
       typed_vertex_property_type<T> const& prop) const {
-    return radial_basis_functions_sampler_with_polynomial(
-        prop,
-        [](auto const sqr_dist) { return sqr_dist * gcem::log(sqr_dist) / 2; });
+    return radial_basis_functions_sampler_with_polynomial(prop,
+                                                          thin_plate_spline);
   }
   //----------------------------------------------------------------------------
   /// \brief Constructs a radial basis functions interpolator.
@@ -1053,9 +1048,7 @@ struct pointset {
   template <typename T>
   auto radial_basis_functions_sampler_with_thin_plate_spline_kernel(
       typed_vertex_property_type<T> const& prop) const {
-    return radial_basis_functions_sampler(prop, [](auto const sqr_dist) {
-      return sqr_dist * gcem::log(sqr_dist) / 2;
-    });
+    return radial_basis_functions_sampler(prop, thin_plate_spline);
   }
   //----------------------------------------------------------------------------
   /// \brief Constructs a radial basis functions interpolator.
