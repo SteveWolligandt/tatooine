@@ -2,6 +2,7 @@
 #define TATOOINE_DETAIL_RECTILINEAR_GRID_VERTEX_PROPERTY_PROPERTY_H
 //==============================================================================
 #include <tatooine/concepts.h>
+#include <tatooine/detail/rectilinear_grid/inverse_distance_weighting_vertex_property_sampler.h>
 #include <tatooine/detail/rectilinear_grid/vertex_property_sampler.h>
 #include <tatooine/finite_differences_coefficients.h>
 #include <tatooine/interpolation.h>
@@ -95,10 +96,13 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
   using const_reference = ValueType const&;
   using reference =
       std::conditional_t<HasNonConstReference, ValueType&, const_reference>;
-  using grid_t = Grid;
+  using grid_type = Grid;
+  using real_type = typename Grid::real_type;
   using parent_type::grid;
   using parent_type::num_dimensions;
   using typename parent_type::vertex_handle;
+  using inverse_distance_weighting_sampler_type = detail::rectilinear_grid::
+      inverse_distance_weighting_vertex_property_sampler<Grid, this_type>;
 
   //============================================================================
   // ctors
@@ -162,6 +166,10 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
   //----------------------------------------------------------------------------
   auto cubic_sampler() const -> decltype(auto) {
     return sampler<interpolation::cubic>();
+  }
+  //----------------------------------------------------------------------------
+  auto inverse_distance_weighting_sampler(real_type const radius) const  {
+    return inverse_distance_weighting_sampler_type{this->grid(), *this, radius};
   }
   //----------------------------------------------------------------------------
   // data access
@@ -232,6 +240,10 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   virtual auto at(std::array<std::size_t, num_dimensions()> const& is)
       -> reference = 0;
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  virtual auto plain_at(std::size_t) const -> const_reference = 0;
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  virtual auto plain_at(std::size_t) -> reference = 0;
   //----------------------------------------------------------------------------
   auto resize(integral auto const... size)
       -> decltype(auto) requires(sizeof...(size) == Grid::num_dimensions()) {
@@ -355,8 +367,9 @@ struct typed_vertex_property
   using cont_parent_type   = Container;
   using value_type      = typename prop_parent_type::value_type;
   using reference       = typename prop_parent_type::reference;
-  using const_reference = typename prop_parent_type::const_reference;
-  using grid_t          = Grid;
+  using const_reference    = typename prop_parent_type::const_reference;
+  using grid_type          = Grid;
+  using real_type          = typename Grid::real_type;
   using prop_parent_type::num_dimensions;
   //============================================================================
   // ctors
@@ -420,6 +433,14 @@ struct typed_vertex_property
       -> reference override {
     return at(size, std::make_index_sequence<num_dimensions()>{});
   }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto plain_at(std::size_t const i) const -> const_reference override {
+    return Container::operator[](i);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto plain_at(std::size_t const i) -> reference override {
+    return Container::operator[](i);
+  }
   //----------------------------------------------------------------------------
   auto resize(std::array<std::size_t, num_dimensions()> const& size)
       -> void override {
@@ -471,7 +492,7 @@ struct differentiated_typed_vertex_property {
   using prop_t     = typed_vertex_property_interface<Grid, PropValueType,
                                                  PropHasNonConstReference>;
   using value_type = vertex_property_differentiated_type<Grid, PropValueType>;
-  using grid_t     = Grid;
+  using grid_type     = Grid;
   //----------------------------------------------------------------------------
   static constexpr auto num_dimensions() { return Grid::num_dimensions(); }
   //----------------------------------------------------------------------------

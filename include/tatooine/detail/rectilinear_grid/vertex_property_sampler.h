@@ -299,7 +299,7 @@ struct vertex_property_sampler
   //----------------------------------------------------------------------------
   auto data_at(integral auto const... is) const
       -> decltype(auto) requires(sizeof...(is) ==
-                                 GridVertexProperty::grid_t::num_dimensions()) {
+                                 GridVertexProperty::grid_type::num_dimensions()) {
     return m_property(is...);
   }
   //----------------------------------------------------------------------------
@@ -436,7 +436,7 @@ struct differentiated_sampler {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr auto sample(arithmetic auto const... xs) const {
     return sample(
-        vec<typename GridVertexProperty::grid_t::real_type, sizeof...(xs)>{xs...});
+        vec<typename GridVertexProperty::grid_type::real_type, sizeof...(xs)>{xs...});
   }
 };
 //==============================================================================

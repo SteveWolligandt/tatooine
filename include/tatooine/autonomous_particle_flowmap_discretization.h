@@ -355,20 +355,20 @@ struct autonomous_particle_flowmap_discretization {
       ps.insert_vertex(s.local_pos(q, tag));
     }
 
-    auto [vertices, squared_dists] =
-        ps.nearest_neighbors_radius(pos_type::zeros(), 0.1);
-    auto squared_dist_it = begin(squared_dists);
+    auto [vertices, squared_distances] =
+        ps.nearest_neighbors_radius(pos_type::zeros(), 0.01);
+    auto squared_distance_it = begin(squared_distances);
     for (auto const v : vertices) {
       auto const  x    = m_samplers[v.index()].phi(tag) + ps[v];
-      auto const dist = *squared_dist_it;
-      //auto const dist = huber_loss(gcem::sqrt(*squared_dist_it));
+      auto const dist = *squared_distance_it;
+      //auto const dist = huber_loss(gcem::sqrt(*squared_distance_it));
       if (dist == 0) {
         return x;
       };
       auto const weight = 1 / dist;
       accumulated_position += x * weight;
       accumulated_weight += weight;
-      ++squared_dist_it;
+      ++squared_distance_it;
     }
     return accumulated_position / accumulated_weight;
   }
@@ -385,19 +385,19 @@ struct autonomous_particle_flowmap_discretization {
       ps.insert_vertex(s.x0(tag));
     }
 
-    auto [vertices, squared_dists] = ps.nearest_neighbors_radius(q, 0.1);
-    auto squared_dist_it = begin(squared_dists);
+    auto [vertices, squared_distances] = ps.nearest_neighbors_radius(q, 0.01);
+    auto squared_distance_it = begin(squared_distances);
     for (auto const v : vertices) {
       auto const  x    = m_samplers[v.index()](q, tag);
-      auto const dist = *squared_dist_it;
-      //auto const dist = huber_loss(gcem::sqrt(*squared_dist_it));
+      auto const dist = *squared_distance_it;
+      //auto const dist = huber_loss(gcem::sqrt(*squared_distance_it));
       if (dist == 0) {
         return x;
       };
       auto const weight = 1 / dist;
       accumulated_position += x * weight;
       accumulated_weight += weight;
-      ++squared_dist_it;
+      ++squared_distance_it;
     }
     return accumulated_position / accumulated_weight;
   }
@@ -414,68 +414,68 @@ struct autonomous_particle_flowmap_discretization {
       ps.insert_vertex(s.x0(tag));
     }
 
-    auto [vertices, squared_dists] = ps.nearest_neighbors_radius(q, 0.1);
-    auto squared_dist_it = begin(squared_dists);
+    auto [vertices, squared_distances] = ps.nearest_neighbors_radius(q, 0.01);
+    auto squared_distance_it = begin(squared_distances);
     for (auto const v : vertices) {
       auto const  x    = m_samplers[v.index()].phi(tag);
-      auto const dist = *squared_dist_it + 1e-10;
-      //auto const dist = huber_loss(gcem::sqrt(*squared_dist_it));
-      if (dist == 0) {
+      auto const squared_distance = *squared_distance_it + 1e-10;
+      //auto const squared_distance = huber_loss(gcem::sqrt(*squared_distance_it));
+      if (squared_distance == 0) {
         return x;
       };
-      auto const weight = 1 / dist;
+      auto const weight = 1 / squared_distance;
       accumulated_position += x * weight;
       accumulated_weight += weight;
-      ++squared_dist_it;
+      ++squared_distance_it;
     }
     return accumulated_position / accumulated_weight;
   }
   //----------------------------------------------------------------------------
-  [[nodiscard]] auto sample_radial_basis_functions_without_gradient(
+  [[nodiscard]] auto sample_radial_basis_functions(
       pos_type const& q, forward_or_backward_tag auto const tag,
       execution_policy::sequential_t /* pol */) const {
     auto ps = pointset<real_type, NumDimensions>{};
-    auto& flowmaps = ps.vertex_property<pos_type>("abc");
+    ps.vertices().reserve(size(m_samplers));
     for (auto const& s : m_samplers) {
-      auto v      = ps.insert_vertex(s.local_pos(q, tag));
-      flowmaps[v] = ps[v] + s.phi(tag);
+      //ps.insert_vertex(s.x0(tag));
+      ps.insert_vertex(s.local_pos(q, tag));
     }
 
-    auto [vertices, squared_dists] = ps.nearest_neighbors_radius(q, 0.1);
+    auto [vertices, squared_distances] =
+        ps.nearest_neighbors(pos_type::zeros(), 100);
     auto const N = vertices.size();
-    auto const kernel = [](auto const sqr_dist) { return sqr_dist * gcem::log(sqr_dist) / 2; };
-    // construct lower part of symmetric matrix A
-    auto A = tensor<real_type>::zeros(N, N);
+    if (N == 0) {
+      return pos_type::fill(0.0 / 0.0);
+    }
+    auto const kernel = thin_plate_spline;
+    // construct lower part of symmetric system matrix A
+    auto A       = tensor<real_type>::zeros(N, N);
     for (std::size_t c = 0; c < N; ++c) {
       for (std::size_t r = c + 1; r < N; ++r) {
-        A(r, c) = kernel(squared_euclidean_distance(m_pointset.vertex_at(c),
-                                                      m_pointset.vertex_at(r)));
+        A(r, c) = kernel(
+            squared_euclidean_distance(ps.vertex_at(vertices[c]),
+                                       ps.vertex_at(vertices[r])));
       }
     }
-    weights = [N] {
-      if constexpr (arithmetic<T>) {
-        return tensor<T>::zeros(N);
-      } else if constexpr (static_tensor<T>) {
-        return tensor<tensor_value_type<T>>::zeros(N, T::num_components());
-      }
-    }();
+    auto weights = tensor<Real>::zeros(N, NumDimensions);
 
     for (std::size_t i = 0; i < N; ++i) {
-      if constexpr (arithmetic<T>) {
-        weights(i) = m_property[i];
-      } else if constexpr (static_tensor<T>) {
-        for (std::size_t j = 0; j < T::num_components(); ++j) {
-          weights(i, j) = m_property[i].data()[j];
-        }
+      auto const phi =
+          ps[vertices[i]] + m_samplers[vertices[i].index()].phi(tag);
+      for (std::size_t j = 0; j < NumDimensions; ++j) {
+        weights(i, j) = phi(j);
       }
     }
     // do not copy by moving A and weights into solver
     weights = *solve_symmetric_lapack(std::move(A), std::move(weights),
-                                        lapack::Uplo::Lower);
-    auto sampler =
-        ps_local.radial_basis_functions_sampler_with_polynomial_and_thin_plate_spline_kernel(
-            flowmaps);
-    return sampler(q);
+                                      lapack::Uplo::Lower);
+    auto acc = pos_type{};
+    for (std::size_t i = 0; i < N; ++i) {
+      for (std::size_t j = 0; j < NumDimensions; ++j) {
+        acc.data()[j] += weights(i, j) * kernel(squared_distances[i]);
+      }
+    }
+    return acc;
   }
   //----------------------------------------------------------------------------
   template <std::size_t... VertexSeq>
