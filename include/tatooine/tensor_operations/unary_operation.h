@@ -5,10 +5,21 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename F, static_tensor Tensor, std::size_t... Seq>
-constexpr auto unary_operation(F&& f, Tensor const& t,
+template <dynamic_tensor Tensor>
+constexpr auto unary_operation(invocable<tensor_value_type<Tensor>> auto&& op,
+                               Tensor const& t) {
+  using TOut = std::invoke_result_t<decltype(op), tensor_value_type<Tensor>>;
+  auto t_out = tensor<TOut>::zeros(t.dimensions());
+  for (std::size_t i = 0; i < t.data().size(); ++i) {
+    t_out.data()[i] = op(t.data()[i]);
+  }
+  return t_out;
+}
+//------------------------------------------------------------------------------
+template <typename Op, static_tensor Tensor, std::size_t... Seq>
+constexpr auto unary_operation(Op&& op, Tensor const& t,
                                std::index_sequence<Seq...> /*seq*/) {
-  using TOut          = std::invoke_result_t<F, typename Tensor::value_type>;
+  using TOut          = std::invoke_result_t<Op, typename Tensor::value_type>;
   auto constexpr rank = Tensor::rank();
   auto t_out          = [&] {
     if constexpr (rank == 1) {
@@ -20,14 +31,14 @@ constexpr auto unary_operation(F&& f, Tensor const& t,
     };
   }();
   t_out.for_indices([&](auto const... is) {
-    t_out(is...) = f(t(is...));
+    t_out(is...) = op(t(is...));
   });
   return t_out;
 }
 //------------------------------------------------------------------------------
-template <typename F, static_tensor Tensor>
-constexpr auto unary_operation(F&& f, Tensor const& t) {
-  return unary_operation(std::forward<F>(f), t,
+template <typename Op, static_tensor Tensor>
+constexpr auto unary_operation(Op&& op, Tensor const& t) {
+  return unary_operation(std::forward<Op>(op), t,
                          std::make_index_sequence<Tensor::rank()>{});
 }
 //==============================================================================

@@ -1,6 +1,8 @@
 #ifndef TATOOINE_THIN_PLATE_SPLINE_H
 #define TATOOINE_THIN_PLATE_SPLINE_H
 //==============================================================================
+#include <tatooine/math.h>
+//==============================================================================
 namespace tatooine {
 //==============================================================================
 auto constexpr thin_plate_spline =

@@ -135,6 +135,12 @@ constexpr auto sqrt(base_tensor<Tensor, TensorT, Dims...> const& t) {
   return unary_operation(
       [](auto const& component) { return gcem::sqrt(component); }, t);
 }
+//------------------------------------------------------------------------------
+constexpr auto sqrt(dynamic_tensor auto&& t) {
+  return unary_operation(
+      [](auto const& c) { return gcem::sqrt(c); },
+      std::forward<decltype(t)>(t));
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

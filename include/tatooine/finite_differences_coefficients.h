@@ -6,7 +6,12 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-/// read here for more information:
+/// \defgroup finite_differences_coefficients Finite Difference Coefficients
+/// Read here for more information:
+/// http://web.media.mit.edu/~crtaylor/calculator.html
+/// \{
+//==============================================================================
+/// Read here for more information:
 /// http://web.media.mit.edu/~crtaylor/calculator.html
 template <floating_point... Xs>
 auto finite_differences_coefficients(std::size_t const derivative_order,
@@ -20,7 +25,7 @@ auto finite_differences_coefficients(std::size_t const derivative_order,
   return *solve(V, b);
 }
 //------------------------------------------------------------------------------
-/// read here for more information:
+/// Read here for more information:
 /// http://web.media.mit.edu/~crtaylor/calculator.html
 template <typename Tensor, floating_point T, size_t N>
 auto finite_differences_coefficients(std::size_t const derivative_order,
@@ -32,16 +37,18 @@ auto finite_differences_coefficients(std::size_t const derivative_order,
   return *solve(V, b);
 }
 //------------------------------------------------------------------------------
-/// read here for more information:
+/// Read here for more information:
 /// http://web.media.mit.edu/~crtaylor/calculator.html
-template <floating_point T>
 auto finite_differences_coefficients(std::size_t const     derivative_order,
-                                     std::vector<T> const& v) {
-  auto const V        = transposed(tensor<T>::vander(v, v.size()));
-  auto       b        = tensor<T>::zeros(v.size());
-  b(derivative_order) = factorial(derivative_order);
+                                     floating_point_range auto const& v) {
+  using real_type = std::decay_t<decltype(v)>::value_type;
+  auto const V         = transposed(tensor<real_type>::vander(v, v.size()));
+  auto       b         = tensor<real_type>::zeros(size(v));
+  b(derivative_order)  = factorial(derivative_order);
   return solve(V, b)->data();
 }
+//==============================================================================
+/// \}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

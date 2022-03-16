@@ -3,6 +3,7 @@
 //==============================================================================
 #include <tatooine/available_libraries.h>
 #include <tatooine/thin_plate_spline.h>
+#include <tatooine/axis_aligned_bounding_box.h>
 #include <tatooine/iterator_facade.h>
 
 #include <boost/range/algorithm/find.hpp>

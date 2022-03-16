@@ -88,3 +88,12 @@ target_link_libraries(autonomous_particles.doublegyre_initial_square PUBLIC tato
 add_custom_target(autonomous_particles.doublegyre_initial_square.run
   COMMAND ./autonomous_particles.doublegyre_initial_square
   DEPENDS autonomous_particles.doublegyre_initial_square)
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# weight guess
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+add_executable (autonomous_particles.weight_guess weight_guess.cpp)
+target_link_libraries(autonomous_particles.weight_guess PUBLIC tatooine)
+add_custom_target(autonomous_particles.weight_guess.run
+  COMMAND ./autonomous_particles.weight_guess
+  DEPENDS autonomous_particles.weight_guess)
