@@ -91,6 +91,8 @@ struct moving_least_squares_sampler<Real, 2, T, Weighting>
     auto const BtW           = transposed(B) * diag(w);
     auto const C             = *solve(BtW * B, BtW * F);
 
+    //auto const C             = *solve(diag(sqrt(w)) * B,diag(sqrt(w)) * F);
+
     if constexpr (tensor_num_components<T> == 1) {
       return C(0);
     } else {

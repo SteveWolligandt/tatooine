@@ -7,7 +7,13 @@
 //==============================================================================
 using namespace tatooine;
 //==============================================================================
-enum class type_t : std::uint8_t { scalar, franke, vector, unknown };
+enum class type_t : std::uint8_t {
+  scalar,
+  franke,
+  franke_polynomial,
+  vector,
+  unknown
+};
 auto operator>>(std::istream& in, type_t& t) -> std::istream&;
 //==============================================================================
 struct options_t {
@@ -31,10 +37,10 @@ auto main(int argc, char const** argv) -> int {
   switch (options.type) {
     case type_t::scalar:
     case type_t::franke:
-      scalar_prop = &ps.scalar_vertex_property("moving_least_squares");
+      scalar_prop = &ps.scalar_vertex_property("inverse_distance_weighting");
       break;
     case type_t::vector:
-      vector_prop = &ps.vec3_vertex_property("moving_least_squares");
+      vector_prop = &ps.vec3_vertex_property("inverse_distance_weighting");
       break;
     case type_t::unknown:
     default:
@@ -69,18 +75,14 @@ auto main(int argc, char const** argv) -> int {
   auto gr = uniform_rectilinear_grid2{linspace{0.0, 1.0, options.output_res_x},
                                       linspace{0.0, 1.0, options.output_res_y}};
 
-  auto weight = [](auto const squared_dist) {
-    return 1 / std::sqrt(squared_dist);
-    //return 1 / (std::exp(10*squared_dist)-1);
-  };
   auto sample_scalar = [&] {
     auto sampler =
-        ps.moving_least_squares_sampler(*scalar_prop, options.radius, weight);
+        ps.inverse_distance_weighting_sampler(*scalar_prop, options.radius);
     gr.sample_to_vertex_property(sampler, "scalar", execution_policy::parallel);
   };
   auto sample_vector = [&] {
     auto sampler =
-        ps.moving_least_squares_sampler(*vector_prop, options.radius, weight);
+        ps.inverse_distance_weighting_sampler(*vector_prop, options.radius);
     gr.sample_to_vertex_property(sampler, "vector", execution_policy::parallel);
   };
   switch (options.type) {
@@ -91,6 +93,37 @@ auto main(int argc, char const** argv) -> int {
       sample_scalar();
       gr.sample_to_vertex_property(f, "franke", execution_policy::parallel);
       break;
+    case type_t::franke_polynomial:
+      sample_scalar();
+      gr.sample_to_vertex_property(
+          [&](auto const& q) {
+            auto const nabla_f = diff(f);
+
+            auto [indices, squared_distances] =
+                ps.nearest_neighbors_radius_raw(q, options.radius);
+            if (indices.empty()) {
+              return 0.0/0.0;
+            }
+            auto accumulated_prop_val = real_number{};
+            auto accumulated_weight   = real_number{};
+
+            auto index_it        = begin(indices);
+            auto squared_dist_it = begin(squared_distances);
+            for (; index_it != end(indices); ++index_it, ++squared_dist_it) {
+              auto const val =  dot(nabla_f, q-ps.vertex_at(*index_it)) + scalar_prop->at(*index_it);
+
+              if (*squared_dist_it == 0) {
+                return val;
+              };
+              auto const weight = 1 / *squared_dist_it;
+              accumulated_prop_val += val * weight;
+              accumulated_weight += weight;
+            }
+            return accumulated_prop_val / accumulated_weight;
+
+          },
+          "franke_polynomial", execution_policy::parallel);
+      break;
     case type_t::vector:
       sample_vector();
       break;
@@ -99,8 +132,8 @@ auto main(int argc, char const** argv) -> int {
       std::cerr << "unknown type.\n";
       return 1;
   }
-  gr.write("moving_least_squares_sampler.vtr");
-  ps.write("moving_least_squares_data.vtp");
+  gr.write("inverse_distance_weighting_sampler.vtr");
+  ps.write("inverse_distance_weighting_data.vtp");
 }
 //==============================================================================
 auto parse_args(int const argc, char const** argv) -> std::optional<options_t> {
@@ -169,6 +202,8 @@ auto operator>>(std::istream& in, type_t& t) -> std::istream& {
     t = type_t::vector;
   } else if (token == "franke") {
     t = type_t::franke;
+  } else if (token == "franke_polynomial;") {
+    t = type_t::franke_polynomial;;
   } else {
     t = type_t::unknown;
     in.setstate(std::ios_base::failbit);
