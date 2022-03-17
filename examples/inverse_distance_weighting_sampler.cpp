@@ -37,6 +37,7 @@ auto main(int argc, char const** argv) -> int {
   switch (options.type) {
     case type_t::scalar:
     case type_t::franke:
+    case type_t::franke_polynomial:
       scalar_prop = &ps.scalar_vertex_property("inverse_distance_weighting");
       break;
     case type_t::vector:
@@ -58,6 +59,7 @@ auto main(int argc, char const** argv) -> int {
         scalar_prop->at(v) = rand();
         break;
       case type_t::franke:
+      case type_t::franke_polynomial:
         scalar_prop->at(v) = f(ps[v]);
         break;
       case type_t::vector:
@@ -78,12 +80,12 @@ auto main(int argc, char const** argv) -> int {
   auto sample_scalar = [&] {
     auto sampler =
         ps.inverse_distance_weighting_sampler(*scalar_prop, options.radius);
-    gr.sample_to_vertex_property(sampler, "scalar", execution_policy::parallel);
+    gr.sample_to_vertex_property(sampler, "inverse_distance_weighting", execution_policy::parallel);
   };
   auto sample_vector = [&] {
     auto sampler =
         ps.inverse_distance_weighting_sampler(*vector_prop, options.radius);
-    gr.sample_to_vertex_property(sampler, "vector", execution_policy::parallel);
+    gr.sample_to_vertex_property(sampler, "inverse_distance_weighting", execution_policy::parallel);
   };
   switch (options.type) {
     case type_t::scalar:
@@ -95,6 +97,7 @@ auto main(int argc, char const** argv) -> int {
       break;
     case type_t::franke_polynomial:
       sample_scalar();
+      gr.sample_to_vertex_property(f, "franke", execution_policy::parallel);
       gr.sample_to_vertex_property(
           [&](auto const& q) {
             auto const nabla_f = diff(f);
@@ -110,7 +113,8 @@ auto main(int argc, char const** argv) -> int {
             auto index_it        = begin(indices);
             auto squared_dist_it = begin(squared_distances);
             for (; index_it != end(indices); ++index_it, ++squared_dist_it) {
-              auto const val =  dot(nabla_f, q-ps.vertex_at(*index_it)) + scalar_prop->at(*index_it);
+              auto const& x_i = ps.vertex_at(*index_it);
+              auto const  val = dot(nabla_f(x_i), q - x_i) + f(x_i);
 
               if (*squared_dist_it == 0) {
                 return val;
@@ -122,7 +126,7 @@ auto main(int argc, char const** argv) -> int {
             return accumulated_prop_val / accumulated_weight;
 
           },
-          "franke_polynomial", execution_policy::parallel);
+          "inverse_distance_weighting_with_derivative", execution_policy::parallel);
       break;
     case type_t::vector:
       sample_vector();
@@ -202,7 +206,7 @@ auto operator>>(std::istream& in, type_t& t) -> std::istream& {
     t = type_t::vector;
   } else if (token == "franke") {
     t = type_t::franke;
-  } else if (token == "franke_polynomial;") {
+  } else if (token == "franke_polynomial") {
     t = type_t::franke_polynomial;;
   } else {
     t = type_t::unknown;
