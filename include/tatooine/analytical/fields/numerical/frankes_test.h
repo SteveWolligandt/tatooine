@@ -22,12 +22,12 @@ struct frankes_test : scalarfield<frankes_test<Real>, Real, 2> {
   constexpr frankes_test(frankes_test const&)     = default;
   constexpr frankes_test(frankes_test&&) noexcept = default;
   //------------------------------------------------------------------------------
-  constexpr auto operator=(frankes_test const&) -> frankes_test& = default;
-  constexpr auto operator=(frankes_test&&) noexcept -> frankes_test& = default;
+  auto constexpr operator=(frankes_test const&) -> frankes_test& = default;
+  auto constexpr operator=(frankes_test&&) noexcept -> frankes_test& = default;
   //------------------------------------------------------------------------------
   ~frankes_test() override = default;
   //----------------------------------------------------------------------------
-  [[nodiscard]] constexpr auto evaluate(fixed_size_vec<2> auto const& q,
+  [[nodiscard]] auto constexpr evaluate(fixed_size_vec<2> auto const& q,
                                         Real const t) const -> tensor_type {
     auto const a     = 9 * q(0) - 2;
     auto const b     = 9 * q(1) - 2;
@@ -73,80 +73,45 @@ struct differentiated_field<analytical::fields::numerical::frankes_test<Real>>
   constexpr differentiated_field(differentiated_field const&)     = default;
   constexpr differentiated_field(differentiated_field&&) noexcept = default;
   //------------------------------------------------------------------------------
-  constexpr auto operator      =(differentiated_field const&)
+  auto constexpr operator      =(differentiated_field const&)
       -> differentiated_field& = default;
-  constexpr auto operator      =(differentiated_field&&) noexcept
+  auto constexpr operator      =(differentiated_field&&) noexcept
       -> differentiated_field& = default;
   //------------------------------------------------------------------------------
   ~differentiated_field() override = default;
   //----------------------------------------------------------------------------
-  [[nodiscard]] constexpr auto evaluate(fixed_size_vec<2> auto const& q,
+  [[nodiscard]] auto constexpr evaluate(fixed_size_vec<2> auto const& q,
                                         Real const t) const -> tensor_type {
-    auto const x  = q.x();
-    auto const y  = q.y();
-    auto const xx = x * x;
-    auto const yy = y * y;
-    tensor_type{
-        -(std::exp(-(Real(405) * yy) / Real(4) - (Real(9) * y) / Real(10) -
-                   (Real(20169) * xx) / Real(196) - Real(18) * x) /
-              Real(49) -
-          Real(66)) *
-            (std::exp(Real(431) / Real(490)) *
-                 ((Real(4860) * std::exp(Real(65)) * x +
-                   Real(540) * std::exp(Real(65))) *
-                      std::exp((Real(405) * yy) / Real(4) +
-                               (Real(405) * xx) / Real(4)) +
-                  std::exp(Real(59) / Real(490)) *
-                      ((Real(59535) * std::exp(Real(63)) * x -
-                        Real(13230) * std::exp(Real(63))) *
-                           std::exp(Real(81) * yy + (Real(99) * y) / Real(10) +
-                                    (Real(4050) * xx) / Real(49) +
-                                    (Real(459) * x) / Real(49)) +
-                       (Real(28224) - Real(63504) * x) *
-                           std::exp((Real(81) * yy) / Real(4) +
-                                    (Real(1269) * y) / Real(10) +
-                                    (Real(4293) * xx) / Real(196) +
-                                    (Real(3546) * x) / Real(49)))) +
-             (Real(39690) * std::exp(Real(51)) * x -
-              Real(30870) * std::exp(Real(51))) *
-                 std::exp(Real(81) * yy + (Real(72) * y) / Real(5) +
-                          (Real(4050) * xx) / Real(49) +
-                          (Real(3123) * x) / Real(98) + Real(1) / Real(2))) /
-            Real(1960),
-        -(std::exp(-(Real(405) * yy) / Real(4) - (Real(9) * y) / Real(10) -
-                   (Real(20169) * xx) / Real(196) - (Real(18) * x) / Real(49) -
-                   Real(66)) *
-          (std::exp(Real(431) / Real(490)) *
-               (Real(27) * std::exp((Real(405) * yy) / Real(4) +
-                                    (Real(405) * xx) / Real(4) + Real(65)) +
-                std::exp(Real(59) / Real(490)) *
-                    ((Real(1215) *
-                          std::exp((Real(4050) * xx) / Real(49) +
-                                   (Real(459) * x) / Real(49) + Real(63)) *
-                          y -
-                      Real(270) *
-                          std::exp((Real(4050) * xx) / Real(49) +
-                                   (Real(459) * x) / Real(49) + Real(63))) *
-                         std::exp(Real(81) * yy + (Real(99) * y) / Real(10)) +
-                     (Real(1008) * std::exp((Real(4293) * xx) / Real(196) +
-                                            (Real(3546) * x) / Real(49)) -
-                      Real(1296) *
-                          std::exp((Real(4293) * xx) / Real(196) +
-                                   (Real(3546) * x) / Real(49)) *
-                          y) *
-                         std::exp((Real(81) * yy) / Real(4) +
-                                  (Real(1269) * y) / Real(10)))) +
-           (Real(810) *
-                std::exp((Real(4050) * xx) / Real(49) +
-                         (Real(3123) * x) / Real(98) + Real(51)) *
-                y -
-            Real(270) * std::exp((Real(4050) * xx) / Real(49) +
-                                 (Real(3123) * x) / Real(98) + Real(51))) *
-               std::exp(Real(81) * yy + (Real(72) * y) / Real(5) +
-                        Real(1) / Real(2)))) /
-            Real(40)};
+    auto constexpr exp51 = gcem::exp(Real(51));
+    auto constexpr exp63 = gcem::exp(Real(63));
+    auto constexpr exp65 = gcem::exp(Real(65));
+    auto x               = q.x();
+    auto y               = q.y();
+    auto xx              = x * x;
+    auto yy              = y * y;
+    auto a = gcem::exp(-(Real(405) * yy) / Real(4) - (Real(9) * y) / Real(10) -
+                       (Real(20169) * xx) / Real(196) -
+                       (Real(18) * x) / Real(49) - Real(66));
+    auto constexpr b = gcem::exp(Real(431) / Real(490));
+    auto constexpr c = gcem::exp(Real(59) / Real(490));
+    auto d           = gcem::exp((Real(4050) * xx) / Real(49) +
+                                 (Real(459) * x) / Real(49) + Real(63));
+    auto e =
+        gcem::exp((Real(4293) * xx) / Real(196) + (Real(3546) * x) / Real(49));
+    auto f = gcem::exp((Real(4050) * xx) / Real(49) +
+                       (Real(3123) * x) / Real(98) + Real(51));
+
+    return {
+      -(a*(b*((Real(4860)*exp65*x+Real(540)*exp65)*gcem::exp((Real(405)*yy)/Real(4)+(Real(405)*xx)/Real(4))+c*((Real(59535)*exp63*x-Real(13230)*exp63)*gcem::exp(Real(81)*yy+(Real(99)*y)/Real(10)+(Real(4050)*xx)/Real(49)+(Real(459)*x)/Real(49))+(Real(28224)-Real(63504)*x)*gcem::exp((Real(81)*yy)/Real(4)+(Real(1269)*y)/Real(10)+(Real(4293)*xx)/Real(196)+(Real(3546)*x)/Real(49))))+(Real(39690)*exp51*x-Real(30870)*exp51)*gcem::exp(Real(81)*yy+(Real(72)*y)/Real(5)+(Real(4050)*xx)/Real(49)+(Real(3123)*x)/Real(98)+Real(1)/Real(2))))/Real(1960),
+        -(a*(b*(Real(27)*gcem::exp((Real(405)*yy)/Real(4)+(Real(405)*xx)/Real(4)+Real(65))+c*((Real(1215)*d*y-Real(270)*d)*gcem::exp(Real(81)*yy+(Real(99)*y)/Real(10))+(Real(1008)*e-Real(1296)*e*y)*gcem::exp((Real(81)*yy)/Real(4)+(Real(1269)*y)/Real(10))))+(Real(810)*f*y-Real(270)*f)*gcem::exp(Real(81)*yy+(Real(72)*y)/Real(5)+Real(1)/Real(2))))/Real(40)};
   }
 };
+//------------------------------------------------------------------------------
+template <floating_point Real>
+auto diff(analytical::fields::numerical::frankes_test<Real> const& f) {
+  return differentiated_field<
+      analytical::fields::numerical::frankes_test<Real>>{};
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
