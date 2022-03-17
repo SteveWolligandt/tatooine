@@ -102,8 +102,36 @@ struct differentiated_field<analytical::fields::numerical::frankes_test<Real>>
                        (Real(3123) * x) / Real(98) + Real(51));
 
     return {
-      -(a*(b*((Real(4860)*exp65*x+Real(540)*exp65)*gcem::exp((Real(405)*yy)/Real(4)+(Real(405)*xx)/Real(4))+c*((Real(59535)*exp63*x-Real(13230)*exp63)*gcem::exp(Real(81)*yy+(Real(99)*y)/Real(10)+(Real(4050)*xx)/Real(49)+(Real(459)*x)/Real(49))+(Real(28224)-Real(63504)*x)*gcem::exp((Real(81)*yy)/Real(4)+(Real(1269)*y)/Real(10)+(Real(4293)*xx)/Real(196)+(Real(3546)*x)/Real(49))))+(Real(39690)*exp51*x-Real(30870)*exp51)*gcem::exp(Real(81)*yy+(Real(72)*y)/Real(5)+(Real(4050)*xx)/Real(49)+(Real(3123)*x)/Real(98)+Real(1)/Real(2))))/Real(1960),
-        -(a*(b*(Real(27)*gcem::exp((Real(405)*yy)/Real(4)+(Real(405)*xx)/Real(4)+Real(65))+c*((Real(1215)*d*y-Real(270)*d)*gcem::exp(Real(81)*yy+(Real(99)*y)/Real(10))+(Real(1008)*e-Real(1296)*e*y)*gcem::exp((Real(81)*yy)/Real(4)+(Real(1269)*y)/Real(10))))+(Real(810)*f*y-Real(270)*f)*gcem::exp(Real(81)*yy+(Real(72)*y)/Real(5)+Real(1)/Real(2))))/Real(40)};
+        -(a *
+          (b * ((Real(4860) * exp65 * x + Real(540) * exp65) *
+                    gcem::exp((Real(405) * yy) / Real(4) +
+                              (Real(405) * xx) / Real(4)) +
+                c * ((Real(59535) * exp63 * x - Real(13230) * exp63) *
+                         gcem::exp(Real(81) * yy + (Real(99) * y) / Real(10) +
+                                   (Real(4050) * xx) / Real(49) +
+                                   (Real(459) * x) / Real(49)) +
+                     (Real(28224) - Real(63504) * x) *
+                         gcem::exp((Real(81) * yy) / Real(4) +
+                                   (Real(1269) * y) / Real(10) +
+                                   (Real(4293) * xx) / Real(196) +
+                                   (Real(3546) * x) / Real(49)))) +
+           (Real(39690) * exp51 * x - Real(30870) * exp51) *
+               gcem::exp(Real(81) * yy + (Real(72) * y) / Real(5) +
+                         (Real(4050) * xx) / Real(49) +
+                         (Real(3123) * x) / Real(98) + Real(1) / Real(2)))) /
+            Real(1960),
+        -(a *
+          (b * (Real(27) * gcem::exp((Real(405) * yy) / Real(4) +
+                                     (Real(405) * xx) / Real(4) + Real(65)) +
+                c * ((Real(1215) * d * y - Real(270) * d) *
+                         gcem::exp(Real(81) * yy + (Real(99) * y) / Real(10)) +
+                     (Real(1008) * e - Real(1296) * e * y) *
+                         gcem::exp((Real(81) * yy) / Real(4) +
+                                   (Real(1269) * y) / Real(10)))) +
+           (Real(810) * f * y - Real(270) * f) *
+               gcem::exp(Real(81) * yy + (Real(72) * y) / Real(5) +
+                         Real(1) / Real(2)))) /
+            Real(40)};
   }
 };
 //------------------------------------------------------------------------------

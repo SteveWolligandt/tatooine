@@ -982,7 +982,7 @@ struct pointset {
   radial_basis_functions_sampler_with_polynomial_and_thin_plate_spline_kernel(
       typed_vertex_property_type<T> const& prop) const {
     return radial_basis_functions_sampler_with_polynomial(prop,
-                                                          thin_plate_spline);
+                                                          thin_plate_spline_from_squared);
   }
   //----------------------------------------------------------------------------
   /// \brief Constructs a radial basis functions interpolator.
@@ -1049,7 +1049,7 @@ struct pointset {
   template <typename T>
   auto radial_basis_functions_sampler_with_thin_plate_spline_kernel(
       typed_vertex_property_type<T> const& prop) const {
-    return radial_basis_functions_sampler(prop, thin_plate_spline);
+    return radial_basis_functions_sampler(prop, thin_plate_spline_from_squared);
   }
   //----------------------------------------------------------------------------
   /// \brief Constructs a radial basis functions interpolator.
