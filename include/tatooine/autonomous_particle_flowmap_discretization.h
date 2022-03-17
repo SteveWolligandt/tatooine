@@ -2,8 +2,8 @@
 #define TATOOINE_AUTONOMOUS_PARTICLE_FLOWMAP_DISCRETIZATION_H
 //==============================================================================
 #include <tatooine/autonomous_particle.h>
-#include <tatooine/staggered_flowmap_discretization.h>
 #include <tatooine/huber_loss.h>
+#include <tatooine/staggered_flowmap_discretization.h>
 #include <tatooine/uniform_tree_hierarchy.h>
 #include <tatooine/unstructured_simplicial_grid.h>
 
@@ -22,7 +22,7 @@ struct autonomous_particle_flowmap_discretization {
   using particle_type       = autonomous_particle<real_type, NumDimensions>;
   using sampler_type        = typename particle_type::sampler_type;
   using sampler_container_t = std::vector<sampler_type>;
-  using mesh_type           = unstructured_simplicial_grid<real_type, NumDimensions>;
+  using mesh_type = unstructured_simplicial_grid<real_type, NumDimensions>;
   static constexpr auto num_dimensions() { return NumDimensions; }
   //----------------------------------------------------------------------------
  private:
@@ -74,7 +74,7 @@ struct autonomous_particle_flowmap_discretization {
   template <typename Flowmap>
   autonomous_particle_flowmap_discretization(
       Flowmap&& flowmap, arithmetic auto const t0, arithmetic auto const tau,
-      arithmetic auto const                                tau_step,
+      arithmetic auto const                                     tau_step,
       uniform_rectilinear_grid<real_type, NumDimensions> const& g) {
     auto uuid_generator = std::atomic_uint64_t{};
     static_assert(
@@ -260,9 +260,9 @@ struct autonomous_particle_flowmap_discretization {
   //                          execution_policy::parallel_t [>pol<],
   //                          std::index_sequence<VertexSeq...> [>seq<]) const {
   //  struct data {
-  //    real_type                min_dist        = std::numeric_limits<real_type>::max();
-  //    sampler_type const* nearest_sampler = nullptr;
-  //    pos_type            p;
+  //    real_type                min_dist        =
+  //    std::numeric_limits<real_type>::max(); sampler_type const*
+  //    nearest_sampler = nullptr; pos_type            p;
   //  };
   //  auto best_per_thread = create_aligned_data_for_parallel<data>();
   //
@@ -292,12 +292,12 @@ struct autonomous_particle_flowmap_discretization {
   //  return best.p;
   //}
   //----------------------------------------------------------------------------
-  public:
+ public:
   [[nodiscard]] auto sample_nearest_neighbor(
       pos_type const& q, forward_or_backward_tag auto const tag,
       execution_policy::sequential_t /*pol*/) const {
-    auto  ps                  = pointset<real_type, NumDimensions>{};
-    auto& initial_positions   = ps.template vertex_property<pos_type>("ps");
+    auto  ps                = pointset<real_type, NumDimensions>{};
+    auto& initial_positions = ps.template vertex_property<pos_type>("ps");
     for (auto const& s : m_samplers) {
       auto v               = ps.insert_vertex(s.local_pos(q, tag));
       initial_positions[v] = s.center(opposite(tag));
@@ -359,9 +359,9 @@ struct autonomous_particle_flowmap_discretization {
         ps.nearest_neighbors_radius(pos_type::zeros(), 0.01);
     auto squared_distance_it = begin(squared_distances);
     for (auto const v : vertices) {
-      auto const  x    = m_samplers[v.index()].phi(tag) + ps[v];
+      auto const x    = m_samplers[v.index()].phi(tag) + ps[v];
       auto const dist = *squared_distance_it;
-      //auto const dist = huber_loss(gcem::sqrt(*squared_distance_it));
+      // auto const dist = huber_loss(gcem::sqrt(*squared_distance_it));
       if (dist == 0) {
         return x;
       };
@@ -386,11 +386,11 @@ struct autonomous_particle_flowmap_discretization {
     }
 
     auto [vertices, squared_distances] = ps.nearest_neighbors_radius(q, 0.01);
-    auto squared_distance_it = begin(squared_distances);
+    auto squared_distance_it           = begin(squared_distances);
     for (auto const v : vertices) {
-      auto const  x    = m_samplers[v.index()](q, tag);
+      auto const x    = m_samplers[v.index()](q, tag);
       auto const dist = *squared_distance_it;
-      //auto const dist = huber_loss(gcem::sqrt(*squared_distance_it));
+      // auto const dist = huber_loss(gcem::sqrt(*squared_distance_it));
       if (dist == 0) {
         return x;
       };
@@ -415,11 +415,12 @@ struct autonomous_particle_flowmap_discretization {
     }
 
     auto [vertices, squared_distances] = ps.nearest_neighbors_radius(q, 0.01);
-    auto squared_distance_it = begin(squared_distances);
+    auto squared_distance_it           = begin(squared_distances);
     for (auto const v : vertices) {
-      auto const  x    = m_samplers[v.index()].phi(tag);
+      auto const x                = m_samplers[v.index()].phi(tag);
       auto const squared_distance = *squared_distance_it + 1e-10;
-      //auto const squared_distance = huber_loss(gcem::sqrt(*squared_distance_it));
+      // auto const squared_distance =
+      // huber_loss(gcem::sqrt(*squared_distance_it));
       if (squared_distance == 0) {
         return x;
       };
@@ -432,47 +433,74 @@ struct autonomous_particle_flowmap_discretization {
   }
   //----------------------------------------------------------------------------
   [[nodiscard]] auto sample_radial_basis_functions(
-      pos_type const& q, forward_or_backward_tag auto const tag,
-      execution_policy::sequential_t /* pol */) const {
+      pos_type const& q, Real const radius,
+      forward_or_backward_tag auto const tag,
+      execution_policy::sequential_t /*pol*/) const {
     auto ps = pointset<real_type, NumDimensions>{};
     ps.vertices().reserve(size(m_samplers));
     for (auto const& s : m_samplers) {
-      //ps.insert_vertex(s.x0(tag));
-      ps.insert_vertex(s.local_pos(q, tag));
+      ps.insert_vertex(s.x0(tag));
     }
 
     auto [vertices, squared_distances] =
-        ps.nearest_neighbors(pos_type::zeros(), 100);
-    auto const N = vertices.size();
-    if (N == 0) {
+        ps.nearest_neighbors_radius_raw(q, radius);
+    if (vertices.empty()) {
       return pos_type::fill(0.0 / 0.0);
     }
-    auto const kernel = thin_plate_spline;
-    // construct lower part of symmetric system matrix A
-    auto A       = tensor<real_type>::zeros(N, N);
+
+    auto const N = vertices.size();
+
+    // construct lower part of symmetric matrix A
+    auto A = tensor<real_number>::zeros(N + NumDimensions + 1,
+                                        N + NumDimensions + 1);
+    auto radial_and_monomial_coefficients =
+        tensor<real_number>::zeros(N + NumDimensions + 1, NumDimensions);
     for (std::size_t c = 0; c < N; ++c) {
       for (std::size_t r = c + 1; r < N; ++r) {
-        A(r, c) = kernel(
-            squared_euclidean_distance(ps.vertex_at(vertices[c]),
-                                       ps.vertex_at(vertices[r])));
+        A(r, c) = thin_plate_spline_from_squared(squared_euclidean_distance(
+            ps.vertex_at(vertices[c]), ps.vertex_at(vertices[r])));
       }
     }
-    auto weights = tensor<Real>::zeros(N, NumDimensions);
+    // construct polynomial requirements
+    for (std::size_t c = 0; c < N; ++c) {
+      auto const& p = ps.vertex_at(vertices[c]);
+      // constant part
+      A(N, c) = 1;
+
+      // linear part
+      for (std::size_t i = 0; i < NumDimensions; ++i) {
+        A(N + i + 1, c) = p(i);
+      }
+    }
 
     for (std::size_t i = 0; i < N; ++i) {
-      auto const phi =
-          ps[vertices[i]] + m_samplers[vertices[i].index()].phi(tag);
+      auto const phi = m_samplers[vertices[i]].phi(tag);
       for (std::size_t j = 0; j < NumDimensions; ++j) {
-        weights(i, j) = phi(j);
+        radial_and_monomial_coefficients(i, j) = phi(j);
       }
     }
-    // do not copy by moving A and weights into solver
-    weights = *solve_symmetric_lapack(std::move(A), std::move(weights),
-                                      lapack::Uplo::Lower);
+    // do not copy by moving A and radial_and_monomial_coefficients into solver
+    radial_and_monomial_coefficients = *solve_symmetric_lapack(
+        std::move(A), std::move(radial_and_monomial_coefficients),
+        tatooine::lapack::Uplo::Lower);
+
     auto acc = pos_type{};
+    // radial bases
     for (std::size_t i = 0; i < N; ++i) {
+      auto const v = vertices[i];
+      if (squared_distances[i] == 0) {
+        return m_samplers[v].phi(tag);
+      }
+      auto kernel = thin_plate_spline(squared_distances[i]);
       for (std::size_t j = 0; j < NumDimensions; ++j) {
-        acc.data()[j] += weights(i, j) * kernel(squared_distances[i]);
+        acc(j) += radial_and_monomial_coefficients(i, j) * kernel;
+      }
+    }
+    // monomial bases
+    for (std::size_t j = 0; j < NumDimensions; ++j) {
+      acc(j) += radial_and_monomial_coefficients(N, j);
+      for (std::size_t k = 0; k < NumDimensions; ++k) {
+        acc(j) += radial_and_monomial_coefficients(N + 1 + k, j) * q(k);
       }
     }
     return acc;
@@ -489,8 +517,8 @@ struct autonomous_particle_flowmap_discretization {
       auto v               = ps.insert_vertex(s.local_pos(tag));
       initial_positions[v] = s.center(opposite(tag));
     }
-    auto [indices, distances] = ps.nearest_neighbors_raw(pos_type::zeros(), 5);
-    auto sum                  = real_type{};
+    auto [vertices, distances] = ps.nearest_neighbors_raw(pos_type::zeros(), 5);
+    auto sum                   = real_type{};
     for (auto& d : distances) {
       d = 1 / d;
       sum += d;
@@ -501,9 +529,9 @@ struct autonomous_particle_flowmap_discretization {
 
     auto p_ret = pos_type{};
 
-    for (std::size_t i = 0; i < indices.size(); ++i) {
+    for (std::size_t i = 0; i < vertices.size(); ++i) {
       auto v = typename pointset<real_type, NumDimensions>::vertex_handle{
-          std::size_t(indices[i])};
+          std::size_t(vertices[i])};
       p_ret += (ps[v] + initial_positions[v]) * distances[i];
     }
     return p_ret;

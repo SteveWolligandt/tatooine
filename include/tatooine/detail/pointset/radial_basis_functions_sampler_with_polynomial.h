@@ -25,7 +25,7 @@ struct radial_basis_functions_sampler_with_polynomial
   pointset_type const&        m_pointset;
   vertex_property_type const& m_property;
   Kernel                      m_kernel;
-  tensor<Real>                m_weights_and_coeffs;
+  tensor<Real>                m_radial_and_monomial_coefficients;
   //==========================================================================
   radial_basis_functions_sampler_with_polynomial(
       pointset_type const& ps, vertex_property_type const& property,
@@ -55,7 +55,7 @@ struct radial_basis_functions_sampler_with_polynomial
       }
     }
 
-    m_weights_and_coeffs = [N] {
+    m_radial_and_monomial_coefficients = [N] {
       if constexpr (arithmetic<T>) {
         return tensor<T>::zeros(N + NumDimensions + 1);
       } else if constexpr (static_tensor<T>) {
@@ -66,16 +66,18 @@ struct radial_basis_functions_sampler_with_polynomial
 
     for (std::size_t i = 0; i < N; ++i) {
       if constexpr (arithmetic<T>) {
-        m_weights_and_coeffs(i) = m_property[i];
+        m_radial_and_monomial_coefficients(i) = m_property[i];
       } else if constexpr (static_tensor<T>) {
         for (std::size_t j = 0; j < T::num_components(); ++j) {
-          m_weights_and_coeffs(i, j) = m_property[i].data()[j];
+          m_radial_and_monomial_coefficients(i, j) = m_property[i].data()[j];
         }
       }
     }
-    // do not copy by moving A and m_weights_and_coeffs into solver
-    m_weights_and_coeffs = *solve_symmetric_lapack(
-        std::move(A), std::move(m_weights_and_coeffs), lapack::Uplo::Lower);
+    // do not copy by moving A and m_radial_and_monomial_coefficients into
+    // solver
+    m_radial_and_monomial_coefficients = *solve_symmetric_lapack(
+        std::move(A), std::move(m_radial_and_monomial_coefficients),
+        lapack::Uplo::Lower);
   }
   //--------------------------------------------------------------------------
   radial_basis_functions_sampler_with_polynomial(
@@ -122,42 +124,44 @@ struct radial_basis_functions_sampler_with_polynomial
         return m_property[v];
       }
       if constexpr (arithmetic<T>) {
-        acc += m_weights_and_coeffs(v.index()) * m_kernel(sqr_dist);
+        acc +=
+            m_radial_and_monomial_coefficients(v.index()) * m_kernel(sqr_dist);
       } else if constexpr (static_tensor<T>) {
         for (std::size_t j = 0; j < T::num_components(); ++j) {
-          acc.data()[j] +=
-              m_weights_and_coeffs(v.index(), j) * m_kernel(sqr_dist);
+          acc.data()[j] += m_radial_and_monomial_coefficients(v.index(), j) *
+                           m_kernel(sqr_dist);
         }
       }
     }
     // polynomial part
     if constexpr (arithmetic<T>) {
-      acc += m_weights_and_coeffs(N);
+      acc += m_radial_and_monomial_coefficients(N);
       for (std::size_t k = 0; k < NumDimensions; ++k) {
-        acc += m_weights_and_coeffs(N + 1 + k) * q(k);
+        acc += m_radial_and_monomial_coefficients(N + 1 + k) * q(k);
       }
     } else if constexpr (static_tensor<T>) {
       for (std::size_t j = 0; j < T::num_components(); ++j) {
-        acc.data()[j] += m_weights_and_coeffs(N, j);
+        acc.data()[j] += m_radial_and_monomial_coefficients(N, j);
         for (std::size_t k = 0; k < NumDimensions; ++k) {
-          acc.data()[j] += m_weights_and_coeffs(N + 1 + k, j) * q(k);
+          acc.data()[j] +=
+              m_radial_and_monomial_coefficients(N + 1 + k, j) * q(k);
         }
       }
     }
     return acc;
   }
 };
-    //==============================================================================
-    template <floating_point Real, std::size_t NumDimensions, typename T,
-              invocable<Real> Kernel>
-    radial_basis_functions_sampler_with_polynomial(
-        tatooine::pointset<Real, NumDimensions> const& ps,
-        typed_vector_property<
-            typename tatooine::pointset<Real, NumDimensions>::vertex_handle, T>,
-        Kernel&& kernel)
-        -> radial_basis_functions_sampler_with_polynomial<
-            Real, NumDimensions, T, std::decay_t<Kernel>>;
-    //==============================================================================
-    }  // namespace tatooine::detail::pointset
-    //==============================================================================
+//==============================================================================
+template <floating_point Real, std::size_t NumDimensions, typename T,
+          invocable<Real> Kernel>
+radial_basis_functions_sampler_with_polynomial(
+    tatooine::pointset<Real, NumDimensions> const& ps,
+    typed_vector_property<
+        typename tatooine::pointset<Real, NumDimensions>::vertex_handle, T>,
+    Kernel&& kernel)
+    -> radial_basis_functions_sampler_with_polynomial<Real, NumDimensions, T,
+                                                      std::decay_t<Kernel>>;
+//==============================================================================
+}  // namespace tatooine::detail::pointset
+//==============================================================================
 #endif
