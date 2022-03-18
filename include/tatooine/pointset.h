@@ -90,7 +90,7 @@ struct pointset {
   vertex_property_container_type m_vertex_properties;
 #if TATOOINE_FLANN_AVAILABLE || defined(TATOOINE_DOC_ONLY)
   mutable std::unique_ptr<flann_index_type> m_kd_tree;
-  mutable std::mutex                     m_flann_mutex;
+  mutable std::mutex                        m_flann_mutex;
 #endif
   //============================================================================
  public:
@@ -202,12 +202,22 @@ struct pointset {
   //----------------------------------------------------------------------------
  public:
   ///\{
-  auto insert_vertex(arithmetic auto const... ts) requires(sizeof...(ts) ==
-                                                           NumDimensions) {
+  auto insert_vertex(arithmetic auto const... ts)
+  requires(sizeof...(ts) == NumDimensions) {
     vertex_position_data().push_back(pos_type{static_cast<Real>(ts)...});
     for (auto& [key, prop] : vertex_properties()) {
       prop->push_back();
     }
+#if TATOOINE_FLANN_AVAILABLE
+    {
+      auto lock = std::scoped_lock{m_flann_mutex};
+      if (m_kd_tree != nullptr) {
+        m_kd_tree->addPoints(flann::Matrix<Real>{
+            const_cast<Real*>(vertex_position_data().back().data_ptr()), 1,
+            num_dimensions()});
+      }
+    }
+#endif
     return vertex_handle{size(vertex_position_data()) - 1};
   }
   //----------------------------------------------------------------------------
@@ -216,6 +226,16 @@ struct pointset {
     for (auto& [key, prop] : vertex_properties()) {
       prop->push_back();
     }
+#if TATOOINE_FLANN_AVAILABLE
+    {
+      auto lock = std::scoped_lock{m_flann_mutex};
+      if (m_kd_tree != nullptr) {
+        m_kd_tree->addPoints(flann::Matrix<Real>{
+            const_cast<Real*>(vertex_position_data().back().data_ptr()), 1,
+            num_dimensions()});
+      }
+    }
+#endif
     return vertex_handle{size(vertex_position_data()) - 1};
   }
   //----------------------------------------------------------------------------
@@ -224,6 +244,16 @@ struct pointset {
     for (auto& [key, prop] : vertex_properties()) {
       prop->push_back();
     }
+#if TATOOINE_FLANN_AVAILABLE
+    {
+      auto lock = std::scoped_lock{m_flann_mutex};
+      if (m_kd_tree != nullptr) {
+        m_kd_tree->addPoints(flann::Matrix<Real>{
+            const_cast<Real*>(vertex_position_data().back().data_ptr()), 1,
+            num_dimensions()});
+      }
+    }
+#endif
     return vertex_handle{size(vertex_position_data()) - 1};
   }
   ///\}
@@ -244,6 +274,14 @@ struct pointset {
         std::ranges::find(invalid_vertices(), v) == end(invalid_vertices())) {
       invalid_vertices().insert(v);
     }
+#if TATOOINE_FLANN_AVAILABLE
+    {
+      auto lock = std::scoped_lock{m_flann_mutex};
+      if (m_kd_tree != nullptr) {
+        m_kd_tree->removePoint(v.index());
+      }
+    }
+#endif
   }
   //----------------------------------------------------------------------------
   constexpr auto is_valid(vertex_handle const v) const -> bool {
@@ -760,6 +798,12 @@ struct pointset {
   auto rebuild_kd_tree() {
     invalidate_kd_tree();
     build_kd_tree();
+  }
+  auto build_kd_tree_index() {
+    auto lock = std::scoped_lock{m_flann_mutex};
+    if (m_kd_tree != nullptr) {
+      m_kd_tree->buildIndex();
+    }
   }
   //----------------------------------------------------------------------------
  private:

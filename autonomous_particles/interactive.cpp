@@ -1,6 +1,7 @@
 #include <tatooine/agranovsky_flowmap_discretization.h>
 #include <tatooine/analytical/fields/doublegyre.h>
 #include <tatooine/analytical/fields/saddle.h>
+#include <tatooine/steady_field.h>
 #include <tatooine/autonomous_particle_flowmap_discretization.h>
 #include <tatooine/rendering/interactive.h>
 #include <tatooine/rendering/interactive/shaders.h>
@@ -585,6 +586,10 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
   auto const regularized_height = static_cast<std::size_t>(
       std::ceil(std::sqrt((num_particles_after_advection / 2))));
   auto const regularized_width = regularized_height * 2;
+  std::cout << "regularized_width: "
+            << regularized_width<< '\n';
+  std::cout << "regularized_height: "
+            << regularized_height<< '\n';
   std::cout << "number of particles in regular sampler: "
             << regularized_width * regularized_height<< '\n';
   std::cout << "advecting regular flowmap...\n";
@@ -623,14 +628,20 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
   auto const agranovsky_delta_t = 0.5;
   auto const num_agranovksy_steps =
       static_cast<std::size_t>(std::ceil((t_end - t0) / agranovsky_delta_t));
-  auto const regularized_height_agranovksky =
-      regularized_height / num_agranovksy_steps;
-  auto const regularized_width_agranovksky = regularized_height_agranovksky * 2;
+  auto const regularized_height_agranovksky = static_cast<std::size_t>(
+      std::ceil(regularized_height /
+                std::sqrt(static_cast<double>(num_agranovksy_steps))));
+  auto const regularized_width_agranovksky = static_cast<std::size_t>(
+      std::ceil(regularized_width * regularized_height /
+                (std::sqrt(static_cast<double>(num_agranovksy_steps)) *
+                 regularized_height)));
   std::cout << "num_agranovksy_steps: " << num_agranovksy_steps << '\n';
   std::cout << "regularized_width_agranovksky: "
             << regularized_width_agranovksky << '\n';
   std::cout << "regularized_height_agranovksky: "
             << regularized_height_agranovksky << '\n';
+  std::cout << "number of particles in agranovsky sampler: "
+            << regularized_width_agranovksky * regularized_height_agranovksky * num_agranovksy_steps<< '\n';
 
   std::cout << "advecting agranovsky flowmap...\n";
   before = clock::now();
@@ -777,6 +788,7 @@ auto main(int argc, char** argv) -> int {
   }
   //============================================================================
   auto dg = analytical::fields::numerical::doublegyre{};
+auto dg_steady = steady(dg, 0);
   auto g  = rectilinear_grid{linspace{0.0, 2.0, 501}, linspace{0.0, 1.0, 251}};
   auto const eps                  = 1e-3;
   auto const initial_particles_dg = autonomous_particle2::particles_from_grid(
@@ -789,7 +801,7 @@ auto main(int argc, char** argv) -> int {
   //     {vec2{1 + r, 0.5 - r}, t0, r, uuid_generator},
   //     {vec2{1 - r, 0.5 + r}, t0, r, uuid_generator},
   //     {vec2{1 + r, 0.5 + r}, t0, r, uuid_generator}};
-  doit(g, dg, initial_particles_dg, uuid_generator, t0, t_end,
+  doit(g, dg_steady, initial_particles_dg, uuid_generator, t0, t_end,
        inverse_distance_num_samples);
   //============================================================================
   // auto dg = analytical::fields::numerical::doublegyre{};

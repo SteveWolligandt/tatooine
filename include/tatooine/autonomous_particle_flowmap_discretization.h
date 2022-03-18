@@ -436,18 +436,21 @@ struct autonomous_particle_flowmap_discretization {
       pos_type const& q, Real const radius,
       forward_or_backward_tag auto const tag,
       execution_policy::sequential_t /*pol*/) const {
-    auto ps = pointset<real_type, NumDimensions>{};
+    auto  ps   = pointset<real_type, NumDimensions>{};
+    auto& cart = ps.template vertex_property<pos_type>("cartesian");
     ps.vertices().reserve(size(m_samplers));
     for (auto const& s : m_samplers) {
-      ps.insert_vertex(s.x0(tag));
+      auto v = ps.insert_vertex(s.x0(tag));
+      cart[v] = s.x0(tag);
     }
 
     auto [vertices, squared_distances] =
-        ps.nearest_neighbors_radius_raw(q, radius);
+        ps.nearest_neighbors_raw(pos_type::zeros(), 20);
     if (vertices.empty()) {
       return pos_type::fill(0.0 / 0.0);
     }
 
+    auto rbf_kernel = thin_plate_spline_from_squared;
     auto const N = vertices.size();
 
     // construct lower part of symmetric matrix A
@@ -457,13 +460,13 @@ struct autonomous_particle_flowmap_discretization {
         tensor<real_number>::zeros(N + NumDimensions + 1, NumDimensions);
     for (std::size_t c = 0; c < N; ++c) {
       for (std::size_t r = c + 1; r < N; ++r) {
-        A(r, c) = thin_plate_spline_from_squared(squared_euclidean_distance(
-            ps.vertex_at(vertices[c]), ps.vertex_at(vertices[r])));
+        A(r, c) = rbf_kernel(squared_euclidean_distance(
+            cart[vertices[c]], cart[vertices[r]]));
       }
     }
     // construct polynomial requirements
     for (std::size_t c = 0; c < N; ++c) {
-      auto const& p = ps.vertex_at(vertices[c]);
+      auto const& p = cart[vertices[c]];
       // constant part
       A(N, c) = 1;
 
@@ -491,9 +494,9 @@ struct autonomous_particle_flowmap_discretization {
       if (squared_distances[i] == 0) {
         return m_samplers[v].phi(tag);
       }
-      auto kernel = thin_plate_spline(squared_distances[i]);
       for (std::size_t j = 0; j < NumDimensions; ++j) {
-        acc(j) += radial_and_monomial_coefficients(i, j) * kernel;
+        acc(j) += radial_and_monomial_coefficients(i, j) *
+                  rbf_kernel(squared_euclidean_distance(q, cart[v]));
       }
     }
     // monomial bases
