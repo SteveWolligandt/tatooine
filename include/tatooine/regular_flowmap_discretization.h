@@ -42,32 +42,32 @@ struct regular_flowmap_discretization {
     using type = tatooine::detail::rectilinear_grid::vertex_property_sampler<
         forward_grid_vertex_property_type, InterpolationKernels...>;
   };
-  //using forward_grid_vertex_property_sampler_type =
-  //    typename forward_grid_sampler_type_creator<N>::type;
-
   using forward_grid_vertex_property_sampler_type =
-      typename forward_grid_vertex_property_type::
-          inverse_distance_weighting_sampler_type;
+      typename forward_grid_sampler_type_creator<N>::type;
+
+  //using forward_grid_vertex_property_sampler_type =
+  //    typename forward_grid_vertex_property_type::
+  //        inverse_distance_weighting_sampler_type;
 
   using backward_grid_type = unstructured_simplicial_grid<Real, N, N>;
   using backward_grid_vertex_property_type =
       typename backward_grid_type::template typed_vertex_property_type<
           pos_type>;
-  //using backward_grid_vertex_property_sampler_type =
-  //    typename backward_grid_type::template vertex_property_sampler_type<
-  //        pos_type>;
   using backward_grid_vertex_property_sampler_type =
-      typename backward_grid_type::template inverse_distance_weighting_sampler_type<
+      typename backward_grid_type::template vertex_property_sampler_type<
           pos_type>;
+  //using backward_grid_vertex_property_sampler_type =
+  //    typename backward_grid_type::template inverse_distance_weighting_sampler_type<
+  //        pos_type>;
   //============================================================================
  private:
   Real m_t0;
   Real m_t1;
   Real m_tau;
 
-  forward_grid_type                         m_forward_grid;
-  forward_grid_vertex_property_type*        m_forward_discretization;
-  forward_grid_vertex_property_sampler_type m_forward_sampler;
+  forward_grid_type                          m_forward_grid;
+  forward_grid_vertex_property_type*         m_forward_discretization;
+  forward_grid_vertex_property_sampler_type  m_forward_sampler;
 
   backward_grid_type                         m_backward_grid;
   backward_grid_vertex_property_type*        m_backward_discretization;
@@ -79,7 +79,7 @@ struct regular_flowmap_discretization {
   regular_flowmap_discretization(std::index_sequence<Is...> /*seq*/,
                                  Flowmap&& flowmap, arithmetic auto const t0,
                                  arithmetic auto const tau, pos_type const& min,
-                                 pos_type const&    max,
+                                 pos_type const& max,
                                  ExecutionPolicy execution_policy,
                                  integral auto const... resolution)
       : m_t0{real_type(t0)},
@@ -90,13 +90,16 @@ struct regular_flowmap_discretization {
         m_forward_discretization{
             &m_forward_grid.template vertex_property<pos_type>(
                 "forward_discretization")},
-        m_forward_sampler{m_forward_discretization->inverse_distance_weighting_sampler(0.1)},
+        // m_forward_sampler{m_forward_discretization->inverse_distance_weighting_sampler(0.1)},
+        m_forward_sampler{m_forward_discretization->linear_sampler()},
         m_backward_grid{m_forward_grid},
         m_backward_discretization{
             &m_backward_grid.template vertex_property<pos_type>(
                 "backward_discretization")},
+        // m_backward_sampler{
+        //     m_backward_grid.inverse_distance_weighting_sampler(*m_backward_discretization)}
         m_backward_sampler{
-            m_backward_grid.inverse_distance_weighting_sampler(*m_backward_discretization)} {
+            m_backward_grid.sampler(*m_backward_discretization)} {
     fill(std::forward<Flowmap>(flowmap), execution_policy);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -150,11 +153,13 @@ struct regular_flowmap_discretization {
     m_forward_grid.vertices().iterate_indices(
         [&](auto const... is) {
           auto flowmap2 = flowmap;
-          flowmap2.use_caching(false);
+          if constexpr (requires { flowmap2.use_caching(false); }) {
+            flowmap2.use_caching(false);
+          }
           m_forward_discretization->at(is...) =
               flowmap2(m_forward_grid.vertex_at(is...), m_t0, m_tau);
         },
-        execution_policy);
+        tatooine::execution_policy::sequential);
 
     for (auto v : m_forward_grid.vertices()) {
       m_backward_discretization->at(typename backward_grid_type::vertex_handle{

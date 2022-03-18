@@ -25,8 +25,29 @@ auto constexpr thin_plate_spline_diff1 =
   return 2 * x * gcem::log(x) + x;
 };
 //------------------------------------------------------------------------------
+auto constexpr thin_plate_spline_diff2 =
+    [](auto const x) -> decltype(x) {
+  return 2 * gcem::log(x) + 3;
+};
+//------------------------------------------------------------------------------
+template <std::size_t N=1>
 auto constexpr diff(decltype(thin_plate_spline) const& /*f*/) {
-  return thin_plate_spline_diff1;
+  if constexpr (N == 0) {
+    return thin_plate_spline;
+  } else if constexpr (N == 1) {
+    return thin_plate_spline_diff1;
+  } else if constexpr (N == 2) {
+    return thin_plate_spline_diff2;
+  }
+}
+//------------------------------------------------------------------------------
+template <std::size_t N=1>
+auto constexpr diff(decltype(thin_plate_spline_diff1) const& /*f*/) {
+  if constexpr (N == 0) {
+    return thin_plate_spline_diff1;
+  } else if constexpr (N == 1) {
+    return thin_plate_spline_diff2;
+  }
 }
 //==============================================================================
 }  // namespace tatooine
