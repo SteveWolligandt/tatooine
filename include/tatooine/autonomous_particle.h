@@ -709,6 +709,164 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   ///                           t_end.)
   /// \param finished_particles Finished particles (Their time is equal to /
   /// t_end.)
+  //template <
+  //    split_behavior SplitBehavior = typename split_behaviors::three_splits,
+  //    typename Flowmap>
+  //auto advect_until_split(Flowmap phi, real_type stepwidth,
+  //                        real_type const                 t_end,
+  //                        container_type&                 splitted_particles,
+  //                        container_type&                 finished_particles,
+  //                        simple_particle_container_type& simple_particles,
+  //                        std::vector<hierarchy_pair>&    hierarchy_pairs,
+  //                        std::mutex&                     hierarchy_mutex,
+  //                        std::atomic_uint64_t& uuid_generator) const {
+  //  if constexpr (is_cacheable<std::decay_t<decltype(phi)>>()) {
+  //    phi.use_caching(false);
+  //  }
+  //  static constexpr real_type min_tau_step       = 1e-10;
+  //  static constexpr real_type max_cond_overshoot = 1e-8;
+  //  static constexpr auto      split_cond         = SplitBehavior::split_cond;
+  //  static constexpr auto      split_sqr_cond     = split_cond * split_cond;
+  //  static constexpr auto      split_radii        = SplitBehavior::radii;
+  //  static constexpr auto      split_offsets      = SplitBehavior::offsets;
+  //  auto const [eigvecs_S, eigvals_S]             = this->main_axes();
+  //  auto const B = eigvecs_S * diag(eigvals_S);  // current main axes
+  //  auto const K = *solve(diag(eigvals_S), transposed(eigvecs_S));
+  //
+  //  mat_type H, HHt, advected_nabla_phi, assembled_nabla_phi, advected_B,
+  //      ghosts_forward, ghosts_backward, prev_ghosts_forward,
+  //      prev_ghosts_backward;
+  //  auto        min_stepwidth_reached = false;
+  //  auto        advected_ellipse      = ellipse_type{*this};
+  //  auto        current_radii         = vec_type{};
+  //  auto        eig_HHt               = std::pair<mat_type, vec_type>{};
+  //  auto        sqr_cond_H            = real_type(1);
+  //  auto const& eigvecs_HHt           = eig_HHt.first;
+  //  auto const& eigvals_HHt           = eig_HHt.second;
+  //
+  //  // initialize ghosts
+  //  for (std::size_t i = 0; i < num_dimensions(); ++i) {
+  //    ghosts_forward.col(i) = x();
+  //  }
+  //  ghosts_backward = ghosts_forward;
+  //
+  //  ghosts_forward += B;
+  //  ghosts_backward -= B;
+  //
+  //  // fields for backup
+  //  auto t_prev          = t();
+  //  auto prev_center     = advected_ellipse.center();
+  //  prev_ghosts_forward  = ghosts_forward;
+  //  prev_ghosts_backward = ghosts_backward;
+  //  auto prev_cond_HHt   = sqr_cond_H;
+  //
+  //  // repeat as long as particle's ellipse is not wide enough or t_end is not
+  //  // reached or the ellipse gets too small. If the latter happens make it a
+  //  // simple massless particle
+  //  auto t_advected = t();
+  //  while (sqr_cond_H < split_sqr_cond || t_advected < t_end) {
+  //    if (!min_stepwidth_reached) {
+  //      // backup state before advection
+  //      prev_ghosts_forward  = ghosts_forward;
+  //      prev_ghosts_backward = ghosts_backward;
+  //      prev_center          = advected_ellipse.center();
+  //      prev_cond_HHt        = sqr_cond_H;
+  //      t_prev               = t_advected;
+  //
+  //      // increase time
+  //      if (t_advected + stepwidth > t_end) {
+  //        stepwidth  = t_end - t_advected;
+  //        t_advected = t_end;
+  //      } else {
+  //        t_advected += stepwidth;
+  //      }
+  //      auto const cur_stepwidth = t_advected - t_prev;
+  //
+  //      // advect center and ghosts
+  //      advected_ellipse.center() =
+  //          phi(advected_ellipse.center(), t_advected, cur_stepwidth);
+  //      ghosts_forward  = phi(ghosts_forward, t_advected, cur_stepwidth);
+  //      ghosts_backward = phi(ghosts_backward, t_advected, cur_stepwidth);
+  //
+  //      // make computations
+  //      H          = (ghosts_forward - ghosts_backward) * half;
+  //      HHt        = H * transposed(H);
+  //      eig_HHt    = eigenvectors_sym(HHt);
+  //      sqr_cond_H = eigvals_HHt(num_dimensions() - 1) / eigvals_HHt(0);
+  //
+  //      if (std::isnan(sqr_cond_H)) {
+  //        simple_particles.emplace_back(x0(), advected_ellipse.center(),
+  //                                      t_advected);
+  //      }
+  //      advected_nabla_phi  = H * K;
+  //      assembled_nabla_phi = advected_nabla_phi * m_nabla_phi;
+  //
+  //      current_radii        = sqrt(eigvals_HHt);
+  //      advected_B           = eigvecs_HHt * diag(current_radii);
+  //      advected_ellipse.S() = advected_B * transposed(eigvecs_HHt);
+  //    }
+  //
+  //    // check if particle has reached t_end
+  //    if (t_advected == t_end &&
+  //        sqr_cond_H <= split_sqr_cond + max_cond_overshoot) {
+  //      finished_particles.emplace_back(advected_ellipse, t_advected, x0(),
+  //                                      assembled_nabla_phi, m_id);
+  //      return;
+  //    }
+  //
+  //    // check if particle's ellipse has reached its splitting width
+  //    if ((sqr_cond_H >= split_sqr_cond &&
+  //         sqr_cond_H <= split_sqr_cond + max_cond_overshoot) ||
+  //        min_stepwidth_reached) {
+  //      for (std::size_t i = 0; i < size(split_radii); ++i) {
+  //        auto const new_eigvals    = current_radii * split_radii[i];
+  //        auto const offset2        = advected_B * split_offsets[i];
+  //        auto const offset0        = *solve(assembled_nabla_phi, offset2);
+  //        auto       offset_ellipse = ellipse_type{
+  //            advected_ellipse.center() + offset2,
+  //            eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt)};
+  //
+  //        splitted_particles.emplace_back(offset_ellipse, t_advected,
+  //                                        x0() + offset0, assembled_nabla_phi,
+  //                                        uuid_generator);
+  //        auto lock = std::lock_guard{hierarchy_mutex};
+  //        hierarchy_pairs.emplace_back(splitted_particles.back().m_id, m_id);
+  //      }
+  //      return;
+  //    }
+  //    // check if particle's ellipse is wider than its splitting width
+  //    if (sqr_cond_H > split_sqr_cond + max_cond_overshoot) {
+  //      auto const prev_stepwidth = stepwidth;
+  //      stepwidth *= half;
+  //      min_stepwidth_reached = stepwidth == prev_stepwidth;
+  //      if (stepwidth < min_tau_step) {
+  //        min_stepwidth_reached = true;
+  //      }
+  //      if (!min_stepwidth_reached) {
+  //        sqr_cond_H                = prev_cond_HHt;
+  //        ghosts_forward            = prev_ghosts_forward;
+  //        ghosts_backward           = prev_ghosts_backward;
+  //        t_advected                = t_prev;
+  //        advected_ellipse.center() = prev_center;
+  //      }
+  //    }
+  //  }
+  //}
+  //----------------------------------------------------------------------------
+  /// New split criterion!
+  ///
+  /// Advectes the particle in the flowmap phi until either a split needs to be
+  /// performed or time `t_end` is reached.
+  ///
+  /// The split behavior is defined in the type SplitBehavior.
+  /// \param phi Flow map of a vector field.
+  /// \param stepwidth Step size of advection. (This is independent of the
+  ///                  numerical integrators's step width.)
+  /// \param t_end End of time of advetion.
+  /// \param splitted_particles Splitted particles (Their time is smaller than
+  ///                           t_end.)
+  /// \param finished_particles Finished particles (Their time is equal to /
+  /// t_end.)
   template <
       split_behavior SplitBehavior = typename split_behaviors::three_splits,
       typename Flowmap>
@@ -723,26 +881,25 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     if constexpr (is_cacheable<std::decay_t<decltype(phi)>>()) {
       phi.use_caching(false);
     }
-    static constexpr real_type min_tau_step       = 1e-10;
-    static constexpr real_type max_cond_overshoot = 1e-8;
-    static constexpr auto      split_cond         = SplitBehavior::split_cond;
-    static constexpr auto      split_sqr_cond     = split_cond * split_cond;
-    static constexpr auto      split_radii        = SplitBehavior::radii;
-    static constexpr auto      split_offsets      = SplitBehavior::offsets;
-    auto const [eigvecs_S, eigvals_S]             = this->main_axes();
+    // static constexpr real_type min_tau_step       = 1e-10;
+    // static constexpr real_type max_cond_overshoot = 1e-8;
+    // static constexpr auto      split_cond         =
+    // SplitBehavior::split_cond;
+    static constexpr auto split_radii   = SplitBehavior::radii;
+    static constexpr auto split_offsets = SplitBehavior::offsets;
+    auto const [eigvecs_S, eigvals_S]   = this->main_axes();
     auto const B = eigvecs_S * diag(eigvals_S);  // current main axes
     auto const K = *solve(diag(eigvals_S), transposed(eigvecs_S));
 
-    mat_type H, HHt, advected_nabla_phi, assembled_nabla_phi, advected_B,
+    mat_type H, HHt, D, advected_nabla_phi, assembled_nabla_phi, advected_B,
         ghosts_forward, ghosts_backward, prev_ghosts_forward,
         prev_ghosts_backward;
-    auto        min_stepwidth_reached = false;
-    auto        advected_ellipse      = ellipse_type{*this};
-    auto        current_radii         = vec_type{};
-    auto        eig_HHt               = std::pair<mat_type, vec_type>{};
-    auto        sqr_cond_H            = real_type(1);
-    auto const& eigvecs_HHt           = eig_HHt.first;
-    auto const& eigvals_HHt           = eig_HHt.second;
+    auto        advected_ellipse = ellipse_type{*this};
+    auto        current_radii    = vec_type{};
+    auto        eig_HHt          = std::pair<mat_type, vec_type>{};
+    auto        linearity        = real_type(0);
+    auto const& eigvecs_HHt      = eig_HHt.first;
+    auto const& eigvals_HHt      = eig_HHt.second;
 
     // initialize ghosts
     for (std::size_t i = 0; i < num_dimensions(); ++i) {
@@ -753,71 +910,59 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     ghosts_forward += B;
     ghosts_backward -= B;
 
-    // fields for backup
-    auto t_prev          = t();
-    auto prev_center     = advected_ellipse.center();
-    prev_ghosts_forward  = ghosts_forward;
-    prev_ghosts_backward = ghosts_backward;
-    auto prev_cond_HHt   = sqr_cond_H;
-
     // repeat as long as particle's ellipse is not wide enough or t_end is not
     // reached or the ellipse gets too small. If the latter happens make it a
     // simple massless particle
     auto t_advected = t();
-    while (sqr_cond_H < split_sqr_cond || t_advected < t_end) {
-      if (!min_stepwidth_reached) {
-        // backup state before advection
-        prev_ghosts_forward  = ghosts_forward;
-        prev_ghosts_backward = ghosts_backward;
-        prev_center          = advected_ellipse.center();
-        prev_cond_HHt        = sqr_cond_H;
-        t_prev               = t_advected;
-
-        // increase time
-        if (t_advected + stepwidth > t_end) {
-          stepwidth  = t_end - t_advected;
-          t_advected = t_end;
-        } else {
-          t_advected += stepwidth;
-        }
-        auto const cur_stepwidth = t_advected - t_prev;
-
-        // advect center and ghosts
-        advected_ellipse.center() =
-            phi(advected_ellipse.center(), t_advected, cur_stepwidth);
-        ghosts_forward  = phi(ghosts_forward, t_advected, cur_stepwidth);
-        ghosts_backward = phi(ghosts_backward, t_advected, cur_stepwidth);
-
-        // make computations
-        H          = (ghosts_forward - ghosts_backward) * half;
-        HHt        = H * transposed(H);
-        eig_HHt    = eigenvectors_sym(HHt);
-        sqr_cond_H = eigvals_HHt(num_dimensions() - 1) / eigvals_HHt(0);
-
-        if (std::isnan(sqr_cond_H)) {
-          simple_particles.emplace_back(x0(), advected_ellipse.center(),
-                                        t_advected);
-        }
-        advected_nabla_phi  = H * K;
-        assembled_nabla_phi = advected_nabla_phi * m_nabla_phi;
-
-        current_radii        = sqrt(eigvals_HHt);
-        advected_B           = eigvecs_HHt * diag(current_radii);
-        advected_ellipse.S() = advected_B * transposed(eigvecs_HHt);
+    while (t_advected < t_end) {
+      // increase time
+      if (t_advected + stepwidth > t_end) {
+        stepwidth  = t_end - t_advected;
+        t_advected = t_end;
+      } else {
+        t_advected += stepwidth;
       }
 
+      // advect center and ghosts
+      advected_ellipse.center() =
+          phi(advected_ellipse.center(), t_advected, stepwidth);
+      ghosts_forward  = phi(ghosts_forward, t_advected, stepwidth);
+      ghosts_backward = phi(ghosts_backward, t_advected, stepwidth);
+
+      // make computations
+      H = (ghosts_backward - ghosts_forward) * half;
+      D = (ghosts_backward + ghosts_forward) * half;
+      for (std::size_t i = 0; i < num_dimensions(); ++i) {
+        D.col(i) -= advected_ellipse.center();
+      }
+      linearity = 0;
+      for (std::size_t i = 0; i < num_dimensions(); ++i) {
+        linearity += dot(D.col(i), D.col(i)) / dot(H.col(i), H.col(i));
+      }
+      HHt     = H * transposed(H);
+      eig_HHt = eigenvectors_sym(HHt);
+
+      if (std::isnan(linearity)) {
+        simple_particles.emplace_back(x0(), advected_ellipse.center(),
+                                      t_advected);
+      }
+      advected_nabla_phi  = H * K;
+      assembled_nabla_phi = advected_nabla_phi * m_nabla_phi;
+
+      current_radii        = sqrt(eigvals_HHt);
+      advected_B           = eigvecs_HHt * diag(current_radii);
+      advected_ellipse.S() = advected_B * transposed(eigvecs_HHt);
+
       // check if particle has reached t_end
-      if (t_advected == t_end &&
-          sqr_cond_H <= split_sqr_cond + max_cond_overshoot) {
+      if (t_advected == t_end) {
         finished_particles.emplace_back(advected_ellipse, t_advected, x0(),
                                         assembled_nabla_phi, m_id);
         return;
       }
 
-      // check if particle's ellipse has reached its splitting wideness
-      if ((sqr_cond_H >= split_sqr_cond &&
-           sqr_cond_H <= split_sqr_cond + max_cond_overshoot) ||
-          min_stepwidth_reached) {
+      // check if particle's ellipse has reached its splitting width
+      static auto constexpr linearity_threshold = 0.1;
+      if (linearity >= linearity_threshold) {
         for (std::size_t i = 0; i < size(split_radii); ++i) {
           auto const new_eigvals    = current_radii * split_radii[i];
           auto const offset2        = advected_B * split_offsets[i];
@@ -834,157 +979,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
         }
         return;
       }
-      // check if particle's ellipse is wider than its splitting wideness
-      if (sqr_cond_H > split_sqr_cond + max_cond_overshoot) {
-        auto const prev_stepwidth = stepwidth;
-        stepwidth *= half;
-        min_stepwidth_reached = stepwidth == prev_stepwidth;
-        if (stepwidth < min_tau_step) {
-          min_stepwidth_reached = true;
-        }
-        if (!min_stepwidth_reached) {
-          sqr_cond_H                = prev_cond_HHt;
-          ghosts_forward            = prev_ghosts_forward;
-          ghosts_backward           = prev_ghosts_backward;
-          t_advected                = t_prev;
-          advected_ellipse.center() = prev_center;
-        }
-      }
     }
   }
-  //----------------------------------------------------------------------------
-  /// New split criterion!
-  ///
-  /// Advectes the particle in the flowmap phi until either a split needs to be
-  /// performed or time `t_end` is reached.
-  ///
-  /// The split behavior is defined in the type SplitBehavior.
-  /// \param phi Flow map of a vector field.
-  /// \param stepwidth Step size of advection. (This is independent of the
-  ///                  numerical integrators's step width.)
-  /// \param t_end End of time of advetion.
-  /// \param splitted_particles Splitted particles (Their time is smaller than
-  ///                           t_end.)
-  /// \param finished_particles Finished particles (Their time is equal to /
-  /// t_end.)
-  // template <
-  //     split_behavior SplitBehavior = typename split_behaviors::three_splits,
-  //     typename Flowmap>
-  // auto advect_until_split(Flowmap phi, real_type stepwidth,
-  //                         real_type const              t_end,
-  //                         container_type&              splitted_particles,
-  //                         container_type&              finished_particles,
-  //                         simple_particle_container_type& simple_particles,
-  //                         std::vector<hierarchy_pair>& hierarchy_pairs,
-  //                         std::mutex&                  hierarchy_mutex,
-  //                         std::atomic_uint64_t&        uuid_generator) const
-  //                         {
-  //   if constexpr (is_cacheable<std::decay_t<decltype(phi)>>()) {
-  //     phi.use_caching(false);
-  //   }
-  //   //static constexpr real_type min_tau_step       = 1e-10;
-  //   //static constexpr real_type max_cond_overshoot = 1e-8;
-  //   //static constexpr auto      split_cond         =
-  //   SplitBehavior::split_cond; static constexpr auto      split_radii =
-  //   SplitBehavior::radii; static constexpr auto      split_offsets      =
-  //   SplitBehavior::offsets; auto const [eigvecs_S, eigvals_S]             =
-  //   this->main_axes(); auto const B = eigvecs_S * diag(eigvals_S);  //
-  //   current main axes auto const K = *solve(diag(eigvals_S),
-  //   transposed(eigvecs_S));
-  //
-  //   mat_type H, HHt, D, advected_nabla_phi, assembled_nabla_phi, advected_B,
-  //       ghosts_forward, ghosts_backward, prev_ghosts_forward,
-  //       prev_ghosts_backward;
-  //   auto        advected_ellipse      = ellipse_type{*this};
-  //   auto        current_radii         = vec_type{};
-  //   auto        eig_HHt               = std::pair<mat_type, vec_type>{};
-  //   auto        linearity             = real_type(0);
-  //   auto const& eigvecs_HHt           = eig_HHt.first;
-  //   auto const& eigvals_HHt           = eig_HHt.second;
-  //
-  //   // initialize ghosts
-  //   for (std::size_t i = 0; i < num_dimensions(); ++i) {
-  //     ghosts_forward.col(i) = x();
-  //   }
-  //   ghosts_backward = ghosts_forward;
-  //
-  //   ghosts_forward += B;
-  //   ghosts_backward -= B;
-  //
-  //   static auto constexpr linearity_threshold = 1e-3;
-  //
-  //   // repeat as long as particle's ellipse is not wide enough or t_end is
-  //   not
-  //   // reached or the ellipse gets too small. If the latter happens make it a
-  //   // simple massless particle
-  //   auto t_advected = t();
-  //   while (t_advected < t_end) {
-  //     // increase time
-  //     if (t_advected + stepwidth > t_end) {
-  //       stepwidth      = t_end - t_advected;
-  //       t_advected = t_end;
-  //     } else {
-  //       t_advected += stepwidth;
-  //     }
-  //
-  //     // advect center and ghosts
-  //     advected_ellipse.center() =
-  //         phi(advected_ellipse.center(), t_advected, stepwidth);
-  //     ghosts_forward  = phi(ghosts_forward, t_advected, stepwidth);
-  //     ghosts_backward = phi(ghosts_backward, t_advected, stepwidth);
-  //
-  //     // make computations
-  //     H = (ghosts_backward - ghosts_forward) * half;
-  //     D = (ghosts_backward + ghosts_forward) * half;
-  //     for (std::size_t i = 0; i < num_dimensions(); ++i) {
-  //       D.col(i) -= advected_ellipse.center();
-  //     }
-  //     linearity = 0;
-  //     for (std::size_t i = 0; i < num_dimensions(); ++i) {
-  //       linearity += dot(D.col(i), D.col(i)) / dot(H.col(i), H.col(i));
-  //     }
-  //     HHt       = H * transposed(H);
-  //     eig_HHt   = eigenvectors_sym(HHt);
-  //
-  //     if (std::isnan(linearity)) {
-  //       simple_particles.emplace_back(x0(), advected_ellipse.center(),
-  //                                     t_advected);
-  //     }
-  //     advected_nabla_phi  = H * K;
-  //     assembled_nabla_phi = advected_nabla_phi * m_nabla_phi;
-  //
-  //     current_radii        = sqrt(eigvals_HHt);
-  //     advected_B           = eigvecs_HHt * diag(current_radii);
-  //     advected_ellipse.S() = advected_B * transposed(eigvecs_HHt);
-  //
-  //     // check if particle has reached t_end
-  //     if (t_advected == t_end) {
-  //       finished_particles.emplace_back(advected_ellipse, t_advected, x0(),
-  //                                       assembled_nabla_phi, m_id);
-  //       return;
-  //     }
-  //
-  //     // check if particle's ellipse has reached its splitting wideness
-  //     if (linearity >= linearity_threshold) {
-  //       for (std::size_t i = 0; i < size(split_radii); ++i) {
-  //         auto const new_eigvals    = current_radii * split_radii[i];
-  //         auto const offset2        = advected_B * split_offsets[i];
-  //         auto const offset0        = *solve(assembled_nabla_phi, offset2);
-  //         auto       offset_ellipse = ellipse_type{
-  //             advected_ellipse.center() + offset2,
-  //             eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt)};
-  //
-  //         splitted_particles.emplace_back(offset_ellipse, t_advected,
-  //                                         x0() + offset0,
-  //                                         assembled_nabla_phi,
-  //                                         uuid_generator);
-  //         auto lock = std::lock_guard{hierarchy_mutex};
-  //         hierarchy_pairs.emplace_back(splitted_particles.back().m_id, m_id);
-  //       }
-  //       return;
-  //     }
-  //   }
-  // }
   //----------------------------------------------------------------------------
   auto sampler() const {
     return sampler_type{initial_ellipse(), *this, m_nabla_phi};
