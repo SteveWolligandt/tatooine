@@ -436,48 +436,55 @@ struct autonomous_particle_flowmap_discretization {
       pos_type const& q, Real const radius,
       forward_or_backward_tag auto const tag,
       execution_policy::sequential_t /*pol*/) const {
-    auto  ps   = pointset<real_type, NumDimensions>{};
-    auto& cart = ps.template vertex_property<pos_type>("cartesian");
-    ps.vertices().reserve(size(m_samplers));
-    for (auto const& s : m_samplers) {
-      auto v = ps.insert_vertex(s.x0(tag));
-      cart[v] = s.x0(tag);
-    }
-
-    auto [vertices, squared_distances] =
-        ps.nearest_neighbors_raw(pos_type::zeros(), 20);
-    if (vertices.empty()) {
+    auto dataset = flann::Matrix<Real>{
+        const_cast<Real*>(m_samplers.front().x0(tag).data_ptr()),
+        m_samplers.size(), num_dimensions(), sizeof(sampler_type)};
+    auto kd_tree = flann::Index<flann::L2<Real>>{
+        dataset, flann::KDTreeSingleIndexParams{}};
+    kd_tree.buildIndex();
+    auto qm        = flann::Matrix<Real>{const_cast<Real*>(q.data_ptr()), 1,
+                                  num_dimensions()};
+    auto nearest_indices_   = std::vector<std::vector<int>>{};
+    auto squared_distances_ = std::vector<std::vector<Real>>{};
+    kd_tree.knnSearch(qm, nearest_indices_, squared_distances_, 20, flann::SearchParams {});
+    auto const& nearest_indices = nearest_indices_.front();
+    auto const& squared_distances = squared_distances_.front();
+    if (nearest_indices.empty()) {
       return pos_type::fill(0.0 / 0.0);
     }
 
     auto rbf_kernel = thin_plate_spline_from_squared;
-    auto const N = vertices.size();
 
     // construct lower part of symmetric matrix A
-    auto A = tensor<real_number>::zeros(N + NumDimensions + 1,
-                                        N + NumDimensions + 1);
+    auto const dim_A = nearest_indices.size()  // number of vertices
+                       + 1              // constant monomial part
+                       + NumDimensions  // linear monomial part
+        ;
+
+    auto A = tensor<real_number>::zeros(dim_A, dim_A);
     auto radial_and_monomial_coefficients =
-        tensor<real_number>::zeros(N + NumDimensions + 1, NumDimensions);
-    for (std::size_t c = 0; c < N; ++c) {
-      for (std::size_t r = c + 1; r < N; ++r) {
-        A(r, c) = rbf_kernel(squared_euclidean_distance(
-            cart[vertices[c]], cart[vertices[r]]));
+        tensor<real_number>::zeros(dim_A, NumDimensions);
+    for (std::size_t c = 0; c < nearest_indices.size(); ++c) {
+      for (std::size_t r = c + 1; r < nearest_indices.size(); ++r) {
+        A(r, c) = rbf_kernel(squared_euclidean_distance(m_samplers[nearest_indices[c]].x0(tag),
+                                                        m_samplers[nearest_indices[r]].x0(tag)));
       }
     }
     // construct polynomial requirements
-    for (std::size_t c = 0; c < N; ++c) {
-      auto const& p = cart[vertices[c]];
+    for (std::size_t c = 0; c < nearest_indices.size(); ++c) {
+      auto const& p = m_samplers[nearest_indices[c]].x0(tag);
       // constant part
-      A(N, c) = 1;
+      A(nearest_indices.size(), c) = 1;
 
       // linear part
       for (std::size_t i = 0; i < NumDimensions; ++i) {
-        A(N + i + 1, c) = p(i);
+        A(nearest_indices.size() + 1 + i, c) = p(i);
       }
     }
 
-    for (std::size_t i = 0; i < N; ++i) {
-      auto const phi = m_samplers[vertices[i]].phi(tag);
+    for (std::size_t i = 0; i < nearest_indices.size(); ++i) {
+      auto const v = nearest_indices[i];
+      auto const phi = m_samplers[v].phi(tag);
       for (std::size_t j = 0; j < NumDimensions; ++j) {
         radial_and_monomial_coefficients(i, j) = phi(j);
       }
@@ -489,21 +496,21 @@ struct autonomous_particle_flowmap_discretization {
 
     auto acc = pos_type{};
     // radial bases
-    for (std::size_t i = 0; i < N; ++i) {
-      auto const v = vertices[i];
+    for (std::size_t i = 0; i < nearest_indices.size(); ++i) {
       if (squared_distances[i] == 0) {
-        return m_samplers[v].phi(tag);
+        return m_samplers[nearest_indices[i]].phi(tag);
       }
       for (std::size_t j = 0; j < NumDimensions; ++j) {
         acc(j) += radial_and_monomial_coefficients(i, j) *
-                  rbf_kernel(squared_euclidean_distance(q, cart[v]));
+                  rbf_kernel(squared_euclidean_distance(q, m_samplers[nearest_indices[i]].x0(tag)));
       }
     }
     // monomial bases
     for (std::size_t j = 0; j < NumDimensions; ++j) {
-      acc(j) += radial_and_monomial_coefficients(N, j);
+      acc(j) += radial_and_monomial_coefficients(nearest_indices.size(), j);
       for (std::size_t k = 0; k < NumDimensions; ++k) {
-        acc(j) += radial_and_monomial_coefficients(N + 1 + k, j) * q(k);
+        acc(j) +=
+            radial_and_monomial_coefficients(nearest_indices.size() + 1 + k, j) * q(k);
       }
     }
     return acc;

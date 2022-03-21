@@ -25,10 +25,11 @@ struct steady_field
  public:
   steady_field(steady_field const& other)     = default;
   steady_field(steady_field&& other) noexcept = default;
-
+  //----------------------------------------------------------------------------
   auto operator=(steady_field const& other) -> steady_field& = default;
   auto operator=(steady_field&& other) noexcept -> steady_field& = default;
-
+  //----------------------------------------------------------------------------
+  ~steady_field() = default;
   //============================================================================
   constexpr steady_field(convertible_to<Field> auto&& f, arithmetic auto fixed_time)
       : m_internal_field{std::forward<decltype(f)>(f)},
@@ -38,6 +39,9 @@ struct steady_field
       -> tensor_type {
     return m_internal_field(x, m_fixed_time);
   }
+  //----------------------------------------------------------------------------
+  constexpr auto internal() -> auto& { return m_internal_field; }
+  constexpr auto internal() const -> auto const& { return m_internal_field; }
 };
 //------------------------------------------------------------------------------
 template <typename F, typename T>

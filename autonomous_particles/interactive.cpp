@@ -1,10 +1,10 @@
 #include <tatooine/agranovsky_flowmap_discretization.h>
 #include <tatooine/analytical/fields/doublegyre.h>
 #include <tatooine/analytical/fields/saddle.h>
-#include <tatooine/steady_field.h>
 #include <tatooine/autonomous_particle_flowmap_discretization.h>
 #include <tatooine/rendering/interactive.h>
 #include <tatooine/rendering/interactive/shaders.h>
+#include <tatooine/steady_field.h>
 //==============================================================================
 using namespace tatooine;
 auto constexpr advection_direction = forward;
@@ -16,6 +16,8 @@ using autonomous_particle_flowmap_type =
 struct vis {
   using pass_through =
       rendering::interactive::shaders::colored_pass_through_2d_without_matrices;
+  using vec2_gl = Vec2<GLfloat>;
+  using vec3_gl = Vec3<GLfloat>;
   struct shader : gl::shader {
     //------------------------------------------------------------------------------
     static constexpr std::string_view vertex_shader =
@@ -81,11 +83,11 @@ struct vis {
   rendering::orthographic_camera<GLfloat>                cam;
   std::vector<autonomous_particle2::sampler_type> const& samplers;
   unstructured_triangular_grid2                          local_positions;
-  gl::indexeddata<Vec2<GLfloat>, Vec3<GLfloat>>          local_positions_gpu;
-  gl::indexeddata<Vec2<GLfloat>, Vec3<GLfloat>> local_triangulation_gpu;
-  bool                                          mouse_down = false;
-  std::vector<std::size_t>                      hovered_indices;
-  float                                         minimap_range = 0.25f;
+  gl::indexeddata<vec2_gl, vec3_gl>                      local_positions_gpu;
+  gl::indexeddata<vec2_gl, vec3_gl> local_triangulation_gpu;
+  bool                              mouse_down = false;
+  std::vector<std::size_t>          hovered_indices;
+  float                             minimap_range = 0.25f;
   enum class mode_t { number, radius };
   mode_t                                mode           = mode_t::number;
   std::size_t                           nearest_number = 3;
@@ -98,8 +100,8 @@ struct vis {
   vis(uniform_rectilinear_grid<double, 2> const& g, auto const& samplers)
       : grid{g},
         hovered(size(samplers), false),
-        cam{Vec3<GLfloat>{0, 0, 0},
-            Vec3<GLfloat>{0, 0, -1},
+        cam{vec3_gl{0, 0, 0},
+            vec3_gl{0, 0, -1},
             -minimap_range,
             minimap_range,
             -minimap_range,
@@ -121,8 +123,8 @@ struct vis {
     ImGui::Text("Vis");
     if (ImGui::DragFloat("scale", &minimap_range, 0.01f, 0.0f, FLT_MAX,
                          "%.06f")) {
-      cam = {Vec3<GLfloat>{0, 0, 0},
-             Vec3<GLfloat>{0, 0, -1},
+      cam = {vec3_gl{0, 0, 0},
+             vec3_gl{0, 0, -1},
              -minimap_range,
              minimap_range,
              -minimap_range,
@@ -185,14 +187,14 @@ struct vis {
     shader::get().set_projection_matrix(cam.projection_matrix());
     shader::get().set_view_matrix(cam.view_matrix());
     shader::get().bind();
-    gl::point_size(point_size);
+    gl::point_size(static_cast<GLfloat>(point_size));
     {
-      auto p = gl::indexeddata<Vec2<GLfloat>, Vec3<GLfloat>>{};
+      auto p = gl::indexeddata<vec2_gl, vec3_gl>{};
       p.vertexbuffer().resize(1);
       p.indexbuffer().resize(1);
       {
         auto data = p.vertexbuffer().map();
-        data[0]   = {Vec2<GLfloat>{current_point}, Vec3<GLfloat>{0, 0, 0}};
+        data[0]   = {vec2_gl{current_point}, vec3_gl{0, 0, 0}};
       }
       {
         auto data = p.indexbuffer().map();
@@ -234,14 +236,14 @@ struct vis {
   auto late_render() {
     cam.set_gl_viewport();
     {
-      auto outline = gl::indexeddata<Vec2<GLfloat>>{};
+      auto outline = gl::indexeddata<vec2_gl>{};
       outline.vertexbuffer().resize(4);
       {
         auto data = outline.vertexbuffer().map();
-        data[0]   = Vec2<GLfloat>{-0.999, -0.999};
-        data[1]   = Vec2<GLfloat>{0.999, -0.999};
-        data[2]   = Vec2<GLfloat>{0.999, 0.999};
-        data[3]   = Vec2<GLfloat>{-0.999, 0.999};
+        data[0]   = vec2_gl{-0.999, -0.999};
+        data[1]   = vec2_gl{0.999, -0.999};
+        data[2]   = vec2_gl{0.999, 0.999};
+        data[3]   = vec2_gl{-0.999, 0.999};
       }
       outline.indexbuffer().resize(6);
       {
@@ -272,15 +274,15 @@ struct vis {
       gl::enable_depth_test();
     }
     {
-      auto axes = gl::indexeddata<Vec2<GLfloat>>{};
+      auto axes = gl::indexeddata<vec2_gl>{};
       axes.vertexbuffer().resize(4);
       axes.indexbuffer().resize(4);
       {
         auto data = axes.vertexbuffer().map();
-        data[0]   = Vec2<GLfloat>{0, -1};
-        data[1]   = Vec2<GLfloat>{0, 1};
-        data[2]   = Vec2<GLfloat>{-1, 0};
-        data[3]   = Vec2<GLfloat>{1, 0};
+        data[0]   = vec2_gl{0, -1};
+        data[1]   = vec2_gl{0, 1};
+        data[2]   = vec2_gl{-1, 0};
+        data[3]   = vec2_gl{1, 0};
       }
       {
         auto data = axes.indexbuffer().map();
@@ -307,10 +309,11 @@ struct vis {
       auto map = local_positions_gpu.vertexbuffer().wmap();
       for_loop(
           [&](auto const i) {
-            auto const vertex_pos =
-                -samplers[i].local_pos(current_point, advection_direction);
+            //auto const vertex_pos =
+            //    -samplers[i].local_pos(current_point, advection_direction);
+            auto const vertex_pos        = samplers[i].x0(advection_direction);
             local_positions.vertex_at(i) = vertex_pos;
-            get<0>(map[i])               = Vec2<GLfloat>{vertex_pos};
+            get<0>(map[i])               = vec2_gl{vertex_pos};
           },
           execution_policy::parallel, samplers.size());
     }
@@ -353,23 +356,23 @@ struct vis {
     switch (mode) {
       case mode_t::number:
         nearest_neighbor_indices =
-            local_positions.nearest_neighbors(vec2::zeros(), nearest_number)
+            local_positions.nearest_neighbors(cursor_pos_projected, nearest_number)
                 .first;
         break;
       case mode_t::radius:
         nearest_neighbor_indices =
             local_positions
-                .nearest_neighbors_radius(vec2::zeros(), nearest_radius)
+                .nearest_neighbors_radius(cursor_pos_projected, nearest_radius)
                 .first;
         break;
     }
     {
       auto map = local_positions_gpu.vertexbuffer().rwmap();
       for (auto& v : map) {
-        get<1>(v) = Vec3<GLfloat>{0, 0, 0};
+        get<1>(v) = {0, 0, 0};
       }
       for (auto const& v : nearest_neighbor_indices) {
-        get<1>(map[v.index()]) = Vec3<GLfloat>{0, 1, 0};
+        get<1>(map[v.index()]) = {0, 1, 0};
       }
     }
   }
@@ -382,11 +385,11 @@ struct vis {
                                                          advection_direction);
       if (hovered[v.index()]) {
         local_positions_gpu.vertexbuffer().write_only_element_at(v.index()) = {
-            Vec2<GLfloat>{local_positions[v]}, Vec3<GLfloat>{1, 0, 0}};
+            vec2_gl{local_positions[v]}, vec3_gl{1, 0, 0}};
         //} else {
         //  local_positions_gpu.vertexbuffer().write_only_element_at(v.index())
         //  = {
-        //      Vec2<GLfloat>{local_positions[v]}, Vec3<GLfloat>{0, 0, 0}};
+        //      vec2_gl{local_positions[v]}, vec3_gl{0, 0, 0}};
       }
     }
   }
@@ -419,11 +422,11 @@ struct vis {
   }
 };
 //------------------------------------------------------------------------------
-auto doit(auto& g, auto const& v, auto const& initial_particles,
+auto doit(auto& resample_grid, auto const& v, auto const& initial_particles,
           auto& uuid_generator, auto const t0, auto const t_end,
           auto const inverse_distance_num_samples) {
-  auto const tau                    = t_end - t0;
-  auto phi = flowmap(v);
+  auto const tau = t_end - t0;
+  auto       phi = flowmap(v);
 
   using clock = std::chrono::high_resolution_clock;
   auto before = std::chrono::time_point<clock>{};
@@ -436,92 +439,126 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
   std::cout << "advecting autonomous particles... done! ("
             << std::chrono::duration_cast<std::chrono::milliseconds>(after -
                                                                      before)
-                   .count() / 1000.0
+                       .count() /
+                   1000.0
             << "s)\n";
 
   std::cout << "building mesh with centers...\n";
-  before                            = clock::now();
-  auto g2 = unstructured_simplicial_grid<real_number, 2, 2>{};
-  g.vertices().iterate_indices(
-      [&](auto const... is) { g2.insert_vertex(g.vertex_at(is...)); });
+  before = clock::now();
+  auto resample_grid_with_particle_centers =
+      unstructured_simplicial_grid<real_number, 2, 2>{};
+  resample_grid.vertices().iterate_indices([&](auto const... is) {
+    resample_grid_with_particle_centers.insert_vertex(
+        resample_grid.vertex_at(is...));
+  });
   for (auto const& p : flowmap_autonomous_particles.samplers()) {
-    g2.insert_vertex(p.x0(advection_direction));
+    resample_grid_with_particle_centers.insert_vertex(
+        p.x0(advection_direction));
   }
-  g2.build_delaunay_mesh();
+  resample_grid_with_particle_centers.build_delaunay_mesh();
   after = clock::now();
   std::cout << "building mesh with centers... done! ("
             << std::chrono::duration_cast<std::chrono::milliseconds>(after -
                                                                      before)
-                   .count() / 1000.0
+                       .count() /
+                   1000.0
             << "s)\n";
 
   //////
   // flowmap discretizations
   //////
-  auto&      flowmap_numerical_prop = g2.vec2_vertex_property("numerical");
-  auto&      flowmap_regular_prop = g2.vec2_vertex_property("regular");
-  //auto&      flowmap_autonomous_particles_barycentric_coordinate_prop =
-  //    g2.vec2_vertex_property("barycentric_coordinate");
-  //auto& flowmap_autonomous_particles_nearest_neighbor_prop =
-  //    g2.vec2_vertex_property("nearest_neighbor");
-  auto& flowmap_autonomous_particles_inverse_distance_prop =
-      g2.vec2_vertex_property("inverse_distance");
-  //auto& flowmap_autonomous_particles_inverse_distance_local_prop =
-  //    g2.vec2_vertex_property("inverse_distance_local");
-  auto& flowmap_autonomous_particles_inverse_distance_without_gradient_prop =
-      g2.vec2_vertex_property("inverse_distance_without_gradient");
+  auto& flowmap_numerical_prop =
+      resample_grid_with_particle_centers.vec2_vertex_property("numerical");
+  auto& flowmap_regular_prop =
+      resample_grid_with_particle_centers.vec2_vertex_property("regular");
+  // auto&      flowmap_autonomous_particles_barycentric_coordinate_prop =
+  //     resample_grid_with_particle_centers.vec2_vertex_property("barycentric_coordinate");
+  // auto& flowmap_autonomous_particles_nearest_neighbor_prop =
+  //     resample_grid_with_particle_centers.vec2_vertex_property("nearest_neighbor");
+  //auto& flowmap_autonomous_particles_inverse_distance_prop =
+  //    resample_grid_with_particle_centers.vec2_vertex_property(
+  //        "inverse_distance");
+  // auto& flowmap_autonomous_particles_inverse_distance_local_prop =
+  //     resample_grid_with_particle_centers.vec2_vertex_property("inverse_distance_local");
+  //auto& flowmap_autonomous_particles_inverse_distance_without_gradient_prop =
+  //    resample_grid_with_particle_centers.vec2_vertex_property(
+  //        "inverse_distance_without_gradient");
   auto& flowmap_autonomous_particles_radial_basis_functions_prop =
-      g2.vec2_vertex_property("radialbasis_functions");
-  auto& flowmap_agranovsky_prop = g2.vec2_vertex_property("agranovksy");
+      resample_grid_with_particle_centers.vec2_vertex_property(
+          "radialbasis_functions");
+  auto& flowmap_agranovsky_prop =
+      resample_grid_with_particle_centers.vec2_vertex_property("agranovksy");
 
   //////
   // flowmap errors
   //////
   auto& flowmap_error_regular_prop =
-      g2.scalar_vertex_property("error_regular");
-  //auto& flowmap_error_autonomous_particles_barycentric_coordinate_prop =
-  //    g2.scalar_vertex_property("error_barycentric_coordinate");
-  //auto& flowmap_error_autonomous_particles_nearest_neighbor_prop =
-  //    g2.scalar_vertex_property("error_nearest_neighbor");
-  auto& flowmap_error_autonomous_particles_inverse_distance_prop =
-      g2.scalar_vertex_property("error_inverse_distance");
-  //auto& flowmap_error_autonomous_particles_inverse_distance_local_prop =
-  //    g2.scalar_vertex_property("error_inverse_distance_local");
-  auto& flowmap_error_autonomous_particles_inverse_distance_without_gradient_prop =
-      g2.scalar_vertex_property("error_inverse_distance_without_gradients");
+      resample_grid_with_particle_centers.scalar_vertex_property(
+          "error_regular");
+  // auto& flowmap_error_autonomous_particles_barycentric_coordinate_prop =
+  //     resample_grid_with_particle_centers.scalar_vertex_property("error_barycentric_coordinate");
+
+  // auto& flowmap_error_autonomous_particles_nearest_neighbor_prop =
+  //     resample_grid_with_particle_centers.scalar_vertex_property("error_nearest_neighbor");
+
+  //auto& flowmap_error_autonomous_particles_inverse_distance_prop =
+  //    resample_grid_with_particle_centers.scalar_vertex_property(
+  //        "error_inverse_distance");
+
+  // auto& flowmap_error_autonomous_particles_inverse_distance_local_prop =
+  //     resample_grid_with_particle_centers.scalar_vertex_property("error_inverse_distance_local");
+
+  //auto&
+  //    flowmap_error_autonomous_particles_inverse_distance_without_gradient_prop =
+  //        resample_grid_with_particle_centers.scalar_vertex_property(
+  //            "error_inverse_distance_without_gradients");
+
   auto& flowmap_error_autonomous_particles_radial_basis_functions_prop =
-      g2.scalar_vertex_property("error_radial_basis_functions");
+      resample_grid_with_particle_centers.scalar_vertex_property(
+          "error_radial_basis_functions");
+
   auto& flowmap_error_agranovksy_prop =
-      g2.scalar_vertex_property("error_agranovksy");
+      resample_grid_with_particle_centers.scalar_vertex_property(
+          "error_agranovksy");
 
   //////
   // flowmap comparisons
   //////
-  //auto& flowmap_error_diff_regular_prop =
-  //    g2.scalar_vertex_property("error_diff_regular");
-  //auto& flowmap_error_diff_barycentric_coordinate_prop =
-  //    g2.scalar_vertex_property("error_diff_barycentric_coordinate");
-  //auto& flowmap_error_diff_nearest_neighbor_prop =
-  //    g2.scalar_vertex_property("error_diff_nearest_neighbor");
-  auto& flowmap_error_diff_inverse_distance_prop =
-      g2.scalar_vertex_property("error_diff_inverse_distance");
-  //auto& flowmap_error_diff_inverse_distance_local_prop =
-  //    g2.scalar_vertex_property("error_diff_inverse_distance_local");
-  auto& flowmap_error_diff_inverse_distance_without_gradient_prop =
-      g2.scalar_vertex_property("error_diff_inverse_distance_without_gradient");
-  auto& flowmap_error_diff_radial_basis_functions_prop =
-      g2.scalar_vertex_property("error_diff_radial_basis_functions");
 
+  // auto& flowmap_error_diff_regular_prop =
+  //     resample_grid_with_particle_centers.scalar_vertex_property("error_diff_regular");
+
+  // auto& flowmap_error_diff_barycentric_coordinate_prop =
+  //     resample_grid_with_particle_centers.scalar_vertex_property("error_diff_barycentric_coordinate");
+
+  // auto& flowmap_error_diff_nearest_neighbor_prop =
+  //     resample_grid_with_particle_centers.scalar_vertex_property("error_diff_nearest_neighbor");
+
+  //auto& flowmap_error_diff_inverse_distance_prop =
+  //    resample_grid_with_particle_centers.scalar_vertex_property(
+  //        "error_diff_inverse_distance");
+
+  // auto& flowmap_error_diff_inverse_distance_local_prop =
+  //     resample_grid_with_particle_centers.scalar_vertex_property("error_diff_inverse_distance_local");
+  
+  //auto& flowmap_error_diff_inverse_distance_without_gradient_prop =
+  //    resample_grid_with_particle_centers.scalar_vertex_property(
+  //        "error_diff_inverse_distance_without_gradient");
+
+  auto& flowmap_error_diff_radial_basis_functions_prop =
+      resample_grid_with_particle_centers.scalar_vertex_property(
+          "error_diff_radial_basis_functions");
 
   std::cout << "measuring autonomous particles flowmap...\n";
   before = clock::now();
 
-
 #pragma omp parallel for
-  for (std::size_t i = 0; i < g2.vertices().size(); ++i) {
-    auto const v = unstructured_simplicial_grid<real_number, 2, 2>::vertex_handle{i};
+  for (std::size_t i = 0;
+       i < resample_grid_with_particle_centers.vertices().size(); ++i) {
+    auto const v =
+        unstructured_simplicial_grid<real_number, 2, 2>::vertex_handle{i};
     auto       copy_phi = phi;
-    auto const q        = g2[v];
+    auto const q        = resample_grid_with_particle_centers[v];
     // flowmap_autonomous_particles_barycentric_coordinate_prop[v] =
     //     flowmap_autonomous_particles.sample_barycentric_coordinate(
     //         q, advection_direction, execution_policy::sequential);
@@ -529,35 +566,36 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
     //     flowmap_autonomous_particles.sample_nearest_neighbor(
     //         q, advection_direction, execution_policy::sequential);
 
-     flowmap_autonomous_particles_inverse_distance_prop[v] =
-         flowmap_autonomous_particles.sample_inverse_distance(
-             inverse_distance_num_samples, q, advection_direction,
-             execution_policy::sequential);
+    // flowmap_autonomous_particles_inverse_distance_prop[v] =
+    //     flowmap_autonomous_particles.sample_inverse_distance(
+    //         inverse_distance_num_samples, q, advection_direction,
+    //         execution_policy::sequential);
 
-     //flowmap_autonomous_particles_inverse_distance_local_prop[v] =
-     //    flowmap_autonomous_particles.sample_inverse_distance_local(
-     //        inverse_distance_num_samples, q, advection_direction,
-     //        execution_policy::sequential);
+    // flowmap_autonomous_particles_inverse_distance_local_prop[v] =
+    //     flowmap_autonomous_particles.sample_inverse_distance_local(
+    //         inverse_distance_num_samples, q, advection_direction,
+    //         execution_policy::sequential);
 
-     flowmap_autonomous_particles_inverse_distance_without_gradient_prop[v] =
-         flowmap_autonomous_particles.sample_inverse_distance_without_gradient(
-             inverse_distance_num_samples, q, advection_direction,
-             execution_policy::sequential);
+    // flowmap_autonomous_particles_inverse_distance_without_gradient_prop[v] =
+    //     flowmap_autonomous_particles.sample_inverse_distance_without_gradient(
+    //         inverse_distance_num_samples, q, advection_direction,
+    //         execution_policy::sequential);
 
-    flowmap_autonomous_particles_radial_basis_functions_prop
-        [v] =
-         flowmap_autonomous_particles.sample_radial_basis_functions(
-             q, 0.03, advection_direction,
-             execution_policy::sequential);
-
+     flowmap_autonomous_particles_radial_basis_functions_prop
+         [v] =
+          flowmap_autonomous_particles.sample_radial_basis_functions(
+              q, 0.03, advection_direction,
+              execution_policy::sequential);
   }
   after = clock::now();
   std::cout << "measuring autonomous particles flowmap done! ("
             << std::chrono::duration_cast<std::chrono::milliseconds>(after -
                                                                      before)
-                   .count() / 1000.0
+                       .count() /
+                   1000.0
             << "s)\n";
 
+  // auto const num_particles_after_advection = 10000;
   auto const num_particles_after_advection =
       flowmap_autonomous_particles.num_particles();
   std::cout << "num_particles_after_advection: "
@@ -566,10 +604,12 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
   std::cout << "measuring numerical flowmap...\n";
   before = clock::now();
 #pragma omp parallel for
-  for (std::size_t i = 0; i < g2.vertices().size(); ++i) {
-    auto const v = unstructured_simplicial_grid<real_number, 2, 2>::vertex_handle{i};
+  for (std::size_t i = 0;
+       i < resample_grid_with_particle_centers.vertices().size(); ++i) {
+    auto const v =
+        unstructured_simplicial_grid<real_number, 2, 2>::vertex_handle{i};
     auto       copy_phi = phi;
-    auto const q        = g2[v];
+    auto const q        = resample_grid_with_particle_centers[v];
     if (advection_direction == backward) {
       flowmap_numerical_prop[v] = copy_phi(q, t_end, -tau);
     } else {
@@ -580,40 +620,46 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
   std::cout << "measuring numerical flowmap done! ("
             << std::chrono::duration_cast<std::chrono::milliseconds>(after -
                                                                      before)
-                   .count() / 1000.0
+                       .count() /
+                   1000.0
             << "s)\n";
 
   auto const regularized_height = static_cast<std::size_t>(
       std::ceil(std::sqrt((num_particles_after_advection / 2))));
   auto const regularized_width = regularized_height * 2;
-  std::cout << "regularized_width: "
-            << regularized_width<< '\n';
-  std::cout << "regularized_height: "
-            << regularized_height<< '\n';
+  std::cout << "regularized_width: " << regularized_width << '\n';
+  std::cout << "regularized_height: " << regularized_height << '\n';
   std::cout << "number of particles in regular sampler: "
-            << regularized_width * regularized_height<< '\n';
+            << regularized_width * regularized_height << '\n';
   std::cout << "advecting regular flowmap...\n";
   before = clock::now();
-  auto flowmap_regular = regular_flowmap_discretization2{
-      phi, t0, tau, g.front(), g.back(), regularized_width, regularized_height};
+  auto flowmap_regular =
+      regular_flowmap_discretization2{phi,
+                                      t0,
+                                      tau,
+                                      resample_grid.front(),
+                                      resample_grid.back(),
+                                      regularized_width,
+                                      regularized_height};
   after = clock::now();
   std::cout << "advecting regular flowmap... done! ("
             << std::chrono::duration_cast<std::chrono::milliseconds>(after -
                                                                      before)
-                   .count() / 1000.0
+                       .count() /
+                   1000.0
             << "s)\n";
-
 
   std::cout << "measuring regular flowmap...\n";
   before = clock::now();
 #pragma omp parallel for
-  for (std::size_t i = 0; i < g2.vertices().size(); ++i) {
-    auto const v = unstructured_simplicial_grid<real_number, 2, 2>::vertex_handle{i};
+  for (std::size_t i = 0;
+       i < resample_grid_with_particle_centers.vertices().size(); ++i) {
+    auto const v =
+        unstructured_simplicial_grid<real_number, 2, 2>::vertex_handle{i};
     auto       copy_phi = phi;
-    auto const q        = g2[v];
+    auto const q        = resample_grid_with_particle_centers[v];
     try {
-      flowmap_regular_prop[v] =
-          flowmap_regular.sample(q, advection_direction);
+      flowmap_regular_prop[v] = flowmap_regular.sample(q, advection_direction);
     } catch (...) {
       flowmap_regular_prop[v] = vec2{0.0 / 0.0, 0.0 / 0.0};
     }
@@ -622,7 +668,8 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
   std::cout << "measuring regular flowmap done! ("
             << std::chrono::duration_cast<std::chrono::milliseconds>(after -
                                                                      before)
-                   .count() / 1000.0
+                       .count() /
+                   1000.0
             << "s)\n";
 
   auto const agranovsky_delta_t = 0.5;
@@ -641,7 +688,9 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
   std::cout << "regularized_height_agranovksky: "
             << regularized_height_agranovksky << '\n';
   std::cout << "number of particles in agranovsky sampler: "
-            << regularized_width_agranovksky * regularized_height_agranovksky * num_agranovksy_steps<< '\n';
+            << regularized_width_agranovksky * regularized_height_agranovksky *
+                   num_agranovksy_steps
+            << '\n';
 
   std::cout << "advecting agranovsky flowmap...\n";
   before = clock::now();
@@ -650,23 +699,26 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
                                          t0,
                                          tau,
                                          agranovsky_delta_t,
-                                         g.front(),
-                                         g.back(),
+                                         resample_grid.front(),
+                                         resample_grid.back(),
                                          regularized_width_agranovksky,
                                          regularized_height_agranovksky};
   after = clock::now();
   std::cout << "advecting agranovsky flowmap... done! ("
             << std::chrono::duration_cast<std::chrono::milliseconds>(after -
                                                                      before)
-                   .count() / 1000.0
+                       .count() /
+                   1000.0
             << "s)\n";
   std::cout << "measuring agranovsky flowmap...\n";
   before = clock::now();
 #pragma omp parallel for
-  for (std::size_t i = 0; i < g2.vertices().size(); ++i) {
-    auto const v = unstructured_simplicial_grid<real_number, 2, 2>::vertex_handle{i};
+  for (std::size_t i = 0;
+       i < resample_grid_with_particle_centers.vertices().size(); ++i) {
+    auto const v =
+        unstructured_simplicial_grid<real_number, 2, 2>::vertex_handle{i};
     auto       copy_phi = phi;
-    auto const q        = g2[v];
+    auto const q        = resample_grid_with_particle_centers[v];
     try {
       flowmap_agranovsky_prop[v] =
           flowmap_agranovsky.sample(q, advection_direction);
@@ -678,16 +730,19 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
   std::cout << "measuring agranovsky flowmap done! ("
             << std::chrono::duration_cast<std::chrono::milliseconds>(after -
                                                                      before)
-                   .count() / 1000.0
+                       .count() /
+                   1000.0
             << "s)\n";
 
   std::cout << "measuring errors...\n";
   before = clock::now();
 #pragma omp parallel for
-  for (std::size_t i = 0; i < g2.vertices().size(); ++i) {
-    auto const v = unstructured_simplicial_grid<real_number, 2, 2>::vertex_handle{i};
+  for (std::size_t i = 0;
+       i < resample_grid_with_particle_centers.vertices().size(); ++i) {
+    auto const v =
+        unstructured_simplicial_grid<real_number, 2, 2>::vertex_handle{i};
     auto       copy_phi = phi;
-    auto const q        = g2[v];
+    auto const q        = resample_grid_with_particle_centers[v];
 
     // flowmap_error_autonomous_particles_barycentric_coordinate_prop[v]
     // =
@@ -700,28 +755,29 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
     //         flowmap_numerical_prop[v],
     //         flowmap_autonomous_particles_nearest_neighbor_prop[v]);
 
-    flowmap_error_autonomous_particles_inverse_distance_prop[v] =
-        euclidean_distance(
-            flowmap_numerical_prop[v],
-            flowmap_autonomous_particles_inverse_distance_prop[v]);
-
-    //flowmap_error_autonomous_particles_inverse_distance_local_prop[v] =
+    //flowmap_error_autonomous_particles_inverse_distance_prop[v] =
     //    euclidean_distance(
     //        flowmap_numerical_prop[v],
-    //        flowmap_autonomous_particles_inverse_distance_local_prop[v]);
+    //        flowmap_autonomous_particles_inverse_distance_prop[v]);
 
-    flowmap_error_autonomous_particles_inverse_distance_without_gradient_prop[v] =
-        euclidean_distance(
-            flowmap_numerical_prop[v],
-            flowmap_autonomous_particles_inverse_distance_without_gradient_prop[v]);
+    // flowmap_error_autonomous_particles_inverse_distance_local_prop[v] =
+    //     euclidean_distance(
+    //         flowmap_numerical_prop[v],
+    //         flowmap_autonomous_particles_inverse_distance_local_prop[v]);
+
+    //flowmap_error_autonomous_particles_inverse_distance_without_gradient_prop
+    //    [v] = euclidean_distance(
+    //        flowmap_numerical_prop[v],
+    //        flowmap_autonomous_particles_inverse_distance_without_gradient_prop
+    //            [v]);
 
     flowmap_error_autonomous_particles_radial_basis_functions_prop[v] =
         euclidean_distance(
             flowmap_numerical_prop[v],
             flowmap_autonomous_particles_radial_basis_functions_prop[v]);
 
-    flowmap_error_regular_prop[v] = euclidean_distance(
-        flowmap_numerical_prop[v], flowmap_regular_prop[v]);
+    flowmap_error_regular_prop[v] =
+        euclidean_distance(flowmap_numerical_prop[v], flowmap_regular_prop[v]);
 
     flowmap_error_agranovksy_prop[v] = euclidean_distance(
         flowmap_numerical_prop[v], flowmap_agranovsky_prop[v]);
@@ -734,17 +790,18 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
     //     flowmap_error_agranovksy_prop[v] -
     //     flowmap_error_autonomous_particles_nearest_neighbor_prop[v];
 
-    flowmap_error_diff_inverse_distance_prop[v] =
-        flowmap_error_agranovksy_prop[v] -
-        flowmap_error_autonomous_particles_inverse_distance_prop[v];
-
-    //flowmap_error_diff_inverse_distance_local_prop[v] =
+    //flowmap_error_diff_inverse_distance_prop[v] =
     //    flowmap_error_agranovksy_prop[v] -
-    //    flowmap_error_autonomous_particles_inverse_distance_local_prop[v];
+    //    flowmap_error_autonomous_particles_inverse_distance_prop[v];
 
-    flowmap_error_diff_inverse_distance_without_gradient_prop[v] =
-        flowmap_error_agranovksy_prop[v] -
-        flowmap_error_autonomous_particles_inverse_distance_without_gradient_prop[v];
+    // flowmap_error_diff_inverse_distance_local_prop[v] =
+    //     flowmap_error_agranovksy_prop[v] -
+    //     flowmap_error_autonomous_particles_inverse_distance_local_prop[v];
+
+    //flowmap_error_diff_inverse_distance_without_gradient_prop[v] =
+    //    flowmap_error_agranovksy_prop[v] -
+    //    flowmap_error_autonomous_particles_inverse_distance_without_gradient_prop
+    //        [v];
 
     flowmap_error_diff_radial_basis_functions_prop[v] =
         flowmap_error_agranovksy_prop[v] -
@@ -754,11 +811,12 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
   std::cout << "measuring errors done! ("
             << std::chrono::duration_cast<std::chrono::milliseconds>(after -
                                                                      before)
-                   .count() / 1000.0
+                       .count() /
+                   1000.0
             << "s)\n";
 
   rendering::interactive::pre_setup();
-  auto m                  = vis{g, flowmap_autonomous_particles.samplers()};
+  auto m = vis{resample_grid, flowmap_autonomous_particles.samplers()};
   auto advected_particles = std::vector<geometry::ellipse<real_number>>{};
   std::ranges::copy(flowmap_autonomous_particles.samplers() |
                         std::views::transform([](auto const& s) {
@@ -769,9 +827,16 @@ auto doit(auto& g, auto const& v, auto const& initial_particles,
   auto regular_flowmap_grid =
       rectilinear_grid{linspace{0.0, 2.0, regularized_width},
                        linspace{0.0, 1.0, regularized_height}};
+  auto regular_flowmap_grid_agranovsky = rectilinear_grid{
+      linspace{0.0, 2.0, regularized_width_agranovksky},
+      linspace{0.0, 1.0, regularized_height_agranovksky}};
 
-  rendering::interactive::render(regular_flowmap_grid, /*initial_particles, */ advected_particles, m,
-                                 g2);
+  rendering::interactive::render(
+      rectilinear_grid{linspace{0.0, 2.0, 3}, linspace{0.0, 1.0, 2}},
+      // regular_flowmap_grid,regular_flowmap_grid_agranovsky,
+        initial_particles,
+        advected_particles,
+      m, resample_grid_with_particle_centers);
 };
 //==============================================================================
 auto main(int argc, char** argv) -> int {
@@ -788,8 +853,13 @@ auto main(int argc, char** argv) -> int {
   }
   //============================================================================
   auto dg = analytical::fields::numerical::doublegyre{};
-auto dg_steady = steady(dg, 0);
-  auto g  = rectilinear_grid{linspace{0.0, 2.0, 501}, linspace{0.0, 1.0, 251}};
+  dg.set_infinite_domain(true);
+
+  auto dg_steady = steady(analytical::fields::numerical::doublegyre{}, 0);
+  dg_steady.internal().set_infinite_domain(true);
+
+  auto resample_grid =
+      rectilinear_grid{linspace{0.0, 2.0, 201}, linspace{0.0, 1.0, 101}};
   auto const eps                  = 1e-3;
   auto const initial_particles_dg = autonomous_particle2::particles_from_grid(
       t0,
@@ -801,12 +871,12 @@ auto dg_steady = steady(dg, 0);
   //     {vec2{1 + r, 0.5 - r}, t0, r, uuid_generator},
   //     {vec2{1 - r, 0.5 + r}, t0, r, uuid_generator},
   //     {vec2{1 + r, 0.5 + r}, t0, r, uuid_generator}};
-  doit(g, dg_steady, initial_particles_dg, uuid_generator, t0, t_end,
-       inverse_distance_num_samples);
+  doit(resample_grid, dg, initial_particles_dg, uuid_generator, t0,
+       t_end, inverse_distance_num_samples);
   //============================================================================
   // auto dg = analytical::fields::numerical::doublegyre{};
-  // auto g  = rectilinear_grid{linspace{0.0, 2.0, 201}, linspace{0.0, 1.0,
-  // 101}}; auto const initial_particle =
+  // auto resample_grid  = rectilinear_grid{linspace{0.0, 2.0, 201},
+  // linspace{0.0, 1.0, 101}}; auto const initial_particle =
   //    autonomous_particle2{vec2{1, 0.5}, 0.0, 0.01, uuid_generator};
   // auto const [advected_particles, _1, _2] =
   // initial_particle.advect_with_three_splits(
@@ -817,16 +887,15 @@ auto dg_steady = steady(dg, 0);
   //      return p.initial_ellipse();
   //    }),
   //    std::back_inserter(ellipses));
-  // rendering::interactive::render(advected_particles, g, ellipses,
+  // rendering::interactive::render(advected_particles, resample_grid, ellipses,
   //                               initial_particle);
   //============================================================================
   // //auto s  = analytical::fields::numerical::saddle{};
-  // auto g  = rectilinear_grid{linspace{-0.1, 0.1, 51}, linspace{-0.1, 0.1,
-  // 51}};
-  // auto rs = analytical::fields::numerical::rotated_saddle{};
-  // auto constexpr cos = gcem::cos(M_PI / 4);
-  // auto constexpr sin = gcem::sin(M_PI / 4);
-  // auto const initial_particles_saddle =
+  // auto resample_grid  = rectilinear_grid{linspace{-0.1, 0.1, 51},
+  // linspace{-0.1, 0.1, 51}}; auto rs =
+  // analytical::fields::numerical::rotated_saddle{}; auto constexpr cos =
+  // gcem::cos(M_PI / 4); auto constexpr sin = gcem::sin(M_PI / 4); auto const
+  // initial_particles_saddle =
   //    std::vector<autonomous_particle2>{{vec2{r, r}, t0, r, uuid_generator},
   //                                      {vec2{r, -r}, t0, r, uuid_generator},
   //                                      {vec2{-r, r}, t0, r, uuid_generator},
@@ -841,5 +910,6 @@ auto dg_steady = steady(dg, 0);
   //        t0, r,
   //         uuid_generator}};
   //
-  // doit(g, rs, initial_particles_saddle, uuid_generator, t0, t_end);
+  // doit(resample_grid, rs, initial_particles_saddle, uuid_generator, t0,
+  // t_end);
 }
