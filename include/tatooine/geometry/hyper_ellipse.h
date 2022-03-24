@@ -174,7 +174,7 @@ struct hyper_ellipse {
   auto discretize(std::size_t const num_vertices = 33) const
     requires(NumDimensions == 2) {
     using namespace std::ranges;
-    auto radial = linspace<Real>{0.0, M_PI * 2, num_vertices};
+    auto radial = linspace<Real>{0.0, M_PI * 2, num_vertices + 1};
     radial.pop_back();
 
     auto discretization      = line<Real, 2>{};

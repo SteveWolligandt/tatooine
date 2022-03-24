@@ -79,9 +79,8 @@ struct base_tensor : crtp<Tensor> {
   //============================================================================
   template <static_tensor Other>
   auto constexpr assign(Other&& other) -> void {
-    for_indices([this, &other](auto const... is) {
-                  this->at(is...) = other(is...);
-                });
+    for_indices(
+        [this, &other](auto const... is) { this->at(is...) = other(is...); });
   }
   //----------------------------------------------------------------------------
   template <einstein_notation::index... Is>

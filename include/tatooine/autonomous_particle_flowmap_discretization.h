@@ -29,12 +29,6 @@ struct autonomous_particle_flowmap_discretization {
   //----------------------------------------------------------------------------
   // std::optional<filesystem::path> m_path;
   std::vector<sampler_type>                                   m_samplers = {};
-  mutable std::unique_ptr<pointset<real_type, NumDimensions>> m_centers0 =
-      nullptr;
-  mutable std::mutex m_centers0_mutex = {};
-  mutable std::unique_ptr<pointset<real_type, NumDimensions>> m_centers1 =
-      nullptr;
-  mutable std::mutex m_centers1_mutex = {};
   //----------------------------------------------------------------------------
  public:
   //----------------------------------------------------------------------------
@@ -51,10 +45,10 @@ struct autonomous_particle_flowmap_discretization {
   //    particles_on_disk.read(ps);
   //    m_path = std::nullopt;
   //
-  //    m_samplers.resize(total_num_particles);
+  //    samplers().resize(total_num_particles);
   //#pragma omp parallel for
   //    for (std::size_t i = 0; i < total_num_particles; ++i) {
-  //      m_samplers[i] = ps[i].sampler();
+  //      samplers()[i] = ps[i].sampler();
   //    }
   //  }
   //----------------------------------------------------------------------------
@@ -181,52 +175,15 @@ struct autonomous_particle_flowmap_discretization {
   }
   //============================================================================
   auto samplers() const -> auto const& { return m_samplers; }
+  auto samplers() -> auto& { return m_samplers; }
   //----------------------------------------------------------------------------
-  auto hierarchy0() const -> auto const& {
-    auto l = std::lock_guard{m_centers0_mutex};
-    if (m_centers0 == nullptr) {
-      m_centers0 = std::make_unique<pointset<real_type, NumDimensions>>();
-      for (auto const& sa : m_samplers) {
-        m_centers0->insert_vertex(sa.ellipse0().center());
-      }
-    }
-    return m_centers0;
-  }
-  //----------------------------------------------------------------------------
-  auto hierarchy1() const -> auto const& {
-    auto l = std::lock_guard{m_centers1_mutex};
-    if (m_centers1 == nullptr) {
-      m_centers1 = std::make_unique<pointset<real_type, NumDimensions>>();
-      for (auto const& sa : m_samplers) {
-        m_centers1->insert_vertex(sa.ellipse1().center());
-      }
-    }
-    return m_centers1;
-  }
-  //----------------------------------------------------------------------------
-  auto hierarchy_mutex(forward_tag /*tag*/) const -> auto& {
-    return m_centers0_mutex;
-  }
-  //----------------------------------------------------------------------------
-  auto hierarchy_mutex(backward_tag /*tag*/) const -> auto& {
-    return m_centers1_mutex;
-  }
-  //----------------------------------------------------------------------------
-  auto hierarchy(forward_tag /*tag*/) const -> auto const& {
-    return hierarchy0();
-  }
-  //----------------------------------------------------------------------------
-  auto hierarchy(backward_tag /*tag*/) const -> auto const& {
-    return hierarchy1();
-  }
-  //============================================================================
   auto num_particles() const -> std::size_t {
     // if (m_path) {
     //   auto file              = hdf5::file{*m_path};
     //   auto particles_on_disk = file.dataset<particle_type>("finished");
     //   return particles_on_disk.dataspace().current_resolution()[0];
     // } else {
-    return size(m_samplers);
+    return size(samplers());
     //}
   }
   //----------------------------------------------------------------------------
@@ -241,16 +198,16 @@ struct autonomous_particle_flowmap_discretization {
     //       std::forward<Flowmap>(flowmap), tau_step, t_end, initial_particles,
     //       *m_path);
     // } else {
-    m_samplers.clear();
+    samplers().clear();
     auto [advected_particles, simple_particles, edges] =
         particle_type::template advect<SplitBehavior>(
             std::forward<Flowmap>(flowmap), tau_step, t_end, initial_particles,
             uuid_generator);
-    m_samplers.reserve(size(advected_particles));
+    samplers().reserve(size(advected_particles));
     using namespace std::ranges;
     auto get_sampler = [](auto const& p) { return p.sampler(); };
     copy(advected_particles | views::transform(get_sampler),
-         std::back_inserter(m_samplers));
+         std::back_inserter(samplers()));
     //}
   }
   //----------------------------------------------------------------------------
@@ -278,7 +235,7 @@ struct autonomous_particle_flowmap_discretization {
   //          best.p                = p1;
   //        }
   //      },
-  //      execution_policy::parallel, m_samplers);
+  //      execution_policy::parallel, samplers());
   //
   //  auto best = data{};
   //  for (auto const b : best_per_thread) {
@@ -298,7 +255,7 @@ struct autonomous_particle_flowmap_discretization {
       execution_policy::sequential_t /*pol*/) const {
     auto  ps                = pointset<real_type, NumDimensions>{};
     auto& initial_positions = ps.template vertex_property<pos_type>("ps");
-    for (auto const& s : m_samplers) {
+    for (auto const& s : samplers()) {
       auto v               = ps.insert_vertex(s.local_pos(q, tag));
       initial_positions[v] = s.center(opposite(tag));
     }
@@ -313,7 +270,7 @@ struct autonomous_particle_flowmap_discretization {
         unstructured_simplicial_grid<real_type, NumDimensions, NumDimensions>{};
     auto& initial_positions =
         local_positions.template vertex_property<pos_type>("local_positions");
-    for (auto const& s : m_samplers) {
+    for (auto const& s : samplers()) {
       auto v               = local_positions.insert_vertex(s.local_pos(q, tag));
       initial_positions[v] = s.center(opposite(tag));
     }
@@ -351,7 +308,7 @@ struct autonomous_particle_flowmap_discretization {
     auto accumulated_weight   = real_type{};
 
     auto ps = pointset<real_type, NumDimensions>{};
-    for (auto const& s : m_samplers) {
+    for (auto const& s : samplers()) {
       ps.insert_vertex(s.local_pos(q, tag));
     }
 
@@ -359,7 +316,7 @@ struct autonomous_particle_flowmap_discretization {
         ps.nearest_neighbors_radius(pos_type::zeros(), 0.01);
     auto squared_distance_it = begin(squared_distances);
     for (auto const v : vertices) {
-      auto const x    = m_samplers[v.index()].phi(tag) + ps[v];
+      auto const x    = samplers()[v.index()].phi(tag) + ps[v];
       auto const dist = *squared_distance_it;
       // auto const dist = huber_loss(gcem::sqrt(*squared_distance_it));
       if (dist == 0) {
@@ -381,14 +338,14 @@ struct autonomous_particle_flowmap_discretization {
     auto accumulated_weight   = real_type{};
 
     auto ps = pointset<real_type, NumDimensions>{};
-    for (auto const& s : m_samplers) {
+    for (auto const& s : samplers()) {
       ps.insert_vertex(s.x0(tag));
     }
 
     auto [vertices, squared_distances] = ps.nearest_neighbors_radius(q, 0.01);
     auto squared_distance_it           = begin(squared_distances);
     for (auto const v : vertices) {
-      auto const x    = m_samplers[v.index()](q, tag);
+      auto const x    = samplers()[v.index()](q, tag);
       auto const dist = *squared_distance_it;
       // auto const dist = huber_loss(gcem::sqrt(*squared_distance_it));
       if (dist == 0) {
@@ -410,14 +367,14 @@ struct autonomous_particle_flowmap_discretization {
     auto accumulated_weight   = real_type{};
 
     auto ps = pointset<real_type, NumDimensions>{};
-    for (auto const& s : m_samplers) {
+    for (auto const& s : samplers()) {
       ps.insert_vertex(s.x0(tag));
     }
 
     auto [vertices, squared_distances] = ps.nearest_neighbors_radius(q, 0.01);
     auto squared_distance_it           = begin(squared_distances);
     for (auto const v : vertices) {
-      auto const x                = m_samplers[v.index()].phi(tag);
+      auto const x                = samplers()[v.index()].phi(tag);
       auto const squared_distance = *squared_distance_it + 1e-10;
       // auto const squared_distance =
       // huber_loss(gcem::sqrt(*squared_distance_it));
@@ -437,8 +394,8 @@ struct autonomous_particle_flowmap_discretization {
       forward_or_backward_tag auto const tag,
       execution_policy::sequential_t /*pol*/) const {
     auto dataset = flann::Matrix<Real>{
-        const_cast<Real*>(m_samplers.front().x0(tag).data_ptr()),
-        m_samplers.size(), num_dimensions(), sizeof(sampler_type)};
+        const_cast<Real*>(samplers().front().x0(tag).data_ptr()),
+        samplers().size(), num_dimensions(), sizeof(sampler_type)};
     auto kd_tree = flann::Index<flann::L2<Real>>{
         dataset, flann::KDTreeSingleIndexParams{}};
     kd_tree.buildIndex();
@@ -446,7 +403,7 @@ struct autonomous_particle_flowmap_discretization {
                                   num_dimensions()};
     auto nearest_indices_   = std::vector<std::vector<int>>{};
     auto squared_distances_ = std::vector<std::vector<Real>>{};
-    kd_tree.knnSearch(qm, nearest_indices_, squared_distances_, 20, flann::SearchParams {});
+    kd_tree.knnSearch(qm, nearest_indices_, squared_distances_, 40, flann::SearchParams {});
     auto const& nearest_indices = nearest_indices_.front();
     auto const& squared_distances = squared_distances_.front();
     if (nearest_indices.empty()) {
@@ -466,13 +423,13 @@ struct autonomous_particle_flowmap_discretization {
         tensor<real_number>::zeros(dim_A, NumDimensions);
     for (std::size_t c = 0; c < nearest_indices.size(); ++c) {
       for (std::size_t r = c + 1; r < nearest_indices.size(); ++r) {
-        A(r, c) = rbf_kernel(squared_euclidean_distance(m_samplers[nearest_indices[c]].x0(tag),
-                                                        m_samplers[nearest_indices[r]].x0(tag)));
+        A(r, c) = rbf_kernel(squared_euclidean_distance(samplers()[nearest_indices[c]].x0(tag),
+                                                        samplers()[nearest_indices[r]].x0(tag)));
       }
     }
     // construct polynomial requirements
     for (std::size_t c = 0; c < nearest_indices.size(); ++c) {
-      auto const& p = m_samplers[nearest_indices[c]].x0(tag);
+      auto const& p = samplers()[nearest_indices[c]].x0(tag);
       // constant part
       A(nearest_indices.size(), c) = 1;
 
@@ -484,7 +441,7 @@ struct autonomous_particle_flowmap_discretization {
 
     for (std::size_t i = 0; i < nearest_indices.size(); ++i) {
       auto const v = nearest_indices[i];
-      auto const phi = m_samplers[v].phi(tag);
+      auto const phi = samplers()[v].phi(tag);
       for (std::size_t j = 0; j < NumDimensions; ++j) {
         radial_and_monomial_coefficients(i, j) = phi(j);
       }
@@ -498,11 +455,11 @@ struct autonomous_particle_flowmap_discretization {
     // radial bases
     for (std::size_t i = 0; i < nearest_indices.size(); ++i) {
       if (squared_distances[i] == 0) {
-        return m_samplers[nearest_indices[i]].phi(tag);
+        return samplers()[nearest_indices[i]].phi(tag);
       }
       for (std::size_t j = 0; j < NumDimensions; ++j) {
         acc(j) += radial_and_monomial_coefficients(i, j) *
-                  rbf_kernel(squared_euclidean_distance(q, m_samplers[nearest_indices[i]].x0(tag)));
+                  rbf_kernel(squared_euclidean_distance(q, samplers()[nearest_indices[i]].x0(tag)));
       }
     }
     // monomial bases
@@ -523,7 +480,7 @@ struct autonomous_particle_flowmap_discretization {
     auto  ps                = pointset<real_type, NumDimensions>{};
     auto& initial_positions = ps.template vertex_property<pos_type>("ps");
 
-    for (auto const& s : m_samplers) {
+    for (auto const& s : samplers()) {
       auto v               = ps.insert_vertex(s.local_pos(tag));
       initial_positions[v] = s.center(opposite(tag));
     }

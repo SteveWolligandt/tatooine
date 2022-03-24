@@ -648,7 +648,7 @@ struct line {
                 vtk::xml::data_array::to_type<real_type>())
          << "\" NumberOfComponents=\"" << num_dimensions() << "\"/>";
     auto const num_bytes_points =
-        header_type(sizeof(real_type) * num_dimensions() * vertices().size());
+        header_type(sizeof(real_type) * 3 * vertices().size());
     offset += num_bytes_points + sizeof(header_type);
     file << "</Points>\n";
 
