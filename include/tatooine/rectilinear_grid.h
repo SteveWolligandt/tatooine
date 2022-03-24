@@ -34,7 +34,7 @@ namespace tatooine {
 template <detail::rectilinear_grid::dimension... Dimensions>
 class rectilinear_grid {
   static_assert(sizeof...(Dimensions) > 0,
-                "Grid needs at least one dimension.");
+                "rectilinear_grid needs at least one dimension.");
 
  public:
   static constexpr bool is_uniform =

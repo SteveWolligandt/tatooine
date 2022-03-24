@@ -133,6 +133,7 @@ struct vis {
              1,
              Vec4<std::size_t>{10, 10, 500, 500}};
     }
+    ImGui::Text("current point: [%e, %e]", current_point.x(), current_point.y());
     ImGui::Text("Agran error: %e", agranovsky_error);
 
     ImGui::Text("barycentric coordinate error: %e ",

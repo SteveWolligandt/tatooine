@@ -97,3 +97,21 @@ target_link_libraries(autonomous_particles.weight_guess PUBLIC tatooine)
 add_custom_target(autonomous_particles.weight_guess.run
   COMMAND ./autonomous_particles.weight_guess
   DEPENDS autonomous_particles.weight_guess)
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# animation
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+add_executable (autonomous_particles.animation animation.cpp)
+target_link_libraries(autonomous_particles.animation PUBLIC tatooine)
+add_custom_target(autonomous_particles.animation.run
+  COMMAND ./autonomous_particles.animation
+  DEPENDS autonomous_particles.animation)
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# data for christian
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+add_executable (autonomous_particles.data_for_christian data_for_christian.cpp)
+target_link_libraries(autonomous_particles.data_for_christian PUBLIC tatooine)
+add_custom_target(autonomous_particles.data_for_christian.run
+  COMMAND ./autonomous_particles.data_for_christian
+  DEPENDS autonomous_particles.data_for_christian)
