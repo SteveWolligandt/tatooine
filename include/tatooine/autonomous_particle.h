@@ -961,7 +961,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
       }
 
       // check if particle's ellipse has reached its splitting width
-      static auto constexpr linearity_threshold = 0.1;
+      static auto constexpr linearity_threshold = 1e-5;
+      //std::cout << "linearity: " << linearity << '\n';
       if (linearity >= linearity_threshold) {
         for (std::size_t i = 0; i < size(split_radii); ++i) {
           auto const new_eigvals    = current_radii * split_radii[i];
@@ -1079,7 +1080,9 @@ auto write_vtp(std::vector<autonomous_particle<Real, 2>> const& particles,
     copy(radial | views::transform(radian_to_cartesian), out_it);
     discretization.set_closed(true);
     for (auto const v : discretization.vertices()) {
-      discretization[v] = particle.S() * discretization[v].xy() + particle.center();
+      auto v2 = particle.S() * discretization[v].xy() + particle.center();
+      discretization[v].x() = v2.x();
+      discretization[v].y() = v2.y();
     }
 
     // Writing points

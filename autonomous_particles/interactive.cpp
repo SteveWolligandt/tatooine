@@ -5,6 +5,8 @@
 #include <tatooine/rendering/interactive.h>
 #include <tatooine/rendering/interactive/shaders.h>
 #include <tatooine/steady_field.h>
+
+#include <boost/program_options.hpp>
 //==============================================================================
 using namespace tatooine;
 auto constexpr advection_direction = forward;
@@ -424,20 +426,22 @@ struct vis {
 };
 //------------------------------------------------------------------------------
 auto doit(auto& resample_grid, auto const& v, auto const& initial_particles,
-          auto& uuid_generator, auto const t0, auto const t_end,
+          auto& uuid_generator, auto const t_0, auto const t_end,
           auto const inverse_distance_num_samples) {
-  auto const tau = t_end - t0;
+  auto const tau = t_end - t_0;
   auto       phi = flowmap(v);
 
   using clock = std::chrono::high_resolution_clock;
   auto before = std::chrono::time_point<clock>{};
   auto after  = std::chrono::time_point<clock>{};
-  std::cout << "advecting autonomous particles...\n";
+  std::cout << "advecting " << size(initial_particles)
+            << " autonomous particles...\n";
   before                            = clock::now();
   auto flowmap_autonomous_particles = autonomous_particle_flowmap_type{
       phi, t_end, 0.01, initial_particles, uuid_generator};
   after = clock::now();
-  std::cout << "advecting autonomous particles... done! ("
+  std::cout << "advecting " << size(initial_particles)
+            << " autonomous particles... done! ("
             << std::chrono::duration_cast<std::chrono::milliseconds>(after -
                                                                      before)
                        .count() /
@@ -614,7 +618,7 @@ auto doit(auto& resample_grid, auto const& v, auto const& initial_particles,
     if (advection_direction == backward) {
       flowmap_numerical_prop[v] = copy_phi(q, t_end, -tau);
     } else {
-      flowmap_numerical_prop[v] = copy_phi(q, t0, tau);
+      flowmap_numerical_prop[v] = copy_phi(q, t_0, tau);
     }
   }
   after = clock::now();
@@ -636,7 +640,7 @@ auto doit(auto& resample_grid, auto const& v, auto const& initial_particles,
   before = clock::now();
   auto flowmap_regular =
       regular_flowmap_discretization2{phi,
-                                      t0,
+                                      t_0,
                                       tau,
                                       resample_grid.front(),
                                       resample_grid.back(),
@@ -675,7 +679,7 @@ auto doit(auto& resample_grid, auto const& v, auto const& initial_particles,
 
   auto const agranovsky_delta_t = 0.5;
   auto const num_agranovksy_steps =
-      static_cast<std::size_t>(std::ceil((t_end - t0) / agranovsky_delta_t));
+      static_cast<std::size_t>(std::ceil((t_end - t_0) / agranovsky_delta_t));
   auto const regularized_height_agranovksky = static_cast<std::size_t>(
       std::ceil(regularized_height /
                 std::sqrt(static_cast<double>(num_agranovksy_steps))));
@@ -697,7 +701,7 @@ auto doit(auto& resample_grid, auto const& v, auto const& initial_particles,
   before = clock::now();
   auto flowmap_agranovsky =
       agranovsky_flowmap_discretization2{phi,
-                                         t0,
+                                         t_0,
                                          tau,
                                          agranovsky_delta_t,
                                          resample_grid.front(),
@@ -842,15 +846,37 @@ auto doit(auto& resample_grid, auto const& v, auto const& initial_particles,
 //==============================================================================
 auto main(int argc, char** argv) -> int {
   auto                        uuid_generator = std::atomic_uint64_t{};
-  [[maybe_unused]] auto const r              = 0.01;
-  [[maybe_unused]] auto const t0             = double(0);
-  [[maybe_unused]] auto       t_end          = double(1);
+  [[maybe_unused]] auto       t_0            = real_number(0);
+  [[maybe_unused]] auto       t_end          = real_number(4);
+  [[maybe_unused]] auto       num_frames     = std::size_t(10);
   [[maybe_unused]] auto       inverse_distance_num_samples = std::size_t(5);
-  if (argc > 1) {
-    t_end = std::stod(argv[1]);
+  namespace po        = boost::program_options;
+
+  auto desc = po::options_description{"Allowed options"};
+  desc.add_options()("help", "produce help message")(
+      "inverse_distance_num_samples", po::value<real_number>(), "inverse distance number of samples")(
+      "t_0", po::value<real_number>(), "start time of integration")(
+      "t_end", po::value<real_number>(), "end time of integration");
+
+  auto variables_map = po::variables_map{};
+  po::store(po::parse_command_line(argc, argv, desc), variables_map);
+  po::notify(variables_map);
+
+  if (variables_map.count("help") > 0) {
+    std::cout << desc;
+    return 0;
   }
-  if (argc > 2) {
-    inverse_distance_num_samples = std::stoi(argv[2]);
+
+  if (variables_map.count("inverse_distance_num_samples") > 0) {
+    num_frames = variables_map["inverse_distance_num_samples"].as<std::size_t>();
+  }
+  if (variables_map.count("t_0") > 0) {
+    t_0 = variables_map["t_0"].as<real_number>();
+  }
+  if (variables_map.count("t_end") > 0) {
+    t_end = variables_map["t_end"].as<real_number>();
+  } else {
+    throw std::runtime_error{"Flag --t_end not specified."};
   }
   //============================================================================
   auto dg = analytical::fields::numerical::doublegyre{};
@@ -863,16 +889,16 @@ auto main(int argc, char** argv) -> int {
       rectilinear_grid{linspace{0.0, 2.0, 201}, linspace{0.0, 1.0, 101}};
   auto const eps                  = 1e-3;
   auto const initial_particles_dg = autonomous_particle2::particles_from_grid(
-      t0,
+      t_0,
       rectilinear_grid{linspace{0.0 + eps, 2.0 - eps, 61},
                        linspace{0.0 + eps, 1.0 - eps, 31}},
       uuid_generator);
   // auto const initial_particles_dg = std::vector<autonomous_particle2>{
-  //     {vec2{1 - r, 0.5 - r}, t0, r, uuid_generator},
-  //     {vec2{1 + r, 0.5 - r}, t0, r, uuid_generator},
-  //     {vec2{1 - r, 0.5 + r}, t0, r, uuid_generator},
-  //     {vec2{1 + r, 0.5 + r}, t0, r, uuid_generator}};
-  doit(resample_grid, dg, initial_particles_dg, uuid_generator, t0,
+  //     {vec2{1 - r, 0.5 - r}, t_0, r, uuid_generator},
+  //     {vec2{1 + r, 0.5 - r}, t_0, r, uuid_generator},
+  //     {vec2{1 - r, 0.5 + r}, t_0, r, uuid_generator},
+  //     {vec2{1 + r, 0.5 + r}, t_0, r, uuid_generator}};
+  doit(resample_grid, dg, initial_particles_dg, uuid_generator, t_0,
        t_end, inverse_distance_num_samples);
   //============================================================================
   // auto dg = analytical::fields::numerical::doublegyre{};
@@ -897,20 +923,20 @@ auto main(int argc, char** argv) -> int {
   // analytical::fields::numerical::rotated_saddle{}; auto constexpr cos =
   // gcem::cos(M_PI / 4); auto constexpr sin = gcem::sin(M_PI / 4); auto const
   // initial_particles_saddle =
-  //    std::vector<autonomous_particle2>{{vec2{r, r}, t0, r, uuid_generator},
-  //                                      {vec2{r, -r}, t0, r, uuid_generator},
-  //                                      {vec2{-r, r}, t0, r, uuid_generator},
-  //                                      {vec2{-r, -r}, t0, r,
+  //    std::vector<autonomous_particle2>{{vec2{r, r}, t_0, r, uuid_generator},
+  //                                      {vec2{r, -r}, t_0, r, uuid_generator},
+  //                                      {vec2{-r, r}, t_0, r, uuid_generator},
+  //                                      {vec2{-r, -r}, t_0, r,
   //                                      uuid_generator}};
   // auto const initial_rotated_particles_saddle =
   //    std::vector<autonomous_particle2>{
-  //        {vec2{cos * r - sin * r, sin * r + cos * r}, t0, r, uuid_generator},
-  //        {vec2{cos * -r - sin * r, sin * -r + cos * r}, t0, r,
-  //        uuid_generator}, {vec2{cos * r - sin * -r, sin * r + cos * -r}, t0,
+  //        {vec2{cos * r - sin * r, sin * r + cos * r}, t_0, r, uuid_generator},
+  //        {vec2{cos * -r - sin * r, sin * -r + cos * r}, t_0, r,
+  //        uuid_generator}, {vec2{cos * r - sin * -r, sin * r + cos * -r}, t_0,
   //        r, uuid_generator}, {vec2{cos * -r - sin * -r, sin * -r + cos * -r},
-  //        t0, r,
+  //        t_0, r,
   //         uuid_generator}};
   //
-  // doit(resample_grid, rs, initial_particles_saddle, uuid_generator, t0,
+  // doit(resample_grid, rs, initial_particles_saddle, uuid_generator, t_0,
   // t_end);
 }

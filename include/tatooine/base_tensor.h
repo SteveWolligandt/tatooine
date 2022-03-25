@@ -57,30 +57,34 @@ struct base_tensor : crtp<Tensor> {
   //------------------------------------------------------------------------------
   static auto constexpr indices() { return multidim_size_t::indices(); }
   //------------------------------------------------------------------------------
-  template <typename F>
-  static auto constexpr for_indices(F&& f) {
-    for_loop(std::forward<F>(f), Dims...);
+  static auto constexpr for_indices(invocable<decltype(Dims)...> auto&& f) {
+    for_loop(std::forward<decltype(f)>(f), Dims...);
   }
   //============================================================================
   constexpr base_tensor() = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <static_tensor Other>
-  requires (same_dimensions<this_type, Other>())
+  requires (same_dimensions<this_type, Other>()) &&
+           (convertible_to<tensor_value_type<Other>, value_type>)
   explicit constexpr base_tensor(Other&& other) {
     assign(std::forward<Other>(other));
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename Other>
-  requires (same_dimensions<this_type, Other>())
+  template <static_tensor Other>
+  requires (same_dimensions<this_type, Other>()) &&
+           (convertible_to<tensor_value_type<Other>, value_type>)
   auto constexpr operator=(Other&& other) -> base_tensor& {
     assign(std::forward<Other>(other));
     return *this;
   }
   //============================================================================
   template <static_tensor Other>
-  auto constexpr assign(Other&& other) -> void {
-    for_indices(
-        [this, &other](auto const... is) { this->at(is...) = other(is...); });
+  requires (same_dimensions<this_type, Other>()) &&
+           (convertible_to<tensor_value_type<Other>, value_type>)
+  auto constexpr assign(Other && other) -> void {
+    for_indices([this, &other](auto const... is) {
+      this->at(is...) = static_cast<value_type>(other(is...));
+    });
   }
   //----------------------------------------------------------------------------
   template <einstein_notation::index... Is>
