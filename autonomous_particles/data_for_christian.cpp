@@ -1,5 +1,7 @@
 #include <tatooine/analytical/fields/doublegyre.h>
 #include <tatooine/autonomous_particle_flowmap_discretization.h>
+
+#include <boost/program_options.hpp>
 //==============================================================================
 using namespace tatooine;
 auto constexpr advection_direction = forward;
@@ -9,8 +11,8 @@ using autonomous_particle_flowmap_type =
         2, AutonomousParticle<2>::split_behaviors::five_splits>;
 //==============================================================================
 auto doit(auto const& v, auto const& initial_particles, auto& uuid_generator,
-          auto const& q, auto const t0, auto const t_end) {
-  auto const tau = t_end - t0;
+          auto const& q, auto const t_0, auto const t_end) {
+  auto const tau = t_end - t_0;
   auto       phi = flowmap(v);
 
   auto flowmap_autonomous_particles = autonomous_particle_flowmap_type{
@@ -114,10 +116,10 @@ auto doit(auto const& v, auto const& initial_particles, auto& uuid_generator,
     }
   }
 
-  auto const flowmap_runge_kutta_q = phi(q, t0, tau);
+  auto const flowmap_runge_kutta_q = phi(q, t_0, tau);
   auto const error =
       euclidean_distance(reconstructed_flowmap_q, flowmap_runge_kutta_q);
-  std::cout << "t_0           = " << t0 << '\n';
+  std::cout << "t_0           = " << t_0 << '\n';
   std::cout << "tau           = " << tau << '\n';
   std::cout << "q             = " << q << '\n';
   std::cout << "ground truth  = " << flowmap_runge_kutta_q << '\n';
@@ -155,12 +157,47 @@ auto doit(auto const& v, auto const& initial_particles, auto& uuid_generator,
 }
 //==============================================================================
 auto main(int argc, char** argv) -> int {
-  auto                        uuid_generator = std::atomic_uint64_t{};
-  [[maybe_unused]] auto const r              = 0.01;
-  [[maybe_unused]] auto const t0             = real_number(0);
-  [[maybe_unused]] auto       t_end          = real_number(4);
-  if (argc > 3) {
-    t_end = std::stod(argv[3]);
+  auto uuid_generator = std::atomic_uint64_t{};
+  auto t_0            = real_number(0);
+  auto t_end          = real_number{};
+  auto x0             = vec2{};
+
+  namespace po        = boost::program_options;
+
+  auto desc = po::options_description{"Allowed options"};
+  desc.add_options()("help", "produce help message")(
+      "t_0", po::value<real_number>(), "start time of integration")(
+      "x0", po::value<std::vector<real_number>>()->multitoken(), "x0")(
+      "t_end", po::value<real_number>(), "end time of integration");
+
+  auto variables_map = po::variables_map{};
+  po::store(po::parse_command_line(argc, argv, desc), variables_map);
+  po::notify(variables_map);
+
+  if (variables_map.count("help") > 0) {
+    std::cout << desc;
+    return 0;
+  }
+
+  if (variables_map.count("x0") > 0) {
+    auto const x0_data = variables_map["x0"].as<std::vector<real_number>>();
+    if (size(x0_data) != 2) {
+      throw std::runtime_error{"x0 needs to have exactly two values"};
+    }
+    auto       i       = std::size_t{};
+    for (auto c : x0_data) {
+      x0(i++) = c;
+    }
+  } else {
+    throw std::runtime_error{"Flag --x0 not specified."};
+  }
+  if (variables_map.count("t_0") > 0) {
+    t_0 = variables_map["t_0"].as<real_number>();
+  }
+  if (variables_map.count("t_end") > 0) {
+    t_end = variables_map["t_end"].as<real_number>();
+  } else {
+    throw std::runtime_error{"Flag --t_end not specified."};
   }
   //============================================================================
   auto dg = analytical::fields::numerical::doublegyre{};
@@ -168,10 +205,10 @@ auto main(int argc, char** argv) -> int {
 
   auto const eps                  = 1e-3;
   auto const initial_particles_dg = autonomous_particle2::particles_from_grid(
-      t0,
+      t_0,
       rectilinear_grid{linspace{0.0 + eps, 2.0 - eps, 61},
                        linspace{0.0 + eps, 1.0 - eps, 31}},
       uuid_generator);
   doit(dg, initial_particles_dg, uuid_generator,
-       vec2{std::stod(argv[1]), std::stod(argv[2])}, t0, t_end);
+       x0, t_0, t_end);
 }
