@@ -197,7 +197,9 @@ auto write_vtp(std::vector<sampler<Real, 2>> const& samplers,
     copy(radial | views::transform(radian_to_cartesian), out_it);
     discretization.set_closed(true);
     for (auto const v : discretization.vertices()) {
-      discretization[v] = sampler.S(tag) * discretization[v].xy() + sampler.x0(tag);
+      auto v2 = sampler.S(tag) * discretization[v].xy() + sampler.x0(tag);;
+      discretization[v].x() = v2.x();
+      discretization[v].y() = v2.y();
     }
 
     // Writing points
