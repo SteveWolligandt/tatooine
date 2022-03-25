@@ -117,8 +117,8 @@ struct for_loop_impl<Int, N, 1, ParallelIndex> {
     // check if Iteration either returns bool or nothing
     using return_type =
         std::invoke_result_t<Iteration, decltype(((void)Is, Int{}))...>;
-    constexpr bool returns_void = is_same<return_type, void>;
-    constexpr bool returns_bool = is_same<return_type, bool>;
+    constexpr auto returns_void = is_same<return_type, void>;
+    constexpr auto returns_bool = is_same<return_type, bool>;
     static_assert(returns_void || returns_bool);
 
     m_status[0] = m_begins[0];
@@ -175,8 +175,8 @@ struct for_loop_impl<Int, N, I, I> {
     // check if Iteration either returns bool or nothing
     using return_type =
         std::invoke_result_t<Iteration, decltype(((void)Is, Int{}))...>;
-    constexpr bool returns_void = is_same<return_type, void>;
-    constexpr bool returns_bool = is_same<return_type, bool>;
+    constexpr auto returns_void = is_same<return_type, void>;
+    constexpr auto returns_bool = is_same<return_type, bool>;
     static_assert(returns_void || returns_bool);
 
 #pragma omp parallel for
