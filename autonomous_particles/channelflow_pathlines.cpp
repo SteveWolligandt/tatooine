@@ -107,7 +107,7 @@ auto main(int argc, char** argv) -> int {
                                   discrete_channelflow_domain.size<1>() - 1,
                                   discrete_channelflow_domain.size<2>() - 1});
       dataset.read(mem_space.id(), data_space.id(), H5P_DEFAULT,
-                   discrete_velocity.data().front().data_ptr());
+                   discrete_velocity.data().front().data());
     }
 
     indicator.set_text("Loading y-velocity");
@@ -127,7 +127,7 @@ auto main(int argc, char** argv) -> int {
                                   discrete_channelflow_domain.size(2) - 1});
 
       dataset.read(mem_space.id(), data_space.id(), H5P_DEFAULT,
-                   discrete_velocity.data().front().data_ptr());
+                   discrete_velocity.data().front().data());
     }
     indicator.set_text("Loading z-velocity");
     {
@@ -146,7 +146,7 @@ auto main(int argc, char** argv) -> int {
                                   discrete_channelflow_domain.size(2) - 1});
 
       dataset.read(mem_space.id(), data_space.id(), H5P_DEFAULT,
-                   discrete_velocity.data().front().data_ptr());
+                   discrete_velocity.data().front().data());
     }
 
 

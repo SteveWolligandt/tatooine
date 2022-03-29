@@ -11,7 +11,7 @@ namespace tatooine::gpu {
 //==============================================================================
 template <typename GPUReal>
 auto download(gl::texture<2, GPUReal, gl::R> const& tex) {
-  dynamic_multidim_array<GPUReal> data(tex.width(), tex.height());
+  auto data = dynamic_multidim_array<GPUReal>{tex.width(), tex.height()};
   tex.download_data(data.data());
   return data;
 }

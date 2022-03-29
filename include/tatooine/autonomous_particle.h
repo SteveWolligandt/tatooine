@@ -1088,7 +1088,7 @@ auto write_vtp(std::vector<autonomous_particle<Real, 2>> const& particles,
     // Writing points
     file.write(reinterpret_cast<char const*>(&num_bytes_points), sizeof(header_type));
     for (auto const v : discretization.vertices()) {
-      file.write(reinterpret_cast<char const*>(discretization.at(v).data_ptr()),
+      file.write(reinterpret_cast<char const*>(discretization.at(v).data()),
                  sizeof(Real) * 3);
     }
 

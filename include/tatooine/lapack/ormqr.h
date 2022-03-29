@@ -32,15 +32,15 @@ namespace tatooine::lapack {
 template <typename T, size_t K, size_t M>
 auto ormqr(tensor<T, M, K>& A, tensor<T, M>& c, tensor<T, K>& tau,
            Side const side, Op trans) {
-  return ::lapack::ormqr(side, trans, M, 1, K, A.data_ptr(), M, tau.data_ptr(),
-                         c.data_ptr(), M);
+  return ::lapack::ormqr(side, trans, M, 1, K, A.data(), M, tau.data(),
+                         c.data(), M);
 }
 //==============================================================================
 template <typename T, size_t K, size_t M, size_t N>
 auto ormqr(tensor<T, M, K>& A, tensor<T, M, N>& C, tensor<T, K>& tau,
            Side const side, Op trans) {
-  return ::lapack::ormqr(side, trans, M, N, K, A.data_ptr(), M, tau.data_ptr(),
-                         C.data_ptr(), M);
+  return ::lapack::ormqr(side, trans, M, N, K, A.data(), M, tau.data(),
+                         C.data(), M);
 }
 //==============================================================================
 template <typename T>
@@ -54,8 +54,8 @@ auto ormqr(tensor<T>& A, tensor<T>& C, tensor<T>& tau,
   auto const M = A.dimension(0);
   auto const K = A.dimension(1);
   auto const N = C.rank() == 2 ? C.dimension(1) : 1;
-  return ::lapack::ormqr(side, trans, M, N, K, A.data_ptr(), M, tau.data_ptr(),
-                         C.data_ptr(), M);
+  return ::lapack::ormqr(side, trans, M, N, K, A.data(), M, tau.data(),
+                         C.data(), M);
 }
 //==============================================================================
 /// \}

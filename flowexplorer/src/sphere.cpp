@@ -15,11 +15,11 @@ auto sphere_shader::set_color(std::array<GLfloat, 4> const& col) -> void {
 }
 //------------------------------------------------------------------------------
 auto sphere_shader::set_projection_matrix(mat4f const& P) -> void {
-  set_uniform_mat4("projection", P.data_ptr());
+  set_uniform_mat4("projection", P.data());
 }
 //------------------------------------------------------------------------------
 auto sphere_shader::set_modelview_matrix(mat4f const& MV) -> void {
-  set_uniform_mat4("modelview", MV.data_ptr());
+  set_uniform_mat4("modelview", MV.data());
 }
 //==============================================================================
 auto sphere::shader() -> sphere_shader& {

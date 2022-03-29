@@ -34,8 +34,8 @@ template <typename Real, std::size_t M, std::size_t N, std::size_t K>
 auto gemm(Real const alpha, tensor<Real, M, K> const& A,
           tensor<Real, K, N> const& B, Real const beta, tensor<Real, M, N>& C) {
   return gemm(Layout::ColMajor, Op::NoTrans, Op::NoTrans, M, N, K,
-                      alpha, A.data_ptr(), M, B.data_ptr(), N, beta,
-                      C.data_ptr(), M);
+                      alpha, A.data(), M, B.data(), N, beta,
+                      C.data(), M);
 }
 //------------------------------------------------------------------------------
 /// See \ref blas_gemm.
@@ -53,8 +53,8 @@ auto gemm(blas::Op trans_A, blas::Op trans_B, Real const alpha,
   assert(C.dimension(0) == M);
   assert(C.rank() == 1 || C.dimension(1) == N);
 
-  return gemm(Layout::ColMajor, trans_A, trans_B, M, N, K, alpha, A.data_ptr(),
-              M, B.data_ptr(), K, beta, C.data_ptr(), M);
+  return gemm(Layout::ColMajor, trans_A, trans_B, M, N, K, alpha, A.data(),
+              M, B.data(), K, beta, C.data(), M);
 }
 //------------------------------------------------------------------------------
 /// See \ref blas_gemm.

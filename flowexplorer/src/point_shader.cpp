@@ -15,12 +15,12 @@ auto point_shader::get() -> point_shader& {
 //------------------------------------------------------------------------------
 auto point_shader::set_modelview_matrix(
     const tatooine::mat<float, 4, 4>& modelview) -> void {
-  set_uniform_mat4("modelview", modelview.data_ptr());
+  set_uniform_mat4("modelview", modelview.data());
 }
 //------------------------------------------------------------------------------
 auto point_shader::set_projection_matrix(
     const tatooine::mat<float, 4, 4>& projmat) -> void {
-  set_uniform_mat4("projection", projmat.data_ptr());
+  set_uniform_mat4("projection", projmat.data());
 }
 //------------------------------------------------------------------------------
 auto point_shader::set_color(GLfloat r, GLfloat g, GLfloat b, GLfloat a)

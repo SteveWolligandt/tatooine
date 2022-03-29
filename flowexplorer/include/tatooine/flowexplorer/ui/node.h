@@ -332,11 +332,11 @@ struct node_serializer {
       } else if constexpr (is_same<std::array<float, 4>, var_t>) {
         changed |= ImGui::DragFloat4(name, var.data(), 0.1f);
       } else if constexpr (is_same<vec<float, 2>, var_t>) {
-        changed |= ImGui::DragFloat2(name, var.data_ptr(), 0.1f);
+        changed |= ImGui::DragFloat2(name, var.data(), 0.1f);
       } else if constexpr (is_same<vec<float, 3>, var_t>) {
-        changed |= ImGui::DragFloat3(name, var.data_ptr(), 0.1f);
+        changed |= ImGui::DragFloat3(name, var.data(), 0.1f);
       } else if constexpr (is_same<vec<float, 4>, var_t>) {
-        changed |= ImGui::DragFloat4(name, var.data_ptr(), 0.1f);
+        changed |= ImGui::DragFloat4(name, var.data(), 0.1f);
 
         // double
       } else if constexpr (is_same<double, var_t>) {
@@ -348,11 +348,11 @@ struct node_serializer {
       } else if constexpr (is_same<std::array<double, 4>, var_t>) {
         changed |= ImGui::DragDouble4(name, var.data(), 0.1);
       } else if constexpr (is_same<vec<double, 2>, var_t>) {
-        changed |= ImGui::DragDouble2(name, var.data_ptr(), 0.1);
+        changed |= ImGui::DragDouble2(name, var.data(), 0.1);
       } else if constexpr (is_same<vec<double, 3>, var_t>) {
-        changed |= ImGui::DragDouble3(name, var.data_ptr(), 0.1);
+        changed |= ImGui::DragDouble3(name, var.data(), 0.1);
       } else if constexpr (is_same<vec<double, 4>, var_t>) {
-        changed |= ImGui::DragDouble4(name, var.data_ptr(), 0.1);
+        changed |= ImGui::DragDouble4(name, var.data(), 0.1);
 
         // int
       } else if constexpr (is_same<int, var_t>) {
@@ -364,11 +364,11 @@ struct node_serializer {
       } else if constexpr (is_same<std::array<int, 4>, var_t>) {
         changed |= ImGui::DragInt4(name, var.data(), 1);
       } else if constexpr (is_same<vec<int, 2>, var_t>) {
-        changed |= ImGui::DragInt2(name, var.data_ptr(), 1);
+        changed |= ImGui::DragInt2(name, var.data(), 1);
       } else if constexpr (is_same<vec<int, 3>, var_t>) {
-        changed |= ImGui::DragInt3(name, var.data_ptr(), 1);
+        changed |= ImGui::DragInt3(name, var.data(), 1);
       } else if constexpr (is_same<vec<int, 4>, var_t>) {
-        changed |= ImGui::DragInt4(name, var.data_ptr(), 1);
+        changed |= ImGui::DragInt4(name, var.data(), 1);
       }
     });
     return changed;

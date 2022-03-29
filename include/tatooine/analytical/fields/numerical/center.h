@@ -23,13 +23,8 @@ struct center : vectorfield<center<Real>, Real, 2> {
   ~center() override = default;
   //----------------------------------------------------------------------------
   [[nodiscard]] constexpr auto evaluate(pos_type const& x, Real const /*t*/) const
-      -> tensor_type final {
+      -> tensor_type {
     return {x(1), -x(0)};
-  }
-  //----------------------------------------------------------------------------
-  [[nodiscard]] constexpr auto in_domain(pos_type const& /*x*/,
-                                         Real const /*t*/) const -> bool final {
-    return true;
   }
 };
   //============================================================================
@@ -152,14 +147,9 @@ struct differentiated_field<analytical::fields::numerical::center<Real>>
       : m_internal_field{f.as_derived()} {}
   //----------------------------------------------------------------------------
   constexpr auto evaluate(pos_type const& /*x*/, Real const /*t*/) const
-      -> tensor_type final {
+      -> tensor_type {
     return {{ 0, 1},
             {-1, 0}};
-  }
-  //----------------------------------------------------------------------------
-  constexpr auto in_domain(pos_type const& /*x*/, Real const /*t*/) const
-      -> bool final {
-    return true;
   }
   //----------------------------------------------------------------------------
   constexpr auto internal_field() -> auto& { return m_internal_field; }

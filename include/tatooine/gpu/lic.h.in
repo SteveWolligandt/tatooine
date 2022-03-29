@@ -1,10 +1,13 @@
 #ifndef TATOOINE_GPU_LIC_H
 #define TATOOINE_GPU_LIC_H
 //==============================================================================
-#include <tatooine/gpu/upload.h>
-#include <tatooine/random.h>
+#include <tatooine/discretize_field.h>
 #include <tatooine/gl/glfunctions.h>
 #include <tatooine/gl/shader.h>
+#include <tatooine/gl/texture.h>
+#include <tatooine/gpu/upload.h>
+#include <tatooine/random.h>
+#include <tatooine/rectilinear_grid.h>
 
 #include <boost/range/algorithm/generate.hpp>
 //==============================================================================
@@ -15,45 +18,54 @@ struct lic_shader : gl::shader {
   lic_shader() {
     add_stage<gl::computeshader>("@TATOOINE_LIC_COMP_SHADER@");
     create();
+    set_nan();
     set_noise_tex_bind_point(0);
     set_v_tex_bind_point(1);
   }
   //----------------------------------------------------------------------------
-  void dispatch(vec<size_t, 2> const& resolution) {
+  auto dispatch(Vec2<std::size_t> const& resolution) {
     bind();
-    static vec<size_t, 2> const num_threads{32, 32};
-    auto                        num_blocks = resolution / num_threads + 1;
+    static auto const num_threads = Vec2<std::size_t>{32, 32};
+    auto              num_blocks  = resolution / num_threads + 1;
     gl::dispatch_compute(num_blocks(0), num_blocks(1), 1);
   }
-  void set_domain_min(GLfloat x, GLfloat y) { set_uniform("domain_min", x, y); }
-  void set_domain_max(GLfloat x, GLfloat y) { set_uniform("domain_max", x, y); }
-  void set_v_tex_res(GLuint w, GLuint h) { set_uniform("v_tex_res", w, h); }
-  void set_noise_tex_res(GLuint w, GLuint h) {
+  auto set_nan() -> void { set_uniform("nan", GLfloat(0) / GLfloat(0)); }
+  auto set_domain_min(GLfloat const x, GLfloat const y) {
+    set_uniform("domain_min", x, y);
+  }
+  auto set_domain_max(GLfloat const x, GLfloat const y) {
+    set_uniform("domain_max", x, y);
+  }
+  auto set_v_tex_res(GLuint const w, GLuint const h) {
+    set_uniform("v_tex_res", w, h);
+  }
+  auto set_noise_tex_res(GLuint const w, GLuint const h) {
     set_uniform("noise_tex_res", w, h);
   }
-  void set_v_tex_bind_point(GLint b) { set_uniform("v_tex", b); }
-  void set_noise_tex_bind_point(GLint b) { set_uniform("noise_tex", b); }
-  void set_num_samples(GLuint n) { set_uniform("num_samples", n); }
-  void set_stepsize(GLfloat s) { set_uniform("stepsize", s); }
+  auto set_v_tex_bind_point(GLint const b) -> void { set_uniform("v_tex", b); }
+  auto set_noise_tex_bind_point(GLint const b) -> void {
+    set_uniform("noise_tex", b);
+  }
+  auto set_num_samples(GLuint const n) { set_uniform("num_samples", n); }
+  auto set_stepsize(GLfloat const s) { set_uniform("stepsize", s); }
 };
 //==============================================================================
-template <floating_point GPUReal = float, floating_point VReal,
-          floating_point XReal, floating_point YReal>
-auto lic(gl::tex2rg<VReal>&                         v_tex,
-         grid<linspace<XReal>, linspace<YReal>> const& spatial_domain,
-         vec<size_t, 2> const& lic_tex_res, size_t num_samples,
-         arithmetic auto stepsize, vec<size_t, 2> noise_res /* = {256, 256}*/,
-         std::seed_seq & noise_seed) -> gl::tex2rgba<GPUReal> {
+template <floating_point VReal, floating_point XReal, floating_point YReal>
+auto lic(
+    gl::tex2rg<VReal>&                                        v_tex,
+    rectilinear_grid<linspace<XReal>, linspace<YReal>> const& spatial_domain,
+    Vec2<std::size_t> const& lic_tex_res, std::size_t num_samples,
+    arithmetic auto stepsize, Vec2<std::size_t> noise_res,
+    random_number_generator auto&& rand) -> gl::tex2rgba32f {
   using namespace gl;
 
   // generate noise_tex data
-  random::uniform       rand(GPUReal(0), GPUReal(1), noise_seed);
-  std::vector<GPUReal> noise_data(noise_res(0) * noise_res(1));
+  std::vector<GLfloat> noise_data(noise_res(0) * noise_res(1));
   boost::generate(noise_data, [&rand] { return rand(); });
 
   // generate textures
-  tex2r<GPUReal>    noise_tex{noise_data, noise_res(0), noise_res(1)};
-  tex2rgba<GPUReal> lic_tex{lic_tex_res(0), lic_tex_res(1)};
+  tex2r32f    noise_tex{noise_data, noise_res(0), noise_res(1)};
+  tex2rgba32f lic_tex{lic_tex_res(0), lic_tex_res(1)};
 
   lic_tex.bind_image_texture(0);
   noise_tex.bind(0);
@@ -74,35 +86,31 @@ auto lic(gl::tex2rg<VReal>&                         v_tex,
   return lic_tex;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <floating_point GPUReal = float, floating_point VReal,
-          floating_point XReal, floating_point YReal>
-auto lic(polymorphic::vectorfield<VReal, 2> const&          v,
-         grid<linspace<XReal>, linspace<YReal>> const& spatial_domain,
-         arithmetic auto t, vec<size_t, 2> const& lic_tex_res,
-         size_t num_samples, arithmetic auto stepsize,
-         vec<size_t, 2> noise_res, std::seed_seq & noise_seed)
-    -> gl::tex2rgba<GPUReal> {
-      std::cerr << "uploading..";
-  auto v_tex = gpu::upload_tex<GPUReal>(sample_to_vector(v, spatial_domain, t),
-                                        spatial_domain.template size<0>(),
-                                        spatial_domain.template size<1>());
-      std::cerr << "done\n";
-  return lic<GPUReal>(v_tex, spatial_domain, lic_tex_res, num_samples, stepsize,
-                      noise_res, noise_seed);
+template <floating_point VReal, floating_point XReal, floating_point YReal>
+auto lic(polymorphic::vectorfield<VReal, 2> const&    v,
+         rectilinear_grid<linspace<XReal>, linspace<YReal>> const& spatial_domain,
+         arithmetic auto t, Vec2<std::size_t> const& lic_tex_res,
+         std::size_t num_samples, arithmetic auto stepsize,
+         Vec2<std::size_t> noise_res, random_number_generator auto&& rand)
+    -> gl::tex2rgba32f {
+  std::cerr << "uploading..";
+  auto v_tex = gl::tex2rg32f{discretize(v, spatial_domain, t)};
+  std::cerr << "done\n";
+  return lic(v_tex, spatial_domain, lic_tex_res, num_samples, stepsize,
+             noise_res, std::forward<decltype(rand)>(rand));
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <floating_point GPUReal = float, floating_point VReal,
-          floating_point XReal, floating_point YReal>
-auto lic(polymorphic::vectorfield<VReal, 2> const& v, linspace<XReal> const& xres,
-         linspace<YReal> const& yres, arithmetic auto t,
-         vec<size_t, 2> const& lic_tex_res, size_t num_samples,
-         arithmetic auto stepsize, vec<size_t, 2> noise_res,
-         std::seed_seq& noise_seed) -> gl::tex2rgba<GPUReal> {
-  return lic<GPUReal>(v, grid{xres, yres}, t, lic_tex_res, num_samples,
-                      stepsize, noise_res, noise_seed);
+template <floating_point VReal, floating_point XReal, floating_point YReal>
+auto lic(polymorphic::vectorfield<VReal, 2> const& v,
+         linspace<XReal> const& xres, linspace<YReal> const& yres,
+         arithmetic auto t, Vec2<std::size_t> const& lic_tex_res,
+         std::size_t num_samples, arithmetic auto stepsize,
+         Vec2<std::size_t> noise_res, random_number_generator auto&& rand)
+    -> gl::tex2rgba32f {
+  return lic(v, rectilinear_grid{xres, yres}, t, lic_tex_res, num_samples,
+             stepsize, noise_res, std::forward<decltype(rand)>(rand));
 }
 //==============================================================================
 }  // namespace tatooine::gpu
 //==============================================================================
-
 #endif

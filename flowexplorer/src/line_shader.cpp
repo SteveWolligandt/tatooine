@@ -13,11 +13,11 @@ line_shader::line_shader() {
 }
 auto line_shader::set_modelview_matrix(const tatooine::mat4f& modelview)
     -> void {
-  set_uniform_mat4("modelview", modelview.data_ptr());
+  set_uniform_mat4("modelview", modelview.data());
 }
 auto line_shader::set_projection_matrix(const tatooine::mat4f& projmat)
     -> void {
-  set_uniform_mat4("projection", projmat.data_ptr());
+  set_uniform_mat4("projection", projmat.data());
 }
 auto line_shader::set_color(GLfloat r, GLfloat g, GLfloat b, GLfloat a)
     -> void {

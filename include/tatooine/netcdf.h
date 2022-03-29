@@ -131,7 +131,7 @@ class variable {
     }
 
     std::lock_guard lock{*m_mutex};
-    m_var.getVar(arr.data_ptr());
+    m_var.getVar(arr.data());
   }
   //----------------------------------------------------------------------------
   auto read_chunked(size_t const chunk_size = 10) const {
@@ -199,7 +199,7 @@ class variable {
     assert(sizeof...(Resolution) == num_dimensions());
     assert(std::vector{Resolution...} == size());
     std::lock_guard lock{*m_mutex};
-    m_var.getVar(arr.data_ptr());
+    m_var.getVar(arr.data());
   }
   //----------------------------------------------------------------------------
   auto read(std::vector<T>& arr) const {
@@ -247,7 +247,7 @@ class variable {
     //std::reverse(begin(start_indices), end(start_indices));
     //std::reverse(begin(counts), end(counts));
     std::lock_guard lock{*m_mutex};
-    m_var.getVar(start_indices, counts, arr.data_ptr());
+    m_var.getVar(start_indices, counts, arr.data());
     return arr;
   }
   //----------------------------------------------------------------------------
@@ -276,7 +276,7 @@ class variable {
       }
     }
     std::lock_guard lock{*m_mutex};
-    m_var.getVar(start_indices, counts, arr.data_ptr());
+    m_var.getVar(start_indices, counts, arr.data());
   }
   //----------------------------------------------------------------------------
   template <typename MemLoc, size_t... Resolution>
@@ -287,7 +287,7 @@ class variable {
     assert(sizeof...(Resolution) == num_dimensions());
     std::lock_guard lock{*m_mutex};
     m_var.getVar(std::vector{static_cast<size_t>(start_indices)...},
-                 std::vector{Resolution...}, arr.data_ptr());
+                 std::vector{Resolution...}, arr.data());
   }
   //----------------------------------------------------------------------------
   template <typename MemLoc, size_t... Resolution>
@@ -295,7 +295,7 @@ class variable {
       std::vector<size_t> const&                                  start_indices,
       static_multidim_array<T, x_fastest, MemLoc, Resolution...>& arr) const {
     std::lock_guard lock{*m_mutex};
-    m_var.getVar(start_indices, std::vector{Resolution...}, arr.data_ptr());
+    m_var.getVar(start_indices, std::vector{Resolution...}, arr.data());
   }
   //----------------------------------------------------------------------------
   auto read_chunk(std::vector<size_t> const& start_indices,

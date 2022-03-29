@@ -3,34 +3,50 @@
 //==============================================================================
 namespace tatooine::gl::tex {
 //==============================================================================
-template <unsigned int n>
-struct target;
+template <std::size_t NumDimenions>
+struct target_impl;
+template <std::size_t NumDimenions>
+struct binding_impl;
 //------------------------------------------------------------------------------
-template <unsigned int n>
-static constexpr auto target_v = target<n>::value;
+template <std::size_t NumDimenions>
+static constexpr auto target = target_impl<NumDimenions>::value;
 //------------------------------------------------------------------------------
-template <unsigned int n>
-static constexpr auto target_binding = target<n>::binding;
+template <std::size_t NumDimenions>
+static constexpr auto binding = binding_impl<NumDimenions>::value;
 //------------------------------------------------------------------------------
 template <>
-struct target<1> {
+struct target_impl<1> {
   static constexpr GLenum value   = GL_TEXTURE_1D;
   static constexpr GLenum binding = GL_TEXTURE_BINDING_1D;
 };
 //------------------------------------------------------------------------------
 template <>
-struct target<2> {
+struct target_impl<2> {
   static constexpr GLenum value   = GL_TEXTURE_2D;
   static constexpr GLenum binding = GL_TEXTURE_BINDING_2D;
 };
 //------------------------------------------------------------------------------
 template <>
-struct target<3> {
+struct target_impl<3> {
   static constexpr GLenum value   = GL_TEXTURE_3D;
   static constexpr GLenum binding = GL_TEXTURE_BINDING_3D;
+};
+//------------------------------------------------------------------------------
+template <>
+struct binding_impl<1> {
+  static constexpr GLenum value = GL_TEXTURE_BINDING_1D;
+};
+//------------------------------------------------------------------------------
+template <>
+struct binding_impl<2> {
+  static constexpr GLenum value = GL_TEXTURE_BINDING_2D;
+};
+//------------------------------------------------------------------------------
+template <>
+struct binding_impl<3> {
+  static constexpr GLenum value = GL_TEXTURE_BINDING_3D;
 };
 //==============================================================================
 }  // namespace tatooine::gl::tex
 //==============================================================================
-
 #endif

@@ -17,7 +17,7 @@ namespace tatooine::lapack {
 template <typename Real, size_t N>
 auto syev(Job jobz, Uplo const uplo, tensor<Real, N, N>& A,
           tensor<Real, N>& W) {
-  return ::lapack::syev(jobz, uplo, N, A.data_ptr(), N, W.data_ptr());
+  return ::lapack::syev(jobz, uplo, N, A.data(), N, W.data());
 }
 //==============================================================================
 /// \}

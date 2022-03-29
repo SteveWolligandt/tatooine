@@ -62,6 +62,26 @@ add_custom_target(autonomous_particles.interactive.run
    ./autonomous_particles.interactive
   DEPENDS
    autonomous_particles.interactive)
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# interactive janos
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+add_executable(
+  autonomous_particles.interactive.janos
+  janos_example.cpp)
+target_link_libraries(
+  autonomous_particles.interactive.janos
+  tatooine gl)
+target_compile_options(
+  autonomous_particles.interactive.janos
+  PRIVATE
+   -Wall -Wextra -pedantic
+   -march=native)
+add_custom_target(autonomous_particles.interactive.janos.run
+  COMMAND
+   ./autonomous_particles.interactive.janos
+  DEPENDS
+   autonomous_particles.interactive.janos)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # explorer
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

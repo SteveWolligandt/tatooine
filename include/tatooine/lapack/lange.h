@@ -15,7 +15,7 @@ namespace tatooine::lapack {
 /// \param norm Describes which norm will be computed
 template <typename T, size_t M, size_t N>
 auto lange(tensor<T, M, N>& A, Norm norm) {
-  return ::lapack::lange(norm, M, N, A.data_ptr(), M);
+  return ::lapack::lange(norm, M, N, A.data(), M);
 }
 //==============================================================================
 /// \}

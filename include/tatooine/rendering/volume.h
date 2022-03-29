@@ -142,10 +142,10 @@ auto interactive(
       create();
     }
     auto set_modelview_matrix(mat4f const& MV) -> void {
-      set_uniform_mat4("modelview_matrix", MV.data_ptr());
+      set_uniform_mat4("modelview_matrix", MV.data());
     }
     auto set_projection_matrix(mat4f const& P) -> void {
-      set_uniform_mat4("projection_matrix", P.data_ptr());
+      set_uniform_mat4("projection_matrix", P.data());
     }
   } position_shader;
   struct dvr_shader_t : gl::shader {
@@ -257,18 +257,18 @@ auto interactive(
       set_uniform("alpha", unit);
     }
     auto set_model_matrix(mat4f const& M) -> void {
-      set_uniform_mat4("model_matrix", M.data_ptr());
+      set_uniform_mat4("model_matrix", M.data());
     }
     auto set_modelview_matrix(mat4f const& MV) -> void {
-      set_uniform_mat4("modelview_matrix", MV.data_ptr());
+      set_uniform_mat4("modelview_matrix", MV.data());
     }
     auto set_mode(int mode) -> void { set_uniform("mode", mode); }
     auto set_range_min(float range_min) -> void { set_uniform("range_min", range_min); }
     auto set_specular_color(vec3f const& specular_color) -> void {
-      set_uniform_vec3("specular_color", specular_color.data_ptr());
+      set_uniform_vec3("specular_color", specular_color.data());
     }
     auto set_eps(vec3f const& eps) -> void {
-      set_uniform_vec3("eps", eps.data_ptr());
+      set_uniform_vec3("eps", eps.data());
     }
     auto set_range_max(float range_max) -> void { set_uniform("range_max", range_max); }
     auto set_ray_offset(float ray_offset) -> void {
@@ -405,7 +405,7 @@ auto interactive(
       if (ImGui::DragFloat("Shininess", &shininess, 5.0f)) {
         dvr_shader.set_shininess(shininess);
       }
-      if (ImGui::ColorEdit3("Specular Color", specular_color.data_ptr())) {
+      if (ImGui::ColorEdit3("Specular Color", specular_color.data())) {
         dvr_shader.set_specular_color(specular_color);
       }
       ImGui::Bezier("alpha", handles);

@@ -143,7 +143,7 @@ auto interface::initialize_grid(
         m_mpi_communicator->rank() * m_num_tracers + i, bb.random_point());
     std::fstream fout{m_tracers_tmp_path / (std::to_string(idx) + ".bin"),
                       std::ios::binary | std::ios::out | std::ios::trunc};
-    fout.write(reinterpret_cast<char const*>(pos.data_ptr()),
+    fout.write(reinterpret_cast<char const*>(pos.data()),
                sizeof(double) * 3);
   }
 }
@@ -345,7 +345,7 @@ auto interface::advect_tracers() -> void {
     for (auto const& [idx, pos] : m_tracers) {
       std::fstream fout{m_tracers_tmp_path / (std::to_string(idx) + ".bin"),
                         std::ios::binary | std::ios::out | std::ios::app};
-      fout.write(reinterpret_cast<char const*>(pos.data_ptr()),
+      fout.write(reinterpret_cast<char const*>(pos.data()),
                  sizeof(double) * 3);
     //}
   }

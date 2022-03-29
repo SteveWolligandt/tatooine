@@ -213,7 +213,7 @@ struct pointset {
       auto lock = std::scoped_lock{m_flann_mutex};
       if (m_kd_tree != nullptr) {
         m_kd_tree->addPoints(flann::Matrix<Real>{
-            const_cast<Real*>(vertex_position_data().back().data_ptr()), 1,
+            const_cast<Real*>(vertex_position_data().back().data()), 1,
             num_dimensions()});
       }
     }
@@ -231,7 +231,7 @@ struct pointset {
       auto lock = std::scoped_lock{m_flann_mutex};
       if (m_kd_tree != nullptr) {
         m_kd_tree->addPoints(flann::Matrix<Real>{
-            const_cast<Real*>(vertex_position_data().back().data_ptr()), 1,
+            const_cast<Real*>(vertex_position_data().back().data()), 1,
             num_dimensions()});
       }
     }
@@ -249,7 +249,7 @@ struct pointset {
       auto lock = std::scoped_lock{m_flann_mutex};
       if (m_kd_tree != nullptr) {
         m_kd_tree->addPoints(flann::Matrix<Real>{
-            const_cast<Real*>(vertex_position_data().back().data_ptr()), 1,
+            const_cast<Real*>(vertex_position_data().back().data()), 1,
             num_dimensions()});
       }
     }
@@ -811,7 +811,7 @@ struct pointset {
     auto lock = std::scoped_lock{m_flann_mutex};
     if (m_kd_tree == nullptr && vertices().size() > 0) {
       flann::Matrix<Real> dataset{
-          const_cast<Real*>(vertex_position_data().front().data_ptr()),
+          const_cast<Real*>(vertex_position_data().front().data()),
           vertices().size(), num_dimensions()};
       m_kd_tree = std::make_unique<flann_index_type>(
           dataset, flann::KDTreeSingleIndexParams{});
@@ -832,7 +832,7 @@ struct pointset {
     if (h == nullptr) {
       return std::pair{vertex_handle::invalid(), Real(1) / Real(0)};
     }
-    auto qm        = flann::Matrix<Real>{const_cast<Real*>(x.data_ptr()), 1,
+    auto qm        = flann::Matrix<Real>{const_cast<Real*>(x.data()), 1,
                                   num_dimensions()};
     auto indices   = std::vector<std::vector<int>>{};
     auto distances = std::vector<std::vector<Real>>{};
@@ -852,7 +852,7 @@ struct pointset {
     if (h == nullptr) {
       return std::pair{std::vector<int>{}, std::vector<Real>{}};
     }
-    auto qm        = flann::Matrix<Real>{const_cast<Real*>(x.data_ptr()), 1,
+    auto qm        = flann::Matrix<Real>{const_cast<Real*>(x.data()), 1,
                                   num_dimensions()};
     auto indices   = std::vector<std::vector<int>>{};
     auto distances = std::vector<std::vector<Real>>{};
@@ -881,7 +881,7 @@ struct pointset {
     if (h == nullptr) {
       return std::pair{std::vector<int>{}, std::vector<Real>{}};
     }
-    flann::Matrix<Real>           qm{const_cast<Real*>(x.data_ptr()),  // NOLINT
+    flann::Matrix<Real>           qm{const_cast<Real*>(x.data()),  // NOLINT
                            1, num_dimensions()};
     std::vector<std::vector<int>> indices;
     std::vector<std::vector<Real>> distances;

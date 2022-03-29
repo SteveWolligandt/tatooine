@@ -27,7 +27,7 @@ namespace tatooine::lapack {
 ///   matrix was interchanged with row p(i).
 template <typename T, size_t M, size_t N>
 auto getrf(tensor<T, M, N>& A, tensor<int, tatooine::min(M, N)>& p) {
-  return ::lapack::getrf(M, N, A.data_ptr(), M, p.data_ptr());
+  return ::lapack::getrf(M, N, A.data(), M, p.data());
 }
 //==============================================================================
 /// \}

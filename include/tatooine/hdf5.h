@@ -525,7 +525,7 @@ struct dataset : id_holder, attribute_creator<dataset<T>> {
   //----------------------------------------------------------------------------
   template <typename IndexOrder>
   auto write(dynamic_multidim_array<T, IndexOrder> const& data) -> void {
-    write(data.data_ptr());
+    write(data.data());
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder>
@@ -538,7 +538,7 @@ struct dataset : id_holder, attribute_creator<dataset<T>> {
       total_size[i] += offset[i];
     }
     resize_if_necessary(total_size);
-    write(data.data_ptr(), std::vector<hsize_t>(begin(offset), end(offset)),
+    write(data.data(), std::vector<hsize_t>(begin(offset), end(offset)),
           std::vector<hsize_t>(begin(size), end(size)));
   }
 //  //----------------------------------------------------------------------------
@@ -547,7 +547,7 @@ struct dataset : id_holder, attribute_creator<dataset<T>> {
 //  is)
 //      -> void {
 //    auto const s = data.size();
-//    write<IndexOrder>(data.data_ptr(),
+//    write<IndexOrder>(data.data(),
 //                      std::vector<hsize_t>{static_cast<hsize_t>(is)...},
 //                      std::vector<hsize_t>(begin(s), end(s)));
 //  }
@@ -626,7 +626,7 @@ struct dataset : id_holder, attribute_creator<dataset<T>> {
     if (must_resize) {
       arr.resize(std::vector<std::size_t>(begin(size), end(size)));
     }
-    read(H5S_ALL, H5S_ALL, H5P_DEFAULT, arr.data_ptr());
+    read(H5S_ALL, H5S_ALL, H5P_DEFAULT, arr.data());
   }
   //----------------------------------------------------------------------------
   auto read_as_vector() const {
@@ -733,7 +733,7 @@ struct dataset : id_holder, attribute_creator<dataset<T>> {
     }
     ds.select_hyperslab(offset, count);
     auto memory_space = hdf5::dataspace{count};
-    read(memory_space.id(), ds.id(), H5P_DEFAULT, arr.data_ptr());
+    read(memory_space.id(), ds.id(), H5P_DEFAULT, arr.data());
     return arr;
   }
   //----------------------------------------------------------------------------

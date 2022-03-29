@@ -29,14 +29,14 @@ namespace tatooine::lapack {
 template <typename T, size_t N>
 auto geev(tensor<T, N, N>& A, tensor<std::complex<T>, N>& W) {
   return ::lapack::geev(Job::NoVec, Job::NoVec, N,
-                        A.data_ptr(), N, W.data_ptr(), nullptr, N, nullptr, N);
+                        A.data(), N, W.data(), nullptr, N, nullptr, N);
 }
 //------------------------------------------------------------------------------
 template <typename T, size_t N>
 auto geev_left(tensor<T, N, N>& A, tensor<std::complex<T>, N>& W,
                tensor<T, N, N>& VL) {
   return ::lapack::geev(Job::Vec, Job::NoVec, N,
-                        A.data_ptr(), N, W.data_ptr(), VL.data_ptr(), N,
+                        A.data(), N, W.data(), VL.data(), N,
                         nullptr, N);
 }
 //------------------------------------------------------------------------------
@@ -44,15 +44,15 @@ template <typename T, size_t N>
 auto geev_right(tensor<T, N, N>& A, tensor<std::complex<T>, N>& W,
                 tensor<T, N, N>& VR) {
   return ::lapack::geev(Job::NoVec, Job::Vec, N,
-                        A.data_ptr(), N, W.data_ptr(), nullptr, N, VR.data_ptr(),
+                        A.data(), N, W.data(), nullptr, N, VR.data(),
                         N);
 }
 //------------------------------------------------------------------------------
 template <typename T, size_t N>
 auto geev(tensor<T, N, N>& A, tensor<std::complex<T>, N>& W,
           tensor<T, N, N>& VL, tensor<T, N, N>& VR) {
-  return ::lapack::geev(Job::Vec, Job::Vec, N, A.data_ptr(),
-                        N, W.data_ptr(), VL.data_ptr(), N, VR.data_ptr(), N);
+  return ::lapack::geev(Job::Vec, Job::Vec, N, A.data(),
+                        N, W.data(), VL.data(), N, VR.data(), N);
 }
 //==============================================================================
 /// \}

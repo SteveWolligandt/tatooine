@@ -27,7 +27,7 @@ auto gecon(tensor<T, N, N>& A, Norm norm, T& rcond) {
   auto const n    = lange(A, norm);
   auto       ipiv = tensor<std::int64_t, N>{};
   getrf(A, ipiv);
-  return ::lapack::gecon(norm, N, A.data_ptr(), N, n, &rcond);
+  return ::lapack::gecon(norm, N, A.data(), N, n, &rcond);
 }
 //==============================================================================
 /// \}
