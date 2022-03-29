@@ -37,10 +37,10 @@ struct rectilinear_grid_vertex_property_renderer
       return shader;
     }
     auto set_modelview_matrix(const tatooine::mat4f& modelview) -> void {
-      set_uniform_mat4("modelview", modelview.data_ptr());
+      set_uniform_mat4("modelview", modelview.data());
     }
     auto set_projection_matrix(const tatooine::mat4f& projmat) -> void {
-      set_uniform_mat4("projection", projmat.data_ptr());
+      set_uniform_mat4("projection", projmat.data());
     }
   };
   //----------------------------------------------------------------------------

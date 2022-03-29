@@ -4,7 +4,7 @@ file(GLOB EXAMPLE_FILES
 foreach(EXAMPLE_FILE ${EXAMPLE_FILES})
   get_filename_component(FILENAME ${EXAMPLE_FILE} NAME_WE)
   add_executable(${FILENAME}.example ${FILENAME}.cpp)
-  target_link_libraries(${FILENAME}.example PUBLIC tatooine)
+  target_link_libraries(${FILENAME}.example PUBLIC tatooine gl)
   add_custom_target(${FILENAME}.example.run
                     COMMAND ./${FILENAME}.example
                     DEPENDS ${FILENAME}.example)

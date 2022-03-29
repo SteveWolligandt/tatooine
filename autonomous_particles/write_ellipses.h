@@ -27,7 +27,7 @@ auto write_x0(std::ranges::range auto const& particles,
     mat23f T{{Sback(0, 0), Sback(0, 1), p.x0()(0)},
              {Sback(1, 0), Sback(1, 1), p.x0()(1)}};
     {
-      var.write(indices, cnt, T.data_ptr());
+      var.write(indices, cnt, T.data());
       ++indices.front();
     }
   }
@@ -46,7 +46,7 @@ auto write_x1(std::ranges::range auto const& particles,
   for (auto const& ap : particles) {
     mat23f T{{ap.S()(0, 0), ap.S()(0, 1), ap.x1()(0)},
              {ap.S()(1, 0), ap.S()(1, 1), ap.x1()(1)}};
-    var.write(indices, cnt, T.data_ptr());
+    var.write(indices, cnt, T.data());
     ++indices.front();
   }
 }

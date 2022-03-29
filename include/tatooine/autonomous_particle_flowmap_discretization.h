@@ -394,12 +394,12 @@ struct autonomous_particle_flowmap_discretization {
       forward_or_backward_tag auto const tag,
       execution_policy::sequential_t /*pol*/) const {
     auto dataset = flann::Matrix<Real>{
-        const_cast<Real*>(samplers().front().x0(tag).data_ptr()),
+        const_cast<Real*>(samplers().front().x0(tag).data()),
         samplers().size(), num_dimensions(), sizeof(sampler_type)};
     auto kd_tree = flann::Index<flann::L2<Real>>{
         dataset, flann::KDTreeSingleIndexParams{}};
     kd_tree.buildIndex();
-    auto qm        = flann::Matrix<Real>{const_cast<Real*>(q.data_ptr()), 1,
+    auto qm        = flann::Matrix<Real>{const_cast<Real*>(q.data()), 1,
                                   num_dimensions()};
     auto nearest_indices_   = std::vector<std::vector<int>>{};
     auto squared_distances_ = std::vector<std::vector<Real>>{};

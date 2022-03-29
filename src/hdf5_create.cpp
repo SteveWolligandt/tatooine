@@ -61,7 +61,7 @@ int main() {
    * Write the data to the dataset using default memory space, file
    * space, and transfer properties.
    */
-  dataset.write(data.data_ptr());
+  dataset.write(data.data());
 
   auto const chunk = dataset.read_chunk(std::vector<size_t>{1,1},std::vector<size_t> {2,2});
 

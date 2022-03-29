@@ -36,8 +36,8 @@ auto gemv(blas::Op trans, Real const alpha, tensor<Real> const& A,
   assert(N == x.dimension(0));
   assert(y.dimension(0) == M);
 
-  return gemv(Layout::ColMajor, trans, M, N, alpha, A.data_ptr(), M,
-              x.data_ptr(), 1, beta, y.data_ptr(), 1);
+  return gemv(Layout::ColMajor, trans, M, N, alpha, A.data(), M,
+              x.data(), 1, beta, y.data(), 1);
 }
 //------------------------------------------------------------------------------
 /// See \ref blas_gemv.

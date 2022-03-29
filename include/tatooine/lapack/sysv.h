@@ -28,7 +28,7 @@ namespace tatooine::lapack {
 template <typename T, size_t N>
 auto sysv(tensor<T, N, N>& A, tensor<T, N>& b,  Uplo const uplo) {
   auto       ipiv = std::unique_ptr<std::int64_t[]>(new std::int64_t[N]);
-  return ::lapack::sysv(uplo, N, 1, A.data_ptr(), N, ipiv.get(), b.data_ptr(),
+  return ::lapack::sysv(uplo, N, 1, A.data(), N, ipiv.get(), b.data(),
                         N);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -42,7 +42,7 @@ auto sysv(tensor<T>& A, tensor<T>& B, Uplo const uplo) {
   auto       ipiv = std::unique_ptr<std::int64_t[]>(new std::int64_t[N]);
 
   return ::lapack::sysv(uplo, N, B.rank() == 1 ? 1 : B.dimension(1),
-                        A.data_ptr(), N, ipiv.get(), B.data_ptr(), N);
+                        A.data(), N, ipiv.get(), B.data(), N);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Computes the solution to a system of linear equations \(A X = B\), where A
@@ -62,8 +62,8 @@ auto sysv_aa(tensor<T>& A, tensor<T>& B, Uplo const uplo) {
   auto const N    = A.dimension(0);
   auto       ipiv = std::unique_ptr<std::int64_t[]>(new std::int64_t[N]);
 
-  return ::lapack::sysv_aa(uplo, N, B.dimension(1), A.data_ptr(), N, ipiv.get(),
-                           B.data_ptr(), N);
+  return ::lapack::sysv_aa(uplo, N, B.dimension(1), A.data(), N, ipiv.get(),
+                           B.data(), N);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Computes the solution to a system of linear equations.
@@ -93,7 +93,7 @@ auto sysv_rk(tensor<T>& A, tensor<T>& B, Uplo const uplo) {
   auto       ipiv = std::unique_ptr<std::int64_t[]>(new std::int64_t[N]);
 
   return ::lapack::sysv_rk(uplo, N, B.rank() == 1 ? 1 : B.dimension(1),
-                           A.data_ptr(), N, ipiv.get(), B.data_ptr(), N);
+                           A.data(), N, ipiv.get(), B.data(), N);
 }
 //==============================================================================
 /// \}

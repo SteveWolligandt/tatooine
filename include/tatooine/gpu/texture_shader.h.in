@@ -36,11 +36,11 @@ struct texture_shader : gl::shader {
   }
   //------------------------------------------------------------------------------
   void set_projection_matrix(mat<float, 4, 4> const& projection_matrix) {
-    set_uniform_mat4("projection_matrix", projection_matrix.data_ptr());
+    set_uniform_mat4("projection_matrix", projection_matrix.data());
   }
   //------------------------------------------------------------------------------
   void set_modelview_matrix(mat<float, 4, 4> const& modelview_matrix) {
-    set_uniform_mat4("modelview_matrix", modelview_matrix.data_ptr());
+    set_uniform_mat4("modelview_matrix", modelview_matrix.data());
   }
   //------------------------------------------------------------------------------
   void set_alpha(GLfloat alpha) {

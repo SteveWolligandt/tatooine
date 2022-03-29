@@ -15,7 +15,7 @@ autonomous_particles_renderer2d::shader::shader() {
 //------------------------------------------------------------------------------
 void autonomous_particles_renderer2d::shader::set_view_projection_matrix(
     mat4f const& A) {
-  set_uniform_mat4("view_projection_matrix", A.data_ptr());
+  set_uniform_mat4("view_projection_matrix", A.data());
 }
 //------------------------------------------------------------------------------
 void autonomous_particles_renderer2d::shader::set_color(GLfloat r, GLfloat g,
@@ -136,7 +136,7 @@ autonomous_particles_renderer3d::shader::shader() {
 //------------------------------------------------------------------------------
 void autonomous_particles_renderer3d::shader::set_view_projection_matrix(
     mat4f const& A) {
-  set_uniform_mat4("view_projection_matrix", A.data_ptr());
+  set_uniform_mat4("view_projection_matrix", A.data());
 }
 //----------------------------------------------------------------------------
 autonomous_particles_renderer3d::autonomous_particles_renderer3d(

@@ -27,14 +27,14 @@ auto doit(auto const& v, auto const& initial_particles, auto& uuid_generator,
       const_cast<real_number*>(flowmap_autonomous_particles.samplers()
                                    .front()
                                    .x0(advection_direction)
-                                   .data_ptr()),
+                                   .data()),
       flowmap_autonomous_particles.samplers().size(), 2,
       sizeof(autonomous_particle_flowmap_type::sampler_type)};
   auto kd_tree = flann::Index<flann::L2<real_number>>{
       kd_tree_data, flann::KDTreeSingleIndexParams{}};
   kd_tree.buildIndex();
   auto kd_tree_query =
-      flann::Matrix<real_number>{const_cast<real_number*>(q.data_ptr()), 1, 2};
+      flann::Matrix<real_number>{const_cast<real_number*>(q.data()), 1, 2};
   auto nearest_indices_   = std::vector<std::vector<int>>{};
   auto squared_distances_ = std::vector<std::vector<real_number>>{};
   kd_tree.knnSearch(kd_tree_query, nearest_indices_, squared_distances_, 40,
@@ -127,24 +127,24 @@ auto doit(auto const& v, auto const& initial_particles, auto& uuid_generator,
   std::cout << "error         = " << error << '\n';
   auto f = std::ofstream{"data_for_christian.bin"};
   if (f.is_open()) {
-    f.write(reinterpret_cast<char const*>(q.data_ptr()),
+    f.write(reinterpret_cast<char const*>(q.data()),
             sizeof(real_number) * 2);
-    f.write(reinterpret_cast<char const*>(flowmap_runge_kutta_q.data_ptr()),
+    f.write(reinterpret_cast<char const*>(flowmap_runge_kutta_q.data()),
             sizeof(real_number) * 2);
-    f.write(reinterpret_cast<char const*>(reconstructed_flowmap_q.data_ptr()),
+    f.write(reinterpret_cast<char const*>(reconstructed_flowmap_q.data()),
             sizeof(real_number) * 2);
 
     for (auto const i : nearest_indices) {
       auto const& sampler = flowmap_autonomous_particles.samplers()[i];
 
       f.write(reinterpret_cast<char const*>(
-                  sampler.x0(advection_direction).data_ptr()),
+                  sampler.x0(advection_direction).data()),
               sizeof(real_number) * 2);
       f.write(reinterpret_cast<char const*>(
-                  sampler.phi(advection_direction).data_ptr()),
+                  sampler.phi(advection_direction).data()),
               sizeof(real_number) * 2);
       f.write(reinterpret_cast<char const*>(
-                  sampler.nabla_phi(advection_direction).data_ptr()),
+                  sampler.nabla_phi(advection_direction).data()),
               sizeof(real_number) * 4);
     }
     f.close();

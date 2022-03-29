@@ -54,10 +54,10 @@ struct point_shader_t : gl::shader {
     create();
   }
   auto set_modelview_matrix(mat4f const& MV) -> void {
-    set_uniform_mat4("modelview_matrix", MV.data_ptr());
+    set_uniform_mat4("modelview_matrix", MV.data());
   }
   auto set_projection_matrix(mat4f const& P) -> void {
-    set_uniform_mat4("projection_matrix", P.data_ptr());
+    set_uniform_mat4("projection_matrix", P.data());
   }
   auto set_color(float const r, float const g, float const b, float const a)
       -> void {
@@ -89,10 +89,10 @@ struct particle_shader_t : gl::shader {
     set_color(0, 0, 0, 1);
   }
   auto set_modelview_matrix(mat4f const& MV) -> void {
-    set_uniform_mat4("modelview_matrix", MV.data_ptr());
+    set_uniform_mat4("modelview_matrix", MV.data());
   }
   auto set_projection_matrix(mat4f const& P) -> void {
-    set_uniform_mat4("projection_matrix", P.data_ptr());
+    set_uniform_mat4("projection_matrix", P.data());
   }
   auto set_color(float const r, float const g, float const b, float const a)
       -> void {
@@ -122,10 +122,10 @@ struct pathline_shader_t : gl::shader {
     create();
   }
   auto set_modelview_matrix(mat4f const& MV) -> void {
-    set_uniform_mat4("modelview_matrix", MV.data_ptr());
+    set_uniform_mat4("modelview_matrix", MV.data());
   }
   auto set_projection_matrix(mat4f const& P) -> void {
-    set_uniform_mat4("projection_matrix", P.data_ptr());
+    set_uniform_mat4("projection_matrix", P.data());
   }
 };
 //==============================================================================

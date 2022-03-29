@@ -2,6 +2,7 @@
 #define TATOOINE_DISCRETIZE_FIELD_H
 //==============================================================================
 #include <tatooine/field.h>
+#include <tatooine/tags.h>
 #include <tatooine/rectilinear_grid.h>
 //==============================================================================
 namespace tatooine {
@@ -34,8 +35,8 @@ auto sample_to_raw(
   return raw_data;
 }
 //------------------------------------------------------------------------------
-template <typename V, arithmetic VReal, arithmetic TReal,
-          std::size_t NumDimensions, typename Tensor,
+template <typename V, arithmetic VReal, std::size_t NumDimensions,
+          typename Tensor,
           detail::rectilinear_grid::dimension... SpatialDimensions,
           detail::rectilinear_grid::dimension TemporalDimension>
 auto sample_to_raw(
@@ -67,12 +68,12 @@ auto sample_to_raw(
   return raw_data;
 }
 //------------------------------------------------------------------------------
-template <arithmetic VReal, arithmetic TReal, std::size_t NumDimensions,
-          typename Tensor,
+template <arithmetic VReal, std::size_t NumDimensions, typename Tensor,
           detail::rectilinear_grid::dimension... SpatialDimensions>
 auto sample_to_vector(
     polymorphic::field<VReal, NumDimensions, Tensor> const& f,
-    rectilinear_grid<SpatialDimensions...> const& discretized_domain, TReal t) {
+    rectilinear_grid<SpatialDimensions...> const&           discretized_domain,
+    arithmetic auto const                                   t) {
   using V           = polymorphic::field<VReal, NumDimensions, Tensor>;
   using tensor_type = typename V::tensor_type;
   auto const               nan = VReal(0) / VReal(0);
@@ -86,14 +87,53 @@ auto sample_to_vector(
   return data;
 }
 //------------------------------------------------------------------------------
-template <arithmetic VReal, arithmetic TReal, std::size_t NumDimensions,
-          typename Tensor,
-          detail::rectilinear_grid::dimension... SpatialDimensions,
-          typename ExecutionPolicy>
+template <arithmetic VReal, std::size_t NumDimensions, typename Tensor,
+          detail::rectilinear_grid::dimension... SpatialDimensions>
+auto discretize(
+    polymorphic::field<VReal, NumDimensions, Tensor> const& f,
+    rectilinear_grid<SpatialDimensions...> const&           discretized_domain,
+    arithmetic auto const t, execution_policy_tag auto const pol) -> auto {
+  auto data = dynamic_multidim_array<Tensor>{discretized_domain.size()};
+  discretized_domain.vertices().iterate_indices(
+      [&](auto const... is) {
+        data(is...) = f(discretized_domain.vertex_at(is...), t);
+      },
+      pol);
+  return data;
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <arithmetic VReal, std::size_t NumDimensions, typename Tensor,
+          detail::rectilinear_grid::dimension... SpatialDimensions>
+auto discretize(
+    polymorphic::field<VReal, NumDimensions, Tensor> const& f,
+    rectilinear_grid<SpatialDimensions...> const&           discretized_domain,
+    arithmetic auto const                                   t) -> auto {
+  return discretize(f, discretized_domain, t, execution_policy::sequential);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <arithmetic VReal, std::size_t NumDimensions, typename Tensor,
+          detail::rectilinear_grid::dimension... SpatialDimensions>
+auto discretize(
+    polymorphic::field<VReal, NumDimensions, Tensor> const& f,
+    rectilinear_grid<SpatialDimensions...> const& discretized_domain) -> auto& {
+  return discretize(f, discretized_domain, 0, execution_policy::sequential);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <arithmetic VReal, std::size_t NumDimensions, typename Tensor,
+          detail::rectilinear_grid::dimension... SpatialDimensions>
+auto discretize(
+    polymorphic::field<VReal, NumDimensions, Tensor> const& f,
+    rectilinear_grid<SpatialDimensions...> const&           discretized_domain,
+    execution_policy_tag auto const                             pol) -> auto& {
+  return discretize(f, discretized_domain, 0, pol);
+}
+//------------------------------------------------------------------------------
+template <arithmetic VReal, std::size_t NumDimensions, typename Tensor,
+          detail::rectilinear_grid::dimension... SpatialDimensions>
 auto discretize(polymorphic::field<VReal, NumDimensions, Tensor> const& f,
                 rectilinear_grid<SpatialDimensions...>& discretized_domain,
-                std::string const& property_name, TReal const t,
-                ExecutionPolicy const execution_policy) -> auto& {
+                std::string const& property_name, arithmetic auto const t,
+                execution_policy_tag auto const pol) -> auto& {
   auto& discretized_field = [&]() -> decltype(auto) {
     if constexpr (is_arithmetic<Tensor>) {
       return discretized_domain.template insert_vertex_property<VReal>(
@@ -115,16 +155,16 @@ auto discretize(polymorphic::field<VReal, NumDimensions, Tensor> const& f,
         auto const x             = discretized_domain.vertex_at(is...);
         discretized_field(is...) = f(x, t);
       },
-      execution_policy);
+      pol);
   return discretized_field;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <arithmetic VReal, arithmetic TReal, std::size_t NumDimensions,
-          typename Tensor,
+template <arithmetic VReal, std::size_t NumDimensions, typename Tensor,
           detail::rectilinear_grid::dimension... SpatialDimensions>
 auto discretize(polymorphic::field<VReal, NumDimensions, Tensor> const& f,
                 rectilinear_grid<SpatialDimensions...>& discretized_domain,
-                std::string const& property_name, TReal const t) -> auto& {
+                std::string const& property_name, arithmetic auto const t)
+    -> auto& {
   return discretize(f, discretized_domain, property_name, t,
                     execution_policy::sequential);
 }
@@ -139,26 +179,24 @@ auto discretize(polymorphic::field<VReal, NumDimensions, Tensor> const& f,
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <arithmetic VReal, std::size_t NumDimensions, typename Tensor,
-          typename ExecutionPolicy,
           detail::rectilinear_grid::dimension... SpatialDimensions>
 auto discretize(polymorphic::field<VReal, NumDimensions, Tensor> const& f,
                 rectilinear_grid<SpatialDimensions...>& discretized_domain,
                 std::string const&                      property_name,
-                ExecutionPolicy const execution_policy) -> auto& {
-  return discretize(f, discretized_domain, property_name, 0, execution_policy);
+                execution_policy_tag auto const pol) -> auto& {
+  return discretize(f, discretized_domain, property_name, 0, pol);
 }
 //------------------------------------------------------------------------------
 /// Discretizes to a cutting plane of a field.
 /// \param basis spatial basis of cutting plane
-template <typename V, arithmetic VReal, arithmetic TReal,
-          std::size_t NumDimensions, typename Tensor, typename BasisReal,
-          typename X0Real, typename X1Real>
+template <typename V, arithmetic VReal, std::size_t NumDimensions,
+          typename Tensor, typename BasisReal, typename X0Real, typename X1Real>
 auto discretize(field<V, VReal, NumDimensions, Tensor> const& f,
                 vec<X0Real, NumDimensions> const&             x0,
                 mat<BasisReal, NumDimensions, 2> const&       basis,
                 vec<X1Real, 2> const& spatial_size, std::size_t const res0,
                 std::size_t const res1, std::string const& property_name,
-                TReal const t) {
+                arithmetic auto const t) {
   auto const cell_extent =
       vec<VReal, 2>{spatial_size(0) / (res0 - 1), spatial_size(1) / (res1 - 1)};
   std::cerr << x0 << '\n';
@@ -195,32 +233,33 @@ auto discretize(field<V, VReal, NumDimensions, Tensor> const& f,
 //------------------------------------------------------------------------------
 /// Discretizes to a cutting plane of a field.
 /// \param basis spatial basis of cutting plane
-template <typename V, arithmetic VReal, arithmetic TReal,
-          std::size_t NumDimensions, typename Tensor, typename BasisReal,
-          typename X0Real>
+template <typename V, arithmetic VReal, std::size_t NumDimensions,
+          typename Tensor, typename BasisReal, typename X0Real>
 auto discretize(field<V, VReal, NumDimensions, Tensor> const& f,
                 mat<BasisReal, NumDimensions, 2> const&       basis,
                 vec<X0Real, NumDimensions> const& x0, std::size_t const res0,
                 std::size_t const res1, std::string const& property_name,
-                TReal const t) {
+                arithmetic auto const t) {
   return discretize(f, x0, basis, vec<BasisReal, 2>::ones(), res0, res1,
                     property_name, t);
 }
 //------------------------------------------------------------------------------
 /// Discretizes to a cutting plane of a field.
 /// \param basis spatial basis of cutting plane
-template <typename V, arithmetic VReal, arithmetic TReal,
-          std::size_t NumDimensions, typename Tensor, typename BasisReal,
-          typename X0Real>
+template <typename V, arithmetic VReal, std::size_t NumDimensions,
+          typename Tensor, typename BasisReal, typename X0Real>
 auto discretize(field<V, VReal, NumDimensions, Tensor> const& f,
                 vec<BasisReal, NumDimensions> const&          extent0,
                 vec<BasisReal, NumDimensions> const&          extent1,
                 vec<X0Real, NumDimensions> const& /*x0*/,
                 std::size_t const res0, std::size_t const res1,
-                std::string const& property_name, TReal const t) {
+                std::string const& property_name, arithmetic auto const t) {
   auto basis   = mat<BasisReal, NumDimensions, 2>{};
   basis.col(0) = extent0;
   basis.col(1) = extent1;
   return discretize(f, basis, res0, res1, property_name, t);
 }
+//==============================================================================
+}  // namespace tatooine
+//==============================================================================
 #endif

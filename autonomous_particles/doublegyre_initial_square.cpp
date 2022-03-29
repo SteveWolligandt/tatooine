@@ -186,10 +186,10 @@ struct line_shader_t : gl::shader {
     create();
   }
   auto set_projection_matrix(mat4f const& P) -> void {
-    set_uniform_mat4("projection_matrix", P.data_ptr());
+    set_uniform_mat4("projection_matrix", P.data());
   }
   auto set_view_matrix(mat4f const& V) -> void {
-    set_uniform_mat4("view_matrix", V.data_ptr());
+    set_uniform_mat4("view_matrix", V.data());
   }
   auto set_color(float const r, float const g, float const b, float const a)
       -> void {
@@ -221,14 +221,14 @@ struct particle_shader_t : gl::shader {
     create();
   }
   auto set_center(vec2f const& center) -> void {
-    set_uniform_vec2("center", center.data_ptr());
+    set_uniform_vec2("center", center.data());
   }
-  auto set_S(mat2f const& S) -> void { set_uniform_mat2("S", S.data_ptr()); }
+  auto set_S(mat2f const& S) -> void { set_uniform_mat2("S", S.data()); }
   auto set_projection_matrix(mat4f const& P) -> void {
-    set_uniform_mat4("projection_matrix", P.data_ptr());
+    set_uniform_mat4("projection_matrix", P.data());
   }
   auto set_view_matrix(mat4f const& V) -> void {
-    set_uniform_mat4("view_matrix", V.data_ptr());
+    set_uniform_mat4("view_matrix", V.data());
   }
   auto set_color(float const r, float const g, float const b, float const a)
       -> void {

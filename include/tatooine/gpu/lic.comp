@@ -12,6 +12,7 @@ uniform vec2      domain_min;
 uniform vec2      domain_max;
 uniform uint      num_samples;
 uniform float     stepsize;
+uniform float     nan;
 //==============================================================================
 vec2 idx_to_uv(uvec2 image_pos, uvec2 res) {
   // calculate normalized texture coordinates
@@ -49,28 +50,28 @@ vec2 rungekutta4_step(vec2 pos, float stepsize) {
   const vec2 x2 = pos + k1 / 2;
   if (x2.x < domain_min.x || x2.x > domain_max.x ||
       x2.y < domain_min.y || x2.y > domain_max.y) {
-    return vec2(0.0 / 0.0, 0.0 / 0.0);
+    return vec2(nan, nan);
   }
   const vec2 k2 = stepsize * v(x2);
 
   const vec2 x3 = pos + k2 / 2;
   if (x3.x < domain_min.x || x3.x > domain_max.x ||
       x3.y < domain_min.y || x3.y > domain_max.y) {
-    return vec2(0.0 / 0.0, 0.0 / 0.0);
+    return vec2(nan, nan);
   }
   const vec2 k3 = stepsize * v(x3);
 
   const vec2 x4 = pos + k3;
   if (x4.x < domain_min.x || x4.x > domain_max.x ||
       x4.y < domain_min.y || x4.y > domain_max.y) {
-    return vec2(0.0 / 0.0, 0.0 / 0.0);
+    return vec2(nan, nan);
   }
   const vec2 k4 = stepsize * v(x4);
 
   const vec2 stepped = pos + (k1 + 2 * k2 + 2 * k3 + k4) / 6;
   if (stepped.x < domain_min.x || stepped.x > domain_max.x ||
       stepped.y < domain_min.y || stepped.y > domain_max.y) {
-    return vec2(0.0 / 0.0, 0.0 / 0.0);
+    return vec2(nan, nan);
   }
   return stepped;
 }
@@ -87,18 +88,24 @@ void main() {
   vec2 pos_integrated = pos;
   for (uint i = 0; i < num_samples; ++i) {
     pos_integrated = rungekutta4_step(pos_integrated, stepsize);
-    if (isnan(pos_integrated.x) || isnan(pos_integrated.y)) { break; }
-    out_val += noise(pos_integrated);
-    ++cnt;
+    if (isnan(pos_integrated.x) || isnan(pos_integrated.y)) {
+      break;
+    } else {
+      out_val += noise(pos_integrated);
+      ++cnt;
+    }
   }
 
   // backward integration
   pos_integrated = pos;
   for (uint i = 0; i < num_samples; ++i) {
     pos_integrated = rungekutta4_step(pos_integrated, -stepsize);
-    if (isnan(pos_integrated.x) || isnan(pos_integrated.y)) { break; }
-    out_val += noise(pos_integrated);
-    ++cnt;
+    if (isnan(pos_integrated.x) || isnan(pos_integrated.y)) {
+      break;
+    } else {
+      out_val += noise(pos_integrated);
+      ++cnt;
+    }
   }
 
   // contrast stretch

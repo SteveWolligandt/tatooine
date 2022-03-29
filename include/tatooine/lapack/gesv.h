@@ -30,14 +30,14 @@ template <typename T, size_t N>
 auto gesv(tensor<T, N, N>& A,
           tensor<T, N>& b,
           tensor<std::int64_t, N>& ipiv) {
-  return ::lapack::gesv(N, 1, A.data_ptr(), N, ipiv.data_ptr(), b.data_ptr(),
+  return ::lapack::gesv(N, 1, A.data(), N, ipiv.data(), b.data(),
                         N);
 }
 template <typename T, size_t N, size_t K>
 auto gesv(tensor<T, N, N>& A,
           tensor<T, N, K>& B,
           tensor<std::int64_t, N>& ipiv) {
-  return ::lapack::gesv(N, K, A.data_ptr(), N, ipiv.data_ptr(), B.data_ptr(),
+  return ::lapack::gesv(N, K, A.data(), N, ipiv.data(), B.data(),
                         N);
 }
 template <typename T>
@@ -52,8 +52,8 @@ auto gesv(tensor<T>& A, tensor<T>& B, tensor<std::int64_t>& ipiv) {
 
   ipiv.resize(A.dimension(0));
   return ::lapack::gesv(A.dimension(0), (B.rank() == 1 ? 1 : B.dimension(1)),
-                        A.data_ptr(), A.dimension(0), ipiv.data_ptr(),
-                        B.data_ptr(), A.dimension(0));
+                        A.data(), A.dimension(0), ipiv.data(),
+                        B.data(), A.dimension(0));
 }
 //==============================================================================
 /// \}

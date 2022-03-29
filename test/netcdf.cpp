@@ -64,7 +64,7 @@ auto write_unlimited_mat_list() {
     data_out.push_back(mat2{{is.front() * 4, is.front() * 4 + 2},
                             {is.front() * 4 + 1, is.front() * 4 + 3}});
     // data_out.push_back(mat2{{rand(), rand()}, {rand(), rand()}});
-    var.write(is, cnt, data_out.back().data_ptr());
+    var.write(is, cnt, data_out.back().data());
   }
 
   return data_out;

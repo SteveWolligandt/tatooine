@@ -16,7 +16,7 @@ namespace tatooine::lapack {
 //==============================================================================
 template <typename T, size_t M, size_t N>
 auto geqrf(tensor<T, M, N>& A, tensor<T, (M < N) ? M : N>& tau) {
-  return ::lapack::geqrf(M, N, A.data_ptr(), M, tau.data_ptr());
+  return ::lapack::geqrf(M, N, A.data(), M, tau.data());
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
@@ -26,7 +26,7 @@ auto geqrf(tensor<T>& A, tensor<T>& tau) {
   auto const N = A.dimension(1);
   assert(tau.rank() == 1);
   assert(tau.dimension(0) >= tatooine::min(M, N));
-  return ::lapack::geqrf(M, N, A.data_ptr(), M, tau.data_ptr());
+  return ::lapack::geqrf(M, N, A.data(), M, tau.data());
 }
 //==============================================================================
 /// \}

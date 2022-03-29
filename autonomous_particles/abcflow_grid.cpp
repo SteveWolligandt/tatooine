@@ -117,7 +117,7 @@ auto main(int argc, char** argv) -> int {
       mat34f T{{ap.S()(0, 0), ap.S()(0, 1), ap.S()(0, 2), ap.x1()(0)},
                {ap.S()(1, 0), ap.S()(1, 1), ap.S()(1, 2), ap.x1()(1)},
                {ap.S()(2, 0), ap.S()(2, 1), ap.S()(2, 2), ap.x1()(2)}};
-      initial_var.write(initial_netcdf_is, cnt, T.data_ptr());
+      initial_var.write(initial_netcdf_is, cnt, T.data());
       ++initial_netcdf_is.front();
     }
     for (auto const& p : advected_particles) {
@@ -136,7 +136,7 @@ auto main(int argc, char** argv) -> int {
                         {p.S()(2, 0), p.S()(2, 1), p.S()(2, 2), p.x1()(2)}};
       {
         std::lock_guard lock{writer_mutex};
-        advected_var.write(advected_netcdf_is, cnt, advected_T.data_ptr());
+        advected_var.write(advected_netcdf_is, cnt, advected_T.data());
         ++advected_netcdf_is.front();
       }
 
@@ -148,7 +148,7 @@ auto main(int argc, char** argv) -> int {
       {
         std::lock_guard lock{writer_mutex};
         back_calculation_var.write(back_calculation_netcdf_is, cnt,
-                                   back_calculation_T.data_ptr());
+                                   back_calculation_T.data());
         ++back_calculation_netcdf_is.front();
       }
     }

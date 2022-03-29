@@ -682,7 +682,7 @@ struct line {
     std::cout << "arr_size: " << arr_size << '\n';
     std::cout << "header_type: " << sizeof(header_type) << '\n';
     for (auto const v : vertices()) {
-      file.write(reinterpret_cast<char const*>(at(v).data_ptr()),
+      file.write(reinterpret_cast<char const*>(at(v).data()),
                  sizeof(Real) * num_dimensions());
     }
 

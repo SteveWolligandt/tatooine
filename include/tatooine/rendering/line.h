@@ -32,10 +32,10 @@ struct line_shader : gl::shader {
     create();
   }
   auto set_projection_matrix(mat4f const& P) {
-    set_uniform_mat4("projection_matrix", P.data_ptr());
+    set_uniform_mat4("projection_matrix", P.data());
   }
   auto set_modelview_matrix(mat4f const& MV) {
-    set_uniform_mat4("modelview_matrix", MV.data_ptr());
+    set_uniform_mat4("modelview_matrix", MV.data());
   }
   auto set_color(GLfloat const r, GLfloat const g, GLfloat const b) {
     set_uniform("color", r, g, b);
@@ -122,7 +122,7 @@ auto interactive(std::vector<line<Real, N>> const& lines) {
     gl::clear_color_depth_buffer();
     shader.set_modelview_matrix(win.camera_controller().view_matrix());
     shader.set_projection_matrix(win.camera_controller().projection_matrix());
-    if (ImGui::ColorEdit3("color", col.data_ptr())) {
+    if (ImGui::ColorEdit3("color", col.data())) {
       shader.set_color(col(0), col(1), col(2));
     }
     gpu_data.draw_lines();
