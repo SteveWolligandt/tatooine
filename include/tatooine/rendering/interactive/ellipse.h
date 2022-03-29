@@ -57,7 +57,7 @@ struct renderer<Ellipse> {
   auto properties(renderable_type const& /*ell*/) {
     ImGui::Text("Ellipse");
     ImGui::DragInt("Line width", &line_width, 1, 1, 20);
-    ImGui::ColorEdit4("Color", color.data().data());
+    ImGui::ColorEdit4("Color", color.data());
   }
   //==============================================================================
   static auto construct_model_matrix(Mat2<real_type> const& S,
@@ -129,7 +129,7 @@ struct renderer<EllipseRange> {
   auto properties(renderable_type const& ell) {
     ImGui::Text("Ellipse");
     ImGui::DragInt("Line width", &line_width, 1, 1, 20);
-    ImGui::ColorEdit4("Color", color.data().data());
+    ImGui::ColorEdit4("Color", color.data());
   }
   //==============================================================================
   static auto construct_model_matrix(Mat2<real_type> const& S,

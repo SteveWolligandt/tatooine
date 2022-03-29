@@ -45,7 +45,7 @@ auto finite_differences_coefficients(std::size_t const     derivative_order,
   auto const V         = transposed(tensor<real_type>::vander(v, v.size()));
   auto       b         = tensor<real_type>::zeros(size(v));
   b(derivative_order)  = factorial(derivative_order);
-  return solve(V, b)->data();
+  return solve(V, b)->internal_container();
 }
 //==============================================================================
 /// \}

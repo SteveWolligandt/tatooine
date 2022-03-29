@@ -62,11 +62,11 @@ struct vis {
    public:
     //------------------------------------------------------------------------------
     auto set_projection_matrix(Mat4<GLfloat> const& P) -> void {
-      set_uniform_mat4("projection_matrix", P.data().data());
+      set_uniform_mat4("projection_matrix", P.data());
     }
     //------------------------------------------------------------------------------
     auto set_view_matrix(Mat4<GLfloat> const& MV) -> void {
-      set_uniform_mat4("view_matrix", MV.data().data());
+      set_uniform_mat4("view_matrix", MV.data());
     }
   };
   //----------------------------------------------------------------------------

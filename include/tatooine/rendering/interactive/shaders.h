@@ -87,11 +87,11 @@ struct colored_pass_through_2d : gl::shader {
   }
   //------------------------------------------------------------------------------
   auto set_model_view_matrix(Mat4<GLfloat> const& MV) -> void {
-    set_uniform_mat4("model_view_matrix", MV.data().data());
+    set_uniform_mat4("model_view_matrix", MV.data());
   }
   //------------------------------------------------------------------------------
   auto set_projection_matrix(Mat4<GLfloat> const& P) -> void {
-    set_uniform_mat4("projection_matrix", P.data().data());
+    set_uniform_mat4("projection_matrix", P.data());
   }
 };
 //==============================================================================

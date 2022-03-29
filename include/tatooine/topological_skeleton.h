@@ -1,15 +1,14 @@
 #ifndef TATOOINE_TOPOLIGICAL_SKELEKTON
 #define TATOOINE_TOPOLIGICAL_SKELEKTON
-
+//==============================================================================
 #include <vector>
-#include "tensor.h"
-#include "grid_sampler.h"
-#include "sampled_field.h"
-#include "integration/integrator.h"
-#include "line.h"
-#include "critical_points.h"
-#include "boundary_switch.h"
-
+#include <tatooine/tensor.h>
+#include <tatooine/grid_sampler.h>
+#include <tatooine/sampled_field.h>
+#include <tatooine/integration/integrator.h>
+#include <tatooine/line.h>
+#include <tatooine/critical_points.h>
+#include <tatooine/boundary_switch.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -114,5 +113,4 @@ auto compute_topological_skeleton(
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-
 #endif
