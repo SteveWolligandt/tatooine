@@ -83,11 +83,11 @@ struct renderer<tatooine::unstructured_simplicial_grid<Real, 2, 2>> {
    public:
     //--------------------------------------------------------------------------
     auto set_projection_matrix(Mat4<GLfloat> const& P) -> void {
-      set_uniform_mat4("projection_matrix", P.data().data());
+      set_uniform_mat4("projection_matrix", P.data());
     }
     //--------------------------------------------------------------------------
     auto set_model_view_matrix(Mat4<GLfloat> const& MV) -> void {
-      set_uniform_mat4("model_view_matrix", MV.data().data());
+      set_uniform_mat4("model_view_matrix", MV.data());
     }
     //--------------------------------------------------------------------------
     auto set_min(GLfloat const min) -> void { set_uniform("min", min); }
@@ -570,7 +570,7 @@ struct renderer<tatooine::unstructured_simplicial_grid<Real, 2, 2>> {
     ImGui::Checkbox("Show Grid", &show_wireframe);
     ImGui::Checkbox("Show Property", &show_property);
     ImGui::DragInt("Line width", &line_width, 1, 1, 20);
-    ImGui::ColorEdit4("Wireframe Color", wireframe_color.data().data());
+    ImGui::ColorEdit4("Wireframe Color", wireframe_color.data());
     grid_property_selection(grid);
     if (selected_property != nullptr && vector_property) {
       vector_component_selection(grid);

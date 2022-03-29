@@ -86,11 +86,11 @@ struct renderer<tatooine::pointset<Real, 2>> {
     }
     //------------------------------------------------------------------------------
     auto set_projection_matrix(Mat4<GLfloat> const& P) -> void {
-      set_uniform_mat4("projection_matrix", P.data().data());
+      set_uniform_mat4("projection_matrix", P.data());
     }
     //------------------------------------------------------------------------------
     auto set_view_matrix(Mat4<GLfloat> const& V) -> void {
-      set_uniform_mat4("view_matrix", V.data().data());
+      set_uniform_mat4("view_matrix", V.data());
     }
     //--------------------------------------------------------------------------
     auto invert_scale(bool const invert) -> void {
@@ -381,7 +381,7 @@ struct renderer<tatooine::pointset<Real, 2>> {
   auto properties(renderable_type const& ps) {
     ImGui::Text("Pointset");
     ImGui::DragInt("Point Size", &point_size, 1, 1, 20);
-    ImGui::ColorEdit4("Color", color.data().data());
+    ImGui::ColorEdit4("Color", color.data());
     ImGui::Checkbox("Show Property", &show_property);
     pointset_property_selection(ps);
     if (selected_property != nullptr) {

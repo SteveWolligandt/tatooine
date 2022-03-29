@@ -13,6 +13,20 @@
 //==============================================================================
 namespace tatooine::examples {
 //==============================================================================
+auto gpu_lic_janos(filesystem::path const& path, real_number const t,
+                        std::size_t const num_samples,
+                        real_number const step_size) {
+  struct velocity_janos : vectorfield<velocity_janos, real_number, 2> {
+    constexpr auto evaluate(vec2 const& p, real_number const t) const
+        -> vectorfield<velocity_janos, real_number, 2>::tensor_type {
+      return vec2{-p.x() * (2 * p.x() * p.x() - 2) / 2, -p.y()};
+    }
+  } v;
+  gpu::lic(v, linspace{-2.0, 2.0, 2000}, linspace{-1.0, 1.0, 1000}, t,
+           {1000, 500}, num_samples, step_size, {256, 256}, random::uniform{})
+      .write_png(path);
+}
+//==============================================================================
 auto gpu_lic_doublegyre(filesystem::path const& path, real_number const t,
                         std::size_t const num_samples,
                         real_number const step_size) {
@@ -65,6 +79,7 @@ auto gpu_lic_cosinussinus(filesystem::path const& path, real_number const t,
 }  // namespace tatooine::examples
 //==============================================================================
 enum class field {
+  janos,
   doublegyre,
   saddle,
   center,
@@ -76,7 +91,10 @@ enum class field {
 auto operator>>(std::istream& in, field& f) -> auto& {
   auto token = std::string{};
   in >> token;
-  if (token == "doublegyre") {
+  if (token == "janos") {
+    f = field::janos;
+    return in;
+  } else if (token == "saddle") {
     f = field::doublegyre;
     return in;
   } else if (token == "saddle") {
@@ -155,6 +173,9 @@ auto main(int argc, char** argv) -> int {
     throw std::runtime_error{"Specified unknown field."};
   }
   switch (f) {
+    case field::janos:
+      tatooine::examples::gpu_lic_janos(path, t, num_samples, step_size);
+      break;
     case field::doublegyre:
       tatooine::examples::gpu_lic_doublegyre(path, t, num_samples, step_size);
       break;

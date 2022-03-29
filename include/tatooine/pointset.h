@@ -28,6 +28,11 @@
 namespace tatooine {
 //==============================================================================
 namespace detail::pointset {
+#ifdef TATOOINE_HAS_CGAL_SUPPORT
+template <floating_point Real, std::size_t NumDimensions, typename T>
+struct natural_neighbor_coordinates_sampler;
+#endif
+//==============================================================================
 template <floating_point Real, std::size_t NumDimensions, typename T,
           invocable<Real> F>
 struct moving_least_squares_sampler;
@@ -964,7 +969,6 @@ struct pointset {
   //============================================================================
   /// \{
   /// \addtogroup radial_basis_functions Radial Basis Functions Interpolation
-  /// \{
 
   /// \brief Constructs a radial basis functions interpolator.
   ///
@@ -1107,6 +1111,14 @@ struct pointset {
         *this, prop, std::forward<decltype(f)>(f)};
   }
   ///\}
+  //----------------------------------------------------------------------------
+  ///\{
+  template <typename T>
+  auto natural_neighbor_coordinates_sampler(
+      typed_vertex_property_type<T> const& prop) const {
+    return detail::pointset::natural_neighbor_coordinates_sampler<
+        Real, NumDimensions, T>{*this, prop};
+  }
   ///\}
   //----------------------------------------------------------------------------
   friend struct detail::pointset::vertex_container<Real, NumDimensions>;
@@ -1124,6 +1136,7 @@ using pointset5 = Pointset<5>;
 //==============================================================================
 #include <tatooine/detail/pointset/inverse_distance_weighting_sampler.h>
 #include <tatooine/detail/pointset/moving_least_squares_sampler.h>
+#include <tatooine/detail/pointset/natural_neighbor_coordinates_sampler.h>
 #include <tatooine/detail/pointset/radial_basis_functions_sampler.h>
 #include <tatooine/detail/pointset/radial_basis_functions_sampler_with_polynomial.h>
 #include <tatooine/detail/pointset/vertex_container.h>

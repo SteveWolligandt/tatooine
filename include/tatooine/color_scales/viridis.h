@@ -181,7 +181,7 @@ struct viridis {
       gpu_data[i * 4 + 3] = 1;
     }
     auto tex = gl::tex1rgba32f{gpu_data.data(), num_samples};
-    tex.set_wrap_mode(gl::WrapMode::CLAMP_TO_EDGE);
+    tex.set_wrap_mode(gl::wrap_mode::clamp_to_edge);
     return tex;
   }
 };

@@ -60,11 +60,11 @@ struct vis {
    public:
     //------------------------------------------------------------------------------
     auto set_projection_matrix(Mat4<GLfloat> const& P) -> void {
-      set_uniform_mat4("projection_matrix", P.data().data());
+      set_uniform_mat4("projection_matrix", P.data());
     }
     //------------------------------------------------------------------------------
     auto set_view_matrix(Mat4<GLfloat> const& MV) -> void {
-      set_uniform_mat4("view_matrix", MV.data().data());
+      set_uniform_mat4("view_matrix", MV.data());
     }
   };
   //----------------------------------------------------------------------------
@@ -424,11 +424,17 @@ struct vis {
     }
   }
 };
+struct velocity_janos : vectorfield<velocity_janos, real_number, 2> {
+  constexpr auto evaluate(vec2 const& p, real_number const t) const
+      -> vectorfield<velocity_janos, real_number, 2>::tensor_type {
+    return vec2{-p.x() * (2 * p.x() * p.x() - 2) / 2, -p.y()};
+  }
+};
 struct flowmap_janos {
   static constexpr auto num_dimensions() -> std::size_t { return 2; }
-  auto operator()(auto const& p, real_number const t, real_number const tau) const {
-    return vec2{p(0) / sqrt(-exp(-2 * tau) * p(0) * p(0) + p(0) * p(0) +
-                             gcem::exp(-2 * tau)),
+  auto                  operator()(auto const& p, real_number const t,
+                  real_number const tau) const {
+    return vec2{p(0) / sqrt(-exp(-2 * tau) * p(0) * p(0) + p(0) * p(0) + gcem::exp(-2 * tau)),
                 p(1) * gcem::exp(-tau)};
   };
 
@@ -840,14 +846,14 @@ auto doit(auto& resample_grid, auto const& initial_particles,
                     std::back_inserter(advected_particles));
 
   auto regular_flowmap_grid =
-      rectilinear_grid{linspace{0.0, 2.0, regularized_width},
-                       linspace{0.0, 1.0, regularized_height}};
+      rectilinear_grid{linspace{-2.0, 2.0, regularized_width},
+                       linspace{-1.0, 1.0, regularized_height}};
   auto regular_flowmap_grid_agranovsky =
-      rectilinear_grid{linspace{0.0, 2.0, regularized_width_agranovksky},
-                       linspace{0.0, 1.0, regularized_height_agranovksky}};
+      rectilinear_grid{linspace{-2.0, 2.0, regularized_width_agranovksky},
+                       linspace{-1.0, 1.0, regularized_height_agranovksky}};
 
   rendering::interactive::render(
-      rectilinear_grid{linspace{0.0, 2.0, 3}, linspace{0.0, 1.0, 2}},
+      rectilinear_grid{linspace{-2.0, 2.0, 3}, linspace{-1.0, 1.0, 2}},
       // regular_flowmap_grid,regular_flowmap_grid_agranovsky,
       initial_particles, advected_particles, m,
       resample_grid_with_particle_centers);
@@ -891,9 +897,9 @@ auto main(int argc, char** argv) -> int {
   }
   //============================================================================
   auto resample_grid =
-      rectilinear_grid{linspace{-2.0, 2.0, 201}, linspace{-2.0, 2.0, 201}};
+      rectilinear_grid{linspace{-2.0, 2.0, 201}, linspace{-1.0, 1.0, 101}};
   auto const initial_particles_dg = autonomous_particle2::particles_from_grid(
-      t_0, rectilinear_grid{linspace{-2.0, 2.0, 61}, linspace{-2.0, 2.0, 61}},
+      t_0, rectilinear_grid{linspace{-2.0, 2.0, 61}, linspace{-1.0, 1.0, 31}},
       uuid_generator);
   doit(resample_grid, initial_particles_dg, uuid_generator, t_0, t_end,
        inverse_distance_num_samples);

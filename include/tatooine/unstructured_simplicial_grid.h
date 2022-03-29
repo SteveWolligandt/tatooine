@@ -481,8 +481,7 @@ struct unstructured_simplicial_grid
     using vertex_base_type = std::conditional_t<
         NumDimensions == 2,
         CGAL::Triangulation_vertex_base_with_info_2<vertex_handle, kernel_type>,
-        CGAL::Triangulation_vertex_base_with_info_3<vertex_handle,
-                                                    kernel_type>>;
+        CGAL::Triangulation_vertex_base_with_info_3<vertex_handle, kernel_type>>;
     using triangulation_data_type = std::conditional_t<
         NumDimensions == 2,
         CGAL::Triangulation_data_structure_2<vertex_base_type>,
