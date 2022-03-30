@@ -154,7 +154,7 @@ struct typed_vector_property : vector_property<Handle> {
   //----------------------------------------------------------------------------
   auto data() const { return m_data.data(); }
   //----------------------------------------------------------------------------
-  auto container() const -> auto const& { return m_data; }
+  auto internal_container() const -> auto const& { return m_data; }
   //----------------------------------------------------------------------------
   auto size() const { return m_data.size(); }
   //----------------------------------------------------------------------------
@@ -349,7 +349,7 @@ struct typed_deque_property : deque_property<Handle> {
     m_data.shrink_to_fit();
   }
   //----------------------------------------------------------------------------
-  auto container() const -> const auto& { return m_data; }
+  auto internal_container() const -> const auto& { return m_data; }
   //----------------------------------------------------------------------------
   auto data() const { return m_data.data(); }
   //----------------------------------------------------------------------------

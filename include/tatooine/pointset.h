@@ -31,6 +31,10 @@ namespace detail::pointset {
 #ifdef TATOOINE_HAS_CGAL_SUPPORT
 template <floating_point Real, std::size_t NumDimensions, typename T>
 struct natural_neighbor_coordinates_sampler;
+//------------------------------------------------------------------------------
+template <floating_point Real, std::size_t NumDimensions, typename T,
+          typename Gradient>
+struct natural_neighbor_coordinates_sampler_with_gradients;
 #endif
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions, typename T,
@@ -598,7 +602,7 @@ struct pointset {
       vtk::legacy_file_writer& writer, std::string const& name,
       typed_vertex_property_type<T> const& prop)
       const -> void {
-    writer.write_scalars(name, prop.container());
+    writer.write_scalars(name, prop.internal_container());
   }
   //----------------------------------------------------------------------------
   template <typename... Ts>
@@ -1119,6 +1123,16 @@ struct pointset {
     return detail::pointset::natural_neighbor_coordinates_sampler<
         Real, NumDimensions, T>{*this, prop};
   }
+  //----------------------------------------------------------------------------
+  template <typename T, typename Gradient>
+  auto natural_neighbor_coordinates_sampler_with_gradients(
+      typed_vertex_property_type<T> const&        prop,
+      typed_vertex_property_type<Gradient> const& gradients) const {
+    return detail::pointset::
+        natural_neighbor_coordinates_sampler_with_gradients<Real, NumDimensions,
+                                                            T, Gradient>{
+            *this, prop, gradients};
+  }
   ///\}
   //----------------------------------------------------------------------------
   friend struct detail::pointset::vertex_container<Real, NumDimensions>;
@@ -1137,6 +1151,7 @@ using pointset5 = Pointset<5>;
 #include <tatooine/detail/pointset/inverse_distance_weighting_sampler.h>
 #include <tatooine/detail/pointset/moving_least_squares_sampler.h>
 #include <tatooine/detail/pointset/natural_neighbor_coordinates_sampler.h>
+#include <tatooine/detail/pointset/natural_neighbor_coordinates_sampler_with_gradients.h>
 #include <tatooine/detail/pointset/radial_basis_functions_sampler.h>
 #include <tatooine/detail/pointset/radial_basis_functions_sampler_with_polynomial.h>
 #include <tatooine/detail/pointset/vertex_container.h>

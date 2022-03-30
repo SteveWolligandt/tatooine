@@ -2,9 +2,9 @@
 #ifndef TATOOINE_DETAIL_POINTSET_NATURAL_NEIGHBOR_COORDINATES_SAMPLER_H
 #define TATOOINE_DETAIL_POINTSET_NATURAL_NEIGHBOR_COORDINATES_SAMPLER_H
 //==============================================================================
-#include <CGAL/Delaunay_triangulation_2.h>
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/natural_neighbor_coordinates_2.h>
+#include <CGAL/natural_neighbor_coordinates_3.h>
+#include <tatooine/cgal.h>
 #include <tatooine/concepts.h>
 //==============================================================================
 namespace tatooine::detail::pointset {
@@ -24,10 +24,11 @@ struct natural_neighbor_coordinates_sampler
   using vertex_property_type =
       typename pointset_type::template typed_vertex_property_type<T>;
 
-  using cgal_kernel     = CGAL::Exact_predicates_inexact_constructions_kernel;
-  using cgal_coord_type = cgal_kernel::FT;
-  using cgal_point      = cgal_kernel::Point_2;
-  using triangulation_type = CGAL::Delaunay_triangulation_2<cgal_kernel>;
+  using cgal_kernel = CGAL::Exact_predicates_inexact_constructions_kernel;
+  using triangulation_type =
+      cgal::delaunay_triangulation_with_info<NumDimensions, cgal_kernel,
+                                             vertex_handle>;
+  using cgal_point = triangulation_type::Point;
 
   //==========================================================================
   pointset_type const&        m_pointset;
@@ -37,9 +38,13 @@ struct natural_neighbor_coordinates_sampler
   natural_neighbor_coordinates_sampler(pointset_type const&        ps,
                                        vertex_property_type const& property)
       : m_pointset{ps}, m_property{property} {
-    for (auto const v : ps.vertices()) {
-      m_triangulation.insert(cgal_point(ps[v].x(), ps[v].y()));
+    auto points = std::vector<std::pair<cgal_point, vertex_handle>>{};
+    points.reserve(ps.vertices().size());
+    for (auto v : ps.vertices()) {
+      points.emplace_back(cgal_point{ps[v](0), ps[v](1)}, v);
     }
+
+    m_triangulation = triangulation_type{begin(points), end(points)};
   }
   //--------------------------------------------------------------------------
   natural_neighbor_coordinates_sampler(
@@ -56,26 +61,40 @@ struct natural_neighbor_coordinates_sampler
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   ~natural_neighbor_coordinates_sampler() = default;
   //==========================================================================
-  [[nodiscard]] auto evaluate(pos_type const& x, real_type const /*t*/) const
+ private:
+  template <std::size_t... Is>
+  [[nodiscard]] auto evaluate(pos_type const& x,
+                              std::index_sequence<Is...> /*seq*/) const
       -> tensor_type {
     using point_coordinate_vector =
-        std::vector<std::pair<cgal_point, cgal_coord_type> >;
+        std::vector<std::pair<typename triangulation_type::Vertex_handle, cgal_kernel::FT>>;
+
     // coordinates computation
-    auto p      = cgal_point{x.x(), x.y()};  // query point
-    auto coords = point_coordinate_vector{};
-    auto result = CGAL::natural_neighbor_coordinates_2(
-        m_triangulation, p, std::back_inserter(coords));
+    auto       coords = point_coordinate_vector{};
+    auto const p      = cgal_point{x(Is)...};  // query point
+    auto const result = CGAL::natural_neighbor_coordinates_2(
+        m_triangulation, p, std::back_inserter(coords),
+        CGAL::Identity<std::pair<typename triangulation_type::Vertex_handle,
+                                 cgal_kernel::FT>>{});
     if (!result.third) {
       return parent_type::ood_tensor();
     }
-    auto norm = result.second;
-    std::cout << "Coordinate computation successful." << std::endl;
-    std::cout << "Normalization factor: " << norm << std::endl;
-    std::cout << "Coordinates for point: (" << p
-              << ") are the following: " << std::endl;
-    for (std::size_t i = 0; i < coords.size(); ++i)
-      std::cout << "  Point: (" << coords[i].first
-                << ") coeff: " << coords[i].second << std::endl;
+    auto const norm = 1 / result.second;
+    // std::cout << "Coordinate computation successful." << std::endl;
+    // std::cout << "Normalization factor: " << norm << std::endl;
+    // std::cout << "Coordinates for point: (" << p
+    //           << ") are the following: " << std::endl;
+    auto t = tensor_type{};
+    for (auto const& [handle, coeff] : coords) {
+      t += m_property[handle->info()] * coeff * norm;
+    }
+    return t;
+  }
+  //----------------------------------------------------------------------------
+ public:
+  [[nodiscard]] auto evaluate(pos_type const& x, real_type const /*t*/) const
+      -> tensor_type {
+    return evaluate(x, std::make_index_sequence<NumDimensions>{});
   }
 };
 //==============================================================================
