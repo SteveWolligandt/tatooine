@@ -41,7 +41,7 @@ auto main(int argc, char const** argv) -> int {
   auto f = analytical::fields::numerical::frankes_test{};
 
   for (size_t i = 0; i < options.num_datapoints; ++i) {
-    auto v = ps.insert_vertex(rand() * 4 - 2, rand() * 2 - 1);
+    auto v = ps.insert_vertex(rand(), rand());
 
     switch (options.type) {
       case type_t::franke:
@@ -55,8 +55,8 @@ auto main(int argc, char const** argv) -> int {
     }
   }
 
-  auto gr = uniform_rectilinear_grid2{linspace{-2.0, 2.0, options.output_res_x},
-                                      linspace{-1.0, 1.0, options.output_res_y}};
+  auto gr = uniform_rectilinear_grid2{linspace{0.0, 1.0, options.output_res_x},
+                                      linspace{0.0, 1.0, options.output_res_y}};
 
   auto sample_scalar = [&] {
     auto sampler_without_gradients =
