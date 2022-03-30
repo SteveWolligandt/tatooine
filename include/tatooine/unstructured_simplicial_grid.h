@@ -5,11 +5,7 @@
 #include <CDT.h>
 #endif
 #ifdef TATOOINE_HAS_CGAL_SUPPORT
-#include <CGAL/Delaunay_triangulation_2.h>
-#include <CGAL/Delaunay_triangulation_3.h>
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/Triangulation_vertex_base_with_info_2.h>
-#include <CGAL/Triangulation_vertex_base_with_info_3.h>
+#include <tatooine/cgal.h>
 #endif
 
 #include <tatooine/axis_aligned_bounding_box.h>
@@ -478,18 +474,8 @@ struct unstructured_simplicial_grid
   requires (NumDimensions == 2) || (NumDimensions == 3) {
     simplex_index_data().clear();
     using kernel_type = CGAL::Exact_predicates_inexact_constructions_kernel;
-    using vertex_base_type = std::conditional_t<
-        NumDimensions == 2,
-        CGAL::Triangulation_vertex_base_with_info_2<vertex_handle, kernel_type>,
-        CGAL::Triangulation_vertex_base_with_info_3<vertex_handle, kernel_type>>;
-    using triangulation_data_type = std::conditional_t<
-        NumDimensions == 2,
-        CGAL::Triangulation_data_structure_2<vertex_base_type>,
-        CGAL::Triangulation_data_structure_3<vertex_base_type>>;
-    using triangulation_type = std::conditional_t<
-        NumDimensions == 2,
-        CGAL::Delaunay_triangulation_2<kernel_type, triangulation_data_type>,
-        CGAL::Delaunay_triangulation_3<kernel_type, triangulation_data_type>>;
+    using triangulation_type = 
+        cgal::delaunay_triangulation_with_info<NumDimensions, kernel_type, vertex_handle>;
     using point_type = typename triangulation_type::Point;
     auto points      = std::vector<std::pair<point_type, vertex_handle>>{};
     points.reserve(vertices().size());
@@ -524,19 +510,8 @@ struct unstructured_simplicial_grid
   requires (NumDimensions == 2) || (NumDimensions == 3) {
     simplex_index_data().clear();
     using kernel_type = CGAL::Exact_predicates_inexact_constructions_kernel;
-    using vertex_base_type = std::conditional_t<
-        NumDimensions == 2,
-        CGAL::Triangulation_vertex_base_with_info_2<vertex_handle, kernel_type>,
-        CGAL::Triangulation_vertex_base_with_info_3<vertex_handle,
-                                                    kernel_type>>;
-    using triangulation_data_type = std::conditional_t<
-        NumDimensions == 2,
-        CGAL::Triangulation_data_structure_2<vertex_base_type>,
-        CGAL::Triangulation_data_structure_3<vertex_base_type>>;
-    using triangulation_type = std::conditional_t<
-        NumDimensions == 2,
-        CGAL::Delaunay_triangulation_2<kernel_type, triangulation_data_type>,
-        CGAL::Delaunay_triangulation_3<kernel_type, triangulation_data_type>>;
+    using triangulation_type = 
+        cgal::delaunay_triangulation_with_info<NumDimensions, kernel_type, vertex_handle>;
     using point_type = typename triangulation_type::Point;
     auto points      = std::vector<std::pair<point_type, vertex_handle>>{};
     points.reserve(vertices.size());
@@ -928,11 +903,15 @@ struct unstructured_simplicial_grid
       if constexpr (NumDimensions == 2) {
         auto point_data      = std::vector<vec<Real, 3>>(vertices().size());
         auto position        = [this](auto const v) -> auto& { return at(v); };
-        constexpr auto to_3d = [](auto const& p) {
-          return vec{p.x(), p.y(), Real(0)};
-        };
-        copy(vertices() | views::transform(position) | views::transform(to_3d),
-             begin(point_data));
+        auto it              = begin(point_data);
+        for (auto const v : vertices()) {
+          if constexpr (NumDimensions == 2) {
+            *it = vec{at(v).x(), at(v).y(), Real(0)};
+          } else {
+            *it = at(v);
+          }
+          ++it;
+        }
         file.write(reinterpret_cast<char const*>(point_data.data()),
                    num_bytes_points);
       } else if constexpr (NumDimensions == 3) {
@@ -1013,21 +992,21 @@ struct unstructured_simplicial_grid
           auto const& casted_prop =
               *dynamic_cast<typed_vertex_property_type<vec<Real, 4>> const*>(
                   prop.get());
-          writer.write_scalars(name, casted_prop.data());
+          writer.write_scalars(name, casted_prop.internal_container());
         } else if (prop->type() == typeid(vec<Real, 3>)) {
           auto const& casted_prop =
               *dynamic_cast<typed_vertex_property_type<vec<Real, 3>> const*>(
                   prop.get());
-          writer.write_scalars(name, casted_prop.data());
+          writer.write_scalars(name, casted_prop.internal_container());
         } else if (prop->type() == typeid(vec<Real, 2>)) {
           auto const& casted_prop =
               *dynamic_cast<typed_vertex_property_type<vec<Real, 2>> const*>(
                   prop.get());
-          writer.write_scalars(name, casted_prop.data());
+          writer.write_scalars(name, casted_prop.internal_container());
         } else if (prop->type() == typeid(Real)) {
           auto const& casted_prop =
               *dynamic_cast<typed_vertex_property_type<Real> const*>(prop.get());
-          writer.write_scalars(name, casted_prop.data());
+          writer.write_scalars(name, casted_prop.internal_container());
         }
       }
 
@@ -1069,11 +1048,11 @@ struct unstructured_simplicial_grid
           auto const& casted_prop =
               *dynamic_cast<typed_vertex_property_type<vec<Real, 2>> const*>(
                   prop.get());
-          writer.write_scalars(name, casted_prop.data());
+          writer.write_scalars(name, casted_prop.internal_container());
         } else if (prop->type() == typeid(Real)) {
           auto const& casted_prop =
               *dynamic_cast<typed_vertex_property_type<Real> const*>(prop.get());
-          writer.write_scalars(name, casted_prop.data());
+          writer.write_scalars(name, casted_prop.internal_container());
         }
       }
 

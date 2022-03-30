@@ -523,24 +523,21 @@ class legacy_file_writer {
   auto write_tensors(std::string const &               name,
                      std::vector<std::array<Real, 9>> &tensors) -> void;
   //----------------------------------------------------------------------------
-  template <typename Data>
-  requires(is_double<Data> || is_float<Data> || is_int<Data>)
-      auto write_scalars(std::string const &name, std::vector<Data> const &data,
-                         std::string const &lookup_table_name = "default")
+  template <either_of<double, float, int> Data>
+  auto write_scalars(std::string const &name, std::vector<Data> const &data,
+                     std::string const &lookup_table_name = "default")
           -> void;
   //----------------------------------------------------------------------------
-  template <typename Data>
-  requires(is_double<Data> || is_float<Data> || is_int<Data>)
-      auto write_scalars(std::string const &                   name,
-                         std::vector<std::vector<Data>> const &data,
-                         std::string const &lookup_table_name = "default")
+  template <either_of<double, float, int> Data>
+  auto write_scalars(std::string const &                   name,
+                     std::vector<std::vector<Data>> const &data,
+                     std::string const &lookup_table_name = "default")
           -> void;
   //----------------------------------------------------------------------------
-  template <typename Data, size_t N>
-  requires(is_double<Data> || is_float<Data> || is_int<Data>)
-      auto write_scalars(std::string const &                     name,
-                         std::vector<std::array<Data, N>> const &data,
-                         std::string const &lookup_table_name = "default")
+  template <either_of<double, float, int> Data, std::size_t N>
+  auto write_scalars(std::string const &                     name,
+                     std::vector<std::array<Data, N>> const &data,
+                     std::string const &lookup_table_name = "default")
           -> void {
     std::stringstream ss;
     ss << "\nSCALARS " << name << ' ' << type_to_str<Data>() << ' ' << N
@@ -554,11 +551,10 @@ class legacy_file_writer {
       }
   }
   //----------------------------------------------------------------------------
-  template <typename Data, size_t N>
-  requires(is_double<Data> || is_float<Data> || is_int<Data>)
-      auto write_scalars(std::string const &              name,
-                         std::vector<vec<Data, N>> const &data,
-                         std::string const &lookup_table_name = "default")
+  template <either_of<double, float, int> Data, size_t N>
+  auto write_scalars(std::string const &              name,
+                     std::vector<vec<Data, N>> const &data,
+                     std::string const &lookup_table_name = "default")
           -> void {
     std::stringstream ss;
     ss << "\nSCALARS " << name << ' ' << type_to_str<Data>() << ' ' << N
@@ -573,11 +569,10 @@ class legacy_file_writer {
       }
   }
   //----------------------------------------------------------------------------
-  template <typename Real, size_t N>
-  requires(is_double<Real> || is_float<Real> || is_int<Real>)
-      auto write_scalars(std::string const &                 name,
-                         std::vector<tensor<Real, N>> const &data,
-                         std::string const &lookup_table_name = "default")
+  template <either_of<double, float, int> Real, size_t N>
+  auto write_scalars(std::string const &                 name,
+                     std::vector<tensor<Real, N>> const &data,
+                     std::string const &lookup_table_name = "default")
           -> void {
     std::stringstream ss;
     ss << "\nSCALARS " << name << ' ' << type_to_str<Real>() << ' ' << N
@@ -748,12 +743,11 @@ auto legacy_file_writer::write_tensors(
   write_data<9>("TENSORS", name, tensors);
 }
 //-----------------------------------------------------------------------------
-template <typename Data>
-requires(is_double<Data> || is_float<Data> || is_int<Data>)
-    auto legacy_file_writer::write_scalars(std::string const &      name,
-                                           std::vector<Data> const &data,
-                                           std::string const &lookup_table_name)
-        -> void {
+template <either_of<double, float, int> Data>
+auto legacy_file_writer::write_scalars(std::string const       &name,
+                                       std::vector<Data> const &data,
+                                       std::string const &lookup_table_name)
+    -> void {
   std::stringstream ss;
   ss << "\nSCALARS " << name << ' ' << type_to_str<Data>() << " 1\n";
   vtk::write_binary(m_file, ss.str());
@@ -764,11 +758,10 @@ requires(is_double<Data> || is_float<Data> || is_int<Data>)
   }
 }
 //------------------------------------------------------------------------------
-template <typename Data>
-requires(is_double<Data> || is_float<Data> || is_int<Data>)
-    auto legacy_file_writer::write_scalars(
-        std::string const &name, std::vector<std::vector<Data>> const &data,
-        std::string const &lookup_table_name) -> void {
+template <either_of<double, float, int> Data>
+auto legacy_file_writer::write_scalars(
+    std::string const &name, std::vector<std::vector<Data>> const &data,
+    std::string const &lookup_table_name) -> void {
   std::stringstream ss;
   ss << "\nSCALARS " << name << ' ' << type_to_str<Data>()
      << std::to_string(data.front().size()) + '\n';
