@@ -16,23 +16,25 @@ template <typename V, template <typename, std::size_t> typename ODESolver,
           template <typename> typename InterpolationKernel>
 struct numerical_flowmap {
   using this_type      = numerical_flowmap<V, ODESolver, InterpolationKernel>;
-  using raw_field_t = std::remove_pointer_t<std::decay_t<V>>;
-  using real_type      = typename raw_field_t::real_type;
+  using raw_field_type = std::remove_pointer_t<std::decay_t<V>>;
+  using real_type      = typename raw_field_type::real_type;
   static constexpr auto num_dimensions() {
-    return raw_field_t::num_dimensions();
+    return raw_field_type::num_dimensions();
   }
-  using vec_t            = vec<real_type, num_dimensions()>;
-  using pos_type            = vec_t;
-  using integral_curve_t = line<real_type, num_dimensions()>;
-  using cache_t = tatooine::cache<std::pair<real_type, pos_type>, integral_curve_t>;
-  using ode_solver_t = ODESolver<real_type, num_dimensions()>;
+  using vec_type            = vec<real_type, num_dimensions()>;
+  using pos_type            = vec_type;
+  using integral_curve_type = line<real_type, num_dimensions()>;
+  using cache_type =
+      tatooine::cache<std::pair<real_type, pos_type>, integral_curve_type>;
+  using ode_solver_type = ODESolver<real_type, num_dimensions()>;
   static constexpr auto holds_field_pointer = std::is_pointer_v<V>;
   //============================================================================
   // members
   //============================================================================
- private : V      m_v;
-  ode_solver_t    m_ode_solver;
-  mutable cache_t m_cache;
+ private:
+  V                  m_v;
+  ode_solver_type    m_ode_solver;
+  mutable cache_type m_cache;
   mutable std::map<std::pair<pos_type, real_type>, std::pair<bool, bool>>
        m_on_domain_border;
   bool m_use_caching = true;
@@ -101,7 +103,7 @@ struct numerical_flowmap {
             typename V_ = V>
   requires(!holds_field_pointer) constexpr numerical_flowmap(
       vectorfield<W, WReal, NumDimensions> const& w,
-      ode_solver_t const& ode_solver, bool const use_caching = true)
+      ode_solver_type const& ode_solver, bool const use_caching = true)
       : m_v{w.as_derived()},
         m_ode_solver{ode_solver},
         m_use_caching{use_caching} {}
@@ -134,8 +136,8 @@ struct numerical_flowmap {
     }
     // use caching
     constexpr real_type security_eps   = 1e-7;
-    auto const&      integral_curve = cached_curve(x0, t0, tau);
-    auto             t              = t0 + tau;
+    auto const&         integral_curve = cached_curve(x0, t0, tau);
+    auto                t              = t0 + tau;
     if (tau < 0 &&
         t < integral_curve
                 .parameterization()[integral_curve.vertices().front()]) {
@@ -175,17 +177,17 @@ struct numerical_flowmap {
   //----------------------------------------------------------------------------
   auto integral_curve(pos_type const& y0, real_type const t0,
                       real_type const tau) const {
-    integral_curve_t c;
-    auto const       v          = c.push_back(y0);
+    integral_curve_type c;
+    auto const          v       = c.push_back(y0);
     c.parameterization()[v]     = t0;
     auto const full_integration = continue_integration(c, tau);
     return std::pair{std::move(c), full_integration};
   }
   //----------------------------------------------------------------------------
-  auto integral_curve(pos_type const& y0, real_type const t0, real_type const btau,
-                      real_type const ftau) const {
-    integral_curve_t c;
-    auto const       v      = c.push_back(y0);
+  auto integral_curve(pos_type const& y0, real_type const t0,
+                      real_type const btau, real_type const ftau) const {
+    integral_curve_type c;
+    auto const          v   = c.push_back(y0);
     c.parameterization()[v] = t0;
 
     bool const backward_full = [this, &c, btau] {
@@ -208,7 +210,7 @@ struct numerical_flowmap {
   /// If tau < 0 it takes back of integral_curve as start position and time.
   /// \return true if could integrate all tau, false if hit domain border or
   /// something else went wrong.
-  auto continue_integration(integral_curve_t& integral_curve,
+  auto continue_integration(integral_curve_type& integral_curve,
                             real_type const      tau) const -> bool {
     auto&       tangents         = integral_curve.tangents();
     auto&       parameterization = integral_curve.parameterization();
@@ -253,12 +255,13 @@ struct numerical_flowmap {
     return true;
   }
   //----------------------------------------------------------------------------
-  auto cached_curve(pos_type const& y0, real_type const t0) const -> auto const& {
+  auto cached_curve(pos_type const& y0, real_type const t0) const
+      -> auto const& {
     return *m_cache.emplace({t0, y0}).first->second;
   }
   //----------------------------------------------------------------------------
-  auto cached_curve(pos_type const& y0, real_type const t0, real_type const tau) const
-      -> auto const& {
+  auto cached_curve(pos_type const& y0, real_type const t0,
+                    real_type const tau) const -> auto const& {
     return cached_curve(y0, t0, tau < 0 ? tau : 0, tau > 0 ? tau : 0);
   }
   //----------------------------------------------------------------------------
@@ -383,7 +386,7 @@ auto flowmap(polymorphic::vectorfield<Real, NumDimensions> const& v) {
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-#include "flowmap_gradient_central_differences.h"
+#include <tatooine/differentiated_flowmap.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -392,7 +395,7 @@ template <typename V, template <typename, std::size_t> typename ODESolver,
           arithmetic EpsReal = typename V::real_type>
 auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
           tag::central_t /*tag*/, EpsReal epsilon = 1e-7) {
-  return flowmap_gradient_central_differences<
+  return differentiated_flowmap<
       numerical_flowmap<V, ODESolver, InterpolationKernel>>{flowmap, epsilon};
 }
 //------------------------------------------------------------------------------
@@ -401,7 +404,7 @@ template <typename V, template <typename, std::size_t> typename ODESolver,
           std::floating_point EpsReal>
 auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
           tag::central_t /*tag*/, vec<EpsReal, V::num_dimensions()> epsilon) {
-  return flowmap_gradient_central_differences<
+  return differentiated_flowmap<
       numerical_flowmap<V, ODESolver, InterpolationKernel>>{flowmap, epsilon};
 }
 //==============================================================================
@@ -433,15 +436,16 @@ using numerical_flowmap_field_pointer =
 // type traits
 //==============================================================================
 template <typename T>
-struct is_numerical_flowmap : std::false_type {};
+struct is_numerical_flowmap_impl : std::false_type {};
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename V, template <typename, std::size_t> typename ODESolver,
           template <typename> typename InterpolationKernel>
-struct is_numerical_flowmap<
+struct is_numerical_flowmap_impl<
     numerical_flowmap<V, ODESolver, InterpolationKernel>> : std::true_type {};
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename T>
-static constexpr auto is_numerical_flowmap_v = is_numerical_flowmap<T>::value;
+static constexpr auto is_numerical_flowmap =
+    is_numerical_flowmap_impl<T>::value;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

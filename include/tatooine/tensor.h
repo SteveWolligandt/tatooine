@@ -4,22 +4,23 @@
 #include <tatooine/base_tensor.h>
 //==============================================================================
 #include <tatooine/math.h>
-#include <tatooine/tensor_operations/same_dimensions.h>
 #include <tatooine/multidim_array.h>
 #include <tatooine/tags.h>
+#include <tatooine/tensor_operations/same_dimensions.h>
 #include <tatooine/utility.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <arithmetic_or_complex T, std::size_t... Dims>
-struct tensor : static_multidim_array<T, x_fastest, tag::stack, Dims...>,
-                base_tensor<tensor<T, Dims...>, T, Dims...> {
+template <arithmetic_or_complex ValueType, std::size_t... Dims>
+struct tensor
+    : static_multidim_array<ValueType, x_fastest, tag::stack, Dims...>,
+      base_tensor<tensor<ValueType, Dims...>, ValueType, Dims...> {
   //============================================================================
-  using this_type          = tensor<T, Dims...>;
-  using tensor_parent_type = base_tensor<this_type, T, Dims...>;
-  using value_type      = typename tensor_parent_type::value_type;
+  using this_type          = tensor<ValueType, Dims...>;
+  using tensor_parent_type = base_tensor<this_type, ValueType, Dims...>;
+  using value_type         = typename tensor_parent_type::value_type;
   using array_parent_type =
-      static_multidim_array<T, x_fastest, tag::stack, Dims...>;
+      static_multidim_array<ValueType, x_fastest, tag::stack, Dims...>;
 
   using tensor_parent_type::dimension;
   using tensor_parent_type::num_components;
@@ -50,36 +51,38 @@ struct tensor : static_multidim_array<T, x_fastest, tag::stack, Dims...>,
   }
   //----------------------------------------------------------------------------
   template <typename... Is>
-  requires((einstein_notation::index<Is> && ...) || (integral<Is> && ...))
-  auto constexpr operator()(Is const... is) -> decltype(auto) {
+  requires((einstein_notation::index<Is> && ...) ||
+           (integral<Is> && ...)) auto constexpr
+  operator()(Is const... is) -> decltype(auto) {
     return at(is...);
   }
   //----------------------------------------------------------------------------
   template <typename... Is>
-  requires((einstein_notation::index<Is> && ...) || (integral<Is> && ...))
-  auto constexpr operator()(Is const... is) const -> decltype(auto) {
+  requires((einstein_notation::index<Is> && ...) ||
+           (integral<Is> && ...)) auto constexpr
+  operator()(Is const... is) const -> decltype(auto) {
     return at(is...);
   }
   //----------------------------------------------------------------------------
-  template <convertible_to<T>... Ts>
-  requires(tensor_parent_type::num_components() == sizeof...(Ts))
-  explicit constexpr tensor(Ts const&... ts)
+  template <convertible_to<ValueType>... Ts>
+  requires(tensor_parent_type::num_components() ==
+           sizeof...(Ts)) explicit constexpr tensor(Ts const&... ts)
       : array_parent_type{ts...} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-  explicit constexpr tensor(tag::zeros_t zeros) requires is_arithmetic<T>
-      : array_parent_type{zeros} {}
+  explicit constexpr tensor(tag::zeros_t zeros) requires
+      is_arithmetic<ValueType> : array_parent_type{zeros} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-  explicit constexpr tensor(tag::ones_t ones) requires is_arithmetic<T>
+  explicit constexpr tensor(tag::ones_t ones) requires is_arithmetic<ValueType>
       : array_parent_type{ones} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename FillReal>
-  requires is_arithmetic<T>
+  requires is_arithmetic<ValueType>
   explicit constexpr tensor(tag::fill<FillReal> f) : array_parent_type{f} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename RandomReal, typename Engine>
-  requires is_arithmetic<T>
+  requires is_arithmetic<ValueType>
   explicit constexpr tensor(random::uniform<RandomReal, Engine>&& rand)
       : array_parent_type{std::move(rand)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -88,23 +91,23 @@ struct tensor : static_multidim_array<T, x_fastest, tag::stack, Dims...>,
       : array_parent_type{rand} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <arithmetic RandomReal, typename Engine>
-  requires is_arithmetic<T>
+  requires is_arithmetic<ValueType>
   explicit constexpr tensor(random::normal<RandomReal, Engine>&& rand)
       : array_parent_type{std::move(rand)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <arithmetic RandomReal, typename Engine>
-  requires is_arithmetic<T>
+  requires is_arithmetic<ValueType>
   explicit constexpr tensor(random::normal<RandomReal, Engine>& rand)
       : array_parent_type{rand} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <static_tensor OtherTensor>
-  requires(same_dimensions<this_type, OtherTensor>())
-  explicit constexpr tensor(OtherTensor&& other)
+  requires(same_dimensions<this_type, OtherTensor>()) explicit constexpr tensor(
+      OtherTensor&& other)
       : tensor_parent_type{std::forward<OtherTensor>(other)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <static_tensor OtherTensor>
-  requires (same_dimensions<this_type, OtherTensor>())
-  constexpr auto operator=(OtherTensor&& other) -> tensor& {
+  requires(same_dimensions<this_type, OtherTensor>()) constexpr auto operator=(
+      OtherTensor&& other) -> tensor& {
     // Check if the same matrix gets assigned as its transposed version. If yes
     // just swap components.
     if constexpr (transposed_tensor<OtherTensor>) {
@@ -121,22 +124,24 @@ struct tensor : static_multidim_array<T, x_fastest, tag::stack, Dims...>,
     return *this;
   }
   //----------------------------------------------------------------------------
-  static constexpr auto zeros() { return this_type{tag::fill<T>{0}}; }
+  static constexpr auto zeros() { return this_type{tag::fill<ValueType>{0}}; }
   //----------------------------------------------------------------------------
-  static constexpr auto ones() { return this_type{tag::fill<T>{1}}; }
+  static constexpr auto ones() { return this_type{tag::fill<ValueType>{1}}; }
   //----------------------------------------------------------------------------
-  static constexpr auto fill(T const& t) { return this_type{tag::fill<T>{t}}; }
+  static constexpr auto fill(ValueType const& t) {
+    return this_type{tag::fill<ValueType>{t}};
+  }
   //----------------------------------------------------------------------------
   template <typename RandEng = std::mt19937_64>
-  static constexpr auto randu(T min = 0, T max = 1,
+  static constexpr auto randu(ValueType min = 0, ValueType max = 1,
                               RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_type{random::uniform{min, max, std::forward<RandEng>(eng)}};
   }
   //----------------------------------------------------------------------------
   template <typename RandEng = std::mt19937_64>
-  static constexpr auto randn(T mean = 0, T stddev = 1,
+  static constexpr auto randn(ValueType mean = 0, ValueType stddev = 1,
                               RandEng&& eng = RandEng{std::random_device{}()}) {
-    return this_type{random::normal<T>{eng, mean, stddev}};
+    return this_type{random::normal<ValueType>{eng, mean, stddev}};
   }
   //----------------------------------------------------------------------------
   template <typename OtherT>
@@ -179,15 +184,16 @@ using tensor333333 = Tensor<3, 3, 3, 3, 3, 3>;
 using tensor444444 = Tensor<4, 4, 4, 4, 4, 4>;
 //==============================================================================
 namespace reflection {
-template <typename T, std::size_t... Dims>
+template <typename ValueType, std::size_t... Dims>
 TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
-    (tensor<T, Dims...>), TATOOINE_REFLECTION_INSERT_METHOD(data, data()))
+    (tensor<ValueType, Dims...>),
+    TATOOINE_REFLECTION_INSERT_METHOD(data, data()))
 }  // namespace reflection
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-#include <tatooine/tensor_typedefs.h>
 #include <tatooine/dynamic_tensor.h>
+#include <tatooine/tensor_typedefs.h>
 //==============================================================================
 #include <tatooine/mat.h>
 #include <tatooine/vec.h>
