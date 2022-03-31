@@ -9,23 +9,24 @@
 //==============================================================================
 namespace tatooine::detail::pointset {
 //==============================================================================
-template <floating_point Real, std::size_t NumDimensions, typename T,
+template <floating_point Real, std::size_t NumDimensions, typename ValueType,
           typename Gradient>
+requires(tensor_rank<ValueType> + 1 == tensor_rank<Gradient>)
 struct natural_neighbor_coordinates_sampler_with_gradients
     : field<natural_neighbor_coordinates_sampler_with_gradients<
-                Real, NumDimensions, T, Gradient>,
-            Real, NumDimensions, T> {
+                Real, NumDimensions, ValueType, Gradient>,
+            Real, NumDimensions, ValueType> {
   using this_type =
       natural_neighbor_coordinates_sampler_with_gradients<Real, NumDimensions,
-                                                          T, Gradient>;
-  using parent_type = field<this_type, Real, NumDimensions, T>;
+                                                          ValueType, Gradient>;
+  using parent_type = field<this_type, Real, NumDimensions, ValueType>;
   using typename parent_type::pos_type;
   using typename parent_type::real_type;
   using typename parent_type::tensor_type;
   using pointset_type = tatooine::pointset<Real, NumDimensions>;
   using vertex_handle = typename pointset_type::vertex_handle;
   using vertex_property_type =
-      typename pointset_type::template typed_vertex_property_type<T>;
+      typename pointset_type::template typed_vertex_property_type<ValueType>;
   using gradient_vertex_property_type =
       typename pointset_type::template typed_vertex_property_type<Gradient>;
 
@@ -73,15 +74,14 @@ struct natural_neighbor_coordinates_sampler_with_gradients
   [[nodiscard]] auto evaluate(pos_type const& x,
                               std::index_sequence<Is...> /*seq*/) const
       -> tensor_type {
-    using point_coordinate_vector =
+    using nnc_per_vertex_type =
         std::vector<std::pair<typename cgal_triangulation_type::Vertex_handle,
                               cgal_kernel::FT>>;
 
     // coordinates computation
-    auto       coords = point_coordinate_vector{};
-    auto const p      = cgal_point{x(Is)...};  // query point
+    auto       nnc_per_vertex = nnc_per_vertex_type{};
     auto const result = CGAL::natural_neighbor_coordinates_2(
-        m_triangulation, p, std::back_inserter(coords),
+        m_triangulation, cgal_point{x(Is)...}, std::back_inserter(nnc_per_vertex),
         CGAL::Identity<
             std::pair<typename cgal_triangulation_type::Vertex_handle,
                       cgal_kernel::FT>>{});
@@ -91,8 +91,8 @@ struct natural_neighbor_coordinates_sampler_with_gradients
     auto const norm = 1 / result.second;
 
     auto Z0 = [&] {
-      auto sum = real_type{};
-      for (auto const& [cgal_handle, coeff] : coords) {
+      auto sum = ValueType{};
+      for (auto const& [cgal_handle, coeff] : nnc_per_vertex) {
         auto const v = cgal_handle->info();
         auto const lambda_i = coeff * norm;
         sum += lambda_i * m_z[v];
@@ -103,12 +103,18 @@ struct natural_neighbor_coordinates_sampler_with_gradients
     auto       xi   = [&] {
       auto numerator   = real_type{};
       auto denominator = real_type{};
-      for (auto const& [cgal_handle, coeff] : coords) {
+      for (auto const& [cgal_handle, coeff] : nnc_per_vertex) {
         auto const v = cgal_handle->info();
         auto const  lambda_i = coeff * norm;
         auto const& p_i      = m_p[v];
         auto const& g_i      = m_g[v];
-        auto const  xi_i     = (m_z[v] + dot(x - p_i, g_i));
+        auto const  xi_i     = [&] {
+          if constexpr (tensor_rank<ValueType> == 0) {
+            return m_z[v] + dot(g_i, x - p_i);
+          } else {
+            return m_z[v] + transposed(g_i) * (x - p_i);
+          }
+        }();
         auto const  w = lambda_i / euclidean_distance(x, p_i);
         numerator += w * xi_i;
         denominator += w;
@@ -119,7 +125,7 @@ struct natural_neighbor_coordinates_sampler_with_gradients
     auto       alpha   = [&] {
       auto numerator   = real_type{};
       auto denominator = real_type{};
-      for (auto const& [cgal_handle, coeff] : coords) {
+      for (auto const& [cgal_handle, coeff] : nnc_per_vertex) {
         auto const v = cgal_handle->info();
         auto const  lambda_i = coeff * norm;
         auto const& p_i      = m_p[v];
@@ -132,7 +138,7 @@ struct natural_neighbor_coordinates_sampler_with_gradients
 
     auto       beta   = [&] {
       auto sum   = real_type{};
-      for (auto const& [cgal_handle, coeff] : coords) {
+      for (auto const& [cgal_handle, coeff] : nnc_per_vertex) {
         auto const v = cgal_handle->info();
         auto const lambda_i = coeff * norm;
         auto const& p_i      = m_p[v];

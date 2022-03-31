@@ -5,12 +5,14 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Tensor, typename T, size_t FixedDim, size_t... Dims>
+template <typename Tensor, arithmetic_or_complex ValueType, size_t FixedDim,
+          size_t... Dims>
 struct tensor_slice
-    : base_tensor<tensor_slice<Tensor, T, FixedDim, Dims...>, T, Dims...> {
-  using tensor_type          = Tensor;
-  using this_type            = tensor_slice<Tensor, T, FixedDim, Dims...>;
-  using parent_t          = base_tensor<this_type, T, Dims...>;
+    : base_tensor<tensor_slice<Tensor, ValueType, FixedDim, Dims...>, ValueType,
+                  Dims...> {
+  using tensor_type       = Tensor;
+  using this_type         = tensor_slice<Tensor, ValueType, FixedDim, Dims...>;
+  using parent_t          = base_tensor<this_type, ValueType, Dims...>;
   using parent_t::operator=;
   using parent_t::num_components;
   using parent_t::rank;

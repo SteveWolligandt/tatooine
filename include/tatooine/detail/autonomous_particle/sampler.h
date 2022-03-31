@@ -69,7 +69,7 @@ struct sampler {
   //============================================================================
   auto local_pos(pos_type const&                    q,
                  forward_or_backward_tag auto const tag) const {
-    return nabla_phi(tag) * (q - x0(tag));
+    return transposed(nabla_phi(tag)) * (q - x0(tag));
   }
   //----------------------------------------------------------------------------
   auto sample(pos_type const& q, forward_or_backward_tag auto const tag) const {

@@ -12,7 +12,7 @@ struct options_t {
   size_t      output_res_x, output_res_y, num_datapoints;
 };
 //==============================================================================
-auto parse_args(int const argc, char const** argv) -> std::optional<options_t>;
+auto parse_args(int argc, char const** argv) -> std::optional<options_t>;
 //==============================================================================
 auto main(int argc, char const** argv) -> int {
   auto const options_opt = parse_args(argc, argv);
@@ -26,7 +26,7 @@ auto main(int argc, char const** argv) -> int {
                                       linspace{0.0, 1.0, options.output_res_y}};
   auto       rand    = random::uniform{0.0, 1.0, std::mt19937_64{1234}};
   auto       scattered_data      = pointset2{};
-  auto&       scattered_franke      = scattered_data.scalar_vertex_property("franke");
+  auto&      scattered_franke = scattered_data.scalar_vertex_property("franke");
 
   // sample scattered ground truth
   for (size_t i = 0; i < options.num_datapoints; ++i) {
@@ -312,7 +312,6 @@ auto main(int argc, char const** argv) -> int {
 //==============================================================================
 auto parse_args(int const argc, char const** argv) -> std::optional<options_t> {
   namespace po = boost::program_options;
-  real_number radius;
   size_t output_res_x, output_res_y, num_datapoints;
 
   auto desc = po::options_description{"Allowed options"};
@@ -320,7 +319,6 @@ auto parse_args(int const argc, char const** argv) -> std::optional<options_t> {
 
   // Declare supported options.
   desc.add_options()("help", "produce help message")(
-      "radius", po::value<real_number>(), "search radius")(
       "num_datapoints", po::value<size_t>(), "number of data points")(
       "output_res_x", po::value<size_t>(), "set outputresolution width")(
       "output_res_y", po::value<size_t>(), "set outputresolution height");

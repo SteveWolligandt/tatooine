@@ -10,8 +10,8 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <arithmetic_or_complex T, std::size_t M, std::size_t N>
-struct mat : tensor<T, M, N> {
+template <arithmetic_or_complex ValueType, std::size_t M, std::size_t N>
+struct mat : tensor<ValueType, M, N> {
   //============================================================================
   // static methods
   //============================================================================
@@ -21,8 +21,8 @@ struct mat : tensor<T, M, N> {
   //============================================================================
   // typedefs
   //============================================================================
-  using this_type   = mat<T, M, N>;
-  using parent_type = tensor<T, M, N>;
+  using this_type   = mat<ValueType, M, N>;
+  using parent_type = tensor<ValueType, M, N>;
 
   //============================================================================
   // inherited methods
@@ -34,22 +34,22 @@ struct mat : tensor<T, M, N> {
   //============================================================================
   // factories
   //============================================================================
-  static auto constexpr zeros() { return this_type{tag::fill<T>{0}}; }
+  static auto constexpr zeros() { return this_type{tag::fill<ValueType>{0}}; }
   //----------------------------------------------------------------------------
-  static auto constexpr ones() { return this_type{tag::fill<T>{1}}; }
+  static auto constexpr ones() { return this_type{tag::fill<ValueType>{1}}; }
   //----------------------------------------------------------------------------
   static auto constexpr eye() { return this_type{tag::eye}; }
   //----------------------------------------------------------------------------
   template <typename RandEng = std::mt19937_64>
-  static auto constexpr randu(T min = 0, T max = 1,
+  static auto constexpr randu(ValueType min = 0, ValueType max = 1,
                               RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_type{random::uniform{min, max, std::forward<RandEng>(eng)}};
   }
   //----------------------------------------------------------------------------
   template <typename RandEng = std::mt19937_64>
-  static auto constexpr randn(T mean = 0, T stddev = 1,
+  static auto constexpr randn(ValueType mean = 0, ValueType stddev = 1,
                               RandEng&& eng = RandEng{std::random_device{}()}) {
-    return this_type{random::normal<T>{eng, mean, stddev}};
+    return this_type{random::normal<ValueType>{eng, mean, stddev}};
   }
   //----------------------------------------------------------------------------
   static auto constexpr vander(fixed_size_vec<N> auto const& v) {
@@ -67,10 +67,10 @@ struct mat : tensor<T, M, N> {
     return V;
   }
   //----------------------------------------------------------------------------
-  static auto constexpr vander(convertible_to<T> auto&&... xs) {
+  static auto constexpr vander(convertible_to<ValueType> auto&&... xs) {
     static_assert(sizeof...(xs) == num_columns());
-    auto V = this_type {};
-    auto      factor_up_row = [row = std::size_t(0), &V](auto x) mutable {
+    auto V             = this_type{};
+    auto factor_up_row = [row = std::size_t(0), &V](auto x) mutable {
       V(row, 0) = 1;
       for (std::size_t col = 1; col < N; ++col) {
         V(row, col) = V(row, col - 1) * x;
@@ -90,8 +90,8 @@ struct mat : tensor<T, M, N> {
   //----------------------------------------------------------------------------
   /// Copies any other tensor with same dimensions.
   template <static_tensor Other>
-  requires(same_dimensions<this_type, Other>())
-  explicit constexpr mat(Other&& other)
+  requires(same_dimensions<this_type, Other>()) explicit constexpr mat(
+      Other&& other)
       : parent_type{std::forward<Other>(other)} {}
   //----------------------------------------------------------------------------
   template <typename... Rows>
@@ -104,7 +104,7 @@ struct mat : tensor<T, M, N> {
     // lambda inserting row into data block
     auto insert_row = [r = std::size_t(0), this](auto const& row) mutable {
       for (std::size_t c = 0; c < parent_type::dimension(1); ++c) {
-        at(r, c) = static_cast<T>(row[c]);
+        at(r, c) = static_cast<ValueType>(row[c]);
       }
       ++r;
     };
@@ -127,8 +127,8 @@ struct mat : tensor<T, M, N> {
   //----------------------------------------------------------------------------
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <static_tensor Other>
-  requires(same_dimensions<this_type, Other>())
-  auto constexpr operator=(Other const& other) noexcept -> mat& {
+  requires(same_dimensions<this_type, Other>()) auto constexpr operator=(
+      Other const& other) noexcept -> mat& {
     parent_type::operator=(std::forward<Other>(other));
     return *this;
   }
@@ -151,13 +151,13 @@ struct mat : tensor<T, M, N> {
 template <std::size_t C, typename... Rows>
 mat(Rows const(&&... rows)[C]) -> mat<common_type<Rows...>, sizeof...(Rows), C>;
 //------------------------------------------------------------------------------
-template <typename Mat, typename T, std::size_t M, std::size_t N>
-mat(base_tensor<Mat, T, M, N>) -> mat<T, M, N>;
+template <typename Mat, typename ValueType, std::size_t M, std::size_t N>
+mat(base_tensor<Mat, ValueType, M, N>) -> mat<ValueType, M, N>;
 //==============================================================================
 namespace reflection {
-template <typename T, std::size_t M, std::size_t N>
+template <typename ValueType, std::size_t M, std::size_t N>
 TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
-    (mat<T, M, N>), TATOOINE_REFLECTION_INSERT_METHOD(data, data()))
+    (mat<ValueType, M, N>), TATOOINE_REFLECTION_INSERT_METHOD(data, data()))
 }  // namespace reflection
 //==============================================================================
 }  // namespace tatooine

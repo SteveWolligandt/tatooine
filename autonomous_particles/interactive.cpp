@@ -78,7 +78,7 @@ struct vis {
   double            autonomous_particles_nearest_neighbor_error       = 0;
   double            autonomous_particles_inverse_distance_error       = 0;
   vec2d             cursor_pos;
-  vec2d             cursor_pos_projected;
+  vec2d             cursor_pos_world;
   vec2d             current_point{1, 0.5};
   std::vector<bool> hovered;
   int               point_size = 20;
@@ -359,13 +359,13 @@ struct vis {
     switch (mode) {
       case mode_t::number:
         nearest_neighbor_indices =
-            local_positions.nearest_neighbors(cursor_pos_projected, nearest_number)
+            local_positions.nearest_neighbors(current_point, nearest_number)
                 .first;
         break;
       case mode_t::radius:
         nearest_neighbor_indices =
             local_positions
-                .nearest_neighbors_radius(cursor_pos_projected, nearest_radius)
+                .nearest_neighbors_radius(current_point, nearest_radius)
                 .first;
         break;
     }
@@ -384,7 +384,7 @@ struct vis {
     for (auto const v : local_positions.vertices()) {
       auto const proj    = this->cam.project(vec2f{local_positions[v]}).xy();
       hovered[v.index()] = euclidean_distance(proj, cursor_pos) < 10 ||
-                           samplers[v.index()].is_inside(cursor_pos_projected,
+                           samplers[v.index()].is_inside(cursor_pos_world,
                                                          advection_direction);
       if (hovered[v.index()]) {
         local_positions_gpu.vertexbuffer().write_only_element_at(v.index()) = {
@@ -400,13 +400,7 @@ struct vis {
   auto on_cursor_moved(double const cursor_x, double const cursor_y,
                        rendering::camera auto const& cam) {
     cursor_pos           = {cursor_x, cursor_y};
-    cursor_pos_projected = vec2{cam.unproject(vec2f{cursor_pos}).xy()};
-    if (mouse_down) {
-      current_point = vec2{cam.unproject(vec2f{cursor_pos}).xy()};
-      update_points();
-    }
-    update_nearest_neighbors();
-    update_hovered();
+    cursor_pos_world = vec2{cam.unproject(vec2f{cursor_pos}).xy()};
   }
   //----------------------------------------------------------------------------
   auto on_button_pressed(gl::button b, rendering::camera auto const& cam) {
@@ -415,6 +409,7 @@ struct vis {
       current_point = vec2{cam.unproject(vec2f{cursor_pos}).xy()};
       update_points();
       update_nearest_neighbors();
+      update_hovered();
     }
   }
   //----------------------------------------------------------------------------
