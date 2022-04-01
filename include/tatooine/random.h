@@ -1,6 +1,7 @@
 #ifndef TATOOINE_RANDOM_H
 #define TATOOINE_RANDOM_H
 //==============================================================================
+#include <tatooine/concepts.h>
 #include <tatooine/real.h>
 #include <tatooine/type_traits.h>
 
@@ -10,56 +11,74 @@
 //==============================================================================
 namespace tatooine::random {
 //==============================================================================
-template <typename T, typename Engine = std::mt19937_64>
+template <typename ValueType, typename Engine = std::mt19937_64>
 struct uniform {
-  static_assert(is_arithmetic<T>);
+  static_assert(is_arithmetic<ValueType>);
   //============================================================================
-  using engine_t = Engine;
-  using real_type   = T;
-  using distribution_t =
-      std::conditional_t<is_floating_point<T>,
-                         std::uniform_real_distribution<T>,
-                         std::uniform_int_distribution<T>>;
+  using engine_type = Engine;
+  using real_type   = ValueType;
+  using distribution_type =
+      std::conditional_t<is_floating_point<ValueType>,
+                         std::uniform_real_distribution<ValueType>,
+                         std::uniform_int_distribution<ValueType>>;
   //============================================================================
  private:
-  Engine         engine;
-  distribution_t distribution;
+  engine_type       m_engine;
+  distribution_type m_distribution;
   //============================================================================
  public:
-  uniform() : engine{std::random_device{}()}, distribution{T(0), T(1)} {}
-
+  uniform()
+      : m_engine{std::random_device{}()},
+        m_distribution{ValueType(0), ValueType(1)} {}
   uniform(const uniform&)     = default;
   uniform(uniform&&) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator=(const uniform&) noexcept ->uniform& = default;
+  auto operator=(const uniform&) noexcept -> uniform& = default;
   auto operator=(uniform&&) noexcept -> uniform& = default;
   //----------------------------------------------------------------------------
   ~uniform() = default;
   //----------------------------------------------------------------------------
-  uniform(T const min, T const max)
-      : engine{std::random_device{}()}, distribution{min, max} {}
+  uniform(ValueType const min, ValueType const max)
+      : m_engine{std::random_device{}()}, m_distribution{min, max} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... Args>
-  uniform(T const min, T const max, Args&&... args)
-      : engine{std::forward<Args>(args)...}, distribution{min, max} {}
+  template <convertible_to<Engine> EngineArg>
+  uniform(ValueType const min, ValueType const max, EngineArg&& eng)
+      : m_engine{std::forward<EngineArg>(eng)}, m_distribution{min, max} {}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <convertible_to<Engine> EngineArg>
+  uniform(EngineArg&& eng)
+      : m_engine{std::forward<EngineArg>(eng)},
+        m_distribution{ValueType(0), ValueType(1)} {}
   //============================================================================
-  auto get() { return distribution(engine); }
-  auto operator()() { return get(); }
+  auto operator()() { return m_distribution(m_engine); }
+  //----------------------------------------------------------------------------
+  auto engine() const -> auto const& { return m_engine; }
+  auto engine() -> auto& { return m_engine; }
+  //----------------------------------------------------------------------------
+  auto distribution() const -> auto const& { return m_distribution; }
+  auto distribution() -> auto& { return m_distribution; }
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 uniform()->uniform<real_number, std::mt19937_64>;
-template <typename T>
-uniform(T const min, T const max) -> uniform<T, std::mt19937_64>;
-template <typename T, typename... Args>
-uniform(T const min, T const max, Args&&...)
-    -> uniform<T, std::mt19937_64>;
+
+template <typename ValueType>
+uniform(ValueType const min, ValueType const max)
+    -> uniform<ValueType, std::mt19937_64>;
+
+template <typename ValueType, typename Engine>
+uniform(ValueType const min, ValueType const max, Engine&&)
+    -> uniform<ValueType, std::decay_t<Engine>>;
+
+template <typename ValueType, typename Engine>
+uniform(Engine&) -> uniform<ValueType, std::decay_t<Engine>&>;
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-template <typename T, typename Engine = std::mt19937_64>
-auto uniform_vector(size_t n, T a = T(0), T b = T(1),
-                           Engine&& engine = Engine{std::random_device{}()}) {
+template <typename ValueType, typename Engine = std::mt19937_64>
+auto uniform_vector(std::size_t n, ValueType a = ValueType(0),
+                    ValueType b      = ValueType(1),
+                    Engine&&  engine = Engine{std::random_device{}()}) {
   uniform rand(a, b, std::forward<Engine>(engine));
 
-  std::vector<T> rand_data(n);
+  std::vector<ValueType> rand_data(n);
   boost::generate(rand_data, [&] { return rand(); });
   return rand_data;
 }
@@ -77,11 +96,11 @@ inline auto alpha_numeric_string(std::size_t const size) {
   return str;
 }
 //==============================================================================
-template <typename T, typename Engine = std::mt19937_64>
+template <typename ValueType, typename Engine = std::mt19937_64>
 struct normal {
-  using engine_t       = Engine;
-  using real_type         = T;
-  using distribution_t = std::normal_distribution<T>;
+  using engine_type       = Engine;
+  using real_type         = ValueType;
+  using distribution_type = std::normal_distribution<ValueType>;
 
   //============================================================================
   normal() : engine{std::random_device{}()}, distribution{0, 1} {}
@@ -100,25 +119,25 @@ struct normal {
   explicit normal(Engine&& _engine)
       : engine{std::move(_engine)}, distribution{0, 1} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  normal(T mean, T stddev)
+  normal(ValueType mean, ValueType stddev)
       : engine{std::random_device{}()}, distribution{mean, stddev} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  normal(const Engine& _engine, T mean, T stddev)
+  normal(const Engine& _engine, ValueType mean, ValueType stddev)
       : engine{_engine}, distribution{mean, stddev} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  normal(Engine&& _engine, T mean, T stddev)
+  normal(Engine&& _engine, ValueType mean, ValueType stddev)
       : engine{std::move(_engine)}, distribution{mean, stddev} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  normal(T mean, T stddev, const Engine& _engine)
+  normal(ValueType mean, ValueType stddev, const Engine& _engine)
       : engine{_engine}, distribution{mean, stddev} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  normal(T mean, T stddev, Engine&& _engine)
+  normal(ValueType mean, ValueType stddev, Engine&& _engine)
       : engine{std::move(_engine)}, distribution{mean, stddev} {}
 
   //============================================================================
  private:
-  Engine         engine;
-  distribution_t distribution;
+  Engine            engine;
+  distribution_type distribution;
 
   //============================================================================
  public:
@@ -129,16 +148,18 @@ struct normal {
 normal()->normal<double, std::mt19937_64>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Engine>
-normal(Engine &&)->normal<double, Engine>;
+normal(Engine&&) -> normal<double, Engine>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T>
-normal(T mean, T stddev)->normal<T, std::mt19937_64>;
+template <typename ValueType>
+normal(ValueType mean, ValueType stddev) -> normal<ValueType, std::mt19937_64>;
 //==============================================================================
 template <typename Iterator, typename RandomEngine>
 auto random_elem(Iterator begin, Iterator end, RandomEngine& eng) {
-  if (begin == end) { return end; }
-  const auto size = static_cast<size_t>(distance(begin, end));
-  std::uniform_int_distribution<size_t> rand{0, size - 1};
+  if (begin == end) {
+    return end;
+  }
+  const auto size = static_cast<std::size_t>(distance(begin, end));
+  std::uniform_int_distribution<std::size_t> rand{0, size - 1};
   return next(begin, rand(eng));
 }
 //------------------------------------------------------------------------------
@@ -150,7 +171,7 @@ auto random_elem(Range&& range, RandomEngine& eng) {
 enum coin { HEADS, TAILS };
 template <typename RandomEngine>
 auto flip_coin(RandomEngine&& eng) {
-  std::uniform_int_distribution<size_t> coin{0, 1};
+  std::uniform_int_distribution<std::size_t> coin{0, 1};
   return coin(eng) == 0 ? HEADS : TAILS;
 }
 //==============================================================================
@@ -158,19 +179,20 @@ auto flip_coin(RandomEngine&& eng) {
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename T>
+template <typename ValueType>
 struct is_random_number_generator_impl : std::false_type {};
-template <typename T, typename Engine>
-struct is_random_number_generator_impl<random::uniform<T, Engine>>
+template <typename ValueType, typename Engine>
+struct is_random_number_generator_impl<random::uniform<ValueType, Engine>>
     : std::true_type {};
-template <typename T, typename Engine>
-struct is_random_number_generator_impl<random::normal<T, Engine>>
+template <typename ValueType, typename Engine>
+struct is_random_number_generator_impl<random::normal<ValueType, Engine>>
     : std::true_type {};
-template <typename T>
+template <typename ValueType>
 static auto constexpr is_random_number_generator =
-    is_random_number_generator_impl<T>::value;
-template <typename T>
-concept random_number_generator = is_random_number_generator<std::decay_t<T>>;
+    is_random_number_generator_impl<ValueType>::value;
+template <typename ValueType>
+concept random_number_generator =
+    is_random_number_generator<std::decay_t<ValueType>>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

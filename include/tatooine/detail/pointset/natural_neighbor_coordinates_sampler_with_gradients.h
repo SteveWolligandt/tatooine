@@ -6,12 +6,13 @@
 #include <CGAL/natural_neighbor_coordinates_3.h>
 #include <tatooine/cgal.h>
 #include <tatooine/concepts.h>
+#include <tatooine/tensor_type_traits.h>
 //==============================================================================
 namespace tatooine::detail::pointset {
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions, typename ValueType,
           typename Gradient>
-requires(tensor_rank<ValueType> + 1 == tensor_rank<Gradient>)
+//requires(tensor_rank<ValueType> + 1 == tensor_rank<Gradient>)
 struct natural_neighbor_coordinates_sampler_with_gradients
     : field<natural_neighbor_coordinates_sampler_with_gradients<
                 Real, NumDimensions, ValueType, Gradient>,
@@ -101,7 +102,7 @@ struct natural_neighbor_coordinates_sampler_with_gradients
     }();
 
     auto       xi   = [&] {
-      auto numerator   = real_type{};
+      auto numerator   = ValueType{};
       auto denominator = real_type{};
       for (auto const& [cgal_handle, coeff] : nnc_per_vertex) {
         auto const v = cgal_handle->info();
@@ -123,7 +124,7 @@ struct natural_neighbor_coordinates_sampler_with_gradients
     }();
 
     auto       alpha   = [&] {
-      auto numerator   = real_type{};
+      auto numerator   = ValueType{};
       auto denominator = real_type{};
       for (auto const& [cgal_handle, coeff] : nnc_per_vertex) {
         auto const v = cgal_handle->info();
