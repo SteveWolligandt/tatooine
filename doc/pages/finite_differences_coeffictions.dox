@@ -1,0 +1,22 @@
+/**
+\page finite_differences_coefficients_page Finite Differences Coefficients
+
+  <div class="container" style="color:#6F6F6F;background-color:#FFFFFF;border-radius:10px" >
+    <div class="form-group" >
+      <h4> Locations of Sampled Points</h4>
+      <input type="text" style="border-color:#F0AA28" class="form-control" id="points" value = "-2,-1,0,1,2" placeholder="e.g. -4,-1,7,11,15" onkeyup="calculateEverything();" ><br>
+    </div>
+
+    <div class="input">
+      <h4> Derivative Order</h4>
+      <input type="text" style="border-color:#F0AA28" class="form-control" id="order" value="1" placeholder="e.g. 4" onkeyup="calculateEverything();"><br> 
+    </div>
+
+    <h4> Finite Difference Equation </h4>
+    <div id="stencil" style="color:#000000">
+    $$\frac{\partial^{(1)}f}{\partial x^{(1)}}\approx$$
+    </div>
+    <h1></h1>
+  </div>
+
+*/

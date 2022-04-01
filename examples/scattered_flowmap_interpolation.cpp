@@ -37,7 +37,6 @@ auto main(int argc, char const** argv) -> int {
     auto v                            = ps.insert_vertex(rand() * 2, rand());
     scattered_flowmap->at(v)          = phi(ps[v], options.t_0, options.t_end);
     scattered_flowmap_gradient->at(v) = phi_grad(ps[v], options.t_0, options.t_end);
-    break;
   }
 
   auto gr = uniform_rectilinear_grid2{linspace{0.0, 2.0, options.output_res_x},
@@ -47,7 +46,7 @@ auto main(int argc, char const** argv) -> int {
       ps.natural_neighbor_coordinates_sampler(*scattered_flowmap);
   gr.sample_to_vertex_property(nnc_sampler_without_gradients,
                                "without_gradients",
-                               execution_policy::sequential);
+                               execution_policy::parallel);
   auto nnc_sampler_with_gradients =
       ps.natural_neighbor_coordinates_sampler_with_gradients(
           *scattered_flowmap, *scattered_flowmap_gradient);
@@ -58,10 +57,15 @@ auto main(int argc, char const** argv) -> int {
       });
   gr.sample_to_vertex_property(rbf_sampler, "rbf", execution_policy::parallel);
   gr.sample_to_vertex_property(nnc_sampler_with_gradients, "with_gradients",
-                               execution_policy::sequential);
-  gr.sample_to_vertex_property(f, "doublegyre", execution_policy::sequential);
-  gr.write("natural_neighbor_coordinates_sampler.vtr");
-  ps.write("natural_neighbor_coordinates_data.vtp");
+                               execution_policy::parallel);
+  gr.sample_to_vertex_property(
+      [&](auto const& x) {
+        auto phi2 = phi;
+        return phi2(x, options.t_0, options.t_end);
+      },
+      "flowmap_rk43", execution_policy::parallel);
+  gr.write("scattered_flowmap_sampler.vtr");
+  ps.write("scattered_flowmap_data.vtp");
 }
 //==============================================================================
 auto parse_args(int const argc, char const** argv) -> std::optional<options_t> {
@@ -73,12 +77,13 @@ auto parse_args(int const argc, char const** argv) -> std::optional<options_t> {
   auto vm   = po::variables_map{};
 
   // Declare supported options.
-  desc.add_options()("help", "produce help message")(
-      "num_datapoints", po::value<std::size_t>(), "number of data points")(
-      "t_0", po::value<real_number>(), "t_0")("t_end", po::value<real_number>(),
-                                              "t_end")(
-      "output_res_x", po::value<std::size_t>(), "set outputresolution width")(
-      "output_res_y", po::value<std::size_t>(), "set outputresolution height");
+  desc.add_options()
+    ("help", "produce help message")
+    ("num_datapoints", po::value<std::size_t>(), "number of data points")
+    ("t_0", po::value<real_number>(), "t_0")
+    ("t_end", po::value<real_number>(), "t_end")
+    ("output_res_x", po::value<std::size_t>(), "set output resolution width")
+    ("output_res_y", po::value<std::size_t>(), "set output resolution height");
 
   po::store(po::parse_command_line(argc, argv, desc), vm);
   po::notify(vm);

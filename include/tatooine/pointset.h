@@ -32,7 +32,7 @@ namespace detail::pointset {
 template <floating_point Real, std::size_t NumDimensions, typename T>
 struct natural_neighbor_coordinates_sampler;
 //------------------------------------------------------------------------------
-template <floating_point Real, std::size_t NumDimensions, typename T,
+template <floating_point Real, std::size_t NumDimensions, typename ValueType,
           typename Gradient>
 struct natural_neighbor_coordinates_sampler_with_gradients;
 #endif
