@@ -1,38 +1,41 @@
 /**
-\page finite_differences_coefficients_page Finite Differences Coefficients
+\addtogroup finite_differences_coefficients Finite Differences Coefficients
 
+\remark The following is based on the one by Cameron Taylor: http://web.media.mit.edu/~crtaylor/calculator.html
+
+\section fin_diff_tool Interactive Tool
 \htmlonly
-  <table>
+<table>
+<tr>
+  <div class="form-group" >
+    <td><h4>Locations of Sampled Points:</h4></td>
+    <td><input type="text"
+           class="form-control"
+           id="points"
+           value="-2,-1,0,1,2"
+           placeholder="e.g. -4,-1,7,11,15"
+           onkeyup="calculateEverything();" >
+  </div></td>
+  </tr>
+
   <tr>
-    <div class="form-group" >
-      <td>Locations of Sampled Points:</td>
-      <td><input type="text"
-             class="form-control"
-             id="points"
-             value="-2,-1,0,1,2"
-             placeholder="e.g. -4,-1,7,11,15"
-             onkeyup="calculateEverything();" >
-    </div></td>
-    </tr>
+    <td><h4>Derivative Order:</h4></td>
+  <td><div class="input">
+    <input type="text"
+           class="form-control"
+           id="order" value="1"
+           placeholder="e.g. 4"
+           onkeyup="calculateEverything();">
+    <br> 
+  </div></td>
+  </tr>
+  </table>
 
-    <tr>
-      <td>Derivative Order:</td>
-    <td><div class="input">
-      <input type="text"
-             class="form-control"
-             id="order" value="1"
-             placeholder="e.g. 4"
-             onkeyup="calculateEverything();">
-      <br> 
-    </div></td>
-    </tr>
-    </table>
-
-    <div id="stencil" style="color:#000000">
-    $\frac{\partial^{(1)}f}{\partial x^{(1)}}\approx$
-    </div>
-    <h1></h1>
-  <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_CHTML"></script>
+  <div id="stencil" style="color:#000000">
+  $\frac{\partial^{(1)}f}{\partial x^{(1)}}\approx$
+  </div>
+  <h1></h1>
+<script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_CHTML"></script>
 <script>
   var myPoints
   var myOrder
@@ -340,9 +343,9 @@
       return Number(n) === n && n % 1 === 0;
   }
 
-document.addEventListener('DOMContentLoaded', function() {
-calculateEverything();
-}, false);
+  document.addEventListener('DOMContentLoaded', function() {
+    calculateEverything(); },
+  false);
 </script>
 
 <script>
@@ -357,5 +360,137 @@ calculateEverything();
 </script>
   \endhtmlonly
 
-\remark This tool is based on the one by Cameron Taylor (http://web.media.mit.edu/~crtaylor/calculator.html)
+
+\section fin_dif_what_is_this What is this?
+
+Finite difference equations enable you to take derivatives of any order at any
+point using any given sufficiently-large selection of points.  By inputting the
+locations of your sampled points below, you will generate a finite difference
+equation which will approximate the derivative at any desired location. 
+
+To take a numerical derivative, you calculate the slope at a point using the
+values and relative locations of surrounding points.  The locations of these
+sampled points are collectively called the finite difference stencil.  This
+calculator accepts as input any finite difference stencil and desired
+derivative order and dynamically calculates the coefficients for the finite
+difference equation.  You may be familiar with the backward difference
+derivative
+
+\f[\frac{\partial f}{\partial x}=\frac{f(x)-f(x-h)}{h}\f]
+
+This is a special case of a finite difference equation (where \f$f(x)-f(x-h)\f$
+is the finite difference and \f$h\f$ is the spacing between the points) and can
+be displayed below by entering the finite difference stencil
+<strong>{-1,0}</strong> for <strong>Locations of Sampled Points</strong> and
+<strong>1</strong> for <strong>Derivative Order</strong>.
+
+The finite difference coefficients calculator can be used generally for any
+finite difference stencil and any derivative order.  Notable cases include the
+forward difference derivative, <strong>{0,1} and 1</strong>, the second-order
+central difference, <strong>{-1,0,1} and 2</strong>, and the fourth-order
+five-point stencil, <strong>{-2,-1,0,1,2} and 4</strong>.  However, it is
+encouraged that you explore additional combinations of forward, backward,
+central, and otherwise offset stencils, as well as irregular and non-integer
+sampling stencils, such as <strong>{-7.1,-4.2,2.4,3.14,4.7} and 4</strong>.
+
+\section fin_dif_how_does_it_work How does it work?
+
+I was taking Gilbert Strang's Computational Science and Engineering Class from
+Norbert Stoop, and Professor Stoop asked us to determine the coefficients for
+the difference equation
+
+\f[\frac{\partial^4f}{\partial x^4} \approx Af(x-2h) + Bf(x-h) + Cf(x) + Df(x+h)
++ Ef(x+2h) \f]
+
+I asked him after class if he could recommend a strategy for solving the
+problem methodically, and he suggested I consider Taylor expansions.  The
+formula for a Taylor expansion is
+
+\f[f(b)=f(a)+\frac{f'(a)}{1!}(b-a)+\frac{f''(a)}{2!}(b-a)^2+\ldots\f]
+
+so, after some serious thought, I began by expanding the first term,
+\f$Af(x-2h)\f$, with \f$b=x-2h\f$ and \f$a=x\f$, getting
+
+\f[ A                f(x) +A               f'(x)     (-2h) +A \frac{1}{2}
+f''(x)    (-2h)^2 +A \frac{1}{6}   f'''(x) (-2h)^3 +A \frac{1}{24}  f''''(x)
+(-2h)^4 +A \frac{1}{120} f'''''(x) (-2h)^5 +\ldots \f]
+
+I then did the same for all of the other terms in the numerator
+
+\f[ +B               f(x) +B               f'(x)     (-h) +B \frac{1}{2}
+f''(x)    (-h)^2 +B \frac{1}{6}   f'''(x) (-h)^3 +B \frac{1}{24}  f''''(x)
+(-h)^4 +B \frac{1}{120} f'''''(x) (-h)^5 +\ldots \f]
+
+\f[ +C               f(x) \f]
+
+\f[ +D               f(x) +D               f'(x)     (h) +D \frac{1}{2}   f''(x)
+(h)^2 +D \frac{1}{6}   f'''(x)   (h)^3 +D \frac{1}{24}  f''''(x)  (h)^4 +D
+\frac{1}{120} f'''''(x) (h)^5 +\ldots \f]
+
+\f[ +E               f(x) +E               f'(x)     (2h) +E \frac{1}{2}
+f''(x)    (2h)^2 +E \frac{1}{6}   f'''(x) (2h)^3 +E \frac{1}{24}  f''''(x)
+(2h)^4 +E \frac{1}{120} f'''''(x) (2h)^5 +\ldots \f]
+
+Now since I needed to choose \f$A, B, C, D\f$ and \f$E\f$ such that the summation
+of all of these terms results in the cancellation of all \f$f(x)\f$, \f$f'(x)\f$,
+\f$f''(x)\f$, and \f$f'''(x)\f$ terms and results in the \f$f''''(x)\f$ coefficients
+summing to one, this requires us to fulfill the equations
+
+\f[A+B+C+D+E=0 \f]
+
+\f[-2A-B+D+2E=0 \f]
+
+\f[4A+B+D+4E=0 \f]
+
+\f[-8A-B+D+8E=0 \f]
+
+\f[16A+B+D+16E=\frac{24}{h^4} \f]
+
+These can be rewritten in general form as 
+
+\f[(-2)^nA+(-1)^nB+C\delta(n)+1^nD+2^nE=\frac{4!}{h^4}\delta(n-4) \mbox{ for }
+0\leq n\leq4 \f]
+
+or in matrix form as
+
+\f[ \begin{bmatrix} 1  & 1  & 1 & 1 & 1 \\ -2 & -1 & 0 & 1 & 2 \\ 4  & 1  & 0 &
+1 & 4 \\ -8 & -1 & 0 & 1 & 8 \\ 16 & 1  & 0 & 1 & 16 \\ \end{bmatrix}
+\begin{bmatrix} A \\ B \\ C \\ D \\ E \end{bmatrix} = \frac{1}{h^4}
+\begin{bmatrix} 0 \\ 0 \\ 0 \\ 0 \\ 24 \end{bmatrix} \f]
+
+Now this matrix is invertible, and the solution is
+
+\f[ \begin{bmatrix} A \\ B \\ C \\ D \\ E \end{bmatrix} = \frac{1}{h^4}
+\begin{bmatrix} 1  & 1  & 1 & 1 & 1 \\ -2 & -1 & 0 & 1 & 2 \\ 4  & 1  & 0 & 1 &
+4 \\ -8 & -1 & 0 & 1 & 8 \\ 16 & 1  & 0 & 1 & 16 \\ \end{bmatrix}^{-1}
+\begin{bmatrix} 0 \\ 0 \\ 0 \\ 0 \\ 24 \end{bmatrix} = \frac{1}{h^4}
+\begin{bmatrix} 1 \\ -4 \\ 6  \\ -4 \\ 1  \\ \end{bmatrix} \f]
+
+Substituting these values back into the original equation, we have the
+difference equation
+
+\f[\frac{\partial^4f}{\partial x^4} \approx \frac{ f(x-2h) + -4f(x-h) + 6f(x) +
+-4f(x+h) + f(x+2h) } {h^4} \f]
+
+Carefully considering the general form above, it is noticed that this equation
+can be generalized to obtain the finite difference equation from any finite
+difference stencil given the desired derivative order (provided the desired
+finite difference equation exists for the given derivative order). Given a
+stencil \(s\) of length \(N\) and derivative order \(d< N\), the coefficients
+\(c\) are given by the finite difference coefficients equation
+
+\f[s_1^nc_1 + \ldots + s_N^nc_N = \frac{d!}{h^d}\delta(n-d) \mbox{ for } 0 \leq
+n \leq N-1 \f]
+
+The solution to this equation can be written in matrix form as
+
+\f[ \begin{bmatrix} c_1 \\ \vdots \\ c_N \end{bmatrix} = \frac{1}{h^d}
+\begin{bmatrix} s_1^0 &  \ldots & s_N^0 \\ \vdots &  \ddots & \vdots \\
+s_1^{N-1} &   \ldots & s_N^{N-1} \\ \end{bmatrix}^{-1} \begin{bmatrix} 0 \\
+\vdots \\ d! \\ \vdots \\ 0 \end{bmatrix} \f]
+
+Each time \(s\) and \(d\) are altered in the calculator above, this matrix
+equation is solved and the resulting finite difference equation is displayed.
+
+
 */
