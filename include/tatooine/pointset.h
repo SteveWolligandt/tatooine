@@ -2,9 +2,9 @@
 #define TATOOINE_POINTSET_H
 //==============================================================================
 #include <tatooine/available_libraries.h>
-#include <tatooine/thin_plate_spline.h>
 #include <tatooine/axis_aligned_bounding_box.h>
 #include <tatooine/iterator_facade.h>
+#include <tatooine/thin_plate_spline.h>
 
 #include <boost/range/algorithm/find.hpp>
 #if TATOOINE_FLANN_AVAILABLE
@@ -29,7 +29,7 @@ namespace tatooine {
 //==============================================================================
 namespace detail::pointset {
 #ifdef TATOOINE_HAS_CGAL_SUPPORT
-template <floating_point Real, std::size_t NumDimensions, typename T>
+template <floating_point Real, std::size_t NumDimensions, typename ValueType>
 struct natural_neighbor_coordinates_sampler;
 //------------------------------------------------------------------------------
 template <floating_point Real, std::size_t NumDimensions, typename ValueType,
@@ -37,23 +37,27 @@ template <floating_point Real, std::size_t NumDimensions, typename ValueType,
 struct natural_neighbor_coordinates_sampler_with_gradients;
 #endif
 //==============================================================================
-template <floating_point Real, std::size_t NumDimensions, typename T,
+template <floating_point Real, std::size_t NumDimensions, typename ValueType,
           invocable<Real> F>
 struct moving_least_squares_sampler;
 //==============================================================================
-template <floating_point Real, std::size_t NumDimensions, typename T>
+template <floating_point Real, std::size_t NumDimensions, typename ValueType>
 struct inverse_distance_weighting_sampler;
 //==============================================================================
-template <floating_point Real, std::size_t NumDimensions, typename T,
-          invocable<Real> F>
+template <floating_point Real, std::size_t NumDimensions, typename ValueType,
+          invocable<Real> Kernel>
 struct radial_basis_functions_sampler;
 //==============================================================================
-template <floating_point Real, std::size_t NumDimensions, typename T,
-          invocable<Real> F>
+template <floating_point Real, std::size_t NumDimensions, typename ValueType,
+          invocable<Real> Kernel>
 struct radial_basis_functions_sampler_with_polynomial;
 //==============================================================================
-template <floating_point Real, std::size_t NumDimensions>
-struct vertex_container;
+template <floating_point Real, std::size_t NumDimensions, typename ValueType,
+          typename GradientType>
+struct radial_basis_functions_sampler_with_gradients
+    //==============================================================================
+    template <floating_point Real, std::size_t NumDimensions>
+    struct vertex_container;
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions>
 struct const_vertex_container;
@@ -66,7 +70,7 @@ struct pointset {
   static constexpr auto num_dimensions() { return NumDimensions; }
   using real_type = Real;
   using this_type = pointset<Real, NumDimensions>;
-  using vec_type     = vec<Real, NumDimensions>;
+  using vec_type  = vec<Real, NumDimensions>;
   using pos_type  = vec_type;
 #if TATOOINE_FLANN_AVAILABLE || defined(TATOOINE_DOC_ONLY)
   using flann_index_type = flann::Index<flann::L2<Real>>;
@@ -94,9 +98,9 @@ struct pointset {
                                                            T>;
   //============================================================================
  private:
-  std::vector<pos_type>          m_vertex_position_data;
-  std::set<vertex_handle>        m_invalid_vertices;
-  vertex_property_container_type m_vertex_properties;
+  std::vector<pos_type>             m_vertex_position_data;
+  std::unordered_set<vertex_handle> m_invalid_vertices;
+  vertex_property_container_type    m_vertex_properties;
 #if TATOOINE_FLANN_AVAILABLE || defined(TATOOINE_DOC_ONLY)
   mutable std::unique_ptr<flann_index_type> m_kd_tree;
   mutable std::mutex                        m_flann_mutex;
@@ -206,13 +210,12 @@ struct pointset {
     return m_vertex_position_data;
   }
   //----------------------------------------------------------------------------
-  auto invalid_vertices() -> auto& { return m_invalid_vertices; }
   auto invalid_vertices() const -> auto const& { return m_invalid_vertices; }
   //----------------------------------------------------------------------------
  public:
   ///\{
-  auto insert_vertex(arithmetic auto const... ts)
-  requires(sizeof...(ts) == NumDimensions) {
+  auto insert_vertex(arithmetic auto const... ts) requires(sizeof...(ts) ==
+                                                           NumDimensions) {
     vertex_position_data().push_back(pos_type{static_cast<Real>(ts)...});
     for (auto& [key, prop] : vertex_properties()) {
       prop->push_back();
@@ -561,10 +564,8 @@ struct pointset {
   //----------------------------------------------------------------------------
   auto write_vtk(filesystem::path const& path,
                  std::string const&      title = "Tatooine pointset") const
-      -> void
-  requires(NumDimensions == 3 || NumDimensions == 2)
-  {
-    auto writer = vtk::legacy_file_writer {path, vtk::dataset_type::polydata};
+      -> void requires(NumDimensions == 3 || NumDimensions == 2) {
+    auto writer = vtk::legacy_file_writer{path, vtk::dataset_type::polydata};
     if (writer.is_open()) {
       writer.set_title(title);
       writer.write_header();
@@ -575,8 +576,7 @@ struct pointset {
     }
   }
   //----------------------------------------------------------------------------
- private:
-  auto write_vertices_vtk(vtk::legacy_file_writer& writer) const {
+ private : auto write_vertices_vtk(vtk::legacy_file_writer& writer) const {
     using namespace std::ranges;
     if constexpr (NumDimensions == 2) {
       auto three_dims = [](vec<Real, 2> const& v2) {
@@ -598,10 +598,8 @@ struct pointset {
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  auto write_prop_vtk(
-      vtk::legacy_file_writer& writer, std::string const& name,
-      typed_vertex_property_type<T> const& prop)
-      const -> void {
+  auto write_prop_vtk(vtk::legacy_file_writer& writer, std::string const& name,
+                      typed_vertex_property_type<T> const& prop) const -> void {
     writer.write_scalars(name, prop.internal_container());
   }
   //----------------------------------------------------------------------------
@@ -611,11 +609,13 @@ struct pointset {
       writer.write_point_data(vertices().size());
     }
     for (const auto& [name, prop] : this->m_vertex_properties) {
-      ([&] {
-        if (prop->type() == typeid(Ts)) {
-          write_prop_vtk(writer, name, prop->template cast_to_typed<Ts>());
-        }
-      }(), ...);
+      (
+          [&] {
+            if (prop->type() == typeid(Ts)) {
+              write_prop_vtk(writer, name, prop->template cast_to_typed<Ts>());
+            }
+          }(),
+          ...);
     }
   }
   //----------------------------------------------------------------------------
@@ -625,8 +625,8 @@ struct pointset {
       throw std::runtime_error{"Could not write " + path.string()};
     }
     // tidy_up();
-    auto offset                    = std::size_t{};
-    using header_type              = std::uint64_t;
+    auto offset                       = std::size_t{};
+    using header_type                 = std::uint64_t;
     using verts_connectivity_int_type = std::int64_t;
     using verts_offset_int_type       = verts_connectivity_int_type;
     auto const num_bytes_points =
@@ -841,8 +841,8 @@ struct pointset {
     if (h == nullptr) {
       return std::pair{vertex_handle::invalid(), Real(1) / Real(0)};
     }
-    auto qm        = flann::Matrix<Real>{const_cast<Real*>(x.data()), 1,
-                                  num_dimensions()};
+    auto qm =
+        flann::Matrix<Real>{const_cast<Real*>(x.data()), 1, num_dimensions()};
     auto indices   = std::vector<std::vector<int>>{};
     auto distances = std::vector<std::vector<Real>>{};
     auto params    = flann::SearchParams{};
@@ -861,8 +861,8 @@ struct pointset {
     if (h == nullptr) {
       return std::pair{std::vector<int>{}, std::vector<Real>{}};
     }
-    auto qm        = flann::Matrix<Real>{const_cast<Real*>(x.data()), 1,
-                                  num_dimensions()};
+    auto qm =
+        flann::Matrix<Real>{const_cast<Real*>(x.data()), 1, num_dimensions()};
     auto indices   = std::vector<std::vector<int>>{};
     auto distances = std::vector<std::vector<Real>>{};
     h->knnSearch(qm, indices, distances, num_nearest_neighbors, params);
@@ -890,9 +890,9 @@ struct pointset {
     if (h == nullptr) {
       return std::pair{std::vector<int>{}, std::vector<Real>{}};
     }
-    flann::Matrix<Real>           qm{const_cast<Real*>(x.data()),  // NOLINT
+    flann::Matrix<Real>            qm{const_cast<Real*>(x.data()),  // NOLINT
                            1, num_dimensions()};
-    std::vector<std::vector<int>> indices;
+    std::vector<std::vector<int>>  indices;
     std::vector<std::vector<Real>> distances;
     {
       // auto lock = std::scoped_lock{m_flann_mutex};
@@ -925,7 +925,8 @@ struct pointset {
   /// \{
   /// \brief Moving Least Squares Sampler.
   ///
-  /// Creates a field that interpolates scattered data with moving least squares.
+  /// Creates a field that interpolates scattered data with moving least
+  /// squares.
   ///
   /// \param prop Some vertex property
   /// \param radius Radius of local support
@@ -945,7 +946,7 @@ struct pointset {
   /// \brief Moving Least Squares Sampler.
   ///
   /// Creates a field that interpolates scattered data with moving least squares
-  /// with predefind weighting function 
+  /// with predefind weighting function
   ///
   /// \f$w(d) = 1 - 6\cdot d^2 + 8\cdot d^3 + 3\cdot d^4\f$,
   ///
@@ -973,6 +974,7 @@ struct pointset {
   //============================================================================
   /// \{
   /// \addtogroup radial_basis_functions Radial Basis Functions Interpolation
+  /// \brief fooo
 
   /// \brief Constructs a radial basis functions interpolator.
   ///
@@ -1033,8 +1035,8 @@ struct pointset {
   auto
   radial_basis_functions_sampler_with_polynomial_and_thin_plate_spline_kernel(
       typed_vertex_property_type<T> const& prop) const {
-    return radial_basis_functions_sampler_with_polynomial(prop,
-                                                          thin_plate_spline_from_squared);
+    return radial_basis_functions_sampler_with_polynomial(
+        prop, thin_plate_spline_from_squared);
   }
   //----------------------------------------------------------------------------
   /// \brief Constructs a radial basis functions interpolator.
@@ -1114,6 +1116,19 @@ struct pointset {
     return detail::pointset::radial_basis_functions_sampler{
         *this, prop, std::forward<decltype(f)>(f)};
   }
+  //----------------------------------------------------------------------------
+  /// \brief Constructs a radial basis functions interpolator that also takes
+  /// the gradients of the property.
+  ///
+  /// Constructs a radial basis functions interpolator with gradients.
+  /// The kernel functions is \f[\phi(r) = r^4\cdot\log(r)\f].
+  template <typename ValueType, typename GradientType>
+  auto radial_basis_functions_sampler(
+      typed_vertex_property_type<ValueType> const&    values,
+      typed_vertex_property_type<GradientType> const& gradients) const {
+    return detail::pointset::radial_basis_functions_sampler_with_gradients{
+        *this, values, gradients};
+  }
   ///\}
   //----------------------------------------------------------------------------
   ///\{
@@ -1153,6 +1168,7 @@ using pointset5 = Pointset<5>;
 #include <tatooine/detail/pointset/natural_neighbor_coordinates_sampler.h>
 #include <tatooine/detail/pointset/natural_neighbor_coordinates_sampler_with_gradients.h>
 #include <tatooine/detail/pointset/radial_basis_functions_sampler.h>
+#include <tatooine/detail/pointset/radial_basis_functions_sampler_with_gradients.h>
 #include <tatooine/detail/pointset/radial_basis_functions_sampler_with_polynomial.h>
 #include <tatooine/detail/pointset/vertex_container.h>
 //==============================================================================
