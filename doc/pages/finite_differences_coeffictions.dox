@@ -32,6 +32,7 @@
     $\frac{\partial^{(1)}f}{\partial x^{(1)}}\approx$
     </div>
     <h1></h1>
+  <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_CHTML"></script>
 <script>
   var myPoints
   var myOrder
