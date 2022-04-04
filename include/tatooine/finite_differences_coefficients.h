@@ -7,12 +7,9 @@
 namespace tatooine {
 //==============================================================================
 /// \addtogroup finite_differences_coefficients Finite Difference Coefficients
-/// Read here for more information:
-/// http://web.media.mit.edu/~crtaylor/calculator.html
 /// \{
 //==============================================================================
-/// Read here for more information:
-/// http://web.media.mit.edu/~crtaylor/calculator.html
+/// See \ref fin_dif_what_is_this for an explanation.
 auto finite_differences_coefficients(std::size_t const derivative_order,
                                      floating_point auto const... xs) {
   constexpr auto N    = sizeof...(xs);
@@ -24,8 +21,7 @@ auto finite_differences_coefficients(std::size_t const derivative_order,
   return *solve(V, b);
 }
 //------------------------------------------------------------------------------
-/// Read here for more information:
-/// http://web.media.mit.edu/~crtaylor/calculator.html
+/// See \ref fin_dif_what_is_this for an explanation.
 template <typename Tensor, floating_point Real, std::size_t N>
 auto finite_differences_coefficients(std::size_t const derivative_order,
                                      base_tensor<Tensor, Real, N> const& v) {
@@ -36,8 +32,7 @@ auto finite_differences_coefficients(std::size_t const derivative_order,
   return *solve(V, b);
 }
 //------------------------------------------------------------------------------
-/// Read here for more information:
-/// http://web.media.mit.edu/~crtaylor/calculator.html
+/// See \ref fin_dif_what_is_this for an explanation.
 auto finite_differences_coefficients(std::size_t const derivative_order,
                                      floating_point_range auto const& v) {
   using real_type     = typename std::decay_t<decltype(v)>::value_type;
