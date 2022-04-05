@@ -35,9 +35,9 @@ template <floating_point Real, std::size_t NumDimensions>
 struct line {
   //============================================================================
   using this_type       = line<Real, NumDimensions>;
-  using real_type          = Real;
-  using vec_t           = vec<Real, NumDimensions>;
-  using pos_type           = vec_t;
+  using real_type       = Real;
+  using vec_type        = vec<Real, NumDimensions>;
+  using pos_type        = vec_type;
   using pos_container_t = std::deque<pos_type>;
   using value_type      = pos_type;
   //============================================================================
@@ -52,13 +52,14 @@ struct line {
   friend struct detail::line::vertex_container<Real, NumDimensions,
                                                vertex_handle>;
 
+  using vertex_property_type = deque_property<vertex_handle>;
   template <typename T>
-  using vertex_property_type = typed_deque_property<vertex_handle, T>;
+  using typed_vertex_property_type = typed_deque_property<vertex_handle, T>;
   using vertex_property_container_type =
-      std::map<std::string, std::unique_ptr<deque_property<vertex_handle>>>;
+      std::map<std::string, std::unique_ptr<vertex_property_type>>;
 
-  using parameterization_property_type = vertex_property_type<Real>;
-  using tangent_property_type = vertex_property_type<vec<Real, NumDimensions>>;
+  using parameterization_property_type = typed_vertex_property_type<Real>;
+  using tangent_property_type = typed_vertex_property_type<vec<Real, NumDimensions>>;
 
   template <typename T, template <typename> typename InterpolationKernel>
   using vertex_property_sampler_type =
@@ -194,7 +195,7 @@ struct line {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename OtherReal>
   auto push_back(vec<OtherReal, NumDimensions> const& p) {
-    m_vertices.push_back(p);
+    m_vertices.push_back(pos_type{p});
     for (auto& [name, prop] : m_vertex_properties) {
       prop->push_back();
     }
@@ -230,7 +231,7 @@ struct line {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename OtherReal>
   auto push_front(vec<OtherReal, NumDimensions> const& p) {
-    m_vertices.push_front(p);
+    m_vertices.push_front(pos_type{p});
     for (auto& [name, prop] : m_vertex_properties) {
       prop->push_front();
     }
@@ -252,18 +253,18 @@ struct line {
   auto cubic_sampler() const { return sampler<interpolation::cubic>(); }
   //----------------------------------------------------------------------------
   template <template <typename> typename InterpolationKernel, typename T>
-  auto sampler(vertex_property_type<T> const& prop) const {
-    return vertex_property_sampler_type<vertex_property_type<T>,
+  auto sampler(typed_vertex_property_type<T> const& prop) const {
+    return vertex_property_sampler_type<typed_vertex_property_type<T>,
                                         InterpolationKernel>{*this, prop};
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  auto linear_sampler(vertex_property_type<T> const& prop) const {
+  auto linear_sampler(typed_vertex_property_type<T> const& prop) const {
     return sampler<interpolation::linear>(prop);
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  auto cubic_sampler(vertex_property_type<T> const& prop) const {
+  auto cubic_sampler(typed_vertex_property_type<T> const& prop) const {
     return sampler<interpolation::cubic>(prop);
   }
   //----------------------------------------------------------------------------
@@ -284,8 +285,8 @@ struct line {
   //============================================================================
   auto arc_length() const {
     Real len = 0;
-    for (std::size_t i = 0; i < this->vertices().size() - 1; ++i) {
-      len += distance(vertex_at(i), vertex_at(i + 1));
+    for (std::size_t i = 0; i < vertices().size() - 1; ++i) {
+      len += euclidean_distance(vertex_at(i), vertex_at(i + 1));
     }
     return len;
   }
@@ -305,7 +306,7 @@ struct line {
             boost::core::demangle(it->second->type().name()) +
             ") does not match specified type " + type_name<T>() + "."};
       }
-      return *dynamic_cast<vertex_property_type<T>*>(
+      return *dynamic_cast<typed_vertex_property_type<T>*>(
           m_vertex_properties.at(name).get());
     }
   }
@@ -322,7 +323,7 @@ struct line {
             boost::core::demangle(it->second->type().name()) +
             ") does not match specified type " + type_name<T>() + "."};
       }
-      return *dynamic_cast<vertex_property_type<T>*>(
+      return *dynamic_cast<typed_vertex_property_type<T>*>(
           m_vertex_properties.at(name).get());
     }
   }
@@ -387,8 +388,8 @@ struct line {
   auto insert_vertex_property(std::string const& name, T const& value = T{})
       -> auto& {
     auto [it, suc] = m_vertex_properties.insert(
-        std::pair{name, std::make_unique<vertex_property_type<T>>(value)});
-    auto prop = dynamic_cast<vertex_property_type<T>*>(it->second.get());
+        std::pair{name, std::make_unique<typed_vertex_property_type<T>>(value)});
+    auto prop = dynamic_cast<typed_vertex_property_type<T>*>(it->second.get());
     prop->resize(m_vertices.size());
     return *prop;
   }
@@ -483,8 +484,12 @@ struct line {
     }
   }
   //----------------------------------------------------------------------------
+  auto has_parameterization() const {
+    return m_parameterization_property != nullptr;
+  }
+  //----------------------------------------------------------------------------
   auto parameterization() -> auto& {
-    if (!m_parameterization_property) {
+    if (!has_parameterization()) {
       m_parameterization_property =
           &insert_vertex_property<Real>("parameterization");
     }
@@ -492,40 +497,61 @@ struct line {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto parameterization() const -> auto const& {
-    if (!m_parameterization_property) {
-      throw std::runtime_error{"no parameterization property present"};
+    if (!has_parameterization()) {
+      throw std::runtime_error{
+          "Cannot create parameterization property on const line."};
     }
     return *m_parameterization_property;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto compute_uniform_parameterization(Real const t0 = 0) -> void {
     auto& t               = parameterization();
-    t[vertices().front()] = t0;
-    for (std::size_t i = 1; i < this->vertices().size(); ++i) {
-      t[vertex_handle{i}] = t[vertex_handle{i - 1}] + 1;
+    t.front() = t0;
+    for (std::size_t i = 1; i < vertices().size(); ++i) {
+      t[i] = t[i - 1] + 1;
     }
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto compute_normalized_uniform_parameterization(Real const t0 = 0) -> void {
+    compute_uniform_parameterization(t0);
+    normalize_parameterization();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto compute_chordal_parameterization(Real const t0 = 0) -> void {
     auto& t               = parameterization();
-    t[vertices().front()] = t0;
-    for (std::size_t i = 1; i < this->vertices().size(); ++i) {
-      t[vertex_handle{i}] =
-          t[vertex_handle{i - 1}] + distance(vertex_at(i), vertex_at(i - 1));
+    t.front() = t0;
+    for (std::size_t i = 1; i < vertices().size(); ++i) {
+      t[i] =
+          t[i - 1] + euclidean_distance(vertex_at(i), vertex_at(i - 1));
     }
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto compute_normalized_chordal_parameterization(Real const t0 = 0) -> void {
+    compute_chordal_parameterization(t0);
+    normalize_parameterization();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto compute_centripetal_parameterization(Real const t0 = 0) -> void {
     auto& t               = parameterization();
-    t[vertices().front()] = t0;
-    for (std::size_t i = 1; i < this->vertices().size(); ++i) {
-      t[vertex_handle{i}] = t[vertex_handle{i - 1}] +
-                            std::sqrt(distance(vertex_at(i), vertex_at(i - 1)));
+    t.front() = t0;
+    for (std::size_t i = 1; i < vertices().size(); ++i) {
+      t[i] = t[i - 1] +
+             std::sqrt(euclidean_distance(vertex_at(i), vertex_at(i - 1)));
     }
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto compute_normalized_centripetal_parameterization(Real const t0 = 0) -> void {
+    compute_centripetal_parameterization(t0);
+    normalize_parameterization();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto compute_parameterization(Real const t0 = 0) -> void {
     compute_centripetal_parameterization(t0);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto compute_normalized_parameterization(Real const t0 = 0) -> void {
+    compute_parameterization(t0);
+    normalize_parameterization();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto normalize_parameterization() -> void {
@@ -563,7 +589,7 @@ struct line {
 
       // write points
       auto ps = std::vector<std::array<Real, 3>>{};
-      ps.reserve(this->vertices().size());
+      ps.reserve(vertices().size());
       for (auto const& v : vertices()) {
         auto const& p = at(v);
         if constexpr (NumDimensions == 3) {
@@ -576,14 +602,14 @@ struct line {
 
       // write lines
       auto line_seq = std::vector<std::vector<std::size_t>>(
-          1, std::vector<std::size_t>(this->vertices().size()));
+          1, std::vector<std::size_t>(vertices().size()));
       boost::iota(line_seq.front(), 0);
       if (this->is_closed()) {
         line_seq.front().push_back(0);
       }
       writer.write_lines(line_seq);
 
-      writer.write_point_data(this->vertices().size());
+      writer.write_point_data(vertices().size());
 
       // write properties
       for (auto& [name, prop] : m_vertex_properties) {
@@ -720,9 +746,9 @@ struct line {
   template <typename T>
   static auto write_prop_to_vtk(
       vtk::legacy_file_writer& writer, std::string const& name,
-      std::unique_ptr<deque_property<vertex_handle>> const& prop) -> void {
+      std::unique_ptr<vertex_property_type> const& prop) -> void {
     auto const& deque =
-        dynamic_cast<vertex_property_type<T>*>(prop.get())->container();
+        dynamic_cast<typed_vertex_property_type<T>*>(prop.get())->internal_container();
 
     writer.write_scalars(name, std::vector<T>(begin(deque), end(deque)));
   }
@@ -760,11 +786,12 @@ struct line {
   std::vector<line<Real, NumDimensions>> filter(Pred&& pred) const;
   //----------------------------------------------------------------------------
   template <template <typename> typename InterpolationKernel, typename T,
-            typename OtherReal>
-  auto resample_property(this_type& resampled_line, std::string const& name,
-                         vertex_property_type<T> const& prop,
-                         linspace<OtherReal> const&     resample_space) {
-    auto&      resampled_prop = resampled_line.insert_vertex_property<T>(name);
+            floating_point ResampleSpaceReal>
+  auto resample_vertex_property(
+      this_type& resampled_line, std::string const& name,
+      typed_vertex_property_type<T> const& prop,
+      linspace<ResampleSpaceReal> const&   resample_space) {
+    auto&      resampled_prop = resampled_line.vertex_property<T>(name);
     auto const prop_sampler   = sampler<InterpolationKernel>(prop);
     auto       v              = resampled_line.vertices().front();
     for (auto const t : resample_space) {
@@ -774,17 +801,17 @@ struct line {
   }
   //----------------------------------------------------------------------------
   template <template <typename> typename InterpolationKernel, typename... Ts,
-            typename OtherReal>
-  auto resample_vertex_property(this_type&         resampled_line,
-                                std::string const& name,
-                                deque_property<vertex_handle> const& prop,
-                                linspace<OtherReal> const& resample_space) {
+            floating_point ResampleSpaceReal>
+  auto resample_vertex_property(
+      this_type& resampled_line, std::string const& name,
+      vertex_property_type const&        prop,
+      linspace<ResampleSpaceReal> const& resample_space) {
     (
         [&] {
           if (prop.type() == typeid(Ts)) {
-            resample_property<InterpolationKernel>(
+            resample_vertex_property<InterpolationKernel>(
                 resampled_line, name,
-                *dynamic_cast<vertex_property_type<Ts> const*>(&prop),
+                *dynamic_cast<typed_vertex_property_type<Ts> const*>(&prop),
                 resample_space);
           }
         }(),
@@ -792,8 +819,8 @@ struct line {
   }
   //----------------------------------------------------------------------------
   template <template <typename> typename InterpolationKernel,
-            typename OtherReal>
-  auto resample(linspace<OtherReal> const& resample_space) {
+            floating_point ResampleSpaceReal>
+  auto resample(linspace<ResampleSpaceReal> const& resample_space) {
     this_type  resampled_line;
     auto&      p         = resampled_line.parameterization();
     auto const positions = sampler<InterpolationKernel>();

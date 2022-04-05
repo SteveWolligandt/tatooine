@@ -64,22 +64,22 @@ template <typename Handle, typename T>
 struct typed_vector_property : vector_property<Handle> {
   using this_type              = typed_vector_property<Handle, T>;
   using parent_type            = vector_property<Handle>;
-  using container_t            = std::vector<T>;
-  using value_type             = typename container_t::value_type;
-  using allocator_type         = typename container_t::allocator_type;
-  using size_type              = typename container_t::size_type;
-  using difference_type        = typename container_t::difference_type;
-  using reference              = typename container_t::reference;
-  using const_reference        = typename container_t::const_reference;
-  using pointer                = typename container_t::pointer;
-  using const_pointer          = typename container_t::const_pointer;
-  using iterator               = typename container_t::iterator;
-  using const_iterator         = typename container_t::const_iterator;
-  using reverse_iterator       = typename container_t::reverse_iterator;
-  using const_reverse_iterator = typename container_t::const_reverse_iterator;
+  using container_type            = std::vector<T>;
+  using value_type             = typename container_type::value_type;
+  using allocator_type         = typename container_type::allocator_type;
+  using size_type              = typename container_type::size_type;
+  using difference_type        = typename container_type::difference_type;
+  using reference              = typename container_type::reference;
+  using const_reference        = typename container_type::const_reference;
+  using pointer                = typename container_type::pointer;
+  using const_pointer          = typename container_type::const_pointer;
+  using iterator               = typename container_type::iterator;
+  using const_iterator         = typename container_type::const_iterator;
+  using reverse_iterator       = typename container_type::reverse_iterator;
+  using const_reverse_iterator = typename container_type::const_reverse_iterator;
   //============================================================================
  private:
-  container_t m_data;
+  container_type m_data;
   T           m_value;
   //============================================================================
  public:
@@ -259,22 +259,22 @@ template <typename Handle, typename T>
 struct typed_deque_property : deque_property<Handle> {
   using this_type              = typed_deque_property<Handle, T>;
   using parent_type            = deque_property<Handle>;
-  using container_t            = std::deque<T>;
-  using value_type             = typename container_t::value_type;
-  using allocator_type         = typename container_t::allocator_type;
-  using size_type              = typename container_t::size_type;
-  using difference_type        = typename container_t::difference_type;
-  using reference              = typename container_t::reference;
-  using const_reference        = typename container_t::const_reference;
-  using pointer                = typename container_t::pointer;
-  using const_pointer          = typename container_t::const_pointer;
-  using iterator               = typename container_t::iterator;
-  using const_iterator         = typename container_t::const_iterator;
-  using reverse_iterator       = typename container_t::reverse_iterator;
-  using const_reverse_iterator = typename container_t::const_reverse_iterator;
+  using container_type            = std::deque<T>;
+  using value_type             = typename container_type::value_type;
+  using allocator_type         = typename container_type::allocator_type;
+  using size_type              = typename container_type::size_type;
+  using difference_type        = typename container_type::difference_type;
+  using reference              = typename container_type::reference;
+  using const_reference        = typename container_type::const_reference;
+  using pointer                = typename container_type::pointer;
+  using const_pointer          = typename container_type::const_pointer;
+  using iterator               = typename container_type::iterator;
+  using const_iterator         = typename container_type::const_iterator;
+  using reverse_iterator       = typename container_type::reverse_iterator;
+  using const_reverse_iterator = typename container_type::const_reverse_iterator;
   //============================================================================
  private:
-  container_t m_data;
+  container_type m_data;
   T           m_value;
   //============================================================================
  public:
@@ -377,6 +377,18 @@ struct typed_deque_property : deque_property<Handle> {
   auto operator[](Handle handle) const -> const auto& {
     assert(handle.index() < m_data.size());
     return m_data[handle.index()];
+  }
+  //----------------------------------------------------------------------------
+  /// Access the i'th element.
+  auto operator[](std::size_t const i) -> auto& {
+    assert(i < m_data.size());
+    return m_data[i];
+  }
+  //----------------------------------------------------------------------------
+  /// Const access to the i'th element.
+  auto operator[](std::size_t const i) const -> const auto& {
+    assert(i < m_data.size());
+    return m_data[i];
   }
   //----------------------------------------------------------------------------
   [[nodiscard]] auto type() const -> const std::type_info& override {
