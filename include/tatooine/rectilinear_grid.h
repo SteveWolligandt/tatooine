@@ -1,7 +1,7 @@
 #ifndef TATOOINE_RECTILINEAR_GRID_H
 #define TATOOINE_RECTILINEAR_GRID_H
 //==============================================================================
-#include <tatooine/amira_file.h>
+#include <tatooine/amira/read.h>
 #include <tatooine/axis_aligned_bounding_box.h>
 #include <tatooine/cartesian_axis_labels.h>
 #include <tatooine/chunked_multidim_array.h>
@@ -125,7 +125,7 @@ class rectilinear_grid {
                   "Number of given dimensions does not match number of "
                   "specified dimensions.");
     static_assert(
-        (std::is_same_v<std::decay_t<Dimensions_>, Dimensions> && ...),
+        (is_same<std::decay_t<Dimensions_>, Dimensions> && ...),
         "Constructor dimension types differ class dimension types.");
   }
   //----------------------------------------------------------------------------
@@ -174,14 +174,14 @@ class rectilinear_grid {
       -> rectilinear_grid& = default;
   //----------------------------------------------------------------------------
   template <std::size_t I>
+  requires (I < num_dimensions())
   constexpr auto dimension() -> auto& {
-    static_assert(I < num_dimensions());
     return std::get<I>(m_dimensions);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <std::size_t I>
+  requires(I < num_dimensions())
   constexpr auto dimension() const -> auto const& {
-    static_assert(I < num_dimensions());
     return std::get<I>(m_dimensions);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -344,8 +344,8 @@ class rectilinear_grid {
   //----------------------------------------------------------------------------
  private:
   template <std::size_t... Seq>
+  requires(sizeof...(Seq) == num_dimensions())
   constexpr auto bounding_box(std::index_sequence<Seq...> /*seq*/) const {
-    static_assert(sizeof...(Seq) == num_dimensions());
     return axis_aligned_bounding_box<real_type, num_dimensions()>{
         vec<real_type, num_dimensions()>{
             static_cast<real_type>(front<Seq>())...},
@@ -358,8 +358,8 @@ class rectilinear_grid {
   //----------------------------------------------------------------------------
  private:
   template <std::size_t... Seq>
+  requires(sizeof...(Seq) == num_dimensions())
   constexpr auto size(std::index_sequence<Seq...> /*seq*/) const {
-    static_assert(sizeof...(Seq) == num_dimensions());
     return std::array{size<Seq>()...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -471,6 +471,11 @@ class rectilinear_grid {
     return dimension<I>().front();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <std::size_t I>
+  constexpr auto front() -> auto& {
+    return dimension<I>().front();
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr auto front(std::size_t const i) const -> real_type {
     if (i == 0) {
       return front<0>();
@@ -539,6 +544,11 @@ class rectilinear_grid {
   //----------------------------------------------------------------------------
   template <std::size_t I>
   constexpr auto back() const {
+    return dimension<I>().back();
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <std::size_t I>
+  constexpr auto back() -> auto& {
     return dimension<I>().back();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1444,9 +1454,11 @@ class rectilinear_grid {
   //============================================================================
   auto read(filesystem::path const& path) {
 #ifdef TATOOINE_NETCDF_AVAILABLE
-    if (path.extension() == ".nc") {
-      read_netcdf(path);
-      return;
+    if constexpr (!is_uniform) {
+      if (path.extension() == ".nc") {
+        read_netcdf(path);
+        return;
+      }
     }
 #endif
     if constexpr (num_dimensions() == 2 || num_dimensions() == 3) {
@@ -1454,9 +1466,11 @@ class rectilinear_grid {
         read_vtk(path);
         return;
       }
-      if (path.extension() == ".am") {
-        read_amira(path);
-        return;
+      if constexpr (is_uniform) {
+        if (path.extension() == ".am") {
+          read_amira(path);
+          return;
+        }
       }
     }
     throw std::runtime_error{
@@ -1554,67 +1568,67 @@ class rectilinear_grid {
 
     template <typename T>
     auto insert_prop(std::string const& prop_name, std::vector<T> const& data,
-                     std::size_t const num_comps) {
+                     std::size_t const num_components) {
       std::size_t i = 0;
-      if (num_comps == 1) {
+      if (num_components == 1) {
         auto& prop = gr.insert_vertex_property<T>(prop_name);
         gr.vertices().iterate_indices(
             [&](auto const... is) { prop(is...) = data[i++]; });
       }
-      if (num_comps == 2) {
+      if (num_components == 2) {
         auto& prop = gr.insert_vertex_property<vec<T, 2>>(prop_name);
         gr.vertices().iterate_indices([&](auto const... is) {
           prop(is...) = {data[i], data[i + 1]};
-          i += num_comps;
+          i += num_components;
         });
       }
-      if (num_comps == 3) {
+      if (num_components == 3) {
         auto& prop = gr.insert_vertex_property<vec<T, 3>>(prop_name);
         gr.vertices().iterate_indices([&](auto const... is) {
           prop(is...) = {data[i], data[i + 1], data[i + 2]};
-          i += num_comps;
+          i += num_components;
         });
       }
-      if (num_comps == 4) {
+      if (num_components == 4) {
         auto& prop = gr.insert_vertex_property<vec<T, 4>>(prop_name);
         gr.vertices().iterate_indices([&](auto const... is) {
           prop(is...) = {data[i], data[i + 1], data[i + 2], data[i + 3]};
-          i += num_comps;
+          i += num_components;
         });
       }
     }
     auto on_scalars(std::string const& data_name,
                     std::string const& /*lookup_table_name*/,
-                    std::size_t const num_comps, std::vector<float> const& data,
+                    std::size_t const num_components, std::vector<float> const& data,
                     vtk::reader_data) -> void override {
-      insert_prop<float>(data_name, data, num_comps);
+      insert_prop<float>(data_name, data, num_components);
     }
     auto on_scalars(std::string const& data_name,
                     std::string const& /*lookup_table_name*/,
-                    std::size_t const          num_comps,
+                    std::size_t const          num_components,
                     std::vector<double> const& data, vtk::reader_data)
         -> void override {
-      insert_prop<double>(data_name, data, num_comps);
+      insert_prop<double>(data_name, data, num_components);
     }
     auto on_point_data(std::size_t) -> void override {}
     auto on_cell_data(std::size_t) -> void override {}
     auto on_field_array(std::string const /*field_name*/,
                         std::string const       field_array_name,
-                        std::vector<int> const& data, std::size_t num_comps,
+                        std::vector<int> const& data, std::size_t num_components,
                         std::size_t /*num_tuples*/) -> void override {
-      insert_prop<int>(field_array_name, data, num_comps);
+      insert_prop<int>(field_array_name, data, num_components);
     }
     auto on_field_array(std::string const /*field_name*/,
                         std::string const         field_array_name,
-                        std::vector<float> const& data, std::size_t num_comps,
+                        std::vector<float> const& data, std::size_t num_components,
                         std::size_t /*num_tuples*/) -> void override {
-      insert_prop<float>(field_array_name, data, num_comps);
+      insert_prop<float>(field_array_name, data, num_components);
     }
     auto on_field_array(std::string const /*field_name*/,
                         std::string const          field_array_name,
-                        std::vector<double> const& data, std::size_t num_comps,
+                        std::vector<double> const& data, std::size_t num_components,
                         std::size_t /*num_tuples*/) -> void override {
-      insert_prop<double>(field_array_name, data, num_comps);
+      insert_prop<double>(field_array_name, data, num_components);
     }
   };
   auto read_vtk(filesystem::path const& path) requires(num_dimensions() == 2) ||
@@ -1627,7 +1641,7 @@ class rectilinear_grid {
     f.read();
 
     if (is_structured_points) {
-      if constexpr (std::is_same_v<std::decay_t<decltype(dimension<0>())>,
+      if constexpr (is_same<std::decay_t<decltype(dimension<0>())>,
                                    linspace<double>>) {
         dimension<0>().back() = front<0>() + (size<0>() - 1) * spacing(0);
       } else {
@@ -1636,7 +1650,7 @@ class rectilinear_grid {
           d = front<0>() + (i++) * spacing(0);
         }
       }
-      if constexpr (std::is_same_v<std::decay_t<decltype(dimension<1>())>,
+      if constexpr (is_same<std::decay_t<decltype(dimension<1>())>,
                                    linspace<double>>) {
         dimension<1>().back() = front<1>() + (size<1>() - 1) * spacing(1);
       } else {
@@ -1646,7 +1660,7 @@ class rectilinear_grid {
         }
       }
       if constexpr (num_dimensions() == 3) {
-        if constexpr (std::is_same_v<std::decay_t<decltype(dimension<2>())>,
+        if constexpr (is_same<std::decay_t<decltype(dimension<2>())>,
                                      linspace<double>>) {
           dimension<2>().back() = front<2>() + (size<2>() - 1) * spacing(2);
         } else {
@@ -1659,95 +1673,82 @@ class rectilinear_grid {
     }
   }
   //----------------------------------------------------------------------------
-  auto read_amira(filesystem::path const& path) requires(num_dimensions() ==
-                                                         2) ||
-      (num_dimensions() == 3) {
-    auto const  am        = amira::read<real_type>(path);
-    auto const& data      = std::get<0>(am);
-    auto const& dims      = std::get<1>(am);
-    auto const& aabb      = std::get<2>(am);
-    auto const& num_comps = std::get<3>(am);
+  auto read_amira(filesystem::path const& path)
+    requires is_uniform &&
+             ((num_dimensions() == 2) || (num_dimensions() == 3)) {
+    auto const [data, dims, aabb, num_components] =
+        amira::read<real_type>(path);
     if (dims[2] == 1 && num_dimensions() == 3) {
       throw std::runtime_error{
           "[rectilinear_grid::read_amira] file contains 2-dimensional data. "
-          "Cannot "
-          "read "
-          "into 3-dimensional rectilinear_grid"};
+          "Cannot read into 3-dimensional rectilinear_grid"};
     }
     if (dims[2] > 1 && num_dimensions() == 2) {
       throw std::runtime_error{
           "[rectilinear_grid::read_amira] file contains 3-dimensional data. "
-          "Cannot "
-          "read "
-          "into 2-dimensional rectilinear_grid"};
+          "Cannot read into 2-dimensional rectilinear_grid"};
     }
-    // set dimensions
 
-    if constexpr (std::is_same_v<std::decay_t<decltype(dimension<0>())>,
-                                 linspace<double>>) {
-      dimension<0>() = linspace<double>{aabb.min(0), aabb.max(0), dims[0]};
-    } else if constexpr (std::is_same_v<std::decay_t<decltype(dimension<0>())>,
-                                        linspace<real_type>>) {
-      dimension<0>() = linspace<real_type>{aabb.min(0), aabb.max(0), dims[0]};
-    } else {
-      linspace<double> d{aabb.min(0), aabb.max(0), dims[0]};
+    // set dimensions
+    if constexpr (is_linspace<std::decay_t<decltype(dimension<0>())>>) {
+      dimension<0>().front() = aabb.min(0);
+      dimension<0>().back()  = aabb.max(0);
       dimension<0>().resize(dims[0]);
-      std::copy(begin(d), end(d), begin(dimension<0>()));
-    }
-    if constexpr (std::is_same_v<std::decay_t<decltype(dimension<1>())>,
-                                 linspace<double>>) {
-      dimension<1>() = linspace<double>{aabb.min(1), aabb.max(1), dims[1]};
-    } else if constexpr (std::is_same_v<std::decay_t<decltype(dimension<0>())>,
-                                        linspace<real_type>>) {
-      dimension<1>() = linspace<real_type>{aabb.min(1), aabb.max(1), dims[1]};
     } else {
-      linspace<double> d{aabb.min(1), aabb.max(1), dims[1]};
+      auto const uniform_dim = linspace<double> {aabb.min(0), aabb.max(0), dims[0]};
+      dimension<0>().resize(dims[0]);
+      std::ranges::copy(uniform_dim, begin(dimension<0>()));
+    }
+    if constexpr (is_linspace<std::decay_t<decltype(dimension<1>())>>) {
+      dimension<1>().front() = aabb.min(1);
+      dimension<1>().back()  = aabb.max(1);
       dimension<1>().resize(dims[1]);
-      std::copy(begin(d), end(d), begin(dimension<1>()));
+    } else {
+      auto const uniform_dim = linspace<double> {aabb.min(1), aabb.max(1), dims[1]};
+      dimension<1>().resize(dims[1]);
+      std::ranges::copy(uniform_dim, begin(dimension<1>()));
     }
     if constexpr (num_dimensions() == 3) {
-      if constexpr (std::is_same_v<std::decay_t<decltype(dimension<1>())>,
-                                   linspace<double>>) {
-        dimension<2>() = linspace<double>{aabb.min(2), aabb.max(2), dims[2]};
-      } else if constexpr (std::is_same_v<
-                               std::decay_t<decltype(dimension<1>())>,
-                               linspace<real_type>>) {
-        dimension<2>() = linspace<real_type>{aabb.min(2), aabb.max(2), dims[2]};
-      } else {
-        linspace<double> d{aabb.min(2), aabb.max(2), dims[2]};
+      if constexpr (is_linspace<std::decay_t<decltype(dimension<2>())>>) {
+        dimension<2>().front() = aabb.min(2);
+        dimension<2>().back()  = aabb.max(2);
         dimension<2>().resize(dims[2]);
-        std::copy(begin(d), end(d), begin(dimension<2>()));
+      } else {
+        auto const uniform_dim =
+            linspace<double>{aabb.min(2), aabb.max(2), dims[2]};
+        dimension<2>().resize(dims[2]);
+        std::ranges::copy(uniform_dim, begin(dimension<2>()));
       }
     }
     // copy data
-    std::size_t i = 0;
-    if (num_comps == 1) {
-      auto& prop = insert_vertex_property<real_type>(path.string());
+    auto i = std::size_t{};
+    if (num_components == 1) {
+      auto& prop = scalar_vertex_property(path.filename().string());
       vertices().iterate_indices(
           [&](auto const... is) { prop(is...) = data[i++]; });
-    } else if (num_comps == 2) {
-      auto& prop = insert_vertex_property<vec<real_type, 2>>(path.string());
+    } else if (num_components == 2) {
+      auto& prop = vertex_property<vec<real_type, 2>>(path.filename().string());
       vertices().iterate_indices([&](auto const... is) {
         prop(is...) = {data[i], data[i + 1]};
-        i += num_comps;
+        i += num_components;
       });
-    } else if (num_comps == 3) {
-      auto& prop = insert_vertex_property<vec<real_type, 3>>(path.string());
+    } else if (num_components == 3) {
+      auto& prop = vertex_property<vec<real_type, 3>>(path.filename().string());
       vertices().iterate_indices([&](auto const... is) {
         prop(is...) = {data[i], data[i + 1], data[i + 2]};
-        i += num_comps;
+        i += num_components;
       });
     }
   }
   //----------------------------------------------------------------------------
 #ifdef TATOOINE_NETCDF_AVAILABLE
-  auto read_netcdf(filesystem::path const& path) {
+  auto read_netcdf(filesystem::path const& path) requires (!is_uniform) {
     read_netcdf(path, std::make_index_sequence<num_dimensions()>{});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename T, std::size_t... Seq>
   auto insert_variables_of_type(netcdf::file& f, bool& first,
-                                std::index_sequence<Seq...> /*seq*/) {
+                                std::index_sequence<Seq...> /*seq*/) requires (!is_uniform)  {
     for (auto v : f.variables<T>()) {
       if (v.name() == "x" || v.name() == "y" || v.name() == "z" ||
           v.name() == "t" || v.name() == "X" || v.name() == "Y" ||
@@ -1800,7 +1801,7 @@ class rectilinear_grid {
   /// this only reads scalar types
   template <std::size_t... Seq>
   auto read_netcdf(filesystem::path const&     path,
-                   std::index_sequence<Seq...> seq) {
+                   std::index_sequence<Seq...> seq) requires (!is_uniform)  {
     netcdf::file f{path, netCDF::NcFile::read};
     bool         first = true;
     insert_variables_of_type<double>(f, first, seq);

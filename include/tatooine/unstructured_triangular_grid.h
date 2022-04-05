@@ -13,6 +13,7 @@ struct unstructured_triangular_grid
   using parent_t::parent_t;
   using typename parent_t::vertex_handle;
   using triangle_handle = typename parent_t::simplex_handle;
+  constexpr unstructured_triangular_grid() = default;
   template <typename... Handles>
   auto insert_triangle(Handles const... handles) requires(
       is_same<Handles, vertex_handle>&&...) {
