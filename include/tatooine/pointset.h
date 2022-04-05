@@ -22,7 +22,7 @@
 
 #include <fstream>
 #include <limits>
-#include <unordered_set>
+#include <set>
 #include <vector>
 //==============================================================================
 namespace tatooine {
@@ -54,10 +54,10 @@ struct radial_basis_functions_sampler_with_polynomial;
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions, typename ValueType,
           typename GradientType>
-struct radial_basis_functions_sampler_with_gradients
-    //==============================================================================
-    template <floating_point Real, std::size_t NumDimensions>
-    struct vertex_container;
+struct radial_basis_functions_sampler_with_gradients;
+//==============================================================================
+template <floating_point Real, std::size_t NumDimensions>
+struct vertex_container;
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions>
 struct const_vertex_container;
@@ -98,9 +98,9 @@ struct pointset {
                                                            T>;
   //============================================================================
  private:
-  std::vector<pos_type>             m_vertex_position_data;
-  std::unordered_set<vertex_handle> m_invalid_vertices;
-  vertex_property_container_type    m_vertex_properties;
+  std::vector<pos_type>          m_vertex_position_data;
+  std::set<vertex_handle>        m_invalid_vertices;
+  vertex_property_container_type m_vertex_properties;
 #if TATOOINE_FLANN_AVAILABLE || defined(TATOOINE_DOC_ONLY)
   mutable std::unique_ptr<flann_index_type> m_kd_tree;
   mutable std::mutex                        m_flann_mutex;
