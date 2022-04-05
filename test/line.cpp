@@ -1,8 +1,4 @@
-//#include <tatooine/analytical/fields/numerical/doublegyre.h>
-//#include <tatooine/analytical/fields/numerical/sinuscosinus.h>
-//#include <tatooine/constant_vectorfield.h>
 #include <tatooine/line.h>
-//#include <tatooine/ode/vclibs/rungekutta43.h>
 
 #include <catch2/catch.hpp>
 //==============================================================================
@@ -27,7 +23,7 @@ TEST_CASE_METHOD(line2, "line_push_front", "[line][push_front]") {
 }
 //==============================================================================
 TEST_CASE("line_initializer_list", "[line][initializer_list]") {
-  line2 l{vec{0, 0}, vec{1, 1}, vec{2, 0}};
+  auto const l = line2{vec{0, 0}, vec{1, 1}, vec{2, 0}};
   REQUIRE(approx_equal(l.vertex_at(0), vec{0, 0}, 0));
   REQUIRE(approx_equal(l.vertex_at(1), vec{1, 1}, 0));
   REQUIRE(approx_equal(l.vertex_at(2), vec{2, 0}, 0));
@@ -37,10 +33,15 @@ TEST_CASE_METHOD(line2, "line_property", "[line][property]") {
   push_front(vec{0, 0});
   push_front(vec{1, 1});
   push_front(vec{2, 0});
-  auto &prop             = scalar_vertex_property("prop");
-  prop[vertex_handle{0}] = 1;
-  prop[vertex_handle{1}] = 2;
-  prop[vertex_handle{2}] = 3;
+  {
+    auto &prop = scalar_vertex_property("prop");
+    prop[0]    = 1;
+    prop[1]    = 2;
+    prop[2]    = 3;
+  }
+  REQUIRE(scalar_vertex_property("prop")[0] == 1);
+  REQUIRE(scalar_vertex_property("prop")[1] == 2);
+  REQUIRE(scalar_vertex_property("prop")[2] == 3);
 }
 //==============================================================================
 TEST_CASE_METHOD(line2, "line_tangents", "[line][tangents]") {
@@ -69,17 +70,16 @@ TEST_CASE_METHOD(line2, "line_resample", "[line][parameterization][resample]") {
   push_back(vec2{0, 0});
   push_back(vec2{1, 1});
   push_back(vec2{2, 0});
+  compute_normalized_parameterization();
   auto &prop      = scalar_vertex_property("prop");
-  using handle    = line2::vertex_handle;
-  prop[handle{0}] = 1;
-  prop[handle{1}] = 2;
-  prop[handle{2}] = 30;
-  compute_uniform_parameterization();
+  prop[0] = 1;
+  prop[1] = 2;
+  prop[2] = 5;
 
   write_vtk("original_line.vtk");
-  resample<interpolation::linear>(linspace{0.0, 2.0, 101})
+  resample<interpolation::linear>(linspace{0.0, 1.0, 101})
       .write_vtk("line_linear_resampled.vtk");
-  resample<interpolation::cubic>(linspace{0.0, 2.0, 101})
+  resample<interpolation::cubic>(linspace{0.0, 1.0, 101})
       .write_vtk("line_cubic_resampled.vtk");
 }
 ////==============================================================================

@@ -5,23 +5,24 @@
 //==============================================================================
 namespace tatooine::detail::line {
 //==============================================================================
-template <floating_point Real, std::size_t NumDimensions, typename Prop,
+template <floating_point Real, std::size_t NumDimensions, typename Property,
           template <typename> typename InterpolationKernel>
 struct vertex_property_sampler {
-  using line_type   = tatooine::line<Real, NumDimensions>;
-  using handle_type = typename line_type::vertex_handle;
+  using line_type     = tatooine::line<Real, NumDimensions>;
+  using handle_type   = typename line_type::vertex_handle;
+  using property_type = Property;
   using parameterization_property_type =
       typename line_type::parameterization_property_type;
 
  private:
   line_type const&                      m_line;
-  Prop const&                           m_prop;
+  property_type const&                  m_property;
   parameterization_property_type const& m_parameterization;
 
  public:
-  vertex_property_sampler(line_type const& line, Prop const& prop)
+  vertex_property_sampler(line_type const& line, property_type const& property)
       : m_line{line},
-        m_prop{prop},
+        m_property{property},
         m_parameterization{m_line.parameterization()} {}
 
   auto operator()(Real t) const {
@@ -39,36 +40,38 @@ struct vertex_property_sampler {
     auto const rt = m_parameterization[range.second];
     t             = (t - lt) / (rt - lt);
 
-    return InterpolationKernel{m_prop[range.first], m_prop[range.second]}(t);
+    return InterpolationKernel{m_property[range.first],
+                               m_property[range.second]}(t);
   }
 };
-template <floating_point Real, std::size_t NumDimensions, typename Prop>
-struct vertex_property_sampler<Real, NumDimensions, Prop,
+//==============================================================================
+template <floating_point Real, std::size_t NumDimensions, typename Property>
+struct vertex_property_sampler<Real, NumDimensions, Property,
                                interpolation::cubic> {
   using line_type   = tatooine::line<Real, NumDimensions>;
   using handle_type = typename line<Real, NumDimensions>::vertex_handle;
   using tangent_property_type = typename line_type::tangent_property_type;
   using parameterization_property_type =
       typename line_type::parameterization_property_type;
-  using value_type =
-      std::decay_t<decltype(std::declval<Prop>()[std::declval<handle_type>()])>;
+  using property_type = Property;
+  using value_type    = typename property_type::value_type;
 
  private:
   line_type const&                              m_line;
-  Prop const&                                   m_prop;
+  property_type const&                          m_property;
   parameterization_property_type const&         m_parameterization;
   std::vector<interpolation::cubic<value_type>> m_interpolants;
 
  public:
-  vertex_property_sampler(line_type const& line, Prop const& prop)
+  vertex_property_sampler(line_type const& line, property_type const& property)
       : m_line{line},
-        m_prop{prop},
+        m_property{property},
         m_parameterization{m_line.parameterization()} {
-    std::size_t const       stencil_size = 3;
-    auto const              half         = stencil_size / 2;
-    std::vector<value_type> derivatives;
+    auto const stencil_size = std::size_t(3);
+    auto const half         = stencil_size / 2;
+    auto       derivatives  = std::vector<value_type>{};
 
-    auto const derivative = [&](auto const v) {
+    auto const derivative = [&](handle_type const v) -> value_type{
       auto       lv = half > v.index() ? handle_type{0} : v - half;
       auto const rv = lv.index() + stencil_size - 1 >= m_line.vertices().size()
                           ? handle_type{m_line.vertices().size() - 1}
@@ -76,8 +79,8 @@ struct vertex_property_sampler<Real, NumDimensions, Prop,
       auto const rpotential = stencil_size - (rv.index() - lv.index() + 1);
       lv = rpotential > lv.index() ? handle_type{0} : lv - rpotential;
 
-      std::vector<real_number> ts(stencil_size);
-      std::size_t         i = 0;
+      auto ts = std::vector<real_number>(stencil_size);
+      auto i  = std::size_t{};
       for (auto vi = lv; vi <= rv; ++vi, ++i) {
         ts[i] = m_parameterization[vi] - m_parameterization[v];
       }
@@ -85,7 +88,7 @@ struct vertex_property_sampler<Real, NumDimensions, Prop,
       auto derivative = value_type{};
       i               = 0;
       for (auto vi = lv; vi <= rv; ++vi, ++i) {
-        derivative += m_prop[vi] * coeffs[i];
+        derivative += m_property[vi] * coeffs[i];
       }
       return derivative;
     };
@@ -94,9 +97,10 @@ struct vertex_property_sampler<Real, NumDimensions, Prop,
       auto const dfdt1 = derivative(handle_type{i + 1});
       auto const dy    = m_parameterization[handle_type{i + 1}] -
                       m_parameterization[handle_type{i}];
-      m_interpolants.emplace_back(m_prop[handle_type{i}],
-                                  m_prop[handle_type{i + 1}], dfdt0 * dy,
-                                  dfdt1 * dy);
+       m_interpolants.emplace_back(m_property[handle_type{i}],
+                                   m_property[handle_type{i + 1}],
+                                   value_type(dfdt0 * dy),
+                                   value_type(dfdt1 * dy));
       dfdt0 = dfdt1;
     }
   }

@@ -2,6 +2,7 @@
 #define TATOOINE_DETAIL_LINE_VERTEX_CONTAINER_H
 //==============================================================================
 #include <tatooine/detail/line/vertex_iterator.h>
+#include <tatooine/concepts.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
