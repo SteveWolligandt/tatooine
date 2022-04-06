@@ -1,8 +1,9 @@
 #ifndef TATOOINE_DETAIL_POINTSET_RADIAL_BASIS_FUNCTIONS_SAMPLER_H
 #define TATOOINE_DETAIL_POINTSET_RADIAL_BASIS_FUNCTIONS_SAMPLER_H
 //==============================================================================
+#include <tatooine/field.h>
+#include <tatooine/pointset.h>
 #include <tatooine/concepts.h>
-#include <tatooine/tags.h>
 //==============================================================================
 namespace tatooine::detail::pointset {
 //==============================================================================
@@ -21,124 +22,131 @@ struct radial_basis_functions_sampler
   using vertex_handle = typename pointset_type::vertex_handle;
   using vertex_property_type =
       typename pointset_type::template typed_vertex_property_type<T>;
+  static auto constexpr num_dimensions() { return NumDimensions; }
   //==========================================================================
   pointset_type const&        m_pointset;
   vertex_property_type const& m_property;
   Kernel                      m_kernel;
-  tensor<Real>                m_weights;
+  tensor<Real>                m_radial_and_monomial_coefficients;
   //==========================================================================
   radial_basis_functions_sampler(pointset_type const&          ps,
                                  vertex_property_type const&   property,
                                  convertible_to<Kernel> auto&& kernel)
-      : radial_basis_functions_sampler{ps, property,
-                                       std::forward<decltype(kernel)>(kernel),
-                                       execution_policy::sequential} {}
-  //----------------------------------------------------------------------------
-  radial_basis_functions_sampler(pointset_type const&          ps,
-                                 vertex_property_type const&   property,
-                                 convertible_to<Kernel> auto&& kernel,
-                                 execution_policy::parallel_t /*pol*/)
       : m_pointset{ps},
         m_property{property},
         m_kernel{std::forward<decltype(kernel)>(kernel)} {
     auto const N = m_pointset.vertices().size();
     // construct lower part of symmetric matrix A
-    auto A = tensor<real_type>::zeros(N, N);
-#pragma omp parallel for collapse(2)
+    auto A =
+        tensor<real_type>::zeros(N + NumDimensions + 1, N + NumDimensions + 1);
     for (std::size_t c = 0; c < N; ++c) {
       for (std::size_t r = c + 1; r < N; ++r) {
         A(r, c) = m_kernel(squared_euclidean_distance(m_pointset.vertex_at(c),
                                                       m_pointset.vertex_at(r)));
       }
     }
-    m_weights = [N] {
-      if constexpr (arithmetic<T>) {
-        return tensor<T>::zeros(N);
-      } else if constexpr (static_tensor<T>) {
-        return tensor<tensor_value_type<T>>::zeros(N, T::num_components());
-      }
-    }();
-
-#pragma omp parallel for
-    for (std::size_t i = 0; i < N; ++i) {
-      if constexpr (arithmetic<T>) {
-        m_weights(i) = m_property[i];
-      } else if constexpr (static_tensor<T>) {
-        for (std::size_t j = 0; j < T::num_components(); ++j) {
-          m_weights(i, j) = m_property[i].data()[j];
-        }
-      }
-    }
-    // do not copy by moving A and m_weights into solver
-    m_weights = *solve_symmetric_lapack(std::move(A), std::move(m_weights),
-                                        lapack::Uplo::Lower);
-  }
-  //----------------------------------------------------------------------------
-  radial_basis_functions_sampler(pointset_type const&          ps,
-                                 vertex_property_type const&   property,
-                                 convertible_to<Kernel> auto&& kernel,
-                                 execution_policy::sequential_t /*pol*/)
-      : m_pointset{ps},
-        m_property{property},
-        m_kernel{std::forward<decltype(kernel)>(kernel)} {
-    auto const N = m_pointset.vertices().size();
-    // construct lower part of symmetric matrix A
-    auto A = tensor<real_type>::zeros(N, N);
+    // construct polynomial requirements
     for (std::size_t c = 0; c < N; ++c) {
-      for (std::size_t r = c + 1; r < N; ++r) {
-        A(r, c) = m_kernel(squared_euclidean_distance(m_pointset.vertex_at(c),
-                                                      m_pointset.vertex_at(r)));
+      auto const& p = m_pointset.vertex_at(c);
+      // constant part
+      A(N, c) = 1;
+
+      // linear part
+      for (std::size_t i = 0; i < NumDimensions; ++i) {
+        A(N + i + 1, c) = p(i);
       }
     }
-    m_weights = [N] {
+
+    m_radial_and_monomial_coefficients = [N] {
       if constexpr (arithmetic<T>) {
-        return tensor<T>::zeros(N);
+        return tensor<T>::zeros(N + NumDimensions + 1);
       } else if constexpr (static_tensor<T>) {
-        return tensor<tensor_value_type<T>>::zeros(N, T::num_components());
+        return tensor<tensor_value_type<T>>::zeros(N + NumDimensions + 1,
+                                                   T::num_components());
       }
     }();
 
     for (std::size_t i = 0; i < N; ++i) {
       if constexpr (arithmetic<T>) {
-        m_weights(i) = m_property[i];
+        m_radial_and_monomial_coefficients(i) = m_property[i];
       } else if constexpr (static_tensor<T>) {
         for (std::size_t j = 0; j < T::num_components(); ++j) {
-          m_weights(i, j) = m_property[i].data()[j];
+          m_radial_and_monomial_coefficients(i, j) = m_property[i].data()[j];
         }
       }
     }
-    // do not copy by moving A and m_weights into solver
-    m_weights = *solve_symmetric_lapack(std::move(A), std::move(m_weights),
-                                        lapack::Uplo::Lower);
+    // do not copy by moving A and m_radial_and_monomial_coefficients into
+    // solver
+    m_radial_and_monomial_coefficients = *solve_symmetric_lapack(
+        std::move(A), std::move(m_radial_and_monomial_coefficients),
+        lapack::Uplo::Lower);
   }
   //--------------------------------------------------------------------------
   radial_basis_functions_sampler(radial_basis_functions_sampler const&) =
       default;
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // -
   radial_basis_functions_sampler(radial_basis_functions_sampler&&) noexcept =
       default;
   //--------------------------------------------------------------------------
   auto operator=(radial_basis_functions_sampler const&)
       -> radial_basis_functions_sampler& = default;
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // -
   auto operator=(radial_basis_functions_sampler&&) noexcept
       -> radial_basis_functions_sampler& = default;
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // -
   ~radial_basis_functions_sampler() = default;
+
+  //------------------------------------------------------------------------------
+  static auto for_loop(auto&& iteration, std::size_t const degree,
+                       std::size_t const dim, std::vector<std::size_t>& status)
+      -> void {
+    if (dim == degree + 1) {
+      return iteration(status);
+    } else {
+      for (; status[dim] < (dim == 0 ? num_dimensions() : status[dim - 1]);
+           ++status[dim]) {
+        for_loop(std::forward<decltype(iteration)>(iteration), begin, end,
+                 status, dim + 1);
+      }
+      status[dim] = 0;
+    }
+  }
   //==========================================================================
   [[nodiscard]] auto evaluate(pos_type const& q, real_type const /*t*/) const
       -> tensor_type {
-    auto acc = T{};
+    auto const N   = m_pointset.vertices().size();
+    auto       acc = T{};
+    // radial basis functions
     for (auto const v : m_pointset.vertices()) {
       auto const sqr_dist = squared_euclidean_distance(q, m_pointset[v]);
       if (sqr_dist == 0) {
         return m_property[v];
       }
       if constexpr (arithmetic<T>) {
-        acc += m_weights(v.index()) * m_kernel(sqr_dist);
+        acc +=
+            m_radial_and_monomial_coefficients(v.index()) * m_kernel(sqr_dist);
       } else if constexpr (static_tensor<T>) {
         for (std::size_t j = 0; j < T::num_components(); ++j) {
-          acc.data()[j] += m_weights(v.index(), j) * m_kernel(sqr_dist);
+          acc.data()[j] += m_radial_and_monomial_coefficients(v.index(), j) *
+                           m_kernel(sqr_dist);
+        }
+      }
+    }
+    // polynomial part
+    if constexpr (arithmetic<T>) {
+      acc += m_radial_and_monomial_coefficients(N);
+      for (std::size_t k = 0; k < NumDimensions; ++k) {
+        acc += m_radial_and_monomial_coefficients(N + 1 + k) * q(k);
+      }
+    } else if constexpr (static_tensor<T>) {
+      for (std::size_t j = 0; j < T::num_components(); ++j) {
+        acc.data()[j] += m_radial_and_monomial_coefficients(N, j);
+        for (std::size_t k = 0; k < NumDimensions; ++k) {
+          acc.data()[j] +=
+              m_radial_and_monomial_coefficients(N + 1 + k, j) * q(k);
         }
       }
     }
