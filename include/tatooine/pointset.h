@@ -49,10 +49,6 @@ template <floating_point Real, std::size_t NumDimensions, typename ValueType,
 struct radial_basis_functions_sampler;
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions, typename ValueType,
-          invocable<Real> Kernel>
-struct radial_basis_functions_sampler_with_polynomial;
-//==============================================================================
-template <floating_point Real, std::size_t NumDimensions, typename ValueType,
           typename GradientType>
 struct radial_basis_functions_sampler_with_gradients;
 //==============================================================================
@@ -972,84 +968,6 @@ struct pointset {
   }
   ///\}
   //============================================================================
-  /// \{
-  /// \addtogroup radial_basis_functions Radial Basis Functions Interpolation
-  /// \brief fooo
-
-  /// \brief Constructs a radial basis functions interpolator.
-  ///
-  /// Constructs a radial basis functions interpolator with with polynomial
-  /// constraint kernel function:
-  ///
-  /// \f$k(d) = d\f$
-  ///
-  /// \param epsilon Shape parameter
-  template <typename T>
-  auto radial_basis_functions_sampler_with_polynomial_and_linear_kernel(
-      typed_vertex_property_type<T> const& prop) const {
-    return radial_basis_functions_sampler_with_polynomial(
-        prop, [](auto const sqr_dist) { return gcem::sqrt(sqr_dist); });
-  }
-  //----------------------------------------------------------------------------
-  /// \brief Constructs a radial basis functions interpolator.
-  ///
-  /// Constructs a radial basis functions interpolator with polynomial
-  /// constraint and kernel function:
-  ///
-  /// \f$k(d) = d^3\f$
-  ///
-  /// \param epsilon Shape parameter
-  template <typename T>
-  auto radial_basis_functions_sampler_with_polynomial_and_cubic_kernel(
-      typed_vertex_property_type<T> const& prop) const {
-    return radial_basis_functions_sampler_with_polynomial(
-        prop,
-        [](auto const sqr_dist) { return sqr_dist * gcem::sqrt(sqr_dist); });
-  }
-  //----------------------------------------------------------------------------
-  /// \brief Constructs a radial basis functions interpolator.
-  ///
-  /// Constructs a radial basis functions interpolator with polynomial
-  /// constraint kernel function:
-  ///
-  /// \f$k(d) = e^{-(\epsilon d)^2}\f$
-  ///
-  /// \param epsilon Shape parameter
-  template <typename T>
-  auto radial_basis_functions_sampler_with_polynomial_and_gaussian_kernel(
-      typed_vertex_property_type<T> const& prop, Real const epsilon) const {
-    return radial_basis_functions_sampler_with_polynomial(
-        prop, [epsilon](auto const sqr_dist) {
-          return gcem::exp(-epsilon * epsilon * sqr_dist);
-        });
-  }
-  //----------------------------------------------------------------------------
-  /// \brief Constructs a radial basis functions interpolator.
-  ///
-  /// Constructs a radial basis functions interpolator with polynomial
-  /// constraint and a thin plate spline
-  /// kernel function:
-  ///
-  /// \f$k(d) = d^2 \cdot \log(d)\f$
-  template <typename T>
-  auto
-  radial_basis_functions_sampler_with_polynomial_and_thin_plate_spline_kernel(
-      typed_vertex_property_type<T> const& prop) const {
-    return radial_basis_functions_sampler_with_polynomial(
-        prop, thin_plate_spline_from_squared);
-  }
-  //----------------------------------------------------------------------------
-  /// \brief Constructs a radial basis functions interpolator.
-  ///
-  /// Constructs a radial basis functions interpolator with polynomial
-  /// constraint and a user-defined kernel function.
-  template <typename T>
-  auto radial_basis_functions_sampler_with_polynomial(
-      typed_vertex_property_type<T> const& prop, auto&& f) const {
-    return detail::pointset::radial_basis_functions_sampler_with_polynomial{
-        *this, prop, std::forward<decltype(f)>(f)};
-  }
-  //============================================================================
   /// \brief Constructs a radial basis functions interpolator.
   ///
   /// Constructs a radial basis functions interpolator with kernel function:
@@ -1112,9 +1030,17 @@ struct pointset {
   /// kernel function.
   template <typename T>
   auto radial_basis_functions_sampler(typed_vertex_property_type<T> const& prop,
-                                      auto&& f) const {
+                                      invocable<Real> auto&& f) const {
     return detail::pointset::radial_basis_functions_sampler{
         *this, prop, std::forward<decltype(f)>(f)};
+  }
+  //----------------------------------------------------------------------------
+  /// \brief Constructs a radial basis functions interpolator with thin plate
+  ///        spline kernel.
+  template <typename T>
+  auto radial_basis_functions_sampler(
+      typed_vertex_property_type<T> const& prop) const {
+    return radial_basis_functions_sampler_with_thin_plate_spline_kernel(prop);
   }
   //----------------------------------------------------------------------------
   /// \brief Constructs a radial basis functions interpolator that also takes
@@ -1169,7 +1095,6 @@ using pointset5 = Pointset<5>;
 #include <tatooine/detail/pointset/natural_neighbor_coordinates_sampler_with_gradients.h>
 #include <tatooine/detail/pointset/radial_basis_functions_sampler.h>
 #include <tatooine/detail/pointset/radial_basis_functions_sampler_with_gradients.h>
-#include <tatooine/detail/pointset/radial_basis_functions_sampler_with_polynomial.h>
 #include <tatooine/detail/pointset/vertex_container.h>
 //==============================================================================
 #endif

@@ -35,12 +35,12 @@ auto main(int argc, char const** argv) -> int {
   auto const options = *options_opt;
   auto       rand    = random::uniform{0.0, 1.0, std::mt19937_64{1234}};
   auto       ps      = pointset2{};
-  pointset2::typed_vertex_property_type<vec3>*        vector_prop = nullptr;
+  pointset2::typed_vertex_property_type<vec2>*        vector_prop = nullptr;
   pointset2::typed_vertex_property_type<real_number>* scalar_prop = nullptr;
   switch (options.type) {
     case type_t::franke:
       scalar_prop = &ps.scalar_vertex_property("franke");
-      vector_prop = &ps.scalar_vertex_property("franke_gradient");
+      vector_prop = &ps.vec2_vertex_property("franke_gradient");
       break;
     //case type_t::vector:
     //  vector_prop = &ps.vec3_vertex_property("vector");
@@ -52,19 +52,17 @@ auto main(int argc, char const** argv) -> int {
   }
 
   for (std::size_t i = 0; i < options.num_datapoints; ++i) {
-    auto v = ps.insert_vertex(rand(), rand());
+    ps.insert_vertex(rand(), rand());
   }
 
   for (auto const v : ps.vertices()) {
     switch (options.type) {
-      case type_t::franke:
-        {
-        auto f = analytical::fields::numerical::frankes_test{};
-        auto df = diff(f);
+      case type_t::franke: {
+        auto f             = analytical::fields::numerical::frankes_test{};
+        auto df            = diff(f);
         scalar_prop->at(v) = f(ps[v]);
         vector_prop->at(v) = df(ps[v]);
-        }
-        break;
+      } break;
       //case type_t::vector:
       //  vector_prop->at(v)(0) = rand();
       //  vector_prop->at(v)(1) = rand();
@@ -82,30 +80,28 @@ auto main(int argc, char const** argv) -> int {
                                 linspace{0.0, 1.0, options.output_res_y}};
 
   auto sample_scalar = [&] {
+    {
+    auto sampler =
+        ps.radial_basis_functions_sampler(*scalar_prop, *vector_prop);
+    gr.sample_to_vertex_property(sampler, "rbf_with_gradient",
+                                 execution_policy::parallel);
+    gr.sample_to_vertex_property(diff(sampler), "gradient_of_rbf_with_gradient",
+                                 execution_policy::parallel);
+    }
     if (options.kernel == kernel_t::linear) {
       gr.sample_to_vertex_property(
           ps.radial_basis_functions_sampler_with_linear_kernel(*scalar_prop),
           "rbf_linear", execution_policy::parallel);
-      gr.sample_to_vertex_property(
-          ps.radial_basis_functions_sampler_with_polynomial_and_linear_kernel(
-              *scalar_prop),
-          "scalar_with_polynomial", execution_policy::parallel);
     } else if (options.kernel == kernel_t::cubic) {
       gr.sample_to_vertex_property(
           ps.radial_basis_functions_sampler_with_cubic_kernel(*scalar_prop),
           "rbf_cubic", execution_policy::parallel);
-      gr.sample_to_vertex_property(
-          ps.radial_basis_functions_sampler_with_polynomial_and_cubic_kernel(
-              *scalar_prop),
-          "scalar_with_polynomial", execution_policy::parallel);
     } else if (options.kernel == kernel_t::thin_plate_spline) {
       gr.sample_to_vertex_property(
-          ps.radial_basis_functions_sampler_with_thin_plate_spline_kernel(*scalar_prop),
+          ps.radial_basis_functions_sampler(
+              *scalar_prop,
+              [](auto const dd) { return dd * dd * gcem::log(dd) / 2; }),
           "rbf_thin_plate_spline", execution_policy::parallel);
-      gr.sample_to_vertex_property(
-          ps.radial_basis_functions_sampler_with_polynomial_and_thin_plate_spline_kernel(
-              *scalar_prop),
-          "scalar_with_polynomial", execution_policy::parallel);
     } else if (options.kernel == kernel_t::gaussian) {
       auto sampler = ps.radial_basis_functions_sampler_with_gaussian_kernel(
           *scalar_prop, options.epsilon);
@@ -114,46 +110,20 @@ auto main(int argc, char const** argv) -> int {
           execution_policy::parallel);
     }
   };
-  auto sample_vector = [&] {
-    if (options.kernel == kernel_t::linear) {
-      auto sampler =
-          ps.radial_basis_functions_sampler_with_polynomial_and_linear_kernel(
-              *vector_prop);
-      gr.sample_to_vertex_property(sampler, "vector",
-                                   execution_policy::parallel);
-    } else if (options.kernel == kernel_t::cubic) {
-      auto sampler =
-          ps.radial_basis_functions_sampler_with_polynomial_and_cubic_kernel(*vector_prop);
-      gr.sample_to_vertex_property(sampler, "vector",
-                                   execution_policy::parallel);
-    } else if (options.kernel == kernel_t::thin_plate_spline) {
-      auto sampler =
-          ps.radial_basis_functions_sampler_with_polynomial_and_thin_plate_spline_kernel(
-              *vector_prop);
-      gr.sample_to_vertex_property(sampler, "vector",
-                                   execution_policy::parallel);
-    } else if (options.kernel == kernel_t::gaussian) {
-      auto sampler = ps.radial_basis_functions_sampler_with_polynomial_and_gaussian_kernel(
-          *vector_prop, options.epsilon);
-      gr.sample_to_vertex_property(sampler, "vector",
-                                   execution_policy::parallel);
-    }
-  };
   switch (options.type) {
     case type_t::franke:
       sample_scalar();
-      {
 
-      auto with_gradients = ps.radial_basis_functions(
-          *scalar_prop, *vector_prop);
-      gr.sample_to_vertex_property(sampler, "franke_rbf",
-                                   execution_policy::parallel);
-      gr.sample_to_vertex_property(f, "franke", execution_policy::parallel);
-      }
+      gr.sample_to_vertex_property(
+          analytical::fields::numerical::frankes_test{}, "franke",
+          execution_policy::parallel);
+      gr.sample_to_vertex_property(
+          diff(analytical::fields::numerical::frankes_test{}), "franke_gradient",
+          execution_policy::parallel);
       break;
-    //case type_t::vector:
-    //  sample_vector();
-    //  break;
+    // case type_t::vector:
+    //   sample_vector();
+    //   break;
     case type_t::unknown:
     default:
       std::cerr << "unknown type.\n";
@@ -175,8 +145,8 @@ auto parse_args(int const argc, char const** argv) -> std::optional<options_t> {
 
   // Declare supported options.
   desc.add_options()("help", "produce help message")(
-      "type", po::value<type_t>(), "franke")(
-      "kernel", po::value<kernel_t>(), "kernel")(
+      "type", po::value<type_t>(), "franke")("kernel", po::value<kernel_t>(),
+                                             "kernel")(
       "epsilon", po::value<real_number>(), "epsilion")(
       "num_datapoints", po::value<std::size_t>(), "number of data points")(
       "output_res_x", po::value<std::size_t>(), "set outputresolution width")(
@@ -236,8 +206,8 @@ auto operator>>(std::istream& in, type_t& t) -> std::istream& {
   in >> token;
   if (token == "franke") {
     t = type_t::franke;
-  //} else if (token == "vector") {
-  //  t = type_t::vector;
+    //} else if (token == "vector") {
+    //  t = type_t::vector;
   } else {
     t = type_t::unknown;
     in.setstate(std::ios_base::failbit);
