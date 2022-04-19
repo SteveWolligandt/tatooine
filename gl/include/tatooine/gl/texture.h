@@ -58,10 +58,8 @@ enum class compare_mode : GLint {
 //==============================================================================
 template <std::size_t NumDimensions, texture_value ValueType,
           texture_component Components>
+requires (NumDimensions >= 1 && NumDimensions <= 3)
 class texture : public id_holder<GLuint> {
-  static_assert(NumDimensions >= 1 && NumDimensions <= 3,
-                "number of dimensions must be between 1 and 3");
-
  public:
   //============================================================================
   using value_type                            = ValueType;
@@ -84,18 +82,9 @@ class texture : public id_holder<GLuint> {
       GL_TEXTURE_WRAP_S, GL_TEXTURE_WRAP_T, GL_TEXTURE_WRAP_R};
 
   static constexpr bool is_readable_from_png =
-      (NumDimensions == 2 && is_same<Components, R>) ||
-      (NumDimensions == 2 && is_same<Components, RGB>) ||
-      (NumDimensions == 2 && is_same<Components, RGBA>) ||
-      (NumDimensions == 2 && is_same<Components, BGR>) ||
-      (NumDimensions == 2 && is_same<Components, BGRA>);
+      NumDimensions == 2 && is_either_of<Components, R, RGB, RGBA, BGR, BGRA>;
   static constexpr bool is_writable_to_png =
-      (NumDimensions == 2 && is_same<Components, R>) ||
-      (NumDimensions == 2 && is_same<Components, RG>) ||
-      (NumDimensions == 2 && is_same<Components, RGB>) ||
-      (NumDimensions == 2 && is_same<Components, RGBA>) ||
-      (NumDimensions == 2 && is_same<Components, BGR>) ||
-      (NumDimensions == 2 && is_same<Components, BGRA>);
+      NumDimensions == 2 && is_either_of<Components, R, RG, RGB, RGBA, BGR, BGRA>;
 
  protected:
   //============================================================================
@@ -455,7 +444,7 @@ class texture : public id_holder<GLuint> {
   auto upload_data(vec<value_type, num_components()> const* const data,
                    Sizes const... sizes) {
     m_size = std::array{static_cast<std::size_t>(sizes)...};
-    upload_data(data.data());
+    upload_data(data->data());
   }
   //------------------------------------------------------------------------------
   auto upload_data(dynamic_multidim_array<value_type> const& data)
@@ -468,7 +457,7 @@ class texture : public id_holder<GLuint> {
       dynamic_multidim_array<vec<value_type, num_components()>> const& data)
   requires(num_components() > 1) {
     std::ranges::copy(data.size(), begin(m_size));
-    upload_data(data.data());
+    upload_data(data.internal_container().front().data());
   }
   //------------------------------------------------------------------------------
   template <convertible_to<value_type> OtherType>
@@ -819,11 +808,11 @@ class texture : public id_holder<GLuint> {
     gl::clear_tex_image(id(), 0, gl_format, gl_type, col.data());
   }
   //------------------------------------------------------------------------------
-  auto set_data(pixelunpackbuffer<value_type> const& pbo)
-  requires(NumDimensions == 2) {
+  auto set_data(pixelunpackbuffer<value_type> const& pbo) requires(
+      NumDimensions == 2) {
     pbo.bind();
     auto last_tex = bind();
-    gl::tex_sub_image_2d(GL_TEXTURE_2D, 0, 0, 0, width(), height(), gl_format,
+    gl::tex_sub_image_2d(GL_TEXTURE_2D, 0, 0, 0, width(), m_size[1], gl_format,
                          gl_type, 0);
     if (last_tex > 0) {
       gl::bind_texture(target, last_tex);
@@ -859,52 +848,58 @@ class texture : public id_holder<GLuint> {
   requires (has_png_support()) &&
            (NumDimensions == 2) &&
            is_readable_from_png {
-    using tex_png_t = tex_png<value_type, components_type>;
-    auto image = typename tex_png_t::png_t {};
-    image.read(filepath);
-    m_size[0] = image.get_width();
-    m_size[1] = image.get_height();
+    if constexpr ((has_png_support()) && (NumDimensions == 2) &&
+                  is_readable_from_png) {
+      using tex_png_t = tex_png<value_type, components_type>;
+      auto image      = typename tex_png_t::png_t{};
+      image.read(filepath);
+      m_size[0] = image.get_width();
+      m_size[1] = image.get_height();
 
-    auto data = [this]() {
-      if constexpr (num_components() == 1) {
-        auto data = std::vector<value_type>{};
-        data.reserve(num_texels());
-        return data;
-      } else {
-        auto data = std::vector<vec<value_type, num_components()>>{};
-        data.reserve(num_texels());
-        return data;
+      auto data = [this]() {
+        if constexpr (num_components() == 1) {
+          auto data = std::vector<value_type>{};
+          data.reserve(num_texels());
+          return data;
+        } else {
+          auto data = std::vector<vec<value_type, num_components()>>{};
+          data.reserve(num_texels());
+          return data;
+        }
+      }();
+      for (png::uint_32 y = 0; y < m_size[1]; ++y) {
+        for (png::uint_32 x = 0; x < width(); ++x) {
+          tex_png_t::load_pixel(data, image, x, y);
+        }
       }
-    }();
-    for (png::uint_32 y = 0; y < height(); ++y) {
-      for (png::uint_32 x = 0; x < width(); ++x) {
-        tex_png_t::load_pixel(data, image, x, y);
+      if constexpr (is_floating_point<value_type>) {
+        auto normalize = [](auto d) { return d / 255.0F; };
+        std::ranges::transform(data, begin(data), normalize);
       }
-    }
-    if constexpr (is_floating_point<value_type>) {
-      auto normalize = [](auto d) { return d / 255.0F; };
-      std::ranges::transform(data, begin(data), normalize);
-    }
 
-    upload_data(data.data());
+      upload_data(data.data());
+    }
   }
   //------------------------------------------------------------------------------
   auto write_png(std::string const& filepath) const
-  requires (has_png_support()) &&
-           (NumDimensions == 2) &&
-           is_writable_to_png {
-    using tex_png_t = tex_png<value_type, components_type>;
-    auto image = typename tex_png_t::png_t{static_cast<png::uint_32>(width()),
-                                           static_cast<png::uint_32>(height())};
-    auto data       = download_data();
+      requires(NumDimensions == 2) &&
+      (has_png_support() && is_writable_to_png) {
+    if constexpr ((NumDimensions == 2) &&
+                  (has_png_support() && is_writable_to_png)) {
+      using tex_png_t = tex_png<value_type, components_type>;
+      auto image =
+          typename tex_png_t::png_t{static_cast<png::uint_32>(width()),
+                                    static_cast<png::uint_32>(m_size[1])};
+      auto data = download_data();
 
-    for (png::uint_32 y = 0; y < image.get_height(); ++y){
-      for (png::uint_32 x = 0; x < image.get_width(); ++x) {
-        auto const idx = x + width() * y;
-        tex_png_t::save_pixel(data.internal_container(), image, x, y, idx);
+      for (png::uint_32 y = 0; y < image.get_height(); ++y) {
+        for (png::uint_32 x = 0; x < image.get_width(); ++x) {
+          auto const idx = x + width() * y;
+          tex_png_t::save_pixel(data.internal_container(), image, x, y, idx);
+        }
       }
+      image.write(filepath);
     }
-    image.write(filepath);
   }
 };
 //==============================================================================

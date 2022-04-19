@@ -734,7 +734,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //  auto const K = *solve(diag(eigvals_S), transposed(eigvecs_S));
   //
   //  mat_type H, HHt, advected_nabla_phi, assembled_nabla_phi, advected_B,
-  //      ghosts_forward, ghosts_backward, prev_ghosts_forward,
+  //      ghosts_positive_offset, ghosts_negative_offset, prev_ghosts_forward,
   //      prev_ghosts_backward;
   //  auto        min_stepwidth_reached = false;
   //  auto        advected_ellipse      = ellipse_type{*this};
@@ -746,18 +746,18 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //
   //  // initialize ghosts
   //  for (std::size_t i = 0; i < num_dimensions(); ++i) {
-  //    ghosts_forward.col(i) = x();
+  //    ghosts_positive_offset.col(i) = x();
   //  }
-  //  ghosts_backward = ghosts_forward;
+  //  ghosts_negative_offset = ghosts_positive_offset;
   //
-  //  ghosts_forward += B;
-  //  ghosts_backward -= B;
+  //  ghosts_positive_offset += B;
+  //  ghosts_negative_offset -= B;
   //
   //  // fields for backup
   //  auto t_prev          = t();
   //  auto prev_center     = advected_ellipse.center();
-  //  prev_ghosts_forward  = ghosts_forward;
-  //  prev_ghosts_backward = ghosts_backward;
+  //  prev_ghosts_forward  = ghosts_positive_offset;
+  //  prev_ghosts_backward = ghosts_negative_offset;
   //  auto prev_cond_HHt   = sqr_cond_H;
   //
   //  // repeat as long as particle's ellipse is not wide enough or t_end is not
@@ -767,8 +767,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //  while (sqr_cond_H < split_sqr_cond || t_advected < t_end) {
   //    if (!min_stepwidth_reached) {
   //      // backup state before advection
-  //      prev_ghosts_forward  = ghosts_forward;
-  //      prev_ghosts_backward = ghosts_backward;
+  //      prev_ghosts_forward  = ghosts_positive_offset;
+  //      prev_ghosts_backward = ghosts_negative_offset;
   //      prev_center          = advected_ellipse.center();
   //      prev_cond_HHt        = sqr_cond_H;
   //      t_prev               = t_advected;
@@ -785,11 +785,11 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //      // advect center and ghosts
   //      advected_ellipse.center() =
   //          phi(advected_ellipse.center(), t_advected, cur_stepwidth);
-  //      ghosts_forward  = phi(ghosts_forward, t_advected, cur_stepwidth);
-  //      ghosts_backward = phi(ghosts_backward, t_advected, cur_stepwidth);
+  //      ghosts_positive_offset  = phi(ghosts_positive_offset, t_advected, cur_stepwidth);
+  //      ghosts_negative_offset = phi(ghosts_negative_offset, t_advected, cur_stepwidth);
   //
   //      // make computations
-  //      H          = (ghosts_forward - ghosts_backward) * half;
+  //      H          = (ghosts_positive_offset - ghosts_negative_offset) * half;
   //      HHt        = H * transposed(H);
   //      eig_HHt    = eigenvectors_sym(HHt);
   //      sqr_cond_H = eigvals_HHt(num_dimensions() - 1) / eigvals_HHt(0);
@@ -844,8 +844,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //      }
   //      if (!min_stepwidth_reached) {
   //        sqr_cond_H                = prev_cond_HHt;
-  //        ghosts_forward            = prev_ghosts_forward;
-  //        ghosts_backward           = prev_ghosts_backward;
+  //        ghosts_positive_offset            = prev_ghosts_forward;
+  //        ghosts_negative_offset           = prev_ghosts_backward;
   //        t_advected                = t_prev;
   //        advected_ellipse.center() = prev_center;
   //      }
@@ -892,7 +892,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     auto const K = *solve(diag(eigvals_S), transposed(eigvecs_S));
 
     mat_type H, HHt, D, advected_nabla_phi, assembled_nabla_phi, advected_B,
-        ghosts_forward, ghosts_backward, prev_ghosts_forward,
+        ghosts_positive_offset, ghosts_negative_offset, prev_ghosts_forward,
         prev_ghosts_backward;
     auto        advected_ellipse = ellipse_type{*this};
     auto        current_radii    = vec_type{};
@@ -903,12 +903,12 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
 
     // initialize ghosts
     for (std::size_t i = 0; i < num_dimensions(); ++i) {
-      ghosts_forward.col(i) = x();
+      ghosts_positive_offset.col(i) = x();
     }
-    ghosts_backward = ghosts_forward;
+    ghosts_negative_offset = ghosts_positive_offset;
 
-    ghosts_forward += B;
-    ghosts_backward -= B;
+    ghosts_positive_offset += B;
+    ghosts_negative_offset -= B;
 
     // repeat as long as particle's ellipse is not wide enough or t_end is not
     // reached or the ellipse gets too small. If the latter happens make it a
@@ -926,12 +926,12 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
       // advect center and ghosts
       advected_ellipse.center() =
           phi(advected_ellipse.center(), t_advected, stepwidth);
-      ghosts_forward  = phi(ghosts_forward, t_advected, stepwidth);
-      ghosts_backward = phi(ghosts_backward, t_advected, stepwidth);
+      ghosts_positive_offset  = phi(ghosts_positive_offset, t_advected, stepwidth);
+      ghosts_negative_offset = phi(ghosts_negative_offset, t_advected, stepwidth);
 
       // make computations
-      H = (ghosts_backward - ghosts_forward) * half;
-      D = (ghosts_backward + ghosts_forward) * half;
+      H = (ghosts_positive_offset - ghosts_negative_offset) * half;
+      D = (ghosts_negative_offset + ghosts_positive_offset) * half;
       for (std::size_t i = 0; i < num_dimensions(); ++i) {
         D.col(i) -= advected_ellipse.center();
       }
@@ -961,7 +961,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
       }
 
       // check if particle's ellipse has reached its splitting width
-      static auto constexpr linearity_threshold = 1e-5;
+      static auto constexpr linearity_threshold = 1e-3;
       //std::cout << "linearity: " << linearity << '\n';
       if (linearity >= linearity_threshold) {
         for (std::size_t i = 0; i < size(split_radii); ++i) {

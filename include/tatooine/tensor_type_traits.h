@@ -42,7 +42,7 @@ template <arithmetic_or_complex T, std::size_t N>
 struct tensor_rank_impl<std::array<T, N>> : std::integral_constant<std::size_t, 1> {
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <static_tensor T>
+template <typename T>
 static constexpr auto tensor_rank = tensor_rank_impl<T>::value;
 //==============================================================================
 template <typename T>
@@ -79,8 +79,29 @@ struct tensor_dimensions_impl<std::array<T, N>> {
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
-static auto constexpr tensor_dimensions =
-    tensor_dimensions_impl<T>::value;
+static auto constexpr tensor_dimensions = tensor_dimensions_impl<T>::value;
+//==============================================================================
+template <typename T, std::size_t I>
+struct tensor_dimension_impl;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <static_tensor Tensor, std::size_t I>
+requires (I < tensor_rank<Tensor>)
+struct tensor_dimension_impl<Tensor, I> {
+  static auto constexpr value = std::decay_t<Tensor>::dimension(I);
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <arithmetic_or_complex T, std::size_t I>
+struct tensor_dimension_impl<T, I> {
+  static auto constexpr value = std::numeric_limits<T>::max();
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <arithmetic_or_complex T, std::size_t N>
+struct tensor_dimension_impl<std::array<T, N>, 0> {
+  static auto constexpr value = N;
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T, std::size_t I>
+static auto constexpr tensor_dimension = tensor_dimension_impl<T, I>::value;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

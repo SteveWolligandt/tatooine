@@ -6,15 +6,25 @@
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
+TEST_CASE_METHOD(pointset2, "pointset_vtp_matrix",
+                 "[pointset][write][vtp][matrix]") {
+  auto  v0       = insert_vertex(1, 2);
+  auto  v1       = insert_vertex(2, 4);
+  auto& mat_prop = mat2_vertex_property("mat2");
+  mat_prop[v0]   = mat2{{1, 2}, {3, 4}};
+  mat_prop[v1]   = mat2{{5, 6}, {7, 8}};
+  write_vtp("pointset.unittests.vtp_matrix.vtp");
+}
+//==============================================================================
 TEST_CASE_METHOD(pointset3, "pointset_ranges", "[pointset][ranges]") {
-  auto                  v0         = insert_vertex(1, 2, 3);
-  [[maybe_unused]] auto v1         = insert_vertex(2, 4, 6);
-  auto                  is0        = std::vector<std::size_t>{};
-  constexpr auto  index      = [](auto const vh) { return vh.index(); };
+  auto                  v0    = insert_vertex(1, 2, 3);
+  [[maybe_unused]] auto v1    = insert_vertex(2, 4, 6);
+  auto                  is0   = std::vector<std::size_t>{};
+  constexpr auto        index = [](auto const vh) { return vh.index(); };
   using namespace std::ranges;
   copy(vertices() | views::transform(index), std::back_inserter(is0));
   remove(v0);
-  auto is1 = std::vector<std::size_t>{};
+  auto is1       = std::vector<std::size_t>{};
   auto get_index = [](auto const vh) { return vh.index(); };
   copy(vertices() | views::transform(get_index), std::back_inserter(is1));
 
@@ -23,12 +33,13 @@ TEST_CASE_METHOD(pointset3, "pointset_ranges", "[pointset][ranges]") {
   REQUIRE(is0[1] == 1);
   REQUIRE(size(is1) == 1);
   REQUIRE(is1[0] == 1);
-}//==============================================================================
+}
+//==============================================================================
 TEST_CASE_METHOD(pointset2, "pointset_tidyup", "[pointset][tidyup]") {
-  [[maybe_unused]] auto v0         = insert_vertex(1, 2);
-  [[maybe_unused]] auto v1         = insert_vertex(2, 4);
-  [[maybe_unused]] auto v2         = insert_vertex(3, 6);
-  [[maybe_unused]] auto v3         = insert_vertex(4, 8);
+  [[maybe_unused]] auto v0 = insert_vertex(1, 2);
+  [[maybe_unused]] auto v1 = insert_vertex(2, 4);
+  [[maybe_unused]] auto v2 = insert_vertex(3, 6);
+  [[maybe_unused]] auto v3 = insert_vertex(4, 8);
 
   REQUIRE(size(vertices()) == 4);
   REQUIRE(size(vertex_position_data()) == 4);
@@ -135,7 +146,7 @@ TEST_CASE_METHOD(pointset3, "pointset_delete_vertex",
   SECTION("v0 now must be {2,3,4}") { REQUIRE(at(v0)(0) == 2); }
 }
 //==============================================================================
-//TEST_CASE_METHOD(pointset3, "pointset_kd_tree", "[pointset][kdtree]") {
+// TEST_CASE_METHOD(pointset3, "pointset_kd_tree", "[pointset][kdtree]") {
 //  auto const v0 = insert_vertex(0, 0, 0);
 //  auto const v1 = insert_vertex(1, 0, 0);
 //  auto const v2 = insert_vertex(-1, 0, 0);

@@ -136,7 +136,7 @@ struct uniform_tree_hierarchy;
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions,
           std::size_t SimplexDim>
-class unstructured_simplicial_grid;
+struct unstructured_simplicial_grid;
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <floating_point Real, std::size_t NumDims, std::size_t SimplexDim>
 struct uniform_tree_hierarchy<

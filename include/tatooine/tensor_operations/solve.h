@@ -29,14 +29,14 @@ auto copy_or_keep_if_rvalue_tensor_solve(tensor<T, Dims...> const& x) {
   return tensor<T, Dims...>{x};
 }
 template <fixed_size_quadratic_mat<2> MatA, static_mat MatB>
-requires(tensor_dimensions<MatB>[0] == 2)
+requires(tensor_dimension<MatB, 0> == 2)
 auto constexpr solve_direct(MatA&& A, MatB&& B)
     -> std::optional<
         mat<common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>, 2,
-            tensor_dimensions<MatB>[1]>> {
+            tensor_dimension<MatB, 1>>> {
       using out_value_type =
           common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>;
-      auto constexpr K = tensor_dimensions<MatB>[1];
+      auto constexpr K = tensor_dimension<MatB, 1>;
       auto const div   = (A(0, 0) * A(1, 1) - A(1, 0) * A(0, 1));
       if (div == 0) {
         return std::nullopt;
@@ -65,12 +65,12 @@ auto solve_direct(MatA&& A, VecB&& b) -> std::optional<
 }
 //------------------------------------------------------------------------------
 template <static_quadratic_mat MatA, static_vec VecB>
-requires(tensor_dimensions<MatA>[0] ==
-         tensor_dimensions<VecB>[0])
+requires(tensor_dimension<MatA, 0> ==
+         tensor_dimension<VecB, 0>)
 auto solve_cramer(MatA const& A, VecB const& b) -> std::optional<
     vec<common_type<tensor_value_type<MatA>, tensor_value_type<VecB>>,
-        tensor_dimensions<MatA>[1]>> {
-  static constexpr auto N = tensor_dimensions<MatA>[1];
+        tensor_dimension<MatA, 1>>> {
+  static constexpr auto N = tensor_dimension<MatA, 1>;
   using out_value_type =
       common_type<tensor_value_type<MatA>, tensor_value_type<VecB>>;
   auto const det_inv = 1 / det(A);
@@ -87,14 +87,14 @@ auto solve_cramer(MatA const& A, VecB const& b) -> std::optional<
 }
 //------------------------------------------------------------------------------
 template <static_quadratic_mat MatA, static_vec VecB>
-requires(tensor_dimensions<MatA>[1] ==
-         tensor_dimensions<VecB>[0])
+requires(tensor_dimension<MatA, 1> ==
+         tensor_dimension<VecB, 0>)
 auto solve_lu_lapack(MatA& A_, VecB&& b_)
     -> std::optional<
         tensor<common_type<tensor_value_type<MatA>, tensor_value_type<VecB>>>> {
   using out_value_type =
       common_type<tensor_value_type<MatA>, tensor_value_type<VecB>>;
-  static constexpr auto N = tensor_dimensions<MatA>[1];
+  static constexpr auto N = tensor_dimension<MatA, 1>;
   auto                  A    = mat<out_value_type, N, N>{A_};
   auto                  b    = vec<out_value_type, N>{b_};
   auto                  ipiv = vec<std::int64_t, N>{};
@@ -106,15 +106,15 @@ auto solve_lu_lapack(MatA& A_, VecB&& b_)
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <static_quadratic_mat MatA, static_mat MatB>
-requires(tensor_dimensions<MatA>[1] ==
-         tensor_dimensions<MatB>[0])
+requires(tensor_dimension<MatA, 1> ==
+         tensor_dimension<MatB, 0>)
 auto solve_lu_lapack(MatA& A_, MatB& B_)
     -> std::optional<
         tensor<common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>>> {
   using out_value_type =
       common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>;
-  static constexpr auto N = tensor_dimensions<MatA>[1]; 
-  static constexpr auto K = tensor_dimensions<MatB>[1]; 
+  static constexpr auto N = tensor_dimension<MatA, 1>; 
+  static constexpr auto K = tensor_dimension<MatB, 1>; 
   auto                  A    = mat<out_value_type, N, N>{A_};
   auto                  B    = mat<out_value_type, N, K>{B_};
   auto                  ipiv = vec<std::int64_t, N>{};
@@ -126,17 +126,16 @@ auto solve_lu_lapack(MatA& A_, MatB& B_)
 }
 //------------------------------------------------------------------------------
 template <static_mat MatA, static_mat MatB>
-requires(tensor_dimensions<MatA>[0] ==
-         tensor_dimensions<MatB>[0]) auto solve_qr_lapack(MatA&& A_,
-                                                          MatB&& B_)
+requires(tensor_dimension<MatA, 0> == tensor_dimension<MatB, 0>)
+auto solve_qr_lapack(MatA&& A_, MatB&& B_)
     -> std::optional<
         mat<common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>,
-            tensor_dimensions<MatA>[1], tensor_dimensions<MatB>[1]>> {
+            tensor_dimension<MatA, 1>, tensor_dimension<MatB, 1>>> {
       using out_value_type =
           common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>;
-      static auto constexpr M = tensor_dimensions<MatA>[0];
-      static auto constexpr N = tensor_dimensions<MatA>[1];
-      static auto constexpr K = tensor_dimensions<MatB>[1];
+      static auto constexpr M = tensor_dimension<MatA, 0>;
+      static auto constexpr N = tensor_dimension<MatA, 1>;
+      static auto constexpr K = tensor_dimension<MatB, 1>;
 
       auto A   = mat<out_value_type, M, N>{A_};
       auto B   = mat<out_value_type, M, K>{B_};
@@ -164,16 +163,16 @@ requires(tensor_dimensions<MatA>[0] ==
     }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <static_mat MatA, static_vec VecB>
-requires (tensor_dimensions<MatA>[0] == tensor_dimensions<VecB>[0])
+requires (tensor_dimension<MatA, 0> == tensor_dimension<VecB, 0>)
 auto solve_qr_lapack(MatA&& A_, VecB&& b_) -> std::optional<
     vec<common_type<tensor_value_type<MatA>, tensor_value_type<VecB>>,
-        (tensor_dimensions<MatA>[0] < tensor_dimensions<MatA>[1]
-             ? tensor_dimensions<MatA>[0]
-             : tensor_dimensions<MatA>[1])>> {
+        (tensor_dimension<MatA, 0> < tensor_dimension<MatA, 1>
+             ? tensor_dimension<MatA, 0>
+             : tensor_dimension<MatA, 1>)>> {
   using out_value_type =
       common_type<tensor_value_type<MatA>, tensor_value_type<VecB>>;
-  static auto constexpr M = tensor_dimensions<MatA>[0];
-  static auto constexpr N = tensor_dimensions<MatA>[1];
+  static auto constexpr M = tensor_dimension<MatA, 0>;
+  static auto constexpr N = tensor_dimension<MatA, 1>;
   auto A   = mat<out_value_type, M, N>{A_};
   auto b   = vec<out_value_type, M>{b_};
   auto tau = vec<out_value_type, (M < N ? M : N)>{};
@@ -198,11 +197,11 @@ auto solve_qr_lapack(MatA&& A_, VecB&& b_) -> std::optional<
 }
 //------------------------------------------------------------------------------
 template <static_mat MatA, static_mat MatB>
-requires (tensor_dimensions<MatA>[0] == tensor_dimensions<MatB>[0])
+requires (tensor_dimension<MatA, 0> == tensor_dimension<MatB, 0>)
 auto solve(MatA&& A, MatB&& B) {
-  static auto constexpr M = tensor_dimensions<MatA>[0];
-  static auto constexpr N = tensor_dimensions<MatA>[1];
-  static auto constexpr K = tensor_dimensions<MatB>[1];
+  static auto constexpr M = tensor_dimension<MatA, 0>;
+  static auto constexpr N = tensor_dimension<MatA, 1>;
+  static auto constexpr K = tensor_dimension<MatB, 1>;
   if constexpr (M == 2 && N == 2 && K >= M) {
     return solve_direct(std::forward<MatA>(A), std::forward<MatB>(B));
   } else if constexpr (M == N) {
@@ -286,10 +285,10 @@ auto solve_qr_lapack(TensorA&& A_, TensorB&& B_)
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <static_mat MatA, static_vec VecB>
-requires (tensor_dimensions<MatA>[0] == tensor_dimensions<VecB>[0])
+requires (tensor_dimension<MatA, 0> == tensor_dimension<VecB, 0>)
 auto solve(MatA&& A, VecB&& b) {
-  static auto constexpr M = tensor_dimensions<MatA>[0];
-  static auto constexpr N = tensor_dimensions<MatA>[1];
+  static auto constexpr M = tensor_dimension<MatA, 0>;
+  static auto constexpr N = tensor_dimension<MatA, 1>;
   if constexpr (M == 2 && N == 2) {
     return solve_direct(std::forward<MatA>(A), std::forward<VecB>(b));
   } else if constexpr (M == 3 && N == 3) {

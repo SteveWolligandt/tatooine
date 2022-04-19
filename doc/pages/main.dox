@@ -16,7 +16,7 @@
 \subsection algorithms_feature_extraction_sec Feature Extraction
 \subsubsection algorithms_feature_extraction_vectorfields_sec Vectorfields
 
-- tatooine::parallel_vectors
+- \ref parallel_vectors
 
 \subsection main_algorithms_rendering_sec Rendering
 - \ref rendering_rasterizer_sec

@@ -13,7 +13,7 @@
 namespace tatooine {
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions,
-          typename SplitBehavior = autonomous_particle<
+          typename SplitBehavior = typename autonomous_particle<
               Real, NumDimensions>::split_behaviors::three_splits>
 struct autonomous_particle_flowmap_discretization {
   using real_type           = Real;
@@ -443,7 +443,7 @@ struct autonomous_particle_flowmap_discretization {
       auto const v = nearest_indices[i];
       auto const phi = samplers()[v].phi(tag);
       for (std::size_t j = 0; j < NumDimensions; ++j) {
-        radial_and_monomial_coefficients(i, j) = phi(j);
+        radial_and_monomial_coefficients.at(i, j) = phi(j);
       }
     }
     // do not copy by moving A and radial_and_monomial_coefficients into solver

@@ -20,20 +20,21 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   // typedefs
   //============================================================================
  public:
-  using value_type  = ValueType;
-  using this_type   = dynamic_multidim_array<ValueType, IndexOrder>;
-  using parent_type = dynamic_multidim_size<IndexOrder>;
+  using value_type     = ValueType;
+  using index_order    = IndexOrder;
+  using this_type      = dynamic_multidim_array<value_type, index_order>;
+  using parent_type    = dynamic_multidim_size<index_order>;
+  using container_type = std::vector<value_type>;
   using parent_type::in_range;
   using parent_type::indices;
   using parent_type::num_components;
   using parent_type::num_dimensions;
   using parent_type::plain_index;
   using parent_type::size;
-  using container_t = std::vector<ValueType>;
   //============================================================================
   // members
   //============================================================================
-  container_t m_data_container;
+  container_type m_data_container;
   //============================================================================
   // factories
   //============================================================================
@@ -56,48 +57,48 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   }
   //----------------------------------------------------------------------------
   template <integral_range Size, typename RandEng = std::mt19937_64>
-  static auto randu(ValueType const min, ValueType const max, Size&& size,
+  static auto randu(value_type const min, value_type const max, Size&& size,
                     RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_type{
-        random::uniform<ValueType, RandEng>{min, max, std::forward<RandEng>(eng)},
+        random::uniform<value_type, RandEng>{min, max, std::forward<RandEng>(eng)},
         std::forward<Size>(size)};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <integral_range Size, typename RandEng = std::mt19937_64>
-  static auto randu(Size&& size, ValueType const min = 0, ValueType const max = 1,
+  static auto randu(Size&& size, value_type const min = 0, value_type const max = 1,
                     RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_type{
-        random::uniform<ValueType, RandEng>{min, max, std::forward<RandEng>(eng)},
+        random::uniform<value_type, RandEng>{min, max, std::forward<RandEng>(eng)},
         std::forward<Size>(size)};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename RandEng = std::mt19937_64>
   static auto randu(integral auto const... is) {
-    return this_type{random::uniform<ValueType, RandEng>{
-                         ValueType(0), ValueType(1), RandEng{std::random_device{}()}},
+    return this_type{random::uniform<value_type, RandEng>{
+                         value_type(0), value_type(1), RandEng{std::random_device{}()}},
                      is...};
   }
   //----------------------------------------------------------------------------
   template <integral_range Size, typename RandEng = std::mt19937_64>
-  static auto randn(ValueType const mean, ValueType const stddev, Size&& size,
+  static auto randn(value_type const mean, value_type const stddev, Size&& size,
                     RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_type{
-        random::normal<ValueType, RandEng>{mean, stddev, std::forward<RandEng>(eng)},
+        random::normal<value_type, RandEng>{mean, stddev, std::forward<RandEng>(eng)},
         std::forward<Size>(size)};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <integral_range Size, typename RandEng = std::mt19937_64>
-  static auto randn(Size&& size, ValueType const mean, ValueType const stddev,
+  static auto randn(Size&& size, value_type const mean, value_type const stddev,
                     RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_type{
-        random::normal<ValueType, RandEng>{mean, stddev, std::forward<RandEng>(eng)},
+        random::normal<value_type, RandEng>{mean, stddev, std::forward<RandEng>(eng)},
         std::forward<Size>(size)};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename RandEng = std::mt19937_64>
   static auto randn(integral auto const... is) {
-    return this_type{random::uniform<ValueType, RandEng>{
-                         ValueType(1), ValueType(1), RandEng{std::random_device{}()}},
+    return this_type{random::uniform<value_type, RandEng>{
+                         value_type(1), value_type(1), RandEng{std::random_device{}()}},
                      is...};
   }
   //----------------------------------------------------------------------------
@@ -113,7 +114,6 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   //============================================================================
   // ctors
   //============================================================================
- public:
   dynamic_multidim_array()                                        = default;
   dynamic_multidim_array(dynamic_multidim_array const& other)     = default;
   dynamic_multidim_array(dynamic_multidim_array&& other) noexcept = default;
@@ -136,13 +136,13 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   auto operator=(dynamic_multidim_array<OtherT, OtherIndexing> const& other)
       -> dynamic_multidim_array& {
     parent_type::operator=(other);
-    m_data_container     = std::vector<ValueType>(begin(other.internal_container()),
+    m_data_container     = std::vector<value_type>(begin(other.internal_container()),
                          end(other.internal_container()));
     return *this;
   }
   //============================================================================
   explicit dynamic_multidim_array(integral auto const... size)
-      : parent_type{size...}, m_data_container(num_components(), ValueType{}) {}
+      : parent_type{size...}, m_data_container(num_components(), value_type{}) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename S>
   explicit dynamic_multidim_array(tag::fill<S> const& f,
@@ -157,18 +157,18 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
                                   integral auto const... size)
       : parent_type{size...}, m_data_container(num_components(), 1) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  explicit dynamic_multidim_array(std::vector<ValueType> const& data,
+  explicit dynamic_multidim_array(std::vector<value_type> const& data,
                                   integral auto const... size)
       : parent_type{size...}, m_data_container(data) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  explicit dynamic_multidim_array(std::vector<ValueType>&& data,
+  explicit dynamic_multidim_array(std::vector<value_type>&& data,
                                   integral auto const... size)
       : parent_type{size...}, m_data_container(std::move(data)) {}
   //----------------------------------------------------------------------------
   template <integral_range Size>
   explicit dynamic_multidim_array(Size&& size)
       : parent_type{std::forward<Size>(size)},
-        m_data_container(num_components(), ValueType{}) {}
+        m_data_container(num_components(), value_type{}) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename S, integral_range Size>
   dynamic_multidim_array(tag::fill<S> const& f, Size&& size)
@@ -186,28 +186,28 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
         m_data_container(num_components(), 1) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <integral_range Size>
-  dynamic_multidim_array(std::vector<ValueType> const& data, Size&& size)
+  dynamic_multidim_array(std::vector<value_type> const& data, Size&& size)
       : parent_type{std::forward<Size>(size)}, m_data_container(data) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <integral_range Size>
-  dynamic_multidim_array(std::vector<ValueType>&& data, Size&& size)
+  dynamic_multidim_array(std::vector<value_type>&& data, Size&& size)
       : parent_type{std::forward<Size>(size)},
         m_data_container(std::move(data)) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <integral_range Size, random_number_generator Rand>
-  requires arithmetic<ValueType> dynamic_multidim_array(Rand&& rand, Size&& size)
+  requires arithmetic<value_type> dynamic_multidim_array(Rand&& rand, Size&& size)
       : parent_type{std::forward<Size>(size)},
         m_data_container(num_components()) {
     this->unary_operation(
-        [&](auto const& /*c*/) { return static_cast<ValueType>(rand.get()); });
+        [&](auto const& /*c*/) { return static_cast<value_type>(rand.get()); });
   }
   //----------------------------------------------------------------------------
   template <random_number_generator Rand>
-  requires arithmetic<ValueType> dynamic_multidim_array(Rand&& rand,
-                                                integral auto const... size)
+  requires arithmetic<value_type>
+  explicit dynamic_multidim_array(Rand&& rand, integral auto const... size)
       : parent_type{size...}, m_data_container(num_components()) {
     this->unary_operation(
-        [&](auto const& /*c*/) { return static_cast<ValueType>(rand.get()); });
+        [&](auto const& /*c*/) { return static_cast<value_type>(rand()); });
   }
   //============================================================================
   // methods
@@ -236,48 +236,35 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
     return m_data_container[plain_index(indices)];
   }
   //------------------------------------------------------------------------------
-  auto operator()(integral auto const... is) -> auto& {
-    assert(sizeof...(is) == num_dimensions());
-    assert(in_range(is...));
-    return at(is...);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator()(integral auto const... is) const -> auto const& {
-    assert(sizeof...(is) == num_dimensions());
-#ifndef NDEBUG
-    if (!in_range(is...)) {
-      std::cerr << "will now crash because indices [ ";
-      ((std::cerr << is << ' '), ...);
-      std::cerr << "] are not in range\n";
-    }
-#endif
-    assert(in_range(is...));
-    return at(is...);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto operator()(integral_range auto const& indices) -> auto& {
-    assert(indices.size() == num_dimensions());
-    assert(in_range(indices));
     return at(indices);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto operator()(integral_range auto const& indices) const -> auto const& {
-    assert(indices.size() == num_dimensions());
-    assert(in_range(indices));
     return at(indices);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto operator()(integral auto const... is) -> auto& {
+    return at(is...);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto operator()(integral auto const... is) const -> auto const& {
+    return at(is...);
   }
   //----------------------------------------------------------------------------
   auto operator[](std::size_t i) const -> auto const& {
     return m_data_container[i];
   }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto operator[](std::size_t i) -> auto& { return m_data_container[i]; }
   //----------------------------------------------------------------------------
-  void resize(integral auto const... size) {
+  auto resize(integral auto const... size) -> void {
     parent_type::resize(size...);
     m_data_container.resize(num_components());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void resize(integral_range auto const& res, ValueType const value = ValueType{}) {
+  auto resize(integral_range auto const& res,
+              value_type const            value = value_type{}) -> void {
     parent_type::resize(res);
     m_data_container.resize(num_components(), value);
   }
@@ -290,6 +277,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   [[nodiscard]] constexpr auto data(std::size_t const i) -> auto& {
     return m_data_container[i];
   }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   [[nodiscard]] constexpr auto data(std::size_t const i) const -> auto const& {
     return m_data_container[i];
   }
@@ -360,7 +348,8 @@ auto interpolate(dynamic_multidim_array<T0, Indexing0> const& arr0,
     return arr1;
   }
   assert(arr0.dyn_size() == arr1.dyn_size());
-  dynamic_multidim_array<common_type<T0, T1>, IndexingOut> interpolated{arr0};
+  auto interpolated =
+      dynamic_multidim_array<common_type<T0, T1>, IndexingOut>{arr0};
 
   for (auto is : interpolated.indices()) {
     interpolated(is) = interpolated(is) * (1 - factor) + arr1(is) * factor;

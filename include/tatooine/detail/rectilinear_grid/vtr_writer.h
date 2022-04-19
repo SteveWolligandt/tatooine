@@ -48,8 +48,9 @@ requires(Grid::num_dimensions() == 2 ||
   }
   //----------------------------------------------------------------------------
   auto write_rectilinear_grid(std::ofstream& file, auto& offset) const {
-    file << "  <RectilinearGrid WholeExtent=\"" << 0 << " " << m_grid.template size<0>() - 1
-         << " " << 0 << " " << m_grid.template size<1>() - 1;
+    file << "  <RectilinearGrid WholeExtent=\"" << 0 << " "
+         << m_grid.template size<0>() - 1 << " " << 0 << " "
+         << m_grid.template size<1>() - 1;
     if constexpr (num_dimensions() >= 3) {
       file << " " << 0 << " " << m_grid.template size<2>() - 1;
     } else {
@@ -61,8 +62,8 @@ requires(Grid::num_dimensions() == 2 ||
   }
   //----------------------------------------------------------------------------
   auto write_piece(std::ofstream& file, auto& offset) const {
-    file << "    <Piece Extent=\"" << 0 << " " << m_grid.template size<0>() - 1 << " " << 0 << " "
-         << m_grid.template size<1>() - 1 << " ";
+    file << "    <Piece Extent=\"" << 0 << " " << m_grid.template size<0>() - 1
+         << " " << 0 << " " << m_grid.template size<1>() - 1 << " ";
     if constexpr (num_dimensions() >= 3) {
       file << 0 << " " << m_grid.template size<2>() - 1;
     } else {
@@ -81,7 +82,8 @@ requires(Grid::num_dimensions() == 2 ||
     file << "      <PointData>\n";
     for (auto const& [name, prop] : m_grid.vertex_properties()) {
       write_vertex_property_data_array<HeaderType, float, vec2f, vec3f, vec4f,
-                                       double, vec2d, vec3d, vec4d>(
+                                       mat2f, mat3f, mat4f, double, vec2d,
+                                       vec3d, vec4d, mat2d, mat3d, mat4d>(
           name, *prop, file, offset);
     }
     file << "      </PointData>\n";
@@ -94,16 +96,16 @@ requires(Grid::num_dimensions() == 2 ||
   //----------------------------------------------------------------------------
   auto write_coordinates(std::ofstream& file, std::size_t& offset) const {
     file << "      <Coordinates>\n";
-    write_dimension_data_array(m_grid.template dimension<0>(), "x_coordinates", file,
-                               offset);
-    write_dimension_data_array(m_grid.template dimension<1>(), "y_coordinates", file,
-                               offset);
+    write_dimension_data_array(m_grid.template dimension<0>(), "x_coordinates",
+                               file, offset);
+    write_dimension_data_array(m_grid.template dimension<1>(), "y_coordinates",
+                               file, offset);
     if constexpr (num_dimensions() >= 3) {
-      write_dimension_data_array(m_grid.template dimension<2>(), "z_coordinates", file,
-                                 offset);
+      write_dimension_data_array(m_grid.template dimension<2>(),
+                                 "z_coordinates", file, offset);
     } else {
-      write_dimension_data_array(std::vector<typename Grid::real_type>{0}, "z_coordinates",
-                                 file, offset);
+      write_dimension_data_array(std::vector<typename Grid::real_type>{0},
+                                 "z_coordinates", file, offset);
     }
     file << "      </Coordinates>\n";
   }
@@ -167,9 +169,9 @@ requires(Grid::num_dimensions() == 2 ||
   //----------------------------------------------------------------------------
   auto write_appended_data_point_data(std::ofstream& file) const {
     for (auto const& [name, prop] : m_grid.vertex_properties()) {
-      write_vertex_property_appended_data<HeaderType, float, vec2f, vec3f,
-                                          vec4f, double, vec2d, vec3d, vec4d>(
-          *prop, file);
+      write_vertex_property_appended_data<
+          HeaderType, float, vec2f, vec3f, vec4f, mat2f, mat3f, mat4f, double,
+          vec2d, vec3d, vec4d, mat2d, mat3d, mat4d>(*prop, file);
     }
   }
   //----------------------------------------------------------------------------
@@ -181,7 +183,8 @@ requires(Grid::num_dimensions() == 2 ||
     if constexpr (num_dimensions() >= 3) {
       write_dimension_appended_data(m_grid.template dimension<2>(), file);
     } else {
-      write_dimension_appended_data(std::vector{typename Grid::real_type(0)}, file);
+      write_dimension_appended_data(std::vector{typename Grid::real_type(0)},
+                                    file);
     }
   }
   //----------------------------------------------------------------------------
@@ -230,14 +233,30 @@ requires(Grid::num_dimensions() == 2 ||
   auto write_vertex_property_appended_data(
       typed_vertex_property_interface_type<T, H> const& prop,
       std::ofstream&                                    file) const {
-    auto data = std::vector<T>{};
-    m_grid.vertices().iterate_indices(
-        [&](auto const... is) { data.push_back(prop(is...)); });
-    auto const num_bytes =
-        HeaderType(sizeof(tensor_value_type<T>) * tensor_num_components<T> *
-                    m_grid.vertices().size());
-    file.write(reinterpret_cast<char const*>(&num_bytes), sizeof(HeaderType));
-    file.write(reinterpret_cast<char const*>(data.data()), num_bytes);
+    if constexpr (tensor_rank<T> <= 1) {
+      auto data = std::vector<T>{};
+      m_grid.vertices().iterate_indices(
+          [&](auto const... is) { data.push_back(prop(is...)); });
+      auto const num_bytes =
+          HeaderType(sizeof(tensor_value_type<T>) * tensor_num_components<T> *
+                     m_grid.vertices().size());
+      file.write(reinterpret_cast<char const*>(&num_bytes), sizeof(HeaderType));
+      file.write(reinterpret_cast<char const*>(data.data()), num_bytes);
+    } else if constexpr (tensor_rank<T> == 2) {
+      auto const num_bytes =
+          HeaderType(sizeof(tensor_value_type<T>) * tensor_num_components<T> *
+                     m_grid.vertices().size() / tensor_dimension<T, 0>);
+      for (std::size_t i = 0; i < tensor_dimension<T, 1>; ++i) {
+        file.write(reinterpret_cast<char const*>(&num_bytes),
+                   sizeof(HeaderType));
+        m_grid.vertices().iterate_indices([&](auto const... is) {
+          auto data_begin = &prop(is...)(0, i);
+          file.write(reinterpret_cast<char const*>(data_begin),
+                     sizeof(tensor_value_type<T>) * tensor_dimension<T, 0>);
+        });
+      }
+    } else {
+    }
   }
   //----------------------------------------------------------------------------
   template <typename... Ts>
@@ -248,17 +267,36 @@ requires(Grid::num_dimensions() == 2 ||
     (
         [&] {
           if (prop.type() == typeid(Ts)) {
-            file << "<DataArray"
-                 << " Name=\"" << name << "\""
-                 << " format=\"appended\""
-                 << " offset=\"" << offset << "\""
-                 << " type=\""
-                 << tatooine::vtk::xml::data_array::to_string(
-                        tatooine::vtk::xml::data_array::to_type<
-                            tensor_value_type<Ts>>())
-                 << "\" NumberOfComponents=\""
-                 << tensor_num_components<Ts> << "\"/>\n";
-            offset += m_grid.vertices().size() * sizeof(Ts) + sizeof(HeaderType);
+            if constexpr (tensor_rank<Ts> <= 1) {
+              file << "<DataArray"
+                   << " Name=\"" << name << "\""
+                   << " format=\"appended\""
+                   << " offset=\"" << offset << "\""
+                   << " type=\""
+                   << tatooine::vtk::xml::data_array::to_string(
+                          tatooine::vtk::xml::data_array::to_type<
+                              tensor_value_type<Ts>>())
+                   << "\" NumberOfComponents=\""
+                   << tensor_num_components<Ts> << "\"/>\n";
+              offset +=
+                  m_grid.vertices().size() * sizeof(Ts) + sizeof(HeaderType);
+            } else if constexpr (tensor_rank<Ts> == 2) {
+              for (std::size_t i = 0; i < Ts::dimension(1); ++i) {
+                file << "<DataArray"
+                     << " Name=\"" << name << "_col_" << i << "\""
+                     << " format=\"appended\""
+                     << " offset=\"" << offset << "\""
+                     << " type=\""
+                     << vtk::xml::data_array::to_string(
+                            vtk::xml::data_array::to_type<
+                                tensor_value_type<Ts>>())
+                     << "\" NumberOfComponents=\"" << Ts::dimension(0)
+                     << "\"/>\n";
+                offset += m_grid.vertices().size() * sizeof(tensor_value_type<Ts>) *
+                              tensor_dimension<Ts, 0> +
+                          sizeof(HeaderType);
+              }
+            }
           }
         }(),
         ...);
