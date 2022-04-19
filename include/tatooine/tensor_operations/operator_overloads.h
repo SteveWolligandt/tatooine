@@ -140,8 +140,7 @@ auto constexpr operator*(arithmetic_or_complex auto const scalar,
 //------------------------------------------------------------------------------
 auto constexpr operator/(static_tensor auto const&        t,
                          arithmetic_or_complex auto const scalar) {
-  return unary_operation(
-      [scalar](auto const& component) { return component / scalar; }, t);
+  return t * (1/scalar);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 auto constexpr operator/(arithmetic_or_complex auto const scalar,

@@ -274,13 +274,13 @@ struct pointset {
         prop->erase(v.index());
       }
     }
-    invalid_vertices().clear();
+    m_invalid_vertices.clear();
   }
   //----------------------------------------------------------------------------
   auto remove(vertex_handle const v) {
     if (is_valid(v) &&
         std::ranges::find(invalid_vertices(), v) == end(invalid_vertices())) {
-      invalid_vertices().insert(v);
+      m_invalid_vertices.insert(v);
     }
 #if TATOOINE_FLANN_AVAILABLE
     {
@@ -604,9 +604,10 @@ struct pointset {
     if (!vertex_properties().empty()) {
       writer.write_point_data(vertices().size());
     }
-    for (const auto& [name, prop] : this->m_vertex_properties) {
+    for (const auto& p : this->m_vertex_properties) {
       (
           [&] {
+            auto const& [name, prop] = p;
             if (prop->type() == typeid(Ts)) {
               write_prop_vtk(writer, name, prop->template cast_to_typed<Ts>());
             }
@@ -615,6 +616,7 @@ struct pointset {
     }
   }
   //----------------------------------------------------------------------------
+ public:
   auto write_vtp(filesystem::path const& path) const {
     auto file = std::ofstream{path, std::ios::binary};
     if (!file.is_open()) {
@@ -686,6 +688,12 @@ struct pointset {
             name, prop, file, offset);
         offset += write_vertex_property_data_array_vtp<vec4f, header_type>(
             name, prop, file, offset);
+        offset += write_vertex_property_data_array_vtp<mat2f, header_type>(
+            name, prop, file, offset);
+        offset += write_vertex_property_data_array_vtp<mat3f, header_type>(
+            name, prop, file, offset);
+        offset += write_vertex_property_data_array_vtp<mat4f, header_type>(
+            name, prop, file, offset);
         offset += write_vertex_property_data_array_vtp<double, header_type>(
             name, prop, file, offset);
         offset += write_vertex_property_data_array_vtp<vec2d, header_type>(
@@ -693,6 +701,12 @@ struct pointset {
         offset += write_vertex_property_data_array_vtp<vec3d, header_type>(
             name, prop, file, offset);
         offset += write_vertex_property_data_array_vtp<vec4d, header_type>(
+            name, prop, file, offset);
+        offset += write_vertex_property_data_array_vtp<mat2d, header_type>(
+            name, prop, file, offset);
+        offset += write_vertex_property_data_array_vtp<mat3d, header_type>(
+            name, prop, file, offset);
+        offset += write_vertex_property_data_array_vtp<mat4d, header_type>(
             name, prop, file, offset);
       }
       file << "</PointData>\n";
@@ -750,10 +764,16 @@ struct pointset {
       write_vertex_property_appended_data_vtp<vec2f, header_type>(prop, file);
       write_vertex_property_appended_data_vtp<vec3f, header_type>(prop, file);
       write_vertex_property_appended_data_vtp<vec4f, header_type>(prop, file);
+      write_vertex_property_appended_data_vtp<mat2f, header_type>(prop, file);
+      write_vertex_property_appended_data_vtp<mat3f, header_type>(prop, file);
+      write_vertex_property_appended_data_vtp<mat4f, header_type>(prop, file);
       write_vertex_property_appended_data_vtp<double, header_type>(prop, file);
       write_vertex_property_appended_data_vtp<vec2d, header_type>(prop, file);
       write_vertex_property_appended_data_vtp<vec3d, header_type>(prop, file);
       write_vertex_property_appended_data_vtp<vec4d, header_type>(prop, file);
+      write_vertex_property_appended_data_vtp<mat2d, header_type>(prop, file);
+      write_vertex_property_appended_data_vtp<mat3d, header_type>(prop, file);
+      write_vertex_property_appended_data_vtp<mat4d, header_type>(prop, file);
     }
     file << "\n</AppendedData>\n"
          << "</VTKFile>";
@@ -766,16 +786,34 @@ struct pointset {
                                             auto& file, auto offset) const
       -> std::size_t {
     if (prop->type() == typeid(T)) {
-      file << "<DataArray"
-           << " Name=\"" << name << "\""
-           << " format=\"appended\""
-           << " offset=\"" << offset << "\""
-           << " type=\""
-           << vtk::xml::data_array::to_string(
-                  vtk::xml::data_array::to_type<tensor_value_type<T>>())
-           << "\" NumberOfComponents=\""
-           << tensor_num_components<T> << "\"/>\n";
-      return vertices().size() * sizeof(T) + sizeof(header_type);
+      if constexpr (tensor_rank<T> <= 1) {
+        file << "<DataArray"
+             << " Name=\"" << name << "\""
+             << " format=\"appended\""
+             << " offset=\"" << offset << "\""
+             << " type=\""
+             << vtk::xml::data_array::to_string(
+                    vtk::xml::data_array::to_type<tensor_value_type<T>>())
+             << "\" NumberOfComponents=\""
+             << tensor_num_components<T> << "\"/>\n";
+        return vertices().size() * sizeof(T) + sizeof(header_type);
+      } else if constexpr (tensor_rank<T> == 2) {
+        for (std::size_t i = 0; i < T::dimension(1); ++i) {
+          file << "<DataArray"
+               << " Name=\"" << name << "_col_" << i << "\""
+               << " format=\"appended\""
+               << " offset=\"" << offset << "\""
+               << " type=\""
+               << vtk::xml::data_array::to_string(
+                      vtk::xml::data_array::to_type<tensor_value_type<T>>())
+               << "\" NumberOfComponents=\"" << T::dimension(0) << "\"/>\n";
+          offset += vertices().size() * sizeof(tensor_value_type<T>) * tensor_dimension<T, 0> +
+                    sizeof(header_type);
+        }
+        return vertices().size() * sizeof(tensor_value_type<T>) *
+                   tensor_num_components<T> +
+               sizeof(header_type) * tensor_dimension<T, 1>;
+      }
     }
     return 0;
   }
@@ -784,14 +822,30 @@ struct pointset {
   auto write_vertex_property_appended_data_vtp(auto const& prop,
                                                auto&       file) const {
     if (prop->type() == typeid(T)) {
-      auto const num_bytes =
-          header_type(sizeof(tensor_value_type<T>) * tensor_num_components<T> *
-                      vertices().size());
-      file.write(reinterpret_cast<char const*>(&num_bytes),
-                 sizeof(header_type));
-      file.write(reinterpret_cast<char const*>(
-                     prop->template cast_to_typed<T>().data()),
-                 num_bytes);
+      auto const& typed_prop = prop->template cast_to_typed<T>();
+      if constexpr (tensor_rank<T> <= 1) {
+        auto const num_bytes =
+            header_type(sizeof(tensor_value_type<T>) * tensor_num_components<T> *
+                        vertices().size());
+        file.write(reinterpret_cast<char const*>(&num_bytes),
+                   sizeof(header_type));
+        file.write(reinterpret_cast<char const*>(
+                       typed_prop.data()),
+                   num_bytes);
+      } else if constexpr (tensor_rank<T> == 2) {
+        auto const num_bytes = header_type(
+            sizeof(tensor_value_type<T>) * tensor_num_components<T> *
+            vertices().size() / tensor_dimension<T, 0>);
+        for (std::size_t i = 0; i < tensor_dimension<T, 1>; ++i) {
+          file.write(reinterpret_cast<char const*>(&num_bytes),
+                     sizeof(header_type));
+          for (auto const v : vertices()) {
+            auto data_begin = &typed_prop[v](0, i);
+            file.write(reinterpret_cast<char const*>(data_begin),
+                       sizeof(tensor_value_type<T>) * tensor_dimension<T, 0>);
+          }
+        }
+      }
     }
   }
   /// \}

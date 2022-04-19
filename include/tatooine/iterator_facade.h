@@ -51,11 +51,11 @@ requires requires {
   typename T::value_type;
 }
 struct infer_value_type<T> {
-  using type = T::value_type;
+  using type = typename T::value_type;
 };
 //------------------------------------------------------------------------------
 template <typename T>
-using infer_value_type_t = infer_value_type<T>::type;
+using infer_value_type_t = typename infer_value_type<T>::type;
 //==============================================================================
 template <typename T>
 concept implements_decrement = requires(T it) {

@@ -1,7 +1,7 @@
 #ifndef TATOOINE_DYNAMIC_TENSOR_H
 #define TATOOINE_DYNAMIC_TENSOR_H
 //==============================================================================
-#include <tatooine/einstein_notation/indexed_dynamic_tensor.h>
+//#include <tatooine/einstein_notation/indexed_dynamic_tensor.h>
 #include <tatooine/multidim_array.h>
 
 #include <ostream>
@@ -13,12 +13,12 @@ template <arithmetic_or_complex T>
 struct tensor<T> : dynamic_multidim_array<T> {
   using this_type   = tensor<T>;
   using parent_type = dynamic_multidim_array<T>;
-  template <einstein_notation::index... Is>
-  using const_indexed_type =
-      einstein_notation::indexed_dynamic_tensor<this_type const&, Is...>;
-  template <einstein_notation::index... Is>
-  using indexed_type =
-      einstein_notation::indexed_dynamic_tensor<this_type&, Is...>;
+  //template <einstein_notation::index... Is>
+  //using const_indexed_type =
+  //    einstein_notation::indexed_dynamic_tensor<this_type const&, Is...>;
+  //template <einstein_notation::index... Is>
+  //using indexed_type =
+  //    einstein_notation::indexed_dynamic_tensor<this_type&, Is...>;
   using parent_type::at;
   using parent_type::operator();
 
@@ -236,28 +236,28 @@ struct tensor<T> : dynamic_multidim_array<T> {
   auto dimension(std::size_t const i) const { return dimensions()[i]; }
   auto rank() const { return this->num_dimensions(); }
   //----------------------------------------------------------------------------
-  template <einstein_notation::index... Is>
-  auto at(Is const... /*is*/) {
-    assert(rank() == 0 || sizeof...(Is) == rank());
-    return indexed_type<Is...>{*this};
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <einstein_notation::index... Is>
-  auto at(Is const... /*is*/) const {
-    assert(rank() == 0 || sizeof...(Is) == rank());
-    return const_indexed_type<Is...>{*this};
-  }
-  //----------------------------------------------------------------------------
-  auto operator()(einstein_notation::index auto const... is) const 
-  {
-    assert(rank() == 0 || sizeof...(is) == rank());
-    return at(is...);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator()(einstein_notation::index auto const... is) {
-    assert(rank() == 0 || sizeof...(is) == rank());
-    return at(is...);
-  }
+  //template <einstein_notation::index... Is>
+  //auto at(Is const... /*is*/) {
+  //  assert(rank() == 0 || sizeof...(Is) == rank());
+  //  return indexed_type<Is...>{*this};
+  //}
+  //// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //template <einstein_notation::index... Is>
+  //auto at(Is const... /*is*/) const {
+  //  assert(rank() == 0 || sizeof...(Is) == rank());
+  //  return const_indexed_type<Is...>{*this};
+  //}
+  ////----------------------------------------------------------------------------
+  //auto operator()(einstein_notation::index auto const... is) const 
+  //{
+  //  assert(rank() == 0 || sizeof...(is) == rank());
+  //  return at(is...);
+  //}
+  //// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //auto operator()(einstein_notation::index auto const... is) {
+  //  assert(rank() == 0 || sizeof...(is) == rank());
+  //  return at(is...);
+  //}
 };
 //==============================================================================
 template <typename... Rows, std::size_t N>

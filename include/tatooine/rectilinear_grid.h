@@ -1673,11 +1673,10 @@ class rectilinear_grid {
     }
   }
   //----------------------------------------------------------------------------
-  auto read_amira(filesystem::path const& path)
-    requires is_uniform &&
-             ((num_dimensions() == 2) || (num_dimensions() == 3)) {
-    auto const [data, dims, aabb, num_components] =
-        amira::read<real_type>(path);
+  auto read_amira(filesystem::path const& path) requires is_uniform &&
+      ((num_dimensions() == 2) || (num_dimensions() == 3)) {
+    auto const reader_data = amira::read<real_type>(path);
+    auto const& [data, dims, aabb, num_components] = reader_data;
     if (dims[2] == 1 && num_dimensions() == 3) {
       throw std::runtime_error{
           "[rectilinear_grid::read_amira] file contains 2-dimensional data. "
@@ -1695,7 +1694,8 @@ class rectilinear_grid {
       dimension<0>().back()  = aabb.max(0);
       dimension<0>().resize(dims[0]);
     } else {
-      auto const uniform_dim = linspace<double> {aabb.min(0), aabb.max(0), dims[0]};
+      auto const uniform_dim =
+          linspace<double>{aabb.min(0), aabb.max(0), dims[0]};
       dimension<0>().resize(dims[0]);
       std::ranges::copy(uniform_dim, begin(dimension<0>()));
     }
@@ -1704,7 +1704,8 @@ class rectilinear_grid {
       dimension<1>().back()  = aabb.max(1);
       dimension<1>().resize(dims[1]);
     } else {
-      auto const uniform_dim = linspace<double> {aabb.min(1), aabb.max(1), dims[1]};
+      auto const uniform_dim =
+          linspace<double>{aabb.min(1), aabb.max(1), dims[1]};
       dimension<1>().resize(dims[1]);
       std::ranges::copy(uniform_dim, begin(dimension<1>()));
     }
@@ -1724,17 +1725,21 @@ class rectilinear_grid {
     auto i = std::size_t{};
     if (num_components == 1) {
       auto& prop = scalar_vertex_property(path.filename().string());
-      vertices().iterate_indices(
-          [&](auto const... is) { prop(is...) = data[i++]; });
+      vertices().iterate_indices([&](auto const... is) {
+        auto const& data = std::get<0>(reader_data);
+        prop(is...)      = data[i++];
+      });
     } else if (num_components == 2) {
       auto& prop = vertex_property<vec<real_type, 2>>(path.filename().string());
       vertices().iterate_indices([&](auto const... is) {
-        prop(is...) = {data[i], data[i + 1]};
+        auto const& data = std::get<0>(reader_data);
+        prop(is...)      = {data[i], data[i + 1]};
         i += num_components;
       });
     } else if (num_components == 3) {
       auto& prop = vertex_property<vec<real_type, 3>>(path.filename().string());
       vertices().iterate_indices([&](auto const... is) {
+        auto const& data = std::get<0>(reader_data);
         prop(is...) = {data[i], data[i + 1], data[i + 2]};
         i += num_components;
       });

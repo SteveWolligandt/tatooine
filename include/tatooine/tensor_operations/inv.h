@@ -65,15 +65,15 @@ constexpr auto inv_sym(Mat&& A)
   decltype(auto) e = A(2, 1);
   decltype(auto) f = A(2, 2);
   auto const     det =
-      ((a * d - b * b) * f - a * e * e + 2 * b * c * e - c * c * d);
+      (a * d - b * b) * f - a * e * e + 2 * b * c * e - c * c * d;
   if (std::abs(det) < 1e-10) {
     return {};
   }
-  auto const div = 1 / det;
   return mat<tensor_value_type<Mat>, 3, 3>{
-      {( d * f - e * e) * div, (-b * f - c * e) * div, ( b * e - c * d) * div},
-      {(-b * f - c * e) * div, ( a * f - c * c) * div, (-a * e - b * c) * div},
-      {( b * e - c * d) * div, (-a * e - b * c) * div, ( a * d - b * b) * div}};
+             {d * f - e * e, c * e - b * f, b * e - c * d},
+             {c * e - b * f, a * f - c * c, b * c - a * e},
+             {b * e - c * d, b * c - a * e, a * d - b * b}} /
+         det;
 }
 //------------------------------------------------------------------------------
 /// invert matrix
@@ -97,15 +97,16 @@ constexpr auto inv(Mat&& A)
   decltype(auto) e = A(1, 1);
   decltype(auto) i = A(2, 2);
   auto const     det =
-      ((a * e - b * d) * i + (c * d - a * f) * h + (b * f - c * e) * g);
+      (a * e - b * d) * i + (c * d - a * f) * h + (b * f - c * e) * g;
   if (std::abs(det) < 1e-10) {
     return std::nullopt;
   }
-  auto const div = 1 / det;
+
   return mat<tensor_value_type<Mat>, 3, 3>{
-             { e * i - f * h, -b * i - c * h,  b * f - c * e},
-             {-d * i - f * g,  a * i - c * g, -a * f - c * d},
-             { d * h - e * g, -a * h - b * g,  a * e - b * d}} * div;
+             {e * i - f * h, c * h - b * i, b * f - c * e},
+             {f * g - d * i, a * i - c * g, c * d - a * f},
+             {d * h - e * g, b * g - a * h, a * e - b * d}} /
+         det;
 }
 //------------------------------------------------------------------------------
 /// invert symmetric matrix

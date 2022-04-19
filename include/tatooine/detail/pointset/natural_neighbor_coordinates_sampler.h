@@ -28,7 +28,7 @@ struct natural_neighbor_coordinates_sampler
   using triangulation_type =
       cgal::delaunay_triangulation_with_info<NumDimensions, cgal_kernel,
                                              vertex_handle>;
-  using cgal_point = triangulation_type::Point;
+  using cgal_point = typename triangulation_type::Point;
 
   //==========================================================================
   pointset_type const&        m_pointset;

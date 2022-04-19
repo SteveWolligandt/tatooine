@@ -49,7 +49,7 @@ template <floating_point Real, std::size_t NumDimensions, typename Property>
 struct vertex_property_sampler<Real, NumDimensions, Property,
                                interpolation::cubic> {
   using line_type   = tatooine::line<Real, NumDimensions>;
-  using handle_type = typename line<Real, NumDimensions>::vertex_handle;
+  using handle_type = typename line_type::vertex_handle;
   using tangent_property_type = typename line_type::tangent_property_type;
   using parameterization_property_type =
       typename line_type::parameterization_property_type;

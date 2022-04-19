@@ -1096,7 +1096,7 @@ struct unstructured_simplicial_grid
           }
         }
       }
-      auto on_simplices(std::vector<int> const& simplices) -> void override {
+      auto on_cells(std::vector<int> const& simplices) -> void override {
         add_simplices(simplices);
       }
       auto on_dataset_type(vtk::dataset_type t) -> void override {

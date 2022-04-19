@@ -41,7 +41,7 @@ namespace tatooine {
 //------------------------------------------------------------------------------
 template <static_quadratic_mat Mat>
 auto eigenvectors_sym(Mat&& A) {
-  auto constexpr N = A.dimension(0);
+  static constexpr auto N = tensor_dimension<Mat, 0>;
 
   auto W = std::pair{mat<tensor_value_type<Mat>, N, N>{std::forward<Mat>(A)},
                      vec<tensor_value_type<Mat>, N>{}};

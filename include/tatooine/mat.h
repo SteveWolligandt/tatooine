@@ -127,9 +127,9 @@ struct mat : tensor<ValueType, M, N> {
   //----------------------------------------------------------------------------
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <static_tensor Other>
-  requires(same_dimensions<this_type, Other>()) auto constexpr operator=(
-      Other const& other) noexcept -> mat& {
-    parent_type::operator=(std::forward<Other>(other));
+  requires(same_dimensions<this_type, Other>())
+  auto constexpr operator=(Other const& other) noexcept -> mat& {
+    parent_type::operator=(other);
     return *this;
   }
   //============================================================================

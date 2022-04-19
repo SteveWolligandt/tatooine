@@ -22,6 +22,8 @@ struct tensor
   using array_parent_type =
       static_multidim_array<ValueType, x_fastest, tag::stack, Dims...>;
 
+  using array_parent_type::operator();
+  using array_parent_type::at;
   using tensor_parent_type::dimension;
   using tensor_parent_type::num_components;
   using tensor_parent_type::rank;
@@ -146,7 +148,7 @@ struct tensor
   //----------------------------------------------------------------------------
   template <typename OtherT>
   auto operator<(tensor<OtherT, Dims...> const& other) const {
-    return this->data() < other.data();
+    return this->internal_container() < other.internal_container();
   }
   //============================================================================
   template <typename F>

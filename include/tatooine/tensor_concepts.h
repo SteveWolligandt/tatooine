@@ -20,12 +20,10 @@ template <typename T>
 concept static_tensor = general_tensor<T> && std::decay_t<T>::is_static();
 //==============================================================================
 template <typename T>
-concept static_vec = static_tensor<T> && std::decay_t<T>::rank()
-== 1;
+concept static_vec = static_tensor<T> && std::decay_t<T>::rank() == 1;
 //==============================================================================
 template <typename T>
-concept static_mat = static_tensor<T> && std::decay_t<T>::rank()
-== 2;
+concept static_mat = static_tensor<T> && std::decay_t<T>::rank() == 2;
 //==============================================================================
 template <typename T, std::size_t... Dimensions>
 concept fixed_size_tensor = static_tensor<T> && std::decay_t<T>::dimensions()

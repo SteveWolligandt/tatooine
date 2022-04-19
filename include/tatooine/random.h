@@ -68,9 +68,6 @@ uniform(ValueType const min, ValueType const max)
 template <typename ValueType, typename Engine>
 uniform(ValueType const min, ValueType const max, Engine&&)
     -> uniform<ValueType, std::decay_t<Engine>>;
-
-template <typename ValueType, typename Engine>
-uniform(Engine&) -> uniform<ValueType, std::decay_t<Engine>&>;
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 template <typename ValueType, typename Engine = std::mt19937_64>
 auto uniform_vector(std::size_t n, ValueType a = ValueType(0),

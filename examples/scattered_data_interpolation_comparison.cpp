@@ -20,21 +20,23 @@ auto main(int argc, char const** argv) -> int {
     return 1;
   }
   auto const options = *options_opt;
-  auto f = analytical::fields::numerical::frankes_test{};
-  auto nabla_f = diff(f);
-  auto resample_grid = uniform_rectilinear_grid2{linspace{0.0, 1.0, options.output_res_x},
-                                      linspace{0.0, 1.0, options.output_res_y}};
-  auto       rand    = random::uniform{0.0, 1.0, std::mt19937_64{1234}};
-  auto       scattered_data      = pointset2{};
-  auto&      scattered_franke = scattered_data.scalar_vertex_property("franke");
+  auto       f       = analytical::fields::numerical::frankes_test{};
+  auto       nabla_f = diff(f);
+  auto       resample_grid =
+      uniform_rectilinear_grid2{linspace{0.0, 1.0, options.output_res_x},
+                                linspace{0.0, 1.0, options.output_res_y}};
+  auto  rand             = random::uniform{0.0, 1.0, std::mt19937_64{1234}};
+  auto  scattered_data   = pointset2{};
+  auto& scattered_franke = scattered_data.scalar_vertex_property("franke");
 
   // sample scattered ground truth
   for (size_t i = 0; i < options.num_datapoints; ++i) {
-    auto v = scattered_data.insert_vertex(rand(), rand());
+    auto v                 = scattered_data.insert_vertex(rand(), rand());
     scattered_franke.at(v) = f(scattered_data[v]);
   }
   // sample ground truth
-  resample_grid.sample_to_vertex_property(f, "ground_truth", execution_policy::parallel);
+  resample_grid.sample_to_vertex_property(f, "ground_truth",
+                                          execution_policy::parallel);
 
   // sample constant inverse distance
   resample_grid.sample_to_vertex_property(
@@ -77,12 +79,12 @@ auto main(int argc, char const** argv) -> int {
         auto index_it        = begin(indices);
         auto squared_dist_it = begin(squared_distances);
         for (; index_it != end(indices); ++index_it, ++squared_dist_it) {
-        auto const& x_i = scattered_data.vertex_at(*index_it);
-        auto const  val =
-            dot(nabla_f(x_i), q - x_i) + scattered_franke.at(*index_it);
+          auto const& x_i = scattered_data.vertex_at(*index_it);
+          auto const  val =
+              dot(nabla_f(x_i), q - x_i) + scattered_franke.at(*index_it);
 
-        if (*squared_dist_it == 0) {
-          return val;
+          if (*squared_dist_it == 0) {
+            return val;
           };
           auto const weight = 1 / *squared_dist_it;
           accumulated_prop_val += val * weight;
@@ -106,7 +108,6 @@ auto main(int argc, char const** argv) -> int {
               scattered_franke),
       "full_radial_bases_with_polynomial", execution_policy::parallel);
 
-
   // sample full radial basis functions with polynomial
   resample_grid.sample_to_vertex_property(
       scattered_data
@@ -123,7 +124,7 @@ auto main(int argc, char const** argv) -> int {
           return 0.0 / 0.0;
         }
 
-        auto const N = indices.size();
+        auto const N             = indices.size();
         auto const NumDimensions = 2;
 
         // construct lower part of symmetric matrix A
@@ -131,8 +132,8 @@ auto main(int argc, char const** argv) -> int {
                                             N + NumDimensions + 1);
         auto weights_and_coeffs =
             tensor<real_number>::zeros(N + NumDimensions + 1);
-        //auto A = tensor<real_number>::zeros(N, N);
-        //auto weights_and_coeffs = tensor<real_number>::zeros(N);
+        // auto A = tensor<real_number>::zeros(N, N);
+        // auto weights_and_coeffs = tensor<real_number>::zeros(N);
         for (std::size_t c = 0; c < N; ++c) {
           for (std::size_t r = c + 1; r < N; ++r) {
             A(r, c) = thin_plate_spline(squared_euclidean_distance(
@@ -156,17 +157,19 @@ auto main(int argc, char const** argv) -> int {
           weights_and_coeffs(i) = scattered_franke[indices[i]];
         }
         // do not copy by moving A and weights_and_coeffs into solver
-        weights_and_coeffs = *solve_symmetric_lapack(
-            std::move(A), std::move(weights_and_coeffs), tatooine::lapack::Uplo::Lower);
+        weights_and_coeffs =
+            *solve_symmetric_lapack(std::move(A), std::move(weights_and_coeffs),
+                                    tatooine::lapack::Uplo::Lower);
 
-        auto       acc = real_number{};
+        auto acc = real_number{};
         // radial bases
         for (std::size_t i = 0; i < N; ++i) {
           auto const v = indices[i];
           if (squared_distances[i] == 0) {
             return scattered_franke[v];
           }
-          acc += weights_and_coeffs(i) * thin_plate_spline(squared_distances[i]);
+          acc +=
+              weights_and_coeffs(i) * thin_plate_spline(squared_distances[i]);
         }
         // monomial bases
         acc += weights_and_coeffs(N);
@@ -175,7 +178,8 @@ auto main(int argc, char const** argv) -> int {
         }
         return acc;
       },
-      "local_radial_bases_with_polynomial_constant", execution_policy::parallel);
+      "local_radial_bases_with_polynomial_constant",
+      execution_policy::parallel);
 
   // local radial basis functions with gradients in system
   resample_grid.sample_to_vertex_property(
@@ -186,7 +190,7 @@ auto main(int argc, char const** argv) -> int {
           return 0.0 / 0.0;
         }
 
-        auto const N = indices.size();
+        auto const N             = indices.size();
         auto const NumDimensions = 2;
 
         // construct lower part of symmetric matrix A
@@ -194,8 +198,8 @@ auto main(int argc, char const** argv) -> int {
                                             N + NumDimensions + 1);
         auto weights_and_coeffs =
             tensor<real_number>::zeros(N + NumDimensions + 1);
-        //auto A = tensor<real_number>::zeros(N, N);
-        //auto weights_and_coeffs = tensor<real_number>::zeros(N);
+        // auto A = tensor<real_number>::zeros(N, N);
+        // auto weights_and_coeffs = tensor<real_number>::zeros(N);
         for (std::size_t c = 0; c < N; ++c) {
           for (std::size_t r = c + 1; r < N; ++r) {
             A(r, c) = thin_plate_spline(squared_euclidean_distance(
@@ -219,17 +223,19 @@ auto main(int argc, char const** argv) -> int {
           weights_and_coeffs(i) = scattered_franke[indices[i]];
         }
         // do not copy by moving A and weights_and_coeffs into solver
-        weights_and_coeffs = *solve_symmetric_lapack(
-            std::move(A), std::move(weights_and_coeffs), tatooine::lapack::Uplo::Lower);
+        weights_and_coeffs =
+            *solve_symmetric_lapack(std::move(A), std::move(weights_and_coeffs),
+                                    tatooine::lapack::Uplo::Lower);
 
-        auto       acc = real_number{};
+        auto acc = real_number{};
         // radial basis functions
         for (std::size_t i = 0; i < N; ++i) {
           auto const v = indices[i];
           if (squared_distances[i] == 0) {
             return scattered_franke[v];
           }
-          acc += weights_and_coeffs(i) * thin_plate_spline_from_squared(squared_distances[i]);
+          acc += weights_and_coeffs(i) *
+                 thin_plate_spline_from_squared(squared_distances[i]);
         }
         // polynomial part
         acc += weights_and_coeffs(N);
@@ -250,15 +256,15 @@ auto main(int argc, char const** argv) -> int {
           return 0.0 / 0.0;
         }
 
-        auto const N = indices.size();
+        auto const N             = indices.size();
         auto const NumDimensions = 2;
 
         // construct lower part of symmetric matrix A
-        //auto A = tensor<real_number>::zeros(N + NumDimensions + 1,
+        // auto A = tensor<real_number>::zeros(N + NumDimensions + 1,
         //                                    N + NumDimensions + 1);
-        //auto weights_and_coeffs =
+        // auto weights_and_coeffs =
         //    tensor<real_number>::zeros(N + NumDimensions + 1);
-        auto A = tensor<real_number>::zeros(N, N);
+        auto A                  = tensor<real_number>::zeros(N, N);
         auto weights_and_coeffs = tensor<real_number>::zeros(N);
         for (std::size_t c = 0; c < N; ++c) {
           for (std::size_t r = c + 1; r < N; ++r) {
@@ -285,17 +291,19 @@ auto main(int argc, char const** argv) -> int {
               dot(nabla_f(x_i), q - x_i) + scattered_franke.at(indices[i]);
         }
         // do not copy by moving A and weights_and_coeffs into solver
-        weights_and_coeffs = *solve_symmetric_lapack(
-            std::move(A), std::move(weights_and_coeffs), tatooine::lapack::Uplo::Lower);
+        weights_and_coeffs =
+            *solve_symmetric_lapack(std::move(A), std::move(weights_and_coeffs),
+                                    tatooine::lapack::Uplo::Lower);
 
-        auto       acc = real_number{};
+        auto acc = real_number{};
         // radial basis functions
         for (std::size_t i = 0; i < N; ++i) {
           auto const v = indices[i];
           if (squared_distances[i] == 0) {
             return scattered_franke[v];
           }
-          acc += weights_and_coeffs(i) * thin_plate_spline(squared_distances[i]);
+          acc +=
+              weights_and_coeffs(i) * thin_plate_spline(squared_distances[i]);
         }
         // polynomial part
         acc += weights_and_coeffs(N);

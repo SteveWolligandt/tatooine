@@ -90,7 +90,6 @@ constexpr auto to_string_view(format f) -> std::string_view {
 //------------------------------------------------------------------------------
 auto parse_format(std::string const &) -> format;
 //==============================================================================
-//------------------------------------------------------------------------------
 struct legacy_file_listener {
   // header data
   virtual auto on_version(unsigned short /*major*/, unsigned short /*minor*/)
