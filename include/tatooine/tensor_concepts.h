@@ -30,8 +30,7 @@ concept fixed_size_tensor = static_tensor<T> && std::decay_t<T>::dimensions()
 == std::array{Dimensions...};
 //------------------------------------------------------------------------------
 template <typename T, std::size_t N>
-concept fixed_size_vec = static_vec<T> && std::decay_t<T>::dimension(0)
-== N;
+concept fixed_size_vec = static_vec<T> && std::decay_t<T>::dimension(0) == N;
 //------------------------------------------------------------------------------
 template <typename T, std::size_t N>
 concept fixed_size_real_vec =

@@ -153,11 +153,25 @@ template <typename F, typename... Is>
 concept invocable_with_integrals = std::invocable<F, Is...> &&
                                    (integral<Is> && ...);
 //==============================================================================
-// stuff
+// misc
 //==============================================================================
 template <typename Reader, typename Readable>
 concept can_read = requires(Reader reader, Readable readable) {
   reader.read(readable);
+};
+//------------------------------------------------------------------------------
+template <typename T>
+concept has_real_type = requires {typename T::real_type;};
+//------------------------------------------------------------------------------
+template <typename T>
+concept has_pos_type = requires {typename T::pos_type;};
+//------------------------------------------------------------------------------
+template <typename T>
+concept has_tensor_type = requires {typename T::tensor_type;};
+//------------------------------------------------------------------------------
+template <typename T>
+concept has_num_dimensions = requires {
+  { T::num_dimensions } -> integral;
 };
 //==============================================================================
 }  // namespace tatooine
