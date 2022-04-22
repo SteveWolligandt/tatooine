@@ -94,7 +94,7 @@ auto operator>>(std::istream& in, field& f) -> auto& {
   if (token == "janos") {
     f = field::janos;
     return in;
-  } else if (token == "saddle") {
+  } else if (token == "doublegyre") {
     f = field::doublegyre;
     return in;
   } else if (token == "saddle") {
