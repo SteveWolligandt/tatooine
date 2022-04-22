@@ -27,17 +27,17 @@ struct numerical_flowmap {
   using cache_type =
       tatooine::cache<std::pair<real_type, pos_type>, integral_curve_type>;
   using ode_solver_type = ODESolver<real_type, num_dimensions()>;
+  using domain_border_flags_type = std::map<std::pair<pos_type, real_type>, std::pair<bool, bool>>;
   static constexpr auto holds_field_pointer = std::is_pointer_v<V>;
   //============================================================================
   // members
   //============================================================================
  private:
-  V                  m_v;
-  ode_solver_type    m_ode_solver;
-  mutable cache_type m_cache;
-  mutable std::map<std::pair<pos_type, real_type>, std::pair<bool, bool>>
-       m_on_domain_border;
-  bool m_use_caching = true;
+  V                                m_v;
+  ode_solver_type                  m_ode_solver;
+  mutable cache_type               m_cache;
+  mutable domain_border_flags_type m_on_domain_border;
+  bool                             m_use_caching = true;
   //============================================================================
   // ctors
   //============================================================================
@@ -68,40 +68,49 @@ struct numerical_flowmap {
     m_use_caching = std::move(other.m_use_caching);
     return *this;
   }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  ~numerical_flowmap() = default;
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <std::convertible_to<V> W, arithmetic WReal,
             std::size_t NumDimensions, typename V_ = V>
-  requires(!holds_field_pointer) explicit constexpr numerical_flowmap(
+  requires(!holds_field_pointer)
+  explicit constexpr numerical_flowmap(
       vectorfield<W, WReal, NumDimensions> const& w,
       bool const                                  use_caching = true)
       : m_v{w.as_derived()}, m_use_caching{use_caching} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <std::convertible_to<V> W, arithmetic WReal,
             std::size_t NumDimensions, typename V_ = V>
-  requires holds_field_pointer explicit constexpr numerical_flowmap(
+  requires holds_field_pointer
+  explicit constexpr numerical_flowmap(
       vectorfield<W, WReal, NumDimensions> const* w,
       bool const                                  use_caching = true)
       : m_v{&w->as_derived()}, m_use_caching{use_caching} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <arithmetic WReal, std::size_t NumDimensions, typename V_ = V>
-  requires holds_field_pointer explicit constexpr numerical_flowmap(
+  requires holds_field_pointer
+  explicit constexpr numerical_flowmap(
       polymorphic::vectorfield<WReal, NumDimensions> const* w,
       bool const                                            use_caching = true)
       : m_v{w}, m_use_caching{use_caching} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <arithmetic WReal, std::size_t NumDimensions, typename V_ = V>
-  requires holds_field_pointer explicit constexpr numerical_flowmap(
+  requires holds_field_pointer
+  explicit constexpr numerical_flowmap(
       polymorphic::vectorfield<WReal, NumDimensions>* w,
       bool const                                      use_caching = true)
       : m_v{w}, m_use_caching{use_caching} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename V_ = V>
-  requires holds_field_pointer explicit constexpr numerical_flowmap(
+  requires holds_field_pointer
+  explicit constexpr numerical_flowmap(
       bool const use_caching = true)
       : m_v{nullptr}, m_use_caching{use_caching} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename W, typename WReal, std::size_t NumDimensions,
             typename V_ = V>
-  requires(!holds_field_pointer) constexpr numerical_flowmap(
+  requires(!holds_field_pointer)
+  constexpr numerical_flowmap(
       vectorfield<W, WReal, NumDimensions> const& w,
       ode_solver_type const& ode_solver, bool const use_caching = true)
       : m_v{w.as_derived()},
@@ -390,39 +399,6 @@ auto flowmap(polymorphic::vectorfield<Real, NumDimensions> const& v) {
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename V, template <typename, std::size_t> typename ODESolver,
-          template <typename> typename InterpolationKernel,
-          arithmetic EpsReal = typename V::real_type>
-auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
-          tag::central_t /*tag*/, EpsReal epsilon = 1e-7) {
-  return differentiated_flowmap<
-      numerical_flowmap<V, ODESolver, InterpolationKernel>>{flowmap, epsilon};
-}
-//------------------------------------------------------------------------------
-template <typename V, template <typename, std::size_t> typename ODESolver,
-          template <typename> typename InterpolationKernel,
-          std::floating_point EpsReal>
-auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
-          tag::central_t /*tag*/, vec<EpsReal, V::num_dimensions()> epsilon) {
-  return differentiated_flowmap<
-      numerical_flowmap<V, ODESolver, InterpolationKernel>>{flowmap, epsilon};
-}
-//==============================================================================
-template <typename V, template <typename, std::size_t> typename ODESolver,
-          template <typename> typename InterpolationKernel,
-          arithmetic EpsReal = typename std::decay_t<V>::real_type>
-auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
-          EpsReal epsilon = 1e-7) {
-  return diff(flowmap, tag::central, epsilon);
-}
-//------------------------------------------------------------------------------
-template <typename V, template <typename, std::size_t> typename ODESolver,
-          template <typename> typename InterpolationKernel,
-          std::floating_point EpsReal>
-auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
-          vec<EpsReal, V::num_dimensions()>                           epsilon) {
-  return diff(flowmap, tag::central, epsilon);
-}
 //==============================================================================
 // typedefs
 //==============================================================================

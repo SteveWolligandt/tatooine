@@ -7,7 +7,7 @@
 //==============================================================================
 namespace tatooine::analytical::fields::numerical {
 //==============================================================================
-template <typename Real>
+template <floating_point Real>
 struct center : vectorfield<center<Real>, Real, 2> {
   using this_type   = center<Real>;
   using parent_type = vectorfield<this_type, Real, 2>;
@@ -22,29 +22,29 @@ struct center : vectorfield<center<Real>, Real, 2> {
   //----------------------------------------------------------------------------
   ~center() override = default;
   //----------------------------------------------------------------------------
-  [[nodiscard]] constexpr auto evaluate(pos_type const& x, Real const /*t*/) const
-      -> tensor_type {
+  [[nodiscard]] constexpr auto evaluate(pos_type const& x,
+                                        Real const /*t*/) const -> tensor_type {
     return {x(1), -x(0)};
   }
 };
-  //============================================================================
+//============================================================================
 center()->center<double>;
-  //============================================================================
-template <typename Real>
+//============================================================================
+template <floating_point Real>
 struct center_flowmap {
   using real_type = Real;
-  using vec_t  = vec<Real, 2>;
+  using vec_t     = vec<Real, 2>;
   using pos_type  = vec_t;
   static constexpr auto num_dimensions() { return 2; }
-  //==============================================================================
+  //============================================================================
   constexpr auto evaluate(pos_type const& x, Real const /*t*/,
-                          Real const   tau) const -> pos_type {
-    return {std::cos(tau) * x(0) + std::sin(tau) * x(1),
-            -std::sin(tau) * x(0) + std::cos(tau) * x(1)};
+                          Real const      tau) const -> pos_type {
+    return {gcem::cos(tau) * x(0) + gcem::sin(tau) * x(1),
+            -gcem::sin(tau) * x(0) + gcem::cos(tau) * x(1)};
   }
-  //--------------------------------------------------------------------------
-  constexpr auto operator()(pos_type const& x, Real const t, Real const tau) const
-      -> pos_type {
+  //----------------------------------------------------------------------------
+  constexpr auto operator()(pos_type const& x, Real const t,
+                            Real const tau) const -> pos_type {
     return evaluate(x, t, tau);
   }
 };
@@ -52,7 +52,7 @@ struct center_flowmap {
 template <
     template <typename, size_t> typename ODESolver = ode::vclibs::rungekutta43,
     template <typename> typename InterpolationKernel = interpolation::cubic,
-    std::floating_point Real>
+    floating_point Real>
 constexpr auto flowmap(
     vectorfield<analytical::fields::numerical::center<Real>, Real, 2> const& v,
     tag::numerical_t /*tag*/) {
@@ -60,67 +60,17 @@ constexpr auto flowmap(
                            ODESolver, InterpolationKernel>{v};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <std::floating_point Real>
+template <floating_point Real>
 constexpr auto flowmap(
     vectorfield<analytical::fields::numerical::center<Real>, Real, 2> const&,
     tag::analytical_t /*tag*/) {
   return analytical::fields::numerical::center_flowmap<Real>{};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <std::floating_point Real>
+template <floating_point Real>
 constexpr auto flowmap(vectorfield<analytical::fields::numerical::center<Real>,
                                    Real, 2> const& v) {
   return flowmap(v, tag::analytical);
-}
-//==============================================================================
-template <std::floating_point Real>
-struct center_flowmap_gradient {
-  using real_type     = Real;
-  using vec_t      = vec<Real, 2>;
-  using pos_type      = vec_t;
-  using mat_t      = mat<real_type, 2, 2>;
-  using gradient_t = mat_t;
-  static constexpr auto num_dimensions() { return 2; }
-  //----------------------------------------------------------------------------
-  constexpr auto evaluate(pos_type const& /*x*/, Real const /*t*/,
-                          Real const tau) const -> gradient_t {
-    auto const ctau = std::cos(tau);
-    auto const stau = std::sin(tau);
-    return {{ ctau, stau},
-            {-stau, ctau}};
-  }
-  //----------------------------------------------------------------------------
-  constexpr auto operator()(pos_type const& x, Real const t,
-                            Real const tau) const {
-    return evaluate(x, t, tau);
-  }
-};
-//------------------------------------------------------------------------------
-template <std::floating_point Real>
-auto diff(analytical::fields::numerical::center_flowmap<Real> const&,
-          tag::analytical_t /*tag*/) {
-  return
-      typename analytical::fields::numerical::center_flowmap_gradient<Real>{};
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <std::floating_point VReal, std::floating_point EpsReal = VReal>
-auto diff(analytical::fields::numerical::center_flowmap<VReal> const& flowmap,
-          tag::central_t /*tag*/, EpsReal epsilon = 1e-7) {
-  return flowmap_gradient_central_differences<
-      analytical::fields::numerical::center_flowmap<VReal>>{flowmap, epsilon};
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <std::floating_point VReal, std::floating_point EpsReal>
-constexpr auto diff(
-    analytical::fields::numerical::center_flowmap<VReal> const& flowmap,
-    tag::central_t /*tag*/, vec<EpsReal, 2> epsilon) {
-  return flowmap_gradient_central_differences<
-      analytical::fields::numerical::center_flowmap<VReal>>{flowmap, epsilon};
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <std::floating_point Real>
-auto diff(analytical::fields::numerical::center_flowmap<Real> const& flowmap) {
-  return diff(flowmap, tag::analytical);
 }
 //==============================================================================
 }  // namespace tatooine::analytical::fields::numerical
@@ -129,10 +79,11 @@ auto diff(analytical::fields::numerical::center_flowmap<Real> const& flowmap) {
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Real>
+template <floating_point Real>
 struct differentiated_field<analytical::fields::numerical::center<Real>>
     : matrixfield<analytical::fields::numerical::center<Real>, Real, 2> {
-  using this_type   = differentiated_field<analytical::fields::numerical::center<Real>>;
+  using this_type =
+      differentiated_field<analytical::fields::numerical::center<Real>>;
   using parent_type = matrixfield<this_type, Real, 2>;
   using typename parent_type::pos_type;
   using typename parent_type::tensor_type;
@@ -148,8 +99,7 @@ struct differentiated_field<analytical::fields::numerical::center<Real>>
   //----------------------------------------------------------------------------
   constexpr auto evaluate(pos_type const& /*x*/, Real const /*t*/) const
       -> tensor_type {
-    return {{ 0, 1},
-            {-1, 0}};
+    return {{0, 1}, {-1, 0}};
   }
   //----------------------------------------------------------------------------
   constexpr auto internal_field() -> auto& { return m_internal_field; }
@@ -158,16 +108,38 @@ struct differentiated_field<analytical::fields::numerical::center<Real>>
   }
 };
 //==============================================================================
-template <typename Real>
+template <floating_point Real>
 constexpr auto diff(analytical::fields::numerical::center<Real>&) {
   return differentiated_field<analytical::fields::numerical::center<Real>>{};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Real>
+template <floating_point Real>
 constexpr auto diff(
     vectorfield<analytical::fields::numerical::center<Real>, Real, 2> const&) {
   return differentiated_field<analytical::fields::numerical::center<Real>>{};
 }
+//==============================================================================
+template <floating_point Real>
+struct differentiated_flowmap<analytical::fields::numerical::center<Real>> {
+  using real_type  = Real;
+  using vec_t      = vec<Real, 2>;
+  using pos_type   = vec_t;
+  using mat_t      = mat<real_type, 2, 2>;
+  using gradient_t = mat_t;
+  static constexpr auto num_dimensions() { return 2; }
+  //----------------------------------------------------------------------------
+  constexpr auto evaluate(pos_type const& /*x*/, Real const /*t*/,
+                          Real const tau) const -> gradient_t {
+    auto const ctau = gcem::cos(tau);
+    auto const stau = gcem::sin(tau);
+    return {{ctau, stau}, {-stau, ctau}};
+  }
+  //----------------------------------------------------------------------------
+  constexpr auto operator()(pos_type const& x, Real const t,
+                            Real const tau) const {
+    return evaluate(x, t, tau);
+  }
+};
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

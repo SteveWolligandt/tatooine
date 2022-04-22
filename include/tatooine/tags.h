@@ -68,8 +68,6 @@ struct eye_t {};
 static constexpr eye_t eye;
 struct automatic_t {};
 static constexpr automatic_t automatic;
-struct central_t {};
-static constexpr central_t central;
 struct quadratic_t {};
 static constexpr quadratic_t quadratic;
 struct analytical_t {};
