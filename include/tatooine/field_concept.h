@@ -13,13 +13,13 @@ concept weak_field_concept = requires(T f, vec<Real, NumDimensions> x, Real t) {
 //==============================================================================
 template <typename T>
 concept field_concept =
-  has_real_type<T> &&
-  has_num_dimensions<T> &&
-  has_pos_type<T> &&
-  has_tensor_type<T> &&
-  requires(T f, typename T::pos_type x, typename T::real_type t,
-           typename T::real_type tau) {
-  { f(x, t) } -> std::convertible_to<typename T::pos_type>;
+    has_real_type<T> &&
+    has_num_dimensions<T> &&
+    has_pos_type<T> &&
+    has_tensor_type<T> &&
+    requires(std::decay_t<T> f, typename std::decay_t<T>::pos_type x,
+             typename std::decay_t<T>::real_type t) {
+  { f(x, t) } -> std::same_as<typename T::tensor_type>;
 };
 //==============================================================================
 }  // namespace tatooine

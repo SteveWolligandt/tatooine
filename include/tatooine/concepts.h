@@ -161,17 +161,17 @@ concept can_read = requires(Reader reader, Readable readable) {
 };
 //------------------------------------------------------------------------------
 template <typename T>
-concept has_real_type = requires {typename T::real_type;};
+concept has_real_type = requires {typename std::decay_t<T>::real_type;};
 //------------------------------------------------------------------------------
 template <typename T>
-concept has_pos_type = requires {typename T::pos_type;};
+concept has_pos_type = requires {typename std::decay_t<T>::pos_type;};
 //------------------------------------------------------------------------------
 template <typename T>
-concept has_tensor_type = requires {typename T::tensor_type;};
+concept has_tensor_type = requires {typename std::decay_t<T>::tensor_type;};
 //------------------------------------------------------------------------------
 template <typename T>
 concept has_num_dimensions = requires {
-  { T::num_dimensions } -> integral;
+  { std::decay_t<T>::num_dimensions() } -> integral;
 };
 //==============================================================================
 }  // namespace tatooine

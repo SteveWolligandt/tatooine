@@ -46,17 +46,19 @@ struct numerically_differentiated_field
   numerically_differentiated_field(Field_&& f, Eps const eps)
       : m_internal_field{std::forward<Field_>(f)}, m_eps{tag::fill{eps}} {}
   //----------------------------------------------------------------------------
-  explicit numerically_differentiated_field(vec_type const& eps = vec_type::ones() *
-                                                      1e-7) requires
-      holds_field_pointer : m_internal_field{nullptr},
-                            m_eps{eps} {}
+  explicit numerically_differentiated_field(
+      vec_type const& eps = vec_type::ones() *
+                            1e-7) requires holds_field_pointer
+      : m_internal_field{nullptr},
+        m_eps{eps} {}
   //----------------------------------------------------------------------------
   template <typename Field_>
   numerically_differentiated_field(Field_&& f, vec_type const& eps)
       : m_internal_field{std::forward<Field_>(f)}, m_eps{eps} {}
   //----------------------------------------------------------------------------
   template <typename Field_, arithmetic Real>
-  numerically_differentiated_field(Field_&& f, vec<Real, num_dimensions()> const& eps)
+  numerically_differentiated_field(Field_&&                           f,
+                                   vec<Real, num_dimensions()> const& eps)
       : m_internal_field{std::forward<Field_>(f)}, m_eps{eps} {}
   //----------------------------------------------------------------------------
   constexpr auto evaluate(pos_type const& x, real_type const t) const
@@ -107,40 +109,35 @@ struct numerically_differentiated_field
   }
 };
 //==============================================================================
-auto diff(field_concept auto const&& field, tag::numerical_t /*tag*/) {
-  return numerically_differentiated_field{field};
+auto diff(field_concept auto&& field, tag::numerical_t /*tag*/) {
+  return numerically_differentiated_field{std::forward<decltype(field)>(field)};
 }
 //------------------------------------------------------------------------------
-auto diff(field_concept auto const&& field, tag::numerical_t /*tag*/,
-          arithmetic auto const        epsilon) {
-  return numerically_differentiated_field{field, epsilon};
+auto diff(field_concept auto&&  field, tag::numerical_t /*tag*/,
+          arithmetic auto const epsilon) {
+  return numerically_differentiated_field{std::forward<decltype(field)>(field),
+                                          epsilon};
 }
 //------------------------------------------------------------------------------
-auto diff(
-    field_concept auto const&& field, tag::numerical_t /*tag*/,
-    fixed_size_real_vec<
-        std::decay_t<decltype(field)>::num_dimensions()> auto&& epsilon) {
-  return numerically_differentiated_field{
-      field, std::forward<decltype(epsilon)>(epsilon)};
-}
-//------------------------------------------------------------------------------
-auto diff(field_concept auto const&& field, arithmetic auto const epsilon) {
-  return diff(field, tag::numerical, epsilon);
+auto diff(field_concept auto&& field, arithmetic auto const epsilon) {
+  return diff(std::forward<decltype(field)>(field), tag::numerical, epsilon);
 }
 //------------------------------------------------------------------------------
 auto diff(
-    field_concept auto const&& field,
-    fixed_size_real_vec<
-        std::decay_t<decltype(field)>::num_dimensions()> auto&& epsilon) {
+    field_concept auto&& field, tag::numerical_t /*tag*/,
+    fixed_size_real_vec<std::decay_t<decltype(field)>::num_dimensions()> auto&&
+        epsilon) {
   return numerically_differentiated_field{
-      field, std::forward<decltype(epsilon)>(epsilon)};
+      std::forward<decltype(field)>(field),
+      std::forward<decltype(epsilon)>(epsilon)};
 }
 //------------------------------------------------------------------------------
 auto diff(
     field_concept auto&& field,
-    fixed_size_real_vec<
-        std::decay_t<decltype(field)>::num_dimensions()> auto&& epsilon) {
-  return diff(field, tag::numerical, std::forward<decltype(epsilon)>(epsilon));
+    fixed_size_real_vec<std::decay_t<decltype(field)>::num_dimensions()> auto&&
+        epsilon) {
+  return diff(std::forward<decltype(field)>(field), tag::numerical,
+              std::forward<decltype(epsilon)>(epsilon));
 }
 //==============================================================================
 template <typename InternalField>
@@ -149,7 +146,7 @@ struct differentiated_field : numerically_differentiated_field<InternalField> {
   using parent_type::parent_type;
 };
 //==============================================================================
-auto diff(field_concept auto const&& field) {
+auto diff(field_concept auto&& field) {
   return differentiated_field{std::forward<decltype(field)>(field)};
 }
 //==============================================================================
