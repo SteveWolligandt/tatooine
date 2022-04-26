@@ -503,6 +503,26 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
           setting.c = &color_scale::viridis();
         }
 
+        ImGui::PushID("##magma");
+        selected = ImGui::Selectable("", setting.c == &color_scale::magma());
+        ImGui::PopID();
+        ImGui::SameLine();
+        ImGui::Image((void*)(std::intptr_t)color_scale::magma().tex_2d.id(),
+                     ImVec2(256, 20));
+        if (selected) {
+          setting.c = &color_scale::magma();
+        }
+
+        ImGui::PushID("##cool_to_warm");
+        selected = ImGui::Selectable("", setting.c == &color_scale::cool_to_warm());
+        ImGui::PopID();
+        ImGui::SameLine();
+        ImGui::Image((void*)(std::intptr_t)color_scale::cool_to_warm().tex_2d.id(),
+                     ImVec2(256, 20));
+        if (selected) {
+          setting.c = &color_scale::cool_to_warm();
+        }
+
         ImGui::PushID("##GYPi");
         selected = ImGui::Selectable("", setting.c == &color_scale::GYPi());
         ImGui::PopID();

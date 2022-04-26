@@ -167,10 +167,8 @@ struct viridis {
     t            = t - i;
     return m_data[i] * (1 - t) + m_data[i + 1] * t;
   }
-  auto operator()(real_type const t) const { return sample(t); }
   //----------------------------------------------------------------------------
-#if TATOOINE_GL_AVAILABLE
-#endif
+  auto operator()(real_type const t) const { return sample(t); }
 };
 //==============================================================================
 viridis()->viridis<double>;
