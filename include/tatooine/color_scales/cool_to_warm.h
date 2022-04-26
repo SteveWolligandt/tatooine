@@ -25,7 +25,7 @@ struct cool_to_warm {
   auto data() -> auto& { return m_data; }
   auto data() const -> auto const& { return m_data; }
   //----------------------------------------------------------------------------
-  auto sample(real_type const t) const {
+  auto sample(real_type t) const {
     if (t <= 0) {
       return m_data[0];
     }
