@@ -12,6 +12,8 @@
 #include <tatooine/color_scales/PiYG.h>
 #include <tatooine/color_scales/PuOr.h>
 #include <tatooine/color_scales/viridis.h>
+#include <tatooine/color_scales/magma.h>
+#include <tatooine/color_scales/cool_to_warm.h>
 #include <tatooine/gl/indexeddata.h>
 #include <tatooine/gl/texture.h>
 #include <tatooine/vec.h>
@@ -79,6 +81,14 @@ struct color_scale {
   static auto viridis() -> auto& {
     static auto viridis = color_scale{tatooine::color_scales::viridis<GLfloat>{}};
     return viridis;
+  }
+  static auto magma() -> auto& {
+    static auto magma = color_scale{tatooine::color_scales::magma<GLfloat>{}};
+    return magma;
+  }
+  static auto cool_to_warm() -> auto& {
+    static auto cool_to_warm = color_scale{tatooine::color_scales::cool_to_warm<GLfloat>{}};
+    return cool_to_warm;
   }
 };
 //==============================================================================
