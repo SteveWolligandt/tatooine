@@ -49,6 +49,11 @@ constexpr auto compare_variadic(T0&& a, T1&& b, TRest&&... rest)
   }
 }
 //------------------------------------------------------------------------------
+template <typename T0>
+constexpr auto max(T0&& a) -> decltype(auto) {
+  return std::forward<T0>(a);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T0, typename T1, typename... TRest>
 requires requires (T0&& a, T1&& b) {
   { a > b } -> std::convertible_to<bool>;
@@ -56,6 +61,11 @@ requires requires (T0&& a, T1&& b) {
 constexpr auto max(T0&& a, T1&& b, TRest&&... rest) -> decltype(auto) {
   return compare_variadic<std::greater>(
       std::forward<T0>(a), std::forward<T1>(b), std::forward<TRest>(rest)...);
+}
+//------------------------------------------------------------------------------
+template <typename T0>
+constexpr auto min(T0&& a) -> decltype(auto) {
+  return std::forward<T0>(a);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T0, typename T1, typename... TRest>

@@ -57,7 +57,7 @@ macro(create_test NAME)
   endif()
   target_link_libraries(
     ${NAME}.unittests
-    tatooine Catch2::Catch2)
+    tatooine gl Catch2::Catch2)
   target_include_directories(
     ${NAME}.unittests
     PRIVATE

@@ -492,26 +492,115 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
                             selected_property_name != nullptr
                                 ? selected_property_name->c_str()
                                 : nullptr)) {
+        bool selected = false;
         ImGui::PushID("##viridis");
-        auto viridis_selected =
-            ImGui::Selectable("", setting.c == &color_scale::viridis());
+        selected = ImGui::Selectable("", setting.c == &color_scale::viridis());
         ImGui::PopID();
         ImGui::SameLine();
         ImGui::Image((void*)(std::intptr_t)color_scale::viridis().tex_2d.id(),
                      ImVec2(256, 20));
-        if (viridis_selected) {
+        if (selected) {
           setting.c = &color_scale::viridis();
         }
 
         ImGui::PushID("##GYPi");
-        auto gypi_selected =
-            ImGui::Selectable("", setting.c == &color_scale::GYPi());
+        selected = ImGui::Selectable("", setting.c == &color_scale::GYPi());
         ImGui::PopID();
         ImGui::SameLine();
         ImGui::Image((void*)(std::intptr_t)color_scale::GYPi().tex_2d.id(),
                      ImVec2(256, 20));
-        if (gypi_selected) {
+        if (selected) {
           setting.c = &color_scale::GYPi();
+        }
+
+        ImGui::PushID("##PiYG");
+        selected = ImGui::Selectable("", setting.c == &color_scale::PiYG());
+        ImGui::PopID();
+        ImGui::SameLine();
+        ImGui::Image((void*)(std::intptr_t)color_scale::PiYG().tex_2d.id(),
+                     ImVec2(256, 20));
+        if (selected) {
+          setting.c = &color_scale::PiYG();
+        }
+
+        ImGui::PushID("##BrBG");
+        selected = ImGui::Selectable("", setting.c == &color_scale::BrBG());
+        ImGui::PopID();
+        ImGui::SameLine();
+        ImGui::Image((void*)(std::intptr_t)color_scale::BrBG().tex_2d.id(),
+                     ImVec2(256, 20));
+        if (selected) {
+          setting.c = &color_scale::BrBG();
+        }
+
+        ImGui::PushID("##GBBr");
+        selected = ImGui::Selectable("", setting.c == &color_scale::GBBr());
+        ImGui::PopID();
+        ImGui::SameLine();
+        ImGui::Image((void*)(std::intptr_t)color_scale::GBBr().tex_2d.id(),
+                     ImVec2(256, 20));
+        if (selected) {
+          setting.c = &color_scale::GBBr();
+        }
+
+        ImGui::PushID("##BuRD");
+        selected = ImGui::Selectable("", setting.c == &color_scale::BuRD());
+        ImGui::PopID();
+        ImGui::SameLine();
+        ImGui::Image((void*)(std::intptr_t)color_scale::BuRD().tex_2d.id(),
+                     ImVec2(256, 20));
+        if (selected) {
+          setting.c = &color_scale::BuRD();
+        }
+
+        ImGui::PushID("##GnRP");
+        selected = ImGui::Selectable("", setting.c == &color_scale::GnRP());
+        ImGui::PopID();
+        ImGui::SameLine();
+        ImGui::Image((void*)(std::intptr_t)color_scale::GnRP().tex_2d.id(),
+                     ImVec2(256, 20));
+        if (selected) {
+          setting.c = &color_scale::GnRP();
+        }
+
+        ImGui::PushID("##PRGn");
+        selected = ImGui::Selectable("", setting.c == &color_scale::PRGn());
+        ImGui::PopID();
+        ImGui::SameLine();
+        ImGui::Image((void*)(std::intptr_t)color_scale::PRGn().tex_2d.id(),
+                     ImVec2(256, 20));
+        if (selected) {
+          setting.c = &color_scale::PRGn();
+        }
+
+        ImGui::PushID("##OrPu");
+        selected = ImGui::Selectable("", setting.c == &color_scale::OrPu());
+        ImGui::PopID();
+        ImGui::SameLine();
+        ImGui::Image((void*)(std::intptr_t)color_scale::OrPu().tex_2d.id(),
+                     ImVec2(256, 20));
+        if (selected) {
+          setting.c = &color_scale::OrPu();
+        }
+
+        ImGui::PushID("##PuOr");
+        selected = ImGui::Selectable("", setting.c == &color_scale::PuOr());
+        ImGui::PopID();
+        ImGui::SameLine();
+        ImGui::Image((void*)(std::intptr_t)color_scale::PuOr().tex_2d.id(),
+                     ImVec2(256, 20));
+        if (selected) {
+          setting.c = &color_scale::PuOr();
+        }
+
+        ImGui::PushID("##GnYIRd");
+        selected = ImGui::Selectable("", setting.c == &color_scale::GnYIRd());
+        ImGui::PopID();
+        ImGui::SameLine();
+        ImGui::Image((void*)(std::intptr_t)color_scale::GnYIRd().tex_2d.id(),
+                     ImVec2(256, 20));
+        if (selected) {
+          setting.c = &color_scale::GnYIRd();
         }
         ImGui::EndCombo();
       }
@@ -601,10 +690,14 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
   auto properties(renderable_type const& grid) {
     ImGui::Text("Rectilinear Grid");
     ImGui::Checkbox("Show Grid", &show_grid);
-    ImGui::Checkbox("Show Property", &show_property);
-    ImGui::DragInt("Line width", &line_width, 1, 1, 20);
-    ImGui::ColorEdit4("Grid Color", grid_color.data());
-    grid_property_selection(grid);
+    if (show_grid) {
+      ImGui::DragInt("Line width", &line_width, 1, 1, 20);
+      ImGui::ColorEdit4("Grid Color", grid_color.data());
+    }
+    if (!grid.vertex_properties().empty()) {
+      ImGui::Checkbox("Show Property", &show_property);
+      grid_property_selection(grid);
+    }
     if (selected_property != nullptr && vector_property) {
       vector_component_selection(grid);
     }
