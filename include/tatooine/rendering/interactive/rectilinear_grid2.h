@@ -523,6 +523,16 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
           setting.c = &color_scale::cool_to_warm();
         }
 
+        ImGui::PushID("##jet");
+        selected = ImGui::Selectable("", setting.c == &color_scale::jet());
+        ImGui::PopID();
+        ImGui::SameLine();
+        ImGui::Image((void*)(std::intptr_t)color_scale::jet().tex_2d.id(),
+                     ImVec2(256, 20));
+        if (selected) {
+          setting.c = &color_scale::jet();
+        }
+
         ImGui::PushID("##GYPi");
         selected = ImGui::Selectable("", setting.c == &color_scale::GYPi());
         ImGui::PopID();

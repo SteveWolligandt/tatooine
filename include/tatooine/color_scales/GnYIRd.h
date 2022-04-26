@@ -45,7 +45,7 @@ struct GnYIRd {
             {0.64705900000000005, 0, 0.14902000000000001}
         }} {}
   //----------------------------------------------------------------------------
-  auto sample(real_type const t) const {
+  auto sample(real_type t) const {
     if (t <= 0) {
       return m_data[0];
     }
