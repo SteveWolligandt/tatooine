@@ -59,11 +59,19 @@ struct window {
 auto pre_setup() { [[maybe_unused]] auto& w = detail::window::get(); }
 //==============================================================================
 template <std::size_t... Is, interactively_renderable... Renderables>
-auto render(std::index_sequence<Is...> /*seq*/, Renderables&&... renderables) {
+auto show(std::index_sequence<Is...> /*seq*/, Renderables&&... renderables) {
   using namespace detail;
   using renderer_type_set = type_set<renderer<std::decay_t<Renderables>>...>;
 
   auto& window = detail::window::get();
+  auto const max_num_dimensions = tatooine::max(renderables.num_dimensions()...);
+  if (max_num_dimensions == 2) {
+    window.camera_controller().use_orthographic_camera();
+    window.camera_controller().use_orthographic_controller();
+  } else if (max_num_dimensions == 3) {
+    window.camera_controller().use_perspective_camera();
+    window.camera_controller().use_fps_controller();
+  }
   window.add_resize_event([&](int width, int height) {
     auto const P =
         window.camera_controller().active_camera().projection_matrix();
@@ -215,8 +223,8 @@ auto render(std::index_sequence<Is...> /*seq*/, Renderables&&... renderables) {
   });
 }
 //------------------------------------------------------------------------------
-auto render(interactively_renderable auto&&... renderables) {
-  render(std::make_index_sequence<sizeof...(renderables)>{},
+auto show(interactively_renderable auto&&... renderables) {
+  show(std::make_index_sequence<sizeof...(renderables)>{},
          std::forward<decltype(renderables)>(renderables)...);
 }
 //==============================================================================
