@@ -4,7 +4,7 @@
 #ifdef TATOOINE_CDT_AVAILABLE
 #include <CDT.h>
 #endif
-#ifdef TATOOINE_HAS_CGAL_SUPPORT
+#if TATOOINE_CGAL_AVAILABLE
 #include <tatooine/cgal.h>
 #endif
 
@@ -462,7 +462,7 @@ struct unstructured_simplicial_grid
                     std::make_index_sequence<num_vertices_per_simplex()>{});
   }
   //----------------------------------------------------------------------------
-#ifdef TATOOINE_HAS_CGAL_SUPPORT
+#if TATOOINE_CGAL_AVAILABLE
   auto build_delaunay_mesh()
   requires (NumDimensions == 2) || (NumDimensions == 3) {
     build_delaunay_mesh(std::make_index_sequence<NumDimensions>{});
