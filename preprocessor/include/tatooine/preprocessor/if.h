@@ -15,7 +15,7 @@
 //==============================================================================
 #define TATOOINE_PP_IF(cond, t) TATOOINE_PP_IF_BIT(TATOOINE_PP_BOOL(cond), (t))
 //------------------------------------------------------------------------------
-#define TATOOINE_PP_IF_BIT(bit, t) TATOOINE_PP_IF_BIT_I(bit, t)
+#define TATOOINE_PP_IF_BIT(bit, t)   TATOOINE_PP_IF_BIT_I(bit, t)
 #define TATOOINE_PP_IF_BIT_I(bit, t) TATOOINE_PP_IF_##bit(t)
 //------------------------------------------------------------------------------
 #define TATOOINE_PP_IF_0(t)

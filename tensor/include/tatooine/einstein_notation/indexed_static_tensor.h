@@ -18,7 +18,7 @@ struct added_contracted_tensor;
 //==============================================================================
 template <static_tensor Tensor, index... Indices>
 struct indexed_static_tensor {
-  static_assert(Tensor::rank() == sizeof...(Indices));
+  static_assert(std::decay_t<Tensor>::rank() == sizeof...(Indices));
   using tensor_type = std::decay_t<Tensor>;
 
  private:

@@ -1,10 +1,7 @@
 cmake_minimum_required(VERSION 3.12)
-project(tatooine)
+project(base)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-option(TATOOINE_USE_NATIVE_ARCH
-  "use native architecture to build" TRUE)
 
 set(REAL_NUMBER double float)
 set(TATOOINE_REAL_NUMBER_TYPE double CACHE STRING "Floating point type for real numbers")
@@ -22,11 +19,6 @@ try_compile(TATOOINE_STD_FILESYSTEM_AVAILABLE "${CMAKE_BINARY_DIR}/temp"
             LINK_LIBRARIES stdc++fs)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 set(TATOOINE_EXTERNAL ${CMAKE_SOURCE_DIR}/external)
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-# preprocessor lib
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-set(TATOOINE_PP_NUM_MAX_INDICES "100" CACHE STRING "")
-include(preprocessor_setup)
 include(target_link_libraries_system)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # configure files
@@ -80,20 +72,17 @@ else()
 endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 set(TATOOINE_SRC_FILES 
-  src/vtk_legacy.cpp
-  src/vtk/xml/reader.cpp
-  src/vtk/xml/data_attribute.cpp
-  src/vtk/xml/byte_order.cpp
+  #src/vtk_legacy.cpp
+  #src/vtk/xml/reader.cpp
+  #src/vtk/xml/data_attribute.cpp
+  #src/vtk/xml/byte_order.cpp
   src/parse.cpp
 )
 # create library target
-add_library(tatooine STATIC ${TATOOINE_SRC_FILES})
-if(TATOOINE_USE_NATIVE_ARCH)
-  target_compile_options(tatooine PUBLIC -march=native)
-endif()
+add_library(base STATIC ${TATOOINE_SRC_FILES})
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # set include dirs
-target_include_directories(tatooine
+target_include_directories(base
   PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>"
@@ -103,37 +92,42 @@ target_include_directories(tatooine
     external/rapidxml)
 
 if (TATOOINE_STD_FILESYSTEM_AVAILABLE)
-  target_link_libraries(tatooine PUBLIC stdc++fs)
-  target_compile_definitions(tatooine PUBLIC TATOOINE_STD_FILESYSTEM_AVAILABLE)
+  target_link_libraries(base PUBLIC stdc++fs)
+  target_compile_definitions(base PUBLIC TATOOINE_STD_FILESYSTEM_AVAILABLE)
 endif()
 
-set(TATOOINE_EXPORTING_TARGETS tatooine)
-target_compile_features(tatooine PUBLIC cxx_std_20)
+set(TATOOINE_EXPORTING_TARGETS
+  CDT
+  base
+  #CGAL::CGAL
+  #FLANN::FLANN
+  geometry
+  #tensor
+  multidim_array
+  reflection
+  preprocessor
+  )
 
 # force coloring
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  target_compile_options(tatooine PUBLIC -fcolor-diagnostics)
+  target_compile_options(base PRIVATE -fcolor-diagnostics)
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-  target_compile_options(tatooine PUBLIC -fdiagnostics-color=always)
+  target_compile_options(base PRIVATE -fdiagnostics-color=always)
 endif()
 
 #enable warnings
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  target_compile_options(tatooine PUBLIC
-    -Wall -Wextra -Wpedantic
-    -Wno-cpp)
+  target_compile_options(base PUBLIC
+    -Wall -Wextra -Wpedantic)
 endif()
-
-
-
 #-------------------------------------------------------------------------------
 # force coloring
 #-------------------------------------------------------------------------------
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  target_compile_options(tatooine PUBLIC -fcolor-diagnostics)
+  target_compile_options(base PUBLIC -fcolor-diagnostics)
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-  target_compile_options(tatooine PUBLIC -fdiagnostics-color=always)
+  target_compile_options(base PUBLIC -fdiagnostics-color=always)
 endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # git submodules
@@ -152,7 +146,7 @@ option(TATOOINE_BUILD_DOC "Builds the documentation" OFF)
 if (TATOOINE_BUILD_DOC) 
   option(TATOOINE_DOC_ONLY "Only builds documentation" OFF)
   add_subdirectory(doc)
-  target_compile_options(tatooine PUBLIC -DTATOOINE_DOC_ONLY)
+  target_compile_options(base PUBLIC -DTATOOINE_DOC_ONLY)
 endif () 
 
 if (NOT TATOOINE_DOC_ONLY)
@@ -165,42 +159,13 @@ find_package(OpenMP REQUIRED COMPONENTS CXX)
 option(TATOOINE_COMPILE_WITH_OPENMP "" ON)
 if (TATOOINE_COMPILE_WITH_OPENMP)
   set(TATOOINE_OPENMP_AVAILABLE 1)
-  target_link_libraries(tatooine PUBLIC OpenMP::OpenMP_CXX)
-  target_compile_definitions(tatooine PUBLIC TATOOINE_OPENMP_AVAILABLE)
+  target_link_libraries(base PUBLIC OpenMP::OpenMP_CXX)
+  target_compile_definitions(base PUBLIC TATOOINE_OPENMP_AVAILABLE)
   message(STATUS "Compiling with OpenMP")
 else()
   set(TATOOINE_OPENMP_AVAILABLE 0)
   message(STATUS "OpenMP not available")
 endif()
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# BLAS
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-add_subdirectory(external/blaspp)
-target_compile_options(blaspp PUBLIC -Wno-unused-parameter)
-target_link_libraries(tatooine PUBLIC blaspp)
-list(APPEND TATOOINE_EXPORTING_TARGETS blaspp)
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# LAPACK
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-add_subdirectory(external/lapackpp)
-target_compile_options(lapackpp PUBLIC -Wno-return-type-c-linkage)
-target_compile_definitions(tatooine PUBLIC LAPACK_COMPLEX_CPP)
-target_link_libraries(tatooine PUBLIC lapackpp)
-list(APPEND TATOOINE_EXPORTING_TARGETS lapackpp)
-
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Boost
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-if(TATOOINE_STD_FILESYSTEM_AVAILABLE)
-  find_package(Boost REQUIRED COMPONENTS program_options)
-  target_link_libraries(tatooine PUBLIC
-    ${Boost_PROGRAM_OPTIONS_LIBRARY})
-else()
-  find_package(Boost REQUIRED COMPONENTS program_options filesystem)
-  target_link_libraries(tatooine PUBLIC
-    ${Boost_SYSTEM_LIBRARY} ${Boost_FILESYSTEM_LIBRARY})
-endif()
-target_compile_definitions(tatooine PUBLIC BOOST_BIND_GLOBAL_PLACEHOLDERS)
 
 #===============================================================================
 # Optional Packages
@@ -212,8 +177,8 @@ find_package(PNG QUIET)
 if(PNG_FOUND)
   find_package(PNG++ QUIET)
   if (DEFINED PNG++_INCLUDE_DIRS)
-    target_include_directories(tatooine PUBLIC ${PNG_INCLUDE_DIRS} ${PNG++_INCLUDE_DIRS})
-    target_link_libraries(tatooine PUBLIC ${PNG_LIBRARIES} ${PNG++_LIBRARIES})
+    target_include_directories(base PUBLIC ${PNG_INCLUDE_DIRS} ${PNG++_INCLUDE_DIRS})
+    target_link_libraries(base PUBLIC ${PNG_LIBRARIES} ${PNG++_LIBRARIES})
     set(TATOOINE_PNG_AVAILABLE 1)
   else()
     set(TATOOINE_PNG_AVAILABLE 0)
@@ -221,7 +186,7 @@ if(PNG_FOUND)
 else()
   set(TATOOINE_PNG_AVAILABLE 0)
 endif()
-target_compile_definitions(tatooine PUBLIC TATOOINE_PNG_AVAILABLE=${TATOOINE_PNG_AVAILABLE})
+target_compile_definitions(base PUBLIC TATOOINE_PNG_AVAILABLE=${TATOOINE_PNG_AVAILABLE})
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # MPI
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -244,21 +209,6 @@ else()
   set(TATOOINE_MPI_AVAILABLE 0)
 endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# CDT
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-option(TATOOINE_USE_CDT "By setting this to ON tatooine will checkout CDT from github and compile it." ON)
-if (TATOOINE_USE_CDT)
-  update_git_submodule(${TATOOINE_EXTERNAL}/CDT)
-  set(CDT_USE_AS_COMPILED_LIBRARY ON CACHE BOOL "If enabled templates for float and double will be instantiated and compiled into a library")
-  set(CDT_USE_BOOST ON CACHE BOOL "If enabled Boost::rtree can be used for finding the nearest point; boost::flat_set is used for better performance")
-  add_subdirectory(${TATOOINE_EXTERNAL}/CDT/CDT)
-  target_link_libraries(tatooine PUBLIC CDT)
-  target_compile_definitions(tatooine PUBLIC TATOOINE_CDT_AVAILABLE=1)
-  list(APPEND TATOOINE_EXPORTING_TARGETS CDT)
-else()
-  target_compile_definitions(tatooine PUBLIC TATOOINE_CDT_AVAILABLE=0)
-endif()
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # HDF5
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 option(TATOOINE_USE_SYSTEM_HDF5_LIBS "By setting this to ON tatooine will not compile HDF5 on its own." ON)
@@ -270,12 +220,12 @@ if (TATOOINE_USE_SYSTEM_HDF5_LIBS)
     else()
       message(STATUS "HDF5 available without MPI support")
     endif()
-    target_compile_definitions(tatooine PUBLIC
+    target_compile_definitions(base PUBLIC
       ${HDF5_DEFINITIONS} ${HDF5_C_DEFINITIONS})
     set(TATOOINE_HDF5_AVAILABLE 1) 
-    target_link_libraries(tatooine PUBLIC
+    target_link_libraries(base PUBLIC
       ${HDF5_LIBRARIES})
-    target_include_directories(tatooine PUBLIC
+    target_include_directories(base PUBLIC
       ${HDF5_INCLUDE_DIRS})
   else()
     message(STATUS "HDF5 not available")
@@ -345,15 +295,15 @@ elseif ((NOT TATOOINE_USE_SYSTEM_HDF5_LIBS) OR
   endif()
 
 
-  target_link_libraries(tatooine PUBLIC hdf5-static)
+  target_link_libraries(base PUBLIC hdf5-static)
   set(TATOOINE_HDF5_AVAILABLE 1) 
   list(APPEND TATOOINE_EXPORTING_TARGETS hdf5-static)
-  target_compile_definitions(tatooine PUBLIC TATOOINE_USE_SYSTEM_HDF5_LIBS=0)
+  target_compile_definitions(base PUBLIC TATOOINE_USE_SYSTEM_HDF5_LIBS=0)
   set(TATOOINE_HDF5_HEADER ${TATOOINE_EXTERNAL}/hdf5/src/hdf5.h)
 else()
   set(TATOOINE_HDF5_AVAILABLE 0) 
 endif()
-target_compile_definitions(tatooine PUBLIC
+target_compile_definitions(base PUBLIC
   TATOOINE_HDF5_AVAILABLE=${TATOOINE_HDF5_AVAILABLE})
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/hdf5_include.h.in
                ${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/hdf5_include.h)
@@ -371,18 +321,18 @@ if(TATOOINE_USE_SYSTEM_HDF5_LIBS)
     if (NETCDF_FOUND)
       message(STATUS "NetCDF available")
       set(TATOOINE_NETCDF_AVAILABLE 1)
-      target_compile_definitions(tatooine PUBLIC TATOOINE_NETCDF_AVAILABLE=1)
-      target_link_libraries(tatooine PUBLIC ${NETCDF_LIBRARIES})
-      target_include_directories(tatooine PUBLIC ${NETCDF_INCLUDES})
+      target_compile_definitions(base PUBLIC TATOOINE_NETCDF_AVAILABLE=1)
+      target_link_libraries(base PUBLIC ${NETCDF_LIBRARIES})
+      target_include_directories(base PUBLIC ${NETCDF_INCLUDES})
     else()
-      target_compile_definitions(tatooine PUBLIC TATOOINE_NETCDF_AVAILABLE=0)
+      target_compile_definitions(base PUBLIC TATOOINE_NETCDF_AVAILABLE=0)
     endif()
 #  endif()
 #endif()
 #if ((NOT TATOOINE_USE_SYSTEM_NETCDF_LIBS) OR
 #  (TATOOINE_USE_SYSTEM_NETCDF_LIBS AND NOT NETCDF_FOUND))
 #  set(TATOOINE_NETCDF_AVAILABLE 0)
-#  target_compile_definitions(tatooine PUBLIC TATOOINE_NETCDF_AVAILABLE=0)
+#  target_compile_definitions(base PUBLIC TATOOINE_NETCDF_AVAILABLE=0)
 #  #update_git_submodule(${TATOOINE_EXTERNAL}/netcdf-c)
 #  #update_git_submodule(${TATOOINE_EXTERNAL}/netcdf-cxx4)
 #  #add_subdirectory(external/netcdf-c EXCLUDE_FROM_ALL)
@@ -390,96 +340,74 @@ if(TATOOINE_USE_SYSTEM_HDF5_LIBS)
 endif()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# FLANN
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-find_package(FLANN QUIET)
-if (FLANN_FOUND)
-  target_compile_definitions(tatooine PUBLIC TATOOINE_FLANN_AVAILABLE=1)
-  target_link_libraries(tatooine PUBLIC FLANN::FLANN)
-  message(STATUS "FLANN available")
-else()
-  target_compile_definitions(tatooine PUBLIC TATOOINE_FLANN_AVAILABLE=0)
-endif()
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# CGAL
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE TRUE)
-find_package(CGAL QUIET)
-if (CGAL_FOUND)
-  target_compile_definitions(tatooine PUBLIC TATOOINE_HAS_CGAL_SUPPORT)
-  target_link_libraries(tatooine PUBLIC CGAL::CGAL)
-  message(STATUS "CGAL available")
-  target_compile_definitions(tatooine PUBLIC -DCGAL_DISABLE_ROUNDING_MATH_CHECK)
-endif()
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # GINAC
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-find_package(GINAC QUIET)
-if (${GINAC_FOUND}) 
-  option(TATOOINE_USE_GINAC "use GiNaC for symbolics support" FALSE)
-  if (${TATOOINE_USE_GINAC})
-    set(TATOOINE_GINAC_AVAILABLE 1)
-    target_include_directories(tatooine PUBLIC ${GINAC_INCLUDE_DIR})
-    target_link_libraries(tatooine PUBLIC ${GINAC_LIBRARY})
-  else()
-    set(TATOOINE_GINAC_AVAILABLE 0)
-  endif()
-else()
+#find_package(GINAC QUIET)
+#if (${GINAC_FOUND}) 
+#  option(TATOOINE_USE_GINAC "use GiNaC for symbolics support" FALSE)
+#  if (${TATOOINE_USE_GINAC})
+#    set(TATOOINE_GINAC_AVAILABLE 1)
+#    target_include_directories(base PUBLIC ${GINAC_INCLUDE_DIR})
+#    target_link_libraries(base PUBLIC ${GINAC_LIBRARY})
+#  else()
+#    set(TATOOINE_GINAC_AVAILABLE 0)
+#  endif()
+#else()
   set(TATOOINE_GINAC_AVAILABLE 0)
-endif()
+#endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/packages.h.in
                ${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/packages.h)
-get_target_property(defs tatooine COMPILE_DEFINITIONS)
+get_target_property(defs base COMPILE_DEFINITIONS)
 list(REMOVE_ITEM defs _FORTIFY_SOURCE)
-set_property(TARGET tatooine PROPERTY COMPILE_DEFINITIONS ${defs})
+set_property(TARGET base PROPERTY COMPILE_DEFINITIONS ${defs})
 
 
 #-------------------------------------------------------------------------------
 # Subdirectories
 #-------------------------------------------------------------------------------
-#===============================================================================
-# EXAMPLES
-#===============================================================================
-add_subdirectory(gl)
-add_subdirectory(test)
-add_subdirectory(scivis_contest_2020 EXCLUDE_FROM_ALL)
-add_subdirectory(benchmarks)
-add_subdirectory(material_science EXCLUDE_FROM_ALL)
-option(TATOOINE_BUILD_EXAMPLES "")
-if (TATOOINE_BUILD_EXAMPLES)
-  add_subdirectory(examples)
-endif()
-if (TATOOINE_GL_AVAILABLE)
-  message(STATUS "gl avalaible in main")
-  #add_subdirectory(steadification EXCLUDE_FROM_ALL)
-
-  option(TATOOINE_BUILD_FLOWEXPLORER "Builds Flow Explorer" OFF)
-  if (TATOOINE_BUILD_FLOWEXPLORER)
-    add_subdirectory(flowexplorer)
-  endif()
-endif()
-add_subdirectory(raytracer)
-add_subdirectory(autonomous_particles)
-#add_subdirectory(smearing_scalar_field)
-
-if (TATOOINE_MPI_AVAILABLE)
-  add_subdirectory(mpi)
-  add_subdirectory(insitu)
-endif()
-
-option(TATOOINE_BUILD_CHANNELFLOW_VISUALIZATION
-       "creates targets to make visualizations for the channelflow" ON)
-if(TATOOINE_BUILD_CHANNELFLOW_VISUALIZATION)
-  add_subdirectory(channelflow)
-endif()
+add_subdirectory(preprocessor)
+add_subdirectory(reflection)
+add_subdirectory(multidim_array)
+add_subdirectory(tensor)
+add_subdirectory(geometry)
+#add_subdirectory(gl)
+#add_subdirectory(test)
+#add_subdirectory(scivis_contest_2020 EXCLUDE_FROM_ALL)
+#add_subdirectory(benchmarks)
+#add_subdirectory(material_science EXCLUDE_FROM_ALL)
+#option(TATOOINE_BUILD_EXAMPLES "")
+#if (TATOOINE_BUILD_EXAMPLES)
+#  add_subdirectory(examples)
+#endif()
+#if (TATOOINE_GL_AVAILABLE)
+#  message(STATUS "gl avalaible in main")
+#  #add_subdirectory(steadification EXCLUDE_FROM_ALL)
+#
+#  option(TATOOINE_BUILD_FLOWEXPLORER "Builds Flow Explorer" OFF)
+#  if (TATOOINE_BUILD_FLOWEXPLORER)
+#    add_subdirectory(flowexplorer)
+#  endif()
+#endif()
+#add_subdirectory(raytracer)
+#add_subdirectory(autonomous_particles)
+##add_subdirectory(smearing_scalar_field)
+#
+#if (TATOOINE_MPI_AVAILABLE)
+#  add_subdirectory(mpi)
+#  add_subdirectory(insitu)
+#endif()
+#
+#option(TATOOINE_BUILD_CHANNELFLOW_VISUALIZATION
+#       "creates targets to make visualizations for the channelflow" ON)
+#if(TATOOINE_BUILD_CHANNELFLOW_VISUALIZATION)
+#  add_subdirectory(channelflow)
+#endif()
 
 
 set(TATOOINE_MANDATORY_GIT_SUBMODULES
-  external/rapidxml
-  external/blaspp
-  external/lapackpp
-  external/indicators
+  #external/rapidxml
+  #external/indicators
   external/gcem)
 foreach(SUBMODULE ${TATOOINE_MANDATORY_GIT_SUBMODULES})
   update_git_submodule(${SUBMODULE})
@@ -491,4 +419,5 @@ endif()
 #       NAMESPACE tatooine::
 #       FILE tatooineConfig.cmake
 #       EXPORT_LINK_INTERFACE_LIBRARIES)
+configure_file(${CMAKE_SOURCE_DIR}/tatooineConfig.cmake.in ${CMAKE_BINARY_DIR}/tatooineConfig.cmake @ONLY)
 export(PACKAGE tatooine)

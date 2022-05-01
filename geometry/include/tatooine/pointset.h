@@ -28,7 +28,7 @@
 namespace tatooine {
 //==============================================================================
 namespace detail::pointset {
-#ifdef TATOOINE_HAS_CGAL_SUPPORT
+#if TATOOINE_CGAL_AVAILABLE
 template <floating_point Real, std::size_t NumDimensions, typename ValueType>
 struct natural_neighbor_coordinates_sampler;
 //------------------------------------------------------------------------------
