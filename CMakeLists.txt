@@ -96,18 +96,6 @@ if (TATOOINE_STD_FILESYSTEM_AVAILABLE)
   target_compile_definitions(base PUBLIC TATOOINE_STD_FILESYSTEM_AVAILABLE)
 endif()
 
-set(TATOOINE_EXPORTING_TARGETS
-  CDT
-  base
-  #CGAL::CGAL
-  #FLANN::FLANN
-  geometry
-  #tensor
-  multidim_array
-  reflection
-  preprocessor
-  )
-
 # force coloring
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   target_compile_options(base PRIVATE -fcolor-diagnostics)
@@ -356,8 +344,6 @@ endif()
   set(TATOOINE_GINAC_AVAILABLE 0)
 #endif()
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/packages.h.in
-               ${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/packages.h)
 get_target_property(defs base COMPILE_DEFINITIONS)
 list(REMOVE_ITEM defs _FORTIFY_SOURCE)
 set_property(TARGET base PROPERTY COMPILE_DEFINITIONS ${defs})
@@ -368,10 +354,14 @@ set_property(TARGET base PROPERTY COMPILE_DEFINITIONS ${defs})
 #-------------------------------------------------------------------------------
 add_subdirectory(preprocessor)
 add_subdirectory(reflection)
+target_link_libraries(base PUBLIC reflection)
 add_subdirectory(multidim_array)
 add_subdirectory(tensor)
 add_subdirectory(geometry)
 add_subdirectory(gl)
+if (TATOOINE_GL_AVAILABLE)
+  add_subdirectory(rendering)
+endif()
 #add_subdirectory(test)
 #add_subdirectory(scivis_contest_2020 EXCLUDE_FROM_ALL)
 #add_subdirectory(benchmarks)
@@ -415,7 +405,7 @@ endforeach()
 endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory
-#export(TARGETS ${TATOOINE_EXPORTING_TARGETS}
+#export(TARGETS base gl tensor multidim_array glad glfw imgui rendering reflection preprocessor
 #       NAMESPACE tatooine::
 #       FILE tatooineConfig.cmake
 #       EXPORT_LINK_INTERFACE_LIBRARIES)

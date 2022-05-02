@@ -1,7 +1,7 @@
 #ifndef TATOOINE_SPACETIME_VECTORFIELD_H
 #define TATOOINE_SPACETIME_VECTORFIELD_H
 //==============================================================================
-#include <tatooine/packages.h>
+#include <tatooine/available_libraries.h>
 
 #include "field.h"
 //==============================================================================

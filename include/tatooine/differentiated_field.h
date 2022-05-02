@@ -4,7 +4,7 @@
 #include <tatooine/field.h>
 #include <tatooine/field_concept.h>
 #include <tatooine/field_type_traits.h>
-#include <tatooine/packages.h>
+#include <tatooine/available_libraries.h>
 #include <tatooine/tensor_type_operations.h>
 #include <tatooine/utility.h>
 //==============================================================================

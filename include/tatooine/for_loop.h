@@ -4,7 +4,7 @@
 #include <tatooine/cache_alignment.h>
 #include <vector>
 #include <tatooine/concepts.h>
-#include <tatooine/packages.h>
+#include <tatooine/available_libraries.h>
 #include <tatooine/tags.h>
 #include <tatooine/type_traits.h>
 #include <tatooine/utility.h>

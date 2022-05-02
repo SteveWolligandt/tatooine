@@ -10,6 +10,10 @@ find_package(Boost REQUIRED)
 set(TATOOINE_CDT_AVAILABLE @TATOOINE_CDT_AVAILABLE@)
 set(TATOOINE_FLANN_AVAILABLE @TATOOINE_FLANN_AVAILABLE@)
 set(TATOOINE_CGAL_AVAILABLE @TATOOINE_CGAL_AVAILABLE@)
+set(TATOOINE_GL_AVAILABLE @TATOOINE_GL_AVAILABLE@)
+if (TATOOINE_GL_AVAILABLE) 
+  find_package(OpenGL COMPONENTS OpenGL EGL)
+endif()
 #----------------------------------------------------------------
 # Generated CMake target import file.
 #----------------------------------------------------------------
@@ -28,6 +32,9 @@ set(_expectedTargets)
 set (targets tatooine::base tatooine::geometry tatooine::multidim_array tatooine::preprocessor tatooine::reflection tatooine::tensor blaspp lapackpp)
 if (TATOOINE_USE_CDT)
   list(APPEND targets tatooine::CDT)
+endif()
+if (TATOOINE_GL_AVAILABLE)
+  list(APPEND targets tatooine::gl tatooine::glad tatooine::glfw tatooine::imgui tatooine::rendering)
 endif()
 foreach(_expectedTarget ${targets})
   list(APPEND _expectedTargets ${_expectedTarget})
@@ -69,14 +76,15 @@ if (TATOOINE_FLANN_AVAILABLE)
 endif()
 string(APPEND geometry_available_libs "\;TATOOINE_FLANN_AVAILABLE=@TATOOINE_FLANN_AVAILABLE@")
 
-if (CGAL_FOUND)
+if (TATOOINE_CGAL_AVAILABLE)
+  find_package(CGAL QUIET)
   string(APPEND geometry_lib_list "\;CGAL::CGAL")
 endif()
 string(APPEND geometry_available_libs "\;TATOOINE_CGAL_AVAILABLE=@TATOOINE_CGAL_AVAILABLE@")
 
 set_target_properties(tatooine::geometry PROPERTIES
   INTERFACE_COMPILE_DEFINITIONS ${geometry_available_libs}
-  INTERFACE_INCLUDE_DIRECTORIES "/home/steve/libs/tatooine2/geometry/include"
+  INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/geometry/include"
   INTERFACE_LINK_LIBRARIES ${geometry_lib_list}
 )
 
@@ -86,9 +94,48 @@ add_library(tatooine::CDT SHARED IMPORTED)
 
 set_target_properties(tatooine::CDT PROPERTIES
   INTERFACE_COMPILE_DEFINITIONS "\$<\$<BOOL:ON>:CDT_USE_BOOST>;\$<\$<BOOL:ON>:CDT_USE_AS_COMPILED_LIBRARY>"
-  INTERFACE_INCLUDE_DIRECTORIES "/home/steve/libs/tatooine2/build/linux-release/geometry/external/CDT/CDT;/home/steve/libs/tatooine2/geometry/external/CDT/CDT/include;/home/steve/libs/tatooine2/geometry/external/CDT/CDT/extras"
+  INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_BINARY_DIR@/geometry/external/CDT/CDT;@CMAKE_SOURCE_DIR@/geometry/external/CDT/CDT/include;@CMAKE_SOURCE_DIR@/geometry/external/CDT/CDT/extras"
   INTERFACE_LINK_LIBRARIES "Boost::boost"
-  INTERFACE_SOURCES "/home/steve/libs/tatooine2/build/linux-release/geometry/external/CDT/CDT/cdt_export.h"
+  INTERFACE_SOURCES "@CMAKE_BINARY_DIR@/geometry/external/CDT/CDT/cdt_export.h"
+)
+endif()
+
+if (TATOOINE_GL_AVAILABLE) 
+  # Create imported target tatooine::gl
+  add_library(tatooine::gl STATIC IMPORTED)
+
+  set_target_properties(tatooine::gl PROPERTIES
+    INTERFACE_COMPILE_DEFINITIONS "TATOOINE_GL_VERBOSE=0"
+    INTERFACE_COMPILE_FEATURES "cxx_std_20"
+    INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/gl/include;@CMAKE_BINARY_DIR@/gl/include;@CMAKE_SOURCE_DIR@/gl/external/imgui;@CMAKE_SOURCE_DIR@/gl/external/imgui;@CMAKE_SOURCE_DIR@/gl/external/imgui-filebrowser"
+    INTERFACE_LINK_LIBRARIES "tatooine::tensor;tatooine::glad;\$<LINK_ONLY:OpenGL::OpenGL>;\$<LINK_ONLY:OpenGL::EGL>;\$<LINK_ONLY:tatooine::glfw>;\$<LINK_ONLY:tatooine::imgui>"
+  )
+
+# Create imported target tatooine::glad
+add_library(tatooine::glad STATIC IMPORTED)
+
+set_target_properties(tatooine::glad PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/gl/external/glad"
+)
+# Create imported target tatooine::glfw
+add_library(tatooine::glfw SHARED IMPORTED)
+
+set_target_properties(tatooine::glfw PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/gl/external/glfw/include"
+)
+# Create imported target tatooine::imgui
+add_library(tatooine::imgui STATIC IMPORTED)
+
+set_target_properties(tatooine::imgui PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/gl/external/imgui"
+)
+
+# Create imported target tatooine::rendering
+add_library(tatooine::rendering INTERFACE IMPORTED)
+
+set_target_properties(tatooine::rendering PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/rendering/include"
+  INTERFACE_LINK_LIBRARIES "tatooine::gl;tatooine::geometry"
 )
 endif()
 
@@ -155,12 +202,41 @@ set_target_properties(lapackpp PROPERTIES
 )
 
 if (TATOOINE_CDT_AVAILABLE)
-# Import target "tatooine::CDT" for configuration "Release"
-set_property(TARGET tatooine::CDT APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
-set_target_properties(tatooine::CDT PROPERTIES
-  IMPORTED_LOCATION_RELEASE "@CMAKE_BINARY_DIR@/linux-release/geometry/external/CDT/CDT/libCDT.so.1.0.0"
-  IMPORTED_SONAME_RELEASE "libCDT.so.1.0.0"
-  )
+  # Import target "tatooine::CDT" for configuration "Release"
+  set_property(TARGET tatooine::CDT APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+  set_target_properties(tatooine::CDT PROPERTIES
+    IMPORTED_LOCATION_RELEASE "@CMAKE_BINARY_DIR@/geometry/external/CDT/CDT/libCDT.so.1.0.0"
+    IMPORTED_SONAME_RELEASE "libCDT.so.1.0.0"
+    )
+endif()
+
+if(TATOOINE_GL_AVAILABLE)
+  # Import target "tatooine::gl" for configuration "Release"
+  set_property(TARGET tatooine::gl APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+  set_target_properties(tatooine::gl PROPERTIES
+    IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "CXX"
+    IMPORTED_LOCATION_RELEASE "@CMAKE_BINARY_DIR@/gl/libgl.a"
+    )
+  # Import target "tatooine::glad" for configuration "Release"
+  set_property(TARGET tatooine::glad APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+  set_target_properties(tatooine::glad PROPERTIES
+    IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "C"
+    IMPORTED_LOCATION_RELEASE "@CMAKE_BINARY_DIR@/gl/libglad.a"
+    )
+
+  # Import target "tatooine::glfw" for configuration "Release"
+  set_property(TARGET tatooine::glfw APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+  set_target_properties(tatooine::glfw PROPERTIES
+    IMPORTED_LOCATION_RELEASE "@CMAKE_BINARY_DIR@/gl/external/glfw/src/libglfw.so.3.4"
+    IMPORTED_SONAME_RELEASE "libglfw.so.3"
+    )
+
+  # Import target "tatooine::imgui" for configuration "Release"
+  set_property(TARGET tatooine::imgui APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+  set_target_properties(tatooine::imgui PROPERTIES
+    IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "CXX"
+    IMPORTED_LOCATION_RELEASE "@CMAKE_BINARY_DIR@/gl/libimgui.a"
+    )
 endif()
 
 # Import target "tatooine::base" for configuration "Release"

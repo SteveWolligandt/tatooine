@@ -2,7 +2,7 @@
 #define TATOOINE_TENSOR_SYMBOLIC_H
 //==============================================================================
 #include <tatooine/tensor.h>
-#include <tatooine/packages.h>
+#include <tatooine/available_libraries.h>
 #if TATOOINE_GINAC_AVAILABLE
 #include "symbolic.h"
 //==============================================================================
