@@ -1,4 +1,4 @@
-#if defined(TATOOINE_HAS_CGAL_SUPPORT) || defined(TATOOINE_DOC_ONLY)
+#if TATOOINE_CGAL_AVAILABLE || defined(TATOOINE_DOC_ONLY)
 //==============================================================================
 #ifndef TATOOINE_CGAL_H
 #define TATOOINE_CGAL_H

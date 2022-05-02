@@ -10,7 +10,31 @@ static constexpr auto flann_available() {
   return false;
 #endif
 }
-//==============================================================================
+//------------------------------------------------------------------------------
+static constexpr auto openmp_available() {
+#if TATOOINE_OPENMP_AVAILABLE
+  return true;
+#else
+  return false;
+#endif
+}
+//------------------------------------------------------------------------------
+static constexpr auto png_available() {
+#if TATOOINE_PNG_AVAILABLE
+  return true;
+#else
+  return false;
+#endif
+}
+//------------------------------------------------------------------------------
+static constexpr auto cdt_available() {
+#if TATOOINE_CDT_AVAILABLE
+  return true;
+#else
+  return false;
+#endif
+}
+//------------------------------------------------------------------------------
 static constexpr auto cgal_available() {
 #if TATOOINE_CGAL_AVAILABLE
   return true;

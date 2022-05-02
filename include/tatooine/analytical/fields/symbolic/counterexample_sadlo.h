@@ -1,6 +1,6 @@
 #ifndef TATOOINE_ANALYTICAL_FIELDS_SYMBOLIC_COUNTEREXAMPLE_SADLO_H
 #define TATOOINE_ANALYTICAL_FIELDS_SYMBOLIC_COUNTEREXAMPLE_SADLO_H
-#include <tatooine/packages.h>
+#include <tatooine/available_libraries.h>
 #if TATOOINE_GINAC_AVAILABLE
 #include <tatooine/symbolic_field.h>
 //==============================================================================

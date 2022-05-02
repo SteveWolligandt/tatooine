@@ -83,7 +83,8 @@ set(TATOOINE_GL_SOURCES
   src/window.cpp
 )
 add_library(gl STATIC ${TATOOINE_GL_SOURCES})
-set(TATOOINE_EXPORTING_TARGETS ${TATOOINE_EXPORTING_TARGETS} gl imgui glfw glad PARENT_SCOPE)
+list(APPEND TATOOINE_EXPORTING_TARGETS gl imgui glfw glad)
+set(TATOOINE_EXPORTING_TARGETS ${TATOOINE_EXPORTING_TARGETS} PARENT_SCOPE)
 target_compile_features(gl PUBLIC cxx_std_20)
 target_compile_definitions(gl PRIVATE DLL_EXPORT)
 target_compile_options(gl PRIVATE
@@ -100,7 +101,7 @@ target_include_directories(gl
 target_link_libraries(
   gl
    PUBLIC
-    tatooine
+    tensor
     glad
    PRIVATE
     OpenGL::OpenGL

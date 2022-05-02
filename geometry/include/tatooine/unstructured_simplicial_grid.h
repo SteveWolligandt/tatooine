@@ -9,7 +9,7 @@
 #endif
 
 #include <tatooine/axis_aligned_bounding_box.h>
-#include <tatooine/packages.h>
+#include <tatooine/available_libraries.h>
 #include <tatooine/detail/unstructured_simplicial_grid/hierarchy.h>
 #include <tatooine/pointset.h>
 #include <tatooine/property.h>
