@@ -4,11 +4,10 @@
 namespace tatooine::detail::pointset {
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions, typename T>
+  requires(flann_available())
 struct inverse_distance_weighting_sampler
     : field<inverse_distance_weighting_sampler<Real, NumDimensions, T>, Real,
             NumDimensions, T> {
-  static_assert(flann_available(),
-                "Inverse Distance Weighting Sampler needs FLANN!");
   using this_type = inverse_distance_weighting_sampler<Real, NumDimensions, T>;
   using parent_type = field<this_type, Real, NumDimensions, T>;
   using typename parent_type::pos_type;

@@ -3,7 +3,7 @@ target_include_directories(geometry INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   #${CMAKE_CURRENT_BINARY_DIR}/include
   )
-target_link_libraries(geometry INTERFACE base)
+target_link_libraries(geometry INTERFACE tensor)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # CDT
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -24,12 +24,14 @@ endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # FLANN
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-find_package(FLANN QUIET)
-if (FLANN_FOUND)
+find_package(Flann REQUIRED)
+if (Flann_FOUND)
+  message(STATUS "Found flann")
   set(TATOOINE_FLANN_AVAILABLE 1 PARENT_SCOPE)
-#  target_link_libraries(geometry INTERFACE FLANN::FLANN)
+  target_link_libraries(geometry INTERFACE flann)
 else()
   set(TATOOINE_FLANN_AVAILABLE 0 PARENT_SCOPE)
+  message(FATAL_ERROR "not found flann")
 endif()
 target_compile_definitions(geometry INTERFACE TATOOINE_FLANN_AVAILABLE=${TATOOINE_FLANN_AVAILABLE})
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

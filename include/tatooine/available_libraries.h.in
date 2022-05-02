@@ -11,6 +11,14 @@ static constexpr auto flann_available() {
 #endif
 }
 //==============================================================================
+static constexpr auto cgal_available() {
+#if TATOOINE_CGAL_AVAILABLE
+  return true;
+#else
+  return false;
+#endif
+}
+//==============================================================================
 }  // namespace tatooine
 //==============================================================================
 #endif
