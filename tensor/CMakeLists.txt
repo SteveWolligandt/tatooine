@@ -14,4 +14,5 @@ target_compile_definitions(tensor INTERFACE LAPACK_COMPLEX_CPP)
 target_link_libraries(tensor INTERFACE
   base
   multidim_array
+  blaspp
   lapackpp)

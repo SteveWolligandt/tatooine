@@ -39,9 +39,11 @@ struct natural_neighbor_coordinates_sampler_with_gradients;
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions, typename ValueType,
           invocable<Real> F>
+requires (flann_available())
 struct moving_least_squares_sampler;
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions, typename ValueType>
+requires (flann_available())
 struct inverse_distance_weighting_sampler;
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions, typename ValueType,
@@ -1111,6 +1113,7 @@ struct pointset {
   }
   ///\}
   //----------------------------------------------------------------------------
+#if TATOOINE_CGAL_AVAILABLE
   ///\{
   template <typename T>
   auto natural_neighbor_coordinates_sampler(
@@ -1129,6 +1132,7 @@ struct pointset {
             *this, prop, gradients};
   }
   ///\}
+#endif
   //----------------------------------------------------------------------------
   friend struct detail::pointset::vertex_container<Real, NumDimensions>;
   friend struct detail::pointset::const_vertex_container<Real, NumDimensions>;

@@ -7,6 +7,7 @@
 namespace tatooine::detail::pointset {
 //==============================================================================
 template <floating_point Real, std::size_t N, typename T, invocable<Real> F>
+requires (flann_available())
 struct moving_least_squares_sampler;
 //==============================================================================
 }  // namespace tatooine::detail::pointset

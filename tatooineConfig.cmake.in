@@ -60,22 +60,22 @@ add_library(tatooine::geometry INTERFACE IMPORTED)
 set(geometry_available_libs "")
 set(geometry_lib_list "tatooine::tensor")
 if (TATOOINE_CDT_AVAILABLE)
-  string(APPEND geometry_lib_list ";tatooine::CDT")
+  string(APPEND geometry_lib_list "\;tatooine::CDT")
 endif()
 string(APPEND geometry_available_libs "TATOOINE_CDT_AVAILABLE=@TATOOINE_CDT_AVAILABLE@")
 
 if (TATOOINE_FLANN_AVAILABLE)
-  string(APPEND geometry_lib_list ";FLANN::FLANN")
+  string(APPEND geometry_lib_list "\;flann")
 endif()
-string(APPEND geometry_available_libs ";TATOOINE_FLANN_AVAILABLE=@TATOOINE_CDT_AVAILABLE@")
+string(APPEND geometry_available_libs "\;TATOOINE_FLANN_AVAILABLE=@TATOOINE_FLANN_AVAILABLE@")
 
 if (CGAL_FOUND)
-  string(APPEND geometry_lib_list ";CGAL::CGAL")
+  string(APPEND geometry_lib_list "\;CGAL::CGAL")
 endif()
-string(APPEND geometry_available_libs ";TATOOINE_CGAL_AVAILABLE=@TATOOINE_CGAL_AVAILABLE@")
+string(APPEND geometry_available_libs "\;TATOOINE_CGAL_AVAILABLE=@TATOOINE_CGAL_AVAILABLE@")
 
 set_target_properties(tatooine::geometry PROPERTIES
-  INTERFACE_COMPILE_DEFINITIONS "${geometry_available_libs}"
+  INTERFACE_COMPILE_DEFINITIONS ${geometry_available_libs}
   INTERFACE_INCLUDE_DIRECTORIES "/home/steve/libs/tatooine2/geometry/include"
   INTERFACE_LINK_LIBRARIES ${geometry_lib_list}
 )
@@ -96,7 +96,7 @@ endif()
 add_library(tatooine::base STATIC IMPORTED)
 
 set_target_properties(tatooine::base PROPERTIES
-  INTERFACE_COMPILE_DEFINITIONS "TATOOINE_STD_FILESYSTEM_AVAILABLE;TATOOINE_OPENMP_AVAILABLE;TATOOINE_PNG_AVAILABLE=1;_FORTIFY_SOURCE=2;_FORTIFY_SOURCE=2;TATOOINE_HDF5_AVAILABLE=1;TATOOINE_NETCDF_AVAILABLE=1;TATOOINE_FLANN_AVAILABLE=0"
+  INTERFACE_COMPILE_DEFINITIONS "TATOOINE_STD_FILESYSTEM_AVAILABLE;TATOOINE_OPENMP_AVAILABLE;TATOOINE_PNG_AVAILABLE=1;_FORTIFY_SOURCE=2;_FORTIFY_SOURCE=2;TATOOINE_HDF5_AVAILABLE=1;TATOOINE_NETCDF_AVAILABLE=1"
   INTERFACE_COMPILE_OPTIONS "-Wall;-Wextra;-Wpedantic"
   INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/include;@CMAKE_BINARY_DIR@/include;@CMAKE_SOURCE_DIR@/external/indicators/include;@CMAKE_SOURCE_DIR@/external/vcode/include;@CMAKE_SOURCE_DIR@/external/gcem/include;@CMAKE_SOURCE_DIR@/external/rapidxml;/usr/include;/usr/include;/usr/include/png++;/usr/include;/usr/include;/usr/include"
   INTERFACE_LINK_LIBRARIES "stdc++fs;OpenMP::OpenMP_CXX;/usr/lib/libpng.so;/usr/lib/libz.so;/usr/lib/libhdf5.so;/usr/lib/libsz.so;/usr/lib/libz.so;/usr/lib/libdl.a;/usr/lib/libm.so;/usr/lib/libnetcdf.so;/usr/lib/libnetcdf_c++4.so;tatooine::reflection"
@@ -140,8 +140,9 @@ add_library(blaspp SHARED IMPORTED)
 
 set_target_properties(blaspp PROPERTIES
   INTERFACE_COMPILE_FEATURES "cxx_std_11"
-  INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_BINARY_DIR@/tensor/external/blaspp/include;@CMAKE_SOURCE_DIR@/tensor/external/blaspp/include"
-  INTERFACE_LINK_LIBRARIES "-lblas"
+  INTERFACE_COMPILE_OPTIONS "-Wno-unused-parameter"
+  INTERFACE_INCLUDE_DIRECTORIES "/opt/cuda/targets/x86_64-linux/include;@CMAKE_BINARY_DIR@/external/blaspp/include;@CMAKE_SOURCE_DIR@/tensor/external/blaspp/include"
+  INTERFACE_LINK_LIBRARIES "/opt/cuda/targets/x86_64-linux/lib/libcudart.so;/opt/cuda/targets/x86_64-linux/lib/stubs/libcublas.so;OpenMP::OpenMP_CXX;-lopenblas;OpenMP::OpenMP_CXX"
 )
 
 # Create imported target lapackpp
