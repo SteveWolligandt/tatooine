@@ -1,7 +1,7 @@
 #ifndef TATOOINE_POLYNOMIAL_LINE_H
 #define TATOOINE_POLYNOMIAL_LINE_H
 //==============================================================================
-#include <tatooine/packages.h>
+#include <tatooine/available_libraries.h>
 
 #include <array>
 

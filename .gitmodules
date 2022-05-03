@@ -32,16 +32,16 @@
 	path = gl/external/glfw
 	url = https://github.com/glfw/glfw
 [submodule "external/CDT"]
-	path = external/CDT
+	path = geometry/external/CDT
 	url = https://github.com/artem-ogre/CDT.git
 [submodule "flowexplorer/external/imgui-node-editor"]
 	path = flowexplorer/external/imgui-node-editor
 	url = https://github.com/thedmd/imgui-node-editor.git
 [submodule "external/blaspp"]
-	path = external/blaspp
+	path = tensor/external/blaspp
 	url = https://bitbucket.org/icl/blaspp.git
 [submodule "external/lapackpp"]
-	path = external/lapackpp
+	path = tensor/external/lapackpp
 	url = https://bitbucket.org/icl/lapackpp.git
 [submodule "external/rapidxml"]
 	path = external/rapidxml
