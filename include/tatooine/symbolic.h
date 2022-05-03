@@ -1,6 +1,6 @@
 #ifndef TATOOINE_SYMBOLIC_H
 #define TATOOINE_SYMBOLIC_H
-#include <tatooine/packages.h>
+#include <tatooine/available_libraries.h>
 #if TATOOINE_GINAC_AVAILABLE
 //==============================================================================
 #include <ginac/ginac.h>

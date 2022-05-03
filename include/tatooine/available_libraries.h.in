@@ -4,11 +4,23 @@
 namespace tatooine {
 //==============================================================================
 static constexpr auto flann_available() {
-#if TATOOINE_FLANN_AVAILABLE
-  return true;
-#else
-  return false;
-#endif
+  return @TATOOINE_FLANN_AVAILABLE@ == 1;
+}
+//------------------------------------------------------------------------------
+static constexpr auto openmp_available() {
+  return @TATOOINE_OPENMP_AVAILABLE@ == 1;
+}
+//------------------------------------------------------------------------------
+static constexpr auto png_available() {
+  return @TATOOINE_PNG_AVAILABLE@ == 1;
+}
+//------------------------------------------------------------------------------
+static constexpr auto cdt_available() {
+  return @TATOOINE_CDT_AVAILABLE@ == 1;
+}
+//------------------------------------------------------------------------------
+static constexpr auto cgal_available() {
+  return @TATOOINE_CGAL_AVAILABLE@ == 1;
 }
 //==============================================================================
 }  // namespace tatooine

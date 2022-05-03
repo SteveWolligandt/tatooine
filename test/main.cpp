@@ -1,4 +1,4 @@
-#include <tatooine/packages.h>
+#include <tatooine/available_libraries.h>
 
 #define CATCH_CONFIG_RUNNER
 #include <catch2/catch.hpp>
