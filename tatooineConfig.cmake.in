@@ -6,11 +6,12 @@ endif()
 cmake_policy(PUSH)
 cmake_policy(VERSION 2.6...3.21)
 find_package(OpenMP REQUIRED COMPONENTS CXX)
-find_package(Boost REQUIRED)
+find_package(Boost COMPONENTS program_options REQUIRED)
 set(TATOOINE_CDT_AVAILABLE @TATOOINE_CDT_AVAILABLE@)
 set(TATOOINE_FLANN_AVAILABLE @TATOOINE_FLANN_AVAILABLE@)
 set(TATOOINE_CGAL_AVAILABLE @TATOOINE_CGAL_AVAILABLE@)
 set(TATOOINE_GL_AVAILABLE @TATOOINE_GL_AVAILABLE@)
+set(TATOOINE_STD_FILESYSTEM_AVAILABLE @TATOOINE_STD_FILESYSTEM_AVAILABLE@)
 if (TATOOINE_GL_AVAILABLE) 
   find_package(OpenGL COMPONENTS OpenGL EGL)
 endif()
@@ -29,7 +30,7 @@ endif()
 set(_targetsDefined)
 set(_targetsNotDefined)
 set(_expectedTargets)
-set (targets tatooine::base tatooine::geometry tatooine::multidim_array tatooine::preprocessor tatooine::reflection tatooine::tensor blaspp lapackpp)
+set (targets tatooine::base tatooine::geometry tatooine::multidim_array tatooine::preprocessor tatooine::fields tatooine::tensor blaspp lapackpp)
 if (TATOOINE_USE_CDT)
   list(APPEND targets tatooine::CDT)
 endif()
@@ -62,43 +63,49 @@ unset(_expectedTargets)
 
 
 # Create imported target tatooine::geometry
-add_library(tatooine::geometry INTERFACE IMPORTED)
+add_library(tatooine::geometry STATIC IMPORTED)
 
 set(geometry_available_libs "")
 set(geometry_lib_list "tatooine::tensor")
 if (TATOOINE_CDT_AVAILABLE)
-  string(APPEND geometry_lib_list "\;tatooine::CDT")
+  string(APPEND geometry_lib_list ";tatooine::CDT")
 endif()
 string(APPEND geometry_available_libs "TATOOINE_CDT_AVAILABLE=@TATOOINE_CDT_AVAILABLE@")
 
 if (TATOOINE_FLANN_AVAILABLE)
-  string(APPEND geometry_lib_list "\;flann")
+  string(APPEND geometry_lib_list ";flann")
 endif()
-string(APPEND geometry_available_libs "\;TATOOINE_FLANN_AVAILABLE=@TATOOINE_FLANN_AVAILABLE@")
+string(APPEND geometry_available_libs ";TATOOINE_FLANN_AVAILABLE=@TATOOINE_FLANN_AVAILABLE@")
 
 if (TATOOINE_CGAL_AVAILABLE)
   find_package(CGAL QUIET)
-  string(APPEND geometry_lib_list "\;CGAL::CGAL")
+  string(APPEND geometry_lib_list ";CGAL::CGAL")
 endif()
-string(APPEND geometry_available_libs "\;TATOOINE_CGAL_AVAILABLE=@TATOOINE_CGAL_AVAILABLE@")
+string(APPEND geometry_available_libs ";TATOOINE_CGAL_AVAILABLE=@TATOOINE_CGAL_AVAILABLE@")
 
 set_target_properties(tatooine::geometry PROPERTIES
-  INTERFACE_COMPILE_DEFINITIONS ${geometry_available_libs}
+  INTERFACE_COMPILE_DEFINITIONS "${geometry_available_libs}"
   INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/geometry/include"
-  INTERFACE_LINK_LIBRARIES ${geometry_lib_list}
+  INTERFACE_LINK_LIBRARIES "${geometry_lib_list}"
 )
 
 if (TATOOINE_CDT_AVAILABLE)
-# Create imported target tatooine::CDT
-add_library(tatooine::CDT SHARED IMPORTED)
+  # Create imported target tatooine::CDT
+  add_library(tatooine::CDT SHARED IMPORTED)
 
-set_target_properties(tatooine::CDT PROPERTIES
-  INTERFACE_COMPILE_DEFINITIONS "\$<\$<BOOL:ON>:CDT_USE_BOOST>;\$<\$<BOOL:ON>:CDT_USE_AS_COMPILED_LIBRARY>"
-  INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_BINARY_DIR@/geometry/external/CDT/CDT;@CMAKE_SOURCE_DIR@/geometry/external/CDT/CDT/include;@CMAKE_SOURCE_DIR@/geometry/external/CDT/CDT/extras"
-  INTERFACE_LINK_LIBRARIES "Boost::boost"
-  INTERFACE_SOURCES "@CMAKE_BINARY_DIR@/geometry/external/CDT/CDT/cdt_export.h"
-)
+  set_target_properties(tatooine::CDT PROPERTIES
+    INTERFACE_COMPILE_DEFINITIONS "\$<\$<BOOL:ON>:CDT_USE_BOOST>;\$<\$<BOOL:ON>:CDT_USE_AS_COMPILED_LIBRARY>"
+    INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_BINARY_DIR@/geometry/external/CDT/CDT;@CMAKE_SOURCE_DIR@/geometry/external/CDT/CDT/include;@CMAKE_SOURCE_DIR@/geometry/external/CDT/CDT/extras"
+    INTERFACE_LINK_LIBRARIES "Boost::boost"
+    INTERFACE_SOURCES "@CMAKE_BINARY_DIR@/geometry/external/CDT/CDT/cdt_export.h"
+  )
 endif()
+# Import target "tatooine::geometry" for configuration "Release"
+set_property(TARGET tatooine::geometry APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+set_target_properties(tatooine::geometry PROPERTIES
+  IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "CXX"
+  IMPORTED_LOCATION_RELEASE "@CMAKE_BINARY_DIR@/geometry/libgeometry.a"
+  )
 
 if (TATOOINE_GL_AVAILABLE) 
   # Create imported target tatooine::gl
@@ -140,13 +147,17 @@ set_target_properties(tatooine::rendering PROPERTIES
 endif()
 
 # Create imported target tatooine::base
-add_library(tatooine::base STATIC IMPORTED)
+add_library(tatooine::base INTERFACE IMPORTED)
 
+set(base_interface_link_libraries "Boost::program_options;OpenMP::OpenMP_CXX;/usr/lib/libpng.so;/usr/lib/libz.so;/usr/lib/libhdf5.so;/usr/lib/libsz.so;/usr/lib/libz.so;/usr/lib/libdl.a;/usr/lib/libm.so;/usr/lib/libnetcdf.so;/usr/lib/libnetcdf_c++4.so;tatooine::preprocessor")
+if (TATOOINE_STD_FILESYSTEM_AVAILABLE)
+  string(PREPEND base_interface_link_libraries "stdc++fs;")
+endif()
 set_target_properties(tatooine::base PROPERTIES
-  INTERFACE_COMPILE_DEFINITIONS "TATOOINE_STD_FILESYSTEM_AVAILABLE;TATOOINE_OPENMP_AVAILABLE;TATOOINE_PNG_AVAILABLE=1;_FORTIFY_SOURCE=2;_FORTIFY_SOURCE=2;TATOOINE_HDF5_AVAILABLE=1;TATOOINE_NETCDF_AVAILABLE=1"
+  INTERFACE_COMPILE_DEFINITIONS "TATOOINE_STD_FILESYSTEM_AVAILABLE=@TATOOINE_STD_FILESYSTEM_AVAILABLE@;TATOOINE_OPENMP_AVAILABLE;TATOOINE_PNG_AVAILABLE=1;_FORTIFY_SOURCE=2;_FORTIFY_SOURCE=2;TATOOINE_HDF5_AVAILABLE=1;TATOOINE_NETCDF_AVAILABLE=1"
   INTERFACE_COMPILE_OPTIONS "-Wall;-Wextra;-Wpedantic"
   INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/include;@CMAKE_BINARY_DIR@/include;@CMAKE_SOURCE_DIR@/external/indicators/include;@CMAKE_SOURCE_DIR@/external/vcode/include;@CMAKE_SOURCE_DIR@/external/gcem/include;@CMAKE_SOURCE_DIR@/external/rapidxml;/usr/include;/usr/include;/usr/include/png++;/usr/include;/usr/include;/usr/include"
-  INTERFACE_LINK_LIBRARIES "stdc++fs;OpenMP::OpenMP_CXX;/usr/lib/libpng.so;/usr/lib/libz.so;/usr/lib/libhdf5.so;/usr/lib/libsz.so;/usr/lib/libz.so;/usr/lib/libdl.a;/usr/lib/libm.so;/usr/lib/libnetcdf.so;/usr/lib/libnetcdf_c++4.so;tatooine::reflection"
+  INTERFACE_LINK_LIBRARIES "${base_interface_link_libraries}"
 )
 
 # Create imported target tatooine::multidim_array
@@ -157,19 +168,19 @@ set_target_properties(tatooine::multidim_array PROPERTIES
   INTERFACE_LINK_LIBRARIES "tatooine::base"
 )
 
+# Create imported target tatooine::fields
+add_library(tatooine::fields INTERFACE IMPORTED)
+
+set_target_properties(tatooine::fields PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/fields/include"
+  INTERFACE_LINK_LIBRARIES "tatooine::tensor;tatooine::geometry"
+)
+
 # Create imported target tatooine::preprocessor
 add_library(tatooine::preprocessor INTERFACE IMPORTED)
 
 set_target_properties(tatooine::preprocessor PROPERTIES
   INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/preprocessor/include;@CMAKE_BINARY_DIR@/preprocessor/include"
-)
-
-# Create imported target tatooine::reflection
-add_library(tatooine::reflection INTERFACE IMPORTED)
-
-set_target_properties(tatooine::reflection PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/reflection/include"
-  INTERFACE_LINK_LIBRARIES "tatooine::preprocessor"
 )
 
 # Create imported target tatooine::tensor
@@ -188,7 +199,7 @@ add_library(blaspp SHARED IMPORTED)
 set_target_properties(blaspp PROPERTIES
   INTERFACE_COMPILE_FEATURES "cxx_std_11"
   INTERFACE_COMPILE_OPTIONS "-Wno-unused-parameter"
-  INTERFACE_INCLUDE_DIRECTORIES "/opt/cuda/targets/x86_64-linux/include;@CMAKE_BINARY_DIR@/external/blaspp/include;@CMAKE_SOURCE_DIR@/tensor/external/blaspp/include"
+  INTERFACE_INCLUDE_DIRECTORIES "/opt/cuda/targets/x86_64-linux/include;@CMAKE_BINARY_DIR@/tensor/external/blaspp/include;@CMAKE_SOURCE_DIR@/tensor/external/blaspp/include"
   INTERFACE_LINK_LIBRARIES "/opt/cuda/targets/x86_64-linux/lib/libcudart.so;/opt/cuda/targets/x86_64-linux/lib/stubs/libcublas.so;OpenMP::OpenMP_CXX;-lopenblas;OpenMP::OpenMP_CXX"
 )
 
@@ -238,13 +249,6 @@ if(TATOOINE_GL_AVAILABLE)
     IMPORTED_LOCATION_RELEASE "@CMAKE_BINARY_DIR@/gl/libimgui.a"
     )
 endif()
-
-# Import target "tatooine::base" for configuration "Release"
-set_property(TARGET tatooine::base APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
-set_target_properties(tatooine::base PROPERTIES
-  IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "CXX"
-  IMPORTED_LOCATION_RELEASE "@CMAKE_BINARY_DIR@/libbase.a"
-  )
 
 # Import target "blaspp" for configuration "Release"
 set_property(TARGET blaspp APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)

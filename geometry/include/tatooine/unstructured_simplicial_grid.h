@@ -1,7 +1,7 @@
 #ifndef TATOOINE_UNSTRUCTURED_SIMPLICIAL_GRID_H
 #define TATOOINE_UNSTRUCTURED_SIMPLICIAL_GRID_H
 //==============================================================================
-#ifdef TATOOINE_CDT_AVAILABLE
+#if TATOOINE_CDT_AVAILABLE
 #include <CDT.h>
 #endif
 #if TATOOINE_CGAL_AVAILABLE
