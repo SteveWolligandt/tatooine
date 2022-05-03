@@ -15,7 +15,7 @@ auto write_container_properties_to_vtk(Writer& writer, Names const& names,
       if (l.has_vertex_property(name_to_search)) {
         try {
           auto const& prop      = l.template vertex_property<T>(name_to_search);
-          auto const& prop_data = prop.container();
+          auto const& prop_data = prop.internal_container();
           std::copy(begin(prop_data), end(prop_data),
                     std::back_inserter(prop_collector));
         } catch (...) {

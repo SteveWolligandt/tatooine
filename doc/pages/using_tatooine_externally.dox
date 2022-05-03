@@ -1,0 +1,53 @@
+/** \page page_external_usage Using Tatooine externally
+
+\section section_external_usage_example Example
+Using tatooine with CMake from another project is fairly simple. Use some CMake
+script like this to be able to use tatooine in your code:
+
+`CMakeLists.txt`:
+\code{.cmake}
+  cmake_minimum_required(VERSION 3.10)
+  project(tatooine_application)
+
+  find_package(tatooine REQUIRED)
+
+  add_executable(doublegyre doublegyre.cpp)
+  target_link_libraries(doublegyre PUBLIC tatooine::fields tatooine::rendering)
+\endcode
+
+Now you can use the rendering interface in your code:
+
+`rendering.cpp`:
+\code{.cpp}
+#include <tatooine/analytical/fields/numerical/doublegyre.h>
+#include <tatooine/field_operations.h>
+#include <tatooine/isolines.h>                          
+#include <tatooine/rendering/interactive.h>
+//==============================================================================
+using namespace tatooine;
+//==============================================================================
+auto main() -> int {                                                          
+  auto g = rectilinear_grid{linspace{0.0, 2.0, 200}, linspace{0.0, 1.0, 100}};
+  auto dg = analytical::fields::numerical::doublegyre{};                 
+  auto dg_len = squared_euclidean_length(dg);                                
+  g.sample_to_vertex_property([&](auto const x) { return dg_len(x, 0); },
+                              "dg_len");                     
+  rendering::interactive::show(isolines(dg_len, g, 0.05),    
+                               isolines(dg_len, g, 0.01), g);
+}
+\endcode
+This program creates a window which shows something like this:
+
+\image html external_program.png
+
+\section section_external_usage_interfaces Interfaces
+
+- `tatooine::base`
+- `tatooine::preprocessor`
+- `tatooine::multidim_array`
+- `tatooine::tensor`
+- `tatooine::geometry`
+- `tatooine::gl`
+- `tatooine::rendering`
+- `tatooine::fields`
+*/
