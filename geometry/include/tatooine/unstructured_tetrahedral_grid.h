@@ -1,7 +1,7 @@
 #ifndef TATOOINE_UNSTRUCTURED_TETRAHEDRAL_GRID_H
 #define TATOOINE_UNSTRUCTURED_TETRAHEDRAL_GRID_H
 //==============================================================================
-//#ifdef TATOOINE_HAS_CGAL_SUPPORT
+//#if TATOOINE_CGAL_AVAILABLE
 //#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 //#include <CGAL/Delaunay_triangulation_3.h>
 //#include <CGAL/Triangulation_vertex_base_with_info_3.h>

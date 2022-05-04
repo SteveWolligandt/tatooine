@@ -306,7 +306,7 @@ struct autonomous_particle_flowmap_discretization {
     //   auto particles_on_disk = file.dataset<particle_type>("finished");
     //   return particles_on_disk.dataspace().current_resolution()[0];
     // } else {
-    return size(m_pointset_forward.vertices().size());
+    return m_pointset_forward.vertices().size();
     //}
   }
   //----------------------------------------------------------------------------

@@ -77,7 +77,7 @@ TEST_CASE("unstructured_tetrahedral_grid_from_grid",
   mesh.write_vtk("unstructured_tetrahedral_grid_from_3d_grid.vtk");
 }
 //==============================================================================
-#ifdef TATOOINE_HAS_CGAL_SUPPORT
+#if TATOOINE_CGAL_AVAILABLE
 TEST_CASE("unstructured_tetrahedral_grid_vertex_property_sampler",
           "[unstructured_tetrahedral_grid][vertex_property][sampler]") {
   size_t const num_points  = 100;
