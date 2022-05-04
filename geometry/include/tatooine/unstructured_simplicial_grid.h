@@ -8,8 +8,8 @@
 #include <tatooine/cgal.h>
 #endif
 
-#include <tatooine/axis_aligned_bounding_box.h>
 #include <tatooine/available_libraries.h>
+#include <tatooine/axis_aligned_bounding_box.h>
 #include <tatooine/detail/unstructured_simplicial_grid/hierarchy.h>
 #include <tatooine/pointset.h>
 #include <tatooine/property.h>
@@ -369,10 +369,10 @@ struct unstructured_simplicial_grid
     return simplex_handle{simplices().size() - 1};
   }
   //----------------------------------------------------------------------------
- private:
-  template <std::size_t... Seq>
-  auto barycentric_coordinate(simplex_handle const& s, pos_type const& q,
-                              std::index_sequence<Seq...> /*seq*/) const {
+ private : template <std::size_t... Seq>
+           auto
+           barycentric_coordinate(simplex_handle const& s, pos_type const& q,
+                                  std::index_sequence<Seq...> /*seq*/) const {
     auto A           = mat<Real, NumDimensions + 1, NumDimensions + 1>::ones();
     auto b           = vec<Real, NumDimensions + 1>::zeros();
     b(NumDimensions) = 1;
@@ -385,7 +385,7 @@ struct unstructured_simplicial_grid
         }(std::get<Seq>(at(s))),
         ...);
 
-    return *solve(A,b);
+    return *solve(A, b);
   }
   //----------------------------------------------------------------------------
  public:
@@ -393,9 +393,9 @@ struct unstructured_simplicial_grid
       requires(NumDimensions == SimplexDim) {
     if constexpr (NumDimensions == 2) {
       auto const [v0, v1, v2] = at(s);
-      auto const p0 = at(v0) - q;
-      auto const p1 = at(v1) - q;
-      auto const p2 = at(v2) - q;
+      auto const p0           = at(v0) - q;
+      auto const p1           = at(v1) - q;
+      auto const p2           = at(v2) - q;
       return vec{p1.x() * p2.y() - p2.x() * p1.y(),
                  p2.x() * p0.y() - p0.x() * p2.y(),
                  p0.x() * p1.y() - p1.x() * p0.y()} /
@@ -408,9 +408,10 @@ struct unstructured_simplicial_grid
   }
   //----------------------------------------------------------------------------
   /// tidies up invalid vertices
- private:
-  template <std::size_t... Is>
-  auto reindex_simplices_vertex_handles(std::index_sequence<Is...> /*seq*/) {
+ private
+     : template <std::size_t... Is>
+       auto
+       reindex_simplices_vertex_handles(std::index_sequence<Is...> /*seq*/) {
     auto dec     = [](auto i) { return ++i; };
     auto offsets = std::vector<std::size_t>(size(vertex_position_data()), 0);
     for (auto const v : invalid_vertices()) {
@@ -463,19 +464,21 @@ struct unstructured_simplicial_grid
   }
   //----------------------------------------------------------------------------
 #if TATOOINE_CGAL_AVAILABLE
-  auto build_delaunay_mesh()
-  requires (NumDimensions == 2) || (NumDimensions == 3) {
+  auto build_delaunay_mesh() requires(NumDimensions == 2) ||
+      (NumDimensions == 3) {
     build_delaunay_mesh(std::make_index_sequence<NumDimensions>{});
   }
 
  private:
   template <std::size_t... Seq>
-  auto build_delaunay_mesh(std::index_sequence<Seq...> /*seq*/) -> void
-  requires (NumDimensions == 2) || (NumDimensions == 3) {
+      auto build_delaunay_mesh(std::index_sequence<Seq...> /*seq*/)
+          -> void requires(NumDimensions == 2) ||
+      (NumDimensions == 3) {
     simplex_index_data().clear();
     using kernel_type = CGAL::Exact_predicates_inexact_constructions_kernel;
-    using triangulation_type = 
-        cgal::delaunay_triangulation_with_info<NumDimensions, kernel_type, vertex_handle>;
+    using triangulation_type =
+        cgal::delaunay_triangulation_with_info<NumDimensions, kernel_type,
+                                               vertex_handle>;
     using point_type = typename triangulation_type::Point;
     auto points      = std::vector<std::pair<point_type, vertex_handle>>{};
     points.reserve(vertices().size());
@@ -498,20 +501,27 @@ struct unstructured_simplicial_grid
       }
     }
   }
+
  public:
-  auto build_sub_delaunay_mesh(std::vector<vertex_handle> const& vertices)
-  requires (NumDimensions == 2) || (NumDimensions == 3) {
-    build_sub_delaunay_mesh(vertices, std::make_index_sequence<NumDimensions>{});
+  auto build_sub_delaunay_mesh(
+      std::vector<vertex_handle> const& vertices) requires(NumDimensions ==
+                                                           2) ||
+      (NumDimensions == 3) {
+    build_sub_delaunay_mesh(vertices,
+                            std::make_index_sequence<NumDimensions>{});
   }
+
  private:
   template <std::size_t... Seq>
-  auto build_sub_delaunay_mesh(std::vector<vertex_handle> const& vertices,
-                               std::index_sequence<Seq...> /*seq*/) -> void
-  requires (NumDimensions == 2) || (NumDimensions == 3) {
+      auto build_sub_delaunay_mesh(std::vector<vertex_handle> const& vertices,
+                                   std::index_sequence<Seq...> /*seq*/)
+          -> void requires(NumDimensions == 2) ||
+      (NumDimensions == 3) {
     simplex_index_data().clear();
     using kernel_type = CGAL::Exact_predicates_inexact_constructions_kernel;
-    using triangulation_type = 
-        cgal::delaunay_triangulation_with_info<NumDimensions, kernel_type, vertex_handle>;
+    using triangulation_type =
+        cgal::delaunay_triangulation_with_info<NumDimensions, kernel_type,
+                                               vertex_handle>;
     using point_type = typename triangulation_type::Point;
     auto points      = std::vector<std::pair<point_type, vertex_handle>>{};
     points.reserve(vertices.size());
@@ -716,24 +726,23 @@ struct unstructured_simplicial_grid
     }
   }
 
- private : auto write_vtp_edges(filesystem::path const& path) const
-           requires((NumDimensions == 2 || NumDimensions == 3) &&
-                    SimplexDim == 1) {
+ private:
+  auto write_vtp_edges(filesystem::path const& path) const
+      requires((NumDimensions == 2 || NumDimensions == 3) && SimplexDim == 1) {
     auto file = std::ofstream{path, std::ios::binary};
     if (!file.is_open()) {
       throw std::runtime_error{"Could not write " + path.string()};
     }
-    auto offset                    = std::size_t{};
-    using header_type              = std::uint64_t;
-    using lines_connectivity_int_type = std::int64_t;
-    using lines_offset_int_type       = lines_connectivity_int_type;
+    auto offset                 = std::size_t{};
+    using header_type           = std::uint64_t;
+    using connectivity_int_type = std::int64_t;
+    using offset_int_type       = connectivity_int_type;
     auto const num_bytes_points =
         header_type(sizeof(Real) * 3 * vertices().size());
-    auto const num_bytes_lines_connectivity = simplices().size() *
-                                              num_vertices_per_simplex() *
-                                              sizeof(lines_connectivity_int_type);
-    auto const num_bytes_lines_offsets =
-        sizeof(lines_offset_int_type) * simplices().size();
+    auto const num_bytes_connectivity = simplices().size() *
+                                        num_vertices_per_simplex() *
+                                        sizeof(connectivity_int_type);
+    auto const num_bytes_offsets = sizeof(offset_int_type) * simplices().size();
     file << "<VTKFile"
          << " type=\"PolyData\""
          << " version=\"1.0\""
@@ -766,15 +775,15 @@ struct unstructured_simplicial_grid
          // Lines - connectivity
          << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
          << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<lines_connectivity_int_type>())
+                vtk::xml::data_array::to_type<connectivity_int_type>())
          << "\" Name=\"connectivity\"/>\n";
-    offset += num_bytes_lines_connectivity + sizeof(header_type);
+    offset += num_bytes_connectivity + sizeof(header_type);
     // Lines - offsets
     file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
          << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<lines_offset_int_type>())
+                vtk::xml::data_array::to_type<offset_int_type>())
          << "\" Name=\"offsets\"/>\n";
-    offset += num_bytes_lines_offsets + sizeof(header_type);
+    offset += num_bytes_offsets + sizeof(header_type);
     file << "</Lines>\n"
          << "</Piece>\n"
          << "</PolyData>\n"
@@ -803,30 +812,30 @@ struct unstructured_simplicial_grid
 
     // Writing lines connectivity data to appended data section
     {
-      auto connectivity_data = std::vector<lines_connectivity_int_type>(
+      auto connectivity_data = std::vector<connectivity_int_type>(
           simplices().size() * num_vertices_per_simplex());
-      auto index = [](auto const x) -> lines_connectivity_int_type {
+      auto index = [](auto const x) -> connectivity_int_type {
         return x.index();
       };
       copy(simplices().data_container() | views::transform(index),
            begin(connectivity_data));
-      file.write(reinterpret_cast<char const*>(&num_bytes_lines_connectivity),
+      file.write(reinterpret_cast<char const*>(&num_bytes_connectivity),
                  sizeof(header_type));
       file.write(reinterpret_cast<char const*>(connectivity_data.data()),
-                 num_bytes_lines_connectivity);
+                 num_bytes_connectivity);
     }
 
     // Writing lines offsets to appended data section
     {
-      auto offsets = std::vector<lines_offset_int_type>(
-          simplices().size(), num_vertices_per_simplex());
+      auto offsets = std::vector<offset_int_type>(simplices().size(),
+                                                  num_vertices_per_simplex());
       for (std::size_t i = 1; i < size(offsets); ++i) {
         offsets[i] += offsets[i - 1];
       };
-      file.write(reinterpret_cast<char const*>(&num_bytes_lines_offsets),
+      file.write(reinterpret_cast<char const*>(&num_bytes_offsets),
                  sizeof(header_type));
       file.write(reinterpret_cast<char const*>(offsets.data()),
-                 num_bytes_lines_offsets);
+                 num_bytes_offsets);
     }
     file << "\n</AppendedData>\n"
          << "</VTKFile>";
@@ -838,15 +847,15 @@ struct unstructured_simplicial_grid
     if (!file.is_open()) {
       throw std::runtime_error{"Could not write " + path.string()};
     }
-    auto offset                    = std::size_t{};
-    using header_type              = std::uint64_t;
+    auto offset                       = std::size_t{};
+    using header_type                 = std::uint64_t;
     using polys_connectivity_int_type = std::int64_t;
     using polys_offset_int_type       = polys_connectivity_int_type;
     auto const num_bytes_points =
         header_type(sizeof(Real) * 3 * vertices().size());
-    auto const num_bytes_polys_connectivity = simplices().size() *
-                                              num_vertices_per_simplex() *
-                                              sizeof(polys_connectivity_int_type);
+    auto const num_bytes_polys_connectivity =
+        simplices().size() * num_vertices_per_simplex() *
+        sizeof(polys_connectivity_int_type);
     auto const num_bytes_polys_offsets =
         sizeof(polys_offset_int_type) * simplices().size();
     file << "<VTKFile"
@@ -901,9 +910,9 @@ struct unstructured_simplicial_grid
       file.write(reinterpret_cast<char const*>(&num_bytes_points),
                  sizeof(header_type));
       if constexpr (NumDimensions == 2) {
-        auto point_data      = std::vector<vec<Real, 3>>(vertices().size());
-        auto position        = [this](auto const v) -> auto& { return at(v); };
-        auto it              = begin(point_data);
+        auto point_data = std::vector<vec<Real, 3>>(vertices().size());
+        auto position   = [this](auto const v) -> auto& { return at(v); };
+        auto it         = begin(point_data);
         for (auto const v : vertices()) {
           if constexpr (NumDimensions == 2) {
             *it = vec{at(v).x(), at(v).y(), Real(0)};
@@ -1005,7 +1014,8 @@ struct unstructured_simplicial_grid
           writer.write_scalars(name, casted_prop.internal_container());
         } else if (prop->type() == typeid(Real)) {
           auto const& casted_prop =
-              *dynamic_cast<typed_vertex_property_type<Real> const*>(prop.get());
+              *dynamic_cast<typed_vertex_property_type<Real> const*>(
+                  prop.get());
           writer.write_scalars(name, casted_prop.internal_container());
         }
       }
@@ -1051,7 +1061,8 @@ struct unstructured_simplicial_grid
           writer.write_scalars(name, casted_prop.internal_container());
         } else if (prop->type() == typeid(Real)) {
           auto const& casted_prop =
-              *dynamic_cast<typed_vertex_property_type<Real> const*>(prop.get());
+              *dynamic_cast<typed_vertex_property_type<Real> const*>(
+                  prop.get());
           writer.write_scalars(name, casted_prop.internal_container());
         }
       }
@@ -1077,7 +1088,8 @@ struct unstructured_simplicial_grid
       unstructured_simplicial_grid& grid;
       std::vector<int>              simplices;
 
-      explicit listener_type(unstructured_simplicial_grid& _grid) : grid{_grid} {}
+      explicit listener_type(unstructured_simplicial_grid& _grid)
+          : grid{_grid} {}
       auto add_simplices(std::vector<int> const& simplices) -> void {
         std::size_t i = 0;
         while (i < size(simplices)) {
@@ -1247,7 +1259,7 @@ struct unstructured_simplicial_grid
   auto hierarchy() const -> auto& {
     if (m_hierarchy == nullptr) {
       auto const bb = bounding_box();
-      m_hierarchy   = std::make_unique<hierarchy_type>(bb.min(), bb.max(), *this);
+      m_hierarchy = std::make_unique<hierarchy_type>(bb.min(), bb.max(), *this);
     }
     return *m_hierarchy;
   }

@@ -34,6 +34,23 @@ auto operator!=(forward_or_backward_tag auto const lhs,
                 forward_or_backward_tag auto const rhs) {
   return !(lhs == rhs);
 }
+//template <typename T>
+//struct is_forward_impl : std::false_type {};
+//template <>
+//struct is_forward_impl<forward_tag> : std::false_type {};
+//template <typename T>
+//static constexpr auto is_forward = is_forward_impl<T>::value;
+template <typename T>
+concept is_forward = std::same_as<forward_tag, std::decay_t<T>>;
+template <typename T>
+concept is_backward = std::same_as<backward_tag, std::decay_t<T>>;
+
+//template <typename T>
+//struct is_backward_impl : std::false_type {};
+//template <>
+//struct is_backward_impl<backward_tag> : std::false_type {};
+//template <typename T>
+//static constexpr auto is_backward = is_backward_impl<T>::value;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

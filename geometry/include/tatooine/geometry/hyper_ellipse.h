@@ -171,7 +171,7 @@ struct hyper_ellipse {
     return squared_euclidean_length(*solve(m_S, x - m_center)) <= 1;
   }
   //----------------------------------------------------------------------------
-  auto discretize(std::size_t const num_vertices = 33) const
+  auto discretize(std::size_t const num_vertices = 32) const
     requires(NumDimensions == 2) {
     using namespace std::ranges;
     auto radial = linspace<Real>{0.0, M_PI * 2, num_vertices + 1};
@@ -270,7 +270,7 @@ struct hyper_ellipse {
 template <typename Real, std::size_t NumDimensions>
 requires(NumDimensions == 2 || NumDimensions == 3)
 auto discretize(hyper_ellipse<Real, NumDimensions> const& s,
-                std::size_t const n = 0) {
+                std::size_t const n = 32) {
   return s.discretize(n);
 }
 template <std::size_t NumDimensions>

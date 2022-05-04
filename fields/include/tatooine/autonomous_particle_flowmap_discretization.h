@@ -4,7 +4,6 @@
 #include <tatooine/autonomous_particle.h>
 #include <tatooine/huber_loss.h>
 #include <tatooine/staggered_flowmap_discretization.h>
-#include <tatooine/uniform_tree_hierarchy.h>
 #include <tatooine/unstructured_simplicial_grid.h>
 
 #include <boost/range/adaptor/transformed.hpp>
@@ -43,7 +42,6 @@ struct autonomous_particle_flowmap_discretization {
   //----------------------------------------------------------------------------
  private:
   //----------------------------------------------------------------------------
-  // std::optional<filesystem::path> m_path;
   pointset_type                          m_pointset_forward;
   flowmap_vertex_property_type&          m_flowmaps_forward;
   flowmap_gradient_vertex_property_type& m_flowmap_gradients_forward;
@@ -57,7 +55,7 @@ struct autonomous_particle_flowmap_discretization {
  public:
   //----------------------------------------------------------------------------
   auto pointset(forward_or_backward_tag auto const direction) -> auto& {
-    if constexpr (is_same<decltype(direction), forward_tag>) {
+    if constexpr (is_forward<decltype(direction)>) {
       return m_pointset_forward;
     } else {
       return m_pointset_backward;
@@ -66,7 +64,7 @@ struct autonomous_particle_flowmap_discretization {
   //----------------------------------------------------------------------------
   auto pointset(forward_or_backward_tag auto const direction) const
       -> auto const& {
-    if constexpr (is_same<decltype(direction), forward_tag>) {
+    if constexpr (is_forward<decltype(direction)>) {
       return m_pointset_forward;
     } else {
       return m_pointset_backward;
@@ -74,7 +72,7 @@ struct autonomous_particle_flowmap_discretization {
   }
   //----------------------------------------------------------------------------
   auto flowmaps(forward_or_backward_tag auto const direction) -> auto& {
-    if constexpr (is_same<decltype(direction), forward_tag>) {
+    if constexpr (is_forward<decltype(direction)>) {
       return m_flowmaps_forward;
     } else {
       return m_flowmaps_backward;
@@ -83,7 +81,7 @@ struct autonomous_particle_flowmap_discretization {
   //----------------------------------------------------------------------------
   auto flowmaps(forward_or_backward_tag auto const direction) const
       -> auto const& {
-    if constexpr (is_same<decltype(direction), forward_tag>) {
+    if constexpr (is_forward<decltype(direction)>) {
       return m_flowmaps_forward;
     } else {
       return m_flowmaps_backward;
@@ -92,7 +90,7 @@ struct autonomous_particle_flowmap_discretization {
   //----------------------------------------------------------------------------
   auto flowmap_gradients(forward_or_backward_tag auto const direction)
       -> auto& {
-    if constexpr (is_same<decltype(direction), forward_tag>) {
+    if constexpr (is_forward<decltype(direction)>) {
       return m_flowmap_gradients_forward;
     } else {
       return m_flowmap_gradients_backward;
@@ -101,7 +99,7 @@ struct autonomous_particle_flowmap_discretization {
   //----------------------------------------------------------------------------
   auto flowmap_gradients(forward_or_backward_tag auto const direction) const
       -> auto const& {
-    if constexpr (is_same<decltype(direction), forward_tag>) {
+    if constexpr (is_forward<decltype(direction)>) {
       return m_flowmap_gradients_forward;
     } else {
       return m_flowmap_gradients_backward;
@@ -109,7 +107,7 @@ struct autonomous_particle_flowmap_discretization {
   }
   //----------------------------------------------------------------------------
   auto triangulation(forward_or_backward_tag auto const direction) -> auto& {
-    if constexpr (is_same<decltype(direction), forward_tag>) {
+    if constexpr (is_forward<decltype(direction)>) {
       return m_triangulation_forward;
     } else {
       return m_triangulation_backward;
@@ -118,33 +116,13 @@ struct autonomous_particle_flowmap_discretization {
   //----------------------------------------------------------------------------
   auto triangulation(forward_or_backward_tag auto const direction) const
       -> auto const& {
-    if constexpr (is_same<decltype(direction), forward_tag>) {
+    if constexpr (is_forward<decltype(direction)>) {
       return m_triangulation_forward;
     } else {
       return m_triangulation_backward;
     }
   }
   //============================================================================
-  //  explicit autonomous_particle_flowmap_discretization(
-  //      filesystem::path const& path)
-  //      : m_path{path} {
-  //    auto         file              = hdf5::file{*m_path};
-  //    auto         particles_on_disk =
-  //    file.dataset<particle_type>("finished"); std::size_t const
-  //    total_num_particles =
-  //        particles_on_disk.dataspace().current_resolution()[0];
-  //
-  //    auto ps = std::vector<particle_type>(total_num_particles);
-  //    particles_on_disk.read(ps);
-  //    m_path = std::nullopt;
-  //
-  //    samplers().resize(total_num_particles);
-  //#pragma omp parallel for
-  //    for (std::size_t i = 0; i < total_num_particles; ++i) {
-  //      samplers()[i] = ps[i].sampler();
-  //    }
-  //  }
-  //----------------------------------------------------------------------------
   template <typename Flowmap>
   autonomous_particle_flowmap_discretization(
       Flowmap&& flowmap, arithmetic auto const t_end,
@@ -226,56 +204,6 @@ struct autonomous_particle_flowmap_discretization {
     fill(std::forward<Flowmap>(flowmap), particles, t0 + tau, tau_step,
          uuid_generator);
   }
-  ////----------------------------------------------------------------------------
-  // template <typename Flowmap>
-  // autonomous_particle_flowmap_discretization(
-  //     Flowmap&& flowmap, arithmetic auto const t0, arithmetic auto const tau,
-  //     arithmetic auto const                                tau_step,
-  //     uniform_rectilinear_grid<real_type, NumDimensions> const& g,
-  //     filesystem::path const&                              path)
-  //     : m_path{path} {
-  //   static_assert(
-  //       std::decay_t<Flowmap>::num_dimensions() == NumDimensions,
-  //       "Number of dimensions of flowmap does not match number of
-  //       dimensions.");
-  //   auto initial_particle_distribution = g.copy_without_properties();
-  //   std::vector<particle_type> particles;
-  //   for (std::size_t i = 0; i < NumDimensions; ++i) {
-  //     auto const spacing =
-  //     initial_particle_distribution.dimension(i).spacing();
-  //     initial_particle_distribution.dimension(i).pop_front();
-  //     initial_particle_distribution.dimension(i).front() -= spacing / 2;
-  //     initial_particle_distribution.dimension(i).back() -= spacing / 2;
-  //   }
-  //   initial_particle_distribution.vertices().iterate_indices(
-  //       [&](auto const... is) {
-  //         particles.emplace_back(
-  //             initial_particle_distribution.vertex_at(is...), t0,
-  //             initial_particle_distribution.dimension(0).spacing() / 2);
-  //       });
-  //   auto const small_particle_size =
-  //       (std::sqrt(2 * initial_particle_distribution.dimension(0).spacing() *
-  //                  initial_particle_distribution.dimension(0).spacing()) -
-  //        initial_particle_distribution.dimension(0).spacing()) /
-  //       2;
-  //
-  //   for (std::size_t i = 0; i < NumDimensions; ++i) {
-  //     auto const spacing =
-  //     initial_particle_distribution.dimension(i).spacing();
-  //     initial_particle_distribution.dimension(i).pop_front();
-  //     initial_particle_distribution.dimension(i).front() -= spacing / 2;
-  //     initial_particle_distribution.dimension(i).back() -= spacing / 2;
-  //   }
-  //   initial_particle_distribution.vertices().iterate_indices(
-  //       [&](auto const... is) {
-  //         particles.emplace_back(
-  //             initial_particle_distribution.vertex_at(is...), t0,
-  //             initial_particle_distribution.dimension(0).spacing() / 2
-  //             // small_particle_size
-  //         );
-  //       });
-  //   fill(std::forward<Flowmap>(flowmap), particles, t0 + tau, tau_step);
-  // }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename Flowmap>
   autonomous_particle_flowmap_discretization(
@@ -301,13 +229,7 @@ struct autonomous_particle_flowmap_discretization {
   }
   //============================================================================
   auto num_particles() const -> std::size_t {
-    // if (m_path) {
-    //   auto file              = hdf5::file{*m_path};
-    //   auto particles_on_disk = file.dataset<particle_type>("finished");
-    //   return particles_on_disk.dataspace().current_resolution()[0];
-    // } else {
     return m_pointset_forward.vertices().size();
-    //}
   }
   //----------------------------------------------------------------------------
  private:
@@ -325,25 +247,28 @@ struct autonomous_particle_flowmap_discretization {
             arithmetic auto const t_end, arithmetic auto const tau_step,
             std::atomic_uint64_t& uuid_generator,
             std::index_sequence<Is...> /*seq*/) {
-    //// if (m_path) {
-    ////   particle_type::template advect<SplitBehavior>(
-    ////       std::forward<Flowmap>(flowmap), tau_step, t_end,
-    ///initial_particles, /       *m_path); / } else {
-    // samplers().clear();
-    // auto [advected_particles, simple_particles, edges] =
-    //     particle_type::template advect<SplitBehavior>(
-    //         std::forward<Flowmap>(flowmap), tau_step, t_end,
-    //         initial_particles, uuid_generator);
-    // samplers().reserve(size(advected_particles));
-    // using namespace std::ranges;
-    // auto get_sampler = [](auto const& p) { return p.sampler(); };
-    // copy(advected_particles | views::transform(get_sampler),
-    //      std::back_inserter(samplers()));
-    ////}
     auto [advected_particles, simple_particles, edges] =
         particle_type::template advect<SplitBehavior>(
             std::forward<Flowmap>(flowmap), tau_step, t_end, initial_particles,
             uuid_generator);
+    auto initial_discretizations = std::vector<line<real_type, 2>>{};
+    std::ranges::copy(
+        initial_particles |
+            std::views::transform([](auto const& p) { return tatooine::geometry::discretize(p); }),
+        std::back_inserter(initial_discretizations));
+    write(initial_discretizations, "initial_particles.vtp");
+    auto advected_discretizations = std::vector<line<real_type, 2>>{};
+    std::ranges::copy(
+        advected_particles |
+            std::views::transform([](auto const& p) { return tatooine::geometry::discretize(p); }),
+        std::back_inserter(advected_discretizations));
+    write(advected_discretizations, "advected_particles.vtp");
+    auto advected_t0_discretizations = std::vector<line<real_type, 2>>{};
+    std::ranges::copy(
+        advected_particles |
+            std::views::transform([](auto const& p) { return tatooine::geometry::discretize(p.initial_ellipse()); }),
+        std::back_inserter(advected_t0_discretizations));
+    write(advected_t0_discretizations, "advected_t0_particles.vtp");
     using namespace std::ranges;
     auto points_forward = std::vector<std::pair<cgal_point, vertex_handle>>{};
     points_forward.reserve(size(advected_particles));
@@ -354,7 +279,7 @@ struct autonomous_particle_flowmap_discretization {
         // forward
         auto v                = m_pointset_forward.insert_vertex(p.x0());
         m_flowmaps_forward[v] = p.x();
-        m_flowmap_gradients_forward[v] = *inv(p.nabla_phi());
+        m_flowmap_gradients_forward[v] = p.nabla_phi();
         points_forward.emplace_back(cgal_point{m_pointset_forward[v](Is)...},
                                     v);
       }
@@ -362,7 +287,7 @@ struct autonomous_particle_flowmap_discretization {
         // backward
         auto v                 = m_pointset_backward.insert_vertex(p.x());
         m_flowmaps_backward[v] = p.x0();
-        m_flowmap_gradients_backward[v] = p.nabla_phi();
+        m_flowmap_gradients_backward[v] = *inv(p.nabla_phi());
         points_backward.emplace_back(cgal_point{m_pointset_backward[v](Is)...},
                                      v);
       }
@@ -373,44 +298,6 @@ struct autonomous_particle_flowmap_discretization {
     m_triangulation_backward =
         cgal_triangulation_type{begin(points_backward), end(points_backward)};
   }
-  //----------------------------------------------------------------------------
-  // template <std::size_t... VertexSeq>
-  //[[nodiscard]] auto sample(pos_type const&                    p,
-  //                          forward_or_backward_tag auto const direction,
-  //                          execution_policy::parallel_t [>pol<],
-  //                          std::index_sequence<VertexSeq...> [>seq<]) const {
-  //  struct data {
-  //    real_type                min_dist        =
-  //    std::numeric_limits<real_type>::max(); sampler_type const*
-  //    nearest_sampler = nullptr; pos_type            p;
-  //  };
-  //  auto best_per_thread = create_aligned_data_for_parallel<data>();
-  //
-  //  for_loop(
-  //      [&](auto const& sampler) {
-  //        auto&      best = *best_per_thread[omp_get_thread_num()];
-  //        auto const p1   = sampler.sample(p, direction);
-  //        if (auto const cur_dist =
-  //                euclidean_length(sampler.opposite_center(direction) - p1);
-  //            cur_dist < best.min_dist) {
-  //          best.min_dist         = cur_dist;
-  //          best.nearest_sampler = &sampler;
-  //          best.p                = p1;
-  //        }
-  //      },
-  //      execution_policy::parallel, samplers());
-  //
-  //  auto best = data{};
-  //  for (auto const b : best_per_thread) {
-  //    auto const& [min_dist, sampler, p] = *b;
-  //    if (min_dist < best.min_dist) {
-  //      best.min_dist         = min_dist;
-  //      best.nearest_sampler = sampler;
-  //      best.p                = p;
-  //    }
-  //  }
-  //  return best.p;
-  //}
   //----------------------------------------------------------------------------
  public:
   [[nodiscard]] auto sample(
