@@ -53,7 +53,7 @@ endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # create library target
 add_library(base INTERFACE)
-target_link_libraries(base INTERFACE Boost::program_options)
+target_link_libraries(base INTERFACE ${Boost_LIBRARIES})
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # set include dirs
 target_include_directories(base
@@ -122,7 +122,7 @@ if (NOT TATOOINE_DOC_ONLY)
 #===============================================================================
 # Boost
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-find_package(Boost COMPONENTS program_options REQUIRED)
+find_package(Boost REQUIRED)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # OpenMP
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -393,7 +393,7 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/available_libraries
                "${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/available_libraries.h")
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory
-#export(TARGETS base preprocessor
+#export(TARGETS base preprocessor geometry tensor CDT multidim_array
 #       NAMESPACE tatooine::
 #       FILE tatooineConfig.cmake
 #       EXPORT_LINK_INTERFACE_LIBRARIES)

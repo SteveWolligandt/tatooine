@@ -65,7 +65,14 @@ auto show(std::index_sequence<Is...> /*seq*/, Renderables&&... renderables) {
   using renderer_type_set = type_set<renderer<std::decay_t<Renderables>>...>;
 
   auto& window = detail::window::get();
-  auto const max_num_dimensions = tatooine::max(renderables.num_dimensions()...);
+  auto const max_num_dimensions = tatooine::max([&] {
+    using renderable_t = std::decay_t<decltype(renderables)>;
+    if constexpr (range<renderable_t>) {
+      return renderable_t::value_type::num_dimensions();
+    } else {
+      return renderables.num_dimensions();
+    }
+  }()...);
   if (max_num_dimensions == 2) {
     window.camera_controller().use_orthographic_camera();
     window.camera_controller().use_orthographic_controller();

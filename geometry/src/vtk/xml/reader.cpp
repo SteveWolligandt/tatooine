@@ -140,7 +140,7 @@ auto reader::read_point_data(rapidxml::xml_node<>* node) -> void {
   }
 }
 //==============================================================================
-auto reader::read_cell_data(rapidxml::xml_node<>* node) -> void {}
+auto reader::read_cell_data(rapidxml::xml_node<>* /*node*/) -> void {}
 //==============================================================================
 }  // namespace tatooine::vtk::xml
 //==============================================================================

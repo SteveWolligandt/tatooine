@@ -8,6 +8,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/blaspp)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 update_git_submodule(${CMAKE_CURRENT_SOURCE_DIR}/external/lapackpp)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/lapackpp)
+target_compile_options(lapackpp INTERFACE -Wno-unused-parameter)
 target_compile_definitions(tensor INTERFACE LAPACK_COMPLEX_CPP)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 target_link_libraries(tensor
