@@ -133,7 +133,7 @@ struct numerical_flowmap {
     if (tau == 0) {
       return pos_type{x0};
     }
-    auto x1 = pos_type{};
+    auto x1 = pos_type::fill(0.0 / 0.0);
     if (!m_use_caching) {
       auto callback = [t0, &x0, &x1, tau](const auto& y, auto const t) {
         if (t0 + tau == t) {

@@ -30,6 +30,133 @@ auto write_container_properties_to_vtk(Writer& writer, Names const& names,
 }
 //------------------------------------------------------------------------------
 template <typename LineCont>
+void write_line_container_to_vtp(LineCont const&         lines,
+                                 filesystem::path const& path) {
+  using real_type = typename std::decay_t<LineCont>::value_type::real_type;
+  auto file       = std::ofstream{path, std::ios::binary};
+  if (!file.is_open()) {
+    throw std::runtime_error{"Could not write " + path.string()};
+  }
+  auto offset              = std::size_t{};
+  using header_type        = std::uint32_t;
+  using connectivity_int_t = std::int32_t;
+  using offset_int_t       = connectivity_int_t;
+  file << "<VTKFile"
+       << " type=\"PolyData\""
+       << " version=\"1.0\" "
+          "byte_order=\"LittleEndian\""
+       << " header_type=\""
+       << vtk::xml::data_array::to_string(
+              vtk::xml::data_array::to_type<header_type>())
+       << "\">\n";
+  file << "  <PolyData>\n";
+  for (auto const& line : lines) {
+    file << "    <Piece"
+         << " NumberOfPoints=\"" << line.vertices().size() << "\""
+         << " NumberOfPolys=\"0\""
+         << " NumberOfVerts=\"0\""
+         << " NumberOfLines=\""
+         << (line.vertices().size() - (line.is_closed() ? 0 : 1)) << "\""
+         << " NumberOfStrips=\"0\""
+         << ">\n";
+
+    // Points
+    file << "      <Points>\n";
+    file << "        <DataArray"
+         << " format=\"appended\""
+         << " offset=\"" << offset << "\""
+         << " type=\""
+         << vtk::xml::data_array::to_string(
+                vtk::xml::data_array::to_type<real_type>())
+         << "\" NumberOfComponents=\"3\"/>\n";
+    auto const num_bytes_points =
+        header_type(sizeof(real_type) * 3 * line.vertices().size());
+    offset += num_bytes_points + sizeof(header_type);
+    file << "      </Points>\n";
+
+    // Lines
+    file << "      <Lines>\n";
+    // Lines - connectivity
+    file << "        <DataArray format=\"appended\" offset=\"" << offset
+         << "\" type=\""
+         << vtk::xml::data_array::to_string(
+                vtk::xml::data_array::to_type<connectivity_int_t>())
+         << "\" Name=\"connectivity\"/>\n";
+    auto const num_bytes_connectivity =
+        (line.vertices().size() - (line.is_closed() ? 0 : 1)) * 2 *
+        sizeof(connectivity_int_t);
+    offset += num_bytes_connectivity + sizeof(header_type);
+    // Lines - offsets
+    file << "        <DataArray format=\"appended\" offset=\"" << offset
+         << "\" type=\""
+         << vtk::xml::data_array::to_string(
+                vtk::xml::data_array::to_type<offset_int_t>())
+         << "\" Name=\"offsets\"/>\n";
+    auto const num_bytes_offsets =
+        sizeof(offset_int_t) *
+        (line.vertices().size() - (line.is_closed() ? 0 : 1));
+    offset += num_bytes_offsets + sizeof(header_type);
+    file << "      </Lines>\n";
+    file << "    </Piece>\n";
+  }
+  file << "  </PolyData>\n";
+  file << "  <AppendedData encoding=\"raw\">\n    _";
+
+  // Writing vertex data to appended data section
+  auto arr_size = header_type{};
+  for (auto const& line : lines) {
+    arr_size      = header_type(sizeof(real_type) * 3 * line.vertices().size());
+    file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
+    auto zero = real_type(0);
+    for (auto const v : line.vertices()) {
+      if constexpr (std::decay_t<decltype(line)>::num_dimensions() == 2) {
+        file.write(reinterpret_cast<char const*>(line[v].data()),
+                   sizeof(real_type) * 2);
+        file.write(reinterpret_cast<char const*>(&zero), sizeof(real_type));
+      } else if constexpr (std::decay_t<decltype(line)>::num_dimensions() ==
+                           3) {
+        file.write(reinterpret_cast<char const*>(line[v].data()),
+                   sizeof(real_type) * 3);
+      }
+    }
+
+    // Writing lines connectivity data to appended data section
+    {
+      auto connectivity_data = std::vector<connectivity_int_t>{};
+      connectivity_data.reserve(
+          (line.vertices().size() - (line.is_closed() ? 0 : 1)) * 2);
+      for (std::size_t i = 0; i < line.vertices().size() - 1; ++i) {
+        connectivity_data.push_back(i);
+        connectivity_data.push_back(i + 1);
+      }
+      if (line.is_closed()) {
+        connectivity_data.push_back(line.vertices().size() - 1);
+        connectivity_data.push_back(0);
+      }
+      arr_size = connectivity_data.size() * sizeof(connectivity_int_t);
+      file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
+      file.write(reinterpret_cast<char const*>(connectivity_data.data()),
+                 arr_size);
+    }
+
+    // Writing lines offsets to appended data section
+    {
+      auto offsets = std::vector<offset_int_t>(
+          line.vertices().size() - (line.is_closed() ? 0 : 1), 2);
+      for (std::size_t i = 1; i < size(offsets); ++i) {
+        offsets[i] += offsets[i - 1];
+      }
+      arr_size = sizeof(offset_int_t) *
+                 (line.vertices().size() - (line.is_closed() ? 0 : 1));
+      file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
+      file.write(reinterpret_cast<char const*>(offsets.data()), arr_size);
+    }
+  }
+  file << "\n  </AppendedData>\n";
+  file << "</VTKFile>";
+}
+//------------------------------------------------------------------------------
+template <typename LineCont>
 void write_line_container_to_vtk(LineCont const&         lines,
                                  filesystem::path const& path,
                                  std::string const&      title) {
@@ -180,6 +307,12 @@ auto filter_length(range auto const& lines, arithmetic auto const length) {
 namespace tatooine {
 //==============================================================================
 template <typename Real, std::size_t NumDimensions>
+void write_vtp(const std::vector<line<Real, NumDimensions>>& lines,
+               const filesystem::path&                       path) {
+  detail::line::write_line_container_to_vtp(lines, path);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Real, std::size_t NumDimensions>
 void write_vtk(const std::vector<line<Real, NumDimensions>>& lines,
                const filesystem::path&                       path,
                const std::string& title = "tatooine lines") {
@@ -201,9 +334,9 @@ void write(const std::vector<line<Real, NumDimensions>>& lines,
     if (ext == ".vtk") {
       write_vtk(lines, path);
       return;
-      //} else if (ext == ".vtp") {
-      //  write_vtp(lines, path);
-      //  return;
+    } else if (ext == ".vtp") {
+      write_vtp(lines, path);
+      return;
     }
   }
   throw std::runtime_error("Could not write lines. Unknown file extension: \"" +
@@ -218,9 +351,9 @@ void write(const std::list<line<Real, NumDimensions>>& lines,
     if (ext == ".vtk") {
       write_vtk(lines, path);
       return;
-      //} else if (ext == ".vtp") {
-      //  write_vtp(lines, path);
-      //  return;
+    } else if (ext == ".vtp") {
+      write_vtp(lines, path);
+      return;
     }
   }
   throw std::runtime_error("Could not write lines. Unknown file extension: \"" +
@@ -251,25 +384,6 @@ auto filter_length(const std::list<line<Real, NumDimensions>>& lines,
                    MaxDist                                     max_dist) {
   return detail::line::filter_length(lines, max_dist);
 }
-////------------------------------------------------------------------------------
-// template <typename Real, std::size_t NumDimensions,
-//           template <typename> typename InterpolationKernel>
-// void write_vtk(
-//     const std::vector<parameterized_line<Real, NumDimensions,
-//     InterpolationKernel>>& lines, const filesystem::path& path, const
-//     std::string& title = "tatooine lines") {
-//   detail::line::write_line_container_to_vtk(lines, path, title);
-// }
-//// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-///-
-// template <typename Real, std::size_t NumDimensions,
-//           template <typename> typename InterpolationKernel>
-// void write_vtk(
-//     const std::list<parameterized_line<Real, NumDimensions,
-//     InterpolationKernel>>& lines, const filesystem::path& path, const
-//     std::string& title = "tatooine lines") {
-//   detail::line::write_line_container_to_vtk(lines, path, title);
-// }
 //==============================================================================
 /// \brief      merge line strips
 template <typename Real, std::size_t NumDimensions>

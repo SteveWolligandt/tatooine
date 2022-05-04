@@ -642,10 +642,10 @@ struct line {
     if (!file.is_open()) {
       throw std::runtime_error{"Could not write " + path.string()};
     }
-    auto offset                    = std::size_t{};
-    using header_type              = std::uint64_t;
-    using lines_connectivity_int_t = std::int32_t;
-    using lines_offset_int_t       = lines_connectivity_int_t;
+    auto offset              = std::size_t{};
+    using header_type        = std::uint32_t;
+    using connectivity_int_t = std::int32_t;
+    using offset_int_t       = connectivity_int_t;
     file << "<VTKFile"
          << " type=\"PolyData\""
          << " version=\"1.0\" "
@@ -653,93 +653,99 @@ struct line {
          << " header_type=\""
          << vtk::xml::data_array::to_string(
                 vtk::xml::data_array::to_type<header_type>())
-         << "\">";
-    file << "<PolyData>\n";
-    file << "<Piece"
+         << "\">\n";
+    file << "  <PolyData>\n";
+    file << "    <Piece"
          << " NumberOfPoints=\"" << vertices().size() << "\""
          << " NumberOfPolys=\"0\""
          << " NumberOfVerts=\"0\""
-         << " NumberOfLines=\"0\""
-         //<< " NumberOfLines=\"" << vertices().size()-1 << "\""
+         << " NumberOfLines=\"" << (vertices().size() - (is_closed() ? 0 : 1)) << "\""
          << " NumberOfStrips=\"0\""
          << ">\n";
 
     // Points
-    file << "<Points>";
-    file << "<DataArray"
+    file << "      <Points>\n";
+    file << "        <DataArray"
          << " format=\"appended\""
          << " offset=\"" << offset << "\""
          << " type=\""
          << vtk::xml::data_array::to_string(
                 vtk::xml::data_array::to_type<real_type>())
-         << "\" NumberOfComponents=\"" << num_dimensions() << "\"/>";
+         << "\" NumberOfComponents=\"3\"/>\n";
     auto const num_bytes_points =
         header_type(sizeof(real_type) * 3 * vertices().size());
     offset += num_bytes_points + sizeof(header_type);
-    file << "</Points>\n";
+    file << "      </Points>\n";
 
     // Lines
-    file << "<Lines>\n";
+    file << "      <Lines>\n";
     // Lines - connectivity
-    file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
+    file << "        <DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
          << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<lines_connectivity_int_t>())
+                vtk::xml::data_array::to_type<connectivity_int_t>())
          << "\" Name=\"connectivity\"/>\n";
-    auto const num_bytes_lines_connectivity =
-        (vertices().size() - 1) * 2 * sizeof(lines_connectivity_int_t);
-    offset += num_bytes_lines_connectivity + sizeof(header_type);
+    auto const num_bytes_connectivity =
+        (vertices().size() - (is_closed() ? 0 : 1)) * 2 * sizeof(connectivity_int_t);
+    offset += num_bytes_connectivity + sizeof(header_type);
     // Lines - offsets
-    file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
+    file << "        <DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
          << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<lines_offset_int_t>())
+                vtk::xml::data_array::to_type<offset_int_t>())
          << "\" Name=\"offsets\"/>\n";
-    auto const num_bytes_lines_offsets =
-        sizeof(lines_offset_int_t) * (vertices().size() - 1) * 2;
-    offset += num_bytes_lines_offsets + sizeof(header_type);
-    file << "</Lines>\n";
-    file << "</Piece>\n";
-    file << "</PolyData>\n";
-    file << "<AppendedData encoding=\"raw\">_";
+    auto const num_bytes_offsets =
+        sizeof(offset_int_t) * (vertices().size() - (is_closed() ? 0 : 1));
+    offset += num_bytes_offsets + sizeof(header_type);
+    file << "      </Lines>\n";
+    file << "    </Piece>\n";
+    file << "  </PolyData>\n";
+    file << "  <AppendedData encoding=\"raw\">\n    _";
     // Writing vertex data to appended data section
     auto arr_size = header_type{};
-    arr_size =
-        header_type(sizeof(real_type) * num_dimensions() * vertices().size());
+    arr_size      = header_type(sizeof(real_type) * 3 * vertices().size());
     file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
-    std::cout << "arr_size: " << arr_size << '\n';
-    std::cout << "header_type: " << sizeof(header_type) << '\n';
+    auto zero = real_type(0);
     for (auto const v : vertices()) {
-      file.write(reinterpret_cast<char const*>(at(v).data()),
-                 sizeof(Real) * num_dimensions());
+      if constexpr (num_dimensions() == 2) {
+        file.write(reinterpret_cast<char const*>(at(v).data()),
+                   sizeof(real_type) * 2);
+        file.write(reinterpret_cast<char const*>(&zero), sizeof(real_type));
+      } else if constexpr (num_dimensions() == 3) {
+        file.write(reinterpret_cast<char const*>(at(v).data()),
+                   sizeof(real_type) * 3);
+      }
     }
 
-    //// Writing lines connectivity data to appended data section
-    //{
-    //  auto connectivity_data = std::vector<lines_connectivity_int_t>{};
-    //  connectivity_data.reserve((vertices().size() - 1) * 2);
-    //  for (std::size_t i = 0; i < vertices().size() - 1; ++i) {
-    //    connectivity_data.push_back(i);
-    //    connectivity_data.push_back(i + 1);
-    //  }
-    //  arr_size = connectivity_data.size() *
-    //             sizeof(lines_connectivity_int_t);
-    //  file.write(reinterpret_cast<char const*>(&arr_size),
-    //             sizeof(header_type));
-    //  file.write(reinterpret_cast<char const*>(connectivity_data.data()),
-    //             arr_size);
-    //}
-    //
-    //// Writing lines offsets to appended data section
-    //{
-    //  auto offsets = std::vector<lines_offset_int_t>(vertices().size(), 1);
-    //  for (std::size_t i = 1; i < size(offsets); ++i) {
-    //    offsets[i] += offsets[i - 1];
-    //  }
-    //  arr_size = sizeof(lines_offset_int_t) * (vertices().size()-1)*2;
-    //  file.write(reinterpret_cast<char const*>(&arr_size),
-    //             sizeof(header_type));
-    //  file.write(reinterpret_cast<char const*>(offsets.data()), arr_size);
-    //}
-    file << "</AppendedData>";
+    // Writing lines connectivity data to appended data section
+    {
+      auto connectivity_data = std::vector<connectivity_int_t>{};
+      connectivity_data.reserve((vertices().size() - (is_closed() ? 0 : 1)) * 2);
+      for (std::size_t i = 0; i < vertices().size() - 1; ++i) {
+        connectivity_data.push_back(i);
+        connectivity_data.push_back(i + 1);
+      }
+      if (is_closed()) {
+        connectivity_data.push_back(vertices().size() - 1);
+        connectivity_data.push_back(0);
+      }
+      arr_size = connectivity_data.size() * sizeof(connectivity_int_t);
+      file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
+      file.write(reinterpret_cast<char const*>(connectivity_data.data()),
+                 arr_size);
+    }
+
+    // Writing lines offsets to appended data section
+    {
+      auto offsets =
+          std::vector<offset_int_t>(vertices().size() - (is_closed() ? 0 : 1), 2);
+      for (std::size_t i = 1; i < size(offsets); ++i) {
+        offsets[i] += offsets[i - 1];
+      }
+      arr_size =
+          sizeof(offset_int_t) * (vertices().size() - (is_closed() ? 0 : 1));
+      file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
+      file.write(reinterpret_cast<char const*>(offsets.data()), arr_size);
+    }
+    file << "\n  </AppendedData>\n";
     file << "</VTKFile>";
   }
   //----------------------------------------------------------------------------

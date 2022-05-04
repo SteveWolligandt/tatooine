@@ -904,9 +904,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     // initialize ghosts
     for (std::size_t i = 0; i < num_dimensions(); ++i) {
       ghosts_positive_offset.col(i) = x();
+      ghosts_negative_offset.col(i) = x();
     }
-    ghosts_negative_offset = ghosts_positive_offset;
-
     ghosts_positive_offset += B;
     ghosts_negative_offset -= B;
 
@@ -915,12 +914,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     // simple massless particle
     auto t_advected = t();
     while (t_advected < t_end) {
-      // increase time
       if (t_advected + stepwidth > t_end) {
         stepwidth  = t_end - t_advected;
-        t_advected = t_end;
-      } else {
-        t_advected += stepwidth;
       }
 
       // advect center and ghosts
@@ -928,6 +923,13 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
           phi(advected_ellipse.center(), t_advected, stepwidth);
       ghosts_positive_offset  = phi(ghosts_positive_offset, t_advected, stepwidth);
       ghosts_negative_offset = phi(ghosts_negative_offset, t_advected, stepwidth);
+
+      // increase time
+      if (t_advected + stepwidth > t_end) {
+        t_advected = t_end;
+      } else {
+        t_advected += stepwidth;
+      }
 
       // make computations
       H = (ghosts_positive_offset - ghosts_negative_offset) * half;
