@@ -6,10 +6,10 @@
 namespace tatooine {
 //==============================================================================
 /// For each type T in Ts it will be checked if F is invocable with n-times T.
-/// E.g. invocable_with_n_types<F, 2, int, unsigned int> checks if F is
+/// E.g. is_invocable_with_n_types_impl<F, 2, int, unsigned int> checks if F is
 /// invocable with (int, int) and (unsigned int, unsigned int)
 template <typename F, std::size_t N, typename... Ts>
-struct invocable_with_n_types {
+struct is_invocable_with_n_types_impl {
   //----------------------------------------------------------------------------
  private:
   template <typename T, std::size_t... NTimes>
@@ -23,23 +23,31 @@ struct invocable_with_n_types {
 };
 //==============================================================================
 template <typename F, std::size_t N>
-struct invocable_with_n_integrals
-    : invocable_with_n_types<F, N, bool, char, unsigned char, char8_t, char16_t,
+struct is_invocable_with_n_integrals_impl
+    : is_invocable_with_n_types_impl<F, N, bool, char, unsigned char, char16_t,
                              char32_t, wchar_t, short, unsigned short, int,
                              unsigned int, long, unsigned long, long long,
                              unsigned long long> {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename F, std::size_t N>
-static constexpr bool invocable_with_n_integrals_v =
-    invocable_with_n_integrals<F, N>::value;
+static constexpr bool is_invocable_with_n_integrals =
+    is_invocable_with_n_integrals_impl<F, N>::value;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename F, std::size_t N>
-struct invocable_with_n_floating_points
-    : invocable_with_n_types<F, N, float, double, long double> {};
+concept invocable_with_n_integrals =
+    is_invocable_with_n_integrals<F, N>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename F, std::size_t N>
-static constexpr bool invocable_with_n_floating_points_v =
-    invocable_with_n_floating_points<F, N>::value;
+struct is_invocable_with_n_floating_points_impl
+    : is_invocable_with_n_types_impl<F, N, float, double, long double> {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename F, std::size_t N>
+static constexpr bool is_invocable_with_n_floating_points =
+    is_invocable_with_n_floating_points_impl<F, N>::value;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename F, std::size_t N>
+concept invocable_with_n_floating_points =
+    is_invocable_with_n_floating_points<F, N>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

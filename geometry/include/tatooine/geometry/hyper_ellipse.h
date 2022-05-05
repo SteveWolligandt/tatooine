@@ -1,9 +1,9 @@
 #ifndef TATOOINE_GEOMETRY_HYPER_ELLIPSE_H
 #define TATOOINE_GEOMETRY_HYPER_ELLIPSE_H
 //==============================================================================
+#include <tatooine/line.h>
 #include <tatooine/reflection.h>
 #include <tatooine/tensor.h>
-#include <tatooine/line.h>
 #include <tatooine/transposed_tensor.h>
 #include <tatooine/unstructured_triangular_grid.h>
 //==============================================================================
@@ -13,16 +13,16 @@ template <floating_point Real, std::size_t NumDimensions>
 struct hyper_ellipse {
   static_assert(NumDimensions > 1);
   using this_type = hyper_ellipse<Real, NumDimensions>;
-  using vec_t     = vec<Real, NumDimensions>;
-  using pos_type     = vec_t;
+  using vec_type  = vec<Real, NumDimensions>;
+  using pos_type  = vec_type;
   using mat_t     = mat<Real, NumDimensions, NumDimensions>;
   using real_type = Real;
   static auto constexpr num_dimensions() { return NumDimensions; }
   //----------------------------------------------------------------------------
  private:
   //----------------------------------------------------------------------------
-  vec_t m_center = vec_t::zeros();
-  mat_t m_S      = mat_t::eye();
+  vec_type m_center = vec_type::zeros();
+  mat_t    m_S      = mat_t::eye();
   //----------------------------------------------------------------------------
  public:
   //----------------------------------------------------------------------------
@@ -42,11 +42,11 @@ struct hyper_ellipse {
   constexpr hyper_ellipse(Real const radius) : m_S{mat_t::eye() * radius} {}
   //----------------------------------------------------------------------------
   /// Sets up a sphere with specified radius and origin point.
-  constexpr hyper_ellipse(Real const radius, vec_t const& center)
+  constexpr hyper_ellipse(Real const radius, vec_type const& center)
       : m_center{center}, m_S{mat_t::eye() * radius} {}
   //----------------------------------------------------------------------------
   /// Sets up a sphere with specified radius and origin point.
-  constexpr hyper_ellipse(vec_t const& center, Real const radius)
+  constexpr hyper_ellipse(vec_type const& center, Real const radius)
       : m_center{center}, m_S{mat_t::eye() * radius} {}
   //----------------------------------------------------------------------------
   /// Sets up a sphere with specified radius and origin point.
@@ -55,7 +55,9 @@ struct hyper_ellipse {
       : m_center{center}, m_S{S} {}
   //----------------------------------------------------------------------------
   /// Sets up a sphere with specified radii.
-  constexpr hyper_ellipse(vec_t const& center, arithmetic auto const... radii)
+  constexpr hyper_ellipse(vec_type const& center,
+                          arithmetic auto const... radii)
+  requires (sizeof...(radii) > 0)
       : m_center{center}, m_S{diag(vec{static_cast<Real>(radii)...})} {
     static_assert(sizeof...(radii) == NumDimensions,
                   "Number of radii does not match number of dimensions.");
@@ -64,20 +66,21 @@ struct hyper_ellipse {
   /// Sets up a sphere with specified radii.
   constexpr hyper_ellipse(arithmetic auto const... radii) requires(
       sizeof...(radii) > 1)
-      : m_center{pos_type::zeros()}, m_S(diag(vec{static_cast<Real>(radii)...})) {
+      : m_center{pos_type::zeros()},
+        m_S(diag(vec{static_cast<Real>(radii)...})) {
     static_assert(sizeof...(radii) == NumDimensions,
                   "Number of radii does not match number of dimensions.");
   }
   //----------------------------------------------------------------------------
   /// Fits an ellipse through specified points.
-  constexpr hyper_ellipse(fixed_size_vec<NumDimensions> auto const&... points) {
-    static_assert(sizeof...(points) == NumDimensions,
-                  "Number of points does not match number of dimensions.");
+  constexpr hyper_ellipse(fixed_size_vec<NumDimensions> auto const&... points) 
+  requires (sizeof...(points) == NumDimensions) {
     fit(points...);
   }
   //----------------------------------------------------------------------------
   /// Fits an ellipse through specified points
-  constexpr hyper_ellipse(fixed_size_quadratic_mat<NumDimensions> auto const& H) {
+  constexpr hyper_ellipse(
+      fixed_size_quadratic_mat<NumDimensions> auto const& H) {
     fit(H);
   }
   //============================================================================
@@ -172,7 +175,7 @@ struct hyper_ellipse {
   }
   //----------------------------------------------------------------------------
   auto discretize(std::size_t const num_vertices = 32) const
-    requires(NumDimensions == 2) {
+      requires(NumDimensions == 2) {
     using namespace std::ranges;
     auto radial = linspace<Real>{0.0, M_PI * 2, num_vertices + 1};
     radial.pop_back();
@@ -191,7 +194,7 @@ struct hyper_ellipse {
   }
   //----------------------------------------------------------------------------
   auto discretize(std::size_t const num_subdivisions = 2) const
-    requires(NumDimensions == 3) {
+      requires(NumDimensions == 3) {
     using grid_t            = tatooine::unstructured_triangular_grid<Real, 3>;
     using vh                = typename grid_t::vertex_handle;
     using edge_t            = std::pair<vh, vh>;
@@ -247,18 +250,17 @@ struct hyper_ellipse {
     return g;
   }
   //----------------------------------------------------------------------------
- public:
-  //----------------------------------------------------------------------------
-  /// Returns a the main axes of the hyper ellipse as a matrix and the lengths
-  /// of the axes as a vector.
-  auto main_axes() const {
+ public :
+     //----------------------------------------------------------------------------
+     /// Returns a the main axes of the hyper ellipse as a matrix and the
+     /// lengths of the axes as a vector.
+     auto
+     main_axes() const {
     return eigenvectors_sym(S());
   }
   //----------------------------------------------------------------------------
   /// Returns a the radii of the hyper ellipse as a vector.
-  auto radii() const {
-    return eigenvalues_sym(S());
-  }
+  auto radii() const { return eigenvalues_sym(S()); }
   //----------------------------------------------------------------------------
   /// Returns a the radii of the hyper ellipse as a vector.
   auto base_coordinate_system() const {
@@ -268,9 +270,8 @@ struct hyper_ellipse {
 };
 //------------------------------------------------------------------------------
 template <typename Real, std::size_t NumDimensions>
-requires(NumDimensions == 2 || NumDimensions == 3)
-auto discretize(hyper_ellipse<Real, NumDimensions> const& s,
-                std::size_t const n = 32) {
+requires(NumDimensions == 2 || NumDimensions == 3) auto discretize(
+    hyper_ellipse<Real, NumDimensions> const& s, std::size_t const n = 32) {
   return s.discretize(n);
 }
 template <std::size_t NumDimensions>
@@ -300,14 +301,13 @@ struct is_derived_from_hyper_ellipse_impl
           bool, std::is_class_v<T>&& decltype(is_derived_from_hyper_ellipse<T>(
                     0))::value> {};
 //==============================================================================
-}  // namespace detail::hyper_ellipse
+}  // namespace detail::geometry::hyper_ellipse
 //==============================================================================
 template <typename T>
 static auto constexpr is_derived_from_hyper_ellipse =
     detail::geometry::hyper_ellipse::is_derived_from_hyper_ellipse_impl<
         T>::value;
-static_assert(
-    is_derived_from_hyper_ellipse<geometry::HyperEllipse<2>>);
+static_assert(is_derived_from_hyper_ellipse<geometry::HyperEllipse<2>>);
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

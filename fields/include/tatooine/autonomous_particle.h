@@ -484,6 +484,86 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
         });
     return particles;
   }
+  //------------------------------------------------------------------------------
+  static auto particles_from_grid_small_filling_gaps(
+      real_type const                                      t0,
+      uniform_rectilinear_grid<Real, NumDimensions> const& g,
+      std::atomic_uint64_t&                                uuid_generator) {
+    auto       particles = container_type{};
+    auto       initial_particle_distribution = g.copy_without_properties();
+    auto const radius =
+        initial_particle_distribution.dimension(0).spacing() / 2;
+    for (std::size_t i = 0; i < NumDimensions; ++i) {
+      auto const spacing = initial_particle_distribution.dimension(i).spacing();
+      initial_particle_distribution.dimension(i).pop_front();
+      initial_particle_distribution.dimension(i).front() -= spacing / 2;
+      initial_particle_distribution.dimension(i).back() -= spacing / 2;
+    }
+    initial_particle_distribution.vertices().iterate_indices(
+        [&](auto const... is) {
+          particles.emplace_back(
+              initial_particle_distribution.vertex_at(is...), t0,
+              radius,
+              uuid_generator);
+        });
+     auto const small_radius =
+         (std::sqrt(2 * initial_particle_distribution.dimension(0).spacing() *
+                    initial_particle_distribution.dimension(0).spacing()) -
+          initial_particle_distribution.dimension(0).spacing()) /
+         2;
+
+     for (std::size_t i = 0; i < NumDimensions; ++i) {
+       auto const spacing =
+       initial_particle_distribution.dimension(i).spacing();
+       initial_particle_distribution.dimension(i).pop_front();
+       initial_particle_distribution.dimension(i).front() -= spacing / 2;
+       initial_particle_distribution.dimension(i).back() -= spacing / 2;
+     }
+     initial_particle_distribution.vertices().iterate_indices(
+         [&](auto const... is) {
+           particles.emplace_back(
+               initial_particle_distribution.vertex_at(is...), t0,
+               small_radius, uuid_generator);
+         });
+    return particles;
+  }
+  //------------------------------------------------------------------------------
+  static auto particles_from_grid_filling_gaps(
+      real_type const                                      t0,
+      uniform_rectilinear_grid<Real, NumDimensions> const& g,
+      std::atomic_uint64_t&                                uuid_generator) {
+    auto particles                     = container_type{};
+    auto initial_particle_distribution = g.copy_without_properties();
+    auto const radius = initial_particle_distribution.dimension(0).spacing() / 2;
+    for (std::size_t i = 0; i < NumDimensions; ++i) {
+      auto const spacing = initial_particle_distribution.dimension(i).spacing();
+      initial_particle_distribution.dimension(i).pop_front();
+      initial_particle_distribution.dimension(i).front() -= spacing / 2;
+      initial_particle_distribution.dimension(i).back() -= spacing / 2;
+    }
+    initial_particle_distribution.vertices().iterate_indices(
+        [&](auto const... is) {
+          particles.emplace_back(
+              initial_particle_distribution.vertex_at(is...), t0,
+              radius,
+              uuid_generator);
+        });
+
+     for (std::size_t i = 0; i < NumDimensions; ++i) {
+       auto const spacing =
+       initial_particle_distribution.dimension(i).spacing();
+       initial_particle_distribution.dimension(i).pop_front();
+       initial_particle_distribution.dimension(i).front() -= spacing / 2;
+       initial_particle_distribution.dimension(i).back() -= spacing / 2;
+     }
+     initial_particle_distribution.vertices().iterate_indices(
+         [&](auto const... is) {
+           particles.emplace_back(
+               initial_particle_distribution.vertex_at(is...), t0,
+               radius, uuid_generator);
+         });
+    return particles;
+  }
   //----------------------------------------------------------------------------
   /// Advects all particles in particles container in the flowmap phi until
   /// time `t_end` is reached.

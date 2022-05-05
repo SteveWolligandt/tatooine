@@ -20,9 +20,7 @@ struct autonomous_particle_flowmap_discretization {
   using pos_type               = vec_type;
   using gradient_type          = mat<real_type, NumDimensions, NumDimensions>;
   using particle_type          = autonomous_particle<real_type, NumDimensions>;
-  using sampler_type           = typename particle_type::sampler_type;
-  using sampler_container_type = std::vector<sampler_type>;
-  using mesh_type = unstructured_simplicial_grid<real_type, NumDimensions>;
+  using particle_list_type     = std::vector<particle_type>;
 
   using pointset_type = tatooine::pointset<Real, NumDimensions>;
   using vertex_handle = typename pointset_type::vertex_handle;
@@ -126,9 +124,9 @@ struct autonomous_particle_flowmap_discretization {
   template <typename Flowmap>
   autonomous_particle_flowmap_discretization(
       Flowmap&& flowmap, arithmetic auto const t_end,
-      arithmetic auto const             tau_step,
-      std::vector<particle_type> const& initial_particles,
-      std::atomic_uint64_t&             uuid_generator)
+      arithmetic auto const     tau_step,
+      particle_list_type const& initial_particles,
+      std::atomic_uint64_t&     uuid_generator)
       : m_flowmaps_forward{m_pointset_forward
                                .template vertex_property<pos_type>("flowmaps")},
         m_flowmap_gradients_forward{
@@ -167,42 +165,10 @@ struct autonomous_particle_flowmap_discretization {
     static_assert(
         std::decay_t<Flowmap>::num_dimensions() == NumDimensions,
         "Number of dimensions of flowmap does not match number of dimensions.");
-    auto initial_particle_distribution = g.copy_without_properties();
-    auto particles                     = std::vector<particle_type>{};
-    for (std::size_t i = 0; i < NumDimensions; ++i) {
-      auto const spacing = initial_particle_distribution.dimension(i).spacing();
-      initial_particle_distribution.dimension(i).pop_front();
-      initial_particle_distribution.dimension(i).front() -= spacing / 2;
-      initial_particle_distribution.dimension(i).back() -= spacing / 2;
-    }
-    initial_particle_distribution.vertices().iterate_indices(
-        [&](auto const... is) {
-          particles.emplace_back(
-              initial_particle_distribution.vertex_at(is...), t0,
-              initial_particle_distribution.dimension(0).spacing() / 2,
-              uuid_generator);
-        });
-    // auto const small_particle_size =
-    //     (std::sqrt(2 * initial_particle_distribution.dimension(0).spacing() *
-    //                initial_particle_distribution.dimension(0).spacing()) -
-    //      initial_particle_distribution.dimension(0).spacing()) /
-    //     2;
 
-    // for (std::size_t i = 0; i < NumDimensions; ++i) {
-    //   auto const spacing =
-    //   initial_particle_distribution.dimension(i).spacing();
-    //   initial_particle_distribution.dimension(i).pop_front();
-    //   initial_particle_distribution.dimension(i).front() -= spacing / 2;
-    //   initial_particle_distribution.dimension(i).back() -= spacing / 2;
-    // }
-    // initial_particle_distribution.vertices().iterate_indices(
-    //     [&](auto const... is) {
-    //       particles.emplace_back(
-    //           initial_particle_distribution.vertex_at(is...), t0,
-    //           small_particle_size);
-    //     });
-    fill(std::forward<Flowmap>(flowmap), particles, t0 + tau, tau_step,
-         uuid_generator);
+    fill(std::forward<Flowmap>(flowmap),
+         particle_type::particles_from_grid_filling_gaps(t0, g, uuid_generator),
+         t0 + tau, tau_step, uuid_generator);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename Flowmap>
@@ -259,14 +225,16 @@ struct autonomous_particle_flowmap_discretization {
     write(initial_discretizations, "initial_particles.vtp");
     auto advected_discretizations = std::vector<line<real_type, 2>>{};
     std::ranges::copy(
-        advected_particles |
-            std::views::transform([](auto const& p) { return tatooine::geometry::discretize(p); }),
+        advected_particles | std::views::transform([](auto const& p) {
+          return tatooine::geometry::discretize(p);
+        }),
         std::back_inserter(advected_discretizations));
     write(advected_discretizations, "advected_particles.vtp");
     auto advected_t0_discretizations = std::vector<line<real_type, 2>>{};
     std::ranges::copy(
-        advected_particles |
-            std::views::transform([](auto const& p) { return tatooine::geometry::discretize(p.initial_ellipse()); }),
+        advected_particles | std::views::transform([](auto const& p) {
+          return tatooine::geometry::discretize(p.initial_ellipse());
+        }),
         std::back_inserter(advected_t0_discretizations));
     write(advected_t0_discretizations, "advected_t0_particles.vtp");
     using namespace std::ranges;
