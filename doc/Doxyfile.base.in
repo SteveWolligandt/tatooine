@@ -1,8 +1,16 @@
 PROJECT_NAME           = "@CMAKE_PROJECT_NAME@"
 OUTPUT_DIRECTORY       = @CMAKE_CURRENT_BINARY_DIR@
 INPUT                  = @PROJECT_SOURCE_DIR@/include/ \
+                         @PROJECT_SOURCE_DIR@/preprocessor/include \
+                         @PROJECT_SOURCE_DIR@/multidim_array/include \
+                         @PROJECT_SOURCE_DIR@/tensor/include \
+                         @PROJECT_SOURCE_DIR@/geometry/include \
+                         @PROJECT_SOURCE_DIR@/gl/include \
+                         @PROJECT_SOURCE_DIR@/rendering/include \
+                         @PROJECT_SOURCE_DIR@/fields/include \
                          @PROJECT_SOURCE_DIR@/flowexplorer/include \
                          @PROJECT_SOURCE_DIR@/doc/pages/
+
 EXAMPLE_PATH           = @PROJECT_SOURCE_DIR@/examples/
 RECURSIVE              = YES
 MARKDOWN_SUPPORT       = YES

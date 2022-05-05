@@ -1425,6 +1425,41 @@ class rectilinear_grid {
   }
 #endif
   //============================================================================
+  template <invocable_with_n_integrals<num_dimensions()> F>
+  auto sample_to_vertex_property(F&& f, std::string const& name) -> auto& {
+    return sample_to_vertex_property(std::forward<F>(f), name,
+                                     execution_policy::sequential);
+  }
+  //----------------------------------------------------------------------------
+  template <invocable_with_n_integrals<num_dimensions()> F>
+  auto sample_to_vertex_property(F&& f, std::string const& name,
+                                 execution_policy_tag auto tag) -> auto& {
+    return sample_to_vertex_property(
+        std::forward<F>(f), name, tag,
+        std::make_index_sequence<num_dimensions()>{});
+  }
+  //----------------------------------------------------------------------------
+  template <invocable_with_n_integrals<num_dimensions()> F, std::size_t... Is>
+  auto sample_to_vertex_property(F&& f, std::string const& name,
+                                 execution_policy_tag auto tag,
+                                 std::index_sequence<Is...> /*seq*/) -> auto& {
+    using T    = std::invoke_result_t<F, decltype(Is)...>;
+    auto& prop = vertex_property<T>(name);
+    vertices().iterate_indices(
+        [&](auto const... is) {
+          try {
+            prop(is...) = f(is...);
+          } catch (std::exception&) {
+            if constexpr (tensor_num_components<T> == 1) {
+              prop(is...) = T{0.0 / 0.0};
+            } else {
+              prop(is...) = T::fill(0.0 / 0.0);
+            }
+          }
+        },
+        tag);
+    return prop;
+  }
   template <invocable<pos_type> F>
   auto sample_to_vertex_property(F&& f, std::string const& name) -> auto& {
     return sample_to_vertex_property(std::forward<F>(f), name,

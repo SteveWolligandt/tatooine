@@ -103,13 +103,13 @@ struct tensor
       : array_parent_type{rand} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <static_tensor OtherTensor>
-  requires(same_dimensions<this_type, OtherTensor>()) explicit constexpr tensor(
-      OtherTensor&& other)
+  requires(same_dimensions<this_type, OtherTensor>())
+  explicit constexpr tensor(OtherTensor&& other)
       : tensor_parent_type{std::forward<OtherTensor>(other)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <static_tensor OtherTensor>
-  requires(same_dimensions<this_type, OtherTensor>()) constexpr auto operator=(
-      OtherTensor&& other) -> tensor& {
+  requires(same_dimensions<this_type, OtherTensor>())
+  constexpr auto operator=(OtherTensor&& other) -> tensor& {
     // Check if the same matrix gets assigned as its transposed version. If yes
     // just swap components.
     if constexpr (transposed_tensor<OtherTensor>) {
