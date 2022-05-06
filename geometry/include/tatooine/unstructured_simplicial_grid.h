@@ -11,6 +11,7 @@
 #include <tatooine/available_libraries.h>
 #include <tatooine/axis_aligned_bounding_box.h>
 #include <tatooine/detail/unstructured_simplicial_grid/hierarchy.h>
+#include <tatooine/detail/unstructured_simplicial_grid/triangular_vtp_writer.h>
 #include <tatooine/pointset.h>
 #include <tatooine/property.h>
 #include <tatooine/rectilinear_grid.h>
@@ -841,123 +842,15 @@ struct unstructured_simplicial_grid
          << "</VTKFile>";
   }
   //----------------------------------------------------------------------------
+  template <unsigned_integral HeaderType      = std::uint64_t,
+            integral ConnectivityInt = std::int64_t,
+            integral OffsetInt       = std::int64_t,
+            unsigned_integral CellTypesInt    = std::uint8_t>
   auto write_vtp_triangular(filesystem::path const& path) const
       requires((NumDimensions == 2 || NumDimensions == 3) && SimplexDim == 2) {
-    auto file = std::ofstream{path, std::ios::binary};
-    if (!file.is_open()) {
-      throw std::runtime_error{"Could not write " + path.string()};
-    }
-    auto offset                       = std::size_t{};
-    using header_type                 = std::uint64_t;
-    using polys_connectivity_int_type = std::int64_t;
-    using polys_offset_int_type       = polys_connectivity_int_type;
-    auto const num_bytes_points =
-        header_type(sizeof(Real) * 3 * vertices().size());
-    auto const num_bytes_polys_connectivity =
-        simplices().size() * num_vertices_per_simplex() *
-        sizeof(polys_connectivity_int_type);
-    auto const num_bytes_polys_offsets =
-        sizeof(polys_offset_int_type) * simplices().size();
-    file << "<VTKFile"
-         << " type=\"PolyData\""
-         << " version=\"1.0\""
-         << " byte_order=\"LittleEndian\""
-         << " header_type=\""
-         << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<header_type>())
-         << "\">\n"
-         << "<PolyData>\n"
-         << "<Piece"
-         << " NumberOfPoints=\"" << vertices().size() << "\""
-         << " NumberOfPolys=\"" << simplices().size() << "\""
-         << " NumberOfVerts=\"0\""
-         << " NumberOfLines=\"0\""
-         << " NumberOfStrips=\"0\""
-         << ">\n"
-         // Points
-         << "<Points>"
-         << "<DataArray"
-         << " format=\"appended\""
-         << " offset=\"" << offset << "\""
-         << " type=\""
-         << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<Real>())
-         << "\" NumberOfComponents=\"3\"/>"
-         << "</Points>\n";
-    offset += num_bytes_points + sizeof(header_type);
-    // Polys
-    file << "<Polys>\n"
-         // Polys - connectivity
-         << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
-         << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<polys_connectivity_int_type>())
-         << "\" Name=\"connectivity\"/>\n";
-    offset += num_bytes_polys_connectivity + sizeof(header_type);
-    // Polys - offsets
-    file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
-         << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<polys_offset_int_type>())
-         << "\" Name=\"offsets\"/>\n";
-    offset += num_bytes_polys_offsets + sizeof(header_type);
-    file << "</Polys>\n"
-         << "</Piece>\n"
-         << "</PolyData>\n"
-         << "<AppendedData encoding=\"raw\">\n_";
-    // Writing vertex data to appended data section
-
-    using namespace std::ranges;
-    {
-      file.write(reinterpret_cast<char const*>(&num_bytes_points),
-                 sizeof(header_type));
-      if constexpr (NumDimensions == 2) {
-        auto point_data = std::vector<vec<Real, 3>>(vertices().size());
-        auto position   = [this](auto const v) -> auto& { return at(v); };
-        auto it         = begin(point_data);
-        for (auto const v : vertices()) {
-          if constexpr (NumDimensions == 2) {
-            *it = vec{at(v).x(), at(v).y(), Real(0)};
-          } else {
-            *it = at(v);
-          }
-          ++it;
-        }
-        file.write(reinterpret_cast<char const*>(point_data.data()),
-                   num_bytes_points);
-      } else if constexpr (NumDimensions == 3) {
-        file.write(reinterpret_cast<char const*>(vertices().data()),
-                   num_bytes_points);
-      }
-    }
-
-    // Writing polys connectivity data to appended data section
-    {
-      auto connectivity_data = std::vector<polys_connectivity_int_type>(
-          simplices().size() * num_vertices_per_simplex());
-      auto index = [](auto const x) -> polys_connectivity_int_type {
-        return x.index();
-      };
-      copy(simplices().data_container() | views::transform(index),
-           begin(connectivity_data));
-      file.write(reinterpret_cast<char const*>(&num_bytes_polys_connectivity),
-                 sizeof(header_type));
-      file.write(reinterpret_cast<char const*>(connectivity_data.data()),
-                 num_bytes_polys_connectivity);
-    }
-
-    // Writing polys offsets to appended data section
-    {
-      auto offsets = std::vector<polys_offset_int_type>(
-          simplices().size(), num_vertices_per_simplex());
-      for (std::size_t i = 1; i < size(offsets); ++i) {
-        offsets[i] += offsets[i - 1];
-      };
-      file.write(reinterpret_cast<char const*>(&num_bytes_polys_offsets),
-                 sizeof(header_type));
-      file.write(reinterpret_cast<char const*>(offsets.data()),
-                 num_bytes_polys_offsets);
-    }
-    file << "\n</AppendedData>\n"
-         << "</VTKFile>";
+    detail::unstructured_simplicial_grid::triangular_vtp_writer<
+        this_type, HeaderType, ConnectivityInt, OffsetInt, CellTypesInt>{*this}
+        .write(path);
   }
   //----------------------------------------------------------------------------
   auto write_unstructured_triangular_grid_vtk(std::filesystem::path const& path,

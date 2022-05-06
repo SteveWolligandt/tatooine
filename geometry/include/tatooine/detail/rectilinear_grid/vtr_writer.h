@@ -255,7 +255,6 @@ requires(Grid::num_dimensions() == 2 ||
                      sizeof(tensor_value_type<T>) * tensor_dimension<T, 0>);
         });
       }
-    } else {
     }
   }
   //----------------------------------------------------------------------------
