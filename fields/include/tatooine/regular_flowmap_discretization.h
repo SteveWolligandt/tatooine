@@ -90,14 +90,11 @@ struct regular_flowmap_discretization {
         m_forward_discretization{
             &m_forward_grid.template vertex_property<pos_type>(
                 "forward_discretization")},
-        // m_forward_sampler{m_forward_discretization->inverse_distance_weighting_sampler(0.1)},
         m_forward_sampler{m_forward_discretization->linear_sampler()},
         m_backward_grid{m_forward_grid},
         m_backward_discretization{
             &m_backward_grid.template vertex_property<pos_type>(
                 "backward_discretization")},
-        // m_backward_sampler{
-        //     m_backward_grid.inverse_distance_weighting_sampler(*m_backward_discretization)}
         m_backward_sampler{
             m_backward_grid.sampler(*m_backward_discretization)} {
     fill(std::forward<Flowmap>(flowmap), execution_policy);
@@ -150,21 +147,21 @@ struct regular_flowmap_discretization {
   //----------------------------------------------------------------------------
   template <typename Flowmap, typename ExecutionPolicy>
   auto fill(Flowmap&& flowmap, ExecutionPolicy execution_policy) -> void {
-    m_forward_grid.vertices().iterate_indices(
-        [&](auto const... is) {
+    std::size_t i = 0;
+    m_forward_grid.sample_to_vertex_property(
+        [&](auto const& x) {
           auto flowmap2 = flowmap;
           if constexpr (requires { flowmap2.use_caching(false); }) {
             flowmap2.use_caching(false);
           }
-          m_forward_discretization->at(is...) =
-              flowmap2(m_forward_grid.vertex_at(is...), m_t0, m_tau);
+          auto const map = flowmap2(x, m_t0, m_tau);
+          m_backward_discretization->at(i++) = map;
+          return map;
         },
-        tatooine::execution_policy::sequential);
+        "forward_discretization", execution_policy);
+    m_forward_grid.write("forward.vtr");
+    m_backward_grid.write("backward.vtp");
 
-    for (auto v : m_forward_grid.vertices()) {
-      m_backward_discretization->at(typename backward_grid_type::vertex_handle{
-          v.plain_index()}) = m_forward_discretization->at(v);
-    }
     for (auto v : m_backward_grid.vertices()) {
       for (std::size_t i = 0; i < N; ++i) {
         std::swap(m_backward_discretization->at(v)(i), m_backward_grid[v](i));
