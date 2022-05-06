@@ -38,7 +38,7 @@ requires(Grid::num_dimensions() == 2 ||
  private:
   auto write_vtk_file(std::ofstream& file, auto& offset) const {
     file << "<VTKFile"
-         << " type=\"PolyData\""
+         << " type=\"UnstructuredGrid\""
          << " version=\"1.0\""
          << " byte_order=\"LittleEndian\""
          << " header_type=\""
@@ -51,18 +51,15 @@ requires(Grid::num_dimensions() == 2 ||
   }
   //----------------------------------------------------------------------------
   auto write_polydata(std::ofstream& file, auto& offset) const {
-    file << "  <PolyData>\n";
+    file << "  <UnstructuredGrid>\n";
     write_piece(file, offset);
-    file << "  </PolyData>\n";
+    file << "  </UnstructuredGrid>\n";
   }
   //----------------------------------------------------------------------------
   auto write_piece(std::ofstream& file, auto& offset) const {
     file << "    <Piece"
          << " NumberOfPoints=\"" << m_grid.vertices().size() << "\""
-         << " NumberOfPolys=\"" << m_grid.simplices().size() << "\""
-         << " NumberOfVerts=\"0\""
-         << " NumberOfLines=\"0\""
-         << " NumberOfStrips=\"0\""
+         << " NumberOfCells=\"" << m_grid.simplices().size() << "\""
          << ">\n";
     write_points(file, offset);
     write_cells(file, offset);
@@ -128,7 +125,7 @@ requires(Grid::num_dimensions() == 2 ||
          << "\" type=\""
          << vtk::xml::data_array::to_string(
                 vtk::xml::data_array::to_type<CellTypesInt>())
-         << "\" Name=\"offsets\"/>\n";
+         << "\" Name=\"types\"/>\n";
     file << "      </Cells>\n";
     auto const num_bytes_celltypes =
         sizeof(CellTypesInt) * (m_grid.simplices().size() + 1);
