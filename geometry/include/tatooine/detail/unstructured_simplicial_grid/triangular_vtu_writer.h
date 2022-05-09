@@ -94,12 +94,18 @@ requires(Grid::num_dimensions() == 2 ||
                 vtk::xml::data_array::to_type<typename Grid::real_type>())
          << "\" NumberOfComponents=\"3\"/>\n"
          << "      </Points>\n";
-    auto const num_bytes_points = HeaderType(sizeof(typename Grid::real_type) *
-                                             3 * m_grid.vertices().size());
-    offset += num_bytes_points + sizeof(HeaderType);
+    auto const num_bytes = HeaderType(sizeof(typename Grid::real_type) * 3 *
+                                      m_grid.vertices().size());
+    offset += num_bytes + sizeof(HeaderType);
   }
   //----------------------------------------------------------------------------
   auto write_cells(std::ofstream& file, std::size_t& offset) const {
+    write_connectivity(file, offset);
+    write_offsets(file, offset);
+    write_cell_types(file, offset);
+  }
+  //----------------------------------------------------------------------------
+  auto write_connectivity(std::ofstream& file, std::size_t& offset) const {
     // connectivity
     file << "      <Cells>\n"
          << "        <DataArray format=\"appended\" offset=\"" << offset
@@ -107,19 +113,24 @@ requires(Grid::num_dimensions() == 2 ||
          << vtk::xml::data_array::to_string(
                 vtk::xml::data_array::to_type<ConnectivityInt>())
          << "\" Name=\"connectivity\"/>\n";
-    auto const num_bytes_connectivity = (m_grid.simplices().size() + 1) *
-                                        m_grid.num_vertices_per_simplex() *
-                                        sizeof(ConnectivityInt);
-    offset += num_bytes_connectivity;
+    HeaderType num_bytes = m_grid.simplices().size() *
+                           m_grid.num_vertices_per_simplex() *
+                           sizeof(ConnectivityInt);
+    offset += num_bytes + sizeof(HeaderType);
+  }
+  //----------------------------------------------------------------------------
+  auto write_offsets(std::ofstream& file, std::size_t& offset) const {
     // offsets
     file << "        <DataArray format=\"appended\" offset=\"" << offset
          << "\" type=\""
          << vtk::xml::data_array::to_string(
                 vtk::xml::data_array::to_type<OffsetInt>())
          << "\" Name=\"offsets\"/>\n";
-    auto const num_bytes_offsets =
-        sizeof(OffsetInt) * (m_grid.simplices().size() + 1);
-    offset += num_bytes_offsets;
+    auto const num_bytes = sizeof(OffsetInt) * (m_grid.simplices().size());
+    offset += num_bytes + sizeof(HeaderType);
+  }
+  //----------------------------------------------------------------------------
+  auto write_cell_types(std::ofstream& file, std::size_t& offset) const {
     // types
     file << "        <DataArray format=\"appended\" offset=\"" << offset
          << "\" type=\""
@@ -127,9 +138,9 @@ requires(Grid::num_dimensions() == 2 ||
                 vtk::xml::data_array::to_type<CellTypesInt>())
          << "\" Name=\"types\"/>\n";
     file << "      </Cells>\n";
-    auto const num_bytes_celltypes =
-        sizeof(CellTypesInt) * (m_grid.simplices().size() + 1);
-    offset += num_bytes_celltypes;
+    auto const num_bytes=
+        sizeof(CellTypesInt) * m_grid.simplices().size();
+    offset += num_bytes + sizeof(HeaderType);
   }
   //----------------------------------------------------------------------------
   auto write_appended_data(std::ofstream& file) const {
@@ -197,7 +208,7 @@ requires(Grid::num_dimensions() == 2 ||
   }
   //------------------------------------------------------------------------------
   auto write_appended_data_cells_types(std::ofstream& file) const {
-    auto cell_types = std::vector<CellTypesInt>(m_grid.simplices().size(), 8);
+    auto cell_types = std::vector<CellTypesInt>(m_grid.simplices().size(), 5);
     auto const num_bytes = sizeof(CellTypesInt) * m_grid.simplices().size();
     file.write(reinterpret_cast<char const*>(&num_bytes), sizeof(HeaderType));
     file.write(reinterpret_cast<char const*>(cell_types.data()), num_bytes);
@@ -233,7 +244,7 @@ requires(Grid::num_dimensions() == 2 ||
       auto data = std::vector<T>{};
       for (auto const v : m_grid.vertices()) {
         data.push_back(prop[v]);
-      }
+      };
       auto const num_bytes =
           HeaderType(sizeof(tensor_value_type<T>) * tensor_num_components<T> *
                      m_grid.vertices().size());

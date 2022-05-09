@@ -11,7 +11,7 @@
 #include <tatooine/available_libraries.h>
 #include <tatooine/axis_aligned_bounding_box.h>
 #include <tatooine/detail/unstructured_simplicial_grid/hierarchy.h>
-#include <tatooine/detail/unstructured_simplicial_grid/triangular_vtp_writer.h>
+#include <tatooine/detail/unstructured_simplicial_grid/triangular_vtu_writer.h>
 #include <tatooine/pointset.h>
 #include <tatooine/property.h>
 #include <tatooine/rectilinear_grid.h>
@@ -160,57 +160,73 @@ struct unstructured_simplicial_grid
       : parent_type{std::move(positions)} {}
   //----------------------------------------------------------------------------
  private:
-  template <typename... TypesToCheck, typename Prop, typename Grid>
-  auto copy_prop(std::string const& name, Prop const& prop,
-                 Grid const& other_grid) {
+  template <typename... TypesToCheck>
+  auto copy_prop(auto const& other_grid, std::string const& name,
+                 auto const& other_prop) {
     (([&]() {
-       if (prop->type() == typeid(TypesToCheck)) {
-         auto const& other_prop =
-             other_grid.template vertex_property<TypesToCheck>(name);
-         auto& prop = this->template vertex_property<TypesToCheck>(name);
-         auto  vi   = vertex_handle{0};
-         other_grid.vertices().iterate_indices(
-             [&](auto const... is) { prop[vi++] = other_prop(is...); });
-       }
-     }()),
-     ...);
+      if (other_prop->type() == typeid(TypesToCheck)) {
+        auto& this_prop = this->template vertex_property<TypesToCheck>(name);
+        auto const& other_typed_prop =
+            other_grid.template vertex_property<TypesToCheck>(name);
+        auto vi = vertex_handle{0};
+        other_grid.vertices().iterate_indices([&](auto const... is) {
+          this_prop[vi++] = other_typed_prop.at(is...);
+        });
+      }
+    }()), ...);
   }
 
  public:
   template <detail::rectilinear_grid::dimension DimX,
             detail::rectilinear_grid::dimension DimY>
-  requires(NumDimensions == 2) &&
-      (SimplexDim == 2) explicit unstructured_simplicial_grid(
-          rectilinear_grid<DimX, DimY> const& g) {
-    auto const gv = g.vertices();
-    for (auto v : gv) {
-      insert_vertex(gv[v]);
-    }
-    auto const gc = g.vertices();
+  requires(NumDimensions == 2) && (SimplexDim == 2)
+  explicit unstructured_simplicial_grid(rectilinear_grid<DimX, DimY> const& g) {
     auto const s0 = g.size(0);
-    gc.iterate_indices([&](auto const i, auto const j) {
-      auto const le_bo = vertex_handle{i + j * s0};
-      auto const ri_bo = vertex_handle{(i + 1) + j * s0};
-      auto const le_to = vertex_handle{i + (j + 1) * s0};
-      auto const ri_to = vertex_handle{(i + 1) + (j + 1) * s0};
-      insert_simplex(le_bo, ri_bo, le_to);
-      insert_simplex(ri_bo, ri_to, le_to);
-    });
+    auto const s1 = g.size(1);
+    g.vertices().iterate_indices(
+        [&](auto const i, auto const j) { insert_vertex(g.vertex_at(i, j)); });
+
     for (auto const& [name, prop] : g.vertex_properties()) {
       copy_prop<mat4d, mat3d, mat2d, mat4f, mat3f, mat2f, vec4d, vec3d, vec2d,
                 vec4f, vec3f, vec2f, double, float, std::int8_t, std::uint8_t,
                 std::int16_t, std::uint16_t, std::int32_t, std::uint32_t,
-                std::int64_t, std::uint64_t>(name, prop, g);
+                std::int64_t, std::uint64_t>(g, name, prop);
     }
-  }
 
+    constexpr auto turned = [](std::size_t const ix,
+                               std::size_t const iy) -> bool {
+      bool const xodd = ix % 2 == 0;
+      bool const yodd = iy % 2 == 0;
+
+      bool turned = xodd;
+      if (yodd) {
+        turned = !turned;
+      }
+      return turned;
+    };
+    for_loop([&](auto const ix, auto const iy){
+      auto const le_bo = vertex_handle{ix + iy * s0};
+      auto const ri_bo = vertex_handle{(ix + 1) + iy * s0};
+      auto const le_to = vertex_handle{ix + (iy + 1) * s0};
+      auto const ri_to = vertex_handle{(ix + 1) + (iy + 1) * s0};
+      if (turned(ix, iy)) {
+        insert_simplex(le_bo, ri_bo, ri_to);
+        insert_simplex(le_bo, ri_to, le_to);
+      } else {
+        insert_simplex(le_bo, ri_bo, le_to);
+        insert_simplex(ri_bo, ri_to, le_to);
+      }
+    }, s0-1, s1-1);
+  }
+  //----------------------------------------------------------------------------
   template <detail::rectilinear_grid::dimension DimX,
             detail::rectilinear_grid::dimension DimY,
             detail::rectilinear_grid::dimension DimZ>
-  requires(NumDimensions == 3) &&
-      (SimplexDim == 3) explicit unstructured_simplicial_grid(
-          rectilinear_grid<DimX, DimY, DimZ> const& g) {
-    constexpr auto turned = [](std::size_t const ix, std::size_t const iy,
+  requires(NumDimensions == 3) && (SimplexDim == 3)
+  explicit unstructured_simplicial_grid(
+      rectilinear_grid<DimX, DimY, DimZ> const& g) {
+    constexpr auto turned = [](std::size_t const ix,
+                               std::size_t const iy,
                                std::size_t const iz) -> bool {
       bool const xodd = ix % 2 == 0;
       bool const yodd = iy % 2 == 0;
@@ -272,7 +288,7 @@ struct unstructured_simplicial_grid
       copy_prop<mat4d, mat3d, mat2d, mat4f, mat3f, mat2f, vec4d, vec3d, vec2d,
                 vec4f, vec3f, vec2f, double, float, std::int8_t, std::uint8_t,
                 std::int16_t, std::uint16_t, std::int32_t, std::uint32_t,
-                std::int64_t, std::uint64_t>(name, prop, g);
+                std::int64_t, std::uint64_t>(g, name, prop);
     }
   }
   //============================================================================
@@ -698,8 +714,8 @@ struct unstructured_simplicial_grid
       if (ext == ".vtk") {
         write_vtk(path);
         return;
-      } else if (ext == ".vtp") {
-        write_vtp(path);
+      } else if (ext == ".vtu") {
+        write_vtu(path);
         return;
       }
     }
@@ -717,17 +733,16 @@ struct unstructured_simplicial_grid
     }
   }
   //----------------------------------------------------------------------------
-  auto write_vtp(filesystem::path const& path) const
+  auto write_vtu(filesystem::path const& path) const
       requires((NumDimensions == 2 || NumDimensions == 3) &&
                (SimplexDim == 1 || SimplexDim == 2)) {
     if constexpr (SimplexDim == 1) {
       write_vtp_edges(path);
     } else if constexpr (SimplexDim == 2) {
-      write_vtp_triangular(path);
+      write_vtu_triangular(path);
     }
   }
 
- private:
   auto write_vtp_edges(filesystem::path const& path) const
       requires((NumDimensions == 2 || NumDimensions == 3) && SimplexDim == 1) {
     auto file = std::ofstream{path, std::ios::binary};
@@ -843,10 +858,10 @@ struct unstructured_simplicial_grid
   }
   //----------------------------------------------------------------------------
   template <unsigned_integral HeaderType      = std::uint64_t,
-            integral ConnectivityInt = std::int64_t,
-            integral OffsetInt       = std::int64_t,
+            integral          ConnectivityInt = std::int64_t,
+            integral          OffsetInt       = std::int64_t,
             unsigned_integral CellTypesInt    = std::uint8_t>
-  auto write_vtp_triangular(filesystem::path const& path) const
+  auto write_vtu_triangular(filesystem::path const& path) const
       requires((NumDimensions == 2 || NumDimensions == 3) && SimplexDim == 2) {
     detail::unstructured_simplicial_grid::triangular_vtp_writer<
         this_type, HeaderType, ConnectivityInt, OffsetInt, CellTypesInt>{*this}

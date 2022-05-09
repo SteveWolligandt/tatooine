@@ -13,6 +13,9 @@ struct vertex_property_sampler
   using grid_type =
       tatooine::unstructured_simplicial_grid<Real, NumDimensions, SimplexDim>;
   using this_type = vertex_property_sampler<Real, NumDimensions, SimplexDim, T>;
+  using parent_type =
+      field<vertex_property_sampler<Real, NumDimensions, SimplexDim, T>, Real,
+            NumDimensions, T>;
   using real_type = Real;
   using pos_type  = typename grid_type::pos_type;
   using typed_vertex_property_type =
@@ -44,12 +47,7 @@ struct vertex_property_sampler
       -> T {
     auto simplex_handles = m_grid.hierarchy().nearby_simplices(x);
     if (simplex_handles.empty()) {
-      std::stringstream ss;
-      ss << "[unstructured_simplicial_grid::vertex_property_sampler::"
-            "sample]"
-            "\n";
-      ss << "  out of domain: " << x;
-      throw std::runtime_error{ss.str()};
+      return parent_type::ood_tensor();
     }
     for (auto t : simplex_handles) {
       auto const            vs = m_grid.simplex_at(t);
@@ -79,12 +77,7 @@ struct vertex_property_sampler
             ...);
       }
     }
-    std::stringstream ss;
-    ss << "[unstructured_simplicial_grid::vertex_property_sampler::sample]"
-          "\n";
-    ss << "  out of domain: " << x;
-    throw std::runtime_error{ss.str()};
-    return T{};
+    return parent_type::ood_tensor();
   }
 };
 //==============================================================================

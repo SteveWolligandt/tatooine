@@ -66,11 +66,11 @@ struct regular_flowmap_discretization {
   Real m_tau;
 
   forward_grid_type                          m_forward_grid;
-  forward_grid_vertex_property_type*         m_forward_discretization;
+  forward_grid_vertex_property_type*         m_forward_flowmap_discretization;
   forward_grid_vertex_property_sampler_type  m_forward_sampler;
 
   backward_grid_type                         m_backward_grid;
-  backward_grid_vertex_property_type*        m_backward_discretization;
+  backward_grid_vertex_property_type*        m_backward_flowmap_discretization;
   backward_grid_vertex_property_sampler_type m_backward_sampler;
   static constexpr auto default_execution_policy = execution_policy::parallel;
   //============================================================================
@@ -87,16 +87,16 @@ struct regular_flowmap_discretization {
         m_tau{real_type(tau)},
         m_forward_grid{linspace<Real>{min(Is), max(Is),
                                       static_cast<std::size_t>(resolution)}...},
-        m_forward_discretization{
+        m_forward_flowmap_discretization{
             &m_forward_grid.template vertex_property<pos_type>(
-                "forward_discretization")},
-        m_forward_sampler{m_forward_discretization->linear_sampler()},
+                "flowmap_discretization")},
+        m_forward_sampler{m_forward_flowmap_discretization->linear_sampler()},
         m_backward_grid{m_forward_grid},
-        m_backward_discretization{
+        m_backward_flowmap_discretization{
             &m_backward_grid.template vertex_property<pos_type>(
-                "backward_discretization")},
+                "flowmap_discretization")},
         m_backward_sampler{
-            m_backward_grid.sampler(*m_backward_discretization)} {
+            m_backward_grid.sampler(*m_backward_flowmap_discretization)} {
     fill(std::forward<Flowmap>(flowmap), execution_policy);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -147,39 +147,42 @@ struct regular_flowmap_discretization {
   //----------------------------------------------------------------------------
   template <typename Flowmap, typename ExecutionPolicy>
   auto fill(Flowmap&& flowmap, ExecutionPolicy execution_policy) -> void {
-    std::size_t i = 0;
     m_forward_grid.sample_to_vertex_property(
-        [&](auto const& x) {
+        [&](auto const& x) mutable {
           auto flowmap2 = flowmap;
           if constexpr (requires { flowmap2.use_caching(false); }) {
             flowmap2.use_caching(false);
           }
           auto const map = flowmap2(x, m_t0, m_tau);
-          m_backward_discretization->at(i++) = map;
           return map;
         },
-        "forward_discretization", execution_policy);
+        "flowmap_discretization", execution_policy);
     m_forward_grid.write("forward.vtr");
-    m_backward_grid.write("backward.vtp");
 
-    for (auto v : m_backward_grid.vertices()) {
-      for (std::size_t i = 0; i < N; ++i) {
-        std::swap(m_backward_discretization->at(v)(i), m_backward_grid[v](i));
-      }
-    }
-    m_backward_grid.build_delaunay_mesh();
+    m_forward_grid.vertices().iterate_indices(
+        [&](auto const... is) mutable {
+          m_backward_grid.vertex_at(m_forward_grid.plain_index(is...)) =
+              m_forward_flowmap_discretization->at(is...);
+          m_backward_flowmap_discretization->at(m_forward_grid.plain_index(
+              is...)) = m_forward_grid.vertex_at(is...);
+        },
+        execution_policy);
+    // m_backward_grid.build_delaunay_mesh();
     m_backward_grid.build_hierarchy();
+    m_backward_grid.write("backward.vtu");
   }
   //----------------------------------------------------------------------------
   /// \{
   auto grid(forward_tag const /*tag*/) const -> auto const& {
     return m_forward_grid;
   }
+  //----------------------------------------------------------------------------
   auto grid(forward_tag const /*tag*/) -> auto& { return m_forward_grid; }
   //----------------------------------------------------------------------------
   auto grid(backward_tag const /*tag*/) const -> auto const& {
     return m_backward_grid;
   }
+  //----------------------------------------------------------------------------
   auto grid(backward_tag const /*tag*/) -> auto& { return m_backward_grid; }
   /// \}
   //----------------------------------------------------------------------------
@@ -187,6 +190,7 @@ struct regular_flowmap_discretization {
   auto sampler(forward_tag const /*tag*/) const -> auto const& {
     return m_forward_sampler;
   }
+  //----------------------------------------------------------------------------
   auto sampler(forward_tag const /*tag*/) -> auto& {
     return m_forward_sampler;
   }
@@ -194,6 +198,7 @@ struct regular_flowmap_discretization {
   auto sampler(backward_tag const /*tag*/) const -> auto const& {
     return m_backward_sampler;
   }
+  //----------------------------------------------------------------------------
   auto sampler(backward_tag const /*tag*/) -> auto& {
     return m_backward_sampler;
   }

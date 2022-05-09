@@ -1038,6 +1038,19 @@ class rectilinear_grid {
   auto operator[](vertex_handle const& h) const {
     return vertex_at(sequence_type{}, h.indices());
   }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto plain_index(integral auto const... is)
+    requires (sizeof...(is) == num_dimensions()) {
+    auto const arr_is     = std::array{is...};
+    auto const size = this->size();
+    auto       pi         = std::size_t{};
+    auto       multiplier = 1;
+    for (std::size_t i = 0; i < sizeof...(is); ++i) {
+      pi += arr_is[i] * multiplier;
+      multiplier *= size[i];
+    }
+    return pi;
+  }
   //----------------------------------------------------------------------------
   auto cells() const { return cell_container{*this}; }
   //----------------------------------------------------------------------------
