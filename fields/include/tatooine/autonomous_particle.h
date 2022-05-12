@@ -977,6 +977,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     auto        advected_ellipse = ellipse_type{*this};
     auto        current_radii    = vec_type{};
     auto        eig_HHt          = std::pair<mat_type, vec_type>{};
+    auto        sqr_cond_H            = real_type(1);
     auto        linearity        = real_type(0);
     auto const& eigvecs_HHt      = eig_HHt.first;
     auto const& eigvals_HHt      = eig_HHt.second;
@@ -1028,6 +1029,12 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
         simple_particles.emplace_back(x0(), advected_ellipse.center(),
                                       t_advected);
       }
+      sqr_cond_H = eigvals_HHt(num_dimensions() - 1) / eigvals_HHt(0);
+
+      if (std::isnan(sqr_cond_H)) {
+        simple_particles.emplace_back(x0(), advected_ellipse.center(),
+                                      t_advected);
+      }
       advected_nabla_phi  = H * K;
       assembled_nabla_phi = advected_nabla_phi * m_nabla_phi;
 
@@ -1045,7 +1052,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
       // check if particle's ellipse has reached its splitting width
       static auto constexpr linearity_threshold = 1e-3;
       //std::cout << "linearity: " << linearity << '\n';
-      if (linearity >= linearity_threshold) {
+      if (linearity >= linearity_threshold || sqr_cond_H > 10) {
         for (std::size_t i = 0; i < size(split_radii); ++i) {
           auto const new_eigvals    = current_radii * split_radii[i];
           auto const offset2        = advected_B * split_offsets[i];

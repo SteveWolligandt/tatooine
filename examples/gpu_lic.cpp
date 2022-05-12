@@ -22,8 +22,8 @@ auto gpu_lic_janos(filesystem::path const& path, real_number const t,
       return vec2{-p.x() * (2 * p.x() * p.x() - 2) / 2, -p.y()};
     }
   } v;
-  gpu::lic(v, linspace{-2.0, 2.0, 2000}, linspace{-1.0, 1.0, 1000}, t,
-           {1000, 500}, num_samples, step_size, {256, 256}, random::uniform{})
+  gpu::lic(v, linspace{-1.0, 1.0, 2000}, linspace{-1.5, 1.5, 1000}, t,
+           {1000, 1500}, num_samples, step_size, {256, 256}, random::uniform{})
       .write_png(path);
 }
 //==============================================================================
