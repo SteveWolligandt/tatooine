@@ -157,7 +157,6 @@ struct regular_flowmap_discretization {
           return map;
         },
         "flowmap_discretization", execution_policy);
-    m_forward_grid.write("forward.vtr");
 
     m_forward_grid.vertices().iterate_indices(
         [&](auto const... is) mutable {
@@ -169,7 +168,6 @@ struct regular_flowmap_discretization {
         execution_policy);
     // m_backward_grid.build_delaunay_mesh();
     m_backward_grid.build_hierarchy();
-    m_backward_grid.write("backward.vtu");
   }
   //----------------------------------------------------------------------------
   /// \{

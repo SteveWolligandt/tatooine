@@ -230,31 +230,33 @@ struct axis_aligned_bounding_box
     return true;
   }
   //----------------------------------------------------------------------------
-  constexpr auto is_simplex_inside(vec<Real, 2> x0, vec<Real, 2> x1,
-                                   vec<Real, 2> x2) const
+  constexpr auto is_simplex_inside(vec<Real, 2> const& x0,
+                                   vec<Real, 2> const& x1,
+                                   vec<Real, 2> const& x2) const
       requires(NumDimensions == 2) {
     auto const c = center();
-    auto const e = extents() / 2;
-    x0 -= c;
-    x1 -= c;
-    x2 -= c;
-    vec_type constexpr u0{1, 0};
-    vec_type constexpr u1{0, 1};
+    auto const e = extents();
+    auto const x0_centered = x0 - c;
+    auto const x1_centered = x1 - c;
+    auto const x2_centered = x2 - c;
+    constexpr auto u0 = vec_type {1, 0};
+    constexpr auto u1 = vec_type {0, 1};
     auto is_separating_axis = [&](auto const& axis) {
       // Project all 4 vertices of the rectangle onto the seperating axis
-      auto const p0 = dot(x0, axis);
-      auto const p1 = dot(x1, axis);
-      auto const p2 = dot(x2, axis);
+      auto const p0 = dot(x0_centered, axis);
+      auto const p1 = dot(x1_centered, axis);
+      auto const p2 = dot(x2_centered, axis);
       // Project the AABB onto the seperating axis.
       // We don't care about the end points of the projection just the length of
       // the half-size of the aabb. That is, we're only casting the extents onto
       // the seperating axis, not the aabb center. We don't need to cast the
       // center, because we know that the aabb is at origin compared to the
       // triangle!
-      auto r =
+      auto const r =
           e.x() * std::abs(dot(u0, axis)) + e.y() * std::abs(dot(u1, axis));
-      return tatooine::max(-tatooine::max(p0, p1, p2),
-                           tatooine::min(p0, p1, p2)) > r;
+      auto const m =
+          tatooine::max(-tatooine::max(p0, p1, p2), tatooine::min(p0, p1, p2));
+      return m > r;
     };
     if (is_separating_axis(u0)) {
       return false;
@@ -262,13 +264,13 @@ struct axis_aligned_bounding_box
     if (is_separating_axis(u1)) {
       return false;
     }
-    if (is_separating_axis(vec_type{x0(1) - x1(1), x1(0) - x0(0)})) {
+    if (is_separating_axis(vec_type{x0_centered(1) - x1_centered(1), x1_centered(0) - x0_centered(0)})) {
       return false;
     }
-    if (is_separating_axis(vec_type{x1(1) - x2(1), x2(0) - x1(0)})) {
+    if (is_separating_axis(vec_type{x1_centered(1) - x2_centered(1), x2_centered(0) - x1_centered(0)})) {
       return false;
     }
-    if (is_separating_axis(vec_type{x2(1) - x0(1), x0(0) - x2(0)})) {
+    if (is_separating_axis(vec_type{x2_centered(1) - x0_centered(1), x0_centered(0) - x2_centered(0)})) {
       return false;
     }
     return true;
