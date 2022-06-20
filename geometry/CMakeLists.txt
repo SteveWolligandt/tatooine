@@ -1,3 +1,4 @@
+list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
 set(SRC_FILES 
   src/vtk_legacy.cpp
   src/vtk/xml/reader.cpp
@@ -30,7 +31,7 @@ target_compile_definitions(geometry PUBLIC TATOOINE_CDT_AVAILABLE=${TATOOINE_CDT
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # FLANN
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-find_package(Flann REQUIRED)
+find_package(Flann QUIET)
 if (Flann_FOUND)
   set(TATOOINE_FLANN_AVAILABLE 1)
   target_link_libraries(geometry PUBLIC flann)
@@ -45,13 +46,29 @@ target_compile_definitions(geometry PUBLIC TATOOINE_FLANN_AVAILABLE=${TATOOINE_F
 set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE TRUE)
 set(CGAL_DATA_DIR ${CMAKE_CURRENT_BINARY_DIR}/cgal_data_dir)
 find_package(CGAL QUIET)
+
 if (CGAL_FOUND)
-  set(TATOOINE_CGAL_AVAILABLE 1)
   target_link_libraries(geometry PUBLIC CGAL::CGAL)
   target_compile_definitions(geometry PUBLIC -DCGAL_DISABLE_ROUNDING_MATH_CHECK)
+  set(TATOOINE_CGAL_AVAILABLE 1)
+  set(TATOOINE_USE_INSTALLED_CGAL 1)
+  set(TATOOINE_USE_INSTALLED_CGAL 1 PARENT_SCOPE)
 else()
-  set(TATOOINE_CGAL_AVAILABLE 0)
+  find_package(MPFR )
+  find_package(GMP )
+  if (MPFR_FOUND AND GMP_FOUND)
+    update_git_submodule(external/cgal)
+    target_link_libraries(geometry PUBLIC mpfr gmp)
+    target_include_directories(geometry PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Triangulation/include)
+    target_compile_definitions(geometry PUBLIC -DCGAL_DISABLE_ROUNDING_MATH_CHECK)
+    set(TATOOINE_CGAL_AVAILABLE 1)
+    set(TATOOINE_USE_INSTALLED_CGAL 0)
+    set(TATOOINE_USE_INSTALLED_CGAL 0 PARENT_SCOPE)
+  else()
+    set(TATOOINE_CGAL_AVAILABLE 0)
+  endif()
 endif()
+set(TATOOINE_CGAL_AVAILABLE ${TATOOINE_CGAL_AVAILABLE})
 set(TATOOINE_CGAL_AVAILABLE ${TATOOINE_CGAL_AVAILABLE} PARENT_SCOPE)
 target_compile_definitions(geometry PUBLIC TATOOINE_CGAL_AVAILABLE=${TATOOINE_CGAL_AVAILABLE})
 

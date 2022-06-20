@@ -103,10 +103,10 @@ target_link_libraries(
    PUBLIC
     tensor
     glad
+    glfw
    PRIVATE
     OpenGL::OpenGL
     OpenGL::EGL
-    glfw
     imgui)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # OpenGL call output

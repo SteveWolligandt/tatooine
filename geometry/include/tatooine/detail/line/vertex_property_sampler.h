@@ -48,8 +48,9 @@ struct vertex_property_sampler {
 template <floating_point Real, std::size_t NumDimensions, typename Property>
 struct vertex_property_sampler<Real, NumDimensions, Property,
                                interpolation::cubic> {
-  using line_type   = tatooine::line<Real, NumDimensions>;
-  using handle_type = typename line_type::vertex_handle;
+                                 using real_type = Real;
+  using line_type             = tatooine::line<Real, NumDimensions>;
+  using handle_type           = typename line_type::vertex_handle;
   using tangent_property_type = typename line_type::tangent_property_type;
   using parameterization_property_type =
       typename line_type::parameterization_property_type;
@@ -67,11 +68,15 @@ struct vertex_property_sampler<Real, NumDimensions, Property,
       : m_line{line},
         m_property{property},
         m_parameterization{m_line.parameterization()} {
-    auto const stencil_size = std::size_t(3);
+    if (m_line.vertices().size() < 2) {
+      return;
+    }
+    auto const stencil_size =
+        std::min<std::size_t>(3, m_line.vertices().size());
     auto const half         = stencil_size / 2;
     auto       derivatives  = std::vector<value_type>{};
 
-    auto const derivative = [&](handle_type const v) -> value_type{
+    auto const derivative = [&](handle_type const v) -> value_type {
       auto       lv = half > v.index() ? handle_type{0} : v - half;
       auto const rv = lv.index() + stencil_size - 1 >= m_line.vertices().size()
                           ? handle_type{m_line.vertices().size() - 1}
@@ -97,15 +102,21 @@ struct vertex_property_sampler<Real, NumDimensions, Property,
       auto const dfdt1 = derivative(handle_type{i + 1});
       auto const dy    = m_parameterization[handle_type{i + 1}] -
                       m_parameterization[handle_type{i}];
-       m_interpolants.emplace_back(m_property[handle_type{i}],
-                                   m_property[handle_type{i + 1}],
-                                   value_type(dfdt0 * dy),
-                                   value_type(dfdt1 * dy));
+      m_interpolants.emplace_back(
+          m_property[handle_type{i}], m_property[handle_type{i + 1}],
+          value_type(dfdt0 * dy), value_type(dfdt1 * dy));
       dfdt0 = dfdt1;
     }
   }
   //----------------------------------------------------------------------------
-  auto operator()(Real t) const {
+  auto operator()(Real t) const -> value_type{
+    if (m_line.vertices().size() < 2) {
+      if constexpr (tensor_rank<value_type> == 0) {
+        return real_type{} / real_type{};
+      } else {
+        return value_type::fill(real_type{} / real_type{});
+      }
+    }
     auto range = std::pair{m_line.vertices().front(), m_line.vertices().back()};
     while (range.second.index() - range.first.index() > 1) {
       auto const center =
