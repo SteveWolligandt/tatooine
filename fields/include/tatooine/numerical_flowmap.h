@@ -37,7 +37,7 @@ struct numerical_flowmap {
   ode_solver_type                  m_ode_solver;
   mutable cache_type               m_cache;
   mutable domain_border_flags_type m_on_domain_border;
-  bool                             m_use_caching = true;
+  bool                             m_use_caching = false;
   //============================================================================
   // ctors
   //============================================================================
@@ -140,7 +140,8 @@ struct numerical_flowmap {
           x1 = y;
         }
       };
-      m_ode_solver.solve(vectorfield(), x0, t0, tau, callback);
+      auto solver_copy = m_ode_solver;
+      solver_copy.solve(vectorfield(), x0, t0, tau, callback);
       return x1;
     }
     // use caching
@@ -252,7 +253,8 @@ struct numerical_flowmap {
       tangents[v]         = dy;
     };
 
-    m_ode_solver.solve(vectorfield(), y0, t0, tau, callback);
+    auto solver_copy = m_ode_solver;
+    solver_copy.solve(vectorfield(), y0, t0, tau, callback);
     if (!integral_curve.empty()) {
       if ((tau > 0 &&
            parameterization[integral_curve.vertices().back()] < t0 + tau) ||

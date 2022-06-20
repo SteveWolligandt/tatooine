@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 project(Tatooine)
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/")
+list(PREPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(REAL_NUMBER double float)

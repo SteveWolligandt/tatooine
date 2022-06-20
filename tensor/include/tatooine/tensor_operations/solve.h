@@ -223,9 +223,11 @@ auto solve_lu_lapack(TensorA&& A_, TensorB&& B_) -> std::optional<tensor<
   auto ipiv   = tensor<std::int64_t>::zeros(A_.dimension(0));
   if constexpr (same_as<tensor_value_type<TensorA>,
                         tensor_value_type<TensorB>>) {
-    decltype(auto) A = copy_or_keep_if_rvalue_tensor_solve(A_);
-    decltype(auto) B = copy_or_keep_if_rvalue_tensor_solve(B_);
-    if (lapack::gesv(A, B, ipiv) != 0) {
+    decltype(auto) A =
+        copy_or_keep_if_rvalue_tensor_solve(std::forward<TensorA>(A_));
+    decltype(auto) B =
+        copy_or_keep_if_rvalue_tensor_solve(std::forward<TensorB>(B_));
+    if (auto const info = lapack::gesv(A, B, ipiv); info != 0) {
       return std::nullopt;
     }
     return std::forward<decltype(B)>(B);

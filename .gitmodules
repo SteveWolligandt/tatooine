@@ -49,3 +49,6 @@
 [submodule "external/gcem"]
 	path = external/gcem
 	url = https://github.com/kthohr/gcem.git
+[submodule "geometry/external/cgal"]
+	path = geometry/external/cgal
+	url = https://github.com/CGAL/cgal.git

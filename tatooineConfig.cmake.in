@@ -10,6 +10,7 @@ find_package(Boost REQUIRED)
 set(TATOOINE_CDT_AVAILABLE @TATOOINE_CDT_AVAILABLE@)
 set(TATOOINE_FLANN_AVAILABLE @TATOOINE_FLANN_AVAILABLE@)
 set(TATOOINE_CGAL_AVAILABLE @TATOOINE_CGAL_AVAILABLE@)
+set(TATOOINE_USE_INSTALLED_CGAL @TATOOINE_USE_INSTALLED_CGAL@)
 set(TATOOINE_GL_AVAILABLE @TATOOINE_GL_AVAILABLE@)
 set(TATOOINE_STD_FILESYSTEM_AVAILABLE @TATOOINE_STD_FILESYSTEM_AVAILABLE@)
 if (TATOOINE_GL_AVAILABLE) 
@@ -67,6 +68,7 @@ add_library(tatooine::geometry STATIC IMPORTED)
 
 set(geometry_available_libs "")
 set(geometry_lib_list "tatooine::tensor")
+set(geometry_include_dirs "@CMAKE_SOURCE_DIR@/geometry/include")
 if (TATOOINE_CDT_AVAILABLE)
   string(APPEND geometry_lib_list ";tatooine::CDT")
 endif()
@@ -78,14 +80,20 @@ endif()
 string(APPEND geometry_available_libs ";TATOOINE_FLANN_AVAILABLE=@TATOOINE_FLANN_AVAILABLE@")
 
 if (TATOOINE_CGAL_AVAILABLE)
-  find_package(CGAL QUIET)
-  string(APPEND geometry_lib_list ";CGAL::CGAL")
+  if (TATOOINE_USE_INSTALLED_CGAL)
+    string(APPEND geometry_lib_list ";CGAL::CGAL")
+    find_package(CGAL QUIET)
+  else()
+    list(PREPEND CMAKE_MODULE_PATH "@CMAKE_SOURCE_DIR@/geometry/cmake/modules/")
+    list(APPEND geometry_include_dirs "@CMAKE_SOURCE_DIR@/geometry/external/cgal/Triangulation/include")
+    string(APPEND geometry_lib_list ";mpfr;gmp")
+  endif ()
 endif()
 string(APPEND geometry_available_libs ";TATOOINE_CGAL_AVAILABLE=@TATOOINE_CGAL_AVAILABLE@")
 
 set_target_properties(tatooine::geometry PROPERTIES
   INTERFACE_COMPILE_DEFINITIONS "${geometry_available_libs}"
-  INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/geometry/include"
+  INTERFACE_INCLUDE_DIRECTORIES "${geometry_include_dirs}"
   INTERFACE_LINK_LIBRARIES "${geometry_lib_list}"
 )
 
@@ -199,8 +207,8 @@ add_library(blaspp SHARED IMPORTED)
 set_target_properties(blaspp PROPERTIES
   INTERFACE_COMPILE_FEATURES "cxx_std_11"
   INTERFACE_COMPILE_OPTIONS "-Wno-unused-parameter"
-  INTERFACE_INCLUDE_DIRECTORIES "/opt/cuda/targets/x86_64-linux/include;@CMAKE_BINARY_DIR@/tensor/external/blaspp/include;@CMAKE_SOURCE_DIR@/tensor/external/blaspp/include"
-  INTERFACE_LINK_LIBRARIES "/opt/cuda/targets/x86_64-linux/lib/libcudart.so;/opt/cuda/targets/x86_64-linux/lib/stubs/libcublas.so;OpenMP::OpenMP_CXX;-lopenblas;OpenMP::OpenMP_CXX"
+  INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_BINARY_DIR@/tensor/external/blaspp/include;@CMAKE_SOURCE_DIR@/tensor/external/blaspp/include"
+  INTERFACE_LINK_LIBRARIES "OpenMP::OpenMP_CXX;-lopenblas;OpenMP::OpenMP_CXX"
 )
 
 # Create imported target lapackpp
