@@ -20,7 +20,6 @@ deploy:
   stage: deploy
   script:
     - mkdir -p ~/pages.vc/tatooine
-    - cp -r doc_build/doc/html/* ~/pages.vc/tatooine/
+    - nice cp -r doc_build/doc/html/* ~/pages.vc/tatooine/
   only:
     - main
-
