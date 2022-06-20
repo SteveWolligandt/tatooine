@@ -59,7 +59,7 @@ auto indeterminate_progress_bar(F&& f, Args&&... args)
       indicators::option::Fill{" "},
       indicators::option::Lead{"░▒▓▒░"},
       indicators::option::End{"◀"},
-      indicators::option::ForegroundColor{indicators::Color::green},
+      indicators::option::ForegroundColor{indicators::Color::white},
       indicators::option::FontStyles{
           std::vector<indicators::FontStyle>{indicators::FontStyle::bold}}};
 
@@ -118,24 +118,51 @@ auto progress_bar(F&& f, Args&&... args)
       indicators::option::End{"◀"},
       indicators::option::ShowElapsedTime{true},
       indicators::option::ShowRemainingTime{true},
-      indicators::option::ForegroundColor{indicators::Color::green},
+      indicators::option::ForegroundColor{indicators::Color::white},
       indicators::option::FontStyles{
           std::vector<indicators::FontStyle>{indicators::FontStyle::bold}}};
   double progress;
   progress_indicator_wrapper<indicators::BlockProgressBar> wrapper{
       progress_indicator, progress};
 
-  std::thread indicator([&progress_indicator, &progress] {
+  auto job_completion_thread = std::thread{[&progress_indicator, &progress] {
     while (progress < 1) {
       progress_indicator.set_progress(100 * progress);
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     progress_indicator.set_progress(100);
-  });
+  }};
 
-  f(wrapper, std::forward<Args>(args)...);
-
-  indicator.join();
+  if constexpr (std::is_invocable_v<F, Args...>) {
+    using ret_t = std::invoke_result_t<
+        F,  Args...>;
+    if constexpr (std::is_same_v<void, ret_t>) {
+      f(std::forward<Args>(args)...);
+      wrapper.progress = 100;
+      job_completion_thread.join();
+    } else {
+      decltype(auto) ret = f(std::forward<Args>(args)...);
+      wrapper.progress = 100;
+      job_completion_thread.join();
+      return ret;
+    }
+  } else if constexpr (std::is_invocable_v<
+                           F,
+                           progress_indicator_wrapper<indicators::BlockProgressBar>,
+                           Args...>) {
+    using ret_t = std::invoke_result_t<
+        F, progress_indicator_wrapper<indicators::BlockProgressBar>, Args...>;
+    if constexpr (std::is_same_v<void, ret_t>) {
+      f(wrapper, std::forward<Args>(args)...);
+      wrapper.progress = 100;
+      job_completion_thread.join();
+    } else {
+      decltype(auto) ret = f(wrapper, std::forward<Args>(args)...);
+      wrapper.progress = 100;
+      job_completion_thread.join();
+      return ret;
+    }
+  }
 }
 //==============================================================================
 }  // namespace tatooine
