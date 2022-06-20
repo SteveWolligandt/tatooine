@@ -11,7 +11,7 @@ build:
     paths:
       - doc_build/
   only:
-  - master
+  - main
   tags:
   except:
   - tags
@@ -22,5 +22,5 @@ deploy:
     - mkdir -p ~/pages.vc/tatooine
     - cp -r doc_build/doc/html/* ~/pages.vc/tatooine/
   only:
-    - master
+    - main
 
