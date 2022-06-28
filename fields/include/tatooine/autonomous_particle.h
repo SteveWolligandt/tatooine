@@ -76,9 +76,9 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   autonomous_particle(autonomous_particle const& other)     = default;
   autonomous_particle(autonomous_particle&& other) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator               =(autonomous_particle const& other)
+  auto operator=(autonomous_particle const& other)
       -> autonomous_particle& = default;
-  auto operator               =(autonomous_particle&& other) noexcept
+  auto operator=(autonomous_particle&& other) noexcept
       -> autonomous_particle& = default;
   //----------------------------------------------------------------------------
   ~autonomous_particle() = default;
@@ -1050,7 +1050,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
       }
 
       // check if particle's ellipse has reached its splitting width
-      static auto constexpr linearity_threshold = 1e-3;
+      static auto constexpr linearity_threshold = 1e-2;
       //std::cout << "linearity: " << linearity << '\n';
       if (linearity >= linearity_threshold || sqr_cond_H > 10) {
         for (std::size_t i = 0; i < size(split_radii); ++i) {

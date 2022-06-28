@@ -121,8 +121,19 @@ constexpr auto inv(diag_static_tensor<Tensor, N, N> const& A) -> std::optional<
 //------------------------------------------------------------------------------
 template <typename TensorA, static_vec TensorB, std::size_t N>
 requires(tensor_dimensions<TensorB>[0] == N)
-constexpr auto solve(diag_static_tensor<TensorA, N, N> const& A,
-                     TensorB&&                                b) {
+constexpr auto solve(diag_static_tensor<TensorA, N, N> const& A, TensorB&& b)
+    -> std::optional<
+        vec<common_type<tensor_value_type<TensorA>, tensor_value_type<TensorB>>,
+            N>> {
+  return A.internal_tensor() / b;
+}
+//------------------------------------------------------------------------------
+template <typename TensorA, static_vec TensorB, std::size_t N>
+requires(tensor_dimensions<TensorB>[0] == N)
+constexpr auto solve(diag_static_tensor<TensorA, N, N>&& A, TensorB&& b)
+    -> std::optional<
+        vec<common_type<tensor_value_type<TensorA>, tensor_value_type<TensorB>>,
+            N>> {
   return A.internal_tensor() / b;
 }
 //------------------------------------------------------------------------------
@@ -182,8 +193,25 @@ constexpr auto operator*(
 //------------------------------------------------------------------------------
 template <typename TensorA, static_mat TensorB, std::size_t N>
 requires(tensor_dimensions<TensorB>[0] == N)
-constexpr auto solve(diag_static_tensor<TensorA, N, N> const& A,
-                     TensorB&&                                B) {
+constexpr auto solve(diag_static_tensor<TensorA, N, N>&& A, TensorB&& B)
+    -> std::optional<
+        mat<common_type<tensor_value_type<TensorA>, tensor_value_type<TensorB>>,
+            N, N>> {
+  auto ret =
+      mat<common_type<tensor_value_type<TensorA>, tensor_value_type<TensorB>>,
+          N, N>{B};
+  for (std::size_t i = 0; i < N; ++i) {
+    ret.row(i) /= A.internal_tensor()(i);
+  }
+  return ret;
+}
+//------------------------------------------------------------------------------
+template <typename TensorA, static_mat TensorB, std::size_t N>
+requires(tensor_dimensions<TensorB>[0] == N)
+constexpr auto solve(diag_static_tensor<TensorA, N, N> const& A, TensorB&& B)
+    -> std::optional<
+        mat<common_type<tensor_value_type<TensorA>, tensor_value_type<TensorB>>,
+            N, N>> {
   auto ret =
       mat<common_type<tensor_value_type<TensorA>, tensor_value_type<TensorB>>,
           N, N>{B};

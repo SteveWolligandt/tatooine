@@ -22,7 +22,7 @@ struct ftle_field
   //============================================================================
  private:
   FlowmapGradient m_flowmap_gradient;
-  real_type          m_tau;
+  real_type       m_tau;
 
   //============================================================================
  public:

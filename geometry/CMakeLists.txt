@@ -31,9 +31,11 @@ target_compile_definitions(geometry PUBLIC TATOOINE_CDT_AVAILABLE=${TATOOINE_CDT
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # FLANN
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-find_package(Flann QUIET)
+find_package(Flann)
 if (Flann_FOUND)
+  find_library(LZ4_LIBRARIES NAMES liblz4.so HINTS "lz4/lib")
   set(TATOOINE_FLANN_AVAILABLE 1)
+  target_link_libraries(geometry PUBLIC ${LZ4_LIBRARIES})
   target_link_libraries(geometry PUBLIC flann)
 else()
   set(TATOOINE_FLANN_AVAILABLE 0)
@@ -75,3 +77,43 @@ target_compile_definitions(geometry PUBLIC TATOOINE_CGAL_AVAILABLE=${TATOOINE_CG
 if (TATOOINE_BUILD_EXAMPLES)
   add_subdirectory(examples)
 endif()
+
+
+#-------------------------------------------------------------------------------
+# Get geometry properties for tatooineConfig.cmake
+# include directories
+get_target_property(GEOMETRY_INCLUDE_DIRECTORIES geometry INCLUDE_DIRECTORIES)
+foreach(INCLUDE_DIRECTORY ${GEOMETRY_INCLUDE_DIRECTORIES})
+  if(${INCLUDE_DIRECTORY} MATCHES ".*BUILD_INTERFACE:.*")
+    string(LENGTH ${INCLUDE_DIRECTORY} len)
+    math(EXPR len ${len}-19)
+    string(SUBSTRING ${INCLUDE_DIRECTORY} 18 ${len} INCLUDE_DIRECTORY)
+    list(APPEND FILTERED_GEOMETRY_INCLUDE_DIRECTORIES ${INCLUDE_DIRECTORY})
+  elseif(NOT (INCLUDE_DIRECTORY MATCHES "\<.*_INTERFACE:.*\>"))
+    list(APPEND FILTERED_GEOMETRY_INCLUDE_DIRECTORIES ${INCLUDE_DIRECTORY})
+  else()
+  endif()
+endforeach()
+set(GEOMETRY_INCLUDE_DIRECTORIES ${FILTERED_GEOMETRY_INCLUDE_DIRECTORIES} PARENT_SCOPE)
+
+get_target_property(GEOMETRY_LINK_LIBRARIES geometry LINK_LIBRARIES)
+foreach(LINK_LIBRARY ${GEOMETRY_LINK_LIBRARIES})
+  if(${LINK_LIBRARY} MATCHES "tensor")
+    list(APPEND FILTERED_GEOMETRY_LINK_LIBRARIES "tatooine::tensor")
+  elseif(${LINK_LIBRARY} MATCHES "fields")
+    list(APPEND FILTERED_GEOMETRY_LINK_LIBRARIES "tatooine::fields")
+  elseif(${LINK_LIBRARY} MATCHES "CDT")
+    list(APPEND FILTERED_GEOMETRY_LINK_LIBRARIES "tatooine::CDT")
+  elseif(NOT (LINK_LIBRARY MATCHES "\<.*_INTERFACE:.*\>"))
+    list(APPEND FILTERED_GEOMETRY_LINK_LIBRARIES ${LINK_LIBRARY})
+  else()
+  endif()
+endforeach()
+set(GEOMETRY_LINK_LIBRARIES ${FILTERED_GEOMETRY_LINK_LIBRARIES} PARENT_SCOPE)
+
+get_target_property(GEOMETRY_COMPILE_DEFINITIONS geometry COMPILE_DEFINITIONS)
+set(GEOMETRY_COMPILE_DEFINITIONS ${GEOMETRY_COMPILE_DEFINITIONS} PARENT_SCOPE)
+
+get_target_property(GEOMETRY_COMPILE_OPTIONS geometry COMPILE_OPTIONS)
+set(GEOMETRY_COMPILE_OPTIONS ${GEOMETRY_COMPILE_OPTIONS} PARENT_SCOPE)
+
