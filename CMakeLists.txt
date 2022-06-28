@@ -144,12 +144,13 @@ endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # PNG
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-find_package(PNG QUIET)
+find_package(PNG)
 if(PNG_FOUND)
-  find_package(PNG++ QUIET)
+  find_package(PNG++)
   if (DEFINED PNG++_INCLUDE_DIRS)
     target_include_directories(base INTERFACE ${PNG_INCLUDE_DIRS} ${PNG++_INCLUDE_DIRS})
     target_link_libraries(base INTERFACE ${PNG_LIBRARIES} ${PNG++_LIBRARIES})
+    message(STATUS "${PNG_LIBRARIES} ${PNG++_LIBRARIES}")
     set(TATOOINE_PNG_AVAILABLE 1)
   else()
     set(TATOOINE_PNG_AVAILABLE 0)
@@ -392,6 +393,35 @@ endif()
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/available_libraries.h.in"
                "${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/available_libraries.h")
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#-------------------------------------------------------------------------------
+# Get base properties for tatooineConfig.cmake
+# include directories
+get_target_property(BASE_INCLUDE_DIRECTORIES base INTERFACE_INCLUDE_DIRECTORIES)
+foreach(INCLUDE_DIRECTORY ${BASE_INCLUDE_DIRECTORIES})
+  if(${INCLUDE_DIRECTORY} MATCHES ".*BUILD_INTERFACE:.*")
+    string(LENGTH ${INCLUDE_DIRECTORY} len)
+    math(EXPR len ${len}-19)
+    string(SUBSTRING ${INCLUDE_DIRECTORY} 18 ${len} INCLUDE_DIRECTORY)
+    list(APPEND FILTERED_BASE_INCLUDE_DIRECTORIES ${INCLUDE_DIRECTORY})
+  elseif(NOT (INCLUDE_DIRECTORY MATCHES "\<.*_INTERFACE:.*\>"))
+    list(APPEND FILTERED_BASE_INCLUDE_DIRECTORIES ${INCLUDE_DIRECTORY})
+  else()
+  endif()
+endforeach()
+set(BASE_INCLUDE_DIRECTORIES ${FILTERED_BASE_INCLUDE_DIRECTORIES})
+
+get_target_property(BASE_LINK_LIBRARIES base INTERFACE_LINK_LIBRARIES)
+foreach(LINK_LIBRARY ${BASE_LINK_LIBRARIES})
+  if(${LINK_LIBRARY} MATCHES "preprocessor")
+    list(APPEND FILTERED_BASE_LINK_LIBRARIES "tatooine::preprocessor")
+  elseif(NOT (LINK_LIBRARY MATCHES "\<.*_INTERFACE:.*\>"))
+    list(APPEND FILTERED_BASE_LINK_LIBRARIES ${LINK_LIBRARY})
+  else()
+  endif()
+endforeach()
+set(BASE_LINK_LIBRARIES ${FILTERED_BASE_LINK_LIBRARIES})
+get_target_property(BASE_COMPILE_DEFINITIONS base INTERFACE_COMPILE_DEFINITIONS)
+get_target_property(BASE_COMPILE_OPTIONS base INTERFACE_COMPILE_OPTIONS)
 # This makes the project importable from the build directory
 #export(TARGETS base preprocessor geometry tensor CDT multidim_array
 #       NAMESPACE tatooine::

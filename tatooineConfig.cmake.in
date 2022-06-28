@@ -65,20 +65,6 @@ unset(_expectedTargets)
 
 # Create imported target tatooine::geometry
 add_library(tatooine::geometry STATIC IMPORTED)
-
-set(geometry_available_libs "")
-set(geometry_lib_list "tatooine::tensor")
-set(geometry_include_dirs "@CMAKE_SOURCE_DIR@/geometry/include")
-if (TATOOINE_CDT_AVAILABLE)
-  string(APPEND geometry_lib_list ";tatooine::CDT")
-endif()
-string(APPEND geometry_available_libs "TATOOINE_CDT_AVAILABLE=@TATOOINE_CDT_AVAILABLE@")
-
-if (TATOOINE_FLANN_AVAILABLE)
-  string(APPEND geometry_lib_list ";flann")
-endif()
-string(APPEND geometry_available_libs ";TATOOINE_FLANN_AVAILABLE=@TATOOINE_FLANN_AVAILABLE@")
-
 if (TATOOINE_CGAL_AVAILABLE)
   if (TATOOINE_USE_INSTALLED_CGAL)
     string(APPEND geometry_lib_list ";CGAL::CGAL")
@@ -89,12 +75,11 @@ if (TATOOINE_CGAL_AVAILABLE)
     string(APPEND geometry_lib_list ";mpfr;gmp")
   endif ()
 endif()
-string(APPEND geometry_available_libs ";TATOOINE_CGAL_AVAILABLE=@TATOOINE_CGAL_AVAILABLE@")
 
 set_target_properties(tatooine::geometry PROPERTIES
-  INTERFACE_COMPILE_DEFINITIONS "${geometry_available_libs}"
-  INTERFACE_INCLUDE_DIRECTORIES "${geometry_include_dirs}"
-  INTERFACE_LINK_LIBRARIES "${geometry_lib_list}"
+  INTERFACE_COMPILE_DEFINITIONS "@GEOMETRY_COMPILE_DEFINITIONS@"
+  INTERFACE_INCLUDE_DIRECTORIES "@GEOMETRY_INCLUDE_DIRECTORIES@"
+  INTERFACE_LINK_LIBRARIES "@GEOMETRY_LINK_LIBRARIES@"
 )
 
 if (TATOOINE_CDT_AVAILABLE)
@@ -157,15 +142,11 @@ endif()
 # Create imported target tatooine::base
 add_library(tatooine::base INTERFACE IMPORTED)
 
-set(base_interface_link_libraries "OpenMP::OpenMP_CXX;/usr/lib/libpng.so;/usr/lib/libz.so;/usr/lib/libhdf5.so;/usr/lib/libsz.so;/usr/lib/libz.so;/usr/lib/libdl.a;/usr/lib/libm.so;/usr/lib/libnetcdf.so;/usr/lib/libnetcdf_c++4.so;tatooine::preprocessor")
-if (TATOOINE_STD_FILESYSTEM_AVAILABLE)
-  string(PREPEND base_interface_link_libraries "stdc++fs;")
-endif()
 set_target_properties(tatooine::base PROPERTIES
-  INTERFACE_COMPILE_DEFINITIONS "TATOOINE_STD_FILESYSTEM_AVAILABLE=@TATOOINE_STD_FILESYSTEM_AVAILABLE@;TATOOINE_OPENMP_AVAILABLE;TATOOINE_PNG_AVAILABLE=1;_FORTIFY_SOURCE=2;_FORTIFY_SOURCE=2;TATOOINE_HDF5_AVAILABLE=1;TATOOINE_NETCDF_AVAILABLE=1"
-  INTERFACE_COMPILE_OPTIONS "-Wall;-Wextra;-Wpedantic"
-  INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/include;@CMAKE_BINARY_DIR@/include;@CMAKE_SOURCE_DIR@/external/indicators/include;@CMAKE_SOURCE_DIR@/external/vcode/include;@CMAKE_SOURCE_DIR@/external/gcem/include;@CMAKE_SOURCE_DIR@/external/rapidxml;/usr/include;/usr/include;/usr/include/png++;/usr/include;/usr/include;/usr/include"
-  INTERFACE_LINK_LIBRARIES "${base_interface_link_libraries}"
+  INTERFACE_COMPILE_DEFINITIONS "@BASE_COMPILE_DEFINITIONS@"
+  INTERFACE_COMPILE_OPTIONS "@BASE_COMPILE_OPTIONS@"
+  INTERFACE_INCLUDE_DIRECTORIES "@BASE_INCLUDE_DIRECTORIES@"
+  INTERFACE_LINK_LIBRARIES "@BASE_LINK_LIBRARIES@"
 )
 
 # Create imported target tatooine::multidim_array

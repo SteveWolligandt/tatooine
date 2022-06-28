@@ -206,7 +206,7 @@ struct hyper_ellipse {
         grid_t{vec{-X, 0, Z}, vec{X, 0, Z},  vec{-X, 0, -Z}, vec{X, 0, -Z},
                vec{0, Z, X},  vec{0, Z, -X}, vec{0, -Z, X},  vec{0, -Z, -X},
                vec{Z, X, 0},  vec{-Z, X, 0}, vec{Z, -X, 0},  vec{-Z, -X, 0}};
-    auto cells = cell_list_t{
+    auto triangles = cell_list_t{
         {vh{0}, vh{4}, vh{1}},  {vh{0}, vh{9}, vh{4}},  {vh{9}, vh{5}, vh{4}},
         {vh{4}, vh{5}, vh{8}},  {vh{4}, vh{8}, vh{1}},  {vh{8}, vh{10}, vh{1}},
         {vh{8}, vh{3}, vh{10}}, {vh{5}, vh{3}, vh{8}},  {vh{5}, vh{2}, vh{3}},
@@ -218,7 +218,7 @@ struct hyper_ellipse {
     for (std::size_t i = 0; i < num_subdivisions; ++i) {
       auto subdivided_cells = cell_list_t{};
       auto subdivided = std::map<edge_t, std::size_t>{};  // vh index on edge
-      for (auto& [v0, v1, v2] : cells) {
+      for (auto& [v0, v1, v2] : triangles) {
         auto edges = std::array{edge_t{v0, v1}, edge_t{v0, v2}, edge_t{v1, v2}};
         auto nvs   = cell_t{vh{0}, vh{0}, vh{0}};
         auto i     = std::size_t{};
@@ -228,7 +228,7 @@ struct hyper_ellipse {
             std::swap(v0, v1);
           }
           if (subdivided.find(edge) == end(subdivided)) {
-            subdivided[edge] = size(vertices(g));
+            subdivided[edge] = vertices(g).size();
             nvs[i++] = g.insert_vertex(normalize((g[v0] + g[v1]) * 0.5));
           } else {
             nvs[i++] = vh{subdivided[edge]};
@@ -239,13 +239,13 @@ struct hyper_ellipse {
         subdivided_cells.emplace_back(cell_t{nvs[1], v2, nvs[2]});
         subdivided_cells.emplace_back(cell_t{nvs[0], nvs[1], nvs[2]});
       }
-      cells = subdivided_cells;
+      triangles = subdivided_cells;
     }
     for (auto v : g.vertices()) {
       g[v] = S() * g[v] + center();
     }
-    for (auto const& c : cells) {
-      g.insert_cell(c[0], c[1], c[2]);
+    for (auto const& c : triangles) {
+      g.insert_triangle(c[0], c[1], c[2]);
     }
     return g;
   }
