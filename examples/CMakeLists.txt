@@ -4,24 +4,47 @@ file(GLOB EXAMPLE_FILES
 )
 foreach(EXAMPLE_FILE ${EXAMPLE_FILES})
   get_filename_component(FILENAME ${EXAMPLE_FILE} NAME_WE)
-  add_executable(${FILENAME}.example ${FILENAME}.cpp)
-  target_link_libraries(${FILENAME}.example PUBLIC rendering fields Boost::program_options)
-  add_custom_target(${FILENAME}.example.run
-                    COMMAND ./${FILENAME}.example
-                    DEPENDS ${FILENAME}.example)
+  set(TARGET ${FILENAME}.example)
+  add_executable(${TARGET} ${FILENAME}.cpp)
+  target_link_libraries(${TARGET} PUBLIC fields Boost::program_options)
+  add_custom_target(${TARGET}.run
+    COMMAND ./${TARGET}
+    DEPENDS ${TARGET})
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    # add valgrind targets for unittest
+    add_custom_target(
+      ${TARGET}.valgrind
+     COMMAND valgrind
+     --log-file="${TARGET}.valgrind"
+             --tool=memcheck
+             --leak-check=yes
+             --show-reachable=yes
+             --track-fds=yes
+             ./${TARGET}
+             DEPENDS ${TARGET})
+    add_custom_target (
+      ${TARGET}.callgrind
+      COMMAND valgrind
+              --tool=callgrind
+              --callgrind-out-file=${TARGET}.callgrind
+              --dump-instr=yes
+              --collect-jumps=yes
+              ./${TARGET}
+              DEPENDS ${TARGET})
+    add_custom_target (
+      ${TARGET}.callgrind.kcachegrind
+      COMMAND kcachegrind
+      ${TARGET}.callgrind
+      DEPENDS ${TARGET}.callgrind)
+    add_custom_target (
+      ${TARGET}.callgrind.dot
+      COMMAND gprof2dot
+              --format=callgrind
+              --output=${TARGET}.dot
+              ${TARGET}.callgrind
+      COMMAND dot
+      -Tsvg ${TARGET}.dot
+      -o ${TARGET}-graph.svg
+      DEPENDS ${TARGET}.callgrind)
+  endif()
 endforeach()
-
-
-if (TATOOINE_GL_AVAILABLE)
-  file(GLOB EXAMPLE_FILES
-    "${CMAKE_CURRENT_SOURCE_DIR}/rendering/*.cpp"
-  )
-  foreach(EXAMPLE_FILE ${EXAMPLE_FILES})
-    get_filename_component(FILENAME ${EXAMPLE_FILE} NAME_WE)
-    add_executable(rendering.${FILENAME}.example rendering/${FILENAME}.cpp)
-    target_link_libraries(rendering.${FILENAME}.example PUBLIC rendering fields Boost::program_options)
-    add_custom_target(rendering.${FILENAME}.example.run
-                      COMMAND ./rendering.${FILENAME}.example
-                      DEPENDS rendering.${FILENAME}.example)
-  endforeach()
-endif()
