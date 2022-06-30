@@ -44,51 +44,53 @@ set(COVERAGE_LCOV_EXCLUDES
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 set(TATOOINE_TEST_CPPS main.cpp)
 macro(create_test NAME)
+  set(TARGET ${NAME}.unittests) 
   list(APPEND TATOOINE_TEST_CPPS "${NAME}.cpp")
   # add and configure unittest-target
   add_executable(
-    ${NAME}.unittests EXCLUDE_FROM_ALL
+    ${TARGET} EXCLUDE_FROM_ALL
     ${NAME}.cpp main.cpp)
   if(TATOOINE_USE_CLANG_TIDY)
     set_target_properties(
-      ${NAME}.unittests
+      ${TARGET}
       PROPERTIES CXX_CLANG_TIDY
       "${CLANG_TIDY_EXECUTABLE};-checks=${CLANG_TIDY_CHECKS};-header-filter='${CMAKE_SOURCE_DIR}/*';-extra-arg=-std=c++17;-line-filter=[{\"name\":\"${NAME}.cpp\",\"lines\":[[1,1]]}]")
   endif()
   target_link_libraries(
-    ${NAME}.unittests
-    tatooine gl Catch2::Catch2)
+    ${TARGET}
+    base gl fields Catch2::Catch2)
   target_include_directories(
-    ${NAME}.unittests
+    ${TARGET}
     PRIVATE
       ${CMAKE_SOURCE_DIR}/external/catch2/include)
   target_compile_features(
-    ${NAME}.unittests
+    ${TARGET}
       PUBLIC
         cxx_std_20)
   target_compile_options(
-    ${NAME}.unittests
+    ${TARGET}
     PRIVATE
       -Wall -Wextra -pedantic -Wno-missing-braces
       -Wno-gnu-zero-variadic-macro-arguments -ftemplate-backtrace-limit=0)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     target_compile_options(
-      ${NAME}.unittests
+      ${TARGET}
       PRIVATE
         -Wno-unused-lambda-capture)
   endif()
   target_compile_definitions(
-    ${NAME}.unittests
+    ${TARGET}
     PRIVATE
       CATCH_CONFIG_FAST_COMPILE)
   add_custom_target(
-    ${NAME}.unittests.run
-    COMMAND ./${NAME}.unittests
+    ${TARGET}.run
+    EXCLUDE_FROM_ALL
+    COMMAND ./${TARGET}
             --use-colour=yes
-    DEPENDS ${NAME}.unittests)
+    DEPENDS ${TARGET})
   if (TATOOINE_TEST_USE_FAST_MATH)
     target_compile_options(
-      ${NAME}.unittests
+      ${TARGET}
       PRIVATE
         -ffast-math)
   endif()
@@ -96,49 +98,53 @@ macro(create_test NAME)
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     # add valgrind targets for unittest
     add_custom_target(
-      ${NAME}.unittests.valgrind
-     COMMAND valgrind
-             --log-file="${NAME}.unittests.valgrind"
-             --tool=memcheck
-             --leak-check=yes
-             --show-reachable=yes
-             --track-fds=yes
-             ./${NAME}.unittests
-      DEPENDS ${NAME}.unittests)
+      ${TARGET}.valgrind
+      EXCLUDE_FROM_ALL
+      COMMAND valgrind
+      --log-file="${TARGET}.valgrind"
+              --tool=memcheck
+              --leak-check=yes
+              --show-reachable=yes
+              --track-fds=yes
+              ./${TARGET}
+              DEPENDS ${TARGET})
     add_custom_target (
-      ${NAME}.unittests.callgrind
+      ${TARGET}.callgrind
+      EXCLUDE_FROM_ALL
       COMMAND valgrind
               --tool=callgrind
-              --callgrind-out-file=${NAME}.unittests.callgrind
-              ./${NAME}.unittests
-      DEPENDS ${NAME}.unittests)
+              --callgrind-out-file=${TARGET}.callgrind
+              ./${TARGET}
+              DEPENDS ${TARGET})
     add_custom_target (
-      ${NAME}.unittests.callgrind.kcachegrind
+      ${TARGET}.callgrind.kcachegrind
+      EXCLUDE_FROM_ALL
       COMMAND kcachegrind
-              ${NAME}.unittests.callgrind
-      DEPENDS ${NAME}.unittests.callgrind)
+      ${TARGET}.callgrind
+      DEPENDS ${TARGET}.callgrind)
     add_custom_target (
-      ${NAME}.unittests.callgrind.dot
+      ${TARGET}.callgrind.dot
+      EXCLUDE_FROM_ALL
       COMMAND gprof2dot
               --format=callgrind
-              --output=${NAME}.unittests.dot
-              ${NAME}.unittests.callgrind
+              --output=${TARGET}.dot
+              ${TARGET}.callgrind
       COMMAND dot
-              -Tsvg ${NAME}.unittests.dot
-              -o ${NAME}.unittests-graph.svg
-      DEPENDS ${NAME}.unittests.callgrind)
+      -Tsvg ${TARGET}.dot
+      -o ${TARGET}-graph.svg
+      DEPENDS ${TARGET}.callgrind)
 
 
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
       # code coverage when using gcc in debug
       add_executable(
-        ${NAME}.unittests.gcov EXCLUDE_FROM_ALL
+        ${TARGET}.gcov EXCLUDE_FROM_ALL
         main.cpp ${NAME}.cpp)
       target_link_libraries(
-        ${NAME}.unittests.gcov
+        ${TARGET}.gcov
         tatooine gl Catch2::Catch2 gcov)
       target_compile_options(
-        ${NAME}.unittests.gcov
+        ${TARGET}.gcov
         PRIVATE
           -Wall -Wextra -pedantic
           -fprofile-arcs -ftest-coverage -fno-inline
@@ -147,25 +153,26 @@ macro(create_test NAME)
 
       if(LCOV_PATH)
         SETUP_TARGET_FOR_COVERAGE_LCOV(
-          NAME ${NAME}.unittests.lcov
-          EXECUTABLE ${NAME}.unittests.gcov
-          DEPENDENCIES ${NAME}.unittests.gcov)
+          NAME ${TARGET}.lcov
+          EXECUTABLE ${TARGET}.gcov
+          DEPENDENCIES ${TARGET}.gcov)
       endif()
 
       SETUP_TARGET_FOR_COVERAGE_GCOVR_HTML(
-        NAME ${NAME}.unittests.gcovr.html
-        EXECUTABLE ${NAME}.unittests.gcov
-        DEPENDENCIES ${NAME}.unittests.gcov)
+        NAME ${TARGET}.gcovr.html
+        EXECUTABLE ${TARGET}.gcov
+        DEPENDENCIES ${TARGET}.gcov)
 
       SETUP_TARGET_FOR_COVERAGE_GCOVR_XML(
-        NAME ${NAME}.unittests.gcovr.xml
-        EXECUTABLE ${NAME}.unittests.gcov
-        DEPENDENCIES ${NAME}.unittests.gcov)
+        NAME ${TARGET}.gcovr.xml
+        EXECUTABLE ${TARGET}.gcov
+        DEPENDENCIES ${TARGET}.gcov)
       add_custom_target(
-        ${NAME}.unittests.codecoverage
+        ${TARGET}.codecoverage
+        EXCLUDE_FROM_ALL
         COMMAND rm -rf ${NAME}_codecoverage
-        COMMAND mv ${NAME}.unittests.lcov ${NAME}_codecoverage
-        DEPENDS ${NAME}.unittests.lcov)
+        COMMAND mv ${TARGET}.lcov ${NAME}_codecoverage
+        DEPENDS ${TARGET}.lcov)
     endif()
   endif()
 
