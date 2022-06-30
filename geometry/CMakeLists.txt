@@ -45,7 +45,7 @@ target_compile_definitions(geometry PUBLIC TATOOINE_FLANN_AVAILABLE=${TATOOINE_F
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # CGAL
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE TRUE)
+set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE TRUE PARENT_SCOPE)
 set(CGAL_DATA_DIR ${CMAKE_CURRENT_BINARY_DIR}/cgal_data_dir)
 find_package(CGAL QUIET)
 

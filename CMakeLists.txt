@@ -54,6 +54,7 @@ endif()
 # create library target
 add_library(base INTERFACE)
 target_link_libraries(base INTERFACE ${Boost_LIBRARIES})
+target_compile_options(base INTERFACE -Wno-interference-size)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # set include dirs
 target_include_directories(base
@@ -355,17 +356,17 @@ endif()
 
 option(TATOOINE_BUILD_TESTS "" OFF)
 if (TATOOINE_BUILD_TESTS)
-  add_subdirectory(test)
+  add_subdirectory(test EXCLUDE_FROM_ALL)
 endif()
 
 option(TATOOINE_BUILD_BENCHMARKS "" OFF)
 if (TATOOINE_BUILD_BENCHMARKS)
-  add_subdirectory(benchmarks)
+  add_subdirectory(benchmarks EXCLUDE_FROM_ALL)
 endif()
 
 option(TATOOINE_BUILD_EXAMPLES "" OFF)
 if (TATOOINE_BUILD_EXAMPLES)
-  add_subdirectory(examples)
+  add_subdirectory(examples EXCLUDE_FROM_ALL)
 endif()
 
 #if (TATOOINE_GL_AVAILABLE)
