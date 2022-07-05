@@ -7,7 +7,6 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-
 template <typename Indicator>
 concept indicator_with_progress = requires(Indicator indicator, double p) {
  indicator.set_progress(p);
@@ -55,10 +54,10 @@ auto indeterminate_progress_bar(F&& f, Args&&... args)
   -> decltype(auto) {
   indicators::IndeterminateProgressBar indicator{
       indicators::option::BarWidth{20},
-      indicators::option::Start{"▶"},
+      //indicators::option::Start{"▶"},
       indicators::option::Fill{" "},
-      indicators::option::Lead{"░▒▓▒░"},
-      indicators::option::End{"◀"},
+      //indicators::option::Lead{"░▓▓▒░"},
+      //indicators::option::End{"◀"},
       indicators::option::ForegroundColor{indicators::Color::white},
       indicators::option::FontStyles{
           std::vector<indicators::FontStyle>{indicators::FontStyle::bold}}};
@@ -68,7 +67,7 @@ auto indeterminate_progress_bar(F&& f, Args&&... args)
       indicator.tick();
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-      indicator.tick();
+    indicator.tick();
   });
 
   if constexpr (std::is_invocable_v<F, Args...>) {
@@ -114,8 +113,8 @@ auto progress_bar(F&& f, Args&&... args)
   -> decltype(auto) {
   indicators::BlockProgressBar progress_indicator{
       indicators::option::BarWidth{20},
-      indicators::option::Start{"▶"},
-      indicators::option::End{"◀"},
+      //indicators::option::Start{"▶"},
+      //indicators::option::End{"◀"},
       indicators::option::ShowElapsedTime{true},
       indicators::option::ShowRemainingTime{true},
       indicators::option::ForegroundColor{indicators::Color::white},

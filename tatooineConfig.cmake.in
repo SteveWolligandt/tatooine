@@ -31,12 +31,12 @@ endif()
 set(_targetsDefined)
 set(_targetsNotDefined)
 set(_expectedTargets)
-set (targets tatooine::base tatooine::geometry tatooine::multidim_array tatooine::preprocessor tatooine::fields tatooine::tensor blaspp lapackpp)
+set (targets tatooine::base tatooine::geometry tatooine::multidim_array tatooine::preprocessor tatooine::fields tatooine::tensor tatooine::rendering blaspp lapackpp)
 if (TATOOINE_USE_CDT)
   list(APPEND targets tatooine::CDT)
 endif()
 if (TATOOINE_GL_AVAILABLE)
-  list(APPEND targets tatooine::gl tatooine::glad tatooine::glfw tatooine::imgui tatooine::rendering)
+  list(APPEND targets tatooine::gl tatooine::glad tatooine::glfw tatooine::imgui)
 endif()
 foreach(_expectedTarget ${targets})
   list(APPEND _expectedTargets ${_expectedTarget})
@@ -130,13 +130,20 @@ set_target_properties(tatooine::imgui PROPERTIES
   INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/gl/external/imgui"
 )
 
+endif()
 # Create imported target tatooine::rendering
 add_library(tatooine::rendering INTERFACE IMPORTED)
 
-set_target_properties(tatooine::rendering PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/rendering/include"
-  INTERFACE_LINK_LIBRARIES "tatooine::gl;tatooine::geometry"
-)
+if (TATOOINE_GL_AVAILABLE) 
+  set_target_properties(tatooine::rendering PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/rendering/include"
+    INTERFACE_LINK_LIBRARIES "tatooine::gl;tatooine::geometry"
+  )
+else()
+  set_target_properties(tatooine::rendering PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/rendering/include"
+    INTERFACE_LINK_LIBRARIES "tatooine::geometry"
+  )
 endif()
 
 # Create imported target tatooine::base

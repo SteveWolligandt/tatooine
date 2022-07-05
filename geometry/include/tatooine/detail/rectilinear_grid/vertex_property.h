@@ -20,7 +20,7 @@ struct repeated_interpolation_kernel_for_vertex_property_impl {
       GridVertexProperty, DefaultInterpolationKernel, N - 1,
       InterpolationKernels..., DefaultInterpolationKernel>::type;
 };
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//----------------------------------------------------------------------------
 template <typename GridVertexProperty,
           template <typename> typename DefaultInterpolationKernel,
           template <typename> typename... InterpolationKernels>
@@ -43,8 +43,8 @@ struct typed_vertex_property_interface;
 template <typename Grid>
 struct vertex_property {
   //============================================================================
-  using this_type        = vertex_property<Grid>;
-  using real_type        = typename Grid::real_type;
+  using this_type     = vertex_property<Grid>;
+  using real_type     = typename Grid::real_type;
   using vertex_handle = typename Grid::vertex_handle;
   //============================================================================
   static constexpr auto num_dimensions() { return Grid::num_dimensions(); }
@@ -91,7 +91,7 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
   //============================================================================
   using this_type =
       typed_vertex_property_interface<Grid, ValueType, HasNonConstReference>;
-  using parent_type        = vertex_property<Grid>;
+  using parent_type     = vertex_property<Grid>;
   using value_type      = ValueType;
   using const_reference = ValueType const&;
   using reference =
@@ -168,7 +168,7 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
     return sampler<interpolation::cubic>();
   }
   //----------------------------------------------------------------------------
-  auto inverse_distance_weighting_sampler(real_type const radius) const  {
+  auto inverse_distance_weighting_sampler(real_type const radius) const {
     return inverse_distance_weighting_sampler_type{this->grid(), *this, radius};
   }
   //----------------------------------------------------------------------------
@@ -177,16 +177,16 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
   constexpr auto operator[](vertex_handle const& h) const -> decltype(auto) {
     return at(h);
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //----------------------------------------------------------------------------
   constexpr auto operator[](vertex_handle const& h) -> decltype(auto) {
     return at(h);
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //----------------------------------------------------------------------------
   constexpr auto operator()(std::array<std::size_t, num_dimensions()> const& is)
       const -> decltype(auto) {
     return at(is);
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //----------------------------------------------------------------------------
   constexpr auto operator()(std::array<std::size_t, num_dimensions()> const& is)
       -> decltype(auto) {
     return at(is);
@@ -196,7 +196,7 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
       -> decltype(auto) requires(sizeof...(is) == Grid::num_dimensions()) {
     return at(std::array{static_cast<std::size_t>(is)...});
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //----------------------------------------------------------------------------
   constexpr auto operator()(integral auto const... is)
       -> decltype(auto) requires(sizeof...(is) == Grid::num_dimensions()) {
     return at(std::array{static_cast<std::size_t>(is)...});
@@ -205,11 +205,11 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
   constexpr auto at(vertex_handle const& h) const -> decltype(auto) {
     return at(h, std::make_index_sequence<num_dimensions()>{});
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //----------------------------------------------------------------------------
   constexpr auto at(vertex_handle const& h) -> decltype(auto) {
     return at(h, std::make_index_sequence<num_dimensions()>{});
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //----------------------------------------------------------------------------
  private:
   template <std::size_t... Is>
   constexpr auto at(vertex_handle const& h,
@@ -217,7 +217,7 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
       -> decltype(auto) {
     return at(h.index(Is)...);
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //----------------------------------------------------------------------------
   template <std::size_t... Is>
   constexpr auto at(vertex_handle const& h, std::index_sequence<Is...> /*seq*/)
       -> decltype(auto) {
@@ -229,32 +229,61 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
       -> decltype(auto) requires(sizeof...(is) == Grid::num_dimensions()) {
     return at(std::array{static_cast<std::size_t>(is)...});
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //----------------------------------------------------------------------------
   auto at(integral auto const... is)
       -> decltype(auto) requires(sizeof...(is) == Grid::num_dimensions()) {
     return at(std::array{static_cast<std::size_t>(is)...});
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //----------------------------------------------------------------------------
   virtual auto at(std::array<std::size_t, num_dimensions()> const& is) const
       -> const_reference = 0;
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //----------------------------------------------------------------------------
   virtual auto at(std::array<std::size_t, num_dimensions()> const& is)
       -> reference = 0;
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //----------------------------------------------------------------------------
   virtual auto plain_at(std::size_t) const -> const_reference = 0;
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //----------------------------------------------------------------------------
   virtual auto plain_at(std::size_t) -> reference = 0;
   //----------------------------------------------------------------------------
   auto resize(integral auto const... size)
       -> decltype(auto) requires(sizeof...(size) == Grid::num_dimensions()) {
     return resize(std::array{static_cast<std::size_t>(size)...});
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //----------------------------------------------------------------------------
   virtual auto resize(std::array<std::size_t, num_dimensions()> const& size)
       -> void = 0;
   //----------------------------------------------------------------------------
 #if TATOOINE_PNG_AVAILABLE
-  auto write_png(filesystem::path const&              path,
+  template <invocable<ValueType> T>
+      auto write_png(filesystem::path const& path, T&& f, auto&& color_scale,
+                     tensor_value_type<ValueType> const min = 0,
+                     tensor_value_type<ValueType> const max = 1) const
+      -> void requires(num_dimensions() == 2) &&
+      (static_vec<ValueType>)&&(arithmetic<invoke_result<T, ValueType>>) {
+    png::image<png::rgb_pixel> image{
+        static_cast<png::uint_32>(this->grid().size(0)),
+        static_cast<png::uint_32>(this->grid().size(1))};
+    for (unsigned int y = 0; y < image.get_height(); ++y) {
+      for (png::uint_32 x = 0; x < image.get_width(); ++x) {
+        auto d = f(at(x, y));
+        if (std::isnan(d)) {
+          d = 0;
+        } else {
+          d = std::max<tensor_value_type<ValueType>>(
+              min, std::min<tensor_value_type<ValueType>>(max, d));
+          d -= min;
+          d /= max - min;
+        }
+        auto const col                             = color_scale(d);
+        image[image.get_height() - 1 - y][x].red   = col.x() * 255;
+        image[image.get_height() - 1 - y][x].green = col.y() * 255;
+        image[image.get_height() - 1 - y][x].blue  = col.z() * 255;
+      }
+    }
+    image.write(path.string());
+  }
+  //----------------------------------------------------------------------------
+  auto write_png(filesystem::path const&            path,
                  tensor_value_type<ValueType>       min = 0,
                  tensor_value_type<ValueType> const max = 1) const
       -> void requires(num_dimensions() == 2) &&
@@ -298,11 +327,9 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
     image.write(path.string());
   }
   //----------------------------------------------------------------------------
-  template <typename ColorScale>
-      auto write_png(filesystem::path const& path, ColorScale&& color_scale,
-                     ValueType const min = 0, ValueType const max = 1) const
-      -> void requires(num_dimensions() == 2) &&
-      (is_floating_point<ValueType>) {
+  auto write_png(filesystem::path const& path, auto&& color_scale,
+                 ValueType const min = 0, ValueType const max = 1) const
+  -> void requires(num_dimensions() == 2) && (is_floating_point<ValueType>) {
     png::image<png::rgb_pixel> image{
         static_cast<png::uint_32>(this->grid().size(0)),
         static_cast<png::uint_32>(this->grid().size(1))};
@@ -334,7 +361,7 @@ auto write_png(typed_vertex_property_interface<
                filesystem::path const&                           path) -> void {
   prop.write_png(path);
 }
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//------------------------------------------------------------------------------
 template <typename Grid, typename ValueType, bool HasNonConstReference>
 auto write_png(filesystem::path const& path,
                typed_vertex_property_interface<
@@ -364,12 +391,12 @@ struct typed_vertex_property
       ValueType&>;
   using prop_parent_type =
       typed_vertex_property_interface<Grid, ValueType, has_non_const_reference>;
-  using cont_parent_type   = Container;
-  using value_type      = typename prop_parent_type::value_type;
-  using reference       = typename prop_parent_type::reference;
-  using const_reference    = typename prop_parent_type::const_reference;
-  using grid_type          = Grid;
-  using real_type          = typename Grid::real_type;
+  using cont_parent_type = Container;
+  using value_type       = typename prop_parent_type::value_type;
+  using reference        = typename prop_parent_type::reference;
+  using const_reference  = typename prop_parent_type::const_reference;
+  using grid_type        = Grid;
+  using real_type        = typename Grid::real_type;
   using prop_parent_type::num_dimensions;
   //============================================================================
   // ctors
@@ -396,7 +423,7 @@ struct typed_vertex_property
       -> decltype(auto) requires(sizeof...(is) == Grid::num_dimensions()) {
     return Container::at(is...);
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //----------------------------------------------------------------------------
   constexpr auto operator()(integral auto const... is)
       -> decltype(auto) requires(sizeof...(is) == Grid::num_dimensions()) {
     return Container::at(is...);
@@ -406,7 +433,7 @@ struct typed_vertex_property
       -> decltype(auto) requires(sizeof...(is) == Grid::num_dimensions()) {
     return Container::at(is...);
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //----------------------------------------------------------------------------
   auto at(integral auto const... is)
       -> decltype(auto) requires(sizeof...(is) == Grid::num_dimensions()) {
     return Container::at(is...);
@@ -417,27 +444,27 @@ struct typed_vertex_property
           std::index_sequence<Is...> /*seq*/) const -> const_reference {
     return Container::at(size[Is]...);
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //----------------------------------------------------------------------------
   auto at(std::array<std::size_t, num_dimensions()> const& size) const
       -> const_reference override {
     return at(size, std::make_index_sequence<num_dimensions()>{});
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //----------------------------------------------------------------------------
   template <std::size_t... Is>
   auto at(std::array<std::size_t, num_dimensions()> const& size,
           std::index_sequence<Is...> /*seq*/) -> reference {
     return Container::at(size[Is]...);
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //----------------------------------------------------------------------------
   auto at(std::array<std::size_t, num_dimensions()> const& size)
       -> reference override {
     return at(size, std::make_index_sequence<num_dimensions()>{});
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //----------------------------------------------------------------------------
   auto plain_at(std::size_t const i) const -> const_reference override {
     return Container::operator[](i);
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //----------------------------------------------------------------------------
   auto plain_at(std::size_t const i) -> reference override {
     return Container::operator[](i);
   }
@@ -487,12 +514,13 @@ struct vertex_property_differentiated_type_impl<Grid, tensor<T, Dims...>> {
 //==============================================================================
 template <typename Grid, typename PropValueType, bool PropHasNonConstReference>
 struct differentiated_typed_vertex_property {
-  using this_type     = differentiated_typed_vertex_property<Grid, PropValueType,
-                                                      PropHasNonConstReference>;
+  using this_type =
+      differentiated_typed_vertex_property<Grid, PropValueType,
+                                           PropHasNonConstReference>;
   using prop_t     = typed_vertex_property_interface<Grid, PropValueType,
                                                  PropHasNonConstReference>;
   using value_type = vertex_property_differentiated_type<Grid, PropValueType>;
-  using grid_type     = Grid;
+  using grid_type  = Grid;
   //----------------------------------------------------------------------------
   static constexpr auto num_dimensions() { return Grid::num_dimensions(); }
   //----------------------------------------------------------------------------
@@ -511,10 +539,10 @@ struct differentiated_typed_vertex_property {
     return at(std::make_index_sequence<Grid::num_dimensions()>{}, is...);
   }
   //----------------------------------------------------------------------------
- private:
-  template <std::size_t... Seq, typename... Is>
-  auto at(std::index_sequence<Seq...> /*seq*/, Is const... is) const
-      -> value_type {
+ private : template <std::size_t... Seq, typename... Is>
+           auto
+           at(std::index_sequence<Seq...> /*seq*/, Is const... is) const
+           -> value_type {
     auto d = value_type{};
     (
         [&](auto const dim, auto const index) {
