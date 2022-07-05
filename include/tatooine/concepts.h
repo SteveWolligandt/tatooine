@@ -139,6 +139,9 @@ concept invocable = std::invocable<F, Args...>;
 template <typename F, typename... Args>
 concept regular_invocable = std::regular_invocable<F, Args...>;
 //-----------------------------------------------------------------------------
+template <typename F, typename... Args>
+using invoke_result = std::invoke_result_t<F, Args...>;
+//-----------------------------------------------------------------------------
 template <typename T>
 concept has_static_num_dimensions_method = requires {
   { T::num_dimensions() } -> std::convertible_to<std::size_t>;

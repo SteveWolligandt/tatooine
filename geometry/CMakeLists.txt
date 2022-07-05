@@ -75,7 +75,7 @@ set(TATOOINE_CGAL_AVAILABLE ${TATOOINE_CGAL_AVAILABLE} PARENT_SCOPE)
 target_compile_definitions(geometry PUBLIC TATOOINE_CGAL_AVAILABLE=${TATOOINE_CGAL_AVAILABLE})
 
 if (TATOOINE_BUILD_EXAMPLES)
-  add_subdirectory(examples)
+  add_subdirectory(examples EXCLUDE_FROM_ALL)
 endif()
 
 

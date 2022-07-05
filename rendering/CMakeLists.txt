@@ -3,8 +3,15 @@ target_include_directories(rendering INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_BINARY_DIR}/include
   )
-target_link_libraries(rendering INTERFACE gl geometry)
+if (TATOOINE_GL_AVAILABLE)
+  target_link_libraries(rendering INTERFACE gl geometry)
+else()
+  target_link_libraries(rendering INTERFACE geometry)
+endif()
 
+################################################################################
+if (TATOOINE_GL_AVAILABLE)
+################################################################################
 set(TATOOINE_LIC_COMP_SHADER
     ${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/lic.comp)
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/lic.h.in"
@@ -14,9 +21,12 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/lic.h.in"
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/line_shader.h.in"
                "${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/gpu/line_shader.h")
 
- ## Texture Shader
+## Texture Shader
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/texture_shader.h.in"
                "${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/gpu/texture_shader.h")
 
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/reduce.h.in"
                "${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/gpu/reduce.h")
+################################################################################
+endif()
+################################################################################

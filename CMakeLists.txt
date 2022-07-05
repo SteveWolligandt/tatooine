@@ -10,17 +10,17 @@ configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/real.h.in
   ${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/real.h)
 
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+#--------------------------------------------------------------------------------
 # filesystem check
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+#--------------------------------------------------------------------------------
 try_compile(TATOOINE_STD_FILESYSTEM_COMPILED "${CMAKE_BINARY_DIR}/temp" 
             "${CMAKE_CURRENT_SOURCE_DIR}/src/test_has_filesystem.cpp" 
             CMAKE_FLAGS -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_STANDARD_REQUIRED=ON
             LINK_LIBRARIES stdc++fs)
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+#--------------------------------------------------------------------------------
 set(TATOOINE_EXTERNAL ${CMAKE_SOURCE_DIR}/external)
 include(target_link_libraries_system)
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#-------------------------------------------------------------------------------
 # clang-tidy
 find_program(CLANG_TIDY_EXECUTABLE NAMES "clang-tidy" DOC "Path to clang-tidy executable")
 if (CLANG_TIDY_EXECUTABLE)
@@ -50,12 +50,12 @@ if (CLANG_TIDY_EXECUTABLE)
 else()
   set(TATOOINE_USE_CLANG_TIDY FALSE)
 endif()
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#-------------------------------------------------------------------------------
 # create library target
 add_library(base INTERFACE)
 target_link_libraries(base INTERFACE ${Boost_LIBRARIES})
 target_compile_options(base INTERFACE -Wno-interference-size)
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#-------------------------------------------------------------------------------
 # set include dirs
 target_include_directories(base
   INTERFACE
@@ -97,9 +97,9 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   target_compile_options(base INTERFACE -fdiagnostics-color=always)
 endif()
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+#--------------------------------------------------------------------------------
 # git submodules
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+#--------------------------------------------------------------------------------
 find_package(Git REQUIRED)
 function(update_git_submodule dir)
   execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive -- ${dir}
@@ -122,11 +122,11 @@ if (NOT TATOOINE_DOC_ONLY)
 # Required Packages
 #===============================================================================
 # Boost
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#-------------------------------------------------------------------------------
 find_package(Boost REQUIRED)
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#-------------------------------------------------------------------------------
 # OpenMP
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#-------------------------------------------------------------------------------
 find_package(OpenMP REQUIRED COMPONENTS CXX)
 option(TATOOINE_COMPILE_WITH_OPENMP "" ON)
 if (TATOOINE_COMPILE_WITH_OPENMP)
@@ -142,9 +142,10 @@ endif()
 #===============================================================================
 # Optional Packages
 #===============================================================================
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+#-------------------------------------------------------------------------------
 # PNG
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#-------------------------------------------------------------------------------
 find_package(PNG)
 if(PNG_FOUND)
   find_package(PNG++)
@@ -160,9 +161,9 @@ else()
   set(TATOOINE_PNG_AVAILABLE 0)
 endif()
 target_compile_definitions(base INTERFACE TATOOINE_PNG_AVAILABLE=${TATOOINE_PNG_AVAILABLE})
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#-------------------------------------------------------------------------------
 # MPI
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#-------------------------------------------------------------------------------
 get_filename_component(C_COMPILER_EXECUTABLE ${CMAKE_C_COMPILER} NAME)
 get_filename_component(CXX_COMPILER_EXECUTABLE ${CMAKE_CXX_COMPILER} NAME)
 if ("${CXX_COMPILER_EXECUTABLE}" STREQUAL "mpicxx")
@@ -181,9 +182,9 @@ else()
   message(STATUS "MPI can only be used if CXX_COMPILER_EXECUTABLE is mpicxx. Current: ${CXX_COMPILER_EXECUTABLE}")
   set(TATOOINE_MPI_AVAILABLE 0)
 endif()
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#-------------------------------------------------------------------------------
 # HDF5
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#-------------------------------------------------------------------------------
 option(TATOOINE_USE_SYSTEM_HDF5_LIBS "By setting this to ON tatooine will not compile HDF5 on its own." ON)
 if (TATOOINE_USE_SYSTEM_HDF5_LIBS) 
   find_package(HDF5 QUIET COMPONENTS C)
@@ -282,9 +283,9 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/hdf5_include.h.in
                ${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/hdf5_include.h)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/hdf5/type.h.in
                ${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/hdf5/type.h)
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#-------------------------------------------------------------------------------
 # NetCDF
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#-------------------------------------------------------------------------------
 if(TATOOINE_USE_SYSTEM_HDF5_LIBS)
 #  option(TATOOINE_USE_SYSTEM_NETCDF_LIBS
 #         "By setting this to ON tatooine will not compile NetCDF on its own."
@@ -312,9 +313,9 @@ if(TATOOINE_USE_SYSTEM_HDF5_LIBS)
 #  #add_subdirectory(external/netcdf-cxx4 EXCLUDE_FROM_ALL)
 endif()
 
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#-------------------------------------------------------------------------------
 # GINAC
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#-------------------------------------------------------------------------------
 #find_package(GINAC QUIET)
 #if (${GINAC_FOUND}) 
 #  option(TATOOINE_USE_GINAC "use GiNaC for symbolics support" FALSE)
@@ -342,7 +343,6 @@ target_link_libraries(base INTERFACE preprocessor)
 add_subdirectory(multidim_array)
 add_subdirectory(tensor)
 add_subdirectory(geometry)
-add_subdirectory(gl)
 add_subdirectory(fields)
 
 if (TATOOINE_MPI_AVAILABLE)
@@ -350,9 +350,8 @@ if (TATOOINE_MPI_AVAILABLE)
   add_subdirectory(insitu)
 endif()
 
-if (TATOOINE_GL_AVAILABLE)
-  add_subdirectory(rendering)
-endif()
+add_subdirectory(gl)
+add_subdirectory(rendering)
 
 option(TATOOINE_BUILD_TESTS "" OFF)
 if (TATOOINE_BUILD_TESTS)
@@ -388,12 +387,12 @@ foreach(SUBMODULE ${TATOOINE_MANDATORY_GIT_SUBMODULES})
   update_git_submodule(${SUBMODULE})
 endforeach()
 endif()
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+#--------------------------------------------------------------------------------
 # configure files
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+#--------------------------------------------------------------------------------
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/available_libraries.h.in"
                "${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/available_libraries.h")
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#-------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------
 # Get base properties for tatooineConfig.cmake
 # include directories

@@ -23,14 +23,14 @@ struct staggered_flowmap_discretization {
                                    InternalFlowmapArgs&&... args) {
     auto const t1     = t0 + tau;
     real_type cur_t0 = t0;
-    while (std::abs(cur_t0 - (t0 + tau)) > 1e-10) {
+    while (cur_t0 + 1e-10 < t0 + tau) {
       auto cur_tau = delta_t;
       if (cur_t0 + cur_tau > t1) {
         cur_tau = t0 + tau - cur_t0;
       }
       m_steps.emplace_back(std::forward<Flowmap>(flowmap), cur_t0, cur_tau,
                            std::forward<InternalFlowmapArgs>(args)...);
-      cur_t0 += delta_t;
+      cur_t0 += cur_tau;
     }
   }
   //----------------------------------------------------------------------------
