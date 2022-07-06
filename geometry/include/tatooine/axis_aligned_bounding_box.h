@@ -126,7 +126,7 @@ struct axis_aligned_bounding_box
       default;
   constexpr axis_aligned_bounding_box(
       axis_aligned_bounding_box&& other) noexcept = default;
-  constexpr auto operator           =(axis_aligned_bounding_box const& other)
+  constexpr auto operator=(axis_aligned_bounding_box const& other)
       -> axis_aligned_bounding_box& = default;
   constexpr auto operator=(axis_aligned_bounding_box&& other) noexcept
       -> axis_aligned_bounding_box& = default;

@@ -58,10 +58,12 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //============================================================================
  private:
   //----------------------------------------------------------------------------
-  pos_type      m_x0;
-  real_type     m_t;
-  mat_type      m_nabla_phi;
-  std::uint64_t m_id = std::numeric_limits<std::uint64_t>::max();
+  pos_type                     m_x0;
+  real_type                    m_t;
+  mat_type                     m_nabla_phi;
+  std::size_t                  m_split_depth = 0;
+  std::uint64_t                m_id = std::numeric_limits<std::uint64_t>::max();
+  static constexpr std::size_t max_split_depth = 1;
 
   static auto mutex() -> auto& {
     static auto m = std::mutex{};
@@ -114,17 +116,25 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //----------------------------------------------------------------------------
   autonomous_particle(ellipse_type const& ell, real_type const t,
                       pos_type const& x0, mat_type const& nabla_phi,
-                      std::uint64_t const id)
-      : parent_type{ell}, m_x0{x0}, m_t{t}, m_nabla_phi{nabla_phi}, m_id{id} {}
+                      std::size_t const split_depth, std::uint64_t const id)
+      : parent_type{ell},
+        m_x0{x0},
+        m_t{t},
+        m_nabla_phi{nabla_phi},
+        m_split_depth{split_depth},
+        m_id{id} {}
   //----------------------------------------------------------------------------
   autonomous_particle(ellipse_type const& ell, real_type const t,
                       pos_type const& x0, mat_type const& nabla_phi,
+                      std::size_t const     split_depth,
                       std::atomic_uint64_t& uuid_generator)
-      : autonomous_particle{ell, t, x0, nabla_phi, uuid_generator++} {}
+      : autonomous_particle{ell,       t,           x0,
+                            nabla_phi, split_depth, uuid_generator++} {}
   /// \}
   //============================================================================
   // GETTERS / SETTERS
   //============================================================================
+ public:
   auto x0() -> auto& { return m_x0; }
   auto x0() const -> auto const& { return m_x0; }
   auto x0(std::size_t i) const { return x0()(i); }
@@ -148,6 +158,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   }
   //----------------------------------------------------------------------------
   auto initial_ellipse() const { return ellipse_type{x0(), S0()}; }
+  //----------------------------------------------------------------------------
+  auto split_depth() const { return m_split_depth; }
   //----------------------------------------------------------------------------
   auto id() const { return m_id; }
   //============================================================================
@@ -1045,14 +1057,15 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
       // check if particle has reached t_end
       if (t_advected == t_end) {
         finished_particles.emplace_back(advected_ellipse, t_advected, x0(),
-                                        assembled_nabla_phi, m_id);
+                                        assembled_nabla_phi, split_depth(),
+                                        id());
         return;
       }
 
       // check if particle's ellipse has reached its splitting width
       static auto constexpr linearity_threshold = 1e-2;
-      //std::cout << "linearity: " << linearity << '\n';
-      if (linearity >= linearity_threshold || sqr_cond_H > 10) {
+      if (split_depth() != max_split_depth &&
+          (linearity >= linearity_threshold || sqr_cond_H > 10)) {
         for (std::size_t i = 0; i < size(split_radii); ++i) {
           auto const new_eigvals    = current_radii * split_radii[i];
           auto const offset2        = advected_B * split_offsets[i];
@@ -1063,7 +1076,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
 
           splitted_particles.emplace_back(offset_ellipse, t_advected,
                                           x0() + offset0, assembled_nabla_phi,
-                                          uuid_generator);
+                                          split_depth() + 1, uuid_generator);
           auto lock = std::lock_guard{hierarchy_mutex};
           hierarchy_pairs.emplace_back(splitted_particles.back().m_id, m_id);
         }

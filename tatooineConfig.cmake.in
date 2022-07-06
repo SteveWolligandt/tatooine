@@ -105,46 +105,40 @@ if (TATOOINE_GL_AVAILABLE)
   add_library(tatooine::gl STATIC IMPORTED)
 
   set_target_properties(tatooine::gl PROPERTIES
-    INTERFACE_COMPILE_DEFINITIONS "TATOOINE_GL_VERBOSE=0"
-    INTERFACE_COMPILE_FEATURES "cxx_std_20"
-    INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/gl/include;@CMAKE_BINARY_DIR@/gl/include;@CMAKE_SOURCE_DIR@/gl/external/imgui;@CMAKE_SOURCE_DIR@/gl/external/imgui;@CMAKE_SOURCE_DIR@/gl/external/imgui-filebrowser"
-    INTERFACE_LINK_LIBRARIES "tatooine::tensor;tatooine::glad;\$<LINK_ONLY:OpenGL::OpenGL>;\$<LINK_ONLY:OpenGL::EGL>;\$<LINK_ONLY:tatooine::glfw>;\$<LINK_ONLY:tatooine::imgui>"
+    INTERFACE_COMPILE_DEFINITIONS "@GL_COMPILE_DEFINITIONS@"
+    INTERFACE_COMPILE_OPTIONS "@GL_COMPILE_OPTIONS@"
+    INTERFACE_COMPILE_FEATURES "@GL_COMPILE_FEATURES@"
+    INTERFACE_INCLUDE_DIRECTORIES "@GL_INCLUDE_DIRECTORIES@"
+    INTERFACE_LINK_LIBRARIES "@GL_LINK_LIBRARIES@"
   )
 
-# Create imported target tatooine::glad
-add_library(tatooine::glad STATIC IMPORTED)
+  # Create imported target tatooine::glad
+  add_library(tatooine::glad STATIC IMPORTED)
 
-set_target_properties(tatooine::glad PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/gl/external/glad"
-)
-# Create imported target tatooine::glfw
-add_library(tatooine::glfw SHARED IMPORTED)
+  set_target_properties(tatooine::glad PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/gl/external/glad"
+  )
+  # Create imported target tatooine::glfw
+  add_library(tatooine::glfw SHARED IMPORTED)
 
-set_target_properties(tatooine::glfw PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/gl/external/glfw/include"
-)
-# Create imported target tatooine::imgui
-add_library(tatooine::imgui STATIC IMPORTED)
+  set_target_properties(tatooine::glfw PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/gl/external/glfw/include"
+  )
+  # Create imported target tatooine::imgui
+  add_library(tatooine::imgui STATIC IMPORTED)
 
-set_target_properties(tatooine::imgui PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/gl/external/imgui"
-)
+  set_target_properties(tatooine::imgui PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/gl/external/imgui"
+  )
 
 endif()
 # Create imported target tatooine::rendering
 add_library(tatooine::rendering INTERFACE IMPORTED)
 
-if (TATOOINE_GL_AVAILABLE) 
-  set_target_properties(tatooine::rendering PROPERTIES
-    INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/rendering/include"
-    INTERFACE_LINK_LIBRARIES "tatooine::gl;tatooine::geometry"
-  )
-else()
-  set_target_properties(tatooine::rendering PROPERTIES
-    INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/rendering/include"
-    INTERFACE_LINK_LIBRARIES "tatooine::geometry"
-  )
-endif()
+set_target_properties(tatooine::rendering PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "@RENDERING_INCLUDE_DIRECTORIES@"
+  INTERFACE_LINK_LIBRARIES "@RENDERING_LINK_LIBRARIES@"
+)
 
 # Create imported target tatooine::base
 add_library(tatooine::base INTERFACE IMPORTED)
