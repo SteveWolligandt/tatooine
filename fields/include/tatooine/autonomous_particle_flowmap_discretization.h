@@ -15,12 +15,12 @@ template <floating_point Real, std::size_t NumDimensions,
           typename SplitBehavior = typename autonomous_particle<
               Real, NumDimensions>::split_behaviors::three_splits>
 struct autonomous_particle_flowmap_discretization {
-  using real_type              = Real;
-  using vec_type               = vec<real_type, NumDimensions>;
-  using pos_type               = vec_type;
-  using gradient_type          = mat<real_type, NumDimensions, NumDimensions>;
-  using particle_type          = autonomous_particle<real_type, NumDimensions>;
-  using particle_list_type     = std::vector<particle_type>;
+  using real_type          = Real;
+  using vec_type           = vec<real_type, NumDimensions>;
+  using pos_type           = vec_type;
+  using gradient_type      = mat<real_type, NumDimensions, NumDimensions>;
+  using particle_type      = autonomous_particle<real_type, NumDimensions>;
+  using particle_list_type = std::vector<particle_type>;
 
   using pointset_type = tatooine::pointset<Real, NumDimensions>;
   using vertex_handle = typename pointset_type::vertex_handle;
@@ -149,7 +149,9 @@ struct autonomous_particle_flowmap_discretization {
   autonomous_particle_flowmap_discretization(
       Flowmap&& flowmap, arithmetic auto const t0, arithmetic auto const tau,
       arithmetic auto const                                     tau_step,
-      uniform_rectilinear_grid<real_type, NumDimensions> const& g)
+      uniform_rectilinear_grid<real_type, NumDimensions> const& g,
+      std::uint8_t const max_split_depth =
+          particle_type::default_max_split_depth)
       : m_flowmaps_forward{m_pointset_forward
                                .template vertex_property<pos_type>("flowmaps")},
         m_flowmap_gradients_forward{
@@ -167,7 +169,7 @@ struct autonomous_particle_flowmap_discretization {
         "Number of dimensions of flowmap does not match number of dimensions.");
 
     fill(std::forward<Flowmap>(flowmap),
-         particle_type::particles_from_grid_filling_gaps(t0, g, uuid_generator),
+         particle_type::particles_from_grid_filling_gaps(t0, g, max_split_depth, uuid_generator),
          t0 + tau, tau_step, uuid_generator);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -219,8 +221,9 @@ struct autonomous_particle_flowmap_discretization {
             uuid_generator);
     auto initial_discretizations = std::vector<line<real_type, 2>>{};
     std::ranges::copy(
-        initial_particles |
-            std::views::transform([](auto const& p) { return tatooine::geometry::discretize(p); }),
+        initial_particles | std::views::transform([](auto const& p) {
+          return tatooine::geometry::discretize(p);
+        }),
         std::back_inserter(initial_discretizations));
     write(initial_discretizations, "initial_particles.vtp");
     auto advected_discretizations = std::vector<line<real_type, 2>>{};
@@ -365,24 +368,40 @@ template <std::size_t NumDimensions,
               real_number, NumDimensions>::split_behaviors::three_splits>
 using AutonomousParticleFlowmapDiscretization =
     autonomous_particle_flowmap_discretization<real_number, NumDimensions>;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename SplitBehavior = typename autonomous_particle<
+              real_number, 2>::split_behaviors::three_splits>
 using autonomous_particle_flowmap_discretization2 =
-    AutonomousParticleFlowmapDiscretization<2>;
+    AutonomousParticleFlowmapDiscretization<2, SplitBehavior>;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename SplitBehavior = typename autonomous_particle<
+              real_number, 3>::split_behaviors::three_splits>
 using autonomous_particle_flowmap_discretization3 =
-    AutonomousParticleFlowmapDiscretization<3>;
+    AutonomousParticleFlowmapDiscretization<3, SplitBehavior>;
 //==============================================================================
-template <typename Real, std::size_t NumDimensions>
+template <typename Real, std::size_t NumDimensions,
+          typename SplitBehavior = typename autonomous_particle<
+              real_number, NumDimensions>::split_behaviors::three_splits>
 using staggered_autonomous_particle_flowmap_discretization =
-    staggered_flowmap_discretization<
-        autonomous_particle_flowmap_discretization<Real, NumDimensions>>;
-//------------------------------------------------------------------------------
-template <std::size_t NumDimensions>
+    staggered_flowmap_discretization<autonomous_particle_flowmap_discretization<
+        Real, NumDimensions, SplitBehavior>>;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <std::size_t NumDimensions,
+          typename SplitBehavior = typename autonomous_particle<
+              real_number, NumDimensions>::split_behaviors::three_splits>
 using StaggeredAutonomousParticleFlowmapDiscretization =
-    staggered_autonomous_particle_flowmap_discretization<real_number,
-                                                         NumDimensions>;
+    staggered_autonomous_particle_flowmap_discretization<
+        real_number, NumDimensions, SplitBehavior>;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename SplitBehavior = typename autonomous_particle<
+              real_number, 2>::split_behaviors::three_splits>
 using staggered_autonomous_particle_flowmap_discretization2 =
-    StaggeredAutonomousParticleFlowmapDiscretization<2>;
+    StaggeredAutonomousParticleFlowmapDiscretization<2, SplitBehavior>;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename SplitBehavior = typename autonomous_particle<
+              real_number, 3>::split_behaviors::three_splits>
 using staggered_autonomous_particle_flowmap_discretization3 =
-    StaggeredAutonomousParticleFlowmapDiscretization<3>;
+    StaggeredAutonomousParticleFlowmapDiscretization<3, SplitBehavior>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

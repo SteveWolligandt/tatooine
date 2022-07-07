@@ -546,7 +546,7 @@ struct differentiated_typed_vertex_property {
     auto d = value_type{};
     (
         [&](auto const dim, auto const index) {
-          constexpr auto targeted_stencil_size = std::size_t(7);
+          constexpr auto targeted_stencil_size = std::size_t(3);
           constexpr auto offset                = int(targeted_stencil_size / 2);
 
           auto       indices = std::array{static_cast<std::size_t>(is)...};
