@@ -4,7 +4,7 @@
 #include <tatooine/concepts.h>
 #include <tatooine/field.h>
 #include <tatooine/numerical_flowmap.h>
-#include <tatooine/flowmap_gradient_central_differences.h>
+#include <tatooine/differentiated_flowmap.h>
 #include <tatooine/tags.h>
 //==============================================================================
 namespace tatooine {
@@ -91,7 +91,7 @@ struct ftle_field
 template <typename V, typename Real, size_t N,
           template <typename, size_t> typename ODESolver>
 ftle_field(vectorfield<V, Real, N> const& v, arithmetic auto, ODESolver<Real, N>)
-    -> ftle_field<flowmap_gradient_central_differences<
+    -> ftle_field<numerically_differentiated_flowmap<
         decltype((flowmap<ODESolver>(v)))>>;
 template <typename V, typename Real, size_t N>
 ftle_field(vectorfield<V, Real, N> const& v, arithmetic auto)
@@ -102,10 +102,6 @@ ftle_field(vectorfield<V, Real, N> const& v, arithmetic auto, arithmetic auto)
 template <typename V, typename Real, size_t N, typename EpsReal>
 ftle_field(vectorfield<V, Real, N> const& v, arithmetic auto,
            vec<EpsReal, N> const&) -> ftle_field<decltype(diff(flowmap(v)))>;
-// template <typename FlowmapGradient>
-// ftle_field(FlowmapGradient&&, arithmetic auto)
-//    -> ftle_field<std::decay_t<FlowmapGradient>>;
-//
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

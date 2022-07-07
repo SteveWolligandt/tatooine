@@ -1,5 +1,5 @@
-#ifndef TATOOINE_AUTONOMOUS_PARTICLES
-#define TATOOINE_AUTONOMOUS_PARTICLES
+#ifndef TATOOINE_FIELDS_AUTONOMOUS_PARTICLE_H
+#define TATOOINE_FIELDS_AUTONOMOUS_PARTICLE_H
 //==============================================================================
 #include <tatooine/cache_alignment.h>
 #include <tatooine/concepts.h>
@@ -54,16 +54,20 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   using parent_type::discretize;
   using parent_type::S;
   //============================================================================
+  // static members
+  //============================================================================
+  static constexpr auto default_max_split_depth = 4;
+
+  //============================================================================
   // members
   //============================================================================
  private:
-  //----------------------------------------------------------------------------
-  pos_type                     m_x0;
-  real_type                    m_t;
-  mat_type                     m_nabla_phi;
-  std::size_t                  m_split_depth = 0;
-  std::uint64_t                m_id = std::numeric_limits<std::uint64_t>::max();
-  static constexpr std::size_t max_split_depth = 1;
+  pos_type      m_x0;
+  real_type     m_t;
+  mat_type      m_nabla_phi;
+  std::uint8_t  m_split_depth     = 0;
+  std::uint8_t  m_max_split_depth = default_max_split_depth;
+  std::uint64_t m_id              = std::numeric_limits<std::uint64_t>::max();
 
   static auto mutex() -> auto& {
     static auto m = std::mutex{};
@@ -78,17 +82,12 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   autonomous_particle(autonomous_particle const& other)     = default;
   autonomous_particle(autonomous_particle&& other) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator=(autonomous_particle const& other)
+  auto operator               =(autonomous_particle const& other)
       -> autonomous_particle& = default;
-  auto operator=(autonomous_particle&& other) noexcept
+  auto operator               =(autonomous_particle&& other) noexcept
       -> autonomous_particle& = default;
   //----------------------------------------------------------------------------
   ~autonomous_particle() = default;
-  //----------------------------------------------------------------------------
-  explicit autonomous_particle(std::uint64_t const id)
-      : m_nabla_phi{mat_type::eye()}, m_id{id} {}
-  explicit autonomous_particle(std::atomic_uint64_t& uuid_generator)
-      : autonomous_particle{uuid_generator++} {}
   //----------------------------------------------------------------------------
   autonomous_particle(ellipse_type const& ell, real_type const t,
                       std::uint64_t const id)
@@ -102,6 +101,20 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
                       std::atomic_uint64_t& uuid_generator)
       : autonomous_particle{ell, t, uuid_generator++} {}
   //----------------------------------------------------------------------------
+  autonomous_particle(ellipse_type const& ell, real_type const t,
+                      std::uint8_t max_split_depth, std::uint64_t const id)
+      : parent_type{ell},
+        m_x0{ell.center()},
+        m_t{t},
+        m_nabla_phi{mat_type::eye()},
+        m_max_split_depth{max_split_depth},
+        m_id{id} {}
+  //----------------------------------------------------------------------------
+  autonomous_particle(ellipse_type const& ell, real_type const t,
+                      std::uint8_t          max_split_depth,
+                      std::atomic_uint64_t& uuid_generator)
+      : autonomous_particle{ell, t, max_split_depth, uuid_generator++} {}
+  //----------------------------------------------------------------------------
   autonomous_particle(pos_type const& x, real_type const t, real_type const r,
                       std::uint64_t const id)
       : parent_type{x, r},
@@ -114,22 +127,45 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
                       std::atomic_uint64_t& uuid_generator)
       : autonomous_particle{x, t, r, uuid_generator++} {}
   //----------------------------------------------------------------------------
+  autonomous_particle(pos_type const& x, real_type const t, real_type const r,
+                      std::uint8_t max_split_depth, std::uint64_t const id)
+      : parent_type{x, r},
+        m_x0{x},
+        m_t{t},
+        m_nabla_phi{mat_type::eye()},
+        m_max_split_depth{max_split_depth},
+        m_id{id} {}
+  //----------------------------------------------------------------------------
+  autonomous_particle(pos_type const& x, real_type const t, real_type const r,
+                      std::uint8_t          max_split_depth,
+                      std::atomic_uint64_t& uuid_generator)
+      : autonomous_particle{x, t, r, max_split_depth, uuid_generator++} {}
+  //----------------------------------------------------------------------------
   autonomous_particle(ellipse_type const& ell, real_type const t,
                       pos_type const& x0, mat_type const& nabla_phi,
-                      std::size_t const split_depth, std::uint64_t const id)
+                      std::uint8_t const  split_depth,
+                      std::uint8_t const  max_split_depth,
+                      std::uint64_t const id)
       : parent_type{ell},
         m_x0{x0},
         m_t{t},
         m_nabla_phi{nabla_phi},
         m_split_depth{split_depth},
+        m_max_split_depth{max_split_depth},
         m_id{id} {}
   //----------------------------------------------------------------------------
   autonomous_particle(ellipse_type const& ell, real_type const t,
                       pos_type const& x0, mat_type const& nabla_phi,
-                      std::size_t const     split_depth,
+                      std::uint8_t const    split_depth,
+                      std::uint8_t const    max_split_depth,
                       std::atomic_uint64_t& uuid_generator)
-      : autonomous_particle{ell,       t,           x0,
-                            nabla_phi, split_depth, uuid_generator++} {}
+      : autonomous_particle{ell,
+                            t,
+                            x0,
+                            nabla_phi,
+                            split_depth,
+                            max_split_depth,
+                            uuid_generator++} {}
   /// \}
   //============================================================================
   // GETTERS / SETTERS
@@ -160,6 +196,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   auto initial_ellipse() const { return ellipse_type{x0(), S0()}; }
   //----------------------------------------------------------------------------
   auto split_depth() const { return m_split_depth; }
+  auto max_split_depth() const { return m_max_split_depth; }
   //----------------------------------------------------------------------------
   auto id() const { return m_id; }
   //============================================================================
@@ -388,10 +425,10 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     auto particles       = container_type{};
     auto hierarchy_mutex = std::mutex{};
     auto hierarchy_pairs = std::vector<hierarchy_pair>{};
-    hierarchy_pairs.reserve(particles.size());
-    for (auto const& p : particles) {
-      hierarchy_pairs.emplace_back(p.id(), p.id());
-    }
+    // hierarchy_pairs.reserve(particles.size());
+    // for (auto const& p : particles) {
+    //   hierarchy_pairs.emplace_back(p.id(), p.id());
+    // }
     auto [advected_particles, advected_simple_particles] =
         advect<SplitBehavior>(std::forward<Flowmap>(phi), stepwidth, t_end,
                               initial_particles, hierarchy_pairs,
@@ -475,9 +512,18 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
         std::forward<Flowmap>(phi), stepwidth, t_end, initial_particles,
         uuid_generator);
   }
+  //----------------------------------------------------------------------------
   static auto particles_from_grid(
       real_type const                                      t0,
       uniform_rectilinear_grid<Real, NumDimensions> const& g,
+      std::atomic_uint64_t&                                uuid_generator) {
+    return particles_from_grid(t0, g, default_max_split_depth, uuid_generator);
+  }
+  //----------------------------------------------------------------------------
+  static auto particles_from_grid(
+      real_type const                                      t0,
+      uniform_rectilinear_grid<Real, NumDimensions> const& g,
+      std::uint8_t const                                   max_split_depth,
       std::atomic_uint64_t&                                uuid_generator) {
     auto particles                     = container_type{};
     auto initial_particle_distribution = g.copy_without_properties();
@@ -492,7 +538,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
           particles.emplace_back(
               initial_particle_distribution.vertex_at(is...), t0,
               initial_particle_distribution.dimension(0).spacing() / 2,
-              uuid_generator);
+              max_split_depth, uuid_generator);
         });
     return particles;
   }
@@ -501,7 +547,16 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
       real_type const                                      t0,
       uniform_rectilinear_grid<Real, NumDimensions> const& g,
       std::atomic_uint64_t&                                uuid_generator) {
-    auto       particles = container_type{};
+    return particles_from_grid_small_filling_gaps(
+        t0, g, default_max_split_depth, uuid_generator);
+  }
+  //----------------------------------------------------------------------------
+  static auto particles_from_grid_small_filling_gaps(
+      real_type const                                      t0,
+      uniform_rectilinear_grid<Real, NumDimensions> const& g,
+      std::uint8_t const                                   max_split_depth,
+      std::atomic_uint64_t&                                uuid_generator) {
+    auto       particles                     = container_type{};
     auto       initial_particle_distribution = g.copy_without_properties();
     auto const radius =
         initial_particle_distribution.dimension(0).spacing() / 2;
@@ -513,40 +568,15 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     }
     initial_particle_distribution.vertices().iterate_indices(
         [&](auto const... is) {
-          particles.emplace_back(
-              initial_particle_distribution.vertex_at(is...), t0,
-              radius,
-              uuid_generator);
+          particles.emplace_back(initial_particle_distribution.vertex_at(is...),
+                                 t0, radius, max_split_depth, uuid_generator);
         });
-     auto const small_radius =
-         (std::sqrt(2 * initial_particle_distribution.dimension(0).spacing() *
-                    initial_particle_distribution.dimension(0).spacing()) -
-          initial_particle_distribution.dimension(0).spacing()) /
-         2;
+    auto const small_radius =
+        (std::sqrt(2 * initial_particle_distribution.dimension(0).spacing() *
+                   initial_particle_distribution.dimension(0).spacing()) -
+         initial_particle_distribution.dimension(0).spacing()) /
+        2;
 
-     for (std::size_t i = 0; i < NumDimensions; ++i) {
-       auto const spacing =
-       initial_particle_distribution.dimension(i).spacing();
-       initial_particle_distribution.dimension(i).pop_front();
-       initial_particle_distribution.dimension(i).front() -= spacing / 2;
-       initial_particle_distribution.dimension(i).back() -= spacing / 2;
-     }
-     initial_particle_distribution.vertices().iterate_indices(
-         [&](auto const... is) {
-           particles.emplace_back(
-               initial_particle_distribution.vertex_at(is...), t0,
-               small_radius, uuid_generator);
-         });
-    return particles;
-  }
-  //------------------------------------------------------------------------------
-  static auto particles_from_grid_filling_gaps(
-      real_type const                                      t0,
-      uniform_rectilinear_grid<Real, NumDimensions> const& g,
-      std::atomic_uint64_t&                                uuid_generator) {
-    auto particles                     = container_type{};
-    auto initial_particle_distribution = g.copy_without_properties();
-    auto const radius = initial_particle_distribution.dimension(0).spacing() / 2;
     for (std::size_t i = 0; i < NumDimensions; ++i) {
       auto const spacing = initial_particle_distribution.dimension(i).spacing();
       initial_particle_distribution.dimension(i).pop_front();
@@ -555,25 +585,53 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     }
     initial_particle_distribution.vertices().iterate_indices(
         [&](auto const... is) {
-          particles.emplace_back(
-              initial_particle_distribution.vertex_at(is...), t0,
-              radius,
-              uuid_generator);
+          particles.emplace_back(initial_particle_distribution.vertex_at(is...),
+                                 t0, small_radius, max_split_depth,
+                                 uuid_generator);
+        });
+    return particles;
+  }
+  //------------------------------------------------------------------------------
+  static auto particles_from_grid_filling_gaps(
+      real_type const                                      t0,
+      uniform_rectilinear_grid<Real, NumDimensions> const& g,
+      std::atomic_uint64_t&                                uuid_generator) {
+    return particles_from_grid_filling_gaps(t0, g, default_max_split_depth,
+                                            uuid_generator);
+  }
+  //------------------------------------------------------------------------------
+  static auto particles_from_grid_filling_gaps(
+      real_type const                                      t0,
+      uniform_rectilinear_grid<Real, NumDimensions> const& g,
+      std::uint8_t const                                   max_split_depth,
+      std::atomic_uint64_t&                                uuid_generator) {
+    auto       particles                     = container_type{};
+    auto       initial_particle_distribution = g.copy_without_properties();
+    auto const radius =
+        initial_particle_distribution.dimension(0).spacing() / 2;
+    for (std::size_t i = 0; i < NumDimensions; ++i) {
+      auto const spacing = initial_particle_distribution.dimension(i).spacing();
+      initial_particle_distribution.dimension(i).pop_front();
+      initial_particle_distribution.dimension(i).front() -= spacing / 2;
+      initial_particle_distribution.dimension(i).back() -= spacing / 2;
+    }
+    initial_particle_distribution.vertices().iterate_indices(
+        [&](auto const... is) {
+          particles.emplace_back(initial_particle_distribution.vertex_at(is...),
+                                 t0, radius, max_split_depth, uuid_generator);
         });
 
-     for (std::size_t i = 0; i < NumDimensions; ++i) {
-       auto const spacing =
-       initial_particle_distribution.dimension(i).spacing();
-       initial_particle_distribution.dimension(i).pop_front();
-       initial_particle_distribution.dimension(i).front() -= spacing / 2;
-       initial_particle_distribution.dimension(i).back() -= spacing / 2;
-     }
-     initial_particle_distribution.vertices().iterate_indices(
-         [&](auto const... is) {
-           particles.emplace_back(
-               initial_particle_distribution.vertex_at(is...), t0,
-               radius, uuid_generator);
-         });
+    for (std::size_t i = 0; i < NumDimensions; ++i) {
+      auto const spacing = initial_particle_distribution.dimension(i).spacing();
+      initial_particle_distribution.dimension(i).pop_front();
+      initial_particle_distribution.dimension(i).front() -= spacing / 2;
+      initial_particle_distribution.dimension(i).back() -= spacing / 2;
+    }
+    initial_particle_distribution.vertices().iterate_indices(
+        [&](auto const... is) {
+          particles.emplace_back(initial_particle_distribution.vertex_at(is...),
+                                 t0, radius, max_split_depth, uuid_generator);
+        });
     return particles;
   }
   //----------------------------------------------------------------------------
@@ -594,10 +652,10 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     auto particles       = particles_from_grid(t0, g, uuid_generator);
     auto hierarchy_mutex = std::mutex{};
     auto hierarchy_pairs = std::vector<hierarchy_pair>{};
-    hierarchy_pairs.reserve(particles.size());
-    for (auto const& p : particles) {
-      hierarchy_pairs.emplace_back(p.id(), p.id());
-    }
+    //hierarchy_pairs.reserve(particles.size());
+    //for (auto const& p : particles) {
+    //  hierarchy_pairs.emplace_back(p.id(), p.id());
+    //}
     auto [advected_particles, advected_simple_particles] =
         advect<SplitBehavior>(std::forward<Flowmap>(phi), stepwidth, t_end,
                               particles, hierarchy_pairs, hierarchy_mutex,
@@ -801,149 +859,153 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   ///                           t_end.)
   /// \param finished_particles Finished particles (Their time is equal to /
   /// t_end.)
-  //template <
-  //    split_behavior SplitBehavior = typename split_behaviors::three_splits,
-  //    typename Flowmap>
-  //auto advect_until_split(Flowmap phi, real_type stepwidth,
-  //                        real_type const                 t_end,
-  //                        container_type&                 splitted_particles,
-  //                        container_type&                 finished_particles,
-  //                        simple_particle_container_type& simple_particles,
-  //                        std::vector<hierarchy_pair>&    hierarchy_pairs,
-  //                        std::mutex&                     hierarchy_mutex,
-  //                        std::atomic_uint64_t& uuid_generator) const {
-  //  if constexpr (is_cacheable<std::decay_t<decltype(phi)>>()) {
-  //    phi.use_caching(false);
-  //  }
-  //  static constexpr real_type min_tau_step       = 1e-10;
-  //  static constexpr real_type max_cond_overshoot = 1e-8;
-  //  static constexpr auto      split_cond         = SplitBehavior::split_cond;
-  //  static constexpr auto      split_sqr_cond     = split_cond * split_cond;
-  //  static constexpr auto      split_radii        = SplitBehavior::radii;
-  //  static constexpr auto      split_offsets      = SplitBehavior::offsets;
-  //  auto const [eigvecs_S, eigvals_S]             = this->main_axes();
-  //  auto const B = eigvecs_S * diag(eigvals_S);  // current main axes
-  //  auto const K = *solve(diag(eigvals_S), transposed(eigvecs_S));
+  // template <
+  //     split_behavior SplitBehavior = typename split_behaviors::three_splits,
+  //     typename Flowmap>
+  // auto advect_until_split(Flowmap phi, real_type stepwidth,
+  //                         real_type const                 t_end,
+  //                         container_type&                 splitted_particles,
+  //                         container_type&                 finished_particles,
+  //                         simple_particle_container_type& simple_particles,
+  //                         std::vector<hierarchy_pair>&    hierarchy_pairs,
+  //                         std::mutex&                     hierarchy_mutex,
+  //                         std::atomic_uint64_t& uuid_generator) const {
+  //   if constexpr (is_cacheable<std::decay_t<decltype(phi)>>()) {
+  //     phi.use_caching(false);
+  //   }
+  //   static constexpr real_type min_tau_step       = 1e-10;
+  //   static constexpr real_type max_cond_overshoot = 1e-8;
+  //   static constexpr auto      split_cond         =
+  //   SplitBehavior::split_cond; static constexpr auto      split_sqr_cond =
+  //   split_cond * split_cond; static constexpr auto      split_radii        =
+  //   SplitBehavior::radii; static constexpr auto      split_offsets      =
+  //   SplitBehavior::offsets; auto const [eigvecs_S, eigvals_S]             =
+  //   this->main_axes(); auto const B = eigvecs_S * diag(eigvals_S);  //
+  //   current main axes auto const K = *solve(diag(eigvals_S),
+  //   transposed(eigvecs_S));
   //
-  //  mat_type H, HHt, advected_nabla_phi, assembled_nabla_phi, advected_B,
-  //      ghosts_positive_offset, ghosts_negative_offset, prev_ghosts_forward,
-  //      prev_ghosts_backward;
-  //  auto        min_stepwidth_reached = false;
-  //  auto        advected_ellipse      = ellipse_type{*this};
-  //  auto        current_radii         = vec_type{};
-  //  auto        eig_HHt               = std::pair<mat_type, vec_type>{};
-  //  auto        sqr_cond_H            = real_type(1);
-  //  auto const& eigvecs_HHt           = eig_HHt.first;
-  //  auto const& eigvals_HHt           = eig_HHt.second;
+  //   mat_type H, HHt, advected_nabla_phi, assembled_nabla_phi, advected_B,
+  //       ghosts_positive_offset, ghosts_negative_offset, prev_ghosts_forward,
+  //       prev_ghosts_backward;
+  //   auto        min_stepwidth_reached = false;
+  //   auto        advected_ellipse      = ellipse_type{*this};
+  //   auto        current_radii         = vec_type{};
+  //   auto        eig_HHt               = std::pair<mat_type, vec_type>{};
+  //   auto        sqr_cond_H            = real_type(1);
+  //   auto const& eigvecs_HHt           = eig_HHt.first;
+  //   auto const& eigvals_HHt           = eig_HHt.second;
   //
-  //  // initialize ghosts
-  //  for (std::size_t i = 0; i < num_dimensions(); ++i) {
-  //    ghosts_positive_offset.col(i) = x();
-  //  }
-  //  ghosts_negative_offset = ghosts_positive_offset;
+  //   // initialize ghosts
+  //   for (std::size_t i = 0; i < num_dimensions(); ++i) {
+  //     ghosts_positive_offset.col(i) = x();
+  //   }
+  //   ghosts_negative_offset = ghosts_positive_offset;
   //
-  //  ghosts_positive_offset += B;
-  //  ghosts_negative_offset -= B;
+  //   ghosts_positive_offset += B;
+  //   ghosts_negative_offset -= B;
   //
-  //  // fields for backup
-  //  auto t_prev          = t();
-  //  auto prev_center     = advected_ellipse.center();
-  //  prev_ghosts_forward  = ghosts_positive_offset;
-  //  prev_ghosts_backward = ghosts_negative_offset;
-  //  auto prev_cond_HHt   = sqr_cond_H;
+  //   // fields for backup
+  //   auto t_prev          = t();
+  //   auto prev_center     = advected_ellipse.center();
+  //   prev_ghosts_forward  = ghosts_positive_offset;
+  //   prev_ghosts_backward = ghosts_negative_offset;
+  //   auto prev_cond_HHt   = sqr_cond_H;
   //
-  //  // repeat as long as particle's ellipse is not wide enough or t_end is not
-  //  // reached or the ellipse gets too small. If the latter happens make it a
-  //  // simple massless particle
-  //  auto t_advected = t();
-  //  while (sqr_cond_H < split_sqr_cond || t_advected < t_end) {
-  //    if (!min_stepwidth_reached) {
-  //      // backup state before advection
-  //      prev_ghosts_forward  = ghosts_positive_offset;
-  //      prev_ghosts_backward = ghosts_negative_offset;
-  //      prev_center          = advected_ellipse.center();
-  //      prev_cond_HHt        = sqr_cond_H;
-  //      t_prev               = t_advected;
+  //   // repeat as long as particle's ellipse is not wide enough or t_end is
+  //   not
+  //   // reached or the ellipse gets too small. If the latter happens make it a
+  //   // simple massless particle
+  //   auto t_advected = t();
+  //   while (sqr_cond_H < split_sqr_cond || t_advected < t_end) {
+  //     if (!min_stepwidth_reached) {
+  //       // backup state before advection
+  //       prev_ghosts_forward  = ghosts_positive_offset;
+  //       prev_ghosts_backward = ghosts_negative_offset;
+  //       prev_center          = advected_ellipse.center();
+  //       prev_cond_HHt        = sqr_cond_H;
+  //       t_prev               = t_advected;
   //
-  //      // increase time
-  //      if (t_advected + stepwidth > t_end) {
-  //        stepwidth  = t_end - t_advected;
-  //        t_advected = t_end;
-  //      } else {
-  //        t_advected += stepwidth;
-  //      }
-  //      auto const cur_stepwidth = t_advected - t_prev;
+  //       // increase time
+  //       if (t_advected + stepwidth > t_end) {
+  //         stepwidth  = t_end - t_advected;
+  //         t_advected = t_end;
+  //       } else {
+  //         t_advected += stepwidth;
+  //       }
+  //       auto const cur_stepwidth = t_advected - t_prev;
   //
-  //      // advect center and ghosts
-  //      advected_ellipse.center() =
-  //          phi(advected_ellipse.center(), t_advected, cur_stepwidth);
-  //      ghosts_positive_offset  = phi(ghosts_positive_offset, t_advected, cur_stepwidth);
-  //      ghosts_negative_offset = phi(ghosts_negative_offset, t_advected, cur_stepwidth);
+  //       // advect center and ghosts
+  //       advected_ellipse.center() =
+  //           phi(advected_ellipse.center(), t_advected, cur_stepwidth);
+  //       ghosts_positive_offset  = phi(ghosts_positive_offset, t_advected,
+  //       cur_stepwidth); ghosts_negative_offset = phi(ghosts_negative_offset,
+  //       t_advected, cur_stepwidth);
   //
-  //      // make computations
-  //      H          = (ghosts_positive_offset - ghosts_negative_offset) * half;
-  //      HHt        = H * transposed(H);
-  //      eig_HHt    = eigenvectors_sym(HHt);
-  //      sqr_cond_H = eigvals_HHt(num_dimensions() - 1) / eigvals_HHt(0);
+  //       // make computations
+  //       H          = (ghosts_positive_offset - ghosts_negative_offset) *
+  //       half; HHt        = H * transposed(H); eig_HHt    =
+  //       eigenvectors_sym(HHt); sqr_cond_H = eigvals_HHt(num_dimensions() - 1)
+  //       / eigvals_HHt(0);
   //
-  //      if (std::isnan(sqr_cond_H)) {
-  //        simple_particles.emplace_back(x0(), advected_ellipse.center(),
-  //                                      t_advected);
-  //      }
-  //      advected_nabla_phi  = H * K;
-  //      assembled_nabla_phi = advected_nabla_phi * m_nabla_phi;
+  //       if (std::isnan(sqr_cond_H)) {
+  //         simple_particles.emplace_back(x0(), advected_ellipse.center(),
+  //                                       t_advected);
+  //       }
+  //       advected_nabla_phi  = H * K;
+  //       assembled_nabla_phi = advected_nabla_phi * m_nabla_phi;
   //
-  //      current_radii        = sqrt(eigvals_HHt);
-  //      advected_B           = eigvecs_HHt * diag(current_radii);
-  //      advected_ellipse.S() = advected_B * transposed(eigvecs_HHt);
-  //    }
+  //       current_radii        = sqrt(eigvals_HHt);
+  //       advected_B           = eigvecs_HHt * diag(current_radii);
+  //       advected_ellipse.S() = advected_B * transposed(eigvecs_HHt);
+  //     }
   //
-  //    // check if particle has reached t_end
-  //    if (t_advected == t_end &&
-  //        sqr_cond_H <= split_sqr_cond + max_cond_overshoot) {
-  //      finished_particles.emplace_back(advected_ellipse, t_advected, x0(),
-  //                                      assembled_nabla_phi, m_id);
-  //      return;
-  //    }
+  //     // check if particle has reached t_end
+  //     if (t_advected == t_end &&
+  //         sqr_cond_H <= split_sqr_cond + max_cond_overshoot) {
+  //       finished_particles.emplace_back(advected_ellipse, t_advected, x0(),
+  //                                       assembled_nabla_phi, m_id);
+  //       return;
+  //     }
   //
-  //    // check if particle's ellipse has reached its splitting width
-  //    if ((sqr_cond_H >= split_sqr_cond &&
-  //         sqr_cond_H <= split_sqr_cond + max_cond_overshoot) ||
-  //        min_stepwidth_reached) {
-  //      for (std::size_t i = 0; i < size(split_radii); ++i) {
-  //        auto const new_eigvals    = current_radii * split_radii[i];
-  //        auto const offset2        = advected_B * split_offsets[i];
-  //        auto const offset0        = *solve(assembled_nabla_phi, offset2);
-  //        auto       offset_ellipse = ellipse_type{
-  //            advected_ellipse.center() + offset2,
-  //            eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt)};
+  //     // check if particle's ellipse has reached its splitting width
+  //     if ((sqr_cond_H >= split_sqr_cond &&
+  //          sqr_cond_H <= split_sqr_cond + max_cond_overshoot) ||
+  //         min_stepwidth_reached) {
+  //       for (std::size_t i = 0; i < size(split_radii); ++i) {
+  //         auto const new_eigvals    = current_radii * split_radii[i];
+  //         auto const offset2        = advected_B * split_offsets[i];
+  //         auto const offset0        = *solve(assembled_nabla_phi, offset2);
+  //         auto       offset_ellipse = ellipse_type{
+  //             advected_ellipse.center() + offset2,
+  //             eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt)};
   //
-  //        splitted_particles.emplace_back(offset_ellipse, t_advected,
-  //                                        x0() + offset0, assembled_nabla_phi,
-  //                                        uuid_generator);
-  //        auto lock = std::lock_guard{hierarchy_mutex};
-  //        hierarchy_pairs.emplace_back(splitted_particles.back().m_id, m_id);
-  //      }
-  //      return;
-  //    }
-  //    // check if particle's ellipse is wider than its splitting width
-  //    if (sqr_cond_H > split_sqr_cond + max_cond_overshoot) {
-  //      auto const prev_stepwidth = stepwidth;
-  //      stepwidth *= half;
-  //      min_stepwidth_reached = stepwidth == prev_stepwidth;
-  //      if (stepwidth < min_tau_step) {
-  //        min_stepwidth_reached = true;
-  //      }
-  //      if (!min_stepwidth_reached) {
-  //        sqr_cond_H                = prev_cond_HHt;
-  //        ghosts_positive_offset            = prev_ghosts_forward;
-  //        ghosts_negative_offset           = prev_ghosts_backward;
-  //        t_advected                = t_prev;
-  //        advected_ellipse.center() = prev_center;
-  //      }
-  //    }
-  //  }
-  //}
+  //         splitted_particles.emplace_back(offset_ellipse, t_advected,
+  //                                         x0() + offset0,
+  //                                         assembled_nabla_phi,
+  //                                         uuid_generator);
+  //         auto lock = std::lock_guard{hierarchy_mutex};
+  //         hierarchy_pairs.emplace_back(splitted_particles.back().m_id, m_id);
+  //       }
+  //       return;
+  //     }
+  //     // check if particle's ellipse is wider than its splitting width
+  //     if (sqr_cond_H > split_sqr_cond + max_cond_overshoot) {
+  //       auto const prev_stepwidth = stepwidth;
+  //       stepwidth *= half;
+  //       min_stepwidth_reached = stepwidth == prev_stepwidth;
+  //       if (stepwidth < min_tau_step) {
+  //         min_stepwidth_reached = true;
+  //       }
+  //       if (!min_stepwidth_reached) {
+  //         sqr_cond_H                = prev_cond_HHt;
+  //         ghosts_positive_offset            = prev_ghosts_forward;
+  //         ghosts_negative_offset           = prev_ghosts_backward;
+  //         t_advected                = t_prev;
+  //         advected_ellipse.center() = prev_center;
+  //       }
+  //     }
+  //   }
+  // }
   //----------------------------------------------------------------------------
   /// New split criterion!
   ///
@@ -989,7 +1051,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     auto        advected_ellipse = ellipse_type{*this};
     auto        current_radii    = vec_type{};
     auto        eig_HHt          = std::pair<mat_type, vec_type>{};
-    auto        sqr_cond_H            = real_type(1);
+    auto        sqr_cond_H       = real_type(1);
     auto        linearity        = real_type(0);
     auto const& eigvecs_HHt      = eig_HHt.first;
     auto const& eigvals_HHt      = eig_HHt.second;
@@ -1008,14 +1070,16 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     auto t_advected = t();
     while (t_advected < t_end) {
       if (t_advected + stepwidth > t_end) {
-        stepwidth  = t_end - t_advected;
+        stepwidth = t_end - t_advected;
       }
 
       // advect center and ghosts
       advected_ellipse.center() =
           phi(advected_ellipse.center(), t_advected, stepwidth);
-      ghosts_positive_offset  = phi(ghosts_positive_offset, t_advected, stepwidth);
-      ghosts_negative_offset = phi(ghosts_negative_offset, t_advected, stepwidth);
+      ghosts_positive_offset =
+          phi(ghosts_positive_offset, t_advected, stepwidth);
+      ghosts_negative_offset =
+          phi(ghosts_negative_offset, t_advected, stepwidth);
 
       // increase time
       if (t_advected + stepwidth > t_end) {
@@ -1058,13 +1122,13 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
       if (t_advected == t_end) {
         finished_particles.emplace_back(advected_ellipse, t_advected, x0(),
                                         assembled_nabla_phi, split_depth(),
-                                        id());
+                                        max_split_depth(), id());
         return;
       }
 
       // check if particle's ellipse has reached its splitting width
       static auto constexpr linearity_threshold = 1e-2;
-      if (split_depth() != max_split_depth &&
+      if (split_depth() != max_split_depth() &&
           (linearity >= linearity_threshold || sqr_cond_H > 10)) {
         for (std::size_t i = 0; i < size(split_radii); ++i) {
           auto const new_eigvals    = current_radii * split_radii[i];
@@ -1074,11 +1138,11 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
               advected_ellipse.center() + offset2,
               eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt)};
 
-          splitted_particles.emplace_back(offset_ellipse, t_advected,
-                                          x0() + offset0, assembled_nabla_phi,
-                                          split_depth() + 1, uuid_generator);
-          auto lock = std::lock_guard{hierarchy_mutex};
-          hierarchy_pairs.emplace_back(splitted_particles.back().m_id, m_id);
+          splitted_particles.emplace_back(
+              offset_ellipse, t_advected, x0() + offset0, assembled_nabla_phi,
+              split_depth() + 1, max_split_depth(), uuid_generator);
+          //auto lock = std::lock_guard{hierarchy_mutex};
+          //hierarchy_pairs.emplace_back(splitted_particles.back().m_id, m_id);
         }
         return;
       }
@@ -1119,7 +1183,7 @@ auto write_vtp(std::vector<autonomous_particle<Real, 2>> const& particles,
               vtk::xml::data_array::to_type<header_type>())
        << "\">";
   file << "<PolyData>\n";
-  for (std::size_t i = 0 ;i < size(particles); ++i) {
+  for (std::size_t i = 0; i < size(particles); ++i) {
     file << "<Piece"
          << " NumberOfPoints=\"" << n << "\""
          << " NumberOfPolys=\"0\""
@@ -1137,8 +1201,7 @@ auto write_vtp(std::vector<autonomous_particle<Real, 2>> const& particles,
          << vtk::xml::data_array::to_string(
                 vtk::xml::data_array::to_type<Real>())
          << "\" NumberOfComponents=\"" << 3 << "\"/>";
-    auto const num_bytes_points =
-        header_type(sizeof(Real) * 3 * n);
+    auto const num_bytes_points = header_type(sizeof(Real) * 3 * n);
     offset += num_bytes_points + sizeof(header_type);
     file << "</Points>\n";
 
@@ -1150,8 +1213,7 @@ auto write_vtp(std::vector<autonomous_particle<Real, 2>> const& particles,
                 vtk::xml::data_array::to_type<lines_connectivity_int_t>())
          << "\" Name=\"connectivity\"/>\n";
     auto const num_bytes_lines_connectivity =
-        (n - 1) * 2 *
-        sizeof(lines_connectivity_int_t);
+        (n - 1) * 2 * sizeof(lines_connectivity_int_t);
     offset += num_bytes_lines_connectivity + sizeof(header_type);
     // Lines - offsets
     file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
@@ -1168,8 +1230,7 @@ auto write_vtp(std::vector<autonomous_particle<Real, 2>> const& particles,
   file << "<AppendedData encoding=\"raw\">_";
   // Writing vertex data to appended data section
   for (auto const& particle : particles) {
-    auto const num_bytes_points =
-        header_type(sizeof(Real) * 3 * n);
+    auto const num_bytes_points = header_type(sizeof(Real) * 3 * n);
     using namespace std::ranges;
     auto radial = tatooine::linspace<Real>{0, M_PI * 2, n + 1};
     radial.pop_back();
@@ -1188,7 +1249,8 @@ auto write_vtp(std::vector<autonomous_particle<Real, 2>> const& particles,
     }
 
     // Writing points
-    file.write(reinterpret_cast<char const*>(&num_bytes_points), sizeof(header_type));
+    file.write(reinterpret_cast<char const*>(&num_bytes_points),
+               sizeof(header_type));
     for (auto const v : discretization.vertices()) {
       file.write(reinterpret_cast<char const*>(discretization.at(v).data()),
                  sizeof(Real) * 3);
