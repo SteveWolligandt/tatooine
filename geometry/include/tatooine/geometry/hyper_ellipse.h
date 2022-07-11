@@ -15,14 +15,14 @@ struct hyper_ellipse {
   using this_type = hyper_ellipse<Real, NumDimensions>;
   using vec_type  = vec<Real, NumDimensions>;
   using pos_type  = vec_type;
-  using mat_t     = mat<Real, NumDimensions, NumDimensions>;
+  using mat_type  = mat<Real, NumDimensions, NumDimensions>;
   using real_type = Real;
   static auto constexpr num_dimensions() { return NumDimensions; }
   //----------------------------------------------------------------------------
  private:
   //----------------------------------------------------------------------------
   vec_type m_center = vec_type::zeros();
-  mat_t    m_S      = mat_t::eye();
+  mat_type m_S      = mat_type::eye();
   //----------------------------------------------------------------------------
  public:
   //----------------------------------------------------------------------------
@@ -34,20 +34,20 @@ struct hyper_ellipse {
   //----------------------------------------------------------------------------
   constexpr auto operator=(hyper_ellipse const&) -> hyper_ellipse& = default;
   constexpr auto operator=(hyper_ellipse&&) noexcept
-      -> hyper_ellipse&  = default;
+      -> hyper_ellipse& = default;
   //----------------------------------------------------------------------------
   ~hyper_ellipse() = default;
   //----------------------------------------------------------------------------
   /// Sets up a sphere with specified radius.
-  constexpr hyper_ellipse(Real const radius) : m_S{mat_t::eye() * radius} {}
+  constexpr hyper_ellipse(Real const radius) : m_S{mat_type::eye() * radius} {}
   //----------------------------------------------------------------------------
   /// Sets up a sphere with specified radius and origin point.
   constexpr hyper_ellipse(Real const radius, vec_type const& center)
-      : m_center{center}, m_S{mat_t::eye() * radius} {}
+      : m_center{center}, m_S{mat_type::eye() * radius} {}
   //----------------------------------------------------------------------------
   /// Sets up a sphere with specified radius and origin point.
   constexpr hyper_ellipse(vec_type const& center, Real const radius)
-      : m_center{center}, m_S{mat_t::eye() * radius} {}
+      : m_center{center}, m_S{mat_type::eye() * radius} {}
   //----------------------------------------------------------------------------
   /// Sets up a sphere with specified radius and origin point.
   constexpr hyper_ellipse(fixed_size_vec<NumDimensions> auto const& center,
@@ -55,9 +55,9 @@ struct hyper_ellipse {
       : m_center{center}, m_S{S} {}
   //----------------------------------------------------------------------------
   /// Sets up a sphere with specified radii.
-  constexpr hyper_ellipse(vec_type const& center,
-                          arithmetic auto const... radii)
-  requires (sizeof...(radii) > 0)
+  constexpr hyper_ellipse(
+      vec_type const& center,
+      arithmetic auto const... radii) requires(sizeof...(radii) > 0)
       : m_center{center}, m_S{diag(vec{static_cast<Real>(radii)...})} {
     static_assert(sizeof...(radii) == NumDimensions,
                   "Number of radii does not match number of dimensions.");
@@ -73,8 +73,10 @@ struct hyper_ellipse {
   }
   //----------------------------------------------------------------------------
   /// Fits an ellipse through specified points.
-  constexpr hyper_ellipse(fixed_size_vec<NumDimensions> auto const&... points) 
-  requires (sizeof...(points) == NumDimensions) {
+  constexpr hyper_ellipse(
+      fixed_size_vec<
+          NumDimensions> auto const&... points) requires(sizeof...(points) ==
+                                                         NumDimensions) {
     fit(points...);
   }
   //----------------------------------------------------------------------------
@@ -137,7 +139,7 @@ struct hyper_ellipse {
   template <std::size_t... Is>
   constexpr auto fit(std::index_sequence<Is...> /*seq*/,
                      fixed_size_vec<NumDimensions> auto const&... points) {
-    auto H = mat_t{};
+    auto H = mat_type{};
     ([&] { H.col(Is) = points; }(), ...);
     fit(H);
   }
@@ -250,14 +252,11 @@ struct hyper_ellipse {
     return g;
   }
   //----------------------------------------------------------------------------
- public :
-     //----------------------------------------------------------------------------
-     /// Returns a the main axes of the hyper ellipse as a matrix and the
-     /// lengths of the axes as a vector.
-     auto
-     main_axes() const {
-    return eigenvectors_sym(S());
-  }
+ public:
+  //----------------------------------------------------------------------------
+  /// Returns a the main axes of the hyper ellipse as a matrix and the
+  /// lengths of the axes as a vector.
+  auto main_axes() const { return eigenvectors_sym(S()); }
   //----------------------------------------------------------------------------
   /// Returns a the radii of the hyper ellipse as a vector.
   auto radii() const { return eigenvalues_sym(S()); }

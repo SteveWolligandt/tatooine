@@ -6,9 +6,9 @@
 #include <tatooine/crtp.h>
 #include <tatooine/exceptions.h>
 #include <tatooine/field.h>
-#include <tatooine/tensor_type_traits.h>
 #include <tatooine/interpolation.h>
 #include <tatooine/invoke_unpacked.h>
+#include <tatooine/tensor_type_traits.h>
 
 #include <vector>
 //==============================================================================
@@ -66,13 +66,14 @@ struct base_vertex_property_sampler {
   //----------------------------------------------------------------------------
   // typedefs
   //----------------------------------------------------------------------------
-  using this_type = base_vertex_property_sampler<DerivedSampler, Real, ValueType,
-                                              HeadInterpolationKernel,
-                                              TailInterpolationKernels...>;
+  using this_type =
+      base_vertex_property_sampler<DerivedSampler, Real, ValueType,
+                                   HeadInterpolationKernel,
+                                   TailInterpolationKernels...>;
   using indexing_t =
       base_sampler_at_t<this_type, Real, ValueType, HeadInterpolationKernel,
                         TailInterpolationKernels...>;
-  using real_type     = Real;
+  using real_type  = Real;
   using value_type = ValueType;
   static constexpr auto current_dimension_index() {
     return DerivedSampler::current_dimension_index();
@@ -123,7 +124,7 @@ struct base_vertex_property_sampler {
   /// indexing of data.
   /// if num_dimensions() == 1 returns actual data otherwise returns a
   /// vertex_property_sampler_view with i as fixed index
-  auto at(size_t const i) const -> decltype(auto) {
+  auto at(std::size_t const i) const -> decltype(auto) {
     if constexpr (num_dimensions() > 1) {
       return indexing_t{*this, i};
     } else {
@@ -263,18 +264,22 @@ struct vertex_property_sampler
           typename GridVertexProperty::value_type, InterpolationKernels...>,
       tatooine::field<
           vertex_property_sampler<GridVertexProperty, InterpolationKernels...>,
-          typename GridVertexProperty::real_type, sizeof...(InterpolationKernels),
+          typename GridVertexProperty::real_type,
+          sizeof...(InterpolationKernels),
           typename GridVertexProperty::value_type> {
   static_assert(sizeof...(InterpolationKernels) ==
                 GridVertexProperty::num_dimensions());
   using property_t = GridVertexProperty;
-  using this_type = vertex_property_sampler<property_t, InterpolationKernels...>;
-  using real_type = typename GridVertexProperty::real_type;
+  using this_type =
+      vertex_property_sampler<property_t, InterpolationKernels...>;
+  using real_type  = typename GridVertexProperty::real_type;
   using value_type = typename GridVertexProperty::value_type;
-  using parent_type   = base_vertex_property_sampler<this_type, real_type, value_type,
-                                                InterpolationKernels...>;
+  using parent_type =
+      base_vertex_property_sampler<this_type, real_type, value_type,
+                                   InterpolationKernels...>;
   using field_parent_type =
-      tatooine::field<this_type, real_type, sizeof...(InterpolationKernels), value_type>;
+      tatooine::field<this_type, real_type, sizeof...(InterpolationKernels),
+                      value_type>;
   //============================================================================
   static constexpr size_t current_dimension_index() { return 0; }
   //----------------------------------------------------------------------------
@@ -297,9 +302,8 @@ struct vertex_property_sampler
   //----------------------------------------------------------------------------
   auto grid() const -> auto const& { return m_property.grid(); }
   //----------------------------------------------------------------------------
-  auto data_at(integral auto const... is) const
-      -> decltype(auto) requires(sizeof...(is) ==
-                                 GridVertexProperty::grid_type::num_dimensions()) {
+  auto data_at(integral auto const... is) const -> decltype(auto) requires(
+      sizeof...(is) == GridVertexProperty::grid_type::num_dimensions()) {
     return m_property(is...);
   }
   //----------------------------------------------------------------------------
@@ -343,12 +347,13 @@ struct vertex_property_sampler_view
   static constexpr auto data_is_changeable() {
     return TopSampler::data_is_changeable();
   }
-  using this_type     = vertex_property_sampler_view<TopSampler, Real, ValueType,
-                                              InterpolationKernels...>;
-  using real_type     = Real;
+  using this_type  = vertex_property_sampler_view<TopSampler, Real, ValueType,
+                                                 InterpolationKernels...>;
+  using real_type  = Real;
   using value_type = ValueType;
-  using parent_type   = base_vertex_property_sampler<this_type, real_type, value_type,
-                                                InterpolationKernels...>;
+  using parent_type =
+      base_vertex_property_sampler<this_type, real_type, value_type,
+                                   InterpolationKernels...>;
   //============================================================================
   static constexpr auto num_dimensions() {
     return TopSampler::num_dimensions() - 1;
@@ -436,7 +441,8 @@ struct differentiated_sampler {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr auto sample(arithmetic auto const... xs) const {
     return sample(
-        vec<typename GridVertexProperty::grid_type::real_type, sizeof...(xs)>{xs...});
+        vec<typename GridVertexProperty::grid_type::real_type, sizeof...(xs)>{
+            xs...});
   }
 };
 //==============================================================================
