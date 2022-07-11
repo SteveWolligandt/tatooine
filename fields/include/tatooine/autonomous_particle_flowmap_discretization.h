@@ -15,6 +15,9 @@ template <floating_point Real, std::size_t NumDimensions,
           typename SplitBehavior = typename autonomous_particle<
               Real, NumDimensions>::split_behaviors::three_splits>
 struct autonomous_particle_flowmap_discretization {
+  using this_type =
+      autonomous_particle_flowmap_discretization<Real, NumDimensions,
+                                                 SplitBehavior>;
   using real_type          = Real;
   using vec_type           = vec<real_type, NumDimensions>;
   using pos_type           = vec_type;
@@ -121,6 +124,66 @@ struct autonomous_particle_flowmap_discretization {
     }
   }
   //============================================================================
+ private:
+  autonomous_particle_flowmap_discretization()
+      : m_flowmaps_forward{m_pointset_forward
+                               .template vertex_property<pos_type>("flowmaps")},
+        m_flowmap_gradients_forward{
+            m_pointset_forward.template vertex_property<gradient_type>(
+                "flowmap_gradients")},
+
+        m_flowmaps_backward{
+            m_pointset_backward.template vertex_property<pos_type>("flowmap")},
+        m_flowmap_gradients_backward{
+            m_pointset_backward.template vertex_property<gradient_type>(
+                "flowmap_gradients")} {}
+
+  //============================================================================
+ public:
+  static auto from_advected(
+      std::vector<particle_type> const& advected_particles) -> this_type {
+    return from_advected(advected_particles,
+                         std::make_index_sequence<num_dimensions()>{});
+  }
+  //============================================================================
+ private:
+  template <std::size_t... Is>
+  static auto from_advected(
+      std::vector<particle_type> const& advected_particles,
+      std::index_sequence<Is...> /*seq*/) -> this_type {
+    auto disc = this_type{};
+    using namespace std::ranges;
+    auto points_forward = std::vector<std::pair<cgal_point, vertex_handle>>{};
+    points_forward.reserve(size(advected_particles));
+    auto points_backward = std::vector<std::pair<cgal_point, vertex_handle>>{};
+    points_backward.reserve(size(advected_particles));
+    for (auto const& p : advected_particles) {
+      {
+        // forward
+        auto v = disc.m_pointset_forward.insert_vertex(p.x0());
+        disc.m_flowmaps_forward[v]          = p.x();
+        disc.m_flowmap_gradients_forward[v] = p.nabla_phi();
+        points_forward.emplace_back(
+            cgal_point{disc.m_pointset_forward[v](Is)...}, v);
+      }
+      {
+        // backward
+        auto v = disc.m_pointset_backward.insert_vertex(p.x());
+        disc.m_flowmaps_backward[v]          = p.x0();
+        disc.m_flowmap_gradients_backward[v] = *inv(p.nabla_phi());
+        points_backward.emplace_back(
+            cgal_point{disc.m_pointset_backward[v](Is)...}, v);
+      }
+    }
+
+    disc.m_triangulation_forward =
+        cgal_triangulation_type{begin(points_forward), end(points_forward)};
+    disc.m_triangulation_backward =
+        cgal_triangulation_type{begin(points_backward), end(points_backward)};
+    return disc;
+  }
+  //============================================================================
+ public:
   template <typename Flowmap>
   autonomous_particle_flowmap_discretization(
       Flowmap&& flowmap, arithmetic auto const t_end,

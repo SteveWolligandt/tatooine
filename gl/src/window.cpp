@@ -56,12 +56,6 @@ void window::setup(std::string const &title, size_t width, size_t height) {
   m_glfw_window = std::make_unique<glfw::window>(width, height, title);
   m_glfw_window->add_listener(*this);
   init_imgui(width, height);
-  m_shared_contexts.reserve(max_num_shared_contexts);
-  for (size_t i = 0; i < max_num_shared_contexts; ++i) {
-    m_shared_contexts.emplace_back(new context{*this});
-    m_shared_context_in_use[i]         = false;
-    m_threads_finished_successfully[i] = true;
-  }
 }
 //------------------------------------------------------------------------------
 void window::swap_buffers() {

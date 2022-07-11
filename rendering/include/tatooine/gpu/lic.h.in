@@ -93,9 +93,7 @@ auto lic(polymorphic::vectorfield<VReal, 2> const&    v,
          std::size_t num_samples, arithmetic auto stepsize,
          Vec2<std::size_t> noise_res, random_number_generator auto&& rand)
     -> gl::tex2rgba32f {
-  std::cerr << "uploading..";
   auto v_tex = gl::tex2rg32f{discretize(v, spatial_domain, t)};
-  std::cerr << "done\n";
   return lic(v_tex, spatial_domain, lic_tex_res, num_samples, stepsize,
              noise_res, std::forward<decltype(rand)>(rand));
 }

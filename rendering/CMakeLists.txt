@@ -30,7 +30,6 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/reduce.h.in"
 #-------------------------------------------------------------------------------
 endif()
 #-------------------------------------------------------------------------------
-
 # Get geometry properties for tatooineConfig.cmake
 # include directories
 get_target_property(RENDERING_INCLUDE_DIRECTORIES rendering INTERFACE_INCLUDE_DIRECTORIES)
@@ -46,7 +45,6 @@ foreach(INCLUDE_DIRECTORY ${RENDERING_INCLUDE_DIRECTORIES})
   endif()
 endforeach()
 set(RENDERING_INCLUDE_DIRECTORIES ${FILTERED_RENDERING_INCLUDE_DIRECTORIES} PARENT_SCOPE)
-#set(RENDERING_INCLUDE_DIRECTORIES ${RENDERING_INCLUDE_DIRECTORIES} PARENT_SCOPE)
 
 get_target_property(RENDERING_LINK_LIBRARIES rendering INTERFACE_LINK_LIBRARIES)
 foreach(LINK_LIBRARY ${RENDERING_LINK_LIBRARIES})
@@ -54,10 +52,6 @@ foreach(LINK_LIBRARY ${RENDERING_LINK_LIBRARIES})
     list(APPEND FILTERED_RENDERING_LINK_LIBRARIES "tatooine::gl")
   elseif(${LINK_LIBRARY} MATCHES "geometry")
     list(APPEND FILTERED_RENDERING_LINK_LIBRARIES "tatooine::geometry")
-  #elseif(${LINK_LIBRARY} MATCHES "CDT")
-  #  list(APPEND FILTERED_RENDERING_LINK_LIBRARIES "tatooine::CDT")
-  #elseif(NOT (LINK_LIBRARY MATCHES "\<.*_INTERFACE:.*\>"))
-  #  list(APPEND FILTERED_RENDERING_LINK_LIBRARIES ${LINK_LIBRARY})
   endif()
 endforeach()
 set(RENDERING_LINK_LIBRARIES ${FILTERED_RENDERING_LINK_LIBRARIES} PARENT_SCOPE)

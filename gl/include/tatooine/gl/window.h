@@ -27,11 +27,6 @@ class window : public window_notifier, public window_listener {
   std::list<std::thread>                          m_async_tasks;
   std::vector<std::list<std::thread>::iterator>   m_joinable_async_tasks;
   std::mutex                                      m_async_tasks_mutex;
-  static constexpr size_t                         max_num_shared_contexts = 64;
-  std::vector<std::unique_ptr<context>>           m_shared_contexts;
-  std::array<std::mutex, max_num_shared_contexts> m_shared_context_mutexes;
-  std::array<bool, max_num_shared_contexts>       m_shared_context_in_use;
-  std::array<bool, max_num_shared_contexts> m_threads_finished_successfully;
   //============================================================================
   auto imgui_render_backend() const -> auto const & {
     return *m_imgui_render_backend;
@@ -78,62 +73,17 @@ class window : public window_notifier, public window_listener {
   template <typename F>
   void do_async(F &&f) {
     auto it = [this] {
-      std::lock_guard lock{m_async_tasks_mutex};
+      auto lock = std::lock_guard{m_async_tasks_mutex};
       m_async_tasks.emplace_back();
       return prev(end(m_async_tasks));
     }();
 
-    *it = std::thread{[win = this, it, g = f] {
-      size_t shared_context_id = max_num_shared_contexts;
-      for (size_t i = 0; i < size(win->m_shared_context_in_use); ++i) {
-        std::lock_guard context_lock{win->m_shared_context_mutexes[i]};
-        if (!win->m_shared_context_in_use[i]) {
-          shared_context_id = i;
-          break;
-        }
-      }
-      if (shared_context_id == max_num_shared_contexts) {
-        shared_context_id = 0;
-      }
-      std::optional<std::exception> caught;
-      {
-        std::lock_guard context_lock{
-            win->m_shared_context_mutexes[shared_context_id]};
-        assert(!win->m_shared_context_in_use[shared_context_id]);
-        size_t       num_tries     = 0;
-        size_t const max_num_tries = 100;
-        bool made_current = false;
-        win->m_shared_context_in_use[shared_context_id] = true;
-        while (!made_current) {
-          try {
-            win->m_shared_contexts[shared_context_id]->make_current();
-            made_current = true;
-          } catch (std::runtime_error &e) {
-            ++num_tries;
-            if (num_tries <= max_num_tries) {
-              std::cerr << "failed (" << num_tries << " / " << max_num_tries
-                        << ")" << '\n';
-              std::this_thread::sleep_for(std::chrono::milliseconds{100});
-            } else {
-              throw e;
-            }
-          }
-        }
-        if (made_current) {
-          try {
-            g();
-          } catch (std::exception &e) {
-            caught = e;
-          }
-          win->m_shared_contexts[shared_context_id]->release();
-          win->m_shared_context_in_use[shared_context_id] = false;
-        }
-        if (caught) {
-          throw caught;
-        }
-      }
-      std::lock_guard task_lock{win->m_async_tasks_mutex};
-      win->m_joinable_async_tasks.push_back(it);
+    *it = std::thread{[this, it, f = std::forward<F>(f)] {
+      auto ctx = context{this};
+      ctx.make_current();
+      f();
+      std::lock_guard task_lock{m_async_tasks_mutex};
+      m_joinable_async_tasks.push_back(it);
     }};
   }
 
