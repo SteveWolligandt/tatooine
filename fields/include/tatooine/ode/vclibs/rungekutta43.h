@@ -38,32 +38,22 @@ struct rungekutta43 : solver<rungekutta43<Real, N>, Real, N> {
   using maybe_vec    = typename vc_ode_t::maybe_vec;
   //============================================================================
  private:
-  mutable vc_stepper_t m_stepper;
+  vc_options_t         m_opts;
   //============================================================================
  public:
   constexpr rungekutta43()
-      : m_stepper{vc_ode_t::solver(
-            rk43, vc_options_t{abs_tol = 1e-10, rel_tol = 1e-10,
-                               initial_step = 0 /*, max_step = 0.1*/})} {}
-  constexpr rungekutta43(rungekutta43 const& /*other*/)
-      : m_stepper{vc_ode_t::solver(
-            rk43, vc_options_t{abs_tol = 1e-10, rel_tol = 1e-10,
-                               initial_step = 0 /*, max_step = 0.1*/})} {}
-  constexpr rungekutta43(rungekutta43&& /*other*/)
-      : m_stepper{vc_ode_t::solver(
-            rk43, vc_options_t{abs_tol = 1e-10, rel_tol = 1e-10,
-                               initial_step = 0 /*, max_step = 0.1*/})} {}
-  constexpr auto operator=(rungekutta43 const & /*other*/) -> rungekutta43& {
-    return *this;
-  }
-  constexpr auto operator=(rungekutta43&& /*other*/) noexcept -> rungekutta43& {
-    return *this;
-  }
+      : m_opts{abs_tol = 1e-10, rel_tol = 1e-10,
+               initial_step = 0 /*, max_step = 0.1*/} {}
+  constexpr rungekutta43(rungekutta43 const& other) = default;
+  constexpr rungekutta43(rungekutta43&& other)      = default;
+  constexpr auto operator=(rungekutta43 const& other)
+      -> rungekutta43& = default;
+  constexpr auto operator=(rungekutta43&& other) noexcept
+      -> rungekutta43& = default;
   //----------------------------------------------------------------------------
-  template <typename... Options>
+  template <option... Options>
   rungekutta43(Options&&... options)
-      : m_stepper{vc_ode_t::solver(
-            rk43, vc_options_t{std::forward<Options>(options)...})} {}
+      : m_opts{std::forward<Options>(options)...} {}
   //============================================================================
   /// Continues integration of integral.
   /// if tau > 0 than it integrates forward and pushes new samples back
@@ -117,12 +107,11 @@ struct rungekutta43 : solver<rungekutta43<Real, N>, Real, N> {
       return;
     }
     // do not start integration if y0, t0 is not in domain of vectorfield
-
     auto dy = [&evaluator](Real t, pos_type const& y) {
       return evaluator(y, t);
     };
-
-    m_stepper.initialize(dy, t0, t0 + tau, y0);
+    auto stepper = vc_stepper_t{vc_ode_t::solver(rk43, m_opts)};
+    stepper.initialize(dy, t0, t0 + tau, y0);
     auto wrapped_callback = [&] {
       if constexpr (!callback_takes_derivative) {
         return [&](Real const t, pos_type const& y) {
@@ -134,8 +123,7 @@ struct rungekutta43 : solver<rungekutta43<Real, N>, Real, N> {
         };
       }
     }();
-    m_stepper.integrate(dy,
-                        vc_ode_t::Output >> vc_ode_t::sink(wrapped_callback));
+    stepper.integrate(dy, vc_ode_t::Output >> vc_ode_t::sink(wrapped_callback));
   }
 };
 //==============================================================================

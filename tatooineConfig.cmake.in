@@ -154,13 +154,21 @@ set_target_properties(tatooine::multidim_array PROPERTIES
   INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/multidim_array/include"
   INTERFACE_LINK_LIBRARIES "tatooine::base"
 )
+set_target_properties(tatooine::multidim_array PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "@MULTIDIM_ARRAY_INCLUDE_DIRECTORIES@"
+  INTERFACE_LINK_LIBRARIES "@MULTIDIM_ARRAY_LINK_LIBRARIES@"
+)
 
 # Create imported target tatooine::fields
 add_library(tatooine::fields INTERFACE IMPORTED)
 
+#set_target_properties(tatooine::fields PROPERTIES
+#  INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/fields/include"
+#  INTERFACE_LINK_LIBRARIES "tatooine::tensor;tatooine::geometry"
+#)
 set_target_properties(tatooine::fields PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/fields/include"
-  INTERFACE_LINK_LIBRARIES "tatooine::tensor;tatooine::geometry"
+  INTERFACE_INCLUDE_DIRECTORIES "@FIELDS_INCLUDE_DIRECTORIES@"
+  INTERFACE_LINK_LIBRARIES "@FIELDS_LINK_LIBRARIES@"
 )
 
 # Create imported target tatooine::preprocessor
@@ -173,11 +181,19 @@ set_target_properties(tatooine::preprocessor PROPERTIES
 # Create imported target tatooine::tensor
 add_library(tatooine::tensor INTERFACE IMPORTED)
 
+#set_target_properties(tatooine::tensor PROPERTIES
+#  INTERFACE_COMPILE_DEFINITIONS "LAPACK_COMPLEX_CPP"
+#  INTERFACE_COMPILE_FEATURES "cxx_std_20"
+#  INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/tensor/include"
+#  INTERFACE_LINK_LIBRARIES "tatooine::base;tatooine::multidim_array;lapackpp"
+#)
+
 set_target_properties(tatooine::tensor PROPERTIES
-  INTERFACE_COMPILE_DEFINITIONS "LAPACK_COMPLEX_CPP"
-  INTERFACE_COMPILE_FEATURES "cxx_std_20"
-  INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/tensor/include"
-  INTERFACE_LINK_LIBRARIES "tatooine::base;tatooine::multidim_array;lapackpp"
+  INTERFACE_COMPILE_DEFINITIONS "@TENSOR_COMPILE_DEFINITIONS@"
+  #INTERFACE_COMPILE_OPTIONS "@TENSOR_COMPILE_OPTIONS@"
+  INTERFACE_COMPILE_FEATURES "@TENSOR_COMPILE_FEATURES@"
+  INTERFACE_INCLUDE_DIRECTORIES "@TENSOR_INCLUDE_DIRECTORIES@"
+  INTERFACE_LINK_LIBRARIES "@TENSOR_LINK_LIBRARIES@"
 )
 
 # Create imported target blaspp

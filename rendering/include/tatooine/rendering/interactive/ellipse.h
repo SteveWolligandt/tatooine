@@ -22,7 +22,7 @@ struct renderer<Ellipse> {
       static auto instance = geometry{};
       return instance;
     }
-    explicit geometry(std::size_t const num_vertices = 128) {
+    explicit geometry(std::size_t const num_vertices = 32) {
       vertexbuffer().resize(num_vertices);
       {
         auto ts = linspace<float>{0, 2 * M_PI, num_vertices + 1};

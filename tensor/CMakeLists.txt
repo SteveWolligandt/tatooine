@@ -19,6 +19,53 @@ target_link_libraries(tensor
   lapackpp)
 
 #-------------------------------------------------------------------------------
+# Get tensor properties for tatooineConfig.cmake
+# include directories
+get_target_property(TENSOR_INCLUDE_DIRECTORIES tensor INTERFACE_INCLUDE_DIRECTORIES)
+string(REPLACE "$" ";" TENSOR_INCLUDE_DIRECTORIES ${TENSOR_INCLUDE_DIRECTORIES})
+foreach(INCLUDE_DIRECTORY ${TENSOR_INCLUDE_DIRECTORIES})
+  set(BUILD_INTERFACE_REGEX "\<BUILD_INTERFACE:(.*)\>")
+  if(INCLUDE_DIRECTORY MATCHES ${BUILD_INTERFACE_REGEX})
+    string(REGEX REPLACE "(\<BUILD_INTERFACE:)" "" INCLUDE_DIRECTORY ${INCLUDE_DIRECTORY})
+    string(LENGTH ${INCLUDE_DIRECTORY} len)
+    math(EXPR len ${len}-1)
+    string(SUBSTRING ${INCLUDE_DIRECTORY} 0 ${len} INCLUDE_DIRECTORY)
+    list(APPEND FILTERED_TENSOR_INCLUDE_DIRECTORIES ${INCLUDE_DIRECTORY})
+  elseif(NOT (INCLUDE_DIRECTORY MATCHES "\<.*_INTERFACE:.*\>"))
+    list(APPEND FILTERED_TENSOR_INCLUDE_DIRECTORIES ${INCLUDE_DIRECTORY})
+  endif()
+endforeach()
+set(TENSOR_INCLUDE_DIRECTORIES ${FILTERED_TENSOR_INCLUDE_DIRECTORIES} PARENT_SCOPE)
+
+# link libraries
+get_target_property(TENSOR_LINK_LIBRARIES tensor INTERFACE_LINK_LIBRARIES)
+foreach(LINK_LIBRARY ${TENSOR_LINK_LIBRARIES})
+  if(${LINK_LIBRARY} MATCHES "base")
+    list(APPEND FILTERED_TENSOR_LINK_LIBRARIES "tatooine::base")
+  elseif(${LINK_LIBRARY} MATCHES "multidim_array")
+    list(APPEND FILTERED_TENSOR_LINK_LIBRARIES "tatooine::multidim_array")
+  #elseif(${LINK_LIBRARY} MATCHES "blaspp")
+  #  list(APPEND FILTERED_TENSOR_LINK_LIBRARIES "tatooine::blaspp")
+  #elseif(${LINK_LIBRARY} MATCHES "lapackpp")
+  #  list(APPEND FILTERED_TENSOR_LINK_LIBRARIES "tatooine::lapackpp")
+  else()
+    list(APPEND FILTERED_TENSOR_LINK_LIBRARIES ${LINK_LIBRARY})
+  endif()
+endforeach()
+set(TENSOR_LINK_LIBRARIES ${FILTERED_TENSOR_LINK_LIBRARIES} PARENT_SCOPE)
+
+# compile features
+get_target_property(TENSOR_COMPILE_FEATURES tensor INTERFACE_COMPILE_FEATURES)
+set(TENSOR_COMPILE_FEATURES ${TENSOR_COMPILE_FEATURES} PARENT_SCOPE)
+
+# compile options
+get_target_property(TENSOR_COMPILE_OPTIONS tensor INTERFACE_COMPILE_OPTIONS)
+set(TENSOR_COMPILE_OPTIONS ${TENSOR_COMPILE_OPTIONS} PARENT_SCOPE)
+
+# compile definitions
+get_target_property(TENSOR_COMPILE_DEFINITIONS tensor INTERFACE_COMPILE_DEFINITIONS)
+set(TENSOR_COMPILE_DEFINITIONS ${TENSOR_COMPILE_DEFINITIONS} PARENT_SCOPE)
+#-------------------------------------------------------------------------------
 # Get blaspp properties for tatooineConfig.cmake
 # include directories
 get_target_property(BLASPP_INCLUDE_DIRECTORIES blaspp INCLUDE_DIRECTORIES)
@@ -39,7 +86,6 @@ set(BLASPP_INCLUDE_DIRECTORIES ${FILTERED_BLASPP_INCLUDE_DIRECTORIES} PARENT_SCO
 
 # link libraries
 get_target_property(BLASPP_LINK_LIBRARIES blaspp LINK_LIBRARIES)
-message(STATUS "${BLASPP_LINK_LIBRARIES}")
 set(BLASPP_LINK_LIBRARIES ${BLASPP_LINK_LIBRARIES} PARENT_SCOPE)
 
 # compile features
@@ -48,7 +94,6 @@ set(BLASPP_COMPILE_FEATURES ${BLASPP_COMPILE_FEATURES} PARENT_SCOPE)
 
 # compile options
 get_target_property(BLASPP_COMPILE_OPTIONS blaspp COMPILE_OPTIONS)
-message(STATUS "${BLASPP_COMPILE_OPTIONS}")
 #-------------------------------------------------------------------------------
 get_target_property(LAPACKPP_INCLUDE_DIRECTORIES lapackpp INCLUDE_DIRECTORIES)
 string(REPLACE "$" ";" LAPACKPP_INCLUDE_DIRECTORIES ${LAPACKPP_INCLUDE_DIRECTORIES})
@@ -76,4 +121,3 @@ set(LAPACKPP_COMPILE_FEATURES ${LAPACKPP_COMPILE_FEATURES} PARENT_SCOPE)
 
 # compile options
 get_target_property(LAPACKPP_COMPILE_OPTIONS lapackpp COMPILE_OPTIONS)
-message(STATUS "${LAPACKPP_COMPILE_OPTIONS}")
