@@ -1073,6 +1073,10 @@ class rectilinear_grid {
         sequence_type{});
   }
   //----------------------------------------------------------------------------
+  auto has_vertex_property(std::string const& name) {
+    return m_vertex_properties.find(name) != end(m_vertex_properties);
+  }
+  //----------------------------------------------------------------------------
   auto remove_vertex_property(std::string const& name) -> void {
     if (auto it = m_vertex_properties.find(name);
         it != end(m_vertex_properties)) {
@@ -1093,8 +1097,7 @@ class rectilinear_grid {
   template <typename Container, typename... Args>
   auto create_vertex_property(std::string const& name, Args&&... args)
       -> auto& {
-    if (auto it = m_vertex_properties.find(name);
-        it == end(m_vertex_properties)) {
+    if (!has_vertex_property(name)) {
       auto new_prop = new typed_vertex_property_type<Container>{
           *this, std::forward<Args>(args)...};
       m_vertex_properties.emplace(
