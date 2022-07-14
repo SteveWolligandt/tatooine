@@ -282,29 +282,31 @@ namespace tatooine {
 namespace detail::geometry::hyper_ellipse {
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions>
-auto ptr_convertible_to_hyper_ellipse(
-    const volatile tatooine::geometry::hyper_ellipse<Real, NumDimensions>*)
+using he_t = tatooine::geometry::hyper_ellipse<Real, NumDimensions>;
+//==============================================================================
+template <floating_point Real, std::size_t NumDimensions>
+auto ptr_convertible(he_t<Real, NumDimensions> const volatile*)
     -> std::true_type;
+auto ptr_convertible(void const volatile*) -> std::false_type;
+//------------------------------------------------------------------------------
 template <typename>
-auto ptr_convertible_to_hyper_ellipse(const volatile void*) -> std::false_type;
-
-template <typename>
-auto is_derived_from_hyper_ellipse(...) -> std::true_type;
+auto is_derived(...) -> std::true_type;
+//------------------------------------------------------------------------------
 template <typename D>
-auto is_derived_from_hyper_ellipse(int)
-    -> decltype(ptr_convertible_to_hyper_ellipse(static_cast<D*>(nullptr)));
+auto is_derived(int) -> decltype(ptr_convertible(static_cast<D*>(nullptr)));
 //------------------------------------------------------------------------------
 template <typename T>
-struct is_derived_from_hyper_ellipse_impl
+struct is_derived_impl
     : std::integral_constant<
-          bool, std::is_class_v<T>&& decltype(is_derived_from_hyper_ellipse<T>(
-                    0))::value> {};
+      bool,
+      std::is_class_v<T> &&
+      decltype(is_derived<T>(0))::value> {};
 //==============================================================================
 }  // namespace detail::geometry::hyper_ellipse
 //==============================================================================
 template <typename T>
 static auto constexpr is_derived_from_hyper_ellipse =
-    detail::geometry::hyper_ellipse::is_derived_from_hyper_ellipse_impl<
+    detail::geometry::hyper_ellipse::is_derived_impl<
         T>::value;
 static_assert(is_derived_from_hyper_ellipse<geometry::HyperEllipse<2>>);
 //==============================================================================
