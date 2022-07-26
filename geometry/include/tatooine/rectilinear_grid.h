@@ -1441,24 +1441,34 @@ class rectilinear_grid {
   }
 #endif
   //============================================================================
-  template <invocable_with_n_integrals<num_dimensions()> F>
+  template <typename F>
+  requires invocable_with_n_integrals<F, num_dimensions()> ||
+           invocable<F, pos_type>
   auto sample_to_vertex_property(F&& f, std::string const& name) -> auto& {
     return sample_to_vertex_property(std::forward<F>(f), name,
                                      execution_policy::sequential);
   }
   //----------------------------------------------------------------------------
-  template <invocable_with_n_integrals<num_dimensions()> F>
+  template <typename F>
+  requires invocable_with_n_integrals<F, num_dimensions()> ||
+           invocable<F, pos_type>
   auto sample_to_vertex_property(F&& f, std::string const& name,
                                  execution_policy_tag auto tag) -> auto& {
-    return sample_to_vertex_property(
-        std::forward<F>(f), name, tag,
-        std::make_index_sequence<num_dimensions()>{});
+    if constexpr (invocable<F, pos_type>) {
+      return sample_to_vertex_property_pos(std::forward<F>(f), name, tag);
+    } else {
+      return sample_to_vertex_property_indices(
+          std::forward<F>(f), name, tag,
+          std::make_index_sequence<num_dimensions()>{});
+    }
   }
   //----------------------------------------------------------------------------
+ private:
   template <invocable_with_n_integrals<num_dimensions()> F, std::size_t... Is>
-  auto sample_to_vertex_property(F&& f, std::string const& name,
-                                 execution_policy_tag auto tag,
-                                 std::index_sequence<Is...> /*seq*/) -> auto& {
+  auto sample_to_vertex_property_indices(F&& f, std::string const& name,
+                                         execution_policy_tag auto tag,
+                                         std::index_sequence<Is...> /*seq*/)
+      -> auto& {
     using T    = std::invoke_result_t<F, decltype(Is)...>;
     auto& prop = vertex_property<T>(name);
     vertices().iterate_indices(
@@ -1476,15 +1486,10 @@ class rectilinear_grid {
         tag);
     return prop;
   }
-  template <invocable<pos_type> F>
-  auto sample_to_vertex_property(F&& f, std::string const& name) -> auto& {
-    return sample_to_vertex_property(std::forward<F>(f), name,
-                                     execution_policy::sequential);
-  }
   //----------------------------------------------------------------------------
   template <invocable<pos_type> F>
-  auto sample_to_vertex_property(F&& f, std::string const& name,
-                                 execution_policy_tag auto tag) -> auto& {
+  auto sample_to_vertex_property_pos(F&& f, std::string const& name,
+                                     execution_policy_tag auto tag) -> auto& {
     using T    = std::invoke_result_t<F, pos_type>;
     auto& prop = vertex_property<T>(name);
     vertices().iterate_indices(
@@ -1503,6 +1508,7 @@ class rectilinear_grid {
     return prop;
   }
   //============================================================================
+  public:
   auto read(filesystem::path const& path) {
 #ifdef TATOOINE_NETCDF_AVAILABLE
     if constexpr (!is_uniform) {

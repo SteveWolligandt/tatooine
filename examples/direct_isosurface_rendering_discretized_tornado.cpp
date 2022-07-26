@@ -1,5 +1,5 @@
 #include <tatooine/Q_field.h>
-#include <tatooine/analytical/fields/numerical/tornado.h>
+#include <tatooine/analytical/numerical/tornado.h>
 #include <tatooine/color_scales/viridis.h>
 #include <tatooine/rendering/direct_isosurface.h>
 #include <tatooine/rendering/perspective_camera.h>
@@ -7,7 +7,7 @@
 namespace tatooine::examples {
 //==============================================================================
 auto direct_iso_discretized_tornado() {
-  auto const v = analytical::fields::numerical::tornado{};
+  auto const v = analytical::numerical::tornado{};
   auto       discretized_domain =
       grid{linspace{-1.0, 1.0, 501}, linspace{-1.0, 1.0, 501},
            linspace{-1.0, 1.0, 501}};

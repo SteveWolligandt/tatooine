@@ -94,6 +94,14 @@ struct pointset {
   using inverse_distance_weighting_sampler_type =
       detail::pointset::inverse_distance_weighting_sampler<Real, NumDimensions,
                                                            T>;
+  template <typename T>
+  using natural_neighbor_coordinates_sampler_type =
+      detail::pointset::natural_neighbor_coordinates_sampler<Real,
+                                                             NumDimensions, T>;
+  template <typename T, typename Gradient>
+  using natural_neighbor_coordinates_sampler_with_gradients_type =
+      detail::pointset::natural_neighbor_coordinates_sampler_with_gradients<
+          Real, NumDimensions, T, Gradient>;
   //============================================================================
  private:
   std::vector<pos_type>          m_vertex_position_data;
@@ -1118,18 +1126,16 @@ struct pointset {
   template <typename T>
   auto natural_neighbor_coordinates_sampler(
       typed_vertex_property_type<T> const& prop) const {
-    return detail::pointset::natural_neighbor_coordinates_sampler<
-        Real, NumDimensions, T>{*this, prop};
+    return natural_neighbor_coordinates_sampler_type<T>{*this, prop};
   }
   //----------------------------------------------------------------------------
   template <typename T, typename Gradient>
   auto natural_neighbor_coordinates_sampler_with_gradients(
       typed_vertex_property_type<T> const&        prop,
       typed_vertex_property_type<Gradient> const& gradients) const {
-    return detail::pointset::
-        natural_neighbor_coordinates_sampler_with_gradients<Real, NumDimensions,
-                                                            T, Gradient>{
-            *this, prop, gradients};
+    return natural_neighbor_coordinates_sampler_with_gradients_type<T,
+                                                                    Gradient>{
+        *this, prop, gradients};
   }
   ///\}
 #endif

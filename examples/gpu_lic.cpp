@@ -1,7 +1,7 @@
-#include <tatooine/analytical/fields/numerical/center.h>
-#include <tatooine/analytical/fields/numerical/doublegyre.h>
-#include <tatooine/analytical/fields/numerical/saddle.h>
-#include <tatooine/analytical/fields/numerical/sinuscosinus.h>
+#include <tatooine/analytical/numerical/center.h>
+#include <tatooine/analytical/numerical/doublegyre.h>
+#include <tatooine/analytical/numerical/saddle.h>
+#include <tatooine/analytical/numerical/sinuscosinus.h>
 #include <tatooine/filesystem.h>
 #include <tatooine/gl/context.h>
 #include <tatooine/gpu/lic.h>
@@ -30,7 +30,7 @@ auto gpu_lic_janos(filesystem::path const& path, real_number const t,
 auto gpu_lic_doublegyre(filesystem::path const& path, real_number const t,
                         std::size_t const num_samples,
                         real_number const step_size) {
-  auto v = analytical::fields::numerical::doublegyre{};
+  auto v = analytical::numerical::doublegyre{};
   gpu::lic(v, linspace{0.0, 2.0, 2000}, linspace{0.0, 1.0, 1000}, t,
            {1000, 500}, num_samples, step_size, {256, 256}, random::uniform{})
       .write_png(path);
@@ -39,7 +39,7 @@ auto gpu_lic_doublegyre(filesystem::path const& path, real_number const t,
 auto gpu_lic_saddle(filesystem::path const& path, real_number const t,
                     std::size_t const num_samples,
                     real_number const step_size) {
-  auto v = analytical::fields::numerical::saddle{};
+  auto v = analytical::numerical::saddle{};
   gpu::lic(v, linspace{-1.0, 1.0, 500}, linspace{-1.0, 1.0, 500}, t,
            Vec2<size_t>{1000, 1000}, num_samples, step_size, {256, 256},
            random::uniform{})
@@ -49,7 +49,7 @@ auto gpu_lic_saddle(filesystem::path const& path, real_number const t,
 auto gpu_lic_center(filesystem::path const& path, real_number const t,
                     std::size_t const num_samples,
                     real_number const step_size) {
-  auto v = analytical::fields::numerical::center{};
+  auto v = analytical::numerical::center{};
   gpu::lic(v, linspace{-1.0, 1.0, 501}, linspace{-1.0, 1.0, 501}, t,
            Vec2<size_t>{1000, 1000}, num_samples, step_size, {256, 256},
            random::uniform{})
@@ -59,7 +59,7 @@ auto gpu_lic_center(filesystem::path const& path, real_number const t,
 auto gpu_lic_sinuscosinus(filesystem::path const& path, real_number const t,
                           std::size_t const num_samples,
                           real_number const step_size) {
-  auto v = analytical::fields::numerical::sinuscosinus{};
+  auto v = analytical::numerical::sinuscosinus{};
   gpu::lic(v, linspace{-1.0, 1.0, 501}, linspace{-1.0, 1.0, 501}, t,
            Vec2<size_t>{1000, 1000}, num_samples, step_size, {256, 256},
            random::uniform{})
@@ -69,7 +69,7 @@ auto gpu_lic_sinuscosinus(filesystem::path const& path, real_number const t,
 auto gpu_lic_cosinussinus(filesystem::path const& path, real_number const t,
                           std::size_t const num_samples,
                           real_number const step_size) {
-  auto v = analytical::fields::numerical::cosinussinus{};
+  auto v = analytical::numerical::cosinussinus{};
   gpu::lic(v, linspace{-1.0, 1.0, 501}, linspace{-1.0, 1.0, 501}, t,
            Vec2<size_t>{1000, 1000}, num_samples, step_size, {256, 256},
            random::uniform{})

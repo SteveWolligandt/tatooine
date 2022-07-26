@@ -1,7 +1,7 @@
 #include <tatooine/Q_field.h>
 #include <tatooine/steady_field.h>
 #include <tatooine/differentiated_field.h>
-#include <tatooine/analytical/fields/numerical/tornado.h>
+#include <tatooine/analytical/numerical/tornado.h>
 #include <tatooine/color_scales/viridis.h>
 #include <tatooine/rendering/direct_isosurface.h>
 #include <tatooine/rendering/perspective_camera.h>
@@ -9,7 +9,7 @@
 namespace tatooine::examples {
 //==============================================================================
 auto direct_iso_tornado() {
-  analytical::fields::numerical::tornado v;
+  analytical::numerical::tornado v;
   color_scales::viridis                  color_scale;
   axis_aligned_bounding_box aabb{vec{-1.0, -1.0, -1.0}, vec{1.0, 1.0, 1.0}};
   size_t const          width = 2000, height = 2000;

@@ -1,5 +1,5 @@
-#ifndef TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_MODIFIED_DOUBLEGYRE_H
-#define TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_MODIFIED_DOUBLEGYRE_H
+#ifndef TATOOINE_ANALYTICAL_NUMERICAL_MODIFIED_DOUBLEGYRE_H
+#define TATOOINE_ANALYTICAL_NUMERICAL_MODIFIED_DOUBLEGYRE_H
 //==============================================================================
 #include <tatooine/algorithm.h>
 #include <tatooine/field.h>
@@ -9,7 +9,7 @@
 
 #include <algorithm>
 //==============================================================================
-namespace tatooine::analytical::fields::numerical {
+namespace tatooine::analytical::numerical {
 //==============================================================================
 template <typename Real>
 struct modified_doublegyre : vectorfield<modified_doublegyre<Real>, Real, 2> {
@@ -102,6 +102,6 @@ struct modified_doublegyre : vectorfield<modified_doublegyre<Real>, Real, 2> {
 //==============================================================================
 modified_doublegyre()->modified_doublegyre<double>;
 //==============================================================================
-}  // namespace tatooine::analytical::fields::numerical
+}  // namespace tatooine::analytical::numerical
 //==============================================================================
 #endif

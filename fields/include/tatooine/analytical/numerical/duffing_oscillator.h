@@ -6,7 +6,7 @@
 #include <boost/math/constants/constants.hpp>
 #include <cmath>
 //==============================================================================
-namespace tatooine::analytical::fields::numerical {
+namespace tatooine::analytical::numerical {
 //==============================================================================
 template <typename Real>
 struct duffing_oscillator : vectorfield<duffing_oscillator<Real>, Real, 2> {

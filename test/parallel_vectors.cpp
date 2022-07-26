@@ -1,10 +1,10 @@
 #include <catch2/catch.hpp>
 
-#include <tatooine/analytical/fields/numerical/counterexample_sadlo.h>
-#include <tatooine/analytical/fields/numerical/doublegyre.h>
-#include <tatooine/analytical/fields/numerical/tornado.h>
-#include <tatooine/analytical/fields/numerical/abcflow.h>
-#include <tatooine/analytical/fields/numerical/modified_doublegyre.h>
+#include <tatooine/analytical/numerical/counterexample_sadlo.h>
+#include <tatooine/analytical/numerical/doublegyre.h>
+#include <tatooine/analytical/numerical/tornado.h>
+#include <tatooine/analytical/numerical/abcflow.h>
+#include <tatooine/analytical/numerical/modified_doublegyre.h>
 #include <tatooine/parallel_vectors.h>
 #include <tatooine/spacetime_vectorfield.h>
 //==============================================================================

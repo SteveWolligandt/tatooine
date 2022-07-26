@@ -1,5 +1,5 @@
-#include <tatooine/analytical/fields/numerical/doublegyre.h>
-#include <tatooine/analytical/fields/numerical/sinuscosinus.h>
+#include <tatooine/analytical/numerical/doublegyre.h>
+#include <tatooine/analytical/numerical/sinuscosinus.h>
 #include <tatooine/streamsurface.h>
 //#include <tatooine/boussinesq.h>
 #include <tatooine/spacetime_vectorfield.h>
@@ -14,7 +14,7 @@ using interpolation::linear;
 TEST_CASE("streamsurface_spacetime_doublegyre_sampling",
           "[streamsurface][numerical][doublegyre][dg][sample]") {
   using seedcurve_t  = parameterized_line<double, 2, linear>;
-  analytical::fields::numerical::doublegyre v;
+  analytical::numerical::doublegyre v;
   const seedcurve_t seedcurve{{{0.1, 0.1}, 0.0}, {{0.1, 0.9}, 1.0}};
   streamsurface     ssf{v, -1, 1, seedcurve};
   using streamsurface_t = decltype(ssf);
@@ -45,7 +45,7 @@ TEST_CASE("streamsurface_spacetime_doublegyre_sampling",
 //TEST_CASE(
 //    "streamsurface_simple_spacetime_doublegyre",
 //    "[streamsurface][simple][numerical][doublegyre][dg][spacetime_field]") {
-//  analytical::fields::numerical::doublegyre v;
+//  analytical::numerical::doublegyre v;
 //  spacetime_field                           vst{v};
 //  streamsurface                             ssf{
 //      vst,
@@ -60,7 +60,7 @@ TEST_CASE("streamsurface_spacetime_doublegyre_sampling",
 TEST_CASE(
     "streamsurface_hultquist_spacetime_doublegyre",
     "[streamsurface][hultquist][numerical][doublegyre][dg][spacetime_field]") {
-  analytical::fields::numerical::doublegyre v;
+  analytical::numerical::doublegyre v;
   spacetime_vectorfield                           vst{v};
   streamsurface                             ssf{
       vst, parameterized_line<double, 3, cubic>{{{0.1, 0.2, 0.0}, 0.0},
@@ -73,7 +73,7 @@ TEST_CASE(
 TEST_CASE(
     "streamsurface_schulze_spacetime_doublegyre",
     "[streamsurface][schulze][numerical][doublegyre][dg][spacetime_field]") {
-  analytical::fields::numerical::doublegyre v;
+  analytical::numerical::doublegyre v;
   streamsurface                             ssf{
       v, parameterized_line<double, 2, cubic>{{{0.45, 0.2}, 0.0},
                                                 {{0.55, 0.2}, 1.0}}};
@@ -83,7 +83,7 @@ TEST_CASE(
 //==============================================================================
 //TEST_CASE("streamsurface_simple_sinuscosinus",
 //          "[streamsurface][simple][numerical][sinuscosinus][sc]") {
-//  analytical::fields::numerical::sinuscosinus          v;
+//  analytical::numerical::sinuscosinus          v;
 //  parameterized_line<double, 2, linear>                seed{{{0.0, 0.0}, 0.0},
 //                                             {{1.0, 0.0}, 1.0}};
 //  integration::vclibs::rungekutta43<double, 2, linear> integrator;
@@ -94,7 +94,7 @@ TEST_CASE(
 ////==============================================================================
 //TEST_CASE("streamsurface_hultquist_sinuscosinus",
 //          "[streamsurface][hultquist][numerical][sinuscosinus][sc]") {
-//  analytical::fields::numerical::sinuscosinus v;
+//  analytical::numerical::sinuscosinus v;
 //  parameterized_line<double, 2, linear>       seed{{{0.0, 0.0}, 0.0},
 //                                             {{1.0, 0.0}, 1.0}};
 //

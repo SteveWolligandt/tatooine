@@ -1,4 +1,4 @@
-#include <tatooine/analytical/fields/numerical/doublegyre.h>
+#include <tatooine/analytical/numerical/doublegyre.h>
 #include <tatooine/rendering/direct_isosurface.h>
 #include <tatooine/rectilinear_grid.h>
 #include <tatooine/line.h>
@@ -10,7 +10,7 @@
 namespace tatooine::test{
 //==============================================================================
 TEST_CASE("direct_iso_grid_vertex_sampler") {
-  auto v = analytical::fields::numerical::doublegyre {};
+  auto v = analytical::numerical::doublegyre {};
   auto vst = spacetime_vectorfield{v};
   auto mag_vst = length(vst);
 

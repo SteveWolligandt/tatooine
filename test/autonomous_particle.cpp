@@ -1,4 +1,4 @@
-#include <tatooine/analytical/fields/numerical/doublegyre.h>
+#include <tatooine/analytical/numerical/doublegyre.h>
 #include <tatooine/autonomous_particle.h>
 #include <tatooine/autonomous_particle_flowmap_discretization.h>
 #include <tatooine/concepts.h>
@@ -12,7 +12,7 @@
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
-using namespace analytical::fields::numerical;
+using namespace analytical::numerical;
 //==============================================================================
 //struct autonomous_particle_fixture : autonomous_particle2 {
 //  static constexpr auto initial_radius = 0.1;

@@ -1,4 +1,4 @@
-#include <tatooine/analytical/fields/frankes_test.h>
+#include <tatooine/analytical/frankes_test.h>
 #include <tatooine/pointset.h>
 #include <tatooine/rectilinear_grid.h>
 
@@ -20,7 +20,7 @@ auto main(int argc, char const** argv) -> int {
     return 1;
   }
   auto const options = *options_opt;
-  auto       f       = analytical::fields::numerical::frankes_test{};
+  auto       f       = analytical::numerical::frankes_test{};
   auto       nabla_f = diff(f);
   auto       resample_grid =
       uniform_rectilinear_grid2{linspace{0.0, 1.0, options.output_res_x},

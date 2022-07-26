@@ -1,13 +1,13 @@
 #ifndef TATOOINE_FLOWEXPLORER_NODES_RAYLEIGH_BENARD_CONVECTION_H
 #define TATOOINE_FLOWEXPLORER_NODES_RAYLEIGH_BENARD_CONVECTION_H
 //==============================================================================
-#include <tatooine/analytical/fields/numerical/rayleigh_benard_convection.h>
+#include <tatooine/analytical/numerical/rayleigh_benard_convection.h>
 #include <tatooine/flowexplorer/renderable.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 struct rayleigh_benard_convection
-    : tatooine::analytical::fields::numerical::rayleigh_benard_convection<double>,
+    : tatooine::analytical::numerical::rayleigh_benard_convection<double>,
       ui::node<rayleigh_benard_convection> {
   rayleigh_benard_convection(flowexplorer::scene& s)
       : ui::node<rayleigh_benard_convection>{"Rayleigh Benard Convection", s} {

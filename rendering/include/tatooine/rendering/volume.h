@@ -1,4 +1,4 @@
-#include <tatooine/analytical/fields/numerical/doublegyre.h>
+#include <tatooine/analytical/numerical/doublegyre.h>
 #include <tatooine/field_operations.h>
 #include <tatooine/gl/framebuffer.h>
 #include <tatooine/gl/texture.h>

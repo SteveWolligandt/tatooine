@@ -1,5 +1,5 @@
-#include <tatooine/analytical/fields/numerical/abcflow.h>
-#include <tatooine/analytical/fields/numerical/doublegyre.h>
+#include <tatooine/analytical/numerical/abcflow.h>
+#include <tatooine/analytical/numerical/doublegyre.h>
 #include <tatooine/isolines.h>
 #include <tatooine/isosurface.h>
 
@@ -8,7 +8,7 @@
 namespace tatooine::test {
 //==============================================================================
 TEST_CASE("isosurface_abcflow_length", "[iso][isosurface][numerical][abcflow]") {
-  isosurface(length(analytical::fields::numerical::abcflow{}),
+  isosurface(length(analytical::numerical::abcflow{}),
                 grid{linspace{-10.0, 10.0, 256},
                      linspace{-10.0, 10.0, 256},
                      linspace{-10.0, 10.0, 256}},
@@ -17,7 +17,7 @@ TEST_CASE("isosurface_abcflow_length", "[iso][isosurface][numerical][abcflow]") 
 }
 //------------------------------------------------------------------------------
 TEST_CASE("isolines_doublegyre_length", "[iso][isolines][numerical][doublegyre]") {
-  auto const l = length(analytical::fields::numerical::doublegyre{});
+  auto const l = length(analytical::numerical::doublegyre{});
   SECTION("field") {
     write_vtk(
         isolines(l, grid{linspace{0.0, 2.0, 200}, linspace{0.0, 1.0, 100}},

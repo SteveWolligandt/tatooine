@@ -1,4 +1,4 @@
-#include <tatooine/analytical/fields/numerical/modified_doublegyre.h>
+#include <tatooine/analytical/numerical/modified_doublegyre.h>
 #include <tatooine/ode/vclibs/rungekutta43.h>
 
 #include <catch2/catch.hpp>
@@ -7,7 +7,7 @@ namespace tatooine::test{
 //==============================================================================
 TEST_CASE("modified_doublegyre_lcs_creation",
           "[modified_doublegyre][lcs][creation]") {
-  analytical::fields::numerical::modified_doublegyre v;
+  analytical::numerical::modified_doublegyre v;
   auto ht = v.hyperbolic_trajectory();
   line<real_type, 2> lcs;
   real_type const t0 = 0;

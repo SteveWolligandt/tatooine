@@ -1,7 +1,7 @@
-#include <tatooine/analytical/fields/numerical/doublegyre.h>
+#include <tatooine/analytical/numerical/doublegyre.h>
 #include <catch2/catch.hpp>
 //==============================================================================
-namespace tatooine::analytical::fields::test {
+namespace tatooine::analytical::test {
 //==============================================================================
 TEST_CASE("doublegyre", "[dg][doublegyre]") {
   numerical::doublegyre v;

@@ -1,10 +1,10 @@
 #include <tatooine/parallel_vectors.h>
-#include <tatooine/analytical/fields/numerical/abcflow.h>
+#include <tatooine/analytical/numerical/abcflow.h>
 #include <tatooine/differentiated_field.h>
 
 using namespace tatooine;
 auto main() -> int {
-  auto v = analytical::fields::numerical::abcflow{};
+  auto v = analytical::numerical::abcflow{};
   write_vtk(
       parallel_vectors(v, diff(v, 1e-10) * v,
                        linspace{-3.0, 3.0 + 1e-6, 50},

@@ -1,12 +1,12 @@
 #ifndef TATOOINE_FLOWEXPLORER_NODES_DOUBLEGYRE_H
 #define TATOOINE_FLOWEXPLORER_NODES_DOUBLEGYRE_H
 //==============================================================================
-#include <tatooine/analytical/fields/numerical/doublegyre.h>
+#include <tatooine/analytical/numerical/doublegyre.h>
 #include <tatooine/flowexplorer/ui/node.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
-struct doublegyre : tatooine::analytical::fields::numerical::doublegyre<real_type>,
+struct doublegyre : tatooine::analytical::numerical::doublegyre<real_type>,
                     ui::node<doublegyre> {
   doublegyre(flowexplorer::scene& s)
       : ui::node<doublegyre>{

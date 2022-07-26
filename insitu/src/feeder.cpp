@@ -1,6 +1,6 @@
 #include <tatooine/mpi/program.h>
-#include <tatooine/analytical/fields/numerical/abcflow.h>
-#include <tatooine/analytical/fields/numerical/tornado.h>
+#include <tatooine/analytical/numerical/abcflow.h>
+#include <tatooine/analytical/numerical/tornado.h>
 #include <tatooine/axis_aligned_bounding_box.h>
 #include <tatooine/insitu/c_interface.h>
 
@@ -105,8 +105,8 @@ auto parse_args(int argc, char** argv) {
 }
 //------------------------------------------------------------------------------
 auto sample_flow() {
-  //tatooine::analytical::fields::numerical::abcflow v;
-  tatooine::analytical::fields::numerical::tornado v;
+  //tatooine::analytical::numerical::abcflow v;
+  tatooine::analytical::numerical::tornado v;
   for (int i = 0; i < global_grid_size[0]; ++i) {
     for (int j = start_y; j < end_y; ++j) {
       for (int k = start_z; k < end_z; ++k) {

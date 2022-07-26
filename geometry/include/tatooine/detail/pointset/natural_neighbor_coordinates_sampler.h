@@ -1,4 +1,4 @@
-#ifdef TATOOINE_HAS_CGAL_SUPPORT
+#if TATOOINE_CGAL_AVAILABLE
 #ifndef TATOOINE_DETAIL_POINTSET_NATURAL_NEIGHBOR_COORDINATES_SAMPLER_H
 #define TATOOINE_DETAIL_POINTSET_NATURAL_NEIGHBOR_COORDINATES_SAMPLER_H
 //==============================================================================
@@ -29,12 +29,13 @@ struct natural_neighbor_coordinates_sampler
       cgal::delaunay_triangulation_with_info<NumDimensions, cgal_kernel,
                                              vertex_handle>;
   using cgal_point = typename cgal_triangulation_type::Point;
-
   //==========================================================================
+ private:
   pointset_type const&        m_pointset;
   vertex_property_type const& m_property;
   cgal_triangulation_type     m_triangulation;
   //==========================================================================
+ public:
   natural_neighbor_coordinates_sampler(pointset_type const&        ps,
                                        vertex_property_type const& property)
       : m_pointset{ps}, m_property{property} {
@@ -43,7 +44,6 @@ struct natural_neighbor_coordinates_sampler
     for (auto v : ps.vertices()) {
       points.emplace_back(cgal_point{ps[v](0), ps[v](1)}, v);
     }
-
     m_triangulation = cgal_triangulation_type{begin(points), end(points)};
   }
   //--------------------------------------------------------------------------
@@ -67,15 +67,17 @@ struct natural_neighbor_coordinates_sampler
                               std::index_sequence<Is...> /*seq*/) const
       -> tensor_type {
     using point_coordinate_vector =
-        std::vector<std::pair<typename cgal_triangulation_type::Vertex_handle, cgal_kernel::FT>>;
+        std::vector<std::pair<typename cgal_triangulation_type::Vertex_handle,
+                              cgal_kernel::FT>>;
 
     // coordinates computation
     auto       coords = point_coordinate_vector{};
     auto const p      = cgal_point{x(Is)...};  // query point
     auto const result = CGAL::natural_neighbor_coordinates_2(
         m_triangulation, p, std::back_inserter(coords),
-        CGAL::Identity<std::pair<typename cgal_triangulation_type::Vertex_handle,
-                                 cgal_kernel::FT>>{});
+        CGAL::Identity<
+            std::pair<typename cgal_triangulation_type::Vertex_handle,
+                      cgal_kernel::FT>>{});
     if (!result.third) {
       return parent_type::ood_tensor();
     }

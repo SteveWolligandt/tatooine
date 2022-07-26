@@ -99,7 +99,7 @@ TEST_CASE_METHOD(line2, "line_resample", "[line][parameterization][resample]") {
 // TEST_CASE("line_curvature2", "[line][parameterization][curvature1]") {
 //  using integral_curve_t =
 //      parameterized_line<double, 2, interpolation::cubic>;
-//  analytical::fields::numerical::doublegyre v;
+//  analytical::numerical::doublegyre v;
 //  ode::vclibs::rungekutta43<double, 2>      ode;
 //  integral_curve_t                          integral_curve;
 //  auto& tangents = integral_curve.tangents_property();

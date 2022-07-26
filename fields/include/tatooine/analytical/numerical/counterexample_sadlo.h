@@ -1,12 +1,12 @@
-#ifndef TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_COUNTEREXAMPLE_SADLO_H
-#define TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_COUNTEREXAMPLE_SADLO_H
+#ifndef TATOOINE_ANALYTICAL_NUMERICAL_COUNTEREXAMPLE_SADLO_H
+#define TATOOINE_ANALYTICAL_NUMERICAL_COUNTEREXAMPLE_SADLO_H
 //==============================================================================
 #include <tatooine/field.h>
 
 #include <boost/math/constants/constants.hpp>
 #include <cmath>
 //==============================================================================
-namespace tatooine::analytical::fields::numerical {
+namespace tatooine::analytical::numerical {
 //==============================================================================
 template <typename Real>
 struct counterexample_sadlo : vectorfield<counterexample_sadlo<Real>, Real, 2> {
@@ -50,6 +50,6 @@ struct counterexample_sadlo : vectorfield<counterexample_sadlo<Real>, Real, 2> {
 //==============================================================================
 counterexample_sadlo()->counterexample_sadlo<double>;
 //==============================================================================
-}  // namespace tatooine::analytical::fields::numerical
+}  // namespace tatooine::analytical::numerical
 //==============================================================================
 #endif

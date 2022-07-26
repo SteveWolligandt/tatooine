@@ -39,14 +39,13 @@ struct solver : ode::solver<solver<Real, N, Stepper>, Real, N> {
   //============================================================================
   solver(const Stepper &stepper, const Real stepsize)
       : m_stepper{stepper}, m_stepsize{stepsize} {}
-  solver(Stepper &&stepper, const Real stepsize)
+  solver(Stepper&& stepper, const Real stepsize)
       : m_stepper{std::move(stepper)}, m_stepsize{stepsize} {}
   //============================================================================
-  template <arithmetic Y0Real, arithmetic T0Real, arithmetic TauReal,
-            typename Evaluator,
+  template <arithmetic                          Y0Real, typename Evaluator,
             stepper_callback_invocable<Real, N> StepperCallback>
   constexpr void solve(Evaluator&& evaluator, vec<Y0Real, N> const& y0,
-                       T0Real const t0, TauReal tau,
+                       arithmetic auto const t0, arithmetic auto tau,
                        StepperCallback&& callback) const {
     constexpr auto callback_takes_derivative =
         std::is_invocable_v<StepperCallback, pos_type, Real, vec_t>;
@@ -54,14 +53,13 @@ struct solver : ode::solver<solver<Real, N, Stepper>, Real, N> {
     if (tau == 0) {
       return;
     }
-    pos_type x_copy(y0);
-
+    auto x_copy = pos_type{y0};
     ::boost::numeric::odeint::integrate_adaptive(
         m_stepper,
         [&evaluator, tau, t0](pos_type const& y, pos_type& sample, Real t) {
           sample = evaluator(y, t);
         },
-        x_copy, t0, t0 + tau, tau > 0 ? m_stepsize : -m_stepsize,
+        x_copy, Real(t0), Real(t0 + tau), Real(tau > 0 ? m_stepsize : -m_stepsize),
         [tau, t0, &callback, &evaluator](const pos_type& y, Real t) {
           if constexpr (!callback_takes_derivative) {
             callback(y, t);

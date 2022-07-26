@@ -57,14 +57,13 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   // static members
   //============================================================================
   static constexpr auto default_max_split_depth = 4;
-
   //============================================================================
   // members
   //============================================================================
  private:
-  pos_type      m_x0;
-  real_type     m_t;
-  mat_type      m_nabla_phi;
+  pos_type      m_x0              = {};
+  real_type     m_t               = {};
+  mat_type      m_nabla_phi       = {};
   std::uint8_t  m_split_depth     = 0;
   std::uint8_t  m_max_split_depth = default_max_split_depth;
   std::uint64_t m_id              = std::numeric_limits<std::uint64_t>::max();
@@ -170,7 +169,6 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //============================================================================
   // GETTERS / SETTERS
   //============================================================================
- public:
   auto x0() -> auto& { return m_x0; }
   auto x0() const -> auto const& { return m_x0; }
   auto x0(std::size_t i) const { return x0()(i); }

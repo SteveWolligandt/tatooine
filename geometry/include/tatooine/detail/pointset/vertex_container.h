@@ -168,9 +168,15 @@ struct vertex_container {
   auto at(vertex_handle_t const i) { return m_pointset->at(i); }
   auto resize(std::size_t const n) {
     m_pointset->m_vertex_position_data.resize(n);
+    for (auto& [key, prop] : m_pointset->vertex_properties()) {
+      prop->resize(n);
+    }
   }
   auto reserve(std::size_t const n) {
     m_pointset->m_vertex_position_data.reserve(n);
+    for (auto& [key, prop] : m_pointset->vertex_properties()) {
+      prop->reserve(n);
+    }
   }
 };
 //==============================================================================

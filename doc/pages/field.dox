@@ -23,10 +23,10 @@ versions simply use functions from the cmath header and tatooine::vec,
 tatooine::mat or tatooine::tensor and its \ref tensors_examples_basic_ops_sec
 and.
 
-\see tatooine::analytical::fields::numerical::doublegyre
-\see tatooine::analytical::fields::symbolic::doublegyre
-\see tatooine::analytical::fields::numerical::abcflow
-\see tatooine::analytical::fields::symbolic::abcflow
+\see tatooine::analytical::numerical::doublegyre
+\see tatooine::analytical::symbolic::doublegyre
+\see tatooine::analytical::numerical::abcflow
+\see tatooine::analytical::symbolic::abcflow
 
 \section field_minimal_example_sec Minimal Example
 
@@ -103,12 +103,12 @@ By default tatooine::ode::vclibs::rungekutta43 is used.
 \subsection fields_flowmap_example_sec Example using the Double Gyre Dataset
 
 \code{.cpp}
-#include <tatooine/analytical/fields/numerical/doublegyre.h>
+#include <tatooine/analytical/numerical/doublegyre.h>
 //==============================================================================
 using namespace tatooine;
 //==============================================================================
 auto main() -> int {
-  auto v   = analytical::fields::numerical::doublegyre{};
+  auto v   = analytical::numerical::doublegyre{};
   auto phi = flowmap(v);
   auto x0  = vec2{0.1, 0.1};
   auto t0  = 0.0;

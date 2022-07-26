@@ -1,7 +1,7 @@
-#include <tatooine/analytical/fields/numerical/counterexample_sadlo.h>
-#include <tatooine/analytical/fields/numerical/doublegyre.h>
-#include <tatooine/analytical/fields/numerical/modified_doublegyre.h>
-#include <tatooine/analytical/fields/numerical/saddle.h>
+#include <tatooine/analytical/numerical/counterexample_sadlo.h>
+#include <tatooine/analytical/numerical/doublegyre.h>
+#include <tatooine/analytical/numerical/modified_doublegyre.h>
+#include <tatooine/analytical/numerical/saddle.h>
 #include <tatooine/color_scales/viridis.h>
 #include <tatooine/for_loop.h>
 #include <tatooine/ftle_field.h>
@@ -19,7 +19,7 @@
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
-using namespace tatooine::analytical::fields::numerical;
+using namespace tatooine::analytical::numerical;
 template <typename V, typename Grid, typename T0, typename Tau>
 void ftle_test_vectorfield(V const&, Grid&, T0, Tau, std::string const&);
 //------------------------------------------------------------------------------

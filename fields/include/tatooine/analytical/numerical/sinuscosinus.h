@@ -1,59 +1,53 @@
-#ifndef TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_SINUSCOSINUS_H
-#define TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_SINUSCOSINUS_H
+#ifndef TATOOINE_ANALYTICAL_NUMERICAL_SINUSCOSINUS_H
+#define TATOOINE_ANALYTICAL_NUMERICAL_SINUSCOSINUS_H
 //==============================================================================
+#include <tatooine/field.h>
 #include <boost/math/constants/constants.hpp>
 #include <cmath>
 //==============================================================================
-namespace tatooine::analytical::fields::numerical {
+namespace tatooine::analytical::numerical {
 //==============================================================================
 template <typename Real>
-struct cosinussinus : field<cosinussinus<Real>, Real, 2, 2> {
+struct cosinussinus : vectorfield<cosinussinus<Real>, Real, 2> {
   using this_type   = cosinussinus<Real>;
-  using parent_type = field<this_type, Real, 2, 2>;
+  using parent_type = vectorfield<this_type, Real, 2>;
   using typename parent_type::pos_type;
   using typename parent_type::tensor_type;
   //============================================================================
   Real m_radius;
   //============================================================================
-  constexpr cosinussinus(Real r = 0.5) noexcept : m_radius{r} {}
+  constexpr cosinussinus(Real const r = 1) noexcept : m_radius{r} {}
   //----------------------------------------------------------------------------
-  void set_radius(Real r) { m_radius = r; }
+  constexpr auto set_radius(Real r) { m_radius = r; }
   //----------------------------------------------------------------------------
   [[nodiscard]] constexpr auto evaluate(const pos_type& /*x*/, Real t) const
-      -> tensor_type final {
-    return tensor_type{std::cos(t) * m_radius, std::sin(t) * m_radius};
-  }
-  //----------------------------------------------------------------------------
-  [[nodiscard]] constexpr auto in_domain(const pos_type& /*x*/, Real /*t*/) const
-      -> bool final {
-    return true;
+      -> tensor_type {
+    return {gcem::cos(t) * m_radius, gcem::sin(t) * m_radius};
   }
 };
 //==============================================================================
 template <typename Real>
-struct sinuscosinus : field<sinuscosinus<Real>, Real, 2, 2> {
+struct sinuscosinus : vectorfield<sinuscosinus<Real>, Real, 2> {
   using this_type   = sinuscosinus<Real>;
-  using parent_type = field<this_type, Real, 2, 2>;
+  using parent_type = vectorfield<this_type, Real, 2>;
   using typename parent_type::pos_type;
   using typename parent_type::tensor_type;
-
   //============================================================================
-  constexpr sinuscosinus() noexcept {}
+  Real m_radius;
+  //============================================================================
+  constexpr sinuscosinus(Real const r = 1) noexcept : m_radius{r} {}
+  //----------------------------------------------------------------------------
+  constexpr auto set_radius(Real r) { m_radius = r; }
   //----------------------------------------------------------------------------
   [[nodiscard]] constexpr auto evaluate(const pos_type& /*x*/, Real t) const
-      -> tensor_type final {
-    return tensor_type{std::sin(t), std::cos(t)};
-  }
-  //----------------------------------------------------------------------------
-  [[nodiscard]] constexpr auto in_domain(const pos_type& /*x*/, Real /*t*/) const
-      -> bool final {
-    return true;
+      -> tensor_type {
+    return {std::sin(t) * m_radius, std::cos(t) * m_radius};
   }
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sinuscosinus()->sinuscosinus<double>;
 cosinussinus()->cosinussinus<double>;
 //==============================================================================
-}  // namespace tatooine::analytical::fields::numerical
+}  // namespace tatooine::analytical::numerical
 //==============================================================================
 #endif

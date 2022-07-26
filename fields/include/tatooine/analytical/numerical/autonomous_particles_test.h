@@ -6,7 +6,7 @@
 #include <tatooine/flowmap_gradient_central_differences.h>
 #include <tatooine/numerical_flowmap.h>
 //==============================================================================
-namespace tatooine::analytical::fields::numerical {
+namespace tatooine::analytical::numerical {
 //==============================================================================
 template <std::floating_point Real>
 struct autonomous_particles_test
@@ -141,17 +141,17 @@ auto diff(autonomous_particles_test_flowmap<Real> const& flowmap) {
   return diff(flowmap, tag::analytical);
 }
 //==============================================================================
-}  // namespace tatooine::analytical::fields::numerical
+}  // namespace tatooine::analytical::numerical
 //==============================================================================
 namespace tatooine {
 //==============================================================================
 template <std::floating_point Real>
 struct differentiated_field<
-    analytical::fields::numerical::autonomous_particles_test<Real>, 2, 2>
-    : field<analytical::fields::numerical::autonomous_particles_test<Real>,
+    analytical::numerical::autonomous_particles_test<Real>, 2, 2>
+    : field<analytical::numerical::autonomous_particles_test<Real>,
             Real, 2, 2, 2> {
   using this_type = differentiated_field<
-      analytical::fields::numerical::autonomous_particles_test<Real>>;
+      analytical::numerical::autonomous_particles_test<Real>>;
   using parent_type = field<this_type, Real, 2, 2, 2>;
   using typename parent_type::real_type;
   using typename parent_type::pos_type;
@@ -173,17 +173,17 @@ struct differentiated_field<
 //------------------------------------------------------------------------------
 template <std::floating_point Real>
 constexpr auto diff(
-    analytical::fields::numerical::autonomous_particles_test<Real>&) {
+    analytical::numerical::autonomous_particles_test<Real>&) {
   return differentiated_field<
-      analytical::fields::numerical::autonomous_particles_test<Real>, 2, 2>{};
+      analytical::numerical::autonomous_particles_test<Real>, 2, 2>{};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <std::floating_point Real>
 constexpr auto diff(
-    vectorfield<analytical::fields::numerical::autonomous_particles_test<Real>,
+    vectorfield<analytical::numerical::autonomous_particles_test<Real>,
                 Real, 2> const&) {
   return differentiated_field<
-      analytical::fields::numerical::autonomous_particles_test<Real>, 2, 2>{};
+      analytical::numerical::autonomous_particles_test<Real>, 2, 2>{};
 }
 //==============================================================================
 }  // namespace tatooine

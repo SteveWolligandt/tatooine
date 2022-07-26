@@ -1,10 +1,10 @@
-#ifndef TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_DOUBLEGYRE_H
-#define TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_DOUBLEGYRE_H
+#ifndef TATOOINE_ANALYTICAL_NUMERICAL_DOUBLEGYRE_H
+#define TATOOINE_ANALYTICAL_NUMERICAL_DOUBLEGYRE_H
 //==============================================================================
 #include <tatooine/field.h>
 #include <cmath>
 //==============================================================================
-namespace tatooine::analytical::fields::numerical {
+namespace tatooine::analytical::numerical {
 //==============================================================================
 /// Double Gyre dataset
 template <typename Real>
@@ -70,6 +70,6 @@ struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
 //==============================================================================
 doublegyre()->doublegyre<real_number>;
 //==============================================================================
-}  // namespace tatooine::analytical::fields::numerical
+}  // namespace tatooine::analytical::numerical
 //==============================================================================
 #endif
