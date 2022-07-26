@@ -1,11 +1,11 @@
-#ifndef TATOOINE_ANALYTICAL_FIELDS_SYMBOLIC_ABCFLOW_H
-#define TATOOINE_ANALYTICAL_FIELDS_SYMBOLIC_ABCFLOW_H
+#ifndef TATOOINE_ANALYTICAL_SYMBOLIC_ABCFLOW_H
+#define TATOOINE_ANALYTICAL_SYMBOLIC_ABCFLOW_H
 //==============================================================================
 #include <tatooine/available_libraries.h>
 #if TATOOINE_GINAC_AVAILABLE
 #include <tatooine/symbolic_field.h>
 //==============================================================================
-namespace tatooine::analytical::fields::symbolic {
+namespace tatooine::analytical::symbolic {
 //==============================================================================
 /// \brief The Arnold–Beltrami–Childress (ABC) flow is a three-dimensional
 ///        incompressible velocity field which is an exact solution of Euler's

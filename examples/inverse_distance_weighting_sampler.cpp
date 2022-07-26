@@ -1,5 +1,5 @@
 #include <tatooine/pointset.h>
-#include <tatooine/analytical/fields/frankes_test.h>
+#include <tatooine/analytical/frankes_test.h>
 #include <tatooine/rectilinear_grid.h>
 
 #include <boost/program_options.hpp>
@@ -49,7 +49,7 @@ auto main(int argc, char const** argv) -> int {
       return 1;
   }
 
-  auto f = analytical::fields::numerical::frankes_test{};
+  auto f = analytical::numerical::frankes_test{};
 
   for (size_t i = 0; i < options.num_datapoints; ++i) {
     auto v = ps.insert_vertex(rand(), rand());

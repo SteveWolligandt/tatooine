@@ -1,5 +1,5 @@
 #if TATOOINE_GL_AVAILABLE
-#include <tatooine/analytical/fields/numerical/doublegyre.h>
+#include <tatooine/analytical/numerical/doublegyre.h>
 #include <tatooine/gpu/upload.h>
 #include <tatooine/multidim_array.h>
 #include <tatooine/demangling.h>
@@ -9,7 +9,7 @@
 namespace tatooine::gpu::test {
 //==============================================================================
 TEST_CASE("gpu_upload_doublegyre", "[gpu][dg][doublegyre][upload]") {
-  analytical::fields::numerical::doublegyre<float> v;
+  analytical::numerical::doublegyre<float> v;
   linspace<float>              xdomain{0.0, 2.0, 21};
   linspace<float>              ydomain{0.0, 1.0, 11};
   float                        t     = 0;
@@ -37,7 +37,7 @@ TEST_CASE("gpu_upload_doublegyre", "[gpu][dg][doublegyre][upload]") {
 }
 ////==============================================================================
 //TEST_CASE("gpu_upload_doublegyre_resample", "[gpu][dg][doublegyre][upload]") {
-//  analytical::fields::numerical::doublegyre<float> v;
+//  analytical::numerical::doublegyre<float> v;
 //  linspace<float>              xdomain{0.0, 2.0, 21};
 //  linspace<float>              ydomain{0.0, 1.0, 11};
 //  float                        t     = 0;

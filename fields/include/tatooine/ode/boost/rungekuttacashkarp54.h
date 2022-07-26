@@ -1,42 +1,44 @@
-#ifndef TATOOINE_BOOST_RKCK54_INTEGRATOR_H
-#define TATOOINE_BOOST_RKCK54_INTEGRATOR_H
-
-#include <boost/numeric/odeint.hpp>
-#include "../../tensor.h"
-#include "boostintegrator.h"
-
-
+#ifndef TATOOINE_ODE_BOOST_RUNGEKUTTACASHKARP54_H
+#define TATOOINE_ODE_BOOST_RUNGEKUTTACASHKARP54_H
 //==============================================================================
-namespace tatooine::integration::boost {
-//==============================================================================
+#include <tatooine/concepts.h>
+#include <tatooine/ode/boost/domain_error_checker.h>
+#include <tatooine/ode/boost/solver.h>
 
-template <typename Real, size_t N>
-struct rkck54_type {
-  using stepper_t =
+#include <boost/numeric/odeint/stepper/controlled_runge_kutta.hpp>
+#include <boost/numeric/odeint/stepper/runge_kutta_cash_karp54.hpp>
+//==============================================================================
+namespace tatooine::ode::boost {
+//==============================================================================
+template <floating_point Real, std::size_t N>
+struct rkck54_aux {
+  using stepper_type =
       ::boost::numeric::odeint::runge_kutta_cash_karp54<vec<Real, N>>;
-  using t = ::boost::numeric::odeint::controlled_runge_kutta<stepper_t>;
+  using error_checker_type =
+      domain_error_checker<Real, typename stepper_type::algebra_type,
+                           typename stepper_type::operations_type>;
+  using controller_type =
+      ::boost::numeric::odeint::controlled_runge_kutta<stepper_type,
+                                                       error_checker_type>;
 };
-
-//------------------------------------------------------------------------------
-template <typename Real, size_t N>
+//==============================================================================
+template <floating_point Real, std::size_t N>
 struct rungekuttacashkarp54
-    : integrator<Real, N, typename rkck54_type<Real, N>::t> {
-  rungekuttacashkarp54(Real initial_stepsize         = 0.1,
-                       Real absolute_error_tolerance = 1e-4,
-                       Real relative_error_tolerance = 1e-4, Real a_x = 1,
-                       Real a_dxdt = 1)
-      : integrator<Real, N, typename rkck54_type<Real, N>::t>(
-            typename rkck54_type<Real, N>::t(
-                ::boost::numeric::odeint::default_error_checker<
-                    Real, ::boost::numeric::odeint::range_algebra,
-                    ::boost::numeric::odeint::default_operations>(
-                    absolute_error_tolerance, relative_error_tolerance, a_x,
-                    a_dxdt)),
+    : tatooine::ode::boost::solver<
+          Real, N, typename rkck54_aux<Real, N>::controller_type> {
+  using controller_type    = typename rkck54_aux<Real, N>::controller_type;
+  using error_checker_type =  typename rkck54_aux<Real, N>::error_checker_type;
+  rungekuttacashkarp54(Real const absolute_error_tolerance = 1e-10,
+                       Real const relative_error_tolerance = 1e-6,
+                       Real const initial_stepsize = 1e-2, Real const a_x = 1,
+                       Real const a_dxdt = 1)
+      : tatooine::ode::boost::solver<Real, N, controller_type>(
+            controller_type{error_checker_type{absolute_error_tolerance,
+                                               relative_error_tolerance, a_x,
+                                               a_dxdt}},
             initial_stepsize) {}
 };
-
 //==============================================================================
-}  // namespace tatooine::integration::boost
+}  // namespace tatooine::ode::boost
 //==============================================================================
-
 #endif

@@ -1,16 +1,16 @@
 #ifndef TATOOINE_FLOWEXPLORER_NODES_DUFFING_OSCILLATOR_H
 #define TATOOINE_FLOWEXPLORER_NODES_DUFFING_OSCILLATOR_H
 //==============================================================================
-#include <tatooine/analytical/fields/numerical/duffing_oscillator.h>
+#include <tatooine/analytical/numerical/duffing_oscillator.h>
 #include <tatooine/flowexplorer/renderable.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 struct duffing_oscillator
-    : tatooine::analytical::fields::numerical::duffing_oscillator<double>,
+    : tatooine::analytical::numerical::duffing_oscillator<double>,
       ui::node<duffing_oscillator> {
   duffing_oscillator(flowexplorer::scene& s)
-      : tatooine::analytical::fields::numerical::duffing_oscillator<
+      : tatooine::analytical::numerical::duffing_oscillator<
             double>{1.0, 1.0, 1.0},
         ui::node<duffing_oscillator>{"Duffing Oscillator", s} {
     this->template insert_output_pin<polymorphic::vectorfield<double, 2>>(

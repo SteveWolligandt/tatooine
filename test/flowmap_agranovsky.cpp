@@ -1,4 +1,4 @@
-#include <tatooine/analytical/fields/numerical/doublegyre.h>
+#include <tatooine/analytical/numerical/doublegyre.h>
 #include <tatooine/flowmap_agranovsky.h>
 #include <tatooine/numerical_flowmap.h>
 
@@ -7,7 +7,7 @@
 namespace tatooine::test {
 //==============================================================================
 TEST_CASE("flowmap_agranovsky", "[flowmap][agranovsky]") {
-  analytical::fields::numerical::doublegyre v;
+  analytical::numerical::doublegyre v;
   auto                                      fm = flowmap(v);
   fm.use_caching(false);
   double const       t0      = 00;

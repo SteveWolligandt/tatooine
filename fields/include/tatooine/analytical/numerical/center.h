@@ -1,11 +1,11 @@
-#ifndef TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_CENTER_FIELD_H
-#define TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_CENTER_FIELD_H
+#ifndef TATOOINE_ANALYTICAL_NUMERICAL_CENTER_FIELD_H
+#define TATOOINE_ANALYTICAL_NUMERICAL_CENTER_FIELD_H
 //==============================================================================
 #include <tatooine/field.h>
 #include <tatooine/numerical_flowmap.h>
 #include <tatooine/ode/vclibs/rungekutta43.h>
 //==============================================================================
-namespace tatooine::analytical::fields::numerical {
+namespace tatooine::analytical::numerical {
 //==============================================================================
 template <floating_point Real>
 struct center : vectorfield<center<Real>, Real, 2> {
@@ -54,47 +54,47 @@ template <
     template <typename> typename InterpolationKernel = interpolation::cubic,
     floating_point Real>
 constexpr auto flowmap(
-    vectorfield<analytical::fields::numerical::center<Real>, Real, 2> const& v,
+    vectorfield<analytical::numerical::center<Real>, Real, 2> const& v,
     tag::numerical_t /*tag*/) {
-  return numerical_flowmap<analytical::fields::numerical::center<Real>,
+  return numerical_flowmap<analytical::numerical::center<Real>,
                            ODESolver, InterpolationKernel>{v};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <floating_point Real>
 constexpr auto flowmap(
-    vectorfield<analytical::fields::numerical::center<Real>, Real, 2> const&,
+    vectorfield<analytical::numerical::center<Real>, Real, 2> const&,
     tag::analytical_t /*tag*/) {
-  return analytical::fields::numerical::center_flowmap<Real>{};
+  return analytical::numerical::center_flowmap<Real>{};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <floating_point Real>
-constexpr auto flowmap(vectorfield<analytical::fields::numerical::center<Real>,
+constexpr auto flowmap(vectorfield<analytical::numerical::center<Real>,
                                    Real, 2> const& v) {
   return flowmap(v, tag::analytical);
 }
 //==============================================================================
-}  // namespace tatooine::analytical::fields::numerical
+}  // namespace tatooine::analytical::numerical
 //==============================================================================
 #include <tatooine/differentiated_field.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
 template <floating_point Real>
-struct differentiated_field<analytical::fields::numerical::center<Real>>
-    : matrixfield<analytical::fields::numerical::center<Real>, Real, 2> {
+struct differentiated_field<analytical::numerical::center<Real>>
+    : matrixfield<analytical::numerical::center<Real>, Real, 2> {
   using this_type =
-      differentiated_field<analytical::fields::numerical::center<Real>>;
+      differentiated_field<analytical::numerical::center<Real>>;
   using parent_type = matrixfield<this_type, Real, 2>;
   using typename parent_type::pos_type;
   using typename parent_type::tensor_type;
 
   //============================================================================
  private:
-  analytical::fields::numerical::center<Real> m_internal_field;
+  analytical::numerical::center<Real> m_internal_field;
 
   //============================================================================
  public:
-  differentiated_field(analytical::fields::numerical::center<Real> const& f)
+  differentiated_field(analytical::numerical::center<Real> const& f)
       : m_internal_field{f.as_derived()} {}
   //----------------------------------------------------------------------------
   constexpr auto evaluate(pos_type const& /*x*/, Real const /*t*/) const
@@ -109,18 +109,18 @@ struct differentiated_field<analytical::fields::numerical::center<Real>>
 };
 //==============================================================================
 template <floating_point Real>
-constexpr auto diff(analytical::fields::numerical::center<Real>&) {
-  return differentiated_field<analytical::fields::numerical::center<Real>>{};
+constexpr auto diff(analytical::numerical::center<Real>&) {
+  return differentiated_field<analytical::numerical::center<Real>>{};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <floating_point Real>
 constexpr auto diff(
-    vectorfield<analytical::fields::numerical::center<Real>, Real, 2> const&) {
-  return differentiated_field<analytical::fields::numerical::center<Real>>{};
+    vectorfield<analytical::numerical::center<Real>, Real, 2> const&) {
+  return differentiated_field<analytical::numerical::center<Real>>{};
 }
 //==============================================================================
 template <floating_point Real>
-struct differentiated_flowmap<analytical::fields::numerical::center<Real>> {
+struct differentiated_flowmap<analytical::numerical::center<Real>> {
   using real_type  = Real;
   using vec_t      = vec<Real, 2>;
   using pos_type   = vec_t;

@@ -1,5 +1,5 @@
 #include <tatooine/pointset.h>
-#include <tatooine/analytical/fields/frankes_test.h>
+#include <tatooine/analytical/frankes_test.h>
 #include <tatooine/rectilinear_grid.h>
 
 #include <boost/program_options.hpp>
@@ -58,7 +58,7 @@ auto main(int argc, char const** argv) -> int {
   for (auto const v : ps.vertices()) {
     switch (options.type) {
       case type_t::franke: {
-        auto f             = analytical::fields::numerical::frankes_test{};
+        auto f             = analytical::numerical::frankes_test{};
         auto df            = diff(f);
         scalar_prop->at(v) = f(ps[v]);
         vector_prop->at(v) = df(ps[v]);
@@ -115,10 +115,10 @@ auto main(int argc, char const** argv) -> int {
       sample_scalar();
 
       gr.sample_to_vertex_property(
-          analytical::fields::numerical::frankes_test{}, "franke",
+          analytical::numerical::frankes_test{}, "franke",
           execution_policy::parallel);
       gr.sample_to_vertex_property(
-          diff(analytical::fields::numerical::frankes_test{}), "franke_gradient",
+          diff(analytical::numerical::frankes_test{}), "franke_gradient",
           execution_policy::parallel);
       break;
     // case type_t::vector:

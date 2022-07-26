@@ -1,10 +1,10 @@
 #include <tatooine/autonomous_particle.h>
-#include <tatooine/analytical/fields/doublegyre.h>
+#include <tatooine/analytical/doublegyre.h>
 //==============================================================================
 using namespace tatooine;
 //==============================================================================
 auto main() -> int {
-  auto v              = analytical::fields::numerical::doublegyre{};
+  auto v              = analytical::numerical::doublegyre{};
   auto uuid_generator = std::atomic_uint64_t{};
   auto particle = autonomous_particle{vec2{0.5, 0.5}, 0.0, 0.1, uuid_generator};
   auto const [advected_autonomous_particles, advected_simple_particles, mesh] =

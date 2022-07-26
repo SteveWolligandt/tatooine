@@ -7,14 +7,15 @@ namespace tatooine {
 //==============================================================================
 template <typename InternalFlowmapDiscretization>
 struct staggered_flowmap_discretization {
-  using real_type = typename InternalFlowmapDiscretization::real_type;
+  using internal_flowmap_discretization_type = InternalFlowmapDiscretization;
+  using real_type = typename internal_flowmap_discretization_type::real_type;
   static auto constexpr num_dimensions() {
-    return InternalFlowmapDiscretization::num_dimensions();
+    return internal_flowmap_discretization_type::num_dimensions();
   }
-  using vec_t = vec<real_type, num_dimensions()>;
-  using pos_type = vec_t;
+  using vec_type = vec<real_type, num_dimensions()>;
+  using pos_type = vec_type;
   //============================================================================
-  std::list<InternalFlowmapDiscretization> m_steps;
+  std::list<internal_flowmap_discretization_type> m_steps;
   //============================================================================
   template <typename Flowmap, typename... InternalFlowmapArgs>
   staggered_flowmap_discretization(Flowmap&& flowmap, arithmetic auto const t0,

@@ -1,9 +1,9 @@
-#ifndef TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_H
-#define TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_H
+#ifndef TATOOINE_ANALYTICAL_NUMERICAL_H
+#define TATOOINE_ANALYTICAL_NUMERICAL_H
 //==============================================================================
 #include <tatooine/field.h>
 //==============================================================================
-namespace tatooine::analytical::fields::numerical {
+namespace tatooine::analytical::numerical {
 //==============================================================================
 template <typename Real>
 struct rayleigh_benard_convection
@@ -59,6 +59,6 @@ struct rayleigh_benard_convection
   }
 };
 //==============================================================================
-}  // namespace tatooine::analytical::fields::numerical
+}  // namespace tatooine::analytical::numerical
 //==============================================================================
 #endif

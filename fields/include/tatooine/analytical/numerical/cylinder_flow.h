@@ -1,5 +1,5 @@
-#ifndef TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_CYLINDER_FLOW_H
-#define TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_CYLINDER_FLOW_H
+#ifndef TATOOINE_ANALYTICAL_NUMERICAL_CYLINDER_FLOW_H
+#define TATOOINE_ANALYTICAL_NUMERICAL_CYLINDER_FLOW_H
 //==============================================================================
 #include <tatooine/field.h>
 //==============================================================================

@@ -19,7 +19,7 @@ Now you can use the rendering interface in your code:
 
 `rendering.cpp`:
 \code{.cpp}
-#include <tatooine/analytical/fields/numerical/doublegyre.h>
+#include <tatooine/analytical/numerical/doublegyre.h>
 #include <tatooine/field_operations.h>
 #include <tatooine/isolines.h>                          
 #include <tatooine/rendering/interactive.h>
@@ -28,7 +28,7 @@ using namespace tatooine;
 //==============================================================================
 auto main() -> int {                                                          
   auto g = rectilinear_grid{linspace{0.0, 2.0, 200}, linspace{0.0, 1.0, 100}};
-  auto dg = analytical::fields::numerical::doublegyre{};                 
+  auto dg = analytical::numerical::doublegyre{};                 
   auto dg_len = squared_euclidean_length(dg);                                
   g.sample_to_vertex_property([&](auto const x) { return dg_len(x, 0); },
                               "dg_len");                     

@@ -237,6 +237,7 @@ if(TATOOINE_GL_AVAILABLE)
   set_target_properties(tatooine::glad PROPERTIES
     IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "C"
     IMPORTED_LOCATION_RELEASE "@CMAKE_BINARY_DIR@/gl/libglad.a"
+    INTERFACE_LINK_LIBRARIES "@CMAKE_DL_LIBS@"
     )
 
   # Import target "tatooine::glfw" for configuration "Release"

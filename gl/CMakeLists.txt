@@ -26,7 +26,9 @@ if (TATOOINE_BUILD_GL)
   # build glad
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
   add_library(glad STATIC external/glad/glad_egl.c external/glad/glad.c)
+  target_link_libraries(glad PUBLIC ${CMAKE_DL_LIBS})
   target_include_directories(glad PUBLIC external/glad)
+  get_target_property(GLAD_LINK_LIBRARIES glad LINK_LIBRARIES)
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
   # build imgui
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 

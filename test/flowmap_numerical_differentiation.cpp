@@ -1,5 +1,5 @@
 #include <catch2/catch.hpp>
-#include <tatooine/analytical/fields/doublegyre.h>
+#include <tatooine/analytical/doublegyre.h>
 #include <tatooine/numerical_flowmap.h>
 #include <tatooine/rectilinear_grid.h>
 #include <tatooine/rendering/interactive.h>
@@ -8,7 +8,7 @@ namespace tatooine::test {
 //==============================================================================
 TEST_CASE("flowmap_numerical_differentiation",
           "[flowmap][numerical][differentiation]") {
-  auto const d_phi = diff(flowmap(analytical::fields::numerical::doublegyre{}));
+  auto const d_phi = diff(flowmap(analytical::numerical::doublegyre{}));
   auto g = rectilinear_grid{linspace{0.0, 2.0, 200}, linspace{0.0, 1.0, 100}};
   //auto const x0 = g.vertex_at(20, 59);
   auto const t0 = 0;

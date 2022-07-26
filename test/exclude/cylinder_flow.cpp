@@ -1,7 +1,7 @@
-#include <tatooine/analytical/fields/numerical/cylinder_flow.h>
+#include <tatooine/analytical/numerical/cylinder_flow.h>
 #include <tatooine/gpu/lic.h>
 
-namespace tatooine::analytical::fields {
+namespace tatooine::analytical {
 TEST_CASE() {
   numerical::cylinder_flow.h v;
 

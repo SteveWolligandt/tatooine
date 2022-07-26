@@ -5,8 +5,7 @@
 #include <tatooine/field.h>
 #include <tatooine/interpolation.h>
 #include <tatooine/is_cacheable.h>
-#include <tatooine/ode/vclibs/rungekutta43.h>
-//#include <tatooine/ode/boost/rungekuttafehlberg78.h>
+#include <tatooine/ode/boost/rungekuttafehlberg78.h>
 #include <tatooine/cache.h>
 #include <tatooine/tags.h>
 //==============================================================================
@@ -351,12 +350,12 @@ struct numerical_flowmap {
 //==============================================================================
 template <typename V, typename Real, std::size_t NumDimensions>
 numerical_flowmap(vectorfield<V, Real, NumDimensions> const&)
-    -> numerical_flowmap<V const&, ode::vclibs::rungekutta43,
+    -> numerical_flowmap<V const&, ode::boost::rungekuttafehlberg78,
                          interpolation::cubic>;
 //------------------------------------------------------------------------------
 template <typename V, typename Real, std::size_t NumDimensions>
 numerical_flowmap(vectorfield<V, Real, NumDimensions>&&)
-    -> numerical_flowmap<V, ode::vclibs::rungekutta43, interpolation::cubic>;
+    -> numerical_flowmap<V, ode::boost::rungekuttafehlberg78, interpolation::cubic>;
 //------------------------------------------------------------------------------
 template <typename V, typename Real, std::size_t NumDimensions,
           template <typename, std::size_t> typename ODESolver>
@@ -371,10 +370,8 @@ numerical_flowmap(vectorfield<V, Real, NumDimensions>&&,
     -> numerical_flowmap<V, ODESolver, interpolation::cubic>;
 //==============================================================================
 template <
-    // template <typename, std::size_t> typename ODESolver =
-    // ode::boost::rungekuttafehlberg78,
     template <typename, std::size_t>
-    typename ODESolver = ode::vclibs::rungekutta43,
+    typename ODESolver = ode::boost::rungekuttafehlberg78,
     template <typename> typename InterpolationKernel = interpolation::cubic,
     typename V, typename Real, std::size_t NumDimensions>
 auto flowmap(vectorfield<V, Real, NumDimensions> const& v,
@@ -383,8 +380,6 @@ auto flowmap(vectorfield<V, Real, NumDimensions> const& v,
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <
-    // template <typename, std::size_t> typename ODESolver =
-    // ode::boost::rungekuttafehlberg78,
     template <typename, std::size_t> typename ODESolver,
     template <typename> typename InterpolationKernel = interpolation::cubic,
     typename V, typename Real, std::size_t NumDimensions>
@@ -396,10 +391,8 @@ auto flowmap(vectorfield<V, Real, NumDimensions> const& v,
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <
-    // template <typename, std::size_t> typename ODESolver =
-    // ode::boost::rungekuttafehlberg78,
     template <typename, std::size_t>
-    typename ODESolver = ode::vclibs::rungekutta43,
+    typename ODESolver = ode::boost::rungekuttafehlberg78,
     template <typename> typename InterpolationKernel = interpolation::cubic,
     typename V, typename Real, std::size_t NumDimensions>
 auto flowmap(vectorfield<V, Real, NumDimensions>&& v,
@@ -408,8 +401,6 @@ auto flowmap(vectorfield<V, Real, NumDimensions>&& v,
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <
-    // template <typename, std::size_t> typename ODESolver =
-    // ode::boost::rungekuttafehlberg78,
     template <typename, std::size_t> typename ODESolver,
     template <typename> typename InterpolationKernel = interpolation::cubic,
     typename V, typename Real, std::size_t NumDimensions>
@@ -421,10 +412,8 @@ auto flowmap(vectorfield<V, Real, NumDimensions>&& v,
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <
-    // template <typename, std::size_t> typename ODESolver =
-    // ode::boost::rungekuttafehlberg78,
     template <typename, std::size_t>
-    typename ODESolver = ode::vclibs::rungekutta43,
+    typename ODESolver = ode::boost::rungekuttafehlberg78,
     template <typename> typename InterpolationKernel = interpolation::cubic,
     typename V, typename Real, std::size_t NumDimensions>
 auto flowmap(vectorfield<V, Real, NumDimensions> const& v) {
@@ -432,8 +421,6 @@ auto flowmap(vectorfield<V, Real, NumDimensions> const& v) {
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <
-    // template <typename, std::size_t> typename ODESolver =
-    // ode::boost::rungekuttafehlberg78,
     template <typename, std::size_t> typename ODESolver,
     template <typename> typename InterpolationKernel = interpolation::cubic,
     typename V, typename Real, std::size_t NumDimensions>
@@ -444,10 +431,8 @@ auto flowmap(vectorfield<V, Real, NumDimensions> const& v,
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <
-    // template <typename, std::size_t> typename ODESolver =
-    // ode::boost::rungekuttafehlberg78,
     template <typename, std::size_t>
-    typename ODESolver = ode::vclibs::rungekutta43,
+    typename ODESolver = ode::boost::rungekuttafehlberg78,
     template <typename> typename InterpolationKernel = interpolation::cubic,
     typename V, typename Real, std::size_t NumDimensions>
 auto flowmap(vectorfield<V, Real, NumDimensions>&& v,
@@ -457,10 +442,8 @@ auto flowmap(vectorfield<V, Real, NumDimensions>&& v,
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <
-    // template <typename, std::size_t> typename ODESolver =
-    // ode::boost::rungekuttafehlberg78,
     template <typename, std::size_t>
-    typename ODESolver = ode::vclibs::rungekutta43,
+    typename ODESolver = ode::boost::rungekuttafehlberg78,
     template <typename> typename InterpolationKernel = interpolation::cubic,
     typename V, typename Real, std::size_t NumDimensions>
 auto flowmap(vectorfield<V, Real, NumDimensions>&& v) {
@@ -468,10 +451,8 @@ auto flowmap(vectorfield<V, Real, NumDimensions>&& v) {
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <
-    // template <typename, std::size_t> typename ODESolver =
-    // ode::boost::rungekuttafehlberg78,
     template <typename, std::size_t>
-    typename ODESolver = ode::vclibs::rungekutta43,
+    typename ODESolver = ode::boost::rungekuttafehlberg78,
     template <typename> typename InterpolationKernel = interpolation::cubic,
     typename Real, std::size_t NumDimensions>
 auto flowmap(polymorphic::vectorfield<Real, NumDimensions> const& v) {
@@ -480,10 +461,8 @@ auto flowmap(polymorphic::vectorfield<Real, NumDimensions> const& v) {
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <
-    // template <typename, std::size_t> typename ODESolver =
-    // ode::boost::rungekuttafehlberg78,
     template <typename, std::size_t>
-    typename ODESolver = ode::vclibs::rungekutta43,
+    typename ODESolver = ode::boost::rungekuttafehlberg78,
     template <typename> typename InterpolationKernel = interpolation::cubic,
     typename Real, std::size_t NumDimensions>
 auto flowmap(polymorphic::vectorfield<Real, NumDimensions> const& v,

@@ -1,12 +1,12 @@
-#ifndef TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_SADDLE_H
-#define TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_SADDLE_H
+#ifndef TATOOINE_ANALYTICAL_NUMERICAL_SADDLE_H
+#define TATOOINE_ANALYTICAL_NUMERICAL_SADDLE_H
 //==============================================================================
 #include <tatooine/differentiated_field.h>
 #include <tatooine/differentiated_flowmap.h>
 #include <tatooine/field.h>
 #include <tatooine/numerical_flowmap.h>
 //==============================================================================
-namespace tatooine::analytical::fields::numerical {
+namespace tatooine::analytical::numerical {
 //==============================================================================
 template <floating_point Real>
 struct saddle : vectorfield<saddle<Real>, Real, 2> {
@@ -96,7 +96,7 @@ auto constexpr flowmap(saddle<Real> const& v, tag::numerical_t tag) {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <floating_point Real>
 auto constexpr flowmap(saddle<Real> const& /*v*/, tag::analytical_t tag) {
-  return analytical::fields::numerical::saddle_flowmap<Real>{};
+  return analytical::numerical::saddle_flowmap<Real>{};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <floating_point Real>
@@ -104,15 +104,15 @@ auto constexpr flowmap(saddle<Real> const& v) {
   return flowmap(v, tag::analytical);
 }
 //==============================================================================
-}  // namespace tatooine::analytical::fields::numerical
+}  // namespace tatooine::analytical::numerical
 //==============================================================================
 namespace tatooine {
 //==============================================================================
 template <floating_point Real>
-struct differentiated_field<analytical::fields::numerical::saddle<Real>>
-    : matrixfield<analytical::fields::numerical::saddle<Real>, Real, 2> {
+struct differentiated_field<analytical::numerical::saddle<Real>>
+    : matrixfield<analytical::numerical::saddle<Real>, Real, 2> {
   using this_type =
-      differentiated_field<analytical::fields::numerical::saddle<Real>>;
+      differentiated_field<analytical::numerical::saddle<Real>>;
   using parent_type = matrixfield<this_type, Real, 2>;
   using typename parent_type::pos_type;
   using typename parent_type::tensor_type;
@@ -127,7 +127,7 @@ struct differentiated_field<analytical::fields::numerical::saddle<Real>>
 //==============================================================================
 template <floating_point Real>
 struct differentiated_flowmap<
-    analytical::fields::numerical::saddle_flowmap<Real>> {
+    analytical::numerical::saddle_flowmap<Real>> {
   using real_type     = Real;
   using vec_type      = vec<Real, 2>;
   using pos_type      = vec_type;

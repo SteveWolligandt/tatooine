@@ -92,9 +92,9 @@ struct field {
       -> tensor_type {
     return evaluate(x, 0);
   }
-  constexpr auto operator()(arithmetic auto const... xs) const -> tensor_type {
-    static_assert(sizeof...(xs) == NumDimensions ||
-                  sizeof...(xs) == NumDimensions + 1);
+  constexpr auto operator()(arithmetic auto const... xs) const -> tensor_type 
+  requires (sizeof...(xs) == NumDimensions) ||
+           (sizeof...(xs) == NumDimensions + 1) {
     if constexpr (sizeof...(xs) == NumDimensions) {
       return evaluate(pos_type{xs...});
     } else if constexpr (sizeof...(xs) == NumDimensions + 1) {

@@ -1,5 +1,5 @@
 #include <tatooine/unary_operation_field.h>
-#include <tatooine/analytical/fields/numerical/doublegyre.h>
+#include <tatooine/analytical/numerical/doublegyre.h>
 #include <catch2/catch.hpp>
 //==============================================================================
 namespace tatooine::test {
@@ -9,15 +9,15 @@ TEST_CASE("unary_operation_field_identity_move",
   constexpr auto identity = [](auto&& p) -> decltype(auto) {
     return std::forward<decltype(p)>(p);
   };
-  auto v = analytical::fields::numerical::doublegyre{} | identity;
+  auto v = analytical::numerical::doublegyre{} | identity;
   using V = decltype(v);
   REQUIRE(!std::is_reference_v<V::internal_field_t>);
   REQUIRE(std::is_same_v<V::internal_field_t,
-                          analytical::fields::numerical::doublegyre<double>>);
+                          analytical::numerical::doublegyre<double>>);
 }
 //==============================================================================
 TEST_CASE("unary_operation_field_identity_ref", "[unary_operation_field][identity][ref]"){
-  analytical::fields::numerical::doublegyre v;
+  analytical::numerical::doublegyre v;
   constexpr auto identity = [](auto&& p) -> decltype(auto) {
     return std::forward<decltype(p)>(p);
   };
@@ -38,7 +38,7 @@ TEST_CASE("unary_operation_field_identity_ref", "[unary_operation_field][identit
 //==============================================================================
 TEST_CASE("unary_operation_field_identity_ptr",
           "[unary_operation_field][identity][ptr][pointer]") {
-  analytical::fields::numerical::doublegyre v;
+  analytical::numerical::doublegyre v;
   polymorphic::vectorfield<double, 2>*      v_ptr = &v;
   constexpr auto identity = [](auto&& p) -> decltype(auto) {
     return std::forward<decltype(p)>(p);
@@ -60,7 +60,7 @@ TEST_CASE("unary_operation_field_identity_ptr",
 }
 //==============================================================================
 TEST_CASE("unary_operation_field_length", "[unary_operation_field][length]") {
-  analytical::fields::numerical::doublegyre v;
+  analytical::numerical::doublegyre v;
   auto v_len = v | [](auto const& v) { return length(v); };
   using V   = decltype(v);
   using VLen = decltype(v_len);
@@ -77,7 +77,7 @@ TEST_CASE("unary_operation_field_length", "[unary_operation_field][length]") {
 //==============================================================================
 TEST_CASE("unary_operation_field_concat",
           "[unary_operation_field][concat]") {
-  analytical::fields::numerical::doublegyre v;
+  analytical::numerical::doublegyre v;
   auto v_double_len = v | [](auto const& v) { return length(v); }
                         | [](auto const l) { return l * 2; };
 
@@ -102,7 +102,7 @@ TEST_CASE("unary_operation_field_concat",
 //==============================================================================
 TEST_CASE("unary_operation_field_scaling",
           "[unary_operation_field][scaling]") {
-  using V = analytical::fields::numerical::doublegyre<double>;
+  using V = analytical::numerical::doublegyre<double>;
   V    v;
   auto v2 = v * 2;
 

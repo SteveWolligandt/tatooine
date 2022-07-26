@@ -1,9 +1,9 @@
-#ifndef TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_DOUBLEGYRE3D_H
-#define TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_DOUBLEGYRE3D_H
+#ifndef TATOOINE_ANALYTICAL_NUMERICAL_DOUBLEGYRE3D_H
+#define TATOOINE_ANALYTICAL_NUMERICAL_DOUBLEGYRE3D_H
 //==============================================================================
 #include <tatooine/field.h>
 //==============================================================================
-namespace tatooine::analytical::fields::numerical {
+namespace tatooine::analytical::numerical {
 //==============================================================================
 template <floating_point Real>
 struct doublegyre3d : vectorfield<doublegyre3d<Real>, Real, 3> {
@@ -35,6 +35,6 @@ struct doublegyre3d : vectorfield<doublegyre3d<Real>, Real, 3> {
   }
 };
 //==============================================================================
-}  // namespace tatooine::analytical::fields::numerical
+}  // namespace tatooine::analytical::numerical
 //==============================================================================
 #endif

@@ -1,11 +1,11 @@
-#ifndef TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_H
-#define TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_H
+#ifndef TATOOINE_ANALYTICAL_NUMERICAL_H
+#define TATOOINE_ANALYTICAL_NUMERICAL_H
 //==============================================================================
 #include <tatooine/field.h>
 
 #include <cmath>
 //==============================================================================
-namespace tatooine::analytical::fields::numerical {
+namespace tatooine::analytical::numerical {
 //==============================================================================
 /// From here:
 /// http://web.cse.ohio-state.edu/~crawfis.3/Data/Tornado/tornadoSrc.c
@@ -61,6 +61,6 @@ struct tornado : vectorfield<tornado<Real>, Real, 3> {
 };
 tornado()->tornado<double>;
 //==============================================================================
-}  // namespace tatooine::analytical::fields::numerical
+}  // namespace tatooine::analytical::numerical
 //==============================================================================
 #endif

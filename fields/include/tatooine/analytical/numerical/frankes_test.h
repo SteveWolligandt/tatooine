@@ -1,11 +1,11 @@
-#ifndef TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_FRANKES_TEST_H
-#define TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_FRANKES_TEST_H
+#ifndef TATOOINE_ANALYTICAL_NUMERICAL_FRANKES_TEST_H
+#define TATOOINE_ANALYTICAL_NUMERICAL_FRANKES_TEST_H
 //==============================================================================
 #include <tatooine/field.h>
 
 #include <cmath>
 //==============================================================================
-namespace tatooine::analytical::fields::numerical {
+namespace tatooine::analytical::numerical {
 //==============================================================================
 /// \brief Franke's Test Function.
 /// <a href = "https://www.sfu.ca/~ssurjano/franke2d.html">See Here</a>
@@ -48,21 +48,21 @@ struct frankes_test : scalarfield<frankes_test<Real>, Real, 2> {
 //==============================================================================
 frankes_test()->frankes_test<real_number>;
 //==============================================================================
-}  // namespace tatooine::analytical::fields::numerical
+}  // namespace tatooine::analytical::numerical
 //==============================================================================
 #include <tatooine/differentiated_field.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
 template <floating_point Real>
-struct differentiated_field<analytical::fields::numerical::frankes_test<Real>>
+struct differentiated_field<analytical::numerical::frankes_test<Real>>
     : vectorfield<differentiated_field<
-                      analytical::fields::numerical::frankes_test<Real>>,
+                      analytical::numerical::frankes_test<Real>>,
                   Real, 2> {
-  using internal_field_type = analytical::fields::numerical::frankes_test<Real>;
+  using internal_field_type = analytical::numerical::frankes_test<Real>;
   using this_type           = differentiated_field<internal_field_type>;
   using parent_type         = vectorfield<
-      differentiated_field<analytical::fields::numerical::frankes_test<Real>>,
+      differentiated_field<analytical::numerical::frankes_test<Real>>,
       Real, 2>;
   using typename parent_type::pos_type;
   using typename parent_type::real_type;
@@ -136,9 +136,9 @@ struct differentiated_field<analytical::fields::numerical::frankes_test<Real>>
 };
 //------------------------------------------------------------------------------
 template <floating_point Real>
-auto diff(analytical::fields::numerical::frankes_test<Real> const& f) {
+auto diff(analytical::numerical::frankes_test<Real> const& f) {
   return differentiated_field<
-      analytical::fields::numerical::frankes_test<Real>>{};
+      analytical::numerical::frankes_test<Real>>{};
 }
 //==============================================================================
 }  // namespace tatooine

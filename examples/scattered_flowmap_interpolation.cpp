@@ -1,4 +1,4 @@
-#include <tatooine/analytical/fields/doublegyre.h>
+#include <tatooine/analytical/doublegyre.h>
 #include <tatooine/autonomous_particle_flowmap_discretization.h>
 #include <tatooine/numerical_flowmap.h>
 #include <tatooine/pointset.h>
@@ -33,7 +33,7 @@ auto main(int argc, char const** argv) -> int {
   scattered_flowmap          = &ps.vec2_vertex_property("flowmap");
   scattered_flowmap_gradient = &ps.mat2_vertex_property("flowmap_gradient");
 
-  auto f = analytical::fields::numerical::doublegyre{};
+  auto f = analytical::numerical::doublegyre{};
 
   auto phi      = flowmap(f);
   phi.use_caching(false);

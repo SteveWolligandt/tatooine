@@ -1,11 +1,11 @@
-#ifndef TATOOINE_ANALYTICAL_FIELDS_SYMBOLIC_DOUBLEGYRE_H
-#define TATOOINE_ANALYTICAL_FIELDS_SYMBOLIC_DOUBLEGYRE_H
+#ifndef TATOOINE_ANALYTICAL_SYMBOLIC_DOUBLEGYRE_H
+#define TATOOINE_ANALYTICAL_SYMBOLIC_DOUBLEGYRE_H
 //==============================================================================
 #include <tatooine/available_libraries.h>
 #if TATOOINE_GINAC_AVAILABLE
 #include <tatooine/symbolic_field.h>
 //==============================================================================
-namespace tatooine::analytical::fields::symbolic {
+namespace tatooine::analytical::symbolic {
 //==============================================================================
 template <typename Real>
 struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
@@ -37,7 +37,7 @@ struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
 };
 doublegyre()->doublegyre<double>;
 //==============================================================================
-}  // namespace tatooine::analytical::fields::symbolic
+}  // namespace tatooine::analytical::symbolic
 //==============================================================================
 namespace tatooine {
 //==============================================================================

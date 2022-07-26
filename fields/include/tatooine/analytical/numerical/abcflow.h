@@ -1,10 +1,10 @@
-#ifndef TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_ABCFLOW_H
-#define TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_ABCFLOW_H
+#ifndef TATOOINE_ANALYTICAL_NUMERICAL_ABCFLOW_H
+#define TATOOINE_ANALYTICAL_NUMERICAL_ABCFLOW_H
 //==============================================================================
 #include <cmath>
 #include <tatooine/field.h>
 //==============================================================================
-namespace tatooine::analytical::fields::numerical {
+namespace tatooine::analytical::numerical {
 //==============================================================================
 /// \brief The Arnold–Beltrami–Childress (ABC) flow is a three-dimensional
 ///        incompressible velocity field which is an exact solution of Euler's
@@ -47,7 +47,7 @@ struct abcflow : vectorfield<abcflow<real_type>, real_type, 3> {
 abcflow()->abcflow<double>;
 
 //==============================================================================
-}  // namespace tatooine::analytical::fields::numerical
+}  // namespace tatooine::analytical::numerical
 //==============================================================================
 
 #if TATOOINE_GINAC_AVAILABLE

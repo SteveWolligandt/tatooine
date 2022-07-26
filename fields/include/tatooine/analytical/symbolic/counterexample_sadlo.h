@@ -1,10 +1,10 @@
-#ifndef TATOOINE_ANALYTICAL_FIELDS_SYMBOLIC_COUNTEREXAMPLE_SADLO_H
-#define TATOOINE_ANALYTICAL_FIELDS_SYMBOLIC_COUNTEREXAMPLE_SADLO_H
+#ifndef TATOOINE_ANALYTICAL_SYMBOLIC_COUNTEREXAMPLE_SADLO_H
+#define TATOOINE_ANALYTICAL_SYMBOLIC_COUNTEREXAMPLE_SADLO_H
 #include <tatooine/available_libraries.h>
 #if TATOOINE_GINAC_AVAILABLE
 #include <tatooine/symbolic_field.h>
 //==============================================================================
-namespace tatooine::analytical::fields::symbolic {
+namespace tatooine::analytical::symbolic {
 //==============================================================================
 template <typename Real>
 struct counterexample_sadlo : field<Real, 2, 2> {

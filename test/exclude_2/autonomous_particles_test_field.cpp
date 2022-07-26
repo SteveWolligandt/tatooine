@@ -1,9 +1,9 @@
-#include <tatooine/analytical/fields/numerical/autonomous_particles_test.h>
+#include <tatooine/analytical/numerical/autonomous_particles_test.h>
 #include <tatooine/flowmap_gradient_central_differences.h>
 
 #include <catch2/catch.hpp>
 //==============================================================================
-namespace tatooine::analytical::fields::numerical::test {
+namespace tatooine::analytical::numerical::test {
 //==============================================================================
 TEST_CASE("autonomous_particles_test_field_flowmap",
           "[autonomous_particles_test][flowmap]") {
@@ -15,5 +15,5 @@ TEST_CASE("autonomous_particles_test_field_flowmap",
   [[maybe_unused]] auto fmngc = diff(fmn, tag::central);
 }
 //==============================================================================
-}  // namespace tatooine::analytical::fields::numerical::test
+}  // namespace tatooine::analytical::numerical::test
 //==============================================================================
