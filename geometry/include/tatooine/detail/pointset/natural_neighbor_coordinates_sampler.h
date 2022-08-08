@@ -82,10 +82,6 @@ struct natural_neighbor_coordinates_sampler
       return parent_type::ood_tensor();
     }
     auto const norm = 1 / result.second;
-    // std::cout << "Coordinate computation successful." << std::endl;
-    // std::cout << "Normalization factor: " << norm << std::endl;
-    // std::cout << "Coordinates for point: (" << p
-    //           << ") are the following: " << std::endl;
     auto t = tensor_type{};
     for (auto const& [handle, coeff] : coords) {
       t += m_property[handle->info()] * coeff * norm;
