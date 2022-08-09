@@ -343,6 +343,9 @@ struct autonomous_particle_flowmap_discretization {
   [[nodiscard]] auto sample(pos_type const&                    q,
                             forward_or_backward_tag auto const direction,
                             std::index_sequence<Is...> /*seq*/) const {
+
+
+
     using nnc_per_vertex_type =
         std::vector<std::pair<typename cgal_triangulation_type::Vertex_handle,
                               cgal_kernel::FT>>;
@@ -417,7 +420,8 @@ struct autonomous_particle_flowmap_discretization {
       return sum;
     }();
 
-    return (alpha * Z0 + beta * xi) / (alpha + beta);
+    return Z0;
+    // return (alpha * Z0 + beta * xi) / (alpha + beta);
   }
   //----------------------------------------------------------------------------
   auto operator()(pos_type const&              q,
