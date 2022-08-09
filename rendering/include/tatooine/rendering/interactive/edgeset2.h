@@ -7,7 +7,7 @@
 #include <tatooine/rendering/interactive/color_scale.h>
 #include <tatooine/rendering/interactive/renderer.h>
 #include <tatooine/rendering/interactive/shaders.h>
-#include <tatooine/unstructured_triangular_grid.h>
+#include <tatooine/edgeset.h>
 //==============================================================================
 namespace tatooine::rendering::interactive {
 //==============================================================================
