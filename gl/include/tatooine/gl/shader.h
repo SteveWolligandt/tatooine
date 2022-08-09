@@ -7,6 +7,8 @@
 #include <string>
 #include <type_traits>
 #include <unordered_set>
+#include <tatooine/vec.h>
+#include <tatooine/mat.h>
 
 #include "computeshader.h"
 #include "dllexport.h"
@@ -82,20 +84,32 @@ class shader : public id_holder<GLuint> {
   DLL_API void set_uniform(const std::string&,
                            std::array<GLuint, 4> const& data);
 
+  DLL_API void set_uniform(const std::string&, Vec2<GLfloat> const&);
   DLL_API void set_uniform_vec2(const std::string&, GLfloat const*);
+  DLL_API void set_uniform(const std::string&, Vec2<GLint> const&);
   DLL_API void set_uniform_vec2(const std::string&, GLint const*);
+  DLL_API void set_uniform(const std::string&, Vec2<GLuint> const&);
   DLL_API void set_uniform_vec2(const std::string&, GLuint const*);
 
+  DLL_API void set_uniform(const std::string&, Vec3<GLfloat> const&);
   DLL_API void set_uniform_vec3(const std::string&, GLfloat const*);
+  DLL_API void set_uniform(const std::string&, Vec3<GLint> const&);
   DLL_API void set_uniform_vec3(const std::string&, GLint const*);
+  DLL_API void set_uniform(const std::string&, Vec3<GLuint> const&);
   DLL_API void set_uniform_vec3(const std::string&, GLuint const*);
 
+  DLL_API void set_uniform(const std::string&, Vec4<GLfloat> const&);
   DLL_API void set_uniform_vec4(const std::string&, GLfloat const*);
+  DLL_API void set_uniform(const std::string&, Vec4<GLint> const&);
   DLL_API void set_uniform_vec4(const std::string&, GLint const*);
+  DLL_API void set_uniform(const std::string&, Vec4<GLuint> const&);
   DLL_API void set_uniform_vec4(const std::string&, GLuint const*);
 
+  DLL_API void set_uniform(const std::string&, Mat2<GLfloat> const&);
   DLL_API void set_uniform_mat2(const std::string&, GLfloat const*);
+  DLL_API void set_uniform(const std::string&, Mat3<GLfloat> const&);
   DLL_API void set_uniform_mat3(const std::string&, GLfloat const*);
+  DLL_API void set_uniform(const std::string&, Mat4<GLfloat> const&);
   DLL_API void set_uniform_mat4(const std::string&, GLfloat const*);
 
   DLL_API std::optional<std::string> info_log();

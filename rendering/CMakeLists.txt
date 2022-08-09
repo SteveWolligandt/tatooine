@@ -8,7 +8,6 @@ if (TATOOINE_GL_AVAILABLE)
 else()
   target_link_libraries(rendering INTERFACE geometry)
 endif()
-
 #-------------------------------------------------------------------------------
 if (TATOOINE_GL_AVAILABLE)
 #-------------------------------------------------------------------------------
@@ -58,3 +57,7 @@ set(RENDERING_LINK_LIBRARIES ${FILTERED_RENDERING_LINK_LIBRARIES} PARENT_SCOPE)
 
 get_target_property(RENDERING_COMPILE_OPTIONS rendering INTERFACE_COMPILE_OPTIONS)
 set(RENDERING_COMPILE_OPTIONS ${RENDERING_COMPILE_OPTIONS} PARENT_SCOPE)
+
+if (TATOOINE_BUILD_EXAMPLES)
+  add_subdirectory(examples)
+endif()

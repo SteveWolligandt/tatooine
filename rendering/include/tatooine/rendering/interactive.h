@@ -8,6 +8,7 @@
 #include <tatooine/rendering/interactive/rectilinear_grid.h>
 #include <tatooine/rendering/interactive/axis_aligned_bounding_box.h>
 #include <tatooine/rendering/interactive/unstructured_triangular_grid2.h>
+#include <tatooine/rendering/interactive/unstructured_triangular_grid3.h>
 #include <tatooine/type_set.h>
 //==============================================================================
 namespace tatooine::rendering::interactive {

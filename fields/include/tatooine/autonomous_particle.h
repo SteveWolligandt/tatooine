@@ -18,11 +18,11 @@ namespace tatooine {
 //==============================================================================
 template <typename B>
 concept split_behavior = requires {
-  floating_point<decltype(B::split_cond)>;
-  range<decltype(B::radii)>;
-  range<decltype(B::offsets)>;
-  static_vec<typename decltype(B::radii)::value_type>;
-  static_vec<typename decltype(B::offsets)::value_type>;
+  requires floating_point<decltype(B::split_cond)>;
+  requires range<decltype(B::radii)>;
+  requires range<decltype(B::offsets)>;
+  requires static_vec<typename decltype(B::radii)::value_type>;
+  requires static_vec<typename decltype(B::offsets)::value_type>;
 };
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions>
