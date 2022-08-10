@@ -15,14 +15,14 @@ api::api() {
 api::~api() { glfwTerminate(); }
 //============================================================================
 auto api::get() -> api const& {
-  static api singleton{};
+  static auto singleton = api{};
   return singleton;
 }
 //----------------------------------------------------------------------------
 // GLFW callbacks
 //----------------------------------------------------------------------------
-auto api::on_error(int /*error*/, char const* description) -> void {
-  std::cerr << "[GLFW] error:\n  " << description << '\n';
+auto api::on_error(int error, char const* description) -> void {
+  std::cerr << "[GLFW] error " << error << ":\n  \"" << description << "\"\n";
 }
 //----------------------------------------------------------------------------
 auto api::on_close(GLFWwindow* w) -> void {

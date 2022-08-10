@@ -1,13 +1,12 @@
 #include <tatooine/gl/glfw/context.h>
+#include <tatooine/gl/glfw/api.h>
 
 #include <stdexcept>
 //==============================================================================
 namespace tatooine::gl::glfw{
 //==============================================================================
 context::context() {
-  if (!glfwInit()) {
-    throw std::runtime_error{"Could not initialize GLFW3."};
-  }
+  api::get();
   glfwWindowHint(GLFW_CONTEXT_CREATION_API, GLFW_EGL_CONTEXT_API);
   glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
   m_glfw_window = glfwCreateWindow(internal_resolution, internal_resolution, "tatooine context",

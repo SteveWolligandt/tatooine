@@ -50,9 +50,6 @@ void window::render_imgui() {
 }
 //------------------------------------------------------------------------------
 void window::setup(std::string const &title, size_t width, size_t height) {
-  if (!glfwInit()) {
-    throw std::runtime_error{"Could not initialize GLFW3."};
-  }
   m_glfw_window = std::make_unique<glfw::window>(width, height, title);
   m_glfw_window->add_listener(*this);
   init_imgui(width, height);
