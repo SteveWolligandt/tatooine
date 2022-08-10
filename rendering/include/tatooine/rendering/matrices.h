@@ -159,7 +159,7 @@ auto look_at_matrix_right_hand(Vec3<Real> const& eye, Vec3<Real> const& center,
 template <typename Real>
 auto look_at_matrix(Vec3<Real> const& eye, Vec3<Real> const& center,
                     Vec3<Real> const& up = {0, 1, 0}) -> Mat4<Real> {
-  return look_at_matrix_left_hand(eye, center, up);
+  return look_at_matrix_right_hand(eye, center, up);
 }
 //==============================================================================
 /// Can be used as view matrix of a camera.

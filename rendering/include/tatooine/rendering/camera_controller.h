@@ -343,28 +343,26 @@ struct fps_camera_controller : camera_controller_interface<Real> {
   //----------------------------------------------------------------------------
   void on_cursor_moved(double x, double y) override {
     if (m_right_button_down) {
-      auto offset_x = std::ceil(x) - m_mouse_pos_x;
-      auto offset_y = std::ceil(y) - m_mouse_pos_y;
+      Real const offset_x = gcem::ceil(x) - m_mouse_pos_x;
+      Real const offset_y = gcem::ceil(y) - m_mouse_pos_y;
 
       auto const look_dir = normalize(controller().lookat() - controller().eye());
-      auto yaw = std::atan2(look_dir(2), look_dir(0));
-      auto pitch = std::acos(look_dir(1));
+      auto yaw = gcem::atan2(look_dir(0), look_dir(2));
+      auto pitch = gcem::asin(look_dir(1));
 
       yaw -= offset_x * Real(0.01);
-      pitch = std::min<Real>(
-          M_PI - Real(0.3),
-          std::max<Real>(Real(0.3), pitch - offset_y * Real(0.01)));
-
+      pitch = std::clamp<Real>(pitch - offset_y * Real(0.01), Real(-M_PI / 2),
+                         Real(M_PI / 2));
       auto const sin_pitch = gcem::sin(pitch);
       auto const cos_pitch = gcem::cos(pitch);
       auto const sin_yaw   = gcem::sin(yaw);
       auto const cos_yaw   = gcem::cos(yaw);
       auto const new_look_dir =
-          vec{sin_pitch * cos_yaw, cos_pitch, sin_pitch * sin_yaw};
+          vec{cos_pitch * sin_yaw, sin_pitch, cos_pitch * cos_yaw};
       controller().set_lookat(controller().eye() + new_look_dir);
     }                          
-    m_mouse_pos_x = std::ceil(x);
-    m_mouse_pos_y = std::ceil(y);
+    m_mouse_pos_x = gcem::ceil(x);
+    m_mouse_pos_y = gcem::ceil(y);
   }
   auto speed() const {
     if (m_shift_down) {
@@ -383,13 +381,13 @@ struct fps_camera_controller : camera_controller_interface<Real> {
     if (m_w_down) {
       auto const look_dir =
           normalize(controller().lookat() - controller().eye());
-      auto const new_eye = controller().eye() + look_dir * ms * speed();
+      auto const new_eye = controller().eye() - look_dir * ms * speed();
       controller().look_at(new_eye, new_eye + look_dir);
     }
     if (m_s_down) {
       auto const look_dir =
           normalize(controller().lookat() - controller().eye());
-      auto const new_eye = controller().eye() - look_dir * ms * speed();
+      auto const new_eye = controller().eye() + look_dir * ms * speed();
       controller().look_at(new_eye, new_eye + look_dir);
     }
     if (m_q_down) {
@@ -412,14 +410,14 @@ struct fps_camera_controller : camera_controller_interface<Real> {
       auto const look_dir =
           normalize(controller().lookat() - controller().eye());
       auto const right   = cross(look_dir, vec{0, 1, 0});
-      auto const new_eye = controller().eye() - right * ms * speed();
+      auto const new_eye = controller().eye() + right * ms * speed();
       controller().look_at(new_eye, new_eye + look_dir);
     }
     if (m_d_down) {
       auto const look_dir =
           normalize(controller().lookat() - controller().eye());
       auto const right   = cross(look_dir, vec{0, 1, 0});
-      auto const new_eye = controller().eye() + right * ms * speed();
+      auto const new_eye = controller().eye() - right * ms * speed();
       controller().look_at(new_eye, new_eye + look_dir);
     }
   }
