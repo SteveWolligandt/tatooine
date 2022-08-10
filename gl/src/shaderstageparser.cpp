@@ -5,7 +5,7 @@
 namespace tatooine::gl {
 //==============================================================================
 std::regex const shaderstageparser::regex_var{
-    R"((layout\s*\(location\s*=\s*\d+\s*\))?\s*(in|out|uniform)\s*(float|double|int|uint|bool|sampler\dD|mat\d|vec\d|ivec\d|uvec\d|bvec\d|dvec\d)\s*(.*)[;])"};
+    R"((layout\s*\(location\s*=\s*\d+\s*\))?\s*(in|out|uniform)\s*(float|double|int|uint|bool|sampler\dD|mat\d|vec\d|ivec\d|uvec\d|bvec\d|dvec\d)\s*(.*)[;]\s*(\/\/(.*))?)"};
 //------------------------------------------------------------------------------
 std::regex const shaderstageparser::regex_include{R"(#include\s+\"(.*)\")"};
 //==============================================================================
@@ -32,7 +32,7 @@ auto shaderstageparser::parse(shadersource const&   source,
 //------------------------------------------------------------------------------
 auto shaderstageparser::parse_varname(std::string const& line)
     -> std::optional<GLSLVar> {
-  std::smatch match;
+  auto match = std::smatch{};
   std::regex_match(line, match, regex_var);
   if (!match.str(4).empty()) {
     return GLSLVar{[](std::string const& mod_name) {
@@ -48,7 +48,7 @@ auto shaderstageparser::parse_varname(std::string const& line)
                    }(match.str(2)),
                    match.str(3), match.str(4)};
   }
-  return {};
+  return std::nullopt;
 }
 //------------------------------------------------------------------------------
 auto shaderstageparser::parse_include(std::string const& line)

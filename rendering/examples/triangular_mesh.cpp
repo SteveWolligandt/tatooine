@@ -1,13 +1,14 @@
 #include <tatooine/rendering/interactive.h>
+#include <tatooine/geometry/sphere.h>
+#include <tatooine/random.h>
 using namespace tatooine;
 auto main() -> int {
-  auto mesh = unstructured_triangular_grid3{};
-  auto v0 = mesh.insert_vertex(0,0,0);
-  auto v1 = mesh.insert_vertex(1,0,0);
-  auto v2 = mesh.insert_vertex(0,1,0);
-  auto v3 = mesh.insert_vertex(1,1,0);
-  mesh.insert_triangle(v0, v1, v3);
-  mesh.insert_triangle(v0, v3, v2);
-  mesh.scalar_vertex_property("foo");
+
+  auto mesh = geometry::discretize(geometry::sphere3{1.0}, 4);
+  auto & foo = mesh.scalar_vertex_property("foo");
+  auto rand = random::uniform{0.0, 1.0};
+  for (auto const v : mesh.vertices()) {
+    foo[v] = rand();
+  }
   rendering::interactive::show(mesh);
 }
