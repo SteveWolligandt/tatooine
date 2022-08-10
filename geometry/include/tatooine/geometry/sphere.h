@@ -17,8 +17,8 @@ struct sphere : ray_intersectable<Real, N> {
   using this_type   = sphere<Real, N>;
   using parent_type = ray_intersectable<Real, N>;
   using vec_t    = vec<Real, N>;
-  using typename parent_type::intersection_t;
-  using typename parent_type::optional_intersection_t;
+  using typename parent_type::intersection_type;
+  using typename parent_type::optional_intersection_type;
   //============================================================================
  private:
   vec_t m_center = vec_t::zeros();
@@ -38,7 +38,7 @@ struct sphere : ray_intersectable<Real, N> {
   sphere& operator=(sphere&&) = default;
   //============================================================================
   auto check_intersection(ray<Real, N> const& r, Real const min_t = 0) const
-      -> optional_intersection_t override {
+      -> optional_intersection_type override {
     if constexpr (N == 3) {
       auto const m = r.origin();
       auto const b = dot(m, r.direction());
@@ -68,7 +68,7 @@ struct sphere : ray_intersectable<Real, N> {
       auto const nor     = normalize(hit_pos);
       // vec        uv{std::atan2(nor(0), nor(2)) / (2 * M_PI) + M_PI / 2,
       //       std::acos(-nor(1)) / M_PI};
-      return intersection_t{this, r, t, hit_pos, nor};
+      return intersection_type{this, r, t, hit_pos, nor};
     } else {
       throw std::runtime_error{"sphere ray intersection not implemented for " +
                                std::to_string(N) + " dimensions."};
@@ -154,13 +154,13 @@ auto discretize(sphere<Real, 2> const& s, size_t const num_vertices) {
 //------------------------------------------------------------------------------
 template <floating_point Real>
 auto discretize(sphere<Real, 3> const& s, size_t num_subdivisions = 0) {
-  using mesh_t        = unstructured_triangular_grid<Real, 3>;
-  using vertex_handle = typename mesh_t::vertex_handle;
+  using mesh_type     = unstructured_triangular_grid<Real, 3>;
+  using vertex_handle = typename mesh_type::vertex_handle;
   // Real const  X = 0.525731112119133606;
   // Real const  Z = 0.850650808352039932;
-  Real const  X = 0.525731112119133606;
-  Real const  Z = 0.850650808352039932;
-  auto        vertices =
+  Real const X = 0.525731112119133606;
+  Real const Z = 0.850650808352039932;
+  auto       vertices =
       std::vector{vec{-X, 0, Z}, vec{X, 0, Z},  vec{-X, 0, -Z}, vec{X, 0, -Z},
                   vec{0, Z, X},  vec{0, Z, -X}, vec{0, -Z, X},  vec{0, -Z, -X},
                   vec{Z, X, 0},  vec{-Z, X, 0}, vec{Z, -X, 0},  vec{-Z, -X, 0}};
@@ -194,7 +194,7 @@ auto discretize(sphere<Real, 3> const& s, size_t num_subdivisions = 0) {
       auto edges = std::array{edge_t{v0, v1}, edge_t{v0, v2}, edge_t{v1, v2}};
       auto nvs =
           std::array{vertex_handle{0}, vertex_handle{0}, vertex_handle{0}};
-      size_t     i = 0;
+      size_t i = 0;
       for (auto& edge : edges) {
         if (edge.first < edge.second) {
           std::swap(edge.first, edge.second);
@@ -203,7 +203,8 @@ auto discretize(sphere<Real, 3> const& s, size_t num_subdivisions = 0) {
           subdivided[edge] = size(vertices);
           nvs[i++]         = size(vertices);
           vertices.push_back(normalize(
-              (vertices[edge.first.i] + vertices[edge.second.i]) * 0.5));
+              (vertices[edge.first.index()] + vertices[edge.second.index()]) *
+              0.5));
         } else {
           nvs[i++] = subdivided[edge];
         }
@@ -218,20 +219,20 @@ auto discretize(sphere<Real, 3> const& s, size_t num_subdivisions = 0) {
   for (auto& v : vertices) {
     v *= s.radius();
   }
-  mesh_t m;
+  auto m = mesh_type{};
   for (auto& vertex_handle : vertices) {
     m.insert_vertex(std::move(vertex_handle));
   }
   for (auto& f : faces) {
-    m.insert_cell(f[0], f[1], f[2]);
+    m.insert_simplex(f[0], f[1], f[2]);
   }
   return m;
 }
 //==============================================================================
-using sphere2 = sphere<real_type, 2>;
-using circle = sphere<real_type, 2>;
-using sphere3 = sphere<real_type, 3>;
-using sphere4 = sphere<real_type, 4>;
+using sphere2 = sphere<real_number, 2>;
+using circle = sphere<real_number, 2>;
+using sphere3 = sphere<real_number, 3>;
+using sphere4 = sphere<real_number, 4>;
 //==============================================================================
 }  // namespace tatooine::geometry
 //==============================================================================

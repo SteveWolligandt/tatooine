@@ -26,8 +26,12 @@ void shader::create() {
     throw std::runtime_error{std::move(*log)};
   }
   bind();
-  for (const auto& var : m_attribute_var_names) add_attribute(var);
-  for (const auto& var : m_uniform_var_names) add_uniform(var);
+  for (const auto& var : m_attribute_var_names) {
+    add_attribute(var);
+  }
+  for (const auto& var : m_uniform_var_names) {
+    add_uniform(var);
+  }
 }
 //------------------------------------------------------------------------------
 void shader::delete_shader() {
@@ -261,8 +265,7 @@ void shader::set_uniform_mat3(const std::string& name, GLfloat const* data) {
 }
 //------------------------------------------------------------------------------
 void shader::set_uniform(const std::string& name, Mat4<GLfloat> const& data) {
-  gl::program_uniform_matrix_4fv(id(), uniform(name), 1, false,
-                                 data.data());
+  set_uniform_mat4(name, data.data());
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void shader::set_uniform_mat4(const std::string& name, GLfloat const* data) {

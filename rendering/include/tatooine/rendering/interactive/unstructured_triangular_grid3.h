@@ -31,16 +31,20 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
     GLfloat      max_scalar     = -std::numeric_limits<GLfloat>::max();
     bool         scale_inverted = false;
   };
-  bool                                               show_property = false;
-  int                                                line_width    = 1;
-  Vec4<GLfloat>                                      wireframe_color = {0, 0, 0, 1};
+  bool    show_property = false;
+  GLfloat reflectance   = 0.5f;
+  GLfloat roughness     = 0.00001f;
+  GLfloat metallic      = 0.0f;
+  GLfloat irradi_perp   = 20.0f;
+  Vec3<GLfloat> solid_base_color = {0, 0, 0};
+
   std::unordered_map<std::string, property_settings> settings;
   std::unordered_map<std::string, std::string_view>  selected_component;
   std::string const* selected_property_name = nullptr;
   typename renderable_type::vertex_property_type const* selected_property =
       nullptr;
 
-  bool vector_property = false;
+  bool    vector_property = false;
 
   gl::vertexbuffer<Vec3<GLfloat>, Vec3<GLfloat>, GLfloat> m_geometry;
   gl::indexbuffer                                         m_triangles;
@@ -57,7 +61,7 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
                                               Vec3<GLfloat>::zeros());
     for (auto const t : grid.simplices()) {
       auto const [v0, v1, v2] = grid[t];
-      auto const n            = cross(grid[v1] - grid[v0], grid[v2] - grid[v0]);
+      auto const n            = cross(grid[v2] - grid[v0], grid[v1] - grid[v0]);
       normals[v0.index()] += n;
       normals[v1.index()] += n;
       normals[v2.index()] += n;
@@ -488,8 +492,13 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
   auto properties(renderable_type const& grid) {
     //ImGui::Text("Triangular Grid");
     ImGui::Checkbox("Show Property", &show_property);
-    ImGui::DragInt("Line width", &line_width, 1, 1, 20);
-    ImGui::ColorEdit4("Wireframe Color", wireframe_color.data());
+    if (!show_property || selected_property == nullptr) {
+      ImGui::ColorEdit3("Solid Color", solid_base_color.data());
+    }
+    ImGui::DragFloat("Reflectance", &reflectance, 0.01f, 0.0f, 1.0f);
+    ImGui::DragFloat("Roughness", &roughness, 0.01f, 0.0f, 1.0f);
+    ImGui::DragFloat("Metallic", &metallic, 0.01f, 0.0f, 1.0f);
+    ImGui::DragFloat("Irradiance Perp", &irradi_perp, 0.1f, 0.0f, 100.0f);
     grid_property_selection(grid);
     if (selected_property != nullptr && vector_property) {
       vector_component_selection(grid);
@@ -506,49 +515,50 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
   }
   //============================================================================
   auto render() {
+    property_shader::get().bind();
     if (show_property && selected_property != nullptr) {
-      render_property();
+      auto const name    = selected_settings_name();
+      auto&      setting = settings.at(name);
+      setting.c->tex.bind(0);
+      property_shader::get().set_min(setting.min_scalar);
+      property_shader::get().set_max(setting.max_scalar);
+      property_shader::get().invert_scale(setting.scale_inverted);
+      property_shader::get().use_solid_base_color(false);
+    } else {
+      property_shader::get().use_solid_base_color(true);
+      property_shader::get().set_solid_base_color(solid_base_color);
     }
+    property_shader::get().set_reflectance(reflectance);
+    property_shader::get().set_metallic(metallic);
+    property_shader::get().set_roughness(roughness);
+    property_shader::get().set_irradi_perp(irradi_perp);
+    auto vao = gl::vertexarray{};
+    vao.bind();
+    m_geometry.bind();
+    m_geometry.activate_attributes();
+    m_triangles.bind();
+    vao.draw_triangles(m_triangles.size());
   }
   //----------------------------------------------------------------------------
   auto update(auto const dt, renderable_type const& grid,
               camera auto const& cam) {
     using CamReal = typename std::decay_t<decltype(cam)>::real_type;
     static auto constexpr cam_is_float = is_same<GLfloat, CamReal>;
-    if (show_property) {
-      if constexpr (cam_is_float) {
-        property_shader::get().set_projection_matrix(cam.projection_matrix());
-      } else {
-        property_shader::get().set_projection_matrix(
-            Mat4<GLfloat>{cam.projection_matrix()});
-      }
 
-      if constexpr (cam_is_float) {
-        property_shader::get().set_view_matrix(cam.view_matrix());
-      } else {
-        property_shader::get().set_view_matrix(
-            Mat4<GLfloat>{cam.view_matrix()});
-      }
-      property_shader::get().set_camera_position(cam.eye());
+    property_shader::get().set_light_position(cam.eye());
+    if constexpr (cam_is_float) {
+      property_shader::get().set_projection_matrix(cam.projection_matrix());
+    } else {
+      property_shader::get().set_projection_matrix(
+          Mat4<GLfloat>{cam.projection_matrix()});
     }
-  }
-  //----------------------------------------------------------------------------
-  auto render_property() {
-    if (selected_property_name != nullptr) {
-      auto const name    = selected_settings_name();
-      auto&      setting = settings.at(name);
-      setting.c->tex.bind(0);
-      //property_shader::get().set_min(setting.min_scalar);
-      //property_shader::get().set_max(setting.max_scalar);
-      //property_shader::get().invert_scale(setting.scale_inverted);
-      property_shader::get().bind();
-      auto vao = gl::vertexarray{};
-      vao.bind();
-      m_geometry.bind();
-      m_geometry.activate_attributes();
-      m_triangles.bind();
-      vao.draw_triangles(m_triangles.size());
+
+    if constexpr (cam_is_float) {
+      property_shader::get().set_view_matrix(cam.view_matrix());
+    } else {
+      property_shader::get().set_view_matrix(Mat4<GLfloat>{cam.view_matrix()});
     }
+    property_shader::get().set_camera_position(cam.eye());
   }
 };
 //==============================================================================
