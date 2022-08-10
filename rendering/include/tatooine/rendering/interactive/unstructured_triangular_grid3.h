@@ -545,7 +545,6 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
     using CamReal = typename std::decay_t<decltype(cam)>::real_type;
     static auto constexpr cam_is_float = is_same<GLfloat, CamReal>;
 
-    property_shader::get().set_light_position(cam.eye());
     if constexpr (cam_is_float) {
       property_shader::get().set_projection_matrix(cam.projection_matrix());
     } else {
@@ -558,7 +557,6 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
     } else {
       property_shader::get().set_view_matrix(Mat4<GLfloat>{cam.view_matrix()});
     }
-    property_shader::get().set_camera_position(cam.eye());
   }
 };
 //==============================================================================

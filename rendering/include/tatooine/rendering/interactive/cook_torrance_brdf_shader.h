@@ -19,24 +19,23 @@ struct cook_torrance_brdf_shader : gl::shader {
       "uniform mat4 normal_matrix; // transposed inverse of model_matrix\n"
       "\n"
       "out vec3 wfn; // output fragment normal of vertex in world space\n"
-      "out vec3 vert_pos; // output 3D position in world space\n"
+      "out vec3 view_vert_pos; // output 3D position in view space\n"
       "out float interp_scalar;\n"
       "\n"
       "void main(){\n"
-      "  wfn = vec3(normal_matrix * vec4(normal, 0.0));\n"
-      "  vec4 vert_pos4 = model_matrix * vec4(position, 1.0);\n"
-      "  vert_pos = vec3(vert_pos4) / vert_pos4.w;\n"
+      "  wfn = (view_matrix * normal_matrix * vec4(normal, 0)).xyz;\n"
+      "  vec4 view_vert_pos4 = view_matrix * model_matrix * vec4(position, 1.0);\n"
+      "  view_vert_pos = vec3(view_vert_pos4) / view_vert_pos4.w;\n"
       "  interp_scalar = scalar;\n"
-      "  gl_Position = projection_matrix * view_matrix * vert_pos4;\n"
+      "  gl_Position = projection_matrix * view_vert_pos4;\n"
       "}\n";
   //============================================================================
   static constexpr std::string_view fragment_shader_source =
       "#version 330 core\n"
-      "//precision highp float;\n"
       "out vec4 out_color;\n"
       "\n"
       "in vec3 wfn; // fragment normal of pixel in world space (interpolated)\n"
-      "in vec3 vert_pos; // fragment vertex position in world space\n"
+      "in vec3 view_vert_pos; // fragment vertex position in view space\n"
       "                  // (interpolated)\n"
       "in float interp_scalar;\n"
       "\n"
@@ -49,8 +48,6 @@ struct cook_torrance_brdf_shader : gl::shader {
       "                           // the range [0.0, 1.0]\n"
       "uniform vec4 light_color; // color of light\n"
       "uniform float irradi_perp; // irradiance in perpendicular direction\n"
-      "uniform vec3 light_position; // light direction in world space\n"
-      "uniform vec3 camera_position; // camera position in world space\n"
       "uniform sampler1D color_scale;\n"
       "uniform float min_scalar;\n"
       "uniform float max_scalar;\n"
@@ -141,8 +138,8 @@ struct cook_torrance_brdf_shader : gl::shader {
       "}\n"
       "\n"
       "void main() {\n"
-      "  vec3 light_dir = normalize(light_position - vert_pos); // towards light\n"
-      "  vec3 view_dir = normalize(camera_position - vert_pos);\n"
+      "  vec3 light_dir = normalize(- view_vert_pos); // towards light\n"
+      "  vec3 view_dir = normalize(-view_vert_pos);\n"
       "  vec3 n = normalize(wfn);\n"
       "  \n"
       "  //vec3 radiance = rgb2lin(emission.rgb);\n"
@@ -161,7 +158,7 @@ struct cook_torrance_brdf_shader : gl::shader {
       "    }\n"
       "    base_color = texture(color_scale, norm_scalar).rgb;\n"
       "  }\n"
-      "  float irradiance = max(dot(light_dir, n), 0.0) * irradi_perp; \n"
+      "  float irradiance = max(dot(light_dir, n), 0) * irradi_perp; \n"
       "  if(irradiance > 0.0) { // if receives light\n"
       "    vec3 brdf = brdf_microfacet(light_dir, view_dir, n, metallic,\n"
       "                                roughness, base_color, reflectance);\n"
@@ -186,8 +183,6 @@ struct cook_torrance_brdf_shader : gl::shader {
     set_reflectance(0.5);
     set_light_color(Vec4<GLfloat>::ones());
     set_irradi_perp(10);
-    set_light_position(Vec3<GLfloat>::zeros());
-    set_camera_position(Vec3<GLfloat>{0, 0, 0});
     set_uniform("color_scale", 0);
     set_min(0);
     set_max(1);
@@ -223,12 +218,6 @@ struct cook_torrance_brdf_shader : gl::shader {
    }
    auto set_irradi_perp(GLfloat const i) -> void {
      set_uniform("irradi_perp", i);
-   }
-   auto set_light_position(Vec3<GLfloat> const& l) -> void {
-     set_uniform("light_position", l);
-   }
-   auto set_camera_position(Vec3<GLfloat> const& c) -> void {
-     set_uniform("camera_position", c);
    }
    //--------------------------------------------------------------------------
    auto set_min(GLfloat const min) -> void { set_uniform("min_scalar", min); }
