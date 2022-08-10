@@ -101,8 +101,8 @@ auto show(std::index_sequence<Is...> /*seq*/, Renderables&&... renderables) {
   gl::clear_color(255, 255, 255, 255);
 
   auto& io     = ImGui::GetIO();
-  auto  roboto = io.Fonts->AddFontFromFileTTF(
-       "/home/steve/libs/tatooine2/resources/fonts/Roboto-Regular.ttf", 25);
+  //auto  roboto = io.Fonts->AddFontFromFileTTF(
+  //     "/home/steve/libs/tatooine2/resources/fonts/Roboto-Regular.ttf", 25);
   auto enable_renderer = std::array{((void)renderables, true)...};
   auto renderers = std::tuple{[&](auto&& renderable) {
     using type         = decltype(renderable);

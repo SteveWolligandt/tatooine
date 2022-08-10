@@ -3,7 +3,7 @@
 namespace tatooine::gl {
 //==============================================================================
 const std::string_view imgui_shader::vert_source =
-    "#version 430\n"
+    "#version 330 core\n"
     "layout (location = 0) in vec2 pos;\n"
     "layout (location = 1) in vec2 uv;\n"
     "layout (location = 2) in vec4 col;\n"
@@ -17,7 +17,7 @@ const std::string_view imgui_shader::vert_source =
     "}";
 //------------------------------------------------------------------------------
 const std::string_view imgui_shader::frag_source =
-    "#version 430\n"
+    "#version 330 core\n"
     "in vec2 frag_uv;\n"
     "in vec4 frag_col;\n"
     "uniform sampler2D tex;\n"
