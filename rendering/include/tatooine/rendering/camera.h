@@ -20,10 +20,10 @@ struct camera {
   //----------------------------------------------------------------------------
   using real_type = Real;
   using this_type = camera<Real>;
-  using vec2   = Vec2<Real>;
-  using vec3   = Vec3<Real>;
-  using vec4   = Vec4<Real>;
-  using mat4   = Mat4<Real>;
+  using vec2      = Vec2<Real>;
+  using vec3      = Vec3<Real>;
+  using vec4      = Vec4<Real>;
+  using mat4      = Mat4<Real>;
 
   //----------------------------------------------------------------------------
   // member variables
@@ -199,7 +199,6 @@ struct camera {
   auto view_projection_matrix() const {
     return projection_matrix() * view_matrix();
   }
-
   //----------------------------------------------------------------------------
   /// Projects a screen coordinates to world coordinates.
   auto unproject(vec2 const& p) const {
@@ -283,7 +282,9 @@ struct camera {
   //----------------------------------------------------------------------------
   virtual auto projection_matrix() const -> mat4 = 0;
 };
+//==============================================================================
 }  // namespace polymorphic
+//==============================================================================
 /// \brief Interface for camera implementations.
 ///
 /// Implementations must override the ray method that casts rays through the

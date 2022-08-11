@@ -1,10 +1,23 @@
 #include <tatooine/rendering/interactive.h>
 #include <tatooine/geometry/sphere.h>
 #include <tatooine/random.h>
+#include <tatooine/streamsurface.h>
+#include <tatooine/analytical/abcflow.h>
+//==============================================================================
 using namespace tatooine;
+//==============================================================================
 auto main() -> int {
+  auto v = analytical::numerical::abcflow{};
+  auto seedcurve = line3{};
+  seedcurve.push_back(-1, 0, 0);
+  seedcurve.push_back(0, 0, 0);
+  seedcurve.push_back(1, 0, 0);
+  seedcurve.compute_parameterization();
 
-  auto mesh = geometry::discretize(geometry::sphere3{1.0}, 4);
+  auto ssf = streamsurface{flowmap(v), 0, seedcurve};
+  auto mesh = unstructured_triangular_grid3{ssf.discretize<naive_discretization>(100, 0.01, -10, 10)};
+  //auto mesh = geometry::discretize(geometry::sphere3{1.0}, 4);
+  mesh.write_vtp("ssf.vtp");
   auto & foo = mesh.scalar_vertex_property("foo");
   auto rand = random::uniform{0.0, 1.0};
   for (auto const v : mesh.vertices()) {
