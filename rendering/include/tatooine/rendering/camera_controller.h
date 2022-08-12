@@ -67,9 +67,9 @@ struct camera_controller : gl::window_listener {
   using mat3 = mat<Real, 3, 3>;
   using mat4 = mat<Real, 4, 4>;
   friend struct camera_controller_interface<Real>;
-  class perspective_camera<Real>                     m_pcam;
-  class orthographic_camera<Real>                    m_ocam;
-  polymorphic::camera<Real>*                         m_active_cam;
+  struct perspective_camera<Real>                    m_pcam;
+  struct orthographic_camera<Real>                   m_ocam;
+  camera_interface<Real>*                            m_active_cam;
   std::unique_ptr<camera_controller_interface<Real>> m_controller;
   Real                                               m_orthographic_height = 1;
   //============================================================================
@@ -82,7 +82,7 @@ struct camera_controller : gl::window_listener {
                res_x,
                res_y},
         m_ocam{{Real(0), Real(0), Real(0)},
-               {Real(0), Real(0), Real(1)},
+               {Real(0), Real(0), Real(-1)},
                m_orthographic_height,
                -100,
                100,
@@ -92,6 +92,11 @@ struct camera_controller : gl::window_listener {
     use_fps_controller();
   }
   //============================================================================
+  auto set_orthographic_height(Real const h) {
+    m_orthographic_height = h;
+    m_ocam.set_projection_matrix(m_orthographic_height);
+  }
+  auto orthographic_height() { return m_orthographic_height; }
   auto active_camera() const -> auto const& { return *m_active_cam; }
   auto unproject(Vec2<Real> const& x) {
     return m_active_cam->unproject(x);
@@ -193,10 +198,10 @@ struct camera_controller : gl::window_listener {
     }
   }
   void on_resize(int w, int h) override {
-    m_pcam.set_resolution_without_update(w, h);
-    m_ocam.set_resolution_without_update(w, h);
-    //m_ocam.setup(m_orthographic_height * m_ocam.aspect_ratio(),
-    //             m_orthographic_height);
+    m_pcam.set_resolution(w, h);
+    m_ocam.set_resolution(w, h);
+    m_pcam.set_projection_matrix(60, 0.001, 1000);
+    m_ocam.set_projection_matrix(m_orthographic_height);
     if (m_controller) {
       m_controller->on_resize(w, h);
     }
@@ -218,16 +223,13 @@ struct fps_camera_controller : camera_controller_interface<Real> {
   using parent_type = camera_controller_interface<Real>;
   using parent_type::controller;
 
+  enum buttons : std::uint8_t { w = 1, a = 2, s = 4, d = 8, q = 16, e = 32 };
+
+  std::uint8_t m_buttons_down = 0;
   double       m_mouse_pos_x, m_mouse_pos_y;
   bool         m_right_button_down = false;
-  bool         m_w_down            = false;
   bool         m_shift_down        = false;
   bool         m_ctrl_down         = false;
-  bool         m_s_down            = false;
-  bool         m_a_down            = false;
-  bool         m_d_down            = false;
-  bool         m_q_down            = false;
-  bool         m_e_down            = false;
   //----------------------------------------------------------------------------
   fps_camera_controller(camera_controller<Real>* controller)
       : camera_controller_interface<Real>{controller} {
@@ -243,22 +245,22 @@ struct fps_camera_controller : camera_controller_interface<Real> {
       m_shift_down = true;
     }
     if (k == gl::KEY_W) {
-      m_w_down = true;
+      m_buttons_down = m_buttons_down | buttons::w;
     }
     if (k == gl::KEY_S) {
-      m_s_down = true;
+      m_buttons_down = m_buttons_down | buttons::s;
     }
     if (k == gl::KEY_A) {
-      m_a_down = true;
+      m_buttons_down = m_buttons_down | buttons::a;
     }
     if (k == gl::KEY_D) {
-      m_d_down = true;
+      m_buttons_down = m_buttons_down | buttons::d;
     }
     if (k == gl::KEY_Q) {
-      m_q_down = true;
+      m_buttons_down = m_buttons_down | buttons::q;
     }
     if (k == gl::KEY_E) {
-      m_e_down = true;
+      m_buttons_down = m_buttons_down | buttons::e;
     }
   }
   //----------------------------------------------------------------------------
@@ -270,22 +272,22 @@ struct fps_camera_controller : camera_controller_interface<Real> {
       m_shift_down = false;
     }
     if (k == gl::KEY_W) {
-      m_w_down = false;
+      m_buttons_down = m_buttons_down & ~buttons::w;
     }
     if (k == gl::KEY_S) {
-      m_s_down = false;
+      m_buttons_down = m_buttons_down & ~buttons::s;
     }
     if (k == gl::KEY_A) {
-      m_a_down = false;
+      m_buttons_down = m_buttons_down & ~buttons::a;
     }
     if (k == gl::KEY_D) {
-      m_d_down = false;
+      m_buttons_down = m_buttons_down & ~buttons::d;
     }
     if (k == gl::KEY_Q) {
-      m_q_down = false;
+      m_buttons_down = m_buttons_down & ~buttons::q;
     }
     if (k == gl::KEY_E) {
-      m_e_down = false;
+      m_buttons_down = m_buttons_down & ~buttons::e;
     }
   }
   //----------------------------------------------------------------------------
@@ -307,12 +309,12 @@ struct fps_camera_controller : camera_controller_interface<Real> {
       Real const offset_y = gcem::ceil(y) - m_mouse_pos_y;
 
       auto const old_view_dir = -controller().view_direction();
-      auto yaw = gcem::atan2(old_view_dir(2), old_view_dir(0));
-      auto pitch = gcem::asin(old_view_dir(1));
+      auto       yaw          = gcem::atan2(old_view_dir(2), old_view_dir(0));
+      auto       pitch        = gcem::asin(old_view_dir(1));
 
       yaw += offset_x * Real(0.001);
-      pitch = std::clamp<Real>(pitch + offset_y * Real(0.001),
-                               -M_PI*0.9, M_PI*0.9);
+      pitch                = std::clamp<Real>(pitch + offset_y * Real(0.001),
+                               -M_PI * 0.5 * 0.7, M_PI * 0.5 * 0.7);
       auto const cos_pitch = gcem::cos(pitch);
       auto const sin_pitch = gcem::sin(pitch);
       auto const cos_yaw   = gcem::cos(yaw);
@@ -337,32 +339,25 @@ struct fps_camera_controller : camera_controller_interface<Real> {
   //----------------------------------------------------------------------------
   void update(std::chrono::duration<double> const& dt) override {
     auto const look_dir = controller().view_direction();
-    auto       yaw      = gcem::atan2(-look_dir(2), -look_dir(0));
-    auto       pitch    = gcem::asin(-look_dir(1));
-    std::cout << "eye: " << controller().eye() << '\n';
-    std::cout << "yaw: " << yaw << '\n';
-    std::cout << "pitch: " << pitch << '\n';
-    std::cout << "look_dir: " << -look_dir << '\n';
-
     auto const right_dir      = controller().right_direction();
     auto       move_direction = vec3::zeros();
-    if (m_w_down) {
+    if (m_buttons_down & buttons::w) {
       move_direction -= look_dir;
     }
-    if (m_s_down) {
+    if (m_buttons_down & buttons::s) {
       move_direction += look_dir;
     }
-    if (m_q_down) {
-      move_direction(1) += 1;
-    }
-    if (m_e_down) {
-      move_direction(1) -= 1;
-    }
-    if (m_a_down) {
+    if (m_buttons_down & buttons::a) {
       move_direction -= right_dir;
     }
-    if (m_d_down) {
+    if (m_buttons_down & buttons::d) {
       move_direction += right_dir;
+    }
+    if (m_buttons_down & buttons::q) {
+      move_direction(1) += 1;
+    }
+    if (m_buttons_down & buttons::e) {
+      move_direction(1) -= 1;
     }
     auto const passed_time = static_cast<Real>(
         std::chrono::duration_cast<std::chrono::milliseconds>(dt).count());
@@ -386,24 +381,17 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
   using this_type   = orthographic_camera_controller<Real>;
   using parent_type = camera_controller_interface<Real>;
   using parent_type::controller;
-
   //============================================================================
   // members
   //============================================================================
   int  m_mouse_pos_x, m_mouse_pos_y;
   bool m_right_button_down = false;
-
   //============================================================================
   // ctor
   //============================================================================
   orthographic_camera_controller(camera_controller<Real>* controller)
-      : camera_controller_interface<Real>{controller} {
-    auto new_eye = controller->eye();
-    new_eye(2)   = 0;
-    controller->look_at(new_eye, new_eye + vec{0, 0, 1});
-  }
+      : camera_controller_interface<Real>{controller} {}
   virtual ~orthographic_camera_controller() = default;
-
   //============================================================================
   // methods
   //============================================================================
@@ -431,11 +419,34 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
       new_eye(1) -= static_cast<Real>(offset_y) /
                     controller().orthographic_camera().plane_height() *
                     controller().orthographic_camera().height();
-      new_eye(2) = -1;
-      this->look_at(new_eye, new_eye + vec{0, 0, 1});
+      std::cout << new_eye << '\n';
+      this->look_at(new_eye, new_eye + vec{0, 0, -1});
     }
     m_mouse_pos_x = std::ceil(x);
     m_mouse_pos_y = std::ceil(y);
+  }
+  //----------------------------------------------------------------------------
+  auto on_wheel_down() -> void override {
+    controller().set_orthographic_height(controller().orthographic_height() / 0.9);
+    //controller().orthographic_camera().setup(
+    //    controller().eye(), controller().lookat(), controller().up(),
+    //    controller().orthographic_camera().width() / 0.9,
+    //    controller().orthographic_camera().height() / 0.9,
+    //    controller().orthographic_camera().near(),
+    //    controller().orthographic_camera().far(),
+    //    controller().plane_width(), controller().plane_height());
+  }
+  //----------------------------------------------------------------------------
+  auto on_wheel_up() -> void override {
+    controller().set_orthographic_height(controller().orthographic_height() *
+                                         0.9);
+    //controller().orthographic_camera().setup(
+    //    controller().eye(), controller().lookat(), controller().up(),
+    //    controller().orthographic_camera().width() * 0.9,
+    //    controller().orthographic_camera().height() * 0.9,
+    //    controller().orthographic_camera().near(),
+    //    controller().orthographic_camera().far(),
+    //    controller().plane_width(), controller().plane_height());
   }
   //----------------------------------------------------------------------------
   auto type() const -> std::type_info const& override {

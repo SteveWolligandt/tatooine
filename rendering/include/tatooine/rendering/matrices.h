@@ -69,11 +69,15 @@ template <typename Real>
 auto constexpr orthographic_matrix(Real const left, Real const right,
                                    Real const bottom, Real const top,
                                    Real const near, Real const far) {
+  std::cout << left << " " << right << " " << bottom << " " << top << " " << near << " " << far << '\n';
   auto constexpr O      = Real(0);
   auto constexpr I      = Real(1);
-  auto const inv_width  = 1 / (right - left);
-  auto const inv_height = 1 / (top - bottom);
-  auto const inv_depth  = 1 / (far - near);
+  auto const width      = right - left;
+  auto const inv_width  = 1 / width;
+  auto const height     = top - bottom;
+  auto const inv_height = 1 / height;
+  auto const depth      = far - near;
+  auto const inv_depth  = 1 / depth;
 
   return Mat4<Real>{{2 * inv_width, O, O, -(right + left) * inv_width},
                     {O, 2 * inv_height, O, -(top + bottom) * inv_height},
@@ -315,11 +319,12 @@ auto constexpr frustum_matrix(Real const left, Real const right,
 template <typename Real>
 auto constexpr perspective_matrix(Real const fov_angles, Real const aspect_ratio,
                                   Real const near, Real const far) {
+  std::cout << "aspect: " << aspect_ratio << '\n';
   auto constexpr half              = Real(1) / Real(2);
   auto constexpr angles_to_radians_factor = Real(M_PI) / Real(180);
   auto const fov_radians     = fov_angles * angles_to_radians_factor;
   auto const scale           = gcem::tan(fov_radians * half) * near;
-  auto const right           = aspect_ratio * scale;
+  auto const right           = scale * aspect_ratio;
   auto const left            = -right;
   auto const top             = scale;
   auto const bottom          = -top;

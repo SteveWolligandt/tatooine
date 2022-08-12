@@ -11,15 +11,15 @@
 namespace tatooine::rendering {
 //==============================================================================
 template <arithmetic Real>
-class orthographic_camera
-    : public camera_interface<Real, orthographic_camera<Real>> {
+struct orthographic_camera : camera_interface<Real> {
  public:
   using real_type   = Real;
   using this_type   = orthographic_camera<Real>;
-  using parent_type = camera_interface<Real, this_type>;
+  using parent_type = camera_interface<Real>;
   using vec3        = vec<Real, 3>;
   using mat4        = mat<Real, 4, 4>;
-  // using parent_type::setup;
+  using parent_type::set_projection_matrix;
+  using parent_type::viewport;
 
  public:
   //----------------------------------------------------------------------------
@@ -42,10 +42,12 @@ class orthographic_camera
   //----------------------------------------------------------------------------
   /// Constructor generates bottom left image plane pixel position and pixel
   /// offset size.
-  constexpr orthographic_camera(vec3 const& eye, vec3 const& lookat,
-                                vec3 const& up, Real const left,
-                                Real const right, Real const bottom,
-                                Real const top, Real const near, Real const far,
+  constexpr orthographic_camera(vec3 const& eye,
+                                vec3 const& lookat,
+                                vec3 const& up,
+                                Real const left, Real const right,
+                                Real const bottom, Real const top,
+                                Real const near, Real const far,
                                 std::size_t const res_x,
                                 std::size_t const res_y)
       : parent_type{eye,
@@ -116,8 +118,8 @@ class orthographic_camera
       : orthographic_camera{eye,
                             lookat,
                             up,
-                            -height / 2 * Real(res_x) * Real(res_y),
-                            height / 2 * Real(res_x) * Real(res_y),
+                            -height / 2 * Real(res_x) / Real(res_y),
+                            height / 2 * Real(res_x) / Real(res_y),
                             -height / 2,
                             height / 2,
                             near,
@@ -155,8 +157,15 @@ class orthographic_camera
   auto constexpr set_projection_matrix(Real const left, Real const right,
                                        Real const bottom, Real const top,
                                        Real const near, Real const far) {
-    this->set_projection_matrix(
+    set_projection_matrix(
         orthographic_matrix(left, right, bottom, top, near, far));
+  }
+  //----------------------------------------------------------------------------
+  auto constexpr set_projection_matrix(Real const height, Real const near = 100,
+                                       Real const far = -100) {
+    set_projection_matrix(-height / 2 * this->aspect_ratio(),
+                          height / 2 * this->aspect_ratio(), -height / 2, height / 2,
+                          near, far);
   }
   //----------------------------------------------------------------------------
   auto width() const { return 2 / this->projection_matrix()(0, 0); }
