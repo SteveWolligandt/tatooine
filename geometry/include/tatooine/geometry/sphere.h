@@ -221,7 +221,7 @@ auto discretize(sphere<Real, 3> const& s, size_t num_subdivisions = 0) {
   }
   auto m = mesh_type{};
   for (auto& vertex_handle : vertices) {
-    m.insert_vertex(std::move(vertex_handle));
+    m.insert_vertex(std::move(vertex_handle) + s.center());
   }
   for (auto& f : faces) {
     m.insert_simplex(f[0], f[1], f[2]);
