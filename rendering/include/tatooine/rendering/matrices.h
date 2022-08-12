@@ -81,6 +81,24 @@ auto constexpr orthographic_matrix(Real const left, Real const right,
                     {O, O, O, I}};
 }
 //==============================================================================
+/// Can be used as transform matrix of an object.
+template <typename Real>
+auto constexpr look_at_matrix_left_hand(Vec3<Real> const& eye,
+                                        Vec3<Real> const& center,
+                                        Vec3<Real> const& up = {0, 1, 0})
+    -> Mat4<Real> {
+  auto constexpr O = Real(0);
+  auto constexpr I = Real(1);
+
+  auto const zaxis = normalize(center - eye);
+  auto const xaxis = cross(zaxis, normalize(up));
+  auto const yaxis = cross(xaxis, zaxis);
+  return Mat4<Real>{{xaxis.x(), yaxis.x(), zaxis.x(), eye.x()},
+                    {xaxis.y(), yaxis.y(), zaxis.y(), eye.y()},
+                    {xaxis.z(), yaxis.z(), zaxis.z(), eye.z()},
+                    {O, O, O, I}};
+}
+//------------------------------------------------------------------------------
 /// Can be used as view matrix of a camera.
 template <typename Real>
 auto constexpr inv_look_at_matrix_left_hand(Vec3<Real> const& eye,
@@ -90,13 +108,27 @@ auto constexpr inv_look_at_matrix_left_hand(Vec3<Real> const& eye,
   auto constexpr I = Real(1);
 
   auto const zaxis = normalize(center - eye);
+  auto const xaxis = cross(zaxis, normalize(up));
+  auto const yaxis = cross(xaxis, zaxis);
+
+  return Mat4<Real>{{xaxis.x(), xaxis.y(), xaxis.z(), -dot(xaxis, eye)},
+                    {yaxis.x(), yaxis.y(), yaxis.z(), -dot(yaxis, eye)},
+                    {zaxis.x(), zaxis.y(), zaxis.z(), -dot(zaxis, eye)},
+                    {O, O, O, I}};
+}
+//------------------------------------------------------------------------------
+/// Can be used as transform matrix of an object.
+template <typename Real>
+auto constexpr look_at_matrix_right_hand(Vec3<Real> const& eye,
+                                         Vec3<Real> const& center,
+                                         Vec3<Real> const& up = {0, 1, 0}) {
+  auto const zaxis = normalize(eye - center);
   auto const xaxis = cross(normalize(up), zaxis);
   auto const yaxis = cross(zaxis, xaxis);
-
-  return Mat4<Real>{{xaxis.x(), yaxis.x(), zaxis.x(), -dot(xaxis, eye)},
-                    {xaxis.y(), yaxis.y(), zaxis.y(), -dot(yaxis, eye)},
-                    {xaxis.z(), yaxis.z(), zaxis.z(), -dot(zaxis, eye)},
-                    {O, O, O, I}};
+  return Mat4<Real>{{xaxis.x(), yaxis.x(), zaxis.x(), eye.x()},
+                    {xaxis.y(), yaxis.y(), zaxis.y(), eye.y()},
+                    {xaxis.z(), yaxis.z(), zaxis.z(), eye.z()},
+                    {Real(0), Real(0), Real(0), Real(1)}};
 }
 //------------------------------------------------------------------------------
 /// Can be used as view matrix of a camera.
@@ -110,10 +142,16 @@ auto constexpr inv_look_at_matrix_right_hand(Vec3<Real> const& eye,
   auto const zaxis = normalize(eye - center);
   auto const xaxis = cross(normalize(up), zaxis);
   auto const yaxis = cross(zaxis, xaxis);
-  return Mat4<Real>{{xaxis.x(), yaxis.x(), zaxis.x(), -dot(xaxis, eye)},
-                    {xaxis.y(), yaxis.y(), zaxis.y(), -dot(yaxis, eye)},
-                    {xaxis.z(), yaxis.z(), zaxis.z(), -dot(zaxis, eye)},
+  return Mat4<Real>{{xaxis.x(), xaxis.y(), xaxis.z(), -dot(xaxis, eye)},
+                    {yaxis.x(), yaxis.y(), yaxis.z(), -dot(yaxis, eye)},
+                    {zaxis.x(), zaxis.y(), zaxis.z(), -dot(zaxis, eye)},
                     {O, O, O, I}};
+}
+//------------------------------------------------------------------------------
+template <typename Real>
+auto constexpr look_at_matrix(Vec3<Real> const& eye, Vec3<Real> const& center,
+                              Vec3<Real> const& up = {0, 1, 0}) -> Mat4<Real> {
+  return look_at_matrix_right_hand(eye, center, up);
 }
 //------------------------------------------------------------------------------
 /// Can be used as view matrix of a camera.
@@ -126,42 +164,30 @@ auto constexpr inv_look_at_matrix(Vec3<Real> const& eye,
 //==============================================================================
 /// Can be used as transform matrix of an object.
 template <typename Real>
-auto look_at_matrix_left_hand(Vec3<Real> const& eye, Vec3<Real> const& center,
-                              Vec3<Real> const& up = {0, 1, 0}) -> Mat4<Real> {
+auto constexpr fps_look_at_matrix_left_hand(Vec3<Real> const&     eye,
+                                            arithmetic auto const pitch,
+                                            arithmetic auto const yaw)
+    -> Mat4<Real> {
   auto constexpr O = Real(0);
   auto constexpr I = Real(1);
 
-  auto const zaxis = normalize(center - eye);
-  auto const xaxis = cross(normalize(up), zaxis);
-  auto const yaxis = cross(zaxis, xaxis);
-  return Mat4<Real>{{xaxis.x(), xaxis.y(), xaxis.z(), eye.x()},
-                    {yaxis.x(), yaxis.y(), yaxis.z(), eye.y()},
-                    {zaxis.x(), zaxis.y(), zaxis.z(), eye.z()},
-                    {O, O, O, I}};
-}
-//------------------------------------------------------------------------------
-/// Can be used as transform matrix of an object.
-template <typename Real>
-auto look_at_matrix_right_hand(Vec3<Real> const& eye, Vec3<Real> const& center,
-                               Vec3<Real> const& up = {0, 1, 0}) -> Mat4<Real> {
-  auto constexpr O = Real(0);
-  auto constexpr I = Real(1);
+  auto const cos_pitch = gcem::cos(pitch);
+  auto const sin_pitch = gcem::sin(pitch);
+  auto const cos_yaw   = gcem::cos(yaw);
+  auto const sin_yaw   = gcem::sin(yaw);
 
-  auto const zaxis = normalize(eye - center);
-  auto const xaxis = cross(normalize(up), zaxis);
-  auto const yaxis = cross(zaxis, xaxis);
-  return Mat4<Real>{{xaxis.x(), xaxis.y(), xaxis.z(), eye.x()},
-                    {yaxis.x(), yaxis.y(), yaxis.z(), eye.y()},
-                    {zaxis.x(), zaxis.y(), zaxis.z(), eye.z()},
+  auto xaxis = normalize(vec{-cos_yaw, 0, sin_yaw});
+  auto yaxis =
+      normalize(vec{sin_yaw * sin_pitch, cos_pitch, cos_yaw * sin_pitch});
+  auto zaxis =
+      normalize(vec{-sin_yaw * cos_pitch, sin_pitch, -cos_pitch * cos_yaw});
+
+  return Mat4<Real>{{xaxis.x(), yaxis.x(), zaxis.x(), eye.x()},
+                    {xaxis.y(), yaxis.y(), zaxis.y(), eye.y()},
+                    {xaxis.z(), yaxis.z(), zaxis.z(), eye.z()},
                     {O, O, O, I}};
 }
 //------------------------------------------------------------------------------
-template <typename Real>
-auto look_at_matrix(Vec3<Real> const& eye, Vec3<Real> const& center,
-                    Vec3<Real> const& up = {0, 1, 0}) -> Mat4<Real> {
-  return look_at_matrix_right_hand(eye, center, up);
-}
-//==============================================================================
 /// Can be used as view matrix of a camera.
 template <typename Real>
 auto constexpr inv_fps_look_at_matrix_left_hand(Vec3<Real> const&     eye,
@@ -176,13 +202,41 @@ auto constexpr inv_fps_look_at_matrix_left_hand(Vec3<Real> const&     eye,
   auto const cos_yaw   = gcem::cos(yaw);
   auto const sin_yaw   = gcem::sin(yaw);
 
-  auto const xaxis = vec{cos_yaw, 0, -sin_yaw};
-  auto const yaxis = vec{sin_yaw * sin_pitch, cos_pitch, cos_yaw * sin_pitch};
-  auto const zaxis = vec{-sin_yaw * cos_pitch, sin_pitch, -cos_pitch * cos_yaw};
+  auto const xaxis = normalize(vec{-cos_yaw, 0, sin_yaw});
+  auto const yaxis =
+      normalize(vec{sin_yaw * sin_pitch, cos_pitch, cos_yaw * sin_pitch});
+  auto const zaxis =
+      normalize(vec{-sin_yaw * cos_pitch, sin_pitch, -cos_pitch * cos_yaw});
 
   return Mat4<Real>{{xaxis.x(), xaxis.y(), xaxis.z(), -dot(xaxis, eye)},
                     {yaxis.x(), yaxis.y(), yaxis.z(), -dot(yaxis, eye)},
                     {zaxis.x(), zaxis.y(), zaxis.z(), -dot(zaxis, eye)},
+                    {O, O, O, I}};
+}
+//------------------------------------------------------------------------------
+/// Can be used as transform matrix of an object.
+template <typename Real>
+auto constexpr fps_look_at_matrix_right_hand(Vec3<Real> const&     eye,
+                                             arithmetic auto const pitch,
+                                             arithmetic auto const yaw)
+    -> Mat4<Real> {
+  auto constexpr O = Real(0);
+  auto constexpr I = Real(1);
+
+  auto cos_pitch = gcem::cos(pitch);
+  auto sin_pitch = gcem::sin(pitch);
+  auto cos_yaw   = gcem::cos(yaw);
+  auto sin_yaw   = gcem::sin(yaw);
+
+  auto xaxis = normalize(vec{cos_yaw, 0, -sin_yaw});
+  auto yaxis =
+      normalize(vec{sin_yaw * sin_pitch, cos_pitch, cos_yaw * sin_pitch});
+  auto zaxis =
+      normalize(vec{sin_yaw * cos_pitch, -sin_pitch, cos_pitch * cos_yaw});
+
+  return Mat4<Real>{{xaxis.x(), yaxis.x(), zaxis.x(), eye.x()},
+                    {xaxis.y(), yaxis.y(), zaxis.y(), eye.y()},
+                    {xaxis.z(), yaxis.z(), zaxis.z(), eye.z()},
                     {O, O, O, I}};
 }
 //------------------------------------------------------------------------------
@@ -200,14 +254,24 @@ auto constexpr inv_fps_look_at_matrix_right_hand(Vec3<Real> const&     eye,
   auto const cos_yaw   = gcem::cos(yaw);
   auto const sin_yaw   = gcem::sin(yaw);
 
-  auto const xaxis = vec{cos_yaw, 0, -sin_yaw};
-  auto const yaxis = vec{sin_yaw * sin_pitch, cos_pitch, cos_yaw * sin_pitch};
-  auto const zaxis = vec{sin_yaw * cos_pitch, -sin_pitch, cos_pitch * cos_yaw};
+  auto const xaxis = normalize(vec{cos_yaw, 0, -sin_yaw});
+  auto const yaxis =
+      normalize(vec{sin_yaw * sin_pitch, cos_pitch, cos_yaw * sin_pitch});
+  auto const zaxis =
+      normalize(vec{sin_yaw * cos_pitch, -sin_pitch, cos_pitch * cos_yaw});
 
   return Mat4<Real>{{xaxis.x(), xaxis.y(), xaxis.z(), -dot(xaxis, eye)},
                     {yaxis.x(), yaxis.y(), yaxis.z(), -dot(yaxis, eye)},
                     {zaxis.x(), zaxis.y(), zaxis.z(), -dot(zaxis, eye)},
                     {O, O, O, I}};
+}
+//------------------------------------------------------------------------------
+/// Can be used as transform matrix of an object.
+template <typename Real>
+auto constexpr fps_look_at_matrix(Vec3<Real> const&     eye,
+                                  arithmetic auto const pitch,
+                                  arithmetic auto const yaw) -> Mat4<Real> {
+  return fps_look_at_matrix_right_hand(eye, pitch, yaw);
 }
 //------------------------------------------------------------------------------
 /// Can be used as view matrix of a camera.
@@ -218,59 +282,6 @@ auto constexpr inv_fps_look_at_matrix(Vec3<Real> const&     eye,
   return inv_fps_look_at_matrix_left_hand(eye, pitch, yaw);
 }
 //==============================================================================
-/// Can be used as transform matrix of an object.
-template <typename Real>
-auto fps_look_at_matrix_left_hand(Vec3<Real> const&     eye,
-                                  arithmetic auto const pitch,
-                                  arithmetic auto const yaw) -> Mat4<Real> {
-  auto constexpr O = Real(0);
-  auto constexpr I = Real(1);
-
-  auto const cos_pitch = gcem::cos(pitch);
-  auto const sin_pitch = gcem::sin(pitch);
-  auto const cos_yaw   = gcem::cos(yaw);
-  auto const sin_yaw   = gcem::sin(yaw);
-
-  auto const xaxis = vec{cos_yaw, 0, -sin_yaw};
-  auto const yaxis = vec{sin_yaw * sin_pitch, cos_pitch, cos_yaw * sin_pitch};
-  auto const zaxis = vec{-sin_yaw * cos_pitch, sin_pitch, -cos_pitch * cos_yaw};
-
-  return Mat4<Real>{{xaxis.x(), yaxis.x(), zaxis.x(), eye.x()},
-                    {xaxis.y(), yaxis.y(), zaxis.y(), eye.y()},
-                    {xaxis.z(), yaxis.z(), zaxis.z(), eye.z()},
-                    {O, O, O, I}};
-}
-//------------------------------------------------------------------------------
-/// Can be used as transform matrix of an object.
-template <typename Real>
-auto fps_look_at_matrix_right_hand(Vec3<Real> const&     eye,
-                                   arithmetic auto const pitch,
-                                   arithmetic auto const yaw) -> Mat4<Real> {
-  auto constexpr O = Real(0);
-  auto constexpr I = Real(1);
-
-  auto cos_pitch = gcem::cos(pitch);
-  auto sin_pitch = gcem::sin(pitch);
-  auto cos_yaw   = gcem::cos(yaw);
-  auto sin_yaw   = gcem::sin(yaw);
-
-  auto xaxis = vec{cos_yaw, 0, -sin_yaw};
-  auto yaxis = vec{sin_yaw * sin_pitch, cos_pitch, cos_yaw * sin_pitch};
-  auto zaxis = vec{sin_yaw * cos_pitch, -sin_pitch, cos_pitch * cos_yaw};
-
-  return Mat4<Real>{{xaxis.x(), yaxis.x(), zaxis.x(), eye.x()},
-                    {xaxis.y(), yaxis.y(), zaxis.y(), eye.y()},
-                    {xaxis.z(), yaxis.z(), zaxis.z(), eye.z()},
-                    {O, O, O, I}};
-}
-//------------------------------------------------------------------------------
-/// Can be used as transform matrix of an object.
-template <typename Real>
-auto fps_look_at_matrix(Vec3<Real> const& eye, arithmetic auto const pitch,
-                        arithmetic auto const yaw) -> Mat4<Real> {
-  return fps_look_at_matrix_left_hand(eye, pitch, yaw);
-}
-//==============================================================================
 template <typename Real>
 auto constexpr frustum_matrix(Real const left, Real const right,
                               Real const bottom, Real const top,
@@ -278,33 +289,49 @@ auto constexpr frustum_matrix(Real const left, Real const right,
   auto constexpr O = Real(0);
   auto constexpr I = Real(1);
 
-  auto const nn        = 2 * near;
-  auto const inv_width = 1 / (right - left);
-  auto const xs        = nn * inv_width;
+  auto const n2        = 2 * near;
+  auto const width     = right - left;
+  auto const inv_width = 1 / width;
+  auto const xs        = n2 * inv_width;
   auto const xzs       = (right + left) * inv_width;
 
-  auto const inv_height = 1 / (top - bottom);
-  auto const ys         = nn * inv_height;
+  auto const height     = top - bottom;
+  auto const inv_height = 1 / height;
+  auto const ys         = n2 * inv_height;
   auto const yzs        = (top + bottom) * inv_height;
 
-  auto const inv_depth = 1 / (far - near);
+  auto const depth     = far - near;
+  auto const inv_depth = 1 / depth;
   auto const zs        = -(far + near) * inv_depth;
-  auto const zt        = -nn * far * inv_depth;
+  auto const zt        = -2 * near * far * inv_depth;
 
   return Mat4<Real>{
-      {xs, O, xzs, O}, {O, ys, yzs, O}, {O, O, zs, zt}, {O, O, -I, O}};
+      {xs,  O, xzs,  O},
+      { O, ys, yzs,  O},
+      { O,  O,  zs, zt},
+      { O,  O,  -I,  O}};
 }
 //------------------------------------------------------------------------------
 template <typename Real>
-auto constexpr perspective_matrix(Real const fov, Real const aspect_ratio,
+auto constexpr perspective_matrix(Real const fov_angles, Real const aspect_ratio,
                                   Real const near, Real const far) {
-  auto constexpr angle_scale = Real(1) / Real(2) * Real(M_PI) / Real(180);
-  auto const scale           = gcem::tan(fov * angle_scale) * near;
+  auto constexpr half              = Real(1) / Real(2);
+  auto constexpr angles_to_radians_factor = Real(M_PI) / Real(180);
+  auto const fov_radians     = fov_angles * angles_to_radians_factor;
+  auto const scale           = gcem::tan(fov_radians * half) * near;
   auto const right           = aspect_ratio * scale;
   auto const left            = -right;
   auto const top             = scale;
   auto const bottom          = -top;
   return frustum_matrix(left, right, bottom, top, near, far);
+  //auto constexpr O = Real(0);
+  //auto constexpr I = Real(1);
+  //auto P           = Mat4<Real>{
+  //              {2 * near / (right - left), O, (right + left) / (right - left), O},
+  //              {O, 2 * near / (top - bottom), (top + bottom) / (top - bottom), O},
+  //              {O, O, (far + near) / (far - near), 2 * far * near / (far - near)},
+  //              {O, O, -1, O}};
+  //return P;
 }
 //==============================================================================
 }  // namespace tatooine::rendering
