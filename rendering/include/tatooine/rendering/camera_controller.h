@@ -75,16 +75,14 @@ struct camera_controller : gl::window_listener {
   //============================================================================
   camera_controller(size_t const res_x, size_t const res_y)
       : m_pcam{{Real(0), Real(0), Real(0)},
-               {Real(0), Real(0), Real(-1)},
-               {Real(0), Real(1), Real(0)},
+               {Real(0), Real(0), Real(1)},
                60,
                0.01,
                100,
                res_x,
                res_y},
         m_ocam{{Real(0), Real(0), Real(0)},
-               {Real(0), Real(0), Real(-1)},
-               {Real(0), Real(1), Real(0)},
+               {Real(0), Real(0), Real(1)},
                m_orthographic_height,
                -100,
                100,
@@ -122,66 +120,28 @@ struct camera_controller : gl::window_listener {
   auto orthographic_camera() -> auto& {
     return m_ocam;
   }
-  auto orthographic_camera() const -> auto const& {
-    return m_ocam;
-  }
+  auto orthographic_camera() const -> auto const& { return m_ocam; }
   auto controller() const -> auto const& { return *m_controller; }
-  auto projection_matrix() const {
-    return m_active_cam->projection_matrix();
-  }
+  auto projection_matrix() const { return m_active_cam->projection_matrix(); }
   auto transform_matrix() const -> mat4 {
     return m_active_cam->transform_matrix();
   }
-  auto view_matrix() const {
-    return m_active_cam->view_matrix();
-  }
-  auto eye() const -> auto const& {
-    return m_active_cam->eye();
-  }
-  auto pitch() const  {
-    return m_active_cam->pitch();
-  }
-  auto yaw() const {
-    return m_active_cam->yaw();
-  }
-  auto set_eye(Real const x, Real const y, Real const z) {
-    m_pcam.set_eye(x, y, z);
-    m_ocam.set_eye(x, y, z);
-  }
-  auto set_eye(vec<Real, 3> const& eye) {
-    m_pcam.set_eye(eye);
-    m_ocam.set_eye(eye);
-  }
-  auto lookat() const -> auto const& {
-    return m_active_cam->lookat();
-  }
-  auto set_lookat(Real const x, Real const y, Real const z) {
-    m_pcam.set_lookat(x, y, z);
-    m_ocam.set_lookat(x, y, z);
-  }
-  auto set_lookat(vec<Real, 3> const& lookat) {
-    m_pcam.set_lookat(lookat);
-    m_ocam.set_lookat(lookat);
-  }
-  auto up() const -> auto const& {
-    return m_active_cam->up();
-  }
-  auto set_up(Real const x, Real const y, Real const z) {
-    m_pcam.set_up(x, y, z);
-    m_ocam.set_up(x, y, z);
-  }
-  auto set_up(vec<Real, 3> const& up) {
-    m_pcam.set_up(up);
-    m_ocam.set_up(up);
-  }
+  auto view_matrix() const { return m_active_cam->view_matrix(); }
+  auto eye() const { return m_active_cam->eye(); }
+  auto right_direction() const { return m_active_cam->right_direction(); }
+  auto up_direction() const { return m_active_cam->up_direction(); }
+  auto view_direction() const { return m_active_cam->view_direction(); }
   auto look_at(vec3 const& eye, vec3 const& lookat,
                vec3 const& up = {0, 1, 0}) {
     m_pcam.look_at(eye, lookat, up);
     m_ocam.look_at(eye, lookat, up);
   }
-  auto plane_width() {
-    return m_active_cam->plane_width();
+  auto look_at(vec3 const& eye, arithmetic auto const pitch,
+               arithmetic auto const yaw) {
+    m_pcam.look_at(eye, pitch, yaw);
+    m_ocam.look_at(eye, pitch, yaw);
   }
+  auto plane_width() { return m_active_cam->plane_width(); }
   auto plane_height() {
     return m_active_cam->plane_height();
   }
@@ -235,8 +195,8 @@ struct camera_controller : gl::window_listener {
   void on_resize(int w, int h) override {
     m_pcam.set_resolution_without_update(w, h);
     m_ocam.set_resolution_without_update(w, h);
-    m_ocam.setup(m_orthographic_height * m_ocam.aspect_ratio(),
-                 m_orthographic_height);
+    //m_ocam.setup(m_orthographic_height * m_ocam.aspect_ratio(),
+    //             m_orthographic_height);
     if (m_controller) {
       m_controller->on_resize(w, h);
     }
@@ -271,7 +231,7 @@ struct fps_camera_controller : camera_controller_interface<Real> {
   //----------------------------------------------------------------------------
   fps_camera_controller(camera_controller<Real>* controller)
       : camera_controller_interface<Real>{controller} {
-    controller->look_at(controller->eye(), controller->eye() + vec{0, 0, 1});
+    //controller->look_at(controller->eye(), controller->eye() + vec{0, 0, 1});
   }
   virtual ~fps_camera_controller() = default;
   //----------------------------------------------------------------------------
@@ -346,20 +306,21 @@ struct fps_camera_controller : camera_controller_interface<Real> {
       Real const offset_x = gcem::ceil(x) - m_mouse_pos_x;
       Real const offset_y = gcem::ceil(y) - m_mouse_pos_y;
 
-      auto const look_dir = normalize(controller().lookat() - controller().eye());
-      auto yaw = gcem::atan2(look_dir(0), look_dir(2));
-      auto pitch = gcem::asin(look_dir(1));
+      auto const old_view_dir = -controller().view_direction();
+      auto yaw = gcem::atan2(old_view_dir(2), old_view_dir(0));
+      auto pitch = gcem::asin(old_view_dir(1));
 
-      yaw -= offset_x * Real(0.01);
-      pitch = std::clamp<Real>(pitch - offset_y * Real(0.01), Real(-M_PI / 2),
-                         Real(M_PI / 2));
-      auto const sin_pitch = gcem::sin(pitch);
+      yaw += offset_x * Real(0.001);
+      pitch = std::clamp<Real>(pitch + offset_y * Real(0.001),
+                               -M_PI*0.9, M_PI*0.9);
       auto const cos_pitch = gcem::cos(pitch);
-      auto const sin_yaw   = gcem::sin(yaw);
+      auto const sin_pitch = gcem::sin(pitch);
       auto const cos_yaw   = gcem::cos(yaw);
-      auto const new_look_dir =
-          vec{cos_pitch * sin_yaw, sin_pitch, cos_pitch * cos_yaw};
-      controller().set_lookat(controller().eye() + new_look_dir);
+      auto const sin_yaw   = gcem::sin(yaw);
+      auto const eye       = controller().eye();
+      auto const new_view_dir =
+          vec{cos_pitch * cos_yaw, sin_pitch, cos_pitch * sin_yaw};
+      controller().look_at(eye, eye + normalize(new_view_dir));
     }                          
     m_mouse_pos_x = gcem::ceil(x);
     m_mouse_pos_y = gcem::ceil(y);
@@ -375,63 +336,54 @@ struct fps_camera_controller : camera_controller_interface<Real> {
   }
   //----------------------------------------------------------------------------
   void update(std::chrono::duration<double> const& dt) override {
-    auto const ms = static_cast<Real>(
-        std::chrono::duration_cast<std::chrono::milliseconds>(dt).count());
+    auto const look_dir = controller().view_direction();
+    auto       yaw      = gcem::atan2(-look_dir(2), -look_dir(0));
+    auto       pitch    = gcem::asin(-look_dir(1));
+    std::cout << "eye: " << controller().eye() << '\n';
+    std::cout << "yaw: " << yaw << '\n';
+    std::cout << "pitch: " << pitch << '\n';
+    std::cout << "look_dir: " << -look_dir << '\n';
 
+    auto const right_dir      = controller().right_direction();
+    auto       move_direction = vec3::zeros();
     if (m_w_down) {
-      auto const look_dir =
-          normalize(controller().lookat() - controller().eye());
-      auto const new_eye = controller().eye() - look_dir * ms * speed();
-      controller().look_at(new_eye, new_eye + look_dir);
+      move_direction -= look_dir;
     }
     if (m_s_down) {
-      auto const look_dir =
-          normalize(controller().lookat() - controller().eye());
-      auto const new_eye = controller().eye() + look_dir * ms * speed();
-      controller().look_at(new_eye, new_eye + look_dir);
+      move_direction += look_dir;
     }
     if (m_q_down) {
-      auto const look_dir =
-          normalize(controller().lookat() - controller().eye());
-      auto const& old_eye = controller().eye();
-      auto const  new_eye =
-          vec{old_eye(0), old_eye(1) + 1 * ms * speed(), old_eye(2)};
-      controller().look_at(new_eye, new_eye + look_dir);
+      move_direction(1) += 1;
     }
     if (m_e_down) {
-      auto const look_dir =
-          normalize(controller().lookat() - controller().eye());
-      auto const& old_eye = controller().eye();
-      auto const  new_eye =
-          vec{old_eye(0), old_eye(1) - 1 * ms * speed(), old_eye(2)};
-      controller().look_at(new_eye, new_eye + look_dir);
+      move_direction(1) -= 1;
     }
     if (m_a_down) {
-      auto const look_dir =
-          normalize(controller().lookat() - controller().eye());
-      auto const right   = cross(look_dir, vec{0, 1, 0});
-      auto const new_eye = controller().eye() + right * ms * speed();
-      controller().look_at(new_eye, new_eye + look_dir);
+      move_direction -= right_dir;
     }
     if (m_d_down) {
-      auto const look_dir =
-          normalize(controller().lookat() - controller().eye());
-      auto const right   = cross(look_dir, vec{0, 1, 0});
-      auto const new_eye = controller().eye() - right * ms * speed();
-      controller().look_at(new_eye, new_eye + look_dir);
+      move_direction += right_dir;
     }
+    auto const passed_time = static_cast<Real>(
+        std::chrono::duration_cast<std::chrono::milliseconds>(dt).count());
+    auto const new_eye =
+        controller().eye() + normalize(move_direction) * passed_time * speed();
+    controller().look_at(new_eye, new_eye - look_dir);
+
   }
   //----------------------------------------------------------------------------
-  auto type() const -> std::type_info const& override { return typeid(this_type); }
+  auto type() const -> std::type_info const& override {
+    return typeid(this_type);
+  }
 };
 //==============================================================================
 template <typename Real>
 struct orthographic_camera_controller : camera_controller_interface<Real> {
-  using vec3 = vec<Real, 3>;
-  using vec4 = vec<Real, 4>;
-  using mat3 = mat<Real, 3, 3>;
-  using mat4 = mat<Real, 4, 4>;
-  using this_type = orthographic_camera_controller<Real>;
+  using vec3        = vec<Real, 3>;
+  using vec4        = vec<Real, 4>;
+  using mat3        = mat<Real, 3, 3>;
+  using mat4        = mat<Real, 4, 4>;
+  using this_type   = orthographic_camera_controller<Real>;
   using parent_type = camera_controller_interface<Real>;
   using parent_type::controller;
 
@@ -486,27 +438,9 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
     m_mouse_pos_y = std::ceil(y);
   }
   //----------------------------------------------------------------------------
-  auto on_wheel_down() -> void override {
-    controller().orthographic_camera().setup(
-        controller().eye(), controller().lookat(), controller().up(),
-        controller().orthographic_camera().width() / 0.9,
-        controller().orthographic_camera().height() / 0.9,
-        controller().orthographic_camera().near(),
-        controller().orthographic_camera().far(),
-        controller().plane_width(), controller().plane_height());
+  auto type() const -> std::type_info const& override {
+    return typeid(this_type);
   }
-  //----------------------------------------------------------------------------
-  auto on_wheel_up() -> void override {
-    controller().orthographic_camera().setup(
-        controller().eye(), controller().lookat(), controller().up(),
-        controller().orthographic_camera().width() * 0.9,
-        controller().orthographic_camera().height() * 0.9,
-        controller().orthographic_camera().near(),
-        controller().orthographic_camera().far(),
-        controller().plane_width(), controller().plane_height());
-  }
-  //----------------------------------------------------------------------------
-  auto type() const -> std::type_info const& override { return typeid(this_type); }
 };
 //==============================================================================
 }  // namespace tatooine::rendering

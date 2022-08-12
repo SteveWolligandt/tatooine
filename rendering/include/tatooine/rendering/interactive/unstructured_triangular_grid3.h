@@ -31,12 +31,12 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
     GLfloat      max_scalar     = -std::numeric_limits<GLfloat>::max();
     bool         scale_inverted = false;
   };
-  bool    show_property = false;
-  GLfloat reflectance   = 0.5f;
-  GLfloat roughness     = 0.00001f;
-  GLfloat metallic      = 0.0f;
-  GLfloat irradi_perp   = 20.0f;
-  Vec3<GLfloat> solid_base_color = {0, 0, 0};
+  bool          show_property    = false;
+  GLfloat       reflectance      = 0.5f;
+  GLfloat       roughness        = 1.0f;
+  GLfloat       metallic         = 1.0f;
+  GLfloat       irradi_perp      = 10.0f;
+  Vec3<GLfloat> solid_base_color = {1, 1, 1};
 
   std::unordered_map<std::string, property_settings> settings;
   std::unordered_map<std::string, std::string_view>  selected_component;
@@ -44,7 +44,7 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
   typename renderable_type::vertex_property_type const* selected_property =
       nullptr;
 
-  bool    vector_property = false;
+  bool vector_property = false;
 
   gl::vertexbuffer<Vec3<GLfloat>, Vec3<GLfloat>, GLfloat> m_geometry;
   gl::indexbuffer                                         m_triangles;
