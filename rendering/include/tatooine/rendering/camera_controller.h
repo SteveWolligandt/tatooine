@@ -419,7 +419,6 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
       new_eye(1) -= static_cast<Real>(offset_y) /
                     controller().orthographic_camera().plane_height() *
                     controller().orthographic_camera().height();
-      std::cout << new_eye << '\n';
       this->look_at(new_eye, new_eye + vec{0, 0, -1});
     }
     m_mouse_pos_x = std::ceil(x);

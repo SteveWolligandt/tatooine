@@ -69,7 +69,6 @@ template <typename Real>
 auto constexpr orthographic_matrix(Real const left, Real const right,
                                    Real const bottom, Real const top,
                                    Real const near, Real const far) {
-  std::cout << left << " " << right << " " << bottom << " " << top << " " << near << " " << far << '\n';
   auto constexpr O      = Real(0);
   auto constexpr I      = Real(1);
   auto const width      = right - left;
@@ -319,7 +318,6 @@ auto constexpr frustum_matrix(Real const left, Real const right,
 template <typename Real>
 auto constexpr perspective_matrix(Real const fov_angles, Real const aspect_ratio,
                                   Real const near, Real const far) {
-  std::cout << "aspect: " << aspect_ratio << '\n';
   auto constexpr half              = Real(1) / Real(2);
   auto constexpr angles_to_radians_factor = Real(M_PI) / Real(180);
   auto const fov_radians     = fov_angles * angles_to_radians_factor;
