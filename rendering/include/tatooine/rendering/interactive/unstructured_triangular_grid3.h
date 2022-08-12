@@ -31,7 +31,6 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
     GLfloat      max_scalar     = -std::numeric_limits<GLfloat>::max();
     bool         scale_inverted = false;
   };
-  bool          show_property    = false;
   GLfloat       reflectance      = 0.5f;
   GLfloat       roughness        = 1.0f;
   GLfloat       metallic         = 1.0f;
@@ -288,7 +287,10 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
   auto grid_property_selection(renderable_type const& grid) {
     if (ImGui::BeginCombo("##combo", selected_property_name != nullptr
                                          ? selected_property_name->c_str()
-                                         : nullptr)) {
+                                         : "Solid Color")) {
+      if (ImGui::Selectable("Solid Color", selected_property == nullptr)) {
+        selected_property = nullptr;
+      }
       for (auto const& [name, prop] : grid.vertex_properties()) {
         if (prop->type() == typeid(float) || prop->type() == typeid(double) ||
             prop->type() == typeid(vec2f) || prop->type() == typeid(vec2d) ||
@@ -296,7 +298,6 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
             prop->type() == typeid(vec4f) || prop->type() == typeid(vec4d)) {
           auto is_selected = selected_property == prop.get();
           if (ImGui::Selectable(name.c_str(), is_selected)) {
-            show_property = true;
             selected_property      = prop.get();
             selected_property_name = &name;
             if (prop_holds_scalar(prop)) {
@@ -491,10 +492,6 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
   //----------------------------------------------------------------------------
   auto properties(renderable_type const& grid) {
     //ImGui::Text("Triangular Grid");
-    ImGui::Checkbox("Show Property", &show_property);
-    if (!show_property || selected_property == nullptr) {
-      ImGui::ColorEdit3("Solid Color", solid_base_color.data());
-    }
     ImGui::DragFloat("Reflectance", &reflectance, 0.01f, 0.0f, 1.0f);
     ImGui::DragFloat("Roughness", &roughness, 0.01f, 0.0f, 1.0f);
     ImGui::DragFloat("Metallic", &metallic, 0.01f, 0.0f, 1.0f);
@@ -510,13 +507,16 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
       ImGui::DragFloat("Max", &setting.max_scalar, 0.01f, setting.min_scalar,
                        FLT_MAX, "%.06f");
     }
+    if (selected_property == nullptr) {
+      ImGui::ColorEdit3("Solid Color", solid_base_color.data());
+    }
 
     color_scale_selection(grid);
   }
   //============================================================================
   auto render() {
     property_shader::get().bind();
-    if (show_property && selected_property != nullptr) {
+    if (selected_property != nullptr) {
       auto const name    = selected_settings_name();
       auto&      setting = settings.at(name);
       setting.c->tex.bind(0);

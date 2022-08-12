@@ -15,14 +15,14 @@ namespace tatooine::rendering {
 /// image plane gets constructed.
 /// This camera class constructs a right-handed coordinate system.
 template <floating_point Real>
-class perspective_camera
-    : public camera_interface<Real, perspective_camera<Real>> {
+struct perspective_camera : camera_interface<Real> {
  public:
   using real_type   = Real;
   using this_type   = perspective_camera<Real>;
-  using parent_type = camera_interface<Real, this_type>;
+  using parent_type = camera_interface<Real>;
   using parent_type::aspect_ratio;
   using parent_type::eye;
+  using parent_type::set_projection_matrix;
   //using parent_type::setup;
   using typename parent_type::mat4;
   using typename parent_type::vec3;
@@ -79,9 +79,9 @@ class perspective_camera
   ~perspective_camera() = default;
   //============================================================================
   auto constexpr set_projection_matrix(Real const fov, Real const near,
-                                       Real const far) {
-    this->set_projection_matrix(
-        perspective_matrix(fov, aspect_ratio(), near, far));
+                                       Real const far) -> void {
+    set_projection_matrix(
+        perspective_matrix(fov, this->aspect_ratio(), near, far));
   }
 };
 //==============================================================================

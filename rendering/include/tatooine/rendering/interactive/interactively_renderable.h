@@ -14,10 +14,10 @@ concept interactively_renderable = requires(T t) {
 }
 || requires(T t) { t.late_render(); }
 || requires(T t) {
-  t.render(std::declval<polymorphic::camera<double>>());
+  t.render(std::declval<camera_interface<double>>());
 }
 || requires(T t) {
-  t.render(std::declval<polymorphic::camera<float>>());
+  t.render(std::declval<camera_interface<float>>());
 }
 || requires(renderer<std::decay_t<T>> t) { t.render(); }
 || requires(renderer<std::decay_t<T>> t) {
@@ -25,11 +25,11 @@ concept interactively_renderable = requires(T t) {
 }
 || requires(renderer<std::decay_t<T>> t) {
   t.render(std::declval<std::decay_t<T>>(),
-           std::declval<polymorphic::camera<double>>());
+           std::declval<camera_interface<double>>());
 }
 || requires(renderer<std::decay_t<T>> t) {
   t.render(std::declval<std::decay_t<T>>(),
-           std::declval<polymorphic::camera<float>>());
+           std::declval<camera_interface<float>>());
 }
 || requires(renderer<std::decay_t<T>> t) { t.late_render(); }
 || requires(renderer<std::decay_t<T>> t) {

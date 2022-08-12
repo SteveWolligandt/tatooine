@@ -12,14 +12,17 @@
 //==============================================================================
 namespace tatooine::rendering {
 //==============================================================================
-namespace polymorphic {
+/// \brief Interface for camera implementations.
+///
+/// Implementations must override the ray method that casts rays through the
+/// camera's image plane.
 template <floating_point Real>
-struct camera {
+struct camera_interface {
   //----------------------------------------------------------------------------
   // typedefs
   //----------------------------------------------------------------------------
   using real_type = Real;
-  using this_type = camera<Real>;
+  using this_type = camera_interface<Real>;
   using vec2      = Vec2<Real>;
   using vec3      = Vec3<Real>;
   using vec4      = Vec4<Real>;
@@ -40,21 +43,27 @@ struct camera {
   // constructors / destructor
   //----------------------------------------------------------------------------
  public:
-  constexpr camera(vec3 const& eye, vec3 const& lookat, vec3 const& up,
-                   Vec4<std::size_t> const& viewport)
+  constexpr camera_interface(vec3 const& eye, vec3 const& lookat,
+                             vec3 const& up, Vec4<std::size_t> const& viewport)
       : m_viewport{viewport},
         m_transform_matrix{look_at_matrix(eye, lookat, up)},
         m_projection_matrix{mat4::eye()} {}
   //----------------------------------------------------------------------------
-  constexpr camera(vec3 const& eye, vec3 const& lookat, vec3 const& up,
+  constexpr camera_interface(vec3 const& eye, vec3 const& lookat, vec3 const& up,
                    Vec4<std::size_t> const& viewport, mat4 const& p)
       : m_viewport{viewport},
         m_transform_matrix{look_at_matrix(eye, lookat, up)},
         m_projection_matrix{p} {}
   //----------------------------------------------------------------------------
-  virtual ~camera() = default;
+  virtual ~camera_interface() = default;
   //----------------------------------------------------------------------------
   // object methods
+  //----------------------------------------------------------------------------
+  /// Returns number of pixels of plane in x-direction.
+  auto constexpr viewport() const -> auto const& { return m_viewport; }
+  auto constexpr viewport(std::size_t const i) const -> auto const& {
+    return m_viewport(i);
+  }
   //----------------------------------------------------------------------------
   /// Returns number of pixels of plane in x-direction.
   auto constexpr plane_width() const { return m_viewport(2); }
@@ -242,31 +251,16 @@ struct camera {
   //  m_plane_base_y = (top_left.xyz() / top_left.w() - m_bottom_left) /
   //                   (this->plane_height() - 1);
   //}
-  protected:
-   auto set_projection_matrix(mat4 const& P) { m_projection_matrix(P); }
-};
-//==============================================================================
-}  // namespace polymorphic
-//==============================================================================
-/// \brief Interface for camera implementations.
-///
-/// Implementations must override the ray method that casts rays through the
-/// camera's image plane.
-template <floating_point Real, typename Derived>
-struct camera_interface : polymorphic::camera<Real> {
-  using this_type   = camera_interface<Real, Derived>;
-  using parent_type = polymorphic::camera<Real>;
-  //----------------------------------------------------------------------------
-  using parent_type::parent_type;
-  using typename parent_type::mat4;
-  //----------------------------------------------------------------------------
-  virtual ~camera_interface() = default;
+ protected:
+  auto set_projection_matrix(mat4 const& projection_matrix) -> void {
+    m_projection_matrix = projection_matrix;
+  }
 };
 //==============================================================================
 namespace detail::camera {
 //==============================================================================
 template <std::floating_point Real>
-auto ptr_convertible_to_camera(const volatile polymorphic::camera<Real>*)
+auto ptr_convertible_to_camera(const volatile camera_interface<Real>*)
     -> std::true_type;
 template <typename>
 auto ptr_convertible_to_camera(const volatile void*) -> std::false_type;

@@ -12,7 +12,7 @@
 namespace tatooine::rendering::interactive {
 //==============================================================================
 template <floating_point Real>
-struct renderer<tatooine::unstructured_simplicial_grid<Real, 2, 2>> {
+struct renderer<tatooine::unstructured_triangular_grid<Real, 2>> {
   static constexpr std::array<std::string_view, 5> vector_component_names = {
       "magnitude", "x", "y", "z", "w"};
   using renderable_type =
@@ -44,9 +44,14 @@ struct renderer<tatooine::unstructured_simplicial_grid<Real, 2, 2>> {
         "uniform float min;\n"
         "uniform float max;\n"
         "uniform int invert_scale;\n"
+        "uniform int show_solid_color;\n"
+        "uniform vec3 solid_color;\n"
+        "\n"
         "in float property_frag;\n"
+        "\n"
         "out vec4 out_color;\n"
         "void main() {\n"
+        "  if (show_solid_color == 1) { out_color.rgb = solid_color; return;}\n"
         "  float scalar = property_frag;"
         "  if (isnan(scalar)) {\n"
         "    out_color = vec4(1,0,0,1);\n"
@@ -77,6 +82,8 @@ struct renderer<tatooine::unstructured_simplicial_grid<Real, 2, 2>> {
       set_min(0);
       set_max(1);
       invert_scale(false);
+      show_solid_color(true);
+      set_solid_color(1,0,0);
       set_uniform("color_scale", 0);
     }
     //--------------------------------------------------------------------------
@@ -96,6 +103,18 @@ struct renderer<tatooine::unstructured_simplicial_grid<Real, 2, 2>> {
     auto invert_scale(bool const invert) -> void {
       set_uniform("invert_scale", invert ? 1 : 0);
     }
+    //--------------------------------------------------------------------------
+    auto show_solid_color(bool const show) -> void {
+      set_uniform("show_solid_color", show ? 1 : 0);
+    }
+    //--------------------------------------------------------------------------
+    auto set_solid_color(GLfloat r, GLfloat g, GLfloat b) -> void {
+      set_uniform("solid_color", r, g, b);
+    }
+    //--------------------------------------------------------------------------
+    auto set_solid_color(Vec3<GLfloat> const& col) -> void {
+      set_uniform("solid_color", col);
+    }
   };
   //============================================================================
   using line_shader = shaders::colored_pass_through_2d;
@@ -107,10 +126,10 @@ struct renderer<tatooine::unstructured_simplicial_grid<Real, 2, 2>> {
     GLfloat      max_scalar     = -std::numeric_limits<GLfloat>::max();
     bool         scale_inverted = false;
   };
-  bool                                               show_wireframe     = true;
-  bool                                               show_property = false;
-  int                                                line_width    = 1;
-  Vec4<GLfloat>                                      wireframe_color = {0, 0, 0, 1};
+  bool                                               show_wireframe     = false;
+  Vec3<GLfloat>                                      m_solid_color      = {0.9,0.9,0.9};
+  int                                                line_width         = 1;
+  Vec4<GLfloat> wireframe_color = {0, 0, 0, 1};
   std::unordered_map<std::string, property_settings> settings;
   std::unordered_map<std::string, std::string_view>  selected_component;
   std::string const* selected_property_name = nullptr;
@@ -364,7 +383,13 @@ struct renderer<tatooine::unstructured_simplicial_grid<Real, 2, 2>> {
   auto grid_property_selection(renderable_type const& grid) {
     if (ImGui::BeginCombo("##combo", selected_property_name != nullptr
                                          ? selected_property_name->c_str()
-                                         : nullptr)) {
+                                         : "Solid Color")) {
+      if (ImGui::Selectable("Solid Color", selected_property == nullptr)) {
+        selected_property = nullptr;
+      }
+      if (selected_property == nullptr) {
+        ImGui::SetItemDefaultFocus();
+      }
       for (auto const& [name, prop] : grid.vertex_properties()) {
         if (prop->type() == typeid(float) || prop->type() == typeid(double) ||
             prop->type() == typeid(vec2f) || prop->type() == typeid(vec2d) ||
@@ -372,7 +397,6 @@ struct renderer<tatooine::unstructured_simplicial_grid<Real, 2, 2>> {
             prop->type() == typeid(vec4f) || prop->type() == typeid(vec4d)) {
           auto is_selected = selected_property == prop.get();
           if (ImGui::Selectable(name.c_str(), is_selected)) {
-            show_property = true;
             selected_property      = prop.get();
             selected_property_name = &name;
             if (prop_holds_scalar(prop)) {
@@ -568,7 +592,6 @@ struct renderer<tatooine::unstructured_simplicial_grid<Real, 2, 2>> {
   auto properties(renderable_type const& grid) {
     //ImGui::Text("Triangular Grid");
     ImGui::Checkbox("Show Grid", &show_wireframe);
-    ImGui::Checkbox("Show Property", &show_property);
     ImGui::DragInt("Line width", &line_width, 1, 1, 20);
     ImGui::ColorEdit4("Wireframe Color", wireframe_color.data());
     grid_property_selection(grid);
@@ -582,6 +605,9 @@ struct renderer<tatooine::unstructured_simplicial_grid<Real, 2, 2>> {
       ImGui::DragFloat("Max", &setting.max_scalar, 0.01f, setting.min_scalar,
                        FLT_MAX, "%.06f");
     }
+    if (selected_property == nullptr) {
+      ImGui::ColorEdit3("Solid Color", m_solid_color.data());
+    }
 
     color_scale_selection(grid);
   }
@@ -590,9 +616,7 @@ struct renderer<tatooine::unstructured_simplicial_grid<Real, 2, 2>> {
     if (show_wireframe) {
       render_wireframe();
     }
-    if (show_property && selected_property != nullptr) {
-      render_property();
-    }
+    render_property();
   }
   //----------------------------------------------------------------------------
   auto update(auto const dt, renderable_type const& grid,
@@ -614,20 +638,18 @@ struct renderer<tatooine::unstructured_simplicial_grid<Real, 2, 2>> {
             Mat4<GLfloat>{cam.view_matrix()});
       }
     }
-    if (show_property) {
-      if constexpr (cam_is_float) {
-        property_shader::get().set_projection_matrix(cam.projection_matrix());
-      } else {
-        property_shader::get().set_projection_matrix(
-            Mat4<GLfloat>{cam.projection_matrix()});
-      }
+    if constexpr (cam_is_float) {
+      property_shader::get().set_projection_matrix(cam.projection_matrix());
+    } else {
+      property_shader::get().set_projection_matrix(
+          Mat4<GLfloat>{cam.projection_matrix()});
+    }
 
-      if constexpr (cam_is_float) {
-        property_shader::get().set_model_view_matrix(cam.view_matrix());
-      } else {
-        property_shader::get().set_model_view_matrix(
-            Mat4<GLfloat>{cam.view_matrix()});
-      }
+    if constexpr (cam_is_float) {
+      property_shader::get().set_model_view_matrix(cam.view_matrix());
+    } else {
+      property_shader::get().set_model_view_matrix(
+          Mat4<GLfloat>{cam.view_matrix()});
     }
   }
   //----------------------------------------------------------------------------
@@ -647,6 +669,7 @@ struct renderer<tatooine::unstructured_simplicial_grid<Real, 2, 2>> {
   }
   //----------------------------------------------------------------------------
   auto render_property() {
+    property_shader::get().bind();
     if (selected_property_name != nullptr) {
       auto const name    = selected_settings_name();
       auto&      setting = settings.at(name);
@@ -654,14 +677,17 @@ struct renderer<tatooine::unstructured_simplicial_grid<Real, 2, 2>> {
       property_shader::get().set_min(setting.min_scalar);
       property_shader::get().set_max(setting.max_scalar);
       property_shader::get().invert_scale(setting.scale_inverted);
-      property_shader::get().bind();
-      auto vao = gl::vertexarray{};
-      vao.bind();
-      m_geometry.bind();
-      m_geometry.activate_attributes();
-      m_triangles.bind();
-      vao.draw_triangles(m_wireframe.size());
+      property_shader::get().show_solid_color(false);
+    } else {
+      property_shader::get().show_solid_color(true);
+      property_shader::get().set_solid_color(m_solid_color);
     }
+    auto vao = gl::vertexarray{};
+    vao.bind();
+    m_geometry.bind();
+    m_geometry.activate_attributes();
+    m_triangles.bind();
+    vao.draw_triangles(m_wireframe.size());
   }
 };
 //==============================================================================
