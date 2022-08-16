@@ -15,8 +15,8 @@ TEST_CASE("field_operations_dot", "[field_operations]") {
 TEST_CASE("field_operations_tensor_sum", "[field_operations]") {
   analytical::numerical::doublegyre dg;
   auto dg2 = dg + dg;
-  REQUIRE(dg2({0.3, 0.3}, 0)(0) == Approx(dg({0.3, 0.3}, 0)(0) * 2));
-  REQUIRE(dg2({0.3, 0.3}, 0)(1) == Approx(dg({0.3, 0.3}, 0)(1) * 2));
+  REQUIRE(dg2(0.3, 0.3)(0) == Approx(dg(0.3, 0.3)(0) * 2));
+  REQUIRE(dg2(0.3, 0.3)(1) == Approx(dg(0.3, 0.3)(1) * 2));
 }
 //═══════════════════════════════════════════════════════════════════════════╝
 }  // namespace tatooine::test

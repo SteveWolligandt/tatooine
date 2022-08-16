@@ -1,5 +1,7 @@
 #include <tatooine/analytical/numerical/doublegyre.h>
 #include <tatooine/numerical_flowmap.h>
+#include <tatooine/ode/vclibs/rungekutta43.h>
+
 #include <catch2/catch.hpp>
 //==============================================================================
 namespace tatooine::ode::test {

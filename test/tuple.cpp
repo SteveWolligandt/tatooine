@@ -42,7 +42,7 @@ TEST_CASE("tuple", "[tuple]") {
       }
       ++i;
     });
-    auto const float_arr = t.as_pointer<float>();
+    auto const float_arr = t.as_pointer();
     REQUIRE(float_arr[0] == 1.0f);
     REQUIRE(float_arr[1] == 2.0f);
     REQUIRE(t.at<0>() == 1.0f);

@@ -287,7 +287,6 @@ TEST_CASE("tensor_complex", "[tensor][complex][view]") {
   for (size_t i = 0; i < v.dimension(0); ++i) {
     REQUIRE(v(i).real() == real_v(i));
   }
-  std::max(std::abs(min(real(v))), max(real(v)));
 }
 //==============================================================================
 TEST_CASE("tensor_matrix_transpose", "[tensor][matrix][mat][transpose][view]") {

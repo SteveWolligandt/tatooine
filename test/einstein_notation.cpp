@@ -6,6 +6,9 @@
 //==============================================================================
 namespace tatooine::einstein_notation::test {
 //==============================================================================
+using i_t = decltype(i);
+using j_t = decltype(j);
+using k_t = decltype(k);
 TEST_CASE("einstein_notation_indexed_tensors_to_indices",
           "[einstein_notation][indexed_tensors_to_indices]") {
   using indices = indexed_tensors_to_index_list<indexed_tensor<mat2, i_t, i_t>,

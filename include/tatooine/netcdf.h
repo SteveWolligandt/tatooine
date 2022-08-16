@@ -243,7 +243,7 @@ class variable {
     assert(start_indices.size() == counts.size());
     assert(start_indices.size() == num_dimensions());
 
-    dynamic_multidim_array<T> arr(counts);
+    auto arr = dynamic_multidim_array<T> {counts};
     //std::reverse(begin(start_indices), end(start_indices));
     //std::reverse(begin(counts), end(counts));
     std::lock_guard lock{*m_mutex};
