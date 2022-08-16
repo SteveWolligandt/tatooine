@@ -45,25 +45,15 @@ constexpr auto operator*(const field<V0, Real0, N, Tensor>& lhs,
       lhs, rhs, [](const auto& lhs, const auto& rhs) { return lhs * rhs; });
 }
 //------------------------------------------------------------------------------
-#ifdef __cpp_concpets
 template <typename V, arithmetic VReal, size_t N, arithmetic ScalarReal,
           typename Tensor>
-#else
-template <typename V, arithmetic VReal, size_t N, arithmetic ScalarReal,
-          typename Tensor>
-#endif
 constexpr auto operator*(const field<V, VReal, N, Tensor>& f,
                          const ScalarReal                  scalar) {
   return V{f.as_derived()} | [scalar](auto const& t) { return t * scalar; };
 }
 //------------------------------------------------------------------------------
-#ifdef __cpp_concpets
 template <typename V, arithmetic VReal, size_t N, arithmetic ScalarReal,
           typename Tensor>
-#else
-template <typename V, arithmetic VReal, size_t N, arithmetic ScalarReal,
-          typename Tensor>
-#endif
 constexpr auto operator*(const ScalarReal                  scalar,
                          const field<V, VReal, N, Tensor>& f) {
   return V{f.as_derived()} | [scalar](auto const& t) { return t * scalar; };

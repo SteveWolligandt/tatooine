@@ -1184,6 +1184,67 @@ struct unstructured_simplicial_grid
   auto vertex_property_sampler(std::string const& name) const {
     return sampler<T>(this->template vertex_property<T>(name));
   }
+  //============================================================================
+  template <typename F>
+  requires invocable_with_n_integrals<F, num_dimensions()> ||
+           invocable<F, pos_type>
+  auto sample_to_vertex_property(F&& f, std::string const& name) -> auto& {
+    return sample_to_vertex_property(std::forward<F>(f), name,
+                                     execution_policy::sequential);
+  }
+  //----------------------------------------------------------------------------
+  template <typename F>
+  requires invocable_with_n_integrals<F, num_dimensions()> ||
+           invocable<F, pos_type>
+  auto sample_to_vertex_property(F&& f, std::string const& name,
+                                 execution_policy_tag auto tag) -> auto& {
+    if constexpr (invocable<F, pos_type>) {
+      return sample_to_vertex_property_pos(std::forward<F>(f), name, tag);
+    } else {
+      return sample_to_vertex_property_vertex_handle(
+          std::forward<F>(f), name, tag);
+    }
+  }
+  //----------------------------------------------------------------------------
+ private:
+  template <invocable<vertex_handle> F>
+  auto sample_to_vertex_property_vertex_handle(F&& f, std::string const& name,
+                                               execution_policy_tag auto tag)
+      -> auto& {
+    using T    = std::invoke_result_t<F, vertex_handle>;
+    auto& prop = this->template vertex_property<T>(name);
+    for (auto const v : vertices()) {
+      try {
+        prop[v] = f(v);
+      } catch (std::exception&) {
+        if constexpr (tensor_num_components<T> == 1) {
+          prop[v] = T{0.0 / 0.0};
+        } else {
+          prop[v] = T::fill(0.0 / 0.0);
+        }
+      }
+    };
+    return prop;
+  }
+  //----------------------------------------------------------------------------
+  template <invocable<pos_type> F>
+  auto sample_to_vertex_property_pos(F&& f, std::string const& name,
+                                     execution_policy_tag auto tag) -> auto& {
+    using T    = std::invoke_result_t<F, pos_type>;
+    auto& prop = this->template vertex_property<T>(name);
+    for (auto const v : vertices()) {
+      try {
+        prop[v] = f(at(v));
+      } catch (std::exception&) {
+        if constexpr (tensor_num_components<T> == 1) {
+          prop[v] = T{0.0 / 0.0};
+        } else {
+          prop[v] = T::fill(0.0 / 0.0);
+        }
+      }
+    };
+    return prop;
+  }
   //--------------------------------------------------------------------------
   constexpr auto bounding_box() const {
     auto bb = axis_aligned_bounding_box<Real, num_dimensions()>{};

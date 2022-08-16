@@ -32,9 +32,9 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
     bool         scale_inverted = false;
   };
   GLfloat       reflectance      = 0.5f;
-  GLfloat       roughness        = 1.0f;
-  GLfloat       metallic         = 1.0f;
-  GLfloat       irradi_perp      = 10.0f;
+  GLfloat       roughness        = 0.5f;
+  GLfloat       metallic         = 0.0f;
+  GLfloat       irradi_perp      = 5.0f;
   Vec3<GLfloat> solid_base_color = {1, 1, 1};
 
   std::unordered_map<std::string, property_settings> settings;
