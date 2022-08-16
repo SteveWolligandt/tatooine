@@ -179,9 +179,9 @@ struct cook_torrance_brdf_shader : gl::shader {
     set_projection_matrix(Mat4<GLfloat>::eye());
     set_model_matrix(Mat4<GLfloat>::eye());
     set_solid_base_color(Vec3<GLfloat>::ones());
-    set_roughness(0);
-    set_metallic(0);
     set_reflectance(0.5);
+    set_roughness(0.5);
+    set_metallic(0);
     set_light_color(Vec4<GLfloat>::ones());
     set_irradi_perp(10);
     set_uniform("color_scale", 0);
