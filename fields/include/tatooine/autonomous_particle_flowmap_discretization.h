@@ -3,7 +3,6 @@
 //==============================================================================
 #include <tatooine/autonomous_particle.h>
 #include <tatooine/huber_loss.h>
-#include <tatooine/staggered_flowmap_discretization.h>
 #include <tatooine/unstructured_simplicial_grid.h>
 
 #include <boost/range/adaptor/transformed.hpp>
@@ -446,6 +445,14 @@ template <typename SplitBehavior = typename autonomous_particle<
 using autonomous_particle_flowmap_discretization3 =
     AutonomousParticleFlowmapDiscretization<3, SplitBehavior>;
 //==============================================================================
+}  // namespace tatooine
+//==============================================================================
+
+//==============================================================================
+// Staggered Discretization
+#include <tatooine/staggered_flowmap_discretization.h>
+namespace tatooine {
+//==============================================================================
 template <typename Real, std::size_t NumDimensions,
           typename SplitBehavior = typename autonomous_particle<
               real_number, NumDimensions>::split_behaviors::three_splits>
@@ -470,6 +477,6 @@ template <typename SplitBehavior = typename autonomous_particle<
 using staggered_autonomous_particle_flowmap_discretization3 =
     StaggeredAutonomousParticleFlowmapDiscretization<3, SplitBehavior>;
 //==============================================================================
-}  // namespace tatooine
+}  // namespace foo
 //==============================================================================
 #endif
