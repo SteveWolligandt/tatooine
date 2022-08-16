@@ -39,6 +39,7 @@ struct cook_torrance_brdf_shader : gl::shader {
       "                  // (interpolated)\n"
       "in float interp_scalar;\n"
       "\n"
+      "uniform int lighting_enabled;\n"
       "uniform vec3 solid_base_color; // albedo for dielectrics or F0 for\n"
       "                               // metals\n"
       "uniform float roughness;\n"
@@ -138,6 +139,24 @@ struct cook_torrance_brdf_shader : gl::shader {
       "}\n"
       "\n"
       "void main() {\n"
+      "  vec3 base_color = vec3(0,0,0);\n"
+      "  if (use_solid_base_color == 1) {\n"
+      "    base_color = solid_base_color;\n"
+      "  } else {\n"
+      "    if (isnan(interp_scalar)) {\n"
+      "      base_color = vec3(1,0,0);\n"
+      "    } else {\n"
+      "      float norm_scalar = clamp((interp_scalar - min_scalar) / (max_scalar - min_scalar), 0, 1);\n"
+      "      if (invert_scale == 1) {\n"
+      "        norm_scalar = 1 - norm_scalar;\n"
+      "      }\n"
+      "      base_color = texture(color_scale, norm_scalar).rgb;\n"
+      "    }\n"
+      "  }\n"
+      "  if (lighting_enabled == 0) {\n"
+      "    out_color.rgb = base_color;\n"
+      "    return;\n"
+      "  }"
       "  vec3 light_dir = normalize(- view_vert_pos); // towards light\n"
       "  vec3 view_dir = normalize(-view_vert_pos);\n"
       "  vec3 n = normalize(wfn);\n"
@@ -145,19 +164,6 @@ struct cook_torrance_brdf_shader : gl::shader {
       "  //vec3 radiance = rgb2lin(emission.rgb);\n"
       "  vec3 radiance = rgb2lin(vec3(0,0,0));\n"
       "  \n"
-      "  vec3 base_color = vec3(0,0,0);\n"
-      "  if (use_solid_base_color == 1) {\n"
-      "    base_color = solid_base_color;\n"
-      "  } else {\n"
-      "    if (isnan(interp_scalar)) {\n"
-      "      base_color = vec3(1,0,0);\n"
-      "    }\n"
-      "  float norm_scalar = clamp((interp_scalar - min_scalar) / (max_scalar - min_scalar), 0, 1);\n"
-      "    if (invert_scale == 1) {\n"
-      "      norm_scalar = 1 - norm_scalar;\n"
-      "    }\n"
-      "    base_color = texture(color_scale, norm_scalar).rgb;\n"
-      "  }\n"
       "  //float irradiance = max(dot(light_dir, n), 0) * irradi_perp; \n"
       "  float irradiance = abs(dot(light_dir, n)) * irradi_perp; \n"
       "  if(irradiance > 0.0) { // if receives light\n"
@@ -188,6 +194,7 @@ struct cook_torrance_brdf_shader : gl::shader {
     set_min(0);
     set_max(1);
     invert_scale(false);
+    enable_lighting(true);
    }
 
   public:
@@ -230,6 +237,10 @@ struct cook_torrance_brdf_shader : gl::shader {
    //--------------------------------------------------------------------------
    auto use_solid_base_color(bool const use) -> void {
      set_uniform("use_solid_base_color", use ? 1 : 0);
+   }
+   //--------------------------------------------------------------------------
+   auto enable_lighting(bool const en) -> void {
+     set_uniform("lighting_enabled", en ? 1 : 0);
    }
 };
 //==============================================================================

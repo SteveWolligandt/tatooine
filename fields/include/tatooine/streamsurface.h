@@ -217,6 +217,223 @@ struct front_evolving_streamsurface_discretization
   using vertex_list_iterator_type = typename vertex_list_type::const_iterator;
   using vertex_range_type =
       std::pair<vertex_list_iterator_type, vertex_list_iterator_type>;
+  using streamsurface_type = Streamsurface;
+
+  // a front is a list of lists, containing vertices and a range specifing
+  // which vertices have to be triangulated from previous front
+  using front_type = vertex_list_type;
+
+  //============================================================================
+  // members
+  //============================================================================
+ private:
+  streamsurface_type const* m_streamsurface;
+  uv_property_type*         m_uv_property;
+
+ public:
+  auto streamsurface() const -> auto const& { return *m_streamsurface; }
+
+  //============================================================================
+  // ctors
+  //============================================================================
+  front_evolving_streamsurface_discretization(
+      streamsurface_type const* streamsurface)
+      : m_streamsurface{streamsurface}, m_uv_property{&insert_uv_prop()} {}
+  //----------------------------------------------------------------------------
+  front_evolving_streamsurface_discretization(this_type const& other)
+      : parent_type{other},
+        m_streamsurface{other.m_streamsurface},
+        m_uv_property{&find_uv_prop()} {}
+  //----------------------------------------------------------------------------
+  front_evolving_streamsurface_discretization(this_type&& other) noexcept
+      : parent_type{std::move(other)},
+        m_streamsurface{other.m_streamsurface},
+        m_uv_property{&find_uv_prop()} {}
+  //----------------------------------------------------------------------------
+  auto& operator=(this_type const& other) {
+    parent_type::operator=(other);
+    m_streamsurface = other.m_streamsurface;
+    m_uv_property   = &find_uv_prop();
+    return *this;
+  }
+  //----------------------------------------------------------------------------
+  auto& operator=(this_type&& other) noexcept {
+    parent_type::operator=(std::move(other));
+    m_streamsurface = other.m_streamsurface;
+    m_uv_property   = &find_uv_prop();
+    return *this;
+  }
+  //============================================================================
+  // methods
+  //============================================================================
+ private:
+  auto& insert_uv_prop() {
+    return this->template vertex_property<uv_type>("uv");
+  }
+  auto& find_uv_prop() { return this->template vertex_property<uv_type>("uv"); }
+  //----------------------------------------------------------------------------
+ public:
+  auto uv(vertex_handle v) -> auto& { return m_uv_property->at(v); }
+  auto uv(vertex_handle v) const -> auto const& { return m_uv_property->at(v); }
+  //----------------------------------------------------------------------------
+  auto t0(real_type u) const { return streamsurface().t0(u); }
+  //----------------------------------------------------------------------------
+  auto insert_vertex(pos_type const& p, uv_type const& p_uv) {
+    auto v = parent_type::insert_vertex(p);
+    uv(v)  = p_uv;
+    return v;
+  }
+  //----------------------------------------------------------------------------
+  auto triangulate_timeline(front_type const& front0,
+                            front_type const& front1) {
+    auto       new_face_indices = std::vector<triangle_handle>{};
+    auto       left0            = begin(front0);
+    auto const end0             = end(front0);
+    auto       left1            = begin(front1);
+    auto const end1             = end(front1);
+
+    // while both lines are not fully traversed
+    while (next(left0) != end0 || next(left1) != end1) {
+      assert(left0 != end0);
+      assert(left1 != end1);
+      auto       lower_edge_len = std::numeric_limits<real_type>::max();
+      auto       upper_edge_len = std::numeric_limits<real_type>::max();
+      auto const right0         = next(left0);
+      auto const right1         = next(left1);
+
+      if (next(left0) != end0) {
+        lower_edge_len = std::abs(uv(*left1)(0) - uv(*right0)(0));
+      }
+
+      if (next(left1) != end1) {
+        upper_edge_len = std::abs(uv(*right1)(0) - uv(*left0)(0));
+      }
+
+      if (lower_edge_len < upper_edge_len) {
+        new_face_indices.push_back(
+            this->insert_triangle(*left0, *right0, *left1));
+        if (next(left0) != end0) {
+          ++left0;
+        }
+
+      } else {
+        new_face_indices.push_back(
+            this->insert_triangle(*left0, *right1, *left1));
+
+        if (next(left1) != end1) {
+          ++left1;
+        }
+      }
+    }
+  }
+  //----------------------------------------------------------------------------
+  auto average_segment_length(vertex_list_type const& vertices) const {
+    real_type dist_acc = 0;
+    for (auto v = begin(vertices); v != prev(end(vertices)); ++v) {
+      dist_acc += euclidean_distance(at(*v), at(*next(v)));
+    }
+    return dist_acc / (size(vertices) - 1);
+  }
+  //--------------------------------------------------------------------------
+  auto seedcurve_to_front(std::size_t const seedline_resolution) {
+    auto front = front_type{};
+    for (auto u : linspace{streamsurface().min_u(), streamsurface().max_u(),
+                           seedline_resolution}) {
+      auto const t0u     = t0(u);
+      auto const new_pos = streamsurface()(u, t0u);
+      auto const v       = insert_vertex(new_pos, uv_type{u, t0u});
+      front.push_back(v);
+    }
+    return front;
+  }
+  //--------------------------------------------------------------------------
+  auto subdivide(front_type& front, real_type desired_spatial_dist) -> void {
+    for (auto v = begin(front); v != prev(end(front)); ++v) {
+      auto d = real_type{};
+      try {
+        d = streamsurface().distance(uv(*v), uv(*next(v)), 5);
+      } catch (std::exception&) {
+        d = euclidean_distance(at(*v), at(*next(v)));
+      }
+
+      auto stop = false;
+      while (d > desired_spatial_dist * 1.5) {
+        // split front if u distance to small
+        auto new_uv = (uv(*v) + uv(*next(v))) * 0.5;
+        try {
+          auto new_pnt = streamsurface()(new_uv);
+          auto new_v   = insert_vertex(new_pnt, uv_type{new_uv(0), new_uv(1)});
+          front.insert(next(v), new_v);
+          try {
+            d = streamsurface().distance(uv(*v), uv(*next(v)), 5);
+          } catch (std::exception&) {
+            d = euclidean_distance(at(*v), at(*next(v)));
+          }
+        } catch (std::exception&) {
+          stop = true;
+          break;
+        }
+      }
+      if (stop) {
+        break;
+      }
+    }
+  }
+  //---------------------------------------------------------------------------
+  void reduce(front_type& front, real_type desired_spatial_dist) {
+    if (front.size() >= 3) {
+      for (auto v = begin(front); v != prev(end(front), 2); ++v) {
+        auto d = [&] {
+          try {
+            return streamsurface().distance(uv(*v), uv(*next(v, 2)), 7);
+          } catch (std::exception&) {
+            return euclidean_distance(at(*v), at(*next(v))) +
+                   euclidean_distance(at(*next(v)), at(*next(v, 2)));
+          }
+        };
+        while (next(v) != prev(end(front), 2) &&
+               d() < desired_spatial_dist * 1.25) {
+          front.erase(next(v));
+        }
+      }
+    }
+    if (front.size() > 2 &&
+        norm(at(*prev(end(front), 1)) - at(*prev(end(front), 2))) <
+            desired_spatial_dist * 0.5) {
+      front.erase(prev(end(front), 2));
+    }
+  }
+};
+//==============================================================================
+template <typename Streamsurface>
+struct multi_front_evolving_streamsurface_discretization
+    : public unstructured_triangular_grid<typename Streamsurface::real_type,
+                                          Streamsurface::num_dimensions()> {
+  //============================================================================
+  // typedefs
+  //============================================================================
+  static constexpr auto num_dimensions() {
+    return Streamsurface::num_dimensions();
+  }
+  using real_type = typename Streamsurface::real_type;
+  using this_type = multi_front_evolving_streamsurface_discretization<Streamsurface>;
+  using parent_type = unstructured_triangular_grid<real_type, num_dimensions()>;
+  using parent_type::at;
+  using typename parent_type::pos_type;
+  using parent_type::operator[];
+  using typename parent_type::triangle_handle;
+  using typename parent_type::vertex_handle;
+
+  using vec2    = vec<real_type, 2>;
+  using uv_type = vec2;
+  using uv_property_type =
+      typename parent_type::template typed_vertex_property_type<uv_type>;
+
+  using vertex_vec_type           = std::vector<vertex_handle>;
+  using vertex_list_type          = std::list<vertex_handle>;
+  using vertex_list_iterator_type = typename vertex_list_type::const_iterator;
+  using vertex_range_type =
+      std::pair<vertex_list_iterator_type, vertex_list_iterator_type>;
   using subfront_type      = std::pair<vertex_list_type, vertex_range_type>;
   using streamsurface_type = Streamsurface;
 
@@ -238,16 +455,16 @@ struct front_evolving_streamsurface_discretization
   //============================================================================
   // ctors
   //============================================================================
-  front_evolving_streamsurface_discretization(
+  multi_front_evolving_streamsurface_discretization(
       streamsurface_type const* streamsurface)
       : m_streamsurface{streamsurface}, m_uv_property{&insert_uv_prop()} {}
   //----------------------------------------------------------------------------
-  front_evolving_streamsurface_discretization(this_type const& other)
+  multi_front_evolving_streamsurface_discretization(this_type const& other)
       : parent_type{other},
         m_streamsurface{other.m_streamsurface},
         m_uv_property{&find_uv_prop()} {}
   //----------------------------------------------------------------------------
-  front_evolving_streamsurface_discretization(this_type&& other) noexcept
+  multi_front_evolving_streamsurface_discretization(this_type&& other) noexcept
       : parent_type{std::move(other)},
         m_streamsurface{other.m_streamsurface},
         m_uv_property{&find_uv_prop()} {}
@@ -428,11 +645,11 @@ struct front_evolving_streamsurface_discretization
             // split front if u distance to small
             real_type u_dist = std::abs(uv(*v)(0) - uv(*next(v))(0));
             if (u_dist < 1e-5) {
-              auto const best_pred = find_best_predecessor(v, pred_range);
+              auto const best_predecessor = find_best_predecessor(v, pred_range);
               front.emplace(
                   next(subfront), vertex_list_type{next(v), end(vs)},
-                  vertex_range_type{next(best_pred), pred_range.second});
-              pred_range.second = next(best_pred);
+                  vertex_range_type{next(best_predecessor), pred_range.second});
+              pred_range.second = next(best_predecessor);
               vs.erase(next(v), end(vs));
               stop = true;
               break;
@@ -451,12 +668,12 @@ struct front_evolving_streamsurface_discretization
               }
             } catch (std::exception&) {
               if (next(v, 2) != end(vs)) {
-                auto const best_pred = find_best_predecessor(v, pred_range);
+                auto const best_predecessor = find_best_predecessor(v, pred_range);
                 // front.emplace(next(subfront), vertex_list_type{next(v),
                 // end(vs)},
-                //              vertex_range_type{next(best_pred),
+                //              vertex_range_type{next(best_predecessor),
                 //              pred_range.second});
-                pred_range.second = next(best_pred);
+                pred_range.second = next(best_predecessor);
                 vs.erase(next(v), end(vs));
               }
               stop = true;
@@ -587,7 +804,7 @@ struct naive_discretization
       v = insert_vertex(new_pos, {uv(0), uv(1) + step});
     }
 
-    this->triangulate_timeline(advected_front);
+    this->triangulate_timeline(front, advected_front);
     return advected_front;
   }
 };
@@ -606,7 +823,6 @@ struct hultquist_discretization
   using parent_type::streamsurface;
   using typename parent_type::front_type;
   using typename parent_type::streamsurface_type;
-  using typename parent_type::subfront_type;
   using typename parent_type::triangle_handle;
   using typename parent_type::uv_type;
   using typename parent_type::vertex_handle;
@@ -622,19 +838,16 @@ struct hultquist_discretization
     assert(forward_tau >= 0);
     assert(backward_tau <= 0);
 
-    auto const seed_front =
-        this->seedcurve_to_front(seedline_resolution /*,*/
-                                 /*backward_tau, forward_tau*/);
-    if (seed_front.empty()) {
+    auto const seed_front = this->seedcurve_to_front(seedline_resolution);
+    if (seed_front.size() <= 1) {
       return;
     }
-    real_type desired_spatial_dist =
-        this->average_segment_length(seed_front.front());
+    auto const desired_spatial_dist = this->average_segment_length(seed_front);
 
     if (backward_tau < 0) {
-      auto      cur_stepsize  = stepsize;
-      auto      cur_front     = seed_front;
-      real_type advected_time = 0;
+      auto cur_stepsize  = stepsize;
+      auto cur_front     = seed_front;
+      auto advected_time = real_type{};
       while (advected_time > backward_tau) {
         if (advected_time - cur_stepsize < backward_tau) {
           cur_stepsize = std::abs(backward_tau - advected_time);
@@ -645,9 +858,9 @@ struct hultquist_discretization
     }
 
     if (forward_tau > 0) {
-      auto      cur_stepsize  = stepsize;
-      auto      cur_front     = seed_front;
-      real_type advected_time = 0;
+      auto cur_stepsize  = stepsize;
+      auto cur_front     = seed_front;
+      auto advected_time = real_type{};
       while (advected_time < forward_tau) {
         if (advected_time + cur_stepsize > forward_tau) {
           cur_stepsize = forward_tau - advected_time;
@@ -658,140 +871,36 @@ struct hultquist_discretization
     }
   }
   //----------------------------------------------------------------------------
-  hultquist_discretization(this_type const& other)                = default;
-  hultquist_discretization(this_type&& other) noexcept            = default;
-  hultquist_discretization& operator=(this_type const& other)     = default;
-  hultquist_discretization& operator=(this_type&& other) noexcept = default;
+  hultquist_discretization(this_type const& other)                    = default;
+  hultquist_discretization(this_type&& other) noexcept                = default;
+  auto operator=(this_type const& other) -> hultquist_discretization& = default;
+  auto operator=(this_type&& other) noexcept
+      -> hultquist_discretization&                                = default;
   ~hultquist_discretization()                                     = default;
   //============================================================================
-  auto advect(subfront_type const& subfront, real_type step) {
+  auto advect(front_type front, real_type step) {
     assert(step != 0);
-    struct advected_vertex {
-      vertex_handle             v;
-      bool                      moved, on_border, resampled;
-      vertex_list_iterator_type start_vertex;
-    };
-    //::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    // advect vertices with domain border detection
-    auto advected_vertices = std::list<advected_vertex>{};
-    for (auto v_it = begin(subfront.first); v_it != end(subfront.first);
-         ++v_it) {
-      auto        v      = *v_it;
+    for (auto& v :front) {
       auto const& uv     = parent_type::uv(v);
       auto const  new_uv = vec{uv(0), uv(1) + step};
-      // try {
-      // if (this->m_on_border.find(v) == end(this->m_on_border)) {
       auto new_pos = streamsurface()(new_uv);
-      advected_vertices.push_back(
-          {insert_vertex(new_pos, uv_type{new_uv(0), new_uv(1)}), true, false,
-           false, v_it});
-      //} else {
-      //  advected_vertices.push_back({v, false, true, false, v_it});
-      //}
-
-      //} catch (std::exception&) {
-      // auto const& streamline =
-      //    streamsurface().streamline_at(uv(0));
-      // if (!streamline.empty()) {
-      //  auto const& border_point =
-      //      step > 0 ? streamline.back() : streamline.front();
-      //  auto new_v = insert_vertex(border_point.first,
-      //                             uv_type{uv(0), border_point.second});
-      //  advected_vertices.push_back({new_v, true, true, false, v_it});
-      //  this->m_on_border.insert(new_v);
-      //}
-      //}
+      v = insert_vertex(new_pos, uv_type{new_uv(0), new_uv(1)});
     }
-
-    //::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    // insert front vertices on actual front intersecting domain border
-    for (auto it = begin(advected_vertices); it != prev(end(advected_vertices));
-         ++it) {
-      if (it->on_border != next(it)->on_border) {
-        // find point between current and next that hits the border and is on
-        // advected subfront
-        auto const& uv        = next(it)->on_border ? parent_type::uv(it->v)
-                                                    : parent_type::uv(next(it)->v);
-        auto const  fix_v     = uv(1);
-        auto        walking_u = uv(0);
-        auto const  dist      = std::abs(parent_type::uv(it->v)(0) -
-                                         parent_type::uv(next(it)->v)(0));
-        auto        step      = dist / 4;
-        if (it->on_border) {
-          step = -step;
-        }
-        bool found = false;
-        while (std::abs(step) > 1e-10) {
-          try {
-            streamsurface()(walking_u + step, fix_v);
-            walking_u += step;
-            if (!found) {
-              found = true;
-            }
-          } catch (std::exception&) {
-            step /= 2;
-          }
-        }
-        if (found) {
-          auto new_v = insert_vertex(streamsurface()(walking_u, fix_v),
-                                     uv_type{walking_u, fix_v});
-          advected_vertices.insert(next(it),
-                                   {new_v, true, true, true,
-                                    next(it)->on_border ? next(it)->start_vertex
-                                                        : it->start_vertex});
-          ++it;
-        }
-      }
-    }
-
-    //::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    // create new subfronts with domain border detection
-    auto new_subfronts = std::vector<subfront_type>{
-        {{}, {begin(subfront.first), end(subfront.first)}}};
-
-    for (auto it = begin(advected_vertices); it != prev(end(advected_vertices));
-         ++it) {
-      // if (it->moved) {
-      new_subfronts.back().first.push_back(it->v);
-      //} else if (new_subfronts.back().first.empty()) {
-      //  if (it != begin(advected_vertices)) {
-      //    ++new_subfronts.back().second.first;
-      //  }
-      //} else {
-      //  new_subfronts.back().second.second = next(it)->start_vertex;
-      //  new_subfronts.emplace_back(
-      //      vertex_list_type{},
-      //      vertex_range_type{it->start_vertex, end(subfront.first)});
-      //}
-    }
-    // if (advected_vertices.back().moved) {
-    //   new_subfronts.back().first.push_back(advected_vertices.back().v);
-    // }
-    //
-    // if (new_subfronts.back().first.empty()) {
-    //   new_subfronts.pop_back();
-    // }
-    return new_subfronts;
+    return front;
   }
 
   //--------------------------------------------------------------------------
-  auto advect(front_type const& front, real_type const step) {
-    auto new_front = front_type{};
-    for (auto const& subfront : front) {
-      if (subfront.first.size() > 1) {
-        boost::copy(advect(subfront, step), std::back_inserter(new_front));
-      }
-    }
-    return new_front;
-  }
-  //----------------------------------------------------------------------------
   auto evolve(front_type const& front, real_type step,
               real_type desired_spatial_dist) {
     auto advected_front = advect(front, step);
 
-    // this->subdivide(advected_front, desired_spatial_dist);
-    // this->reduce(advected_front, desired_spatial_dist);
-    this->triangulate_timeline(advected_front);
+    //this->subdivide(advected_front, desired_spatial_dist);
+    //this->reduce(advected_front, desired_spatial_dist);
+    if (step > 0) {
+      this->triangulate_timeline(front, advected_front);
+    } else {
+      this->triangulate_timeline(advected_front, front);
+    }
     return advected_front;
   }
 };
@@ -799,12 +908,12 @@ struct hultquist_discretization
 //==============================================================================
 // template <typename Flowmap,
 //          template <typename> typename SeedcurveInterpolationKernel>
-// struct schulze_discretization : front_evolving_streamsurface_discretization<
+// struct schulze_discretization : multi_front_evolving_streamsurface_discretization<
 //                                    Flowmap, SeedcurveInterpolationKernel> {
 //  using real_type = typename Flowmap::real_type;
 //  static constexpr auto num_dimensions() { return Flowmap::num_dimensions(); }
 //  using parent_type =
-//      front_evolving_streamsurface_discretization<Flowmap,
+//      multi_front_evolving_streamsurface_discretization<Flowmap,
 //                                                  SeedcurveInterpolationKernel>;
 //  using typename parent_type::triangle_handle;
 //  using typename parent_type::front_type;

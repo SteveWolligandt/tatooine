@@ -31,10 +31,11 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
     GLfloat      max_scalar     = -std::numeric_limits<GLfloat>::max();
     bool         scale_inverted = false;
   };
-  GLfloat       reflectance      = 0.5f;
+  GLfloat       reflectance      = 0.8f;
   GLfloat       roughness        = 0.5f;
   GLfloat       metallic         = 0.0f;
   GLfloat       irradi_perp      = 5.0f;
+  bool          lighting_enabled = true;
   Vec3<GLfloat> solid_base_color = {1, 1, 1};
 
   std::unordered_map<std::string, property_settings> settings;
@@ -47,6 +48,7 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
 
   gl::vertexbuffer<Vec3<GLfloat>, Vec3<GLfloat>, GLfloat> m_geometry;
   gl::indexbuffer                                         m_triangles;
+  gl::indexbuffer                                         m_wireframe;
 
  public:
   //============================================================================
@@ -68,12 +70,13 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
 
     m_geometry.resize(grid.vertices().size());
     m_triangles.resize(grid.simplices().size() * 3);
+    m_wireframe.resize(grid.simplices().size() * 6);
     {
       auto data = m_geometry.wmap();
       auto k    = std::size_t{};
       for (auto const v : grid.vertices()) {
-        get<0>(data[k]) = Vec3<GLfloat>{grid[v]};
-        get<1>(data[k]) = Vec3<GLfloat>{normals[v.index()]};
+        data[k].template at<0>() = Vec3<GLfloat>{grid[v]};
+        data[k].template at<1>() = Vec3<GLfloat>{normals[v.index()]};
         ++k;
       }
     }
@@ -85,6 +88,19 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
         data[k++] = v0.index();
         data[k++] = v1.index();
         data[k++] = v2.index();
+      }
+    }
+    {
+      auto data = m_wireframe.wmap();
+      auto k    = std::size_t{};
+      for (auto const s : grid.simplices()) {
+        auto const [v0, v1, v2] = grid[s];
+        data[k++] = v0.index();
+        data[k++] = v1.index();
+        data[k++] = v1.index();
+        data[k++] = v2.index();
+        data[k++] = v2.index();
+        data[k++] = v0.index();
       }
     }
   }
@@ -492,10 +508,13 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
   //----------------------------------------------------------------------------
   auto properties(renderable_type const& grid) {
     //ImGui::Text("Triangular Grid");
-    ImGui::DragFloat("Reflectance", &reflectance, 0.01f, 0.0f, 1.0f);
-    ImGui::DragFloat("Roughness", &roughness, 0.01f, 0.0f, 1.0f);
-    ImGui::DragFloat("Metallic", &metallic, 0.01f, 0.0f, 1.0f);
-    ImGui::DragFloat("Irradiance Perp", &irradi_perp, 0.1f, 0.0f, 100.0f);
+    ImGui::Checkbox("Enable Lighting", &lighting_enabled);
+    if (lighting_enabled) {
+      ImGui::DragFloat("Reflectance", &reflectance, 0.01f, 0.0f, 1.0f);
+      ImGui::DragFloat("Roughness", &roughness, 0.01f, 0.0f, 1.0f);
+      ImGui::DragFloat("Metallic", &metallic, 0.01f, 0.0f, 1.0f);
+      ImGui::DragFloat("Irradiance Perp", &irradi_perp, 0.1f, 0.0f, 100.0f);
+    }
     grid_property_selection(grid);
     if (selected_property != nullptr && vector_property) {
       vector_component_selection(grid);
@@ -528,16 +547,28 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
       property_shader::get().use_solid_base_color(true);
       property_shader::get().set_solid_base_color(solid_base_color);
     }
+    property_shader::get().enable_lighting(lighting_enabled);
     property_shader::get().set_reflectance(reflectance);
     property_shader::get().set_metallic(metallic);
     property_shader::get().set_roughness(roughness);
     property_shader::get().set_irradi_perp(irradi_perp);
-    auto vao = gl::vertexarray{};
-    vao.bind();
-    m_geometry.bind();
-    m_geometry.activate_attributes();
-    m_triangles.bind();
-    vao.draw_triangles(m_triangles.size());
+    gl::line_width(5);
+    {
+      auto vao = gl::vertexarray{};
+      vao.bind();
+      m_geometry.bind();
+      m_geometry.activate_attributes();
+      m_wireframe.bind();
+      vao.draw_lines(m_wireframe.size());
+    }
+    //{
+    //  auto vao = gl::vertexarray{};
+    //  vao.bind();
+    //  m_geometry.bind();
+    //  m_geometry.activate_attributes();
+    //  m_triangles.bind();
+    //  vao.draw_triangles(m_triangles.size());
+    //}
   }
   //----------------------------------------------------------------------------
   auto update(auto const dt, renderable_type const& grid,

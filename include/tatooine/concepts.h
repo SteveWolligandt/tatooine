@@ -1,5 +1,5 @@
-#ifndef TATOOINE_CONCPETS_H
-#define TATOOINE_CONCPETS_H
+#ifndef TATOOINE_CONCEPTS_H
+#define TATOOINE_CONCEPTS_H
 //==============================================================================
 #include <tatooine/invocable_with_n_types.h>
 #include <tatooine/type_traits.h>
@@ -130,8 +130,6 @@ concept indexable = requires(T const t, std::size_t i) {
   { t[i] };
   { t.at(i) };
 };
-//==============================================================================
-// methods
 //==============================================================================
 template <typename F, typename... Args>
 concept invocable = std::invocable<F, Args...>;

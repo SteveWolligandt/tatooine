@@ -84,7 +84,6 @@ macro(create_test NAME)
       CATCH_CONFIG_FAST_COMPILE)
   add_custom_target(
     ${TARGET}.run
-    EXCLUDE_FROM_ALL
     COMMAND ./${TARGET}
             --use-colour=yes
     DEPENDS ${TARGET})
@@ -138,11 +137,11 @@ macro(create_test NAME)
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
       # code coverage when using gcc in debug
       add_executable(
-        ${TARGET}.gcov EXCLUDE_FROM_ALL
+        ${TARGET}.gcov
         main.cpp ${NAME}.cpp)
       target_link_libraries(
         ${TARGET}.gcov
-        tatooine gl Catch2::Catch2 gcov)
+        base gl Catch2::Catch2 gcov)
       target_compile_options(
         ${TARGET}.gcov
         PRIVATE
@@ -169,7 +168,6 @@ macro(create_test NAME)
         DEPENDENCIES ${TARGET}.gcov)
       add_custom_target(
         ${TARGET}.codecoverage
-        EXCLUDE_FROM_ALL
         COMMAND rm -rf ${NAME}_codecoverage
         COMMAND mv ${TARGET}.lcov ${NAME}_codecoverage
         DEPENDS ${TARGET}.lcov)
@@ -203,7 +201,7 @@ add_executable (
   endif()
 target_link_libraries(
   unittests
-  tatooine gl Catch2::Catch2)
+  base gl Catch2::Catch2)
 target_include_directories(
   unittests
   PRIVATE
@@ -268,7 +266,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
       main.cpp ${TATOOINE_TEST_CPPS})
     target_link_libraries(
       unittests.gcov
-      tatooine gl Catch2::Catch2 gcov)
+      base gl Catch2::Catch2 gcov)
     target_compile_options(
       unittests.gcov
       PRIVATE
