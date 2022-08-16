@@ -19,10 +19,6 @@ struct tuple<Head, Tail...> {
   tuple(Head&& head_, Tail_&&... tail_)
       : head{std::move(head_)}, tail{std::forward<Tail_>(tail_)...} {}
   //----------------------------------------------------------------------------
-  template <typename... Tail_>
-  tuple(Head const& head_, Tail_&&... tail_)
-      : head{head_}, tail{std::forward<Tail_>(tail_)...} {}
-  //----------------------------------------------------------------------------
   template <std::convertible_to<Head> Head_, typename... Tail_>
   tuple(Head_&& head_, Tail_&&... tail_)
       : head{static_cast<Head>(std::forward<Head_>(head_))},
@@ -35,7 +31,7 @@ struct tuple<Head, Tail...> {
   auto operator=(tuple const&) -> tuple& = default;
   auto operator=(tuple&&) noexcept -> tuple& = default;
   //============================================================================
-  template <typename T>
+  template <typename T = Head>
   auto as_pointer() {
     return reinterpret_cast<T*>(this);
   }
@@ -81,10 +77,6 @@ struct tuple<Head> {
   static auto constexpr size() {return 1;}
   Head head;
   //============================================================================
-  tuple(Head&& head_) : head{std::move(head_)} {}
-  //----------------------------------------------------------------------------
-  tuple(Head const& head_) : head{head_} {}
-  //----------------------------------------------------------------------------
   template <std::convertible_to<Head> Head_>
   tuple(Head_&& head_) : head{static_cast<Head>(std::forward<Head_>(head_))} {}
   //----------------------------------------------------------------------------
@@ -95,7 +87,7 @@ struct tuple<Head> {
   auto operator=(tuple const&) -> tuple& = default;
   auto operator=(tuple&&) noexcept -> tuple& = default;
   //============================================================================
-  template <typename T = void>
+  template <typename T = Head>
   auto as_pointer() {
     return reinterpret_cast<T*>(this);
   }
