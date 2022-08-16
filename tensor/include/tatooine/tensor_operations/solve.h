@@ -95,8 +95,8 @@ auto solve_lu_lapack(MatA& A_, VecB&& b_)
   using out_value_type =
       common_type<tensor_value_type<MatA>, tensor_value_type<VecB>>;
   static constexpr auto N = tensor_dimension<MatA, 1>;
-  auto                  A    = mat<out_value_type, N, N>{A_};
-  auto                  b    = vec<out_value_type, N>{b_};
+  auto                  A    = tensor{A_};
+  auto                  b    = tensor{b_};
   auto                  ipiv = vec<std::int64_t, N>{};
   [[maybe_unused]] auto info = lapack::gesv(A, b, ipiv);
   if (info != 0) {

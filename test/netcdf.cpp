@@ -222,8 +222,9 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
       auto chunk =
           var.read_chunk(std::vector<size_t>{0, 0}, std::vector<size_t>{3, 2});
       std::cerr << "chunk: ";
-      for (auto d : chunk.data())
+      for (auto d : chunk.container()) {
         std::cerr << d << ' ';
+      }
       std::cerr << '\n';
       REQUIRE(chunk(0, 0) == 0);
       REQUIRE(chunk(1, 0) == 1);

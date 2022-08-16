@@ -3,8 +3,8 @@
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
-TEST_CASE("lambda_field_circle"){
-  auto constexpr v = make_field<2>([](auto const& x, auto const& /*t*/) {
+TEST_CASE("lambda_field_circle") {
+  auto constexpr v   = make_field<2>([](auto const& x, auto const& /*t*/) {
     return vec{-x.y(), x.x()};
   });
   constexpr auto v00 = v(0, 0);
@@ -14,5 +14,5 @@ TEST_CASE("lambda_field_circle"){
   REQUIRE(v12(1) == 1);
 }
 //==============================================================================
-}
+}  // namespace tatooine::test
 //==============================================================================

@@ -30,12 +30,16 @@ set(COVERAGE_EXCLUDES
     ${CMAKE_SOURCE_DIR}/test
     ${CMAKE_SOURCE_DIR}/external/
     ${CMAKE_CURRENT_SOURCE_DIR}/external
+    /usr/local/include
     /usr/include)
 set(COVERAGE_GCOVR_EXCLUDES ${COVERAGE_EXCLUDES})
 set(COVERAGE_LCOV_EXCLUDES
   /usr/include/boost/*/*
   /usr/include/boost/*/*/*
   /usr/include/png++/*
+  /usr/include/*/c++/*/*
+  /usr/include/*/c++/*/*/*
+  /usr/include/*/c++/*/*/*/*
   /usr/include/c++/*/*
   /usr/include/c++/*/*/*
   /usr/include/c++/*/*/*/*
@@ -58,7 +62,7 @@ macro(create_test NAME)
   endif()
   target_link_libraries(
     ${TARGET}
-    base gl fields Catch2::Catch2)
+    base fields rendering Catch2::Catch2)
   target_include_directories(
     ${TARGET}
     PRIVATE
@@ -141,7 +145,7 @@ macro(create_test NAME)
         main.cpp ${NAME}.cpp)
       target_link_libraries(
         ${TARGET}.gcov
-        base gl Catch2::Catch2 gcov)
+        base fields rendering Catch2::Catch2 gcov)
       target_compile_options(
         ${TARGET}.gcov
         PRIVATE
@@ -201,7 +205,7 @@ add_executable (
   endif()
 target_link_libraries(
   unittests
-  base gl Catch2::Catch2)
+  base fields rendering Catch2::Catch2)
 target_include_directories(
   unittests
   PRIVATE
@@ -266,7 +270,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
       main.cpp ${TATOOINE_TEST_CPPS})
     target_link_libraries(
       unittests.gcov
-      base gl Catch2::Catch2 gcov)
+      base fields rendering Catch2::Catch2 gcov)
     target_compile_options(
       unittests.gcov
       PRIVATE

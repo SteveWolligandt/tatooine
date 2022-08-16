@@ -190,6 +190,7 @@ struct lambda_field
                                  tatooine::real_number>> {
   F m_f;
   constexpr lambda_field(F&& f) : m_f{std::forward<F>(f)} {}
+  ~lambda_field()   = default;
   using parent_type = field<
       lambda_field<NumDimensions, F>,
       tensor_value_type<std::invoke_result_t<

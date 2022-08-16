@@ -12,7 +12,7 @@ TEST_CASE("rendering ortho cam") {
     auto eye         = vec3{0, 0, -1};
     auto lookat      = vec3{0, 0, 0};
     auto up          = vec3{0, 1, 0};
-    auto cam         = orthographic_camera<real_type>{eye,  lookat, up,     height,
+    auto cam         = orthographic_camera<real_number>{eye,  lookat, up,     height,
                                            near, far,    res(0), res(1)};
     auto query_point = lookat;
     auto projected   = cam.project(query_point);
@@ -34,7 +34,7 @@ TEST_CASE("rendering ortho cam") {
     auto eye         = vec3{2, 1, 3};
     auto lookat      = vec3{-1, 1, 3};
     auto up          = vec3{0, 1, 0};
-    auto cam         = orthographic_camera<real_type>{eye,  lookat, up,     height,
+    auto cam         = orthographic_camera<real_number>{eye,  lookat, up,     height,
                                            near, far,    res(0), res(1)};
     auto query_point = lookat;
     auto projected   = cam.project(query_point);
@@ -52,7 +52,7 @@ TEST_CASE("rendering ortho cam") {
     auto eye         = vec3{2, 1, 3};
     auto lookat      = vec3{-1, 1, 3};
     auto up          = vec3{0, 1, 0};
-    auto cam         = orthographic_camera<real_type>{eye,  lookat, up,     height,
+    auto cam         = orthographic_camera<real_number>{eye,  lookat, up,     height,
                                            near, far,    res(0), res(1)};
     auto screen_pos  = vec2{0, 0};
     auto unproj      = cam.unproject(screen_pos);
