@@ -100,10 +100,11 @@ struct sphere : ray_intersectable<Real, N> {
     auto const z         = r * cos_phi;
     return vec{x, y, z};
   }
+  //----------------------------------------------------------------------------
   template <typename RandReal, typename RandEngine>
-  auto random_points(size_t const                          n,
+  auto random_points(size_t const                           n,
                      random::uniform<RandReal, RandEngine>& rand) const {
-    std::vector<vec<Real, N>> ps;
+    auto ps = std::vector<vec<Real, N>>{};
     for (size_t i = 0; i < n; ++i) {
       auto const u         = rand();
       auto const v         = rand();

@@ -1,22 +1,23 @@
 #include <tatooine/analytical/numerical/doublegyre.h>
-#include <catch2/catch.hpp>
+#include <tatooine/field_operations.h>
 
+#include <catch2/catch.hpp>
 //═════════════════════════════════════════════════════════════════════════════╗
 namespace tatooine::test {
 //═══════════════════════════════════════════════════════════════════════════╗
 TEST_CASE("field_operations_dot", "[field_operations]") {
-  analytical::numerical::doublegyre dg;
-  auto sqr_len_dg = dot(dg, dg);
-  vec<double, 2> x{0.1, 0.1};
-  double t = 1;
-  REQUIRE(dot(dg(x, t), dg(x, t)) == Approx(sqr_len_dg(x, t)));
+  auto   v          = analytical::numerical::doublegyre{};
+  auto   sqr_len_dg = dot(v, v);
+  auto   x          = vec<double, 2>{0.1, 0.1};
+  auto t = real_number{1};
+  REQUIRE(dot(v(x, t), v(x, t)) == Approx(sqr_len_dg(x, t)));
 }
 //═══════════════════════════════════════════════════════════════════════════╡
 TEST_CASE("field_operations_tensor_sum", "[field_operations]") {
-  analytical::numerical::doublegyre dg;
-  auto dg2 = dg + dg;
-  REQUIRE(dg2(0.3, 0.3)(0) == Approx(dg(0.3, 0.3)(0) * 2));
-  REQUIRE(dg2(0.3, 0.3)(1) == Approx(dg(0.3, 0.3)(1) * 2));
+  auto v = analytical::numerical::doublegyre{};
+  auto dg2 = v + v;
+  REQUIRE(dg2(0.3, 0.3)(0) == Approx(v(0.3, 0.3)(0) * 2));
+  REQUIRE(dg2(0.3, 0.3)(1) == Approx(v(0.3, 0.3)(1) * 2));
 }
 //═══════════════════════════════════════════════════════════════════════════╝
 }  // namespace tatooine::test

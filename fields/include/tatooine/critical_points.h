@@ -8,19 +8,18 @@
 #include <tatooine/field.h>
 #include <tatooine/rectilinear_grid.h>
 #include <tatooine/interpolation.h>
-#include <tatooine/sampled_field.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename VertexProperty>
-auto find_critical_points(sampler<VertexProperty, interpolation::linear,
-                                  interpolation::linear> const& s) {
-  static_assert(static_vec<typename VertexProperty::value_type>,
-                "container of sampler must hold vectors");
-  static_assert(VertexProperty::value_type::dimension(0) == 2);
+template <typename Grid, typename Real, bool HasNonConstReference>
+auto find_critical_points(
+    detail::rectilinear_grid::vertex_property_sampler<
+        detail::rectilinear_grid::typed_vertex_property_interface<Grid, vec<Real, 2>,
+                                                        HasNonConstReference>,
+        interpolation::linear, interpolation::linear> const& s) {
   using namespace boost;
   using namespace adaptors;
-  std::vector<typename VertexProperty::grid_t::pos_type> critical_points;
+  auto critical_points = std::vector<typename Grid::pos_type>{};
   // iterate over each grid cell
   for (size_t y = 0; y < s.grid().template size<1>() - 1; ++y) {
     for (size_t x = 0; x < s.grid().template size<0>() - 1; ++x) {
@@ -38,15 +37,6 @@ auto find_critical_points(sampler<VertexProperty, interpolation::linear,
   }
   return critical_points;
 }
-//// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-//template <typename Grid, typename Container>
-//auto find_critical_points(
-//    grid_vertex_property<Grid, Container, interpolation::linear,
-//                         interpolation::linear> const& prop) {
-//  return find_critical_points(
-//      *dynamic_cast<sampler<Grid, Container, interpolation::linear,
-//                            interpolation::linear>*>(&prop));
-//}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

@@ -92,11 +92,12 @@ requires(tensor_dimension<MatA, 1> ==
 auto solve_lu_lapack(MatA& A_, VecB&& b_)
     -> std::optional<
         tensor<common_type<tensor_value_type<MatA>, tensor_value_type<VecB>>>> {
-  using out_value_type =
+  using common_type =
       common_type<tensor_value_type<MatA>, tensor_value_type<VecB>>;
-  static constexpr auto N = tensor_dimension<MatA, 1>;
-  auto                  A    = tensor{A_};
-  auto                  b    = tensor{b_};
+  static constexpr auto M    = tensor_dimension<MatA, 0>;
+  static constexpr auto N    = tensor_dimension<MatA, 1>;
+  auto                  A    = tensor<common_type, M, N>{A_};
+  auto                  b    = tensor<common_type, N>{b_};
   auto                  ipiv = vec<std::int64_t, N>{};
   [[maybe_unused]] auto info = lapack::gesv(A, b, ipiv);
   if (info != 0) {
@@ -106,11 +107,10 @@ auto solve_lu_lapack(MatA& A_, VecB&& b_)
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <static_quadratic_mat MatA, static_mat MatB>
-requires(tensor_dimension<MatA, 1> ==
-         tensor_dimension<MatB, 0>)
-auto solve_lu_lapack(MatA& A_, MatB& B_)
-    -> std::optional<
-        tensor<common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>>> {
+requires(tensor_dimension<MatA, 0> == tensor_dimension<MatB, 0>)
+auto solve_lu_lapack(MatA& A_, MatB& B_) -> std::optional<
+    mat<common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>,
+        tensor_dimension<MatA, 1>, tensor_dimension<MatB, 1>>> {
   using out_value_type =
       common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>;
   static constexpr auto N = tensor_dimension<MatA, 1>; 

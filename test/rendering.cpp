@@ -6,9 +6,9 @@ namespace tatooine::rendering::test {
 TEST_CASE("rendering ortho cam") {
   SECTION("center of canonical view volume") {
     auto res         = Vec2<std::size_t>{100, 100};
-    auto height      = 5;
-    auto near        = 0;
-    auto far         = 2;
+    auto height      = real_number{5};
+    auto near        = real_number{0};
+    auto far         = real_number{2};
     auto eye         = vec3{0, 0, -1};
     auto lookat      = vec3{0, 0, 0};
     auto up          = vec3{0, 1, 0};
@@ -28,9 +28,9 @@ TEST_CASE("rendering ortho cam") {
   }
   SECTION("arbitrary") {
     auto res         = Vec2<std::size_t>{100, 100};
-    auto height      = 5;
-    auto near        = 0;
-    auto far         = 2;
+    auto height      = real_number{5};
+    auto near        = real_number{0};
+    auto far         = real_number{2};
     auto eye         = vec3{2, 1, 3};
     auto lookat      = vec3{-1, 1, 3};
     auto up          = vec3{0, 1, 0};
@@ -46,9 +46,9 @@ TEST_CASE("rendering ortho cam") {
   }
   SECTION("screen to world to screen") {
     auto res         = Vec2<std::size_t>{100, 100};
-    auto height      = 5;
-    auto near        = 0;
-    auto far         = 2;
+    auto height      = real_number{5};
+    auto near        = real_number{0};
+    auto far         = real_number{2};
     auto eye         = vec3{2, 1, 3};
     auto lookat      = vec3{-1, 1, 3};
     auto up          = vec3{0, 1, 0};

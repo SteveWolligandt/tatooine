@@ -4,7 +4,7 @@
 namespace tatooine::test {
 //==============================================================================
 TEST_CASE("ellipse_is_inside", "[ellipse][is_inside]") {
-  auto e = geometry::ellipse{1.0, 2.0};
+  auto e = geometry::ellipse<real_number>{1.0, 2.0};
   discretize(e, 100).write_vtk("ellipse_1_2.vtk");
   REQUIRE(e.is_inside(vec2{0,0}));
   REQUIRE(e.is_inside(vec2{1,0}));

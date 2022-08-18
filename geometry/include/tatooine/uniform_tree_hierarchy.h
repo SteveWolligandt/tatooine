@@ -330,6 +330,14 @@ struct uniform_tree_hierarchy<
   }
 };
 //==============================================================================
+template <typename Real, std::size_t NumDimensions, std::size_t SimplexDim>
+uniform_tree_hierarchy(
+    vec<Real, NumDimensions> const&, vec<Real, NumDimensions> const&,
+    unstructured_simplicial_grid<Real, NumDimensions, SimplexDim> const&,
+    std::size_t const)
+    -> uniform_tree_hierarchy<
+        unstructured_simplicial_grid<Real, NumDimensions, SimplexDim>>;
+//==============================================================================
 template <typename T>
 struct is_uniform_tree_hierarchy_impl : std::false_type {};
 template <typename Mesh>

@@ -1,28 +1,28 @@
-#include <tatooine/static_set.h>
+#include <tatooine/type_set.h>
 #include <catch2/catch.hpp>
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
-TEST_CASE("static_set_includes", "[static_set][type][includes]") {
-  using Set = static_type_set_impl<int, float, double>;
-  REQUIRE(static_set_includes<Set, int>);
-  REQUIRE(static_set_includes<Set, float>);
-  REQUIRE(static_set_includes<Set, double>);
-  REQUIRE_FALSE(static_set_includes<Set, unsigned int>);
+TEST_CASE("type_set_contains", "[type_set][type][contains]") {
+  using Set = type_set<int, float, double>;
+  REQUIRE(type_list_contains<Set, int>);
+  REQUIRE(type_list_contains<Set, float>);
+  REQUIRE(type_list_contains<Set, double>);
+  REQUIRE_FALSE(type_list_contains<Set, unsigned int>);
 }
 //==============================================================================
-TEST_CASE("static_set_size", "[static_set][type][size]") {
-  using Set = static_type_set_impl<int, float, double>;
-  REQUIRE(static_set_size<Set> == 3);
+TEST_CASE("type_set_size", "[type_set][type][size]") {
+  using Set = type_set_impl<int, float, double>;
+  REQUIRE(type_list_size<Set> == 3);
 }
 //==============================================================================
-TEST_CASE("static_set_constructor", "[static_set][type][constructor]") {
-  using Set = static_type_set<int, float, int, float, double, double>;
-  REQUIRE(static_set_size<Set> == 3);
-  REQUIRE(static_set_includes<Set, int>);
-  REQUIRE(static_set_includes<Set, float>);
-  REQUIRE(static_set_includes<Set, double>);
+TEST_CASE("type_set_constructor", "[type_set][type][constructor]") {
+  using Set = type_set<int, float, int, float, double, double>;
+  REQUIRE(type_list_size<Set> == 3);
+  REQUIRE(type_list_contains<Set, int>);
+  REQUIRE(type_list_contains<Set, float>);
+  REQUIRE(type_list_contains<Set, double>);
 }
 //==============================================================================
-} // namespace tatooine::test
+}  // namespace tatooine::test
 //==============================================================================

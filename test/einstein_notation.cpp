@@ -6,13 +6,16 @@
 //==============================================================================
 namespace tatooine::einstein_notation::test {
 //==============================================================================
-using i_t = decltype(i);
-using j_t = decltype(j);
-using k_t = decltype(k);
+using i_t = index_t<0>;
+using j_t = index_t<1>;
+using k_t = index_t<2>;
+using l_t = index_t<3>;
+//==============================================================================
 TEST_CASE("einstein_notation_indexed_tensors_to_indices",
           "[einstein_notation][indexed_tensors_to_indices]") {
-  using indices = indexed_tensors_to_index_list<indexed_tensor<mat2, i_t, i_t>,
-                                                j_t, indexed_tensor<vec2, k_t>>;
+  using indices =
+      indexed_tensors_to_index_list<indexed_static_tensor<mat2, i_t, i_t>, j_t,
+                                    indexed_static_tensor<vec2, k_t>>;
   REQUIRE(is_same<indices::at<0>, i_t>);
   REQUIRE(is_same<indices::at<1>, i_t>);
   REQUIRE(is_same<indices::at<2>, j_t>);
@@ -28,8 +31,8 @@ TEST_CASE("einstein_notation_free_indices",
     REQUIRE(indices::contains<k_t>);
   }
   SECTION("indices from indexed tensor") {
-    using indices = free_indices<indexed_tensor<mat2, i_t, i_t>,
-                                 indexed_tensor<mat2, j_t, k_t>>;
+    using indices = free_indices<indexed_static_tensor<mat2, i_t, i_t>,
+                                 indexed_static_tensor<mat2, j_t, k_t>>;
     REQUIRE(indices::size == 2);
     REQUIRE(indices::contains<j_t>);
     REQUIRE(indices::contains<k_t>);
@@ -44,15 +47,15 @@ TEST_CASE("einstein_notation_contracted_indices",
     REQUIRE(indices::contains<i_t>);
   }
   SECTION("indices from indexed tensor") {
-    using indices = contracted_indices<indexed_tensor<mat2, i_t, i_t>,
-                                       indexed_tensor<mat2, j_t, k_t>>;
+    using indices = contracted_indices<indexed_static_tensor<mat2, i_t, i_t>,
+                                       indexed_static_tensor<mat2, j_t, k_t>>;
     REQUIRE(indices::size == 1);
     REQUIRE(indices::contains<i_t>);
   }
 }
 //==============================================================================
 TEST_CASE("einstein_notation_index_map", "[einstein_notation][index_map]") {
-  using Tjk = indexed_tensor<mat2, j_t, k_t>;
+  using Tjk = indexed_static_tensor<mat2, j_t, k_t>;
   auto map  = Tjk::index_map();
 
   REQUIRE(map[0] == j_t::get());
@@ -61,9 +64,9 @@ TEST_CASE("einstein_notation_index_map", "[einstein_notation][index_map]") {
 //==============================================================================
 TEST_CASE("einstein_notation_contraction", "[einstein_notation][contraction]") {
   mat2 A;
-  auto Tij = indexed_tensor<mat2, i_t, j_t>{A};
-  auto Tjk = indexed_tensor<mat2, j_t, k_t>{A};
-  auto Tkl = indexed_tensor<mat2, k_t, l_t>{A};
+  auto Tij = indexed_static_tensor<mat2, i_t, j_t>{A};
+  auto Tjk = indexed_static_tensor<mat2, j_t, k_t>{A};
+  auto Tkl = indexed_static_tensor<mat2, k_t, l_t>{A};
 
   auto contracted_tensor = Tij * Tjk * Tkl;
 
@@ -81,15 +84,17 @@ TEST_CASE("einstein_notation_contraction", "[einstein_notation][contraction]") {
 //==============================================================================
 TEST_CASE("einstein_notation_contracted_assignement",
           "[einstein_notation][contracted_assignement]") {
-  mat2 A;
-  mat2 B{{1, 2}, {3, 4}};
-  mat2 C{{2, 3}, {4, 5}};
-  mat2 D{{3, 4}, {5, 6}};
+  auto A = mat2{};
+  auto B = mat2{{1, 2},
+                {3, 4}};
+  auto C = mat2{{2, 3},
+                {4, 5}};
+  auto D = mat2{{3, 4},
+                {5, 6}};
   SECTION(
       "A(i, k) = B(i, j) * C(j, k) - standard matrix-matrix multiplication") {
     A(i, k)            = B(i, j) * C(j, k);
     auto const Amatrix = B * C;
-
     for_loop(
         [&](auto const... is) { REQUIRE(A(is...) == Approx(Amatrix(is...))); },
         2, 2);
@@ -135,14 +140,14 @@ TEST_CASE("einstein_notation_contracted_assignement",
   }
   SECTION("A(i) = B(j, j, i)") {
     auto A = vec2{};
-    auto B = tensor<real_type, 2, 2, 2>::randu();
+    auto B = tensor<real_number, 2, 2, 2>::randu();
     A(i)   = B(j, j, i);
     REQUIRE(A(0) == B(0, 0, 0) + B(1, 1, 0));
     REQUIRE(A(1) == B(0, 0, 1) + B(1, 1, 1));
   }
 
   SECTION("A(i, j) = b(i) * b(j) - outer product") {
-    auto A = mat2{};
+    auto A  = mat2{};
     auto b  = vec2::randu();
     A(i, j) = b(i) * b(j);
     REQUIRE(A(0, 0) == b(0) * b(0));
@@ -151,8 +156,8 @@ TEST_CASE("einstein_notation_contracted_assignement",
     REQUIRE(A(1, 1) == b(1) * b(1));
   }
   SECTION("s = b(i) * b(i) - inner product") {
-    auto   b = vec2::randu();
-    real_type s = b(i) * b(i);
+    auto      b = vec2::randu();
+    real_number s = b(i) * b(i);
     REQUIRE(s == b(0) * b(0) + b(1) * b(1));
   }
 }

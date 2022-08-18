@@ -38,16 +38,21 @@ using triangulation_ds_vertex_base =
 /// \ingroup cgal
 /// \{
 template <std::size_t NumDimensions>
-struct triangulation_ds_face_base_impl;
+struct triangulation_datastructure_base_impl;
 //------------------------------------------------------------------------------
 template <>
-struct triangulation_ds_face_base_impl<2> {
+struct triangulation_datastructure_base_impl<2> {
   using type = CGAL::Triangulation_ds_face_base_2<>;
 };
 //------------------------------------------------------------------------------
+template <>
+struct triangulation_datastructure_base_impl<3> {
+  using type = CGAL::Triangulation_ds_cell_base_3<>;
+};
+//------------------------------------------------------------------------------
 template <std::size_t NumDimensions>
-using triangulation_ds_face_base =
-    typename triangulation_ds_face_base_impl<NumDimensions>::type;
+using triangulation_datastructure_base =
+    typename triangulation_datastructure_base_impl<NumDimensions>::type;
 /// \}
 //==============================================================================
 /// \defgroup cgal_triangulation_ds_cell_base Triangulation DS cell base
@@ -84,7 +89,7 @@ struct triangulation_data_structure_impl<3, VertexBase, FaceBase> {
 //------------------------------------------------------------------------------
 template <std::size_t NumDimensions,
           typename VertexBase = triangulation_ds_vertex_base<NumDimensions>,
-          typename FaceBase   = triangulation_ds_face_base<NumDimensions>>
+          typename FaceBase   = triangulation_datastructure_base<NumDimensions>>
 using triangulation_data_structure =
     typename triangulation_data_structure_impl<NumDimensions, VertexBase,
                                                FaceBase>::type;

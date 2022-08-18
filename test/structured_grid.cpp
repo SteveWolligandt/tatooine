@@ -1,4 +1,5 @@
 #include <tatooine/structured_grid.h>
+#include <tatooine/rectilinear_grid.h>
 
 #include <catch2/catch.hpp>
 //==============================================================================
@@ -112,8 +113,8 @@ TEST_CASE_METHOD(structured_grid2, "structured_grid_2_linear_sampler",
   auto const aabb                        = axis_aligned_bounding_box();
   auto discretized = rectilinear_grid{linspace{aabb.min(0), aabb.max(0), 1000},
                                       linspace{aabb.min(1), aabb.max(1), 1000}};
-  discretize(linear_vertex_property_sampler<real_type>("prop"), discretized,
-             "prop");
+  discretized.sample_to_vertex_property(
+      linear_vertex_property_sampler<real_type>("prop"), "prop");
   discretized.write_vtk("resampled_structured_grid_2d.vtk");
 }
 

@@ -52,8 +52,6 @@ TEST_CASE("preprocessor_invoke", "[preprocessor][invoke]") {
 TEST_CASE("preprocessor_map", "[preprocessor][map]") {
   auto f = [](auto x) { return x; };
   auto g = [](auto x, auto y) { return x + y; };
-  TATOOINE_PP_MAP(f)   // this should do nothing
-  TATOOINE_PP_MAP2(f)  // this should do nothing
   REQUIRE(TATOOINE_PP_MAP(f, 1) == 1);
   REQUIRE(TATOOINE_PP_MAP2(g, 1, 2) == 3);
 }

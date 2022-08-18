@@ -24,12 +24,12 @@
 /// \defgroup parallel_vectors Parallel Vectors Operator
 /// \{
 /// \section pv_cube_sec Cube Setup
-/// 
+///
 /// A cube's vertices are numbered like this where
 /// - `0 -> 1` corresponds to `x`-direction,
 /// - `0 -> 2` corresponds to `y`-direction and
 /// - `0 -> 4` corresponds to `z`-direction.
-/// 
+///
 /// ```
 ///     6---------7
 ///    /.        /|
@@ -40,11 +40,11 @@
 ///  |.        |/
 ///  0---------1
 ///```
-///A cube can be decomposed into 5 tetrahedrons in 2 ways. The first one is called
-///'non-turned' and the other one is called 'turned'.
+/// A cube can be decomposed into 5 tetrahedrons in 2 ways. The first one is
+/// called 'non-turned' and the other one is called 'turned'.
 ///
 ///\subsection pv_cube_tet_sec Tetrahedrons per cube
-///The tetrahedrons are setup like this:
+/// The tetrahedrons are setup like this:
 ///- turned tetrahedrons per cube:
 ///  - `[0]`: `0236` (with triangles `023`, `026`, `036`, `236`)
 ///  - `[1]`: `0135` (with triangles `013`, `015`, `035`, `135`)
@@ -100,14 +100,14 @@ namespace tatooine {
 namespace detail {
 //==============================================================================
 /// \return Position where v and w are parallel otherwise nothing.
-template <typename Real, invocable<vec<Real, 3>>... Preds>
-constexpr auto pv_on_tri(vec<Real, 3> const& p0, vec<Real, 3> const& v0,
-                         vec<Real, 3> const& w0, vec<Real, 3> const& p1,
-                         vec<Real, 3> const& v1, vec<Real, 3> const& w1,
-                         vec<Real, 3> const& p2, vec<Real, 3> const& v2,
-                         vec<Real, 3> const& w2, Preds&&... preds)
-    -> std::optional<vec<Real, 3>> {
-  mat<Real, 3, 3> V, W, M;
+template <typename Real, invocable<Vec3<Real>>... Preds>
+constexpr auto pv_on_tri(Vec3<Real> const& p0, Vec3<Real> const& v0,
+                         Vec3<Real> const& w0, Vec3<Real> const& p1,
+                         Vec3<Real> const& v1, Vec3<Real> const& w1,
+                         Vec3<Real> const& p2, Vec3<Real> const& v2,
+                         Vec3<Real> const& w2, Preds&&... preds)
+    -> std::optional<Vec3<Real>> {
+  Mat3<Real> V, W, M;
   V.col(0) = v0;
   V.col(1) = v1;
   V.col(2) = v2;
@@ -127,12 +127,12 @@ constexpr auto pv_on_tri(vec<Real, 3> const& p0, vec<Real, 3> const& v0,
   auto const ieig               = imag(eigvecs);
   auto const reig               = real(eigvecs);
 
-  auto barycentric_coords = std::vector<vec<Real, 3>>{};
+  auto barycentric_coords = std::vector<Vec3<Real>>{};
   for (size_t i = 0; i < 3; ++i) {
     if ((ieig(0, i) == 0 && ieig(1, i) == 0 && ieig(2, i) == 0) &&
         ((reig(0, i) <= 0 && reig(1, i) <= 0 && reig(2, i) <= 0) ||
          (reig(0, i) >= 0 && reig(1, i) >= 0 && reig(2, i) >= 0))) {
-      vec<Real, 3> const bc = real(eigvecs.col(i)) / sum(real(eigvecs.col(i)));
+      Vec3<Real> const bc = real(eigvecs.col(i)) / sum(real(eigvecs.col(i)));
       barycentric_coords.push_back(bc);
     }
   }
@@ -172,12 +172,12 @@ constexpr auto pv_on_tri(vec<Real, 3> const& p0, vec<Real, 3> const& v0,
 
 //----------------------------------------------------------------------------
 template <typename Real>
-static auto check_tet(std::optional<vec<Real, 3>> tri0,
-                      std::optional<vec<Real, 3>> tri1,
-                      std::optional<vec<Real, 3>> tri2,
-                      std::optional<vec<Real, 3>> tri3,
-                      std::vector<line<Real, 3>>& lines, std::mutex& mutex) {
-  std::vector<std::optional<vec<Real, 3>> const*> tris;
+static auto check_tet(std::optional<Vec3<Real>> tri0,
+                      std::optional<Vec3<Real>> tri1,
+                      std::optional<Vec3<Real>> tri2,
+                      std::optional<Vec3<Real>> tri3,
+                      std::vector<Line3<Real>>& lines, std::mutex& mutex) {
+  std::vector<std::optional<Vec3<Real>> const*> tris;
   if (tri0) {
     tris.push_back(&tri0);
   }
@@ -206,12 +206,12 @@ static auto check_tet(std::optional<vec<Real, 3>> tri0,
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-static auto check_tet(std::optional<vec<Real, 3>> const& tri0,
-                      std::optional<vec<Real, 3>> const& tri1,
-                      std::optional<vec<Real, 3>> const& tri2,
-                      std::optional<vec<Real, 3>> const& tri3,
-                      std::vector<line<Real, 3>>&        lines) {
-  auto tris = std::vector<std::optional<vec<Real, 3>> const*>{};
+static auto check_tet(std::optional<Vec3<Real>> const& tri0,
+                      std::optional<Vec3<Real>> const& tri1,
+                      std::optional<Vec3<Real>> const& tri2,
+                      std::optional<Vec3<Real>> const& tri3,
+                      std::vector<Line3<Real>>&        lines) {
+  auto tris = std::vector<std::optional<Vec3<Real>> const*>{};
   if (tri0) {
     tris.push_back(&tri0);
   }
@@ -249,14 +249,11 @@ auto constexpr turned(size_t const ix, size_t const iy, size_t const iz)
 /// Framework for calculating PV Operator.
 /// \param getv function for getting value for V field
 /// \param getw function for getting value for W field
-template <typename Real, typename GetV, typename GetW,
-          detail::rectilinear_grid::dimension XDomain,
-          detail::rectilinear_grid::dimension YDomain,
-          detail::rectilinear_grid::dimension ZDomain,
-          invocable<vec<Real, 3>>... Preds>
+template <typename Real, typename GetV, typename GetW, typename XDomain,
+          typename YDomain, typename ZDomain, invocable<Vec3<Real>>... Preds>
 auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
-                           rectilinear_grid<XDomain, YDomain, ZDomain> const& g,
-                           Preds&&... preds) -> std::vector<line<Real, 3>> {
+                           tatooine::rectilinear_grid<XDomain, YDomain, ZDomain> const& g,
+                           Preds&&... preds) -> std::vector<Line3<Real>> {
 #if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
   auto constexpr policy = execution_policy::parallel;
 #else
@@ -266,7 +263,7 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
   //     turned tets per cube: [0]: 0236 | [1]: 0135 | [2]: 3567 | [3]: 0356
   // non-turned tets per cube: [0]: 0124 | [1]: 1457 | [2]: 2467 | [3]: 1247
   using boost::copy;
-  using vec3 = vec<Real, 3>;
+  using vec3 = Vec3<Real>;
   auto iz    = std::size_t(0);
   // turned inner tet order:
   //   [0]: 046 / 157 | [1]: 026 / 137
@@ -587,10 +584,10 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
       num_threads = omp_get_num_threads();
     }
   }
-  auto lines = std::vector<aligned<std::vector<line<Real, 3>>>>(num_threads);
+  auto lines = std::vector<aligned<std::vector<Line3<Real>>>>(num_threads);
   auto mutex = std::mutex{};
 #else
-  auto lines            = std::vector<line<Real, 3>>{};
+  auto lines            = std::vector<Line3<Real>>{};
 #endif
   auto compute_line_segments = [&](auto const ix, auto const iy) {
     auto const thread_id = omp_get_thread_num();
@@ -726,7 +723,7 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
 #if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
   using namespace boost::adaptors;
   auto const s = [](auto const& l) { return l->size(); };
-  auto       l = std::vector<line<Real, 3>>{};
+  auto       l = std::vector<Line3<Real>>{};
   l.reserve(boost::accumulate(lines | transformed(s), std::size_t(0)));
   for (auto& li : lines) {
     std::move(begin(*li), end(*li), std::back_inserter(l));
@@ -832,10 +829,10 @@ auto parallel_vectors(
   assert(vf.size(2) == wf.size(2));
 
   return detail::calc_parallel_vectors<common_type<VReal, WReal>>(
-      [&vf](auto ix, auto iy, auto iz, auto const& /*p*/) -> auto const& {
+      [&vf](auto ix, auto iy, auto iz, auto const & /*p*/) -> auto const& {
         return vf(ix, iy, iz);
       },
-      [&wf](auto ix, auto iy, auto iz, auto const& /*p*/) -> auto const& {
+      [&wf](auto ix, auto iy, auto iz, auto const & /*p*/) -> auto const& {
         return wf(ix, iy, iz);
       },
       rectilinear_grid{linspace{bb.min(0), bb.max(0), vf.size(0)},

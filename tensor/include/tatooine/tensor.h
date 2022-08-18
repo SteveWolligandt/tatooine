@@ -113,7 +113,7 @@ struct tensor
     // Check if the same matrix gets assigned as its transposed version. If yes
     // just swap components.
     if constexpr (transposed_tensor<OtherTensor>) {
-      if (this == &other.as_derived().internal_tensor()) {
+      if (this == &other.internal_tensor()) {
         for (std::size_t col = 0; col < dimension(1) - 1; ++col) {
           for (std::size_t row = col + 1; row < dimension(0); ++row) {
             std::swap(at(row, col), at(col, row));

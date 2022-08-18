@@ -246,11 +246,10 @@ struct unstructured_simplicial_grid
     for (auto v : gv) {
       insert_vertex(gv[v]);
     }
-    auto const gc   = g.simplices();
     auto const s0   = g.size(0);
     auto const s1   = g.size(1);
     auto const s0s1 = s0 * s1;
-    gc.iterate_vertices([&](auto const ix, auto const iy, auto const iz) {
+    auto it = [&](auto const ix, auto const iy, auto const iz) {
       auto const le_bo_fr = vertex_handle{ix + iy * s0 + iz * s0s1};
       auto const ri_bo_fr = vertex_handle{(ix + 1) + iy * s0 + iz * s0s1};
       auto const le_to_fr = vertex_handle{ix + (iy + 1) * s0 + iz * s0s1};
@@ -283,7 +282,8 @@ struct unstructured_simplicial_grid
         insert_simplex(ri_bo_fr, ri_bo_ba, ri_to_ba,
                        le_bo_ba);  // right back
       }
-    });
+    };
+    for_loop_unpacked(it, g.size());
     for (auto const& [name, prop] : g.vertex_properties()) {
       copy_prop<mat4d, mat3d, mat2d, mat4f, mat3f, mat2f, vec4d, vec3d, vec2d,
                 vec4f, vec3f, vec2f, double, float, std::int8_t, std::uint8_t,
@@ -511,8 +511,8 @@ struct unstructured_simplicial_grid
                        vertex_handle{it->vertex(Seq + 1)->info()}...);
       }
     } else if constexpr (NumDimensions == 3) {
-      for (auto it = triangulation.finite_simplices_begin();
-           it != triangulation.finite_simplices_end(); ++it) {
+      for (auto it = triangulation.finite_cells_begin();
+           it != triangulation.finite_cells_end(); ++it) {
         insert_simplex(vertex_handle{it->vertex(0)->info()},
                        vertex_handle{it->vertex(Seq + 1)->info()}...);
       }
@@ -554,8 +554,8 @@ struct unstructured_simplicial_grid
                        vertex_handle{it->vertex(Seq + 1)->info()}...);
       }
     } else if constexpr (NumDimensions == 3) {
-      for (auto it = triangulation.finite_simplices_begin();
-           it != triangulation.finite_simplices_end(); ++it) {
+      for (auto it = triangulation.finite_cells_begin();
+           it != triangulation.finite_cells_end(); ++it) {
         insert_simplex(vertex_handle{it->vertex(0)->info()},
                        vertex_handle{it->vertex(Seq + 1)->info()}...);
       }
@@ -710,13 +710,23 @@ struct unstructured_simplicial_grid
   //----------------------------------------------------------------------------
   auto write(filesystem::path const& path) const {
     auto const ext = path.extension();
-    if constexpr (NumDimensions == 2 || NumDimensions == 3) {
-      if (ext == ".vtk") {
+    if (ext == ".vtk") {
+      if constexpr ((NumDimensions == 2 || NumDimensions == 3) &&
+                    SimplexDim == 2) {
         write_vtk(path);
         return;
-      } else if (ext == ".vtu") {
+      } else {
+        throw std::runtime_error{
+            ".vtk is not supported with this simplicial grid."};
+      }
+    } else if (ext == ".vtu") {
+      if constexpr ((NumDimensions == 2 || NumDimensions == 3) &&
+                    (SimplexDim == 1 || SimplexDim == 2)) {
         write_vtu(path);
         return;
+      } else {
+        throw std::runtime_error{
+            ".vtu is not supported with this simplicial grid."};
       }
     }
     throw std::runtime_error(
@@ -727,7 +737,7 @@ struct unstructured_simplicial_grid
   //----------------------------------------------------------------------------
   auto write_vtk(std::filesystem::path const& path,
                  std::string const&           title = "tatooine grid") const {
-    if constexpr (SimplexDim == 2 || SimplexDim == 3) {
+    if constexpr (SimplexDim == 2) {
       // tidy_up();
       write_unstructured_triangular_grid_vtk(path, title);
     }
@@ -742,7 +752,7 @@ struct unstructured_simplicial_grid
       write_vtu_triangular(path);
     }
   }
-
+  //----------------------------------------------------------------------------
   auto write_vtp_edges(filesystem::path const& path) const
       requires((NumDimensions == 2 || NumDimensions == 3) && SimplexDim == 1) {
     auto file = std::ofstream{path, std::ios::binary};

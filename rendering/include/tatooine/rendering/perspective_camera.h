@@ -2,9 +2,6 @@
 #define TATOOINE_RENDERING_PERSPECTIVE_CAMERA_H
 //==============================================================================
 #include <tatooine/rendering/camera.h>
-#include <tatooine/rendering/matrices.h>
-
-#include <cassert>
 //==============================================================================
 namespace tatooine::rendering {
 //==============================================================================

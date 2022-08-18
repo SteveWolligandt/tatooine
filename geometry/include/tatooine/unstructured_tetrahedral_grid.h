@@ -21,16 +21,16 @@ namespace tatooine {
 //==============================================================================
 template <typename Real, size_t N>
 using unstructured_tetrahedral_grid = unstructured_simplicial_grid<Real, N, 3>;
-using unstructured_tetrahedral_grid_3 =
-    unstructured_tetrahedral_grid<real_type, 3>;
-using unstructured_tetrahedral_grid_4 =
-    unstructured_tetrahedral_grid<real_type, 4>;
-using unstructured_tetrahedral_grid_5 =
-    unstructured_tetrahedral_grid<real_type, 5>;
-using unstructured_tetrahedral_grid_6 =
-    unstructured_tetrahedral_grid<real_type, 6>;
-using unstructured_tetrahedral_grid_7 =
-    unstructured_tetrahedral_grid<real_type, 7>;
+using unstructured_tetrahedral_grid3 =
+    unstructured_tetrahedral_grid<real_number, 3>;
+using unstructured_tetrahedral_grid4 =
+    unstructured_tetrahedral_grid<real_number, 4>;
+using unstructured_tetrahedral_grid5 =
+    unstructured_tetrahedral_grid<real_number, 5>;
+using unstructured_tetrahedral_grid6 =
+    unstructured_tetrahedral_grid<real_number, 6>;
+using unstructured_tetrahedral_grid7 =
+    unstructured_tetrahedral_grid<real_number, 7>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

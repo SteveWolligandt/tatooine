@@ -16,17 +16,36 @@ template <typename Counter, typename T>
 struct type_counter_get_count_impl;
 //------------------------------------------------------------------------------
 template <typename Counter, typename T>
-static auto constexpr type_counter_get_count = type_counter_get_count_impl<Counter, T>::value;
+static auto constexpr type_counter_get_count =
+    type_counter_get_count_impl<Counter, T>::value;
+//------------------------------------------------------------------------------
+template <typename HeadCounter, typename... Counters, typename T>
+struct type_counter_get_count_impl<type_list_impl<HeadCounter, Counters...>, T> {
+  static auto constexpr value =
+      type_counter_get_count_impl<type_list_impl<Counters...>, T>::value;
+};
 //------------------------------------------------------------------------------
 template <typename HeadCounter, typename... Counters, typename T>
 struct type_counter_get_count_impl<type_set_impl<HeadCounter, Counters...>, T> {
   static auto constexpr value =
-      type_counter_get_count_impl<type_set_impl<Counters...>, T>::value;
+      type_counter_get_count_impl<type_list_impl<Counters...>, T>::value;
 };
 //------------------------------------------------------------------------------
 template <std::size_t N, typename... Counters, typename T>
-struct type_counter_get_count_impl<type_set_impl<type_number_pair<T, N>, Counters...>,
-                      T> {
+struct type_counter_get_count_impl<
+    type_list_impl<type_number_pair<T, N>, Counters...>, T> {
+  static auto constexpr value = N;
+};
+//------------------------------------------------------------------------------
+template <typename T>
+struct type_counter_get_count_impl<type_list_impl<>, T> {
+  // static_assert(false, "T not found in counter.");
+  static auto constexpr value = 0;
+};
+//------------------------------------------------------------------------------
+template <std::size_t N, typename... Counters, typename T>
+struct type_counter_get_count_impl<
+    type_set_impl<type_number_pair<T, N>, Counters...>, T> {
   static auto constexpr value = N;
 };
 //------------------------------------------------------------------------------
@@ -57,8 +76,18 @@ template <typename Counter, typename... Ts>
 struct type_counter_insert_impl;
 
 template <typename... Counters, typename Head, typename... Rest>
-struct type_counter_insert_impl<type_set_impl<Counters...>, Head,
-                                      Rest...> {
+struct type_counter_insert_impl<type_list_impl<Counters...>, Head, Rest...> {
+  using type = typename type_counter_insert_impl<
+      type_list_impl<type_counter_increase_if_equal<Counters, Head>...>,
+      Rest...>::type;
+};
+
+template <typename... Counters>
+struct type_counter_insert_impl<type_list_impl<Counters...>> {
+  using type = type_list<Counters...>;
+};
+template <typename... Counters, typename Head, typename... Rest>
+struct type_counter_insert_impl<type_set_impl<Counters...>, Head, Rest...> {
   using type = typename type_counter_insert_impl<
       type_set_impl<type_counter_increase_if_equal<Counters, Head>...>,
       Rest...>::type;
@@ -66,7 +95,7 @@ struct type_counter_insert_impl<type_set_impl<Counters...>, Head,
 
 template <typename... Counters>
 struct type_counter_insert_impl<type_set_impl<Counters...>> {
-  using type = type_list<Counters...>;
+  using type = type_set<Counters...>;
 };
 
 template <typename Counter, typename... Ts>
@@ -77,12 +106,19 @@ template <typename StaticTypeSet, typename... Ts>
 struct count_types_impl;
 
 template <typename... UniqueTypes, typename... Ts>
+struct count_types_impl<type_list_impl<UniqueTypes...>, Ts...> {
+  using type =
+      type_counter_insert<type_list_impl<type_number_pair<UniqueTypes, 0>...>,
+                          Ts...>;
+};
+template <typename... UniqueTypes, typename... Ts>
 struct count_types_impl<type_set_impl<UniqueTypes...>, Ts...> {
-  using type = type_counter_insert<
-      type_set_impl<type_number_pair<UniqueTypes, 0>...>, Ts...>;
+  using type =
+      type_counter_insert<type_set_impl<type_number_pair<UniqueTypes, 0>...>,
+                          Ts...>;
 };
 template <typename... Ts>
-using count_types = typename count_types_impl<type_set<Ts...>, Ts...>::type;
+using count_types = typename count_types_impl<type_list<Ts...>, Ts...>::type;
 /// \}
 //==============================================================================
 }  // namespace tatooine

@@ -4,7 +4,6 @@
 #include <tatooine/differentiated_field.h>
 #include <tatooine/differentiated_flowmap.h>
 #include <tatooine/field.h>
-#include <tatooine/numerical_flowmap.h>
 //==============================================================================
 namespace tatooine::analytical::numerical {
 //==============================================================================
@@ -84,16 +83,6 @@ struct saddle_flowmap {
     return evaluate(x, t, tau);
   }
 };
-//------------------------------------------------------------------------------
-template <template <typename, std::size_t>
-          typename ODESolver = ode::vclibs::rungekutta43,
-          template <typename>
-          typename InterpolationKernel = interpolation::cubic,
-          floating_point Real>
-auto constexpr flowmap(saddle<Real> const& v, tag::numerical_t tag) {
-  return numerical_flowmap<saddle<Real>, ODESolver, InterpolationKernel>{v};
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <floating_point Real>
 auto constexpr flowmap(saddle<Real> const& /*v*/, tag::analytical_t tag) {
   return analytical::numerical::saddle_flowmap<Real>{};

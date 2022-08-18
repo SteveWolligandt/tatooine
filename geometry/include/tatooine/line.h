@@ -445,7 +445,7 @@ struct line {
   auto tangents() -> auto& {
     if (!m_tangent_property) {
       m_tangent_property =
-          &insert_vertex_property<vec<Real, NumDimensions>>("tangents");
+          &vertex_property<vec<Real, NumDimensions>>("tangents");
     }
     return *m_tangent_property;
   }
@@ -490,8 +490,7 @@ struct line {
   //----------------------------------------------------------------------------
   auto parameterization() -> auto& {
     if (!has_parameterization()) {
-      m_parameterization_property =
-          &insert_vertex_property<Real>("parameterization");
+      m_parameterization_property = &vertex_property<Real>("parameterization");
     }
     return *m_parameterization_property;
   }

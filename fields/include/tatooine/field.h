@@ -256,7 +256,6 @@ static constexpr auto is_matrixfield = is_matrixfield_impl<T>::value;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-#include <tatooine/field_operations.h>
 #include <tatooine/field_type_traits.h>
 //==============================================================================
 #endif

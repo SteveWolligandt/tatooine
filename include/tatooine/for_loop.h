@@ -516,8 +516,9 @@ constexpr auto chunked_for_loop(
 //==============================================================================
 /// dynamically-sized for loop
 template <typename Iteration>
-auto for_loop(Iteration&& iteration, execution_policy::sequential_t,
-              std::vector<std::pair<std::size_t, std::size_t>> const& ranges) {
+auto for_loop(
+    Iteration&& iteration, execution_policy::sequential_t,
+    range_of<std::pair<std::size_t, std::size_t>> auto const& ranges) {
   auto cur_indices = std::vector<std::size_t>(size(ranges));
   std::transform(begin(ranges), end(ranges), begin(cur_indices),
                  [](auto const& range) { return range.first; });
@@ -542,8 +543,9 @@ auto for_loop(Iteration&& iteration, execution_policy::sequential_t,
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// dynamically-sized for loop
 template <typename Iteration>
-auto for_loop(Iteration&&                                             iteration,
-              std::vector<std::pair<std::size_t, std::size_t>> const& ranges) {
+auto for_loop(
+    Iteration&&                                               iteration,
+    range_of<std::pair<std::size_t, std::size_t>> auto const& ranges) {
   for_loop(std::forward<Iteration>(iteration), execution_policy::sequential,
            ranges);
 }

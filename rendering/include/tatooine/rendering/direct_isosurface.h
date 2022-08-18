@@ -3,7 +3,6 @@
 #ifndef TATOOINE_RENDERING_DIRECT_ISOSURFACE_H
 #define TATOOINE_RENDERING_DIRECT_ISOSURFACE_H
 //==============================================================================
-#include <omp.h>
 #include <tatooine/demangling.h>
 #include <tatooine/field.h>
 #include <tatooine/rectilinear_grid.h>
@@ -20,35 +19,40 @@ namespace tatooine::rendering {
 /// \param shader Shader for setting color at pixel. The shader takes position,
 /// color (vec3 or vec4). \return Returns a 2D rectilinear grid with a
 /// grid_vertex_property named "rendered_isosurface"
-template <typename IsoReal, typename Dim0, typename Dim1, typename Dim2,
-          typename Field, typename Shader>
-auto direct_isosurface(camera auto const&                        cam,
+template <camera Camera, arithmetic IsoReal, typename Dim0, typename Dim1,
+          typename Dim2, typename Field, typename Shader>
+auto direct_isosurface(Camera const&                             cam,
                        rectilinear_grid<Dim0, Dim1, Dim2> const& g,
                        Field&& field, std::vector<IsoReal> const& isovalues,
-                       Shader&& shader) {
+                       Shader&& shader)
+    //
+    requires invocable<
+        Shader, vec<typename rectilinear_grid<Dim0, Dim1, Dim2>::real_type, 3>,
+        IsoReal, vec<typename rectilinear_grid<Dim0, Dim1, Dim2>::real_type, 3>,
+        vec<typename Camera::real_type, 3>, vec<std::size_t, 2>>
+//
+{
   using grid_real_type = typename rectilinear_grid<Dim0, Dim1, Dim2>::real_type;
   using pos_type       = vec<grid_real_type, 3>;
   constexpr auto use_indices =
       std::is_invocable_v<Field, std::size_t, std::size_t, std::size_t>;
-  // using value_t =
+  // using value_type =
   //    std::conditional_t<use_indices,
   //                       std::invoke_result_t<Field, std::size_t, std::size_t,
   //                       std::size_t>, std::invoke_result_t<Field, pos_type>>;
-  // static_assert(is_floating_point<value_t>);
-  using cam_real_type = typename std::decay_t<decltype(cam)>::real_type;
-  using viewdir_t     = vec<cam_real_type, 3>;
-  static_assert(
-      std::is_invocable_v<Shader, pos_type, IsoReal, pos_type, viewdir_t,
-                          vec<std::size_t, 2>>,
-      "Shader must be invocable with position, gradient and view direction.");
-  using color_t = std::invoke_result_t<Shader, pos_type, IsoReal, pos_type, viewdir_t,
-                                       vec<std::size_t, 2>>;
-  using rgb_t   = vec<typename color_t::value_type, 3>;
-  using alpha_t = typename color_t::value_type;
-  static_assert(static_vec<color_t>,
+  // static_assert(is_floating_point<value_type>);
+  using cam_real_type = typename Camera::real_type;
+  using viewdir_type  = vec<cam_real_type, 3>;
+  using color_type    = invoke_result<Shader, pos_type, IsoReal, pos_type,
+                                   viewdir_type, vec<std::size_t, 2>>;
+  using rgb_type      = vec<typename color_type::value_type, 3>;
+  using alpha_type    = typename color_type::value_type;
+  using ray_type      = ray<cam_real_type, 3>;
+  using pixel_pos     = Vec2<std::size_t>;
+  static_assert(static_vec<color_type>,
                 "Shader must return a vector with 3 or 4 components.");
   static_assert(
-      color_t::num_components() == 3 || color_t::num_components() == 4,
+      color_type::num_components() == 3 || color_type::num_components() == 4,
       "Shader must return a vector with 3 or 4 components.");
   auto const& dim0 = g.template dimension<0>();
   auto const& dim1 = g.template dimension<1>();
@@ -61,21 +65,19 @@ auto direct_isosurface(camera auto const&                        cam,
           linspace<cam_real_type>{0.0, cam.plane_height() - 1,
                                   cam.plane_height()}};
   auto& rendering =
-      rendered_image.template vertex_property<rgb_t>("rendered_isosurface");
-
-  std::vector<
-      std::tuple<ray<cam_real_type, 3>, double, std::size_t, std::size_t>>
-             rays;
-  std::mutex mutex;
-  auto const bg_color = rgb_t{1, 1, 1};
+      rendered_image.template vertex_property<rgb_type>("rendered_isosurface");
+  //
+  auto       rays     = std::vector<std::tuple<ray_type, double, pixel_pos>>{};
+  auto       mutex    = std::mutex{};
+  auto const bg_color = rgb_type{1, 1, 1};
   for_loop(
       [&](auto const... is) {
         rendering(is...) = bg_color;
         auto r           = cam.ray(is...);
         r.normalize();
         if (auto const i = aabb.check_intersection(r); i) {
-          std::lock_guard lock{mutex};
-          rays.push_back(std::tuple{r, i->t, is...});
+          auto lock = std::lock_guard {mutex};
+          rays.push_back(std::tuple{r, i->t, Vec2<std::size_t>{is...}});
         }
       },
       execution_policy::parallel, cam.plane_width(), cam.plane_height());
@@ -83,12 +85,12 @@ auto direct_isosurface(camera auto const&                        cam,
       [&](auto const i) {
         auto cell_data         = std::make_unique<double[]>(8);
         auto indexing          = static_multidim_size<x_fastest, 2, 2, 2>{};
-        auto accumulated_color = rgb_t::zeros();
-        if constexpr (color_t::num_components() == 3) {
+        auto accumulated_color = rgb_type::zeros();
+        if constexpr (color_type::num_components() == 3) {
           accumulated_color = bg_color;
         }
-        auto accumulated_alpha   = alpha_t(0);
-        auto const& [r, t, x, y] = rays[i];
+        auto accumulated_alpha          = alpha_type{};
+        auto const& [r, t, pixel_coord] = rays[i];
 
         auto entry_point = r(t);
         for (std::size_t i = 0; i < 3; ++i) {
@@ -100,7 +102,7 @@ auto direct_isosurface(camera auto const&                        cam,
           }
         }
 
-        auto cell_pos        = make_array<real_type, 3>();
+        auto cell_pos        = pos_type{};
         auto done            = false;
         auto update_cell_pos = [&](auto const& r) {
           for (std::size_t dim = 0; dim < 3; ++dim) {
@@ -151,17 +153,17 @@ auto direct_isosurface(camera auto const&                        cam,
                  plane_indices_to_check[2] != std::size_t(0) - 1);
           auto const t0 =
               r.direction(0) == 0
-                  ? std::numeric_limits<real_type>::max()
+                  ? std::numeric_limits<cam_real_type>::max()
                   : (dim0[plane_indices_to_check[0]] - r.origin(0)) /
                         r.direction(0);
           auto const t1 =
               r.direction(1) == 0
-                  ? std::numeric_limits<real_type>::max()
+                  ? std::numeric_limits<cam_real_type>::max()
                   : (dim1[plane_indices_to_check[1]] - r.origin(1)) /
                         r.direction(1);
           auto const t2 =
               r.direction(2) == 0
-                  ? std::numeric_limits<real_type>::max()
+                  ? std::numeric_limits<cam_real_type>::max()
                   : (dim2[plane_indices_to_check[2]] - r.origin(2)) /
                         r.direction(2);
 
@@ -209,20 +211,21 @@ auto direct_isosurface(camera auto const&                        cam,
                 field(g.vertex_at(i1[0], i1[1], i1[2]));
           }
 
-          auto const  x0          = g.vertex_at(i0[0], i0[1], i0[2]);
-          auto const  x1          = g.vertex_at(i1[0], i1[1], i1[2]);
-          auto const& xa          = r.origin();
-          auto const& xb          = r.direction();
-          auto const  cell_extent = x1 - x0;
-          auto const  inv_cell_extent =
-              pos_type{1 / cell_extent(0), 1 / cell_extent(1), 1 / cell_extent(2)};
+          auto const  x0              = g.vertex_at(i0[0], i0[1], i0[2]);
+          auto const  x1              = g.vertex_at(i1[0], i1[1], i1[2]);
+          auto const& xa              = r.origin();
+          auto const& xb              = r.direction();
+          auto const  cell_extent     = x1 - x0;
+          auto const  inv_cell_extent = pos_type{
+              1 / cell_extent(0), 1 / cell_extent(1), 1 / cell_extent(2)};
           // create rays in different spaces
           auto const a0 = (x1 - xa) * inv_cell_extent;
           auto const b0 = xb * inv_cell_extent;
           auto const a1 = (xa - x0) * inv_cell_extent;
           auto const b1 = -xb * inv_cell_extent;
 
-          std::vector<std::tuple<grid_real_type, IsoReal, pos_type>> found_surfaces;
+          std::vector<std::tuple<grid_real_type, IsoReal, pos_type>>
+              found_surfaces;
           for (auto const isovalue : isovalues) {
             // check if isosurface is present in current cell
             if (!((cell_data[indexing(0, 0, 0)] > isovalue &&
@@ -378,13 +381,13 @@ auto direct_isosurface(camera auto const&                        cam,
                         uvw0(0) +
                     cell_data[indexing(0, 0, 1)] -
                     cell_data[indexing(0, 0, 0)]};
-            if constexpr (color_t::num_components() == 3) {
+            if constexpr (color_type::num_components() == 3) {
               accumulated_color =
-                  shader(x_iso, isovalue, gradient, r.direction(), vec{x, y});
+                  shader(x_iso, isovalue, gradient, r.direction(), pixel_coord);
               done = true;
-            } else if constexpr (color_t::num_components() == 4) {
+            } else if constexpr (color_type::num_components() == 4) {
               auto const rgba =
-                  shader(x_iso, isovalue, gradient, r.direction(), vec{x, y});
+                  shader(x_iso, isovalue, gradient, r.direction(), pixel_coord);
               auto const rgb   = vec{rgba(0), rgba(1), rgba(2)};
               auto const alpha = rgba(3);
               accumulated_color += (1 - accumulated_alpha) * alpha * rgb;
@@ -400,23 +403,26 @@ auto direct_isosurface(camera auto const&                        cam,
             update_cell_pos(r);
           }
         }
-        if constexpr (color_t::num_components() == 3) {
-          rendering(x, y) = accumulated_color;
-        } else if constexpr (color_t::num_components() == 4) {
-          rendering(x, y) = accumulated_color * accumulated_alpha +
-                            bg_color * (1 - accumulated_alpha);
+        if constexpr (color_type::num_components() == 3) {
+          rendering(pixel_coord.x(), pixel_coord.y()) = accumulated_color;
+        } else if constexpr (color_type::num_components() == 4) {
+          rendering(pixel_coord.x(), pixel_coord.y()) =
+              accumulated_color * accumulated_alpha +
+              bg_color * (1 - accumulated_alpha);
         }
       },
       execution_policy::parallel, rays.size());
   return rendered_image;
 }
+//==============================================================================
 template <typename IsoReal, typename Dim0, typename Dim1, typename Dim2,
-          typename Field, typename Shader>
+          typename Field, typename FieldReal, typename Shader>
 auto direct_isosurface(camera auto const&                        cam,
                        rectilinear_grid<Dim0, Dim1, Dim2> const& g,
-                       Field&& field, IsoReal const isovalue, Shader&& shader) {
-  return direct_isosurface(cam, g, std::forward<Field>(field),
-                           std::vector{isovalue}, std::forward<Shader>(shader));
+                       scalarfield<Field, FieldReal, 3> const&        field,
+                       IsoReal const isovalue, Shader&& shader) {
+  return direct_isosurface(cam, g, field, std::vector{isovalue},
+                           std::forward<Shader>(shader));
 }
 //==============================================================================
 /// an implementation of \cite 10.5555/288216.288266. See also \ref
@@ -429,18 +435,26 @@ auto direct_isosurface(camera auto const&                        cam,
 /// and view direction as parameters. It must return a RGB or a RGBA
 /// color (vec3 or vec4). \return Returns a 2D grid with a grid_vertex_property
 /// named "rendered_isosurface"
-template <typename IsoReal, typename GridVertexProperty, typename Shader>
+template <camera     Camera, typename GridVertexProperty, typename Shader,
+          arithmetic Iso>
 auto direct_isosurface(
-    camera auto const& cam,
-    detail::rectilinear_grid::vertex_property_sampler<
+    Camera const& cam,
+    tatooine::detail::rectilinear_grid::vertex_property_sampler<
         GridVertexProperty, interpolation::linear, interpolation::linear,
         interpolation::linear> const& linear_field,
-    IsoReal const isovalue, Shader&& shader) {
+    Iso const isovalue, Shader&& shader)
+    //
+    requires invocable<
+        Shader, vec<typename GridVertexProperty::grid_type::real_type, 3>,
+        Iso, vec<typename GridVertexProperty::grid_type::real_type, 3>,
+        vec<typename Camera::real_type, 3>, vec<std::size_t, 2>>
+//
+{
   return direct_isosurface(
       cam, linear_field.grid(),
       [&](std::size_t const ix, std::size_t const iy, std::size_t const iz)
           -> auto const& { return linear_field.data_at(ix, iy, iz); },
-      isovalue, std::forward<Shader>(shader));
+      std::vector{isovalue}, std::forward<Shader>(shader));
 }
 //------------------------------------------------------------------------------
 template <typename DistOnRay, typename AABBReal, typename DataEvaluator,
@@ -451,35 +465,36 @@ auto direct_isosurface(camera auto const&                            cam,
                        DomainCheck&& domain_check, Isovalue isovalue,
                        DistOnRay const distance_on_ray, Shader&& shader) {
   using cam_real_type = typename std::decay_t<decltype(cam)>::real_type;
-  using pos_type         = vec<cam_real_type, 3>;
-  using viewdir_t     = vec<cam_real_type, 3>;
+  using pos_type      = vec<cam_real_type, 3>;
+  using viewdir_type  = vec<cam_real_type, 3>;
   static_assert(
-      std::is_invocable_v<Shader, pos_type, viewdir_t, vec<std::size_t, 2>>,
+      std::is_invocable_v<Shader, pos_type, viewdir_type, vec<std::size_t, 2>>,
       "Shader must be invocable with position and view direction.");
-  using value_t = std::invoke_result_t<DataEvaluator, pos_type>;
-  using color_t = std::invoke_result_t<Shader, pos_type, viewdir_t>;
-  using rgb_t   = vec<typename color_t::value_type, 3>;
-  using alpha_t = typename color_t::value_type;
-  static_assert(is_floating_point<value_t>,
+  using value_type = std::invoke_result_t<DataEvaluator, pos_type>;
+  using color_type = std::invoke_result_t<Shader, pos_type, viewdir_type>;
+  using rgb_type   = vec<typename color_type::value_type, 3>;
+  using alpha_type = typename color_type::value_type;
+  using ray_type   = ray<cam_real_type, 3>;
+  static_assert(is_floating_point<value_type>,
                 "DataEvaluator must return scalar type.");
-  static_assert(static_vec<color_t>,
+  static_assert(static_vec<color_type>,
                 "ColorScale must return scalar type or tatooine::vec.");
   static_assert(
-      color_t::num_components() == 3 || color_t::num_components() == 4,
+      color_type::num_components() == 3 || color_type::num_components() == 4,
       "ColorScale must return scalar type or tatooine::vec.");
-  rectilinear_grid<linspace<cam_real_type>, linspace<cam_real_type>>
-        rendered_image{linspace<cam_real_type>{0.0, cam.plane_width() - 1,
-                                             cam.plane_width()},
-                     linspace<cam_real_type>{0.0, cam.plane_height() - 1,
-                                             cam.plane_height()}};
+  auto rendered_image =
+      rectilinear_grid<linspace<cam_real_type>, linspace<cam_real_type>>{
+          linspace<cam_real_type>{0.0, cam.plane_width() - 1,
+                                  cam.plane_width()},
+          linspace<cam_real_type>{0.0, cam.plane_height() - 1,
+                                  cam.plane_height()}};
   auto& rendering =
-      rendered_image.template vertex_property<rgb_t>("rendered_isosurface");
+      rendered_image.template vertex_property<rgb_type>("rendered_isosurface");
 
-  std::vector<
-      std::tuple<ray<cam_real_type, 3>, AABBReal, std::size_t, std::size_t>>
-             rays;
-  std::mutex mutex;
-  auto const bg_color = rgb_t{1, 1, 1};
+  auto rays = std::vector<
+      std::tuple<ray_type, AABBReal, std::size_t, std::size_t>>{};
+  auto       mutex    = std::mutex{};
+  auto const bg_color = rgb_type{1, 1, 1};
   for_loop(
       [&](auto const... is) {
         rendering(is...) = bg_color;
@@ -493,9 +508,9 @@ auto direct_isosurface(camera auto const&                            cam,
       execution_policy::parallel, cam.plane_width(), cam.plane_height());
   for_loop(
       [&](auto const i) {
-        auto const [r, t, x, y]   = rays[i];
-        alpha_t accumulated_alpha = 0;
-        rgb_t   accumulated_color{};
+        auto const [r, t, x, y]      = rays[i];
+        auto accumulated_alpha = alpha_type{};
+        auto accumulated_color       = rgb_type{};
 
         auto t0 = t;
         auto x0 = r(t0);
@@ -539,10 +554,10 @@ auto direct_isosurface(camera auto const&                            cam,
                   (isovalue - cur_sample0) / (cur_sample1 - cur_sample0);
               auto const iso_pos = r(t0 + t_iso * distance_on_ray);
 
-              if constexpr (color_t::num_components() == 3) {
+              if constexpr (color_type::num_components() == 3) {
                 accumulated_color = shader(iso_pos, r.direction());
                 done              = true;
-              } else if constexpr (color_t::num_components() == 4) {
+              } else if constexpr (color_type::num_components() == 4) {
                 auto const rgba  = shader(iso_pos, r.direction());
                 auto const rgb   = vec{rgba(0), rgba(1), rgba(2)};
                 auto const alpha = rgba(3);

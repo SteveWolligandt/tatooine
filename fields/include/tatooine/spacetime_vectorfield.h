@@ -35,9 +35,9 @@ struct spacetime_vectorfield
   //============================================================================
   // assign ops
   //============================================================================
-  auto operator                 =(spacetime_vectorfield const& other)
+  auto operator=(spacetime_vectorfield const& other)
       -> spacetime_vectorfield& = default;
-  auto operator                 =(spacetime_vectorfield&& other) noexcept
+  auto operator=(spacetime_vectorfield&& other) noexcept
       -> spacetime_vectorfield& = default;
   //============================================================================
   // dtor
@@ -61,11 +61,11 @@ struct spacetime_vectorfield
   //============================================================================
   [[nodiscard]] constexpr auto evaluate(pos_type const& x, Real /*t*/) const
       -> tensor_type final {
-    tensor<Real, N - 1> spatial_position;
-    Real                temporal_position = x(N - 1);
+    auto spatial_position  = vec<Real, N - 1>{};
     for (size_t i = 0; i < N - 1; ++i) {
       spatial_position(i) = x(i);
     }
+    auto temporal_position = x(N - 1);
 
     auto const sample = v()(spatial_position, temporal_position);
     tensor_type   t_out;
@@ -76,32 +76,23 @@ struct spacetime_vectorfield
     return t_out;
   }
   //----------------------------------------------------------------------------
-  [[nodiscard]] constexpr auto in_domain(pos_type const& x, Real /*t*/) const
-      -> bool final {
-    tensor<Real, N - 1> spatial_position;
-    Real                temporal_position = x(N - 1);
-    for (size_t i = 0; i < N - 1; ++i) {
-      spatial_position(i) = x(i);
-    }
-    return v().in_domain(spatial_position, temporal_position);
-  }
-  //----------------------------------------------------------------------------
   template <typename W>
-  void set_field(vectorfield<W, Real, N - 1> const& v) requires is_pointer<V> {
+  auto set_field(vectorfield<W, Real, N - 1> const& v) requires is_pointer<V> {
     m_v = &v;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void set_field(polymorphic::vectorfield<Real, N - 1> const& v) requires
+  auto set_field(polymorphic::vectorfield<Real, N - 1> const& v) requires
       is_pointer<V> {
     m_v = &v;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void set_field(polymorphic::vectorfield<Real, N - 1> const* v) requires
+  auto set_field(polymorphic::vectorfield<Real, N - 1> const* v) requires
       is_pointer<V> {
     m_v = v;
   }
 
- private : auto v() -> auto& {
+ private:
+  auto v() -> auto& {
     if constexpr (holds_field_pointer) {
       return *m_v;
     } else {

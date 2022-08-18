@@ -41,7 +41,7 @@ TEST_CASE("hdf5_read_chunk", "[hdf5][read][chunk]") {
 
   // auto rand = random::uniform{value_type(-1000), value_type(1000)};
   // boost::generate(data_src, [&rand]() { return rand(); });
-  boost::iota(data_src.data(), 1);
+  boost::iota(data_src.internal_container(), 1);
   if (filesystem::exists(filepath)) {
     filesystem::remove(filepath);
   }
@@ -92,7 +92,7 @@ TEST_CASE("hdf5_read_chunk", "[hdf5][read][chunk]") {
 }
 //==============================================================================
 TEST_CASE("hdf5_unlimited_1d", "[hdf5][unlimited][1d]") {
-  using value_type        = linspace<real_type>;
+  using value_type        = linspace<real_number>;
   auto const dataset_name = "foo";
   auto const filepath = filesystem::path{"hdf5_unittest_unlimited_1d.h5"};
 
