@@ -33,10 +33,23 @@ auto finite_differences_coefficients(std::size_t const derivative_order,
 }
 //------------------------------------------------------------------------------
 /// See \ref fin_dif_what_is_this for an explanation.
+template <typename Tensor, floating_point Real, std::size_t N>
 auto finite_differences_coefficients(std::size_t const derivative_order,
-                                     floating_point_range auto const& v) {
-  using real_type     = typename std::decay_t<decltype(v)>::value_type;
-  auto const V        = transposed(tensor<real_type>::vander(v, v.size()));
+                                     vec<Real, N> const& v) {
+  auto V              = mat<Real, N, N>::vander(v);
+  V                   = transposed(V);
+  auto b              = vec<Real, N>::zeros();
+  b(derivative_order) = factorial(derivative_order);
+  return *solve(V, b);
+}
+//------------------------------------------------------------------------------
+/// See \ref fin_dif_what_is_this for an explanation.
+template <floating_point_range R>
+requires (!static_tensor<R>)
+auto finite_differences_coefficients(std::size_t const derivative_order,
+                                     R const& v) {
+  using real_type     = typename std::decay_t<R>::value_type;
+  auto const V        = transposed(tensor<real_type>::vander(v));
   auto       b        = tensor<real_type>::zeros(size(v));
   b(derivative_order) = factorial(derivative_order);
   return solve(V, b)->internal_container();

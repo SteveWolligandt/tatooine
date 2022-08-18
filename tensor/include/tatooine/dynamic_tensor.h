@@ -101,7 +101,12 @@ struct tensor<T> : dynamic_multidim_array<T> {
   }
   //----------------------------------------------------------------------------
   static auto vander(arithmetic_range auto const& v) {
-    return vander(v, v.size());
+    return vander(v, size(v));
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <arithmetic Real_, std::size_t N>
+  static auto vander(vec<Real_, N> const& v) {
+    return vander(v, N);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   static auto vander(arithmetic_range auto const& v,
@@ -159,6 +164,11 @@ struct tensor<T> : dynamic_multidim_array<T> {
       : parent_type{std::forward<Rand>(rand),
                     std::forward<Dimensions>(dimensions)} {}
   //----------------------------------------------------------------------------
+  template <general_tensor OtherTensor>
+  tensor(OtherTensor const& other) {
+    assign(other);
+  }
+  //----------------------------------------------------------------------------
   /// Constructs a rank 1 tensor aka vector.
   template <convertible_to<T>... Components>
   explicit tensor(Components&&... components) requires(
@@ -187,15 +197,7 @@ struct tensor<T> : dynamic_multidim_array<T> {
   auto operator=(OtherTensor const& other) -> tensor<T>& {
     if constexpr (transposed_tensor<OtherTensor>) {
       if (this == &other.internal_tensor()) {
-        auto const old_size = dynamic_multidim_size{*this};
-        this->resize(other.dimensions());
-        for (std::size_t col = 0; col < this->size(1); ++col) {
-          for (std::size_t row = col + 1; row < this->size(0); ++row) {
-            std::swap(this->at(row, col),
-                      this->data(old_size.plain_index(col, row)));
-          }
-        }
-        return *this;
+        assing_self_transposed(other);
       } else {
         assign(other);
       }
@@ -204,6 +206,18 @@ struct tensor<T> : dynamic_multidim_array<T> {
     }
     return *this;
   }
+  //------------------------------------------------------------------------------
+  auto assing_self_transposed(general_tensor auto const& other) {
+    auto const old_size = dynamic_multidim_size{*this};
+    this->resize(other.dimensions());
+    for (std::size_t col = 0; col < this->size(1); ++col) {
+      for (std::size_t row = col + 1; row < this->size(0); ++row) {
+        std::swap(this->at(row, col),
+                  this->data(old_size.plain_index(col, row)));
+      }
+    }
+    return *this;
+}
   //----------------------------------------------------------------------------
   auto assign(general_tensor auto const& other) {
     this->resize(other.dimensions());

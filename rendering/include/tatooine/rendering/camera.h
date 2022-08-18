@@ -1,12 +1,11 @@
 #ifndef TATOOINE_RENDERING_CAMERA_H
 #define TATOOINE_RENDERING_CAMERA_H
 //==============================================================================
-#include <tatooine/clonable.h>
 #include <tatooine/concepts.h>
+#include <tatooine/gl/glfunctions.h>
 #include <tatooine/ray.h>
 #include <tatooine/rendering/matrices.h>
 #include <tatooine/vec.h>
-#include <tatooine/gl/glfunctions.h>
 
 #include <array>
 //==============================================================================
@@ -27,6 +26,7 @@ struct camera_interface {
   using vec3      = Vec3<Real>;
   using vec4      = Vec4<Real>;
   using mat4      = Mat4<Real>;
+  using ray_type = tatooine::ray<real_type, 3>;
 
   //----------------------------------------------------------------------------
   // member variables
@@ -233,9 +233,27 @@ struct camera_interface {
   ///
   /// [0,0] is bottom left.
   /// ray goes through center of pixel.
-  auto ray(Real const x, Real const y) const -> tatooine::ray<Real, 3> {
+  auto ray(Real const x, Real const y) const -> ray_type {
+    auto const A = *inv(view_projection_matrix());
+
+    auto const bottom_left_near_homogeneous = A * Vec4<Real>{-1, -1, -1, 1};
+    auto const bottom_right_homogeneous     = A * Vec4<Real>{1, -1, -1, 1};
+    auto const top_left_homogeneous         = A * Vec4<Real>{-1, 1, -1, 1};
+
+    auto const bottom_left =
+        bottom_left_near_homogeneous.xyz() / bottom_left_near_homogeneous.w();
+    auto const bottom_right =
+        bottom_right_homogeneous.xyz() / bottom_right_homogeneous.w();
+    auto const top_left =
+        top_left_homogeneous.xyz() / top_left_homogeneous.w();
+
+    auto const plane_base_x =
+        (bottom_right - bottom_left) / real_type(this->plane_width() - 1);
+    auto const plane_base_y =
+        (top_left - bottom_left) / real_type(this->plane_height() - 1);
+
     auto const view_plane_point =
-        m_bottom_left + x * m_plane_base_x + y * m_plane_base_y;
+        bottom_left + x * plane_base_x + y * plane_base_y;
     return {{eye()}, {view_plane_point - eye()}};
   }
   ////------------------------------------------------------------------------------

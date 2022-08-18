@@ -68,6 +68,7 @@ struct vec : tensor<ValueType, N> {
   auto begin() { return this->internal_container().begin(); }
   auto end() const { return this->internal_container().end(); }
   auto end() { return this->internal_container().end(); }
+  auto size() const { return parent_type::size().front(); }
   //----------------------------------------------------------------------------
   auto constexpr x() const -> auto const& requires(N >= 1) { return at(0); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -118,7 +119,12 @@ auto begin(vec<ValueType, N> const& v) {
 //------------------------------------------------------------------------------
 template <typename ValueType, std::size_t N>
 auto end(vec<ValueType, N> const& v) {
-  return v.ned();
+  return v.end();
+}
+//------------------------------------------------------------------------------
+template <typename ValueType, std::size_t N>
+auto size(vec<ValueType, N> const& v) {
+  return v.size();
 }
 //==============================================================================
 template <typename... Ts>

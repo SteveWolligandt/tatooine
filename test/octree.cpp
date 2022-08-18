@@ -6,10 +6,10 @@
 namespace tatooine::test {
 //==============================================================================
 TEST_CASE("uniform_tree_hierarchy", "[uniform_tree_hierarchy]") {
-  unstrucutured_triangular_grid_3 mesh;
-  auto             v0 = mesh.insert_vertex(0.5, 0.5, 0.5);
-  uniform_tree_hierarchy<unstrucutured_triangular_grid_3> hierarchy{
-      mesh, vec3::zeros(), vec3::ones() * 4, 2};
+  auto mesh = unstructured_triangular_grid3{};
+  auto v0   = mesh.insert_vertex(0.5, 0.5, 0.5);
+  auto hierarchy =
+      uniform_tree_hierarchy{vec3::zeros(), vec3::ones() * 4, mesh, 2};
 
   REQUIRE_FALSE(hierarchy.is_splitted());
   REQUIRE_FALSE(hierarchy.holds_vertices());

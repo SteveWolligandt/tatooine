@@ -6,10 +6,9 @@
 namespace tatooine::test {
 //==============================================================================
 TEST_CASE("polynomial_line", "[polynomial_line][constructor]") {
-  polynomial_line l{polynomial{0.0, 0.0, 1.0},
-                    polynomial{0.0, 1.0},
-                    polynomial{0.0, 3.0},
-                    polynomial{0.0, 1.0, 0.0, 10.0}};
+  auto l =
+      polynomial_line{polynomial{0.0, 0.0, 1.0}, polynomial{0.0, 1.0},
+                      polynomial{0.0, 3.0}, polynomial{0.0, 1.0, 0.0, 10.0}};
   REQUIRE(l.degree() == 3);
   REQUIRE(l.num_dimensions() == 4);
   auto x = l(2);

@@ -29,7 +29,6 @@ auto isolines(
     rectilinear_grid<XDomain, YDomain> const& g,
     arithmetic auto const                     isolevel) {
   using real_type    = typename rectilinear_grid<XDomain, YDomain>::real_type;
-  using pos_type     = vec<real_type, 2>;
   using edgeset_type = Edgeset2<real_type>;
   auto isolines      = edgeset_type{};
 

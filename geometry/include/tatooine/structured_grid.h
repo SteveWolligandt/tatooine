@@ -21,15 +21,15 @@ struct structured_grid : pointset<Real, NumDimensions>,
   //============================================================================
   // TYPEDEFS
   //============================================================================
-  using this_type                 = structured_grid;
-  using pointset_parent_t      = pointset<Real, NumDimensions>;
+  using this_type              = structured_grid;
+  using pointset_parent_type   = pointset<Real, NumDimensions>;
   using multidim_size_parent_t = dynamic_multidim_size<IndexOrder>;
-  using typename pointset_parent_t::pos_type;
-  using typename pointset_parent_t::vec_t;
-  using typename pointset_parent_t::vertex_handle;
+  using typename pointset_parent_type::pos_type;
+  using typename pointset_parent_type::vec_type;
+  using typename pointset_parent_type::vertex_handle;
   template <typename T>
-  using vertex_property_t =
-      typename pointset_parent_t::template vertex_property_t<T>;
+  using vertex_property_type =
+      typename pointset_parent_type::template typed_vertex_property_type<T>;
   //============================================================================
   // STATIC METHODS
   //============================================================================
@@ -50,7 +50,7 @@ struct structured_grid : pointset<Real, NumDimensions>,
   structured_grid(filesystem::path const& path) { read(path); }
   //----------------------------------------------------------------------------
   structured_grid(integral auto const... size) {
-    static auto constexpr num_indices = sizeof...(Size);
+    static auto constexpr num_indices = sizeof...(size);
     static_assert(num_indices == num_dimensions(),
                   "Number of Indices does not match number of dimensions");
     resize(size...);
@@ -67,9 +67,7 @@ struct structured_grid : pointset<Real, NumDimensions>,
     auto const aabb = this->axis_aligned_bounding_box();
     m_hierarchy =
         std::make_unique<hierarchy_t>(aabb.min(), aabb.max(), *this, 4);
-    auto       it = [&](auto const... is) {
-      m_hierarchy->insert_cell(is...);
-    };
+    auto       it = [&](auto const... is) { m_hierarchy->insert_cell(is...); };
     auto const s  = this->size();
     if constexpr (NumDimensions == 2) {
       for_loop(it, s[0] - 1, s[1] - 1);
@@ -81,26 +79,26 @@ struct structured_grid : pointset<Real, NumDimensions>,
   auto insert_vertex(arithmetic auto const... ts) = delete;
   //============================================================================
   auto vertex_at(integral auto const... is) const -> auto const& {
-    static auto constexpr num_indices = sizeof...(Indices);
+    static auto constexpr num_indices = sizeof...(is);
     static_assert(num_indices == num_dimensions(),
                   "Number of Indices does not match number of dimensions");
-    return pointset_parent_t::vertex_at(
+    return pointset_parent_type::vertex_at(
         multidim_size_parent_t::plain_index(is...));
   }
   //----------------------------------------------------------------------------
   auto vertex_at(integral auto const... is) -> auto& {
-    static auto constexpr num_indices = sizeof...(Indices);
+    static auto constexpr num_indices = sizeof...(is);
     static_assert(num_indices == num_dimensions(),
                   "Number of Indices does not match number of dimensions");
-    return pointset_parent_t::vertex_at(
+    return pointset_parent_type::vertex_at(
         multidim_size_parent_t::plain_index(is...));
   }
   //----------------------------------------------------------------------------
   auto resize(integral auto const... sizes) {
-    static auto constexpr num_indices = sizeof...(Size);
+    static auto constexpr num_indices = sizeof...(sizes);
     static_assert(num_indices == num_dimensions(),
                   "Number of Indices does not match number of dimensions");
-    pointset_parent_t::resize((sizes * ...));
+    this->vertices().resize((sizes * ...));
     multidim_size_parent_t::resize(sizes...);
   }
   //----------------------------------------------------------------------------
@@ -117,11 +115,12 @@ struct structured_grid : pointset<Real, NumDimensions>,
   }
   //----------------------------------------------------------------------------
   auto local_cell_coordinates(
-      pos_type const x, std::array<std::size_t, NumDimensions> const& cell) const
-      -> pos_type;
+      pos_type const                                x,
+      std::array<std::size_t, NumDimensions> const& cell) const -> pos_type;
   //----------------------------------------------------------------------------
   template <typename T>
-  auto linear_vertex_property_sampler(vertex_property_t<T> const& prop) const {
+  auto linear_vertex_property_sampler(
+      vertex_property_type<T> const& prop) const {
     if (m_hierarchy == nullptr) {
       update_hierarchy();
       std::cout << "updating done!\n";
@@ -217,8 +216,9 @@ auto structured_grid<Real, NumDimensions, IndexOrder>::read_vts(
 
 template <typename Real, std::size_t NumDimensions, typename IndexOrder>
 auto structured_grid<Real, NumDimensions, IndexOrder>::local_cell_coordinates(
-    pos_type const                                   x,
-    std::array<std::size_t, NumDimensions> const& cell_indices) const -> pos_type {
+    pos_type const                                x,
+    std::array<std::size_t, NumDimensions> const& cell_indices) const
+    -> pos_type {
   auto              bary = pos_type::fill(Real(0.5));  // initial
   auto              dx   = pos_type::fill(Real(0.1));
   auto              i    = std::size_t(0);
@@ -226,18 +226,17 @@ auto structured_grid<Real, NumDimensions, IndexOrder>::local_cell_coordinates(
   auto              Dff  = mat<Real, NumDimensions, NumDimensions>{};
   static auto const max_num_iterations = std::size_t(20);
   if constexpr (NumDimensions == 2) {
-    auto const& v0 = vertex_at(cell_indices[0], cell_indices[1]);
-    auto const& v1 = vertex_at(cell_indices[0] + 1, cell_indices[1]);
-    auto const& v2 = vertex_at(cell_indices[0], cell_indices[1] + 1);
-    auto const& v3 = vertex_at(cell_indices[0] + 1, cell_indices[1] + 1);
-    auto             ff = vec_t{};
+    auto const&       v0 = vertex_at(cell_indices[0], cell_indices[1]);
+    auto const&       v1 = vertex_at(cell_indices[0] + 1, cell_indices[1]);
+    auto const&       v2 = vertex_at(cell_indices[0], cell_indices[1] + 1);
+    auto const&       v3 = vertex_at(cell_indices[0] + 1, cell_indices[1] + 1);
+    auto              ff = vec_type{};
     static auto const max_num_iterations = std::size_t(20);
     for (; i < max_num_iterations && squared_euclidean_length(dx) > tol; ++i) {
       // apply Newton-Raphson method to solve f(x,y)=0
-       ff = (1-bary.x())*(1-bary.y()) * v0 +
-                      bary.x()*(1-bary.y()) * v1 +
-                      (1-bary.x())*bary.y() * v2 +
-                      bary.x()*bary.y() * v3 - x;
+      ff = (1 - bary.x()) * (1 - bary.y()) * v0 +
+           bary.x() * (1 - bary.y()) * v1 + (1 - bary.x()) * bary.y() * v2 +
+           bary.x() * bary.y() * v3 - x;
       Dff(0, 0) = bary.y() * v3.x() - bary.y() * v2.x() +
                   (1 - bary.y()) * v1.x() - (1 - bary.y()) * v0.x();
       Dff(0, 1) = bary.x() * v3.x() + (1 - bary.x()) * v2.x() -
@@ -272,45 +271,45 @@ auto structured_grid<Real, NumDimensions, IndexOrder>::local_cell_coordinates(
         vertex_at(cell_indices[0], cell_indices[1] + 1, cell_indices[2] + 1);
     auto const& v7 = vertex_at(cell_indices[0] + 1, cell_indices[1] + 1,
                                cell_indices[2] + 1);
-    auto const x0 = v0.x();
-    auto const y0 = v0.y();
-    auto const z0 = v0.z();
-    auto const x1 = v1.x();
-    auto const y1 = v1.y();
-    auto const z1 = v1.z();
-    auto const x2 = v2.x();
-    auto const y2 = v2.y();
-    auto const z2 = v2.z();
-    auto const x3 = v3.x();
-    auto const y3 = v3.y();
-    auto const z3 = v3.z();
-    auto const x4 = v4.x();
-    auto const y4 = v4.y();
-    auto const z4 = v4.z();
-    auto const x5 = v5.x();
-    auto const y5 = v5.y();
-    auto const z5 = v5.z();
-    auto const x6 = v6.x();
-    auto const y6 = v6.y();
-    auto const z6 = v6.z();
-    auto const x7 = v7.x();
-    auto const y7 = v7.y();
-    auto const z7 = v7.z();
+    auto const  x0 = v0.x();
+    auto const  y0 = v0.y();
+    auto const  z0 = v0.z();
+    auto const  x1 = v1.x();
+    auto const  y1 = v1.y();
+    auto const  z1 = v1.z();
+    auto const  x2 = v2.x();
+    auto const  y2 = v2.y();
+    auto const  z2 = v2.z();
+    auto const  x3 = v3.x();
+    auto const  y3 = v3.y();
+    auto const  z3 = v3.z();
+    auto const  x4 = v4.x();
+    auto const  y4 = v4.y();
+    auto const  z4 = v4.z();
+    auto const  x5 = v5.x();
+    auto const  y5 = v5.y();
+    auto const  z5 = v5.z();
+    auto const  x6 = v6.x();
+    auto const  y6 = v6.y();
+    auto const  z6 = v6.z();
+    auto const  x7 = v7.x();
+    auto const  y7 = v7.y();
+    auto const  z7 = v7.z();
 
-    auto ff = vec_t{};
+    auto ff = vec_type{};
     for (; i < max_num_iterations && squared_euclidean_length(dx) > tol; ++i) {
       auto const a = bary.x();
       auto const b = bary.y();
       auto const c = bary.z();
       // apply Newton-Raphson method to solve ff(x,y)=x
-      ff =  (1 - a) * (1 - b) * (1 - c) * v0;
-      ff +=      a  * (1 - b) * (1 - c) * v1;
-      ff += (1 - a) *      b  * (1 - c) * v2;
-      ff +=      a  *      b  * (1 - c) * v3;
-      ff += (1 - a) * (1 - b) *      c  * v4;
-      ff +=      a  * (1 - b) *      c  * v5;
-      ff += (1 - a) *      b  *      c  * v6;
-      ff +=      a  *      b  *      c  * v7;
+      ff = (1 - a) * (1 - b) * (1 - c) * v0;
+      ff += a * (1 - b) * (1 - c) * v1;
+      ff += (1 - a) * b * (1 - c) * v2;
+      ff += a * b * (1 - c) * v3;
+      ff += (1 - a) * (1 - b) * c * v4;
+      ff += a * (1 - b) * c * v5;
+      ff += (1 - a) * b * c * v6;
+      ff += a * b * c * v7;
       ff -= x;
 
       Dff(0, 0) = b * c * x7 - b * c * x6 + (1 - b) * c * x5 +
@@ -358,7 +357,7 @@ auto structured_grid<Real, NumDimensions, IndexOrder>::local_cell_coordinates(
 }
 //==============================================================================
 template <std::size_t NumDimensions>
-using StructuredGrid   = structured_grid<real_type, NumDimensions>;
+using StructuredGrid   = structured_grid<real_number, NumDimensions>;
 using structured_grid2 = StructuredGrid<2>;
 using structured_grid3 = StructuredGrid<3>;
 //==============================================================================
@@ -369,19 +368,20 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::linear_cell_sampler_t
                             IndexOrder>::linear_cell_sampler_t<T>,
             Real, NumDimensions, T> {
   using this_type     = linear_cell_sampler_t;
-  using parent_t   = field<this_type, Real, NumDimensions, T>;
-  using grid_t     = structured_grid<Real, NumDimensions, IndexOrder>;
-  using property_t = typename grid_t::template vertex_property_t<T>;
-  using vec_t      = typename grid_t::vec_t;
-  using pos_type      = typename grid_t::pos_type;
-  using typename parent_t::tensor_type;
+  using real_type     = Real;
+  using parent_type   = field<this_type, Real, NumDimensions, T>;
+  using grid_type     = structured_grid<Real, NumDimensions, IndexOrder>;
+  using property_type = typename grid_type::template vertex_property_type<T>;
+  using vec_type      = typename grid_type::vec_type;
+  using pos_type      = typename grid_type::pos_type;
+  using typename parent_type::tensor_type;
 
  private:
-  grid_t const*     m_grid;
-  property_t const* m_property;
+  grid_type const*     m_grid;
+  property_type const* m_property;
 
  public:
-  linear_cell_sampler_t(grid_t const& grid, property_t const& prop)
+  linear_cell_sampler_t(grid_type const& grid, property_type const& prop)
       : m_grid{&grid}, m_property{&prop} {}
 
   //----------------------------------------------------------------------------
@@ -392,11 +392,11 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::linear_cell_sampler_t
     auto possible_cells = grid().hierarchy()->nearby_cells(x);
 
     for (auto const& cell : possible_cells) {
-      auto const c         = grid().local_cell_coordinates(x, cell);
+      auto const c = grid().local_cell_coordinates(x, cell);
       if (std::isnan(c(0))) {
         continue;
       }
-      auto       is_inside = true;
+      auto is_inside = true;
       for (size_t i = 0; i < NumDimensions; ++i) {
         if (c(i) < -1e-10 || c(i) > 1 + 1e-10) {
           is_inside = false;
@@ -456,30 +456,31 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_t
   //============================================================================
   // TYPEDEFS
   //============================================================================
-  using this_type        = hierarchy_t;
-  using real_type        = Real;
+  using this_type     = hierarchy_t;
+  using real_type     = Real;
   using index_order_t = IndexOrder;
-  using grid_t        = structured_grid<Real, NumDimensions, IndexOrder>;
-  using parent_t = base_uniform_tree_hierarchy<Real, NumDimensions, this_type>;
-  using cell_t   = std::array<std::size_t, NumDimensions>;
+  using grid_type     = structured_grid<Real, NumDimensions, IndexOrder>;
+  using parent_type =
+      base_uniform_tree_hierarchy<Real, NumDimensions, this_type>;
+  using cell_t = std::array<std::size_t, NumDimensions>;
   //============================================================================
   // INHERITED TYPES
   //============================================================================
-  using typename parent_t::pos_type;
-  using typename parent_t::vec_t;
+  using typename parent_type::pos_type;
+  using typename parent_type::vec_type;
   //============================================================================
   // INHERITED METHODS
   //============================================================================
-  using parent_t::center;
-  using parent_t::children;
-  using parent_t::extents;
-  using parent_t::is_at_max_depth;
-  using parent_t::is_inside;
-  using parent_t::is_simplex_inside;
-  using parent_t::is_splitted;
-  using parent_t::max;
-  using parent_t::min;
-  using parent_t::split_and_distribute;
+  using parent_type::center;
+  using parent_type::children;
+  using parent_type::extents;
+  using parent_type::is_at_max_depth;
+  using parent_type::is_inside;
+  using parent_type::is_simplex_inside;
+  using parent_type::is_splitted;
+  using parent_type::max;
+  using parent_type::min;
+  using parent_type::split_and_distribute;
   //============================================================================
   // STATIC METHODS
   //============================================================================
@@ -487,7 +488,7 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_t
   //============================================================================
   // MEMBERS
   //============================================================================
-  grid_t const*       m_grid = nullptr;
+  grid_type const*    m_grid = nullptr;
   std::vector<cell_t> m_cell_handles;
   //============================================================================
   // CTORS
@@ -499,21 +500,22 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_t
   auto operator=(hierarchy_t&&) noexcept -> hierarchy_t& = default;
   virtual ~hierarchy_t()                                 = default;
 
-  explicit hierarchy_t(grid_t const& grid) : m_grid{&grid} {}
-  explicit hierarchy_t(grid_t const& grid,
-                       size_t const  max_depth = parent_t::default_max_depth)
-      : parent_t{pos_type::zeros(), pos_type::zeros(), 1, max_depth}, m_grid{&grid} {
-    parent_t::operator=(grid.bounding_box());
+  explicit hierarchy_t(grid_type const& grid) : m_grid{&grid} {}
+  explicit hierarchy_t(grid_type const& grid,
+                       size_t const max_depth = parent_type::default_max_depth)
+      : parent_type{pos_type::zeros(), pos_type::zeros(), 1, max_depth},
+        m_grid{&grid} {
+    parent_type::operator=(grid.bounding_box());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  hierarchy_t(vec_t const& min, vec_t const& max, grid_t const& grid,
-              size_t const max_depth = parent_t::default_max_depth)
-      : parent_t{min, max, 1, max_depth}, m_grid{&grid} {}
+  hierarchy_t(vec_type const& min, vec_type const& max, grid_type const& grid,
+              size_t const max_depth = parent_type::default_max_depth)
+      : parent_type{min, max, 1, max_depth}, m_grid{&grid} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  private:
-  hierarchy_t(vec_t const& min, vec_t const& max, size_t const level,
-              size_t const max_depth, grid_t const& grid)
-      : parent_t{min, max, level, max_depth}, m_grid{&grid} {}
+  hierarchy_t(vec_type const& min, vec_type const& max, size_t const level,
+              size_t const max_depth, grid_type const& grid)
+      : parent_type{min, max, level, max_depth}, m_grid{&grid} {}
   //============================================================================
   // METHODS
   //============================================================================
@@ -534,11 +536,10 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_t
  private:
   constexpr auto is_cell_inside_2(std::size_t const ix,
                                   std::size_t const iy) const
-      requires(NumDimensions == 2)
-  {
+      requires(NumDimensions == 2) {
     auto const c  = center();
     auto const e  = extents() / 2;
-    auto const us = std::array{vec_t{1, 0}, vec_t{0, 1}};
+    auto const us = std::array{vec_type{1, 0}, vec_type{0, 1}};
     auto const xs = std::array{
         grid().vertex_at(ix, iy) - c, grid().vertex_at(ix + 1, iy) - c,
         grid().vertex_at(ix + 1, iy + 1) - c, grid().vertex_at(ix, iy + 1) - c};
@@ -557,7 +558,7 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_t
     for (size_t i = 0; i < size(xs); ++i) {
       auto const j = i == size(xs) - 1 ? 0 : i + 1;
       if (is_separating_axis(
-              vec_t{xs[i].y() - xs[j].y(), xs[j].x() - xs[i].x()})) {
+              vec_type{xs[i].y() - xs[j].y(), xs[j].x() - xs[i].x()})) {
         return false;
       }
     }
@@ -566,8 +567,7 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_t
   //----------------------------------------------------------------------------
   constexpr auto is_cell_inside_3(std::size_t const ix, std::size_t const iy,
                                   std::size_t const iz) const
-      requires(NumDimensions == 3)
-  {
+      requires(NumDimensions == 3) {
     auto const c = center();
     auto const e = extents() / 2;
 
@@ -592,7 +592,7 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_t
                                cross(es[11], es[2]), cross(es[0], -es[9])};
 
     auto constexpr us =
-        std::array{vec_t{1, 0, 0}, vec_t{0, 1, 0}, vec_t{0, 0, 1}};
+        std::array{vec_type{1, 0, 0}, vec_type{0, 1, 0}, vec_type{0, 0, 1}};
 
     auto is_separating_axis = [&](auto const& axis) {
       auto const dots =
@@ -629,11 +629,10 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_t
     return true;
   }
 
- public :
-     //------------------------------------------------------------------------------
-     template <typename... Indices>
-     auto
-     insert_cell(Indices const... is) -> bool {
+ public:
+  //------------------------------------------------------------------------------
+  template <typename... Indices>
+  auto insert_cell(Indices const... is) -> bool {
     if (!is_cell_inside(is...)) {
       return false;
     }
@@ -661,7 +660,7 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_t
     }
   }
   //------------------------------------------------------------------------------
-  auto construct(vec_t const& min, vec_t const& max, size_t const level,
+  auto construct(vec_type const& min, vec_type const& max, size_t const level,
                  size_t const max_depth) const {
     return std::unique_ptr<this_type>{
         new this_type{min, max, level, max_depth, grid()}};
@@ -683,7 +682,7 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_t
     distribute_cell(is, std::make_index_sequence<NumDimensions>{});
   }
   //============================================================================
-  auto collect_nearby_cells(vec_t const& pos, std::set<cell_t>& cells) const
+  auto collect_nearby_cells(vec_type const& pos, std::set<cell_t>& cells) const
       -> void {
     if (is_inside(pos)) {
       if (is_splitted()) {

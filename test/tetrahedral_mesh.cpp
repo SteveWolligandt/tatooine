@@ -7,19 +7,19 @@ namespace tatooine::test {
 //==============================================================================
 TEST_CASE("unstructured_tetrahedral_grid_copy",
           "[unstructured_tetrahedral_grid][copy]") {
-  unstructured_tetrahedral_grid mesh;
-  auto const                    v0 = mesh.insert_vertex(0.0, 0.0, 0.0);
-  auto const                    v1 = mesh.insert_vertex(1.0, 0.0, 0.0);
-  auto const                    v2 = mesh.insert_vertex(0.0, 1.0, 0.0);
-  auto const                    v3 = mesh.insert_vertex(0.0, 0.0, 1.0);
-  auto const                    t0 = mesh.insert_tetrahedron(v0, v1, v2, v3);
+  auto       mesh = unstructured_tetrahedral_grid3{};
+  auto const v0   = mesh.insert_vertex(0.0, 0.0, 0.0);
+  auto const v1   = mesh.insert_vertex(1.0, 0.0, 0.0);
+  auto const v2   = mesh.insert_vertex(0.0, 1.0, 0.0);
+  auto const v3   = mesh.insert_vertex(0.0, 0.0, 1.0);
+  auto const t0   = mesh.insert_simplex(v0, v1, v2, v3);
 
-  auto& vertex_prop = mesh.add_vertex_property<double>("vertex_prop");
+  auto& vertex_prop = mesh.scalar_vertex_property("vertex_prop");
   vertex_prop[v0]   = 0;
   vertex_prop[v1]   = 1;
   vertex_prop[v2]   = 2;
   vertex_prop[v3]   = 3;
-  auto& tet_prop    = mesh.add_tetrahedron_property<double>("tet_prop");
+  auto& tet_prop    = mesh.scalar_simplex_property("tet_prop");
   tet_prop[t0]      = 4;
 
   auto copied_mesh = mesh;
@@ -43,7 +43,7 @@ TEST_CASE("unstructured_tetrahedral_grid_copy",
     REQUIRE_FALSE(vertex_prop[v0] == copied_vertex_prop[v0]);
 
     auto& copied_tet_prop =
-        copied_mesh.tetrahedron_property<double>("tet_prop");
+        copied_mesh.simplex_property<double>("tet_prop");
     REQUIRE(tet_prop[t0] == copied_tet_prop[t0]);
 
     tet_prop[t0] = 10;
@@ -58,39 +58,38 @@ TEST_CASE("unstructured_tetrahedral_grid_copy",
     REQUIRE(vertex_prop[v0] == copied_vertex_prop[v0]);
 
     auto& copied_tet_prop =
-        copied_mesh.tetrahedron_property<double>("tet_prop");
+        copied_mesh.simplex_property<double>("tet_prop");
     auto const [v0, v1, v2, v3]     = mesh[t0];
     auto const [cv0, cv1, cv2, cv3] = copied_mesh[t0];
-    REQUIRE(v0.i == cv0.i);
-    REQUIRE(v1.i == cv1.i);
-    REQUIRE(v2.i == cv2.i);
-    REQUIRE(v3.i == cv3.i);
+    REQUIRE(v0.index() == cv0.index());
+    REQUIRE(v1.index() == cv1.index());
+    REQUIRE(v2.index() == cv2.index());
+    REQUIRE(v3.index() == cv3.index());
     REQUIRE(tet_prop[t0] == copied_tet_prop[t0]);
   }
 }
 //==============================================================================
 TEST_CASE("unstructured_tetrahedral_grid_from_grid",
           "[unstructured_tetrahedral_grid][grid]") {
-  auto const g =
-      grid{linspace{0.0, 1.0, 5}, linspace{0.0, 1.0, 5}, linspace{0.0, 1.0, 5}};
-  unstructured_tetrahedral_grid mesh{g};
-  mesh.write_vtk("unstructured_tetrahedral_grid_from_3d_grid.vtk");
+  auto const g = rectilinear_grid{linspace{0.0, 1.0, 5}, linspace{0.0, 1.0, 5},
+                                  linspace{0.0, 1.0, 5}};
+  auto       mesh = unstructured_tetrahedral_grid3{g};
+  mesh.write("unstructured_tetrahedral_grid_from_3d_grid.vtu");
 }
 //==============================================================================
 #if TATOOINE_CGAL_AVAILABLE
 TEST_CASE("unstructured_tetrahedral_grid_vertex_property_sampler",
           "[unstructured_tetrahedral_grid][vertex_property][sampler]") {
-  size_t const num_points  = 100;
-  size_t const random_seed = 1234;
-  real_type const radius      = 1;
-  auto const   s           = geometry::sphere<real_type, 3>{radius};
-  auto         mesh        = unstructured_tetrahedral_grid{
-      s.random_points(num_points, std::mt19937_64{random_seed})};
+  std::size_t const    num_points  = 100;
+  std::size_t const    random_seed = 1234;
+  auto const           radius      = real_number{1};
+  auto const           s           = geometry::sphere3{radius};
+  auto mesh = unstructured_tetrahedral_grid3{s.random_points(num_points)};
   using v = decltype(mesh)::vertex_handle;
 
   mesh.build_delaunay_mesh();
-  auto& prop = mesh.add_vertex_property<double>("prop");
-  for (size_t i = 0; i < num_points; ++i) {
+  auto& prop = mesh.scalar_vertex_property("prop");
+  for (std::size_t i = 0; i < num_points; ++i) {
     prop[v{i}] = i;
   }
   auto prop_sampler = mesh.sampler(prop);
@@ -100,7 +99,7 @@ TEST_CASE("unstructured_tetrahedral_grid_vertex_property_sampler",
     }
   }
   SECTION("Interpolated Property") {
-    for (auto tet : mesh.tetrahedrons()) {
+    for (auto tet : mesh.simplices()) {
       auto const [v0, v1, v2, v3] = mesh[tet];
       REQUIRE(prop_sampler(mesh[v0] * 0.1 + mesh[v1] * 0.2 + mesh[v2] * 0.3 +
                            mesh[v3] * 0.4) ==

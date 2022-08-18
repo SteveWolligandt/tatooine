@@ -5,7 +5,6 @@
 #include <tatooine/gl/glincludes.h>
 #include <tatooine/gl/mutexhandler.h>
 #include <tatooine/gl/tostring.h>
-
 #include <iostream>
 //==============================================================================
 namespace tatooine::gl {
@@ -480,4 +479,7 @@ DLL_API void memory_barrier(GLbitfield barriers);
 //==============================================================================
 }  // namespace tatooine::gl
 //==============================================================================
+#endif
+#ifdef Always
+#undef Always
 #endif

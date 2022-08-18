@@ -24,19 +24,22 @@ struct reflection_test {
     return m_j;
   }
 };
-struct reflection_test_empty {
-};
+//==============================================================================
 }  // namespace tatooine::test
+//==============================================================================
+namespace tatooine::reflection {
 TATOOINE_MAKE_ADT_REFLECTABLE(tatooine::test::reflection_test,
                               TATOOINE_REFLECTION_INSERT_GETTER(i),
                               TATOOINE_REFLECTION_INSERT_GETTER(j));
-TATOOINE_MAKE_ADT_REFLECTABLE(tatooine::test::reflection_test_empty);
+}
+//==============================================================================
 namespace tatooine::test {
+//==============================================================================
 TEST_CASE("reflection", "[reflection]") {
-  reflection_test obj{1, 2};
+  auto obj = reflection_test{-1, 2};
   reflection::for_each(obj, [](auto name, auto&& val) {
     if (name == "i") {
-      REQUIRE(val == 1);
+      REQUIRE(val == -1);
       REQUIRE(std::is_same_v<decltype(val), int&>);
     } else if (name == "j") {
       REQUIRE(val == 2);

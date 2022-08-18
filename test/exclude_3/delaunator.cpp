@@ -5,7 +5,7 @@
 namespace tatooine {
 //==============================================================================
 TEST_CASE("delaunator_unit_quad", "[delaunator][quad]"){
-  std::vector<vec2> points{{-1, 1}, {1, 1}, {1, -1}, {-1, -1}};
+  auto points = std::vector<vec2>{{-1, 1}, {1, 1}, {1, -1}, {-1, -1}};
   delaunator::Delaunator d{points};
 
   for (size_t i = 0; i < d.triangles.size(); i += 3) {
@@ -19,7 +19,7 @@ TEST_CASE("delaunator_unit_quad", "[delaunator][quad]"){
 TEST_CASE("delaunator_random_unstructured_triangular_grid",
           "[delaunator][random][unstructured_triangular_grid]") {
   random::uniform rand{0.0, 10.0};
-  unstructured_triangular_grid_2 mesh;
+  auto mesh = unstructured_triangular_grid2 {};
   for (size_t i = 0; i < 100; ++i) {
     mesh.insert_vertex(vec2{rand});
   }

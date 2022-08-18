@@ -180,7 +180,7 @@ class variable {
       read_chunk(start_indices, s, *arr.chunk_at(plain_chunk_index));
       if constexpr (std::is_arithmetic_v<T>) {
         bool all_zero = true;
-        for (auto const& v : arr.chunk_at(plain_chunk_index)->data()) {
+        for (auto const& v : arr.chunk_at(plain_chunk_index)->internal_container()) {
           if (v != 0) {
             all_zero = false;
             break;
