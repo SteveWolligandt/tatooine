@@ -48,20 +48,19 @@ struct staggered_flowmap_discretization {
   /// \param x position
   /// \returns phi(x, t0, t1 - t0)
   auto sample(pos_type x, forward_tag const tag) const {
-    for (auto const& step : m_steps) {
+    for (auto const& step : steps()) {
       x = step.sample(x, tag);
     }
     return x;
   }
   //----------------------------------------------------------------------------
-  /// Evaluates flow map in forward direction at time t0 with maximal available
+  /// Evaluates flow map in backward direction at time t0 with maximal available
   /// advection time.
   /// \param x position
   /// \returns phi(x, t1, t0 - t1)
   auto sample(pos_type x, backward_tag const tag) const {
-    for (auto it = m_steps.rbegin(); it != m_steps.rend(); ++it) {
-      auto const& step = *it;
-      x = step.sample(x, tag);
+    for (auto step = steps().rbegin(); step != steps().rend(); ++step) {
+      x = step->sample(x, tag);
     }
     return x;
   }
