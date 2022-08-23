@@ -2,7 +2,7 @@
 #include <tatooine/sinuscosinus.h>
 #include <tatooine/spacetime_field.h>
 #include <tatooine/integration/vclibs/rungekutta43.h>
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 //==============================================================================
 namespace tatooine::test {

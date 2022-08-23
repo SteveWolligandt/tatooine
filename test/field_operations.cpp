@@ -1,7 +1,9 @@
 #include <tatooine/analytical/numerical/doublegyre.h>
 #include <tatooine/field_operations.h>
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_approx.hpp>
+#include <catch2/catch_test_macros.hpp>
+using namespace Catch;
 //═════════════════════════════════════════════════════════════════════════════╗
 namespace tatooine::test {
 //═══════════════════════════════════════════════════════════════════════════╗

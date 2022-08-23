@@ -7,7 +7,7 @@
 #ifdef TATOOINE_HDF5_AVAILABLE
 #include <tatooine/hdf5.h>
 #endif
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================

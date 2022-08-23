@@ -239,7 +239,7 @@ auto triangulate(edgeset<Real, NumDimensions>&         edges,
   }
 }
 //==============================================================================
-auto total_num_particles(std::vector<hierarchy_pair> const& hps) {
+inline auto total_num_particles(std::vector<hierarchy_pair> const& hps) {
   std::size_t num = 0;
   for (auto const& hp : hps) {
     num = std::max(num, hp.id);

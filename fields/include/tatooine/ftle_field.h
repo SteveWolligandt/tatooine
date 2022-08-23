@@ -16,14 +16,13 @@ struct ftle_field
   using real_type   = typename FlowmapGradient::real_type;
   using this_type   = ftle_field<FlowmapGradient>;
   using parent_type = scalarfield<this_type, real_type, FlowmapGradient::num_dimensions()>;
-  using vec_t    = typename FlowmapGradient::vec_t;
+  using vec_type = typename FlowmapGradient::vec_type;
   using typename parent_type::pos_type;
   using typename parent_type::tensor_type;
   //============================================================================
  private:
   FlowmapGradient m_flowmap_gradient;
   real_type       m_tau;
-
   //============================================================================
  public:
   template <typename V, typename VReal, size_t N,
@@ -58,7 +57,7 @@ struct ftle_field
     v(x, t);
   }
   constexpr ftle_field(vectorfield<V, VReal, N> const& v, arithmetic auto tau,
-                       vec_t const& eps)
+                       vec_type const& eps)
       : m_flowmap_gradient{diff(flowmap(v), eps)},
         m_tau{static_cast<real_type>(tau)} {}
   ////------------------------------------------------------------------------------
@@ -71,13 +70,7 @@ struct ftle_field
   auto evaluate(pos_type const& x, real_type t) const -> tensor_type final {
     auto const g       = m_flowmap_gradient(x, t, m_tau);
     auto const eigvals = eigenvalues_sym(transposed(g) * g);
-    auto const max_eig = max(eigvals);
-    return std::log(std::sqrt(max_eig)) / std::abs(m_tau);
-  }
-  //----------------------------------------------------------------------------
-  constexpr auto in_domain(pos_type const& /*x*/, real_type /*t*/) const
-      -> bool final {
-    return true;
+    return gcem::log(gcem::sqrt(eigvals(0))) / std::abs(m_tau);
   }
   //----------------------------------------------------------------------------
   auto tau() const { return m_tau; }
@@ -90,15 +83,19 @@ struct ftle_field
 //==============================================================================
 template <typename V, typename Real, size_t N,
           template <typename, size_t> typename ODESolver>
-ftle_field(vectorfield<V, Real, N> const& v, arithmetic auto, ODESolver<Real, N>)
-    -> ftle_field<numerically_differentiated_flowmap<
-        decltype((flowmap<ODESolver>(v)))>>;
+ftle_field(vectorfield<V, Real, N> const& v, arithmetic auto,
+           ODESolver<Real, N>)
+    -> ftle_field<
+        numerically_differentiated_flowmap<decltype((flowmap<ODESolver>(v)))>>;
+//------------------------------------------------------------------------------
 template <typename V, typename Real, size_t N>
 ftle_field(vectorfield<V, Real, N> const& v, arithmetic auto)
     -> ftle_field<decltype(diff(flowmap(v)))>;
+//------------------------------------------------------------------------------
 template <typename V, typename Real, size_t N>
 ftle_field(vectorfield<V, Real, N> const& v, arithmetic auto, arithmetic auto)
     -> ftle_field<decltype(diff(flowmap(v)))>;
+//------------------------------------------------------------------------------
 template <typename V, typename Real, size_t N, typename EpsReal>
 ftle_field(vectorfield<V, Real, N> const& v, arithmetic auto,
            vec<EpsReal, N> const&) -> ftle_field<decltype(diff(flowmap(v)))>;

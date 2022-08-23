@@ -8,13 +8,12 @@
 using namespace tatooine;
 //==============================================================================
 auto main() -> int {
-  auto v = analytical::numerical::abcflow{};
-  auto seedcurve = line3{};
-  seedcurve.push_back(-1, 0, 0);
-  seedcurve.push_back(1, 0, 0);
-  seedcurve.compute_parameterization();
-  auto ssf = streamsurface{flowmap(v), 0, seedcurve};
-  auto mesh = unstructured_triangular_grid3{ssf.discretize(10, 0.1, 0, 1)};
+  auto const mesh = isosurface(
+      euclidean_length(analytical::numerical::abcflow{}),
+      rectilinear_grid{linspace{-10.0, 10.0, 256},
+                       linspace{-10.0, 10.0, 256},
+                       linspace{-10.0, 10.0, 256}},
+      1)
   mesh.sample_to_vertex_property(v, "velocity");
 
   rendering::interactive::show(mesh);

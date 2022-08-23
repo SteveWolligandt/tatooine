@@ -1,7 +1,7 @@
 #include <tatooine/flowmap.h>
 #include <tatooine/integration/vclibs/rungekutta43.h>
 #include <tatooine/doublegyre.h>
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================

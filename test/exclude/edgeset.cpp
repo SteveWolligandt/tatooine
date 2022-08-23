@@ -1,7 +1,7 @@
 #include <tatooine/edgeset.h>
 #include <boost/range/algorithm.hpp>
 #include <iostream>
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 //==============================================================================
 namespace tatooine::test {

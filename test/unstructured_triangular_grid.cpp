@@ -1,5 +1,8 @@
 #include <tatooine/unstructured_triangular_grid.h>
-#include <catch2/catch.hpp>
+
+#include <catch2/catch_approx.hpp>
+#include <catch2/catch_test_macros.hpp>
+using namespace Catch;
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
@@ -38,6 +41,187 @@ TEST_CASE("unstructured_simplicial_grid_triangular_2d",
   REQUIRE(typeid(cv1_) == typeid(decltype(mesh)::vertex_handle const&));
   REQUIRE(typeid(cv2_) == typeid(decltype(mesh)::vertex_handle const&));
   REQUIRE(typeid(cv3_) == typeid(decltype(mesh)::vertex_handle const&));
+}
+//==============================================================================
+TEST_CASE_METHOD(UnstructuredTriangularGrid3<double>,
+                 "unstructured_triangular_grid_remove_vertex",
+                 "[unstructured_triangular_grid][triangular_grid][remove][vertex]") {
+  using namespace std::ranges;
+  [[maybe_unused]] auto v0 = insert_vertex(0, 0, 0);
+  [[maybe_unused]] auto v1 = insert_vertex(1, 0, 0);
+  [[maybe_unused]] auto v2 = insert_vertex(1, 1, 0);
+  [[maybe_unused]] auto v3 = insert_vertex(0, 1, 0);
+  [[maybe_unused]] auto c0 = insert_simplex(v0, v1, v2);
+  [[maybe_unused]] auto c1 = insert_simplex(v0, v2, v3);
+
+  remove(v1);
+
+  REQUIRE(find(vertices(), v1) == end(vertices()));
+  REQUIRE(find(simplices(), c0) == end(simplices()));
+}
+//==============================================================================
+TEST_CASE_METHOD(UnstructuredTriangularGrid2<double>,
+                 "unstructured_triangular_grid_simplex_contains_vertex",
+                 "[unstructured_triangular_grid][triangular_grid][contains][vertex_in_simplex]") {
+  using namespace std::ranges;
+  [[maybe_unused]] auto v0 = insert_vertex(0, 0);
+  [[maybe_unused]] auto v1 = insert_vertex(1, 0);
+  [[maybe_unused]] auto v2 = insert_vertex(1, 1);
+  [[maybe_unused]] auto v3 = insert_vertex(0, 1);
+  [[maybe_unused]] auto c0 = insert_simplex(v0, v1, v2);
+  [[maybe_unused]] auto c1 = insert_simplex(v0, v2, v3);
+
+  REQUIRE(contains(c0, v0));
+  REQUIRE(contains(c0, v1));
+  REQUIRE(contains(c0, v2));
+  REQUIRE_FALSE(contains(c0, v3));
+  REQUIRE(contains(c1, v0));
+  REQUIRE_FALSE(contains(c1, v1));
+  REQUIRE(contains(c1, v2));
+  REQUIRE(contains(c1, v3));
+}
+//==============================================================================
+TEST_CASE_METHOD(UnstructuredTriangularGrid2<double>,
+                 "unstructured_triangular_grid_tidy_up",
+                 "[unstructured_triangular_grid][triangular_grid][tidyup]") {
+  using namespace std::ranges;
+  [[maybe_unused]] auto v0 = insert_vertex(0, 0);
+  [[maybe_unused]] auto v1 = insert_vertex(1, 0);
+  [[maybe_unused]] auto v2 = insert_vertex(1, 1);
+  [[maybe_unused]] auto v3 = insert_vertex(0, 1);
+  [[maybe_unused]] auto c0 = insert_simplex(v0, v1, v2);
+  [[maybe_unused]] auto c1 = insert_simplex(v0, v2, v3);
+
+  REQUIRE(size(vertices()) == 4);
+  REQUIRE(size(simplices()) == 2);
+  REQUIRE(size(vertex_position_data()) == 4);
+  REQUIRE(size(simplex_index_data()) == 6);
+  REQUIRE(vertex_at(0)(0) == 0);
+  REQUIRE(vertex_at(0)(1) == 0);
+  REQUIRE(vertex_at(1)(0) == 1);
+  REQUIRE(vertex_at(1)(1) == 0);
+  REQUIRE(vertex_at(2)(0) == 1);
+  REQUIRE(vertex_at(2)(1) == 1);
+  REQUIRE(vertex_at(3)(0) == 0);
+  REQUIRE(vertex_at(3)(1) == 1);
+  REQUIRE(simplex_index_data()[0].index() == 0);
+  REQUIRE(simplex_index_data()[1].index() == 1);
+  REQUIRE(simplex_index_data()[2].index() == 2);
+  REQUIRE(simplex_index_data()[3].index() == 0);
+  REQUIRE(simplex_index_data()[4].index() == 2);
+  REQUIRE(simplex_index_data()[5].index() == 3);
+  remove(v1);
+  REQUIRE(size(vertices()) == 3);
+  REQUIRE(size(simplices()) == 1);
+  REQUIRE(size(vertex_position_data()) == 4);
+  REQUIRE(size(simplex_index_data()) == 6);
+  REQUIRE(vertex_at(0)(0) == 0);
+  REQUIRE(vertex_at(0)(1) == 0);
+  REQUIRE(vertex_at(1)(0) == 1);
+  REQUIRE(vertex_at(1)(1) == 0);
+  REQUIRE(vertex_at(2)(0) == 1);
+  REQUIRE(vertex_at(2)(1) == 1);
+  REQUIRE(vertex_at(3)(0) == 0);
+  REQUIRE(vertex_at(3)(1) == 1);
+  tidy_up();
+  REQUIRE(size(vertices()) == 3);
+  REQUIRE(size(simplices()) == 1);
+  REQUIRE(size(vertex_position_data()) == 3);
+  REQUIRE(size(simplex_index_data()) == 3);
+  REQUIRE(vertex_at(0)(0) == 0);
+  REQUIRE(vertex_at(0)(1) == 0);
+  REQUIRE(vertex_at(1)(0) == 1);
+  REQUIRE(vertex_at(1)(1) == 1);
+  REQUIRE(vertex_at(2)(0) == 0);
+  REQUIRE(vertex_at(2)(1) == 1);
+
+}
+//==============================================================================
+TEST_CASE_METHOD(UnstructuredTriangularGrid3<double>,
+                 "unstructured_triangular_grid_io",
+                 "[unstructured_triangular_grid][triangular_grid][io][IO]") {
+  auto v0 = insert_vertex(0, 0, 0);
+  auto v1 = insert_vertex(1, 0, 0);
+  auto v2 = insert_vertex(0, 1, 0);
+  insert_simplex(v0, v1, v2);
+  write_vtp("triangle_poly.vtp");
+}
+//==============================================================================
+TEST_CASE_METHOD(unstructured_triangular_grid3, "unstructured_triangular_grid_copy",
+          "[unstructured_triangular_grid][copy]") {
+  auto const                     v0 = insert_vertex(0.0, 0.0, 0.0);
+  auto const                     v1 = insert_vertex(1.0, 0.0, 0.0);
+  auto const                     v2 = insert_vertex(0.0, 1.0, 0.0);
+  auto const                     f0 = insert_simplex(v0, v1, v2);
+
+  auto& vertex_prop = scalar_vertex_property("vertex_prop");
+  vertex_prop[v0]   = 0;
+  vertex_prop[v1]   = 1;
+  vertex_prop[v2]   = 2;
+  auto& simplex_prop   = scalar_simplex_property("simplex_prop");
+  simplex_prop[f0]     = 4;
+
+  auto copied_mesh = *this;
+
+  REQUIRE(at(v0) == copied_mesh[v0]);
+  REQUIRE(at(v1) == copied_mesh[v1]);
+  REQUIRE(at(v2) == copied_mesh[v2]);
+  at(v0)(0) = 2;
+  REQUIRE_FALSE(at(v0) == copied_mesh[v0]);
+
+  {
+    auto& copied_vertex_prop =
+        copied_mesh.scalar_vertex_property("vertex_prop");
+    REQUIRE(vertex_prop[v0] == copied_vertex_prop[v0]);
+    REQUIRE(vertex_prop[v1] == copied_vertex_prop[v1]);
+    REQUIRE(vertex_prop[v2] == copied_vertex_prop[v2]);
+
+    vertex_prop[v0] = 100;
+    REQUIRE_FALSE(vertex_prop[v0] == copied_vertex_prop[v0]);
+
+    auto& copied_simplex_prop = copied_mesh.scalar_simplex_property("simplex_prop");
+    REQUIRE(simplex_prop[f0] == copied_simplex_prop[f0]);
+
+    simplex_prop[f0] = 10;
+    REQUIRE_FALSE(simplex_prop[f0] == copied_simplex_prop[f0]);
+  }
+
+  copied_mesh = *this;
+  {
+    auto& copied_vertex_prop =
+        copied_mesh.scalar_vertex_property("vertex_prop");
+    REQUIRE(at(v0) == copied_mesh[v0]);
+    REQUIRE(vertex_prop[v0] == copied_vertex_prop[v0]);
+
+    auto& copied_simplex_prop = copied_mesh.scalar_simplex_property("simplex_prop");
+    REQUIRE(at(f0) == copied_mesh[f0]);
+    REQUIRE(simplex_prop[f0] == copied_simplex_prop[f0]);
+  }
+}
+//==============================================================================
+TEST_CASE_METHOD(unstructured_triangular_grid2,
+                 "unstructured_triangular_grid_linear_sampler",
+                 "[unstructured_triangular_grid][linear_sampler]") {
+  auto const                     v0 = insert_vertex(0.0, 0.0);
+  auto const                     v1 = insert_vertex(1.0, 0.0);
+  auto const                     v2 = insert_vertex(0.0, 1.0);
+  auto const                     v3 = insert_vertex(1.0, 1.0);
+  insert_simplex(v0, v1, v2);
+  insert_simplex(v1, v3, v2);
+
+  auto& prop   = scalar_vertex_property("prop");
+  prop[v0]     = 1;
+  prop[v1]     = 2;
+  prop[v2]     = 3;
+  prop[v3]     = 4;
+  auto sampler = this->sampler(prop);
+  REQUIRE(sampler(at(v0)) == prop[v0]);
+  REQUIRE(sampler(at(v1)) == prop[v1]);
+  REQUIRE(sampler(at(v2)) == prop[v2]);
+  REQUIRE(sampler(at(v3)) == prop[v3]);
+  REQUIRE(sampler(vec2{0.5, 0.5}) == Approx(2.5));
+  REQUIRE(sampler(vec2{0.0, 0.0}) == Approx(1));
+  REQUIRE(sampler(vec2{1.0, 1.0}) == Approx(4));
 }
 //==============================================================================
 }  // namespace tatooine::test

@@ -1,5 +1,5 @@
 #include <tatooine/delaunator.h>
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <tatooine/unstructured_triangular_grid.h>
 //==============================================================================
 namespace tatooine {

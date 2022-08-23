@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <tatooine/analytical/doublegyre.h>
 #include <tatooine/numerical_flowmap.h>
 #include <tatooine/rectilinear_grid.h>

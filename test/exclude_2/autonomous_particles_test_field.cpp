@@ -1,7 +1,7 @@
 #include <tatooine/analytical/numerical/autonomous_particles_test.h>
 #include <tatooine/flowmap_gradient_central_differences.h>
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 //==============================================================================
 namespace tatooine::analytical::numerical::test {
 //==============================================================================

@@ -18,7 +18,7 @@ static constexpr auto lattice_size = std::string_view{"Lattice { float["};
 static constexpr auto data_follows = std::string_view{"# Data section follows"};
 static constexpr auto num_bytes_header = std::size_t(2048);
 //==============================================================================
-auto read_header(std::ifstream& file) {
+inline auto read_header(std::ifstream& file) {
   auto const cur_cursor_pos = file.tellg();
   // We read the first 2048 bytes into memory to parse the header.
   auto constexpr num_bytes_header = std::size_t(2048);
@@ -88,7 +88,7 @@ auto read_header(std::ifstream& file) {
   return std::tuple{dims, std::move(aabb), num_components, data_begin_pos};
 }
 //------------------------------------------------------------------------------
-auto read_header(filesystem::path const& path) {
+inline auto read_header(filesystem::path const& path) {
   auto file = std::ifstream{path};
   if (!file.is_open()) {
     throw std::runtime_error("could not open file " + path.string());

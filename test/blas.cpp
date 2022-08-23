@@ -1,8 +1,11 @@
-#include <catch2/catch.hpp>
 #include <tatooine/blas.h>
 #include <tatooine/mat.h>
+
+#include <catch2/catch_approx.hpp>
+#include <catch2/catch_test_macros.hpp>
+using namespace Catch;
 //==============================================================================
-namespace tatooine::test{
+namespace tatooine::test {
 //==============================================================================
 TEST_CASE("blas_gemm", "[blas][gemm]") {
   auto A = mat24{{1, 2, 3, 4},
