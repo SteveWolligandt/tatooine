@@ -6,7 +6,7 @@ foreach(EXAMPLE_FILE ${EXAMPLE_FILES})
   get_filename_component(FILENAME ${EXAMPLE_FILE} NAME_WE)
   set(TARGET ${FILENAME}.example)
   add_executable(${TARGET} ${FILENAME}.cpp)
-  target_link_libraries(${TARGET} PUBLIC fields Boost::program_options)
+  target_link_libraries(${TARGET} PUBLIC fields rendering Boost::program_options)
   add_custom_target(${TARGET}.run
     COMMAND ./${TARGET}
     DEPENDS ${TARGET})

@@ -26,16 +26,33 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND (
   ))
   include(CodeCoverage)
 endif()
-set(COVERAGE_EXCLUDES
-    ${CMAKE_SOURCE_DIR}/test
-    ${CMAKE_SOURCE_DIR}/external/
-    ${CMAKE_CURRENT_SOURCE_DIR}/external
-    /usr/local/include
-    /usr/include)
+set(COVERAGE_EXCLUDES)
 set(COVERAGE_GCOVR_EXCLUDES ${COVERAGE_EXCLUDES})
 set(COVERAGE_LCOV_EXCLUDES
+  ${CMAKE_SOURCE_DIR}/test/*
+  ${CMAKE_SOURCE_DIR}/external/gcem/include/*
+  ${CMAKE_SOURCE_DIR}/external/gcem/include/*/*
+  ${CMAKE_SOURCE_DIR}/external/vcode/include/*
+  ${CMAKE_SOURCE_DIR}/external/vcode/include/*/*
+  ${CMAKE_SOURCE_DIR}/gl/external/imgui/*
+  ${CMAKE_SOURCE_DIR}/gl/external/imgui/*/*
+  ${CMAKE_SOURCE_DIR}/test/external/catch2/*
+  ${CMAKE_SOURCE_DIR}/test/external/catch2/*/*
+  ${CMAKE_SOURCE_DIR}/test/external/catch2/*/*/*
+  ${CMAKE_SOURCE_DIR}/test/external/catch2/*/*/*/*
+  /usr/include/*
+  /usr/include/CGAL/*
+  /usr/include/CGAL/*/*
+  /usr/include/CGAL/*/*/*
+  /usr/include/flann/*
+  /usr/include/flann/*/*
+  /usr/include/flann/*/*/*
+  /usr/include/boost
+  /usr/include/boost/*
   /usr/include/boost/*/*
   /usr/include/boost/*/*/*
+  /usr/include/boost/*/*/*/*
+  /usr/include/*/*/*/*/*/*
   /usr/include/png++/*
   /usr/include/*/c++/*/*
   /usr/include/*/c++/*/*/*
@@ -43,8 +60,10 @@ set(COVERAGE_LCOV_EXCLUDES
   /usr/include/c++/*/*
   /usr/include/c++/*/*/*
   /usr/include/c++/*/*/*/*
-  ${CMAKE_CURRENT_SOURCE_DIR}/*
-  ${CMAKE_CURRENT_SOURCE_DIR}/external/catch2/single_include/catch2/*)
+  /usr/lib/gcc/*
+  /usr/lib/gcc/*/*/*
+  /usr/lib/gcc/*/*/*
+  /usr/lib/gcc/*/*/*/*)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 set(TATOOINE_TEST_CPPS main.cpp)
 macro(create_test NAME)
@@ -89,7 +108,6 @@ macro(create_test NAME)
   add_custom_target(
     ${TARGET}.run
     COMMAND ./${TARGET}
-            --use-colour=yes
     DEPENDS ${TARGET})
   if (TATOOINE_TEST_USE_FAST_MATH)
     target_compile_options(
@@ -102,7 +120,6 @@ macro(create_test NAME)
     # add valgrind targets for unittest
     add_custom_target(
       ${TARGET}.valgrind
-      EXCLUDE_FROM_ALL
       COMMAND valgrind
       --log-file="${TARGET}.valgrind"
               --tool=memcheck
@@ -219,7 +236,6 @@ catch_discover_tests(unittests)
 add_custom_target(
   unittests.run
   COMMAND ./unittests
-          --use-colour=yes
   DEPENDS unittests)
 add_custom_target (
   unittests.xml

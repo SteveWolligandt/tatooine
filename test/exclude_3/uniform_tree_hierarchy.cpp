@@ -1,6 +1,6 @@
 #include <tatooine/uniform_tree_hierarchy.h>
 #include <tatooine/geometry/ellipse.h>
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 //==============================================================================
 namespace tatooine {
 //==============================================================================

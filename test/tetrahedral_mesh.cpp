@@ -1,7 +1,9 @@
 #include <tatooine/geometry/sphere.h>
 #include <tatooine/unstructured_tetrahedral_grid.h>
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_approx.hpp>
+#include <catch2/catch_test_macros.hpp>
+using namespace Catch;
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
@@ -81,7 +83,6 @@ TEST_CASE("unstructured_tetrahedral_grid_from_grid",
 TEST_CASE("unstructured_tetrahedral_grid_vertex_property_sampler",
           "[unstructured_tetrahedral_grid][vertex_property][sampler]") {
   std::size_t const    num_points  = 100;
-  std::size_t const    random_seed = 1234;
   auto const           radius      = real_number{1};
   auto const           s           = geometry::sphere3{radius};
   auto mesh = unstructured_tetrahedral_grid3{s.random_points(num_points)};

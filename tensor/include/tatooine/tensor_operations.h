@@ -87,12 +87,12 @@ constexpr auto min(base_tensor<Tensor, T, Dims...> const& t) {
   return m;
 }
 //------------------------------------------------------------------------------
-template <typename Tensor, typename T, std::size_t... Dims>
-constexpr auto max(base_tensor<Tensor, T, Dims...> const& t) {
-  T m = -std::numeric_limits<T>::max();
-  t.for_indices([&](auto const... is) { m = gcem::max(m, t(is...)); });
-  return m;
-}
+//template <typename Tensor, typename T, std::size_t... Dims>
+//constexpr auto max(base_tensor<Tensor, T, Dims...> const& t) {
+//  auto m = -std::numeric_limits<T>::max();
+//  t.for_indices([&](auto const... is) { m = gcem::max(m, t(is...)); });
+//  return m;
+//}
 //------------------------------------------------------------------------------
 template <typename Tensor, typename T, std::size_t N>
 constexpr auto normalize(base_tensor<Tensor, T, N> const& t_in) -> vec<T, N> {

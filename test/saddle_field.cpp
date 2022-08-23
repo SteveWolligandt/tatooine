@@ -1,7 +1,7 @@
 #include <tatooine/analytical/numerical/saddle.h>
 #include <tatooine/numerical_flowmap.h>
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================

@@ -1,6 +1,6 @@
 #include <tatooine/ode/vclibs/rungekutta43.h>
 #include <tatooine/analytical/numerical/doublegyre.h>
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================

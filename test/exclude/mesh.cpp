@@ -1,6 +1,6 @@
 #include <tatooine/mesh.h>
 #include <boost/range/algorithm.hpp>
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 using namespace boost::range;
 

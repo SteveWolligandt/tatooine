@@ -4,7 +4,7 @@
 #include <tatooine/doublegyre.h>
 #include <tatooine/orbit.h>
 #include <tatooine/linspace.h>
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 //==============================================================================
 namespace tatooine::test {

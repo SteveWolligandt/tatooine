@@ -4,7 +4,7 @@
 //#include <tatooine/boussinesq.h>
 #include <tatooine/spacetime_vectorfield.h>
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
@@ -21,7 +21,6 @@ TEST_CASE("streamsurface_spacetime_doublegyre_sampling",
   seedcurve.push_back(0.1, 0.9);
   seedcurve.parameterization().back() = 1;
   auto ssf=streamsurface {flowmap(v), -1, 1, seedcurve};
-  using streamsurface_type = decltype(ssf);
 
   auto sampler = seedcurve.cubic_sampler();
   {
@@ -74,23 +73,21 @@ TEST_CASE(
   seedcurve.push_back(0.9, 0.2, 0.0);
   seedcurve.parameterization().back() = 1;
   auto ssf                            = streamsurface{flowmap(vst), seedcurve};
-  ssf.discretize<hultquist_discretization>(100UL, 0.1, -20.0, 20.0)
-      .write_vtk("streamsurface_dg_hultquist.vtk");
+  ssf.discretize<hultquist_discretization>(10UL, 0.1, -2.0, 2.0);
 }
 //==============================================================================
-TEST_CASE(
-    "streamsurface_schulze_spacetime_doublegyre",
-    "[streamsurface][schulze][numerical][doublegyre][dg][spacetime_field]") {
-  auto v         = analytical::numerical::doublegyre{};
-  auto seedcurve = line<double, 2>{};
-  seedcurve.push_back(0.45, 0.2);
-  seedcurve.parameterization().back() = 0;
-  seedcurve.push_back(0.55, 0.2);
-  seedcurve.parameterization().back() = 1;
-  auto ssf                            = streamsurface{flowmap(v), seedcurve};
-  //ssf.discretize<schulze_discretization>(10UL, 20)
-  //    .write_vtk("streamsurface_dg_schulze.vtk");
-}
+//TEST_CASE(
+//    "streamsurface_schulze_spacetime_doublegyre",
+//    "[streamsurface][schulze][numerical][doublegyre][dg][spacetime_field]") {
+//  auto v         = analytical::numerical::doublegyre{};
+//  auto seedcurve = line<double, 2>{};
+//  seedcurve.push_back(0.45, 0.2);
+//  seedcurve.parameterization().back() = 0;
+//  seedcurve.push_back(0.55, 0.2);
+//  seedcurve.parameterization().back() = 1;
+//  auto ssf                            = streamsurface{flowmap(v), seedcurve};
+//  ssf.discretize<schulze_discretization>(10UL, 20);
+//}
 //==============================================================================
 //TEST_CASE("streamsurface_simple_sinuscosinus",
 //          "[streamsurface][simple][numerical][sinuscosinus][sc]") {

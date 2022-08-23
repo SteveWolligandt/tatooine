@@ -1,5 +1,5 @@
 #include <tatooine/color_scales/magma.h>
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 //==============================================================================
 namespace tatooine::color_scales::test {
 //==============================================================================

@@ -1,5 +1,8 @@
-#include <catch2/catch.hpp>
 #include <tatooine/rendering/orthographic_camera.h>
+
+#include <catch2/catch_approx.hpp>
+#include <catch2/catch_test_macros.hpp>
+using namespace Catch;
 //==============================================================================
 namespace tatooine::rendering::test {
 //==============================================================================

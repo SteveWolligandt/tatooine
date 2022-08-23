@@ -1,7 +1,7 @@
 #include <tatooine/for_loop.h>
 
 #include <atomic>
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 //==============================================================================
 namespace tatooine::test {
@@ -11,7 +11,7 @@ TEST_CASE("for_loop_parallel_count", "[for_loop][parallel][count]") {
   SECTION("from zero") {
     std::atomic_size_t cnt       = 0;
     auto               iteration = [&](auto const... /*is*/) { ++cnt; };
-    for_loop(iteration, execution_policy::parallel, 100, 100, 100, 100);
+    for_loop(iteration, execution_policy::parallel, 10, 10, 10, 10);
     REQUIRE(cnt == 100000000);
   }
   SECTION("from 10 with c-arrays") {

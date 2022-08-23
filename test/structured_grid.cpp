@@ -1,7 +1,9 @@
 #include <tatooine/structured_grid.h>
 #include <tatooine/rectilinear_grid.h>
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_approx.hpp>
+#include <catch2/catch_test_macros.hpp>
+using namespace Catch;
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
@@ -111,11 +113,10 @@ TEST_CASE_METHOD(structured_grid2, "structured_grid_2_linear_sampler",
   prop[vertex_handle{plain_index(2, 0)}] = 5;
   prop[vertex_handle{plain_index(2, 1)}] = 6;
   auto const aabb                        = axis_aligned_bounding_box();
-  auto discretized = rectilinear_grid{linspace{aabb.min(0), aabb.max(0), 1000},
-                                      linspace{aabb.min(1), aabb.max(1), 1000}};
+  auto discretized = rectilinear_grid{linspace{aabb.min(0), aabb.max(0), 100},
+                                      linspace{aabb.min(1), aabb.max(1), 100}};
   discretized.sample_to_vertex_property(
       linear_vertex_property_sampler<real_type>("prop"), "prop");
-  discretized.write_vtk("resampled_structured_grid_2d.vtk");
 }
 
 //==============================================================================

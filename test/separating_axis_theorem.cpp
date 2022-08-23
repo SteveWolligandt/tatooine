@@ -1,6 +1,6 @@
 #include <tatooine/separating_axis_theorem.h>
 #include <tatooine/axis_aligned_bounding_box.h>
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
