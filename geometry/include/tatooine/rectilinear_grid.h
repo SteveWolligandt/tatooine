@@ -32,10 +32,8 @@
 namespace tatooine {
 //==============================================================================
 template <detail::rectilinear_grid::dimension... Dimensions>
+requires(sizeof...(Dimensions) > 1)
 class rectilinear_grid {
-  static_assert(sizeof...(Dimensions) > 0,
-                "rectilinear_grid needs at least one dimension.");
-
  public:
   static constexpr bool is_uniform =
       (is_linspace<std::decay_t<Dimensions>> && ...);
@@ -93,7 +91,10 @@ class rectilinear_grid {
   std::size_t m_chunk_size_for_lazy_properties = 2;
   //============================================================================
  public:
+  /// Default CTOR
   constexpr rectilinear_grid() = default;
+  //============================================================================
+  /// Copy CTOR
   constexpr rectilinear_grid(rectilinear_grid const& other)
       : m_dimensions{other.m_dimensions},
         m_diff_stencil_coefficients{other.m_diff_stencil_coefficients} {
@@ -103,6 +104,8 @@ class rectilinear_grid {
       emplaced_prop->set_grid(*this);
     }
   }
+  //============================================================================
+  /// Move CTOR
   constexpr rectilinear_grid(rectilinear_grid&& other) noexcept
       : m_dimensions{std::move(other.m_dimensions)},
         m_vertex_properties{std::move(other.m_vertex_properties)},
@@ -111,46 +114,46 @@ class rectilinear_grid {
     for (auto const& [name, prop] : m_vertex_properties) {
       prop->set_grid(*this);
     }
-    for (auto const& [name, prop] : other.m_vertex_properties) {
-      prop->set_grid(other);
-    }
   }
   //----------------------------------------------------------------------------
+  /// \param dimensions List of dimensions / axes of the rectilinear grid
   template <typename... Dimensions_>
-  requires(sizeof...(Dimensions_) == sizeof...(Dimensions)) &&
-      (detail::rectilinear_grid::dimension<std::decay_t<Dimensions_>> &&
-       ...) constexpr rectilinear_grid(Dimensions_&&... dimensions)
-      : m_dimensions{std::forward<Dimensions_>(dimensions)...} {
-    static_assert(sizeof...(Dimensions_) == num_dimensions(),
-                  "Number of given dimensions does not match number of "
-                  "specified dimensions.");
-    static_assert(
-        (is_same<std::decay_t<Dimensions_>, Dimensions> && ...),
-        "Constructor dimension types differ class dimension types.");
-  }
+  requires
+    (sizeof...(Dimensions_) == sizeof...(Dimensions)) &&
+    (detail::rectilinear_grid::dimension<std::decay_t<Dimensions_>> && ...)
+  constexpr rectilinear_grid(Dimensions_&&... dimensions)
+      : m_dimensions{std::forward<Dimensions_>(dimensions)...} {}
   //----------------------------------------------------------------------------
  private:
-  template <typename Real, std::size_t... Seq>
+  template <typename Real, integral... Res, std::size_t... Seq>
   constexpr rectilinear_grid(
       axis_aligned_bounding_box<Real, num_dimensions()> const& bb,
-      std::array<std::size_t, num_dimensions()> const&         res,
-      std::index_sequence<Seq...> /*seq*/)
-      : m_dimensions{linspace<real_type>{
-            real_type(bb.min(Seq)), real_type(bb.max(Seq)), res[Seq]}...} {}
+      std::index_sequence<Seq...> /*seq*/, Res const... res)
+      : m_dimensions{linspace<real_type>{real_type(bb.min(Seq)),
+                                         real_type(bb.max(Seq)),
+                                         static_cast<std::size_t>(res)}...} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
-  template <typename Real>
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /// Constructs a uniform grid from a tatooine::axis_aligned_bounding_box and a
+  /// resolution.
+  template <typename Real, integral... Res>
+  requires (sizeof...(Res) == num_dimensions())
   constexpr rectilinear_grid(
       axis_aligned_bounding_box<Real, num_dimensions()> const& bb,
-      std::array<std::size_t, num_dimensions()> const&         res)
-      : rectilinear_grid{bb, res, sequence_type{}} {}
+      Res const... res)
+      : rectilinear_grid{bb, sequence_type{}, res...} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /// Constructs a rectilinear grid in the range of [0 .. 1] with given
+  /// resolution.
+  /// \param size Resolution of grid.
   constexpr rectilinear_grid(integral auto const... size)
       : rectilinear_grid{
             linspace{0.0, 1.0, static_cast<std::size_t>(size)}...} {
     assert(((size >= 0) && ...));
   }
   //----------------------------------------------------------------------------
+  /// Constructs a rectilinear grid by reading a file.
   rectilinear_grid(filesystem::path const& path) { read(path); }
   //----------------------------------------------------------------------------
   ~rectilinear_grid() = default;
@@ -163,30 +166,50 @@ class rectilinear_grid {
   }
 
  public:
+  /// Creates a copy of with any of the give properties
   constexpr auto copy_without_properties() const {
     return copy_without_properties(
         std::make_index_sequence<num_dimensions()>{});
   }
   //============================================================================
-  constexpr auto operator  =(rectilinear_grid const& other)
+  constexpr auto operator=(rectilinear_grid const& other)
       -> rectilinear_grid& = default;
-  constexpr auto operator  =(rectilinear_grid&& other) noexcept
-      -> rectilinear_grid& = default;
+  constexpr auto operator=(rectilinear_grid&& other) noexcept
+      -> rectilinear_grid& {
+    m_dimensions                = std::move(other.m_dimensions);
+    m_vertex_properties         = std::move(other.m_vertex_properties);
+    m_diff_stencil_coefficients = std::move(other.m_diff_stencil_coefficients);
+    for (auto const& [name, prop] : m_vertex_properties) {
+      prop->set_grid(*this);
+    }
+    for (auto const& [name, prop] : other.m_vertex_properties) {
+      prop->set_grid(other);
+    }
+  }
   //----------------------------------------------------------------------------
+  /// Returns a reference to the dimension of index I.
+  /// \tparam I Index of dimension
   template <std::size_t I>
   requires (I < num_dimensions())
   constexpr auto dimension() -> auto& {
     return std::get<I>(m_dimensions);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /// Returns a constant reference to the dimension of index I.
+  /// \tparam I Index of dimension
   template <std::size_t I>
   requires(I < num_dimensions())
   constexpr auto dimension() const -> auto const& {
     return std::get<I>(m_dimensions);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto dimension(std::size_t const i)
-      -> auto& requires(is_same<Dimensions...>) {
+  /// Returns a reference to the dimension of index I.
+  /// This runtime version is only available if all dimensions are of the same
+  /// type.
+  /// \param i Index of dimension
+  constexpr auto dimension(std::size_t const i) -> auto&
+  requires (is_same<Dimensions...>) &&
+           (num_dimensions() <= 11) {
     if (i == 0) {
       return dimension<0>();
     }
@@ -243,8 +266,13 @@ class rectilinear_grid {
     return dimension<0>();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto dimension(std::size_t const i) const
-      -> auto const& requires(is_same<Dimensions...>) {
+  /// Returns a constant reference to the dimension of index I.
+  /// This runtime version is only available if all dimensions are of the same
+  /// type.
+  /// \param i Index of dimension
+  constexpr auto dimension(std::size_t const i) const -> auto const&
+  requires (is_same<Dimensions...>) &&
+           (num_dimensions() <= 11) {
     if (i == 0) {
       return dimension<0>();
     }
@@ -301,62 +329,52 @@ class rectilinear_grid {
     return dimension<0>();
   }
   //----------------------------------------------------------------------------
+  /// \return Reference to all dimensions stored in a tuple.
   constexpr auto dimensions() -> auto& { return m_dimensions; }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /// \return Constant reference to all dimensions stored in a tuple.
   constexpr auto dimensions() const -> auto const& { return m_dimensions; }
-  //----------------------------------------------------------------------------
-  constexpr auto front_dimension() -> auto& {
-    return std::get<0>(m_dimensions);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto front_dimension() const -> auto const& {
-    return std::get<0>(m_dimensions);
-  }
   //----------------------------------------------------------------------------
  private:
   template <std::size_t... Seq>
   constexpr auto min(std::index_sequence<Seq...> /*seq*/) const {
     return vec<real_type, num_dimensions()>{
-        static_cast<real_type>(front<Seq>())...};
+        static_cast<real_type>(dimension<Seq>().front())...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
+  /// \return Minimal point in all dimensions.
   constexpr auto min() const { return min(sequence_type{}); }
   //----------------------------------------------------------------------------
  private:
   template <std::size_t... Seq>
   constexpr auto max(std::index_sequence<Seq...> /*seq*/) const {
     return vec<real_type, num_dimensions()>{
-        static_cast<real_type>(back<Seq>())...};
+        static_cast<real_type>(dimension<Seq>().back())...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
+  /// \return Maximal point in all dimensions.
   constexpr auto max() const { return max(sequence_type{}); }
   //----------------------------------------------------------------------------
  private:
-  template <std::size_t... Seq>
-  constexpr auto resolution(std::index_sequence<Seq...> /*seq*/) const {
-    return vec<std::size_t, num_dimensions()>{size<Seq>()...};
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- public:
-  constexpr auto resolution() const { return resolution(sequence_type{}); }
-  //----------------------------------------------------------------------------
- private:
+  /// \return Axis aligned bounding box of grid
   template <std::size_t... Seq>
   requires(sizeof...(Seq) == num_dimensions())
   constexpr auto bounding_box(std::index_sequence<Seq...> /*seq*/) const {
     return axis_aligned_bounding_box<real_type, num_dimensions()>{
         vec<real_type, num_dimensions()>{
-            static_cast<real_type>(front<Seq>())...},
+            static_cast<real_type>(dimension<Seq>().front())...},
         vec<real_type, num_dimensions()>{
-            static_cast<real_type>(back<Seq>())...}};
+            static_cast<real_type>(dimension<Seq>().back())...}};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
+  /// \return Axis aligned bounding box of grid
   constexpr auto bounding_box() const { return bounding_box(sequence_type{}); }
   //----------------------------------------------------------------------------
  private:
+  /// \return Resolution of grid
   template <std::size_t... Seq>
   requires(sizeof...(Seq) == num_dimensions())
   constexpr auto size(std::index_sequence<Seq...> /*seq*/) const {
@@ -364,13 +382,19 @@ class rectilinear_grid {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
+  /// \return Resolution of grid
   constexpr auto size() const { return size(sequence_type{}); }
   //----------------------------------------------------------------------------
+  /// \return Resolution of of dimension I
+  /// \tparam I Index of dimensions
   template <std::size_t I>
   constexpr auto size() const {
     return dimension<I>().size();
   }
   //----------------------------------------------------------------------------
+  /// \return Resolution of of dimension i
+  /// Note: i needs to be <= 10
+  /// \tparam i Index of dimensions
   constexpr auto size(std::size_t const i) const {
     if (i == 0) {
       return size<0>();
@@ -429,202 +453,35 @@ class rectilinear_grid {
   }
   //----------------------------------------------------------------------------
   template <std::size_t I>
-  requires std::is_reference_v<template_helper::get_t<I, Dimensions...>>
-  constexpr auto size() -> auto& { return dimension<I>().size(); }
-  //----------------------------------------------------------------------------
-  template <std::size_t I>
-  constexpr auto at(std::size_t const i) const {
-    return dimension<I>().at(i);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <std::size_t I>
-  constexpr auto at(std::size_t const i) -> auto& {
-    return dimension<I>().at(i);
-  }
-  //----------------------------------------------------------------------------
-  template <std::size_t I>
-  constexpr auto extent_of_dimension(std::size_t const i) const {
-    return at<I>(i + 1) - at<I>(i);
-  }
-  //----------------------------------------------------------------------------
-  template <std::size_t I>
   constexpr auto push_back() {
     if constexpr (is_linspace<decltype(dimension<I>())>) {
       dimension<I>().push_back();
     } else {
-      dimension<I>().push_back(back<I>() +
-                               extent_of_dimension<I>(size<I>() - 2));
+      dimension<I>().push_back(dimension<I>().back() +
+                               extent<I>(size<I>() - 2));
     }
   }
   //----------------------------------------------------------------------------
-  template <std::size_t... Is>
-  constexpr auto front(std::index_sequence<Is...> /*is*/) const {
-    return vec{front<Is>()...};
-  }
-  //----------------------------------------------------------------------------
-  constexpr auto front() const {
-    return front(std::make_index_sequence<num_dimensions()>{});
-  }
-  //----------------------------------------------------------------------------
-  template <std::size_t I>
-  constexpr auto front() const {
-    return dimension<I>().front();
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <std::size_t I>
-  constexpr auto front() -> auto& {
-    return dimension<I>().front();
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto front(std::size_t const i) const -> real_type {
-    if (i == 0) {
-      return front<0>();
-    }
-    if constexpr (num_dimensions() > 1) {
-      if (i == 1) {
-        return front<1>();
-      }
-    }
-    if constexpr (num_dimensions() > 2) {
-      if (i == 2) {
-        return front<2>();
-      }
-    }
-    if constexpr (num_dimensions() > 3) {
-      if (i == 3) {
-        return front<3>();
-      }
-    }
-    if constexpr (num_dimensions() > 4) {
-      if (i == 4) {
-        return front<4>();
-      }
-    }
-    if constexpr (num_dimensions() > 5) {
-      if (i == 5) {
-        return front<5>();
-      }
-    }
-    if constexpr (num_dimensions() > 6) {
-      if (i == 6) {
-        return front<6>();
-      }
-    }
-    if constexpr (num_dimensions() > 7) {
-      if (i == 7) {
-        return front<7>();
-      }
-    }
-    if constexpr (num_dimensions() > 8) {
-      if (i == 8) {
-        return front<8>();
-      }
-    }
-    if constexpr (num_dimensions() > 9) {
-      if (i == 9) {
-        return front<9>();
-      }
-    }
-    if constexpr (num_dimensions() > 10) {
-      if (i == 10) {
-        return front<10>();
-      }
-    }
-    return std::numeric_limits<real_type>::max();
-  }
-  //----------------------------------------------------------------------------
-  template <std::size_t... Is>
-  constexpr auto back(std::index_sequence<Is...> /*is*/) const {
-    return vec{back<Is>()...};
-  }
-  //----------------------------------------------------------------------------
-  constexpr auto back() const {
-    return back(std::make_index_sequence<num_dimensions()>{});
-  }
-  //----------------------------------------------------------------------------
-  template <std::size_t I>
-  constexpr auto back() const {
-    return dimension<I>().back();
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <std::size_t I>
-  constexpr auto back() -> auto& {
-    return dimension<I>().back();
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto back(std::size_t const i) const -> real_type {
-    if (i == 0) {
-      return back<0>();
-    }
-    if constexpr (num_dimensions() > 1) {
-      if (i == 1) {
-        return back<1>();
-      }
-    }
-    if constexpr (num_dimensions() > 2) {
-      if (i == 2) {
-        return back<2>();
-      }
-    }
-    if constexpr (num_dimensions() > 3) {
-      if (i == 3) {
-        return back<3>();
-      }
-    }
-    if constexpr (num_dimensions() > 4) {
-      if (i == 4) {
-        return back<4>();
-      }
-    }
-    if constexpr (num_dimensions() > 5) {
-      if (i == 5) {
-        return back<5>();
-      }
-    }
-    if constexpr (num_dimensions() > 6) {
-      if (i == 6) {
-        return back<6>();
-      }
-    }
-    if constexpr (num_dimensions() > 7) {
-      if (i == 7) {
-        return back<7>();
-      }
-    }
-    if constexpr (num_dimensions() > 8) {
-      if (i == 8) {
-        return back<8>();
-      }
-    }
-    if constexpr (num_dimensions() > 9) {
-      if (i == 9) {
-        return back<9>();
-      }
-    }
-    if constexpr (num_dimensions() > 10) {
-      if (i == 10) {
-        return back<10>();
-      }
-    }
-    return std::numeric_limits<real_type>::max();
-  }
-  //----------------------------------------------------------------------------
+  /// \return Extent of dimension of index I
   template <std::size_t I>
   constexpr auto extent() const {
     return dimension<I>().back() - dimension<I>().front();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  private:
+  /// \return Extent in all dimesions
   template <std::size_t... Is>
   constexpr auto extent(std::index_sequence<Is...> /*seq*/) const {
     return vec{extent<Is>()...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
+  /// \return Extent in all dimesions
   constexpr auto extent() const {
     return extent(std::make_index_sequence<num_dimensions()>{});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /// \return Extent of dimensions of index i
   constexpr auto extent(std::size_t const i) const -> real_type {
     if (i == 0) {
       return extent<0>();
@@ -680,6 +537,14 @@ class rectilinear_grid {
       }
     }
     return std::numeric_limits<real_type>::max();
+  }
+  //----------------------------------------------------------------------------
+  /// \return Extent cell with index cell_index in dimension with Index
+  ///         DimensionIndex.
+  template <std::size_t DimensionIndex>
+  constexpr auto extent(std::size_t const cell_index) const {
+    auto const& dim = dimension<DimensionIndex>();
+    return dim[cell_index + 1] - dim[cell_index];
   }
   //----------------------------------------------------------------------------
   template <std::size_t I>
@@ -756,9 +621,12 @@ class rectilinear_grid {
   }
   //----------------------------------------------------------------------------
   template <arithmetic... Comps, std::size_t... Seq>
-  requires(num_dimensions() == sizeof...(Comps)) constexpr auto is_inside(
-      std::index_sequence<Seq...> /*seq*/, Comps const... comps) const {
-    return ((front<Seq>() <= comps && comps <= back<Seq>()) && ...);
+  requires(num_dimensions() == sizeof...(Comps))
+  constexpr auto is_inside(std::index_sequence<Seq...> /*seq*/,
+                           Comps const... comps) const {
+    return ((dimension<Seq>().front() <= comps &&
+             comps <= dimension<Seq>().back()) &&
+            ...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <arithmetic... Comps>
@@ -770,7 +638,9 @@ class rectilinear_grid {
   template <std::size_t... Seq>
   constexpr auto is_inside(pos_type const& p,
                            std::index_sequence<Seq...> /*seq*/) const {
-    return ((front<Seq>() <= p(Seq) && p(Seq) <= back<Seq>()) && ...);
+    return ((dimension<Seq>().front() <= p(Seq) &&
+             p(Seq) <= dimension<Seq>().back()) &&
+            ...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr auto is_inside(pos_type const& p) const {
@@ -785,7 +655,8 @@ class rectilinear_grid {
                   "number of components does not match number of dimensions");
     static_assert(sizeof...(Seq) == num_dimensions(),
                   "number of indices does not match number of dimensions");
-    return ((front<Seq>() <= xs) && ...) && ((xs <= back<Seq>()) && ...);
+    return ((dimension<Seq>().front() <= xs) && ...) &&
+           ((xs <= dimension<Seq>().back()) && ...);
   }
   //----------------------------------------------------------------------------
  public:
@@ -1551,8 +1422,8 @@ class rectilinear_grid {
 
     // coordinate data
     auto on_origin(double x, double y, double z) -> void override {
-      gr.front<0>() = x;
-      gr.front<1>() = y;
+      gr.dimension<0>().front() = x;
+      gr.dimension<1>().front() = y;
       if (num_dimensions() < 3 && z > 1) {
         throw std::runtime_error{
             "[rectilinear_grid::read_vtk] number of dimensions is < 3 but got "
@@ -1560,7 +1431,7 @@ class rectilinear_grid {
             "dimension."};
       }
       if constexpr (num_dimensions() > 3) {
-        gr.front<2>() = z;
+        gr.dimension<2>().front() = z;
       }
     }
     auto on_spacing(double x, double y, double z) -> void override {
@@ -1688,6 +1559,7 @@ class rectilinear_grid {
       insert_prop<double>(field_array_name, data, num_components);
     }
   };
+  //============================================================================
   auto read_vtk(filesystem::path const& path) requires(num_dimensions() == 2) ||
       (num_dimensions() == 3) {
     bool             is_structured_points = false;
@@ -1700,30 +1572,30 @@ class rectilinear_grid {
     if (is_structured_points) {
       if constexpr (is_same<std::decay_t<decltype(dimension<0>())>,
                                    linspace<double>>) {
-        dimension<0>().back() = front<0>() + (size<0>() - 1) * spacing(0);
+        dimension<0>().back() = dimension<0>().front() + (size<0>() - 1) * spacing(0);
       } else {
         std::size_t i = 0;
         for (auto& d : dimension<0>()) {
-          d = front<0>() + (i++) * spacing(0);
+          d = dimension<0>().front() + (i++) * spacing(0);
         }
       }
       if constexpr (is_same<std::decay_t<decltype(dimension<1>())>,
                                    linspace<double>>) {
-        dimension<1>().back() = front<1>() + (size<1>() - 1) * spacing(1);
+        dimension<1>().back() = dimension<1>().front() + (size<1>() - 1) * spacing(1);
       } else {
         std::size_t i = 0;
         for (auto& d : dimension<1>()) {
-          d = front<1>() + (i++) * spacing(1);
+          d = dimension<1>().front() + (i++) * spacing(1);
         }
       }
       if constexpr (num_dimensions() == 3) {
         if constexpr (is_same<std::decay_t<decltype(dimension<2>())>,
                                      linspace<double>>) {
-          dimension<2>().back() = front<2>() + (size<2>() - 1) * spacing(2);
+          dimension<2>().back() = dimension<2>().front() + (size<2>() - 1) * spacing(2);
         } else {
           std::size_t i = 0;
           for (auto& d : dimension<2>()) {
-            d = front<2>() + (i++) * spacing(2);
+            d = dimension<2>().front() + (i++) * spacing(2);
           }
         }
       }
@@ -1891,9 +1763,10 @@ class rectilinear_grid {
     header << "define Lattice " << size<0>() << " " << size<1>() << " "
            << size<2>() << "\n\n";
     header << "Parameters {\n";
-    header << "    BoundingBox " << front<0>() << " " << back<0>() << " "
-           << front<1>() << " " << back<1>() << " " << front<2>() << " "
-           << back<2>() << ",\n";
+    header << "    BoundingBox " << dimension<0>().front() << " "
+           << dimension<0>().back() << " " << dimension<1>().front() << " "
+           << dimension<1>().back() << " " << dimension<2>().front() << " "
+           << dimension<2>().back() << ",\n";
     header << "    CoordType \"uniform\"\n";
     header << "}\n";
     if constexpr (tensor_num_components < T >> 1) {
@@ -1954,16 +1827,16 @@ class rectilinear_grid {
         writer.write_header();
         if constexpr (num_dimensions() == 1) {
           writer.write_dimensions(size<0>(), 1, 1);
-          writer.write_origin(front<0>(), 0, 0);
+          writer.write_origin(dimension<0>().front(), 0, 0);
           writer.write_spacing(dimension<0>().spacing(), 0, 0);
         } else if constexpr (num_dimensions() == 2) {
           writer.write_dimensions(size<0>(), size<1>(), 1);
-          writer.write_origin(front<0>(), front<1>(), 0);
+          writer.write_origin(dimension<0>().front(), dimension<1>().front(), 0);
           writer.write_spacing(dimension<0>().spacing(),
                                dimension<1>().spacing(), 0);
         } else if constexpr (num_dimensions() == 3) {
           writer.write_dimensions(size<0>(), size<1>(), size<2>());
-          writer.write_origin(front<0>(), front<1>(), front<2>());
+          writer.write_origin(dimension<0>().front(), dimension<1>().front(), dimension<2>().front());
           writer.write_spacing(dimension<0>().spacing(),
                                dimension<1>().spacing(),
                                dimension<2>().spacing());
@@ -2205,16 +2078,13 @@ template <detail::rectilinear_grid::dimension... Dimensions>
 rectilinear_grid(Dimensions&&...)
     -> rectilinear_grid<std::decay_t<Dimensions>...>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Real, std::size_t N, std::size_t... Seq>
+template <typename Real, std::size_t N>
 rectilinear_grid(axis_aligned_bounding_box<Real, N> const& bb,
-                 std::array<std::size_t, N> const&         res,
-                 std::index_sequence<Seq...>)
-    -> rectilinear_grid<decltype(((void)Seq,
-                                  std::declval<linspace<Real>()>))...>;
+                 integral auto const... res)
+    -> rectilinear_grid<linspace<std::conditional_t<true, Real, decltype(res)>>...>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <integral... Size>
-rectilinear_grid(Size const...)
-    -> rectilinear_grid<linspace<std::conditional_t<true, double, Size>>...>;
+rectilinear_grid(integral auto const... res) -> rectilinear_grid<
+    linspace<std::conditional_t<true, double, decltype(res)>>...>;
 //==============================================================================
 // operators
 //==============================================================================
