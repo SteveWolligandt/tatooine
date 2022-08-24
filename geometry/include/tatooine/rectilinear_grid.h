@@ -187,83 +187,12 @@ class rectilinear_grid {
     }
   }
   //----------------------------------------------------------------------------
-  /// Returns a reference to the dimension of index I.
-  /// \tparam I Index of dimension
-  template <std::size_t I>
-  requires (I < num_dimensions())
-  constexpr auto dimension() -> auto& {
-    return std::get<I>(m_dimensions);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// Returns a constant reference to the dimension of index I.
   /// \tparam I Index of dimension
   template <std::size_t I>
   requires(I < num_dimensions())
   constexpr auto dimension() const -> auto const& {
     return std::get<I>(m_dimensions);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /// Returns a reference to the dimension of index I.
-  /// This runtime version is only available if all dimensions are of the same
-  /// type.
-  /// \param i Index of dimension
-  constexpr auto dimension(std::size_t const i) -> auto&
-  requires (is_same<Dimensions...>) &&
-           (num_dimensions() <= 11) {
-    if (i == 0) {
-      return dimension<0>();
-    }
-    if constexpr (num_dimensions() > 1) {
-      if (i == 1) {
-        return dimension<1>();
-      }
-    }
-    if constexpr (num_dimensions() > 2) {
-      if (i == 2) {
-        return dimension<2>();
-      }
-    }
-    if constexpr (num_dimensions() > 3) {
-      if (i == 3) {
-        return dimension<3>();
-      }
-    }
-    if constexpr (num_dimensions() > 4) {
-      if (i == 4) {
-        return dimension<4>();
-      }
-    }
-    if constexpr (num_dimensions() > 5) {
-      if (i == 5) {
-        return dimension<5>();
-      }
-    }
-    if constexpr (num_dimensions() > 6) {
-      if (i == 6) {
-        return dimension<6>();
-      }
-    }
-    if constexpr (num_dimensions() > 7) {
-      if (i == 7) {
-        return dimension<7>();
-      }
-    }
-    if constexpr (num_dimensions() > 8) {
-      if (i == 8) {
-        return dimension<8>();
-      }
-    }
-    if constexpr (num_dimensions() > 9) {
-      if (i == 9) {
-        return dimension<9>();
-      }
-    }
-    if constexpr (num_dimensions() > 10) {
-      if (i == 10) {
-        return dimension<10>();
-      }
-    }
-    return dimension<0>();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// Returns a constant reference to the dimension of index I.
@@ -329,9 +258,6 @@ class rectilinear_grid {
     return dimension<0>();
   }
   //----------------------------------------------------------------------------
-  /// \return Reference to all dimensions stored in a tuple.
-  constexpr auto dimensions() -> auto& { return m_dimensions; }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// \return Constant reference to all dimensions stored in a tuple.
   constexpr auto dimensions() const -> auto const& { return m_dimensions; }
   //----------------------------------------------------------------------------
@@ -356,6 +282,49 @@ class rectilinear_grid {
  public:
   /// \return Maximal point in all dimensions.
   constexpr auto max() const { return max(sequence_type{}); }
+  //----------------------------------------------------------------------------
+  /// \return Extent of dimension of index I
+  template <std::size_t I>
+  constexpr auto extent() const {
+    return dimension<I>().back() - dimension<I>().front();
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ private:
+  /// \return Extent in all dimesions
+  template <std::size_t... Is>
+  constexpr auto extent(std::index_sequence<Is...> /*seq*/) const {
+    return vec{extent<Is>()...};
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ public:
+  /// \return Extent in all dimesions
+  constexpr auto extent() const {
+    return extent(std::make_index_sequence<num_dimensions()>{});
+  }
+  //----------------------------------------------------------------------------
+  /// \return Extent cell with index cell_index in dimension with Index
+  ///         DimensionIndex.
+  template <std::size_t DimensionIndex>
+  constexpr auto extent(std::size_t const cell_index) const {
+    auto const& dim = dimension<DimensionIndex>();
+    return dim[cell_index + 1] - dim[cell_index];
+  }
+  //----------------------------------------------------------------------------
+  template <std::size_t I>
+  constexpr auto center() const {
+    return (dimension<I>().back() + dimension<I>().front()) / 2;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ private:
+  template <std::size_t... Is>
+  constexpr auto center(std::index_sequence<Is...> /*seq*/) const {
+    return vec{center<Is>()...};
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ public:
+  constexpr auto center() const {
+    return center(std::make_index_sequence<num_dimensions()>{});
+  }
   //----------------------------------------------------------------------------
  private:
   /// \return Axis aligned bounding box of grid
@@ -452,174 +421,19 @@ class rectilinear_grid {
     return std::numeric_limits<std::size_t>::max();
   }
   //----------------------------------------------------------------------------
+  /// Inserts new discrete point in dimension I with extent of last cell.
   template <std::size_t I>
   constexpr auto push_back() {
-    if constexpr (is_linspace<decltype(dimension<I>())>) {
-      dimension<I>().push_back();
+    auto& dim = std::get<I>(m_dimensions);
+    if constexpr (is_linspace<std::decay_t<decltype(dim)>>) {
+      dim.push_back();
     } else {
-      dimension<I>().push_back(dimension<I>().back() +
-                               extent<I>(size<I>() - 2));
+      dim.push_back(dimension<I>().back() + extent<I>(size<I>() - 2));
     }
   }
   //----------------------------------------------------------------------------
-  /// \return Extent of dimension of index I
-  template <std::size_t I>
-  constexpr auto extent() const {
-    return dimension<I>().back() - dimension<I>().front();
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  private:
-  /// \return Extent in all dimesions
-  template <std::size_t... Is>
-  constexpr auto extent(std::index_sequence<Is...> /*seq*/) const {
-    return vec{extent<Is>()...};
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- public:
-  /// \return Extent in all dimesions
-  constexpr auto extent() const {
-    return extent(std::make_index_sequence<num_dimensions()>{});
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /// \return Extent of dimensions of index i
-  constexpr auto extent(std::size_t const i) const -> real_type {
-    if (i == 0) {
-      return extent<0>();
-    }
-    if constexpr (num_dimensions() > 1) {
-      if (i == 1) {
-        return extent<1>();
-      }
-    }
-    if constexpr (num_dimensions() > 2) {
-      if (i == 2) {
-        return extent<2>();
-      }
-    }
-    if constexpr (num_dimensions() > 3) {
-      if (i == 3) {
-        return extent<3>();
-      }
-    }
-    if constexpr (num_dimensions() > 4) {
-      if (i == 4) {
-        return extent<4>();
-      }
-    }
-    if constexpr (num_dimensions() > 5) {
-      if (i == 5) {
-        return extent<5>();
-      }
-    }
-    if constexpr (num_dimensions() > 6) {
-      if (i == 6) {
-        return extent<6>();
-      }
-    }
-    if constexpr (num_dimensions() > 7) {
-      if (i == 7) {
-        return extent<7>();
-      }
-    }
-    if constexpr (num_dimensions() > 8) {
-      if (i == 8) {
-        return extent<8>();
-      }
-    }
-    if constexpr (num_dimensions() > 9) {
-      if (i == 9) {
-        return extent<9>();
-      }
-    }
-    if constexpr (num_dimensions() > 10) {
-      if (i == 10) {
-        return extent<10>();
-      }
-    }
-    return std::numeric_limits<real_type>::max();
-  }
-  //----------------------------------------------------------------------------
-  /// \return Extent cell with index cell_index in dimension with Index
-  ///         DimensionIndex.
-  template <std::size_t DimensionIndex>
-  constexpr auto extent(std::size_t const cell_index) const {
-    auto const& dim = dimension<DimensionIndex>();
-    return dim[cell_index + 1] - dim[cell_index];
-  }
-  //----------------------------------------------------------------------------
-  template <std::size_t I>
-  constexpr auto center() const {
-    return (dimension<I>().back() + dimension<I>().front()) / 2;
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- private:
-  template <std::size_t... Is>
-  constexpr auto center(std::index_sequence<Is...> /*seq*/) const {
-    return vec{center<Is>()...};
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- public:
-  constexpr auto center() const {
-    return center(std::make_index_sequence<num_dimensions()>{});
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto center(std::size_t const i) const -> real_type {
-    if (i == 0) {
-      return center<0>();
-    }
-    if constexpr (num_dimensions() > 1) {
-      if (i == 1) {
-        return center<1>();
-      }
-    }
-    if constexpr (num_dimensions() > 2) {
-      if (i == 2) {
-        return center<2>();
-      }
-    }
-    if constexpr (num_dimensions() > 3) {
-      if (i == 3) {
-        return center<3>();
-      }
-    }
-    if constexpr (num_dimensions() > 4) {
-      if (i == 4) {
-        return center<4>();
-      }
-    }
-    if constexpr (num_dimensions() > 5) {
-      if (i == 5) {
-        return center<5>();
-      }
-    }
-    if constexpr (num_dimensions() > 6) {
-      if (i == 6) {
-        return center<6>();
-      }
-    }
-    if constexpr (num_dimensions() > 7) {
-      if (i == 7) {
-        return center<7>();
-      }
-    }
-    if constexpr (num_dimensions() > 8) {
-      if (i == 8) {
-        return center<8>();
-      }
-    }
-    if constexpr (num_dimensions() > 9) {
-      if (i == 9) {
-        return center<9>();
-      }
-    }
-    if constexpr (num_dimensions() > 10) {
-      if (i == 10) {
-        return center<10>();
-      }
-    }
-    return std::numeric_limits<real_type>::max();
-  }
-  //----------------------------------------------------------------------------
+  /// Checks if point [comps...] is inside of grid.
   template <arithmetic... Comps, std::size_t... Seq>
   requires(num_dimensions() == sizeof...(Comps))
   constexpr auto is_inside(std::index_sequence<Seq...> /*seq*/,
@@ -629,12 +443,16 @@ class rectilinear_grid {
             ...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ public:
+  /// Checks if point [comps...] is inside of grid.
   template <arithmetic... Comps>
-  requires(num_dimensions() == sizeof...(Comps)) constexpr auto is_inside(
-      Comps const... comps) const {
+  requires(num_dimensions() == sizeof...(Comps))
+  constexpr auto is_inside(Comps const... comps) const {
     return is_inside(std::make_index_sequence<num_dimensions()>{}, comps...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ private:
+  /// Checks if point p is inside of grid.
   template <std::size_t... Seq>
   constexpr auto is_inside(pos_type const& p,
                            std::index_sequence<Seq...> /*seq*/) const {
@@ -643,104 +461,29 @@ class rectilinear_grid {
             ...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ public:
+  /// Checks if point p is inside of grid.
   constexpr auto is_inside(pos_type const& p) const {
     return is_inside(p, std::make_index_sequence<num_dimensions()>{});
   }
   //----------------------------------------------------------------------------
  private:
+  /// Checks if point p is inside of grid.
   template <std::size_t... Seq>
-  constexpr auto in_domain(std::index_sequence<Seq...> /*seq*/,
-                           arithmetic auto const... xs) const {
-    static_assert(sizeof...(xs) == num_dimensions(),
-                  "number of components does not match number of dimensions");
-    static_assert(sizeof...(Seq) == num_dimensions(),
-                  "number of indices does not match number of dimensions");
-    return ((dimension<Seq>().front() <= xs) && ...) &&
-           ((xs <= dimension<Seq>().back()) && ...);
-  }
-  //----------------------------------------------------------------------------
- public:
-  template <std::size_t... Is>
-  constexpr auto in_domain(arithmetic auto const... xs) const {
-    static_assert(sizeof...(xs) == num_dimensions(),
-                  "number of components does not match number of dimensions");
-    return in_domain(sequence_type{}, xs...);
-  }
-
-  //----------------------------------------------------------------------------
- private:
-  template <std::size_t... Seq>
-  constexpr auto in_domain(std::array<real_type, num_dimensions()> const& x,
+  constexpr auto is_inside(std::array<real_type, num_dimensions()> const& p,
                            std::index_sequence<Seq...> /*seq*/) const {
-    return in_domain(x[Seq]...);
+    return is_inside(p[Seq]...);
   }
   //----------------------------------------------------------------------------
  public:
-  constexpr auto in_domain(
-      std::array<real_type, num_dimensions()> const& x) const {
-    return in_domain(x, sequence_type{});
+  /// Checks if point p is inside of grid.
+  constexpr auto is_inside(
+      std::array<real_type, num_dimensions()> const& p) const {
+    return is_inside(p, sequence_type{});
   }
   //----------------------------------------------------------------------------
-  /// returns cell index and factor for interpolation
-  auto cell_index(std::size_t const     dimension_index,
-                  arithmetic auto const x) const {
-    if (dimension_index == 0) {
-      return cell_index<0>(x);
-    }
-    if constexpr (num_dimensions() > 1) {
-      if (dimension_index == 1) {
-        return cell_index<1>(x);
-      }
-    }
-    if constexpr (num_dimensions() > 2) {
-      if (dimension_index == 2) {
-        return cell_index<2>(x);
-      }
-    }
-    if constexpr (num_dimensions() > 3) {
-      if (dimension_index == 3) {
-        return cell_index<3>(x);
-      }
-    }
-    if constexpr (num_dimensions() > 4) {
-      if (dimension_index == 4) {
-        return cell_index<4>(x);
-      }
-    }
-    if constexpr (num_dimensions() > 5) {
-      if (dimension_index == 5) {
-        return cell_index<5>(x);
-      }
-    }
-    if constexpr (num_dimensions() > 6) {
-      if (dimension_index == 6) {
-        return cell_index<6>(x);
-      }
-    }
-    if constexpr (num_dimensions() > 7) {
-      if (dimension_index == 7) {
-        return cell_index<7>(x);
-      }
-    }
-    if constexpr (num_dimensions() > 8) {
-      if (dimension_index == 8) {
-        return cell_index<8>(x);
-      }
-    }
-    if constexpr (num_dimensions() > 9) {
-      if (dimension_index == 9) {
-        return cell_index<9>(x);
-      }
-    }
-    if constexpr (num_dimensions() > 10) {
-      if (dimension_index == 10) {
-        return cell_index<10>(x);
-      }
-    }
-    return cell_index<0>(x);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /// returns cell index and factor for interpolation
+  /// returns cell index and factor for interpolation of position x in dimension
+  /// DimensionIndex.
   template <std::size_t DimensionIndex>
   auto cell_index(arithmetic auto x) const
       -> std::pair<std::size_t, real_type> {
@@ -782,6 +525,7 @@ class rectilinear_grid {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// returns cell indices and factors for each dimension for interpolaton
+ private:
   template <std::size_t... DimensionIndex>
   auto cell_index(std::index_sequence<DimensionIndex...>,
                   arithmetic auto const... xs) const
@@ -789,7 +533,9 @@ class rectilinear_grid {
     return std::array{cell_index<DimensionIndex>(static_cast<double>(xs))...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto cell_index(arithmetic auto const... xs) const {
+ public:
+  auto cell_index(arithmetic auto const... xs) const 
+  requires (sizeof...(xs) == num_dimensions()) {
     return cell_index(sequence_type{}, xs...);
   }
   //----------------------------------------------------------------------------
@@ -803,12 +549,12 @@ class rectilinear_grid {
   }
   //----------------------------------------------------------------------------
   auto diff_stencil_coefficients_created_once() const {
-    std::lock_guard lock{m_stencil_mutex};
+    auto lock = std::lock_guard {m_stencil_mutex};
     return m_diff_stencil_coefficients_created_once;
   }
   //----------------------------------------------------------------------------
   auto update_diff_stencil_coefficients() const {
-    std::lock_guard lock{m_stencil_mutex};
+    auto lock = std::lock_guard {m_stencil_mutex};
     for (std::size_t dim = 0; dim < num_dimensions(); ++dim) {
       for (std::size_t i = 0; i < num_stencils; ++i) {
         m_diff_stencil_coefficients[dim][i].clear();
@@ -829,7 +575,6 @@ class rectilinear_grid {
   //----------------------------------------------------------------------------
   template <std::size_t Dim>
   auto update_diff_stencil_coefficients_dim() const {
-    // if constexpr (!is_linspace<std::decay_t<decltype(dimension<Dim>())>>) {
     auto const& dim                   = dimension<Dim>();
     auto&       stencils_of_dimension = m_diff_stencil_coefficients[Dim];
     for (std::size_t stencil_size = min_stencil_size;
@@ -845,7 +590,6 @@ class rectilinear_grid {
                                          stencil_size, stencil_center);
       }
     }
-    //}
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename Dim>
@@ -865,15 +609,7 @@ class rectilinear_grid {
       }
       stencils.push_back(finite_differences_coefficients(1, xs));
     }
-    // for (std::size_t i = 0; i < stencil_size - stencil_center - 1; ++i) {
-    //  stencils.emplace_back();
-    //}
   }
-  //----------------------------------------------------------------------------
-  /// \return number of dimensions for one dimension dim
-  // constexpr auto edges() const { return
-  // detail::rectilinear_grid::edge_container{this}; }
-
   //----------------------------------------------------------------------------
   auto vertices() const { return vertex_container{*this}; }
   //----------------------------------------------------------------------------
