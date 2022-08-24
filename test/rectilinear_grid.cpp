@@ -165,7 +165,7 @@ TEST_CASE("rectilinear_grid_dimensions", "[rectilinear_grid][dimensions]") {
         is_same<std::decay_t<decltype(r.dimension<2>())>, linspace<double>>);
   }
   SECTION("dynamic") {
-    auto r = rectilinear_grid{2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
+    auto const r = rectilinear_grid{2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
     for (std::size_t i = 0; i < 11; ++i) {
       REQUIRE(r.size(i) == 2);
     }
@@ -181,6 +181,56 @@ TEST_CASE("rectilinear_grid_dimensions", "[rectilinear_grid][dimensions]") {
     REQUIRE(&r.dimension(9) == &r.dimension<9>());
     REQUIRE(&r.dimension(10) == &r.dimension<10>());
   }
+}
+//==============================================================================
+TEST_CASE("rectilinear_grid_topology",
+          "[rectilinear_grid][topology]") {
+  auto const r =
+      rectilinear_grid{std::vector{1.0, 1.1, 2.0}, std::vector{2.0, 3.1, 4.0}};
+  SECTION("min") {
+    auto const min = r.min();
+    REQUIRE(min(0) == 1.0);
+    REQUIRE(min(1) == 2.0);
+  }
+  SECTION("max") {
+    auto const max = r.max();
+    REQUIRE(max(0) == 2.0);
+    REQUIRE(max(1) == 4.0);
+  }
+  SECTION("center") {
+    auto const center = r.center();
+    REQUIRE(center(0) == Approx(1.5));
+    REQUIRE(center(1) == Approx(3.0));
+  }
+  SECTION("extent") {
+    auto const extent = r.extent();
+    REQUIRE(extent(0) == Approx(1.0));
+    REQUIRE(extent(1) == Approx(2.0));
+
+    REQUIRE(r.extent<0>(0) == Approx(0.1));
+    REQUIRE(r.extent<0>(1) == Approx(0.9));
+    REQUIRE(r.extent<1>(0) == Approx(1.1));
+    REQUIRE(r.extent<1>(1) == Approx(0.9));
+  }
+  SECTION("aabb") {
+    auto const aabb = r.bounding_box();
+    REQUIRE(aabb.min(0) == Approx(1.0));
+    REQUIRE(aabb.min(1) == Approx(2.0));
+    REQUIRE(aabb.max(0) == Approx(2.0));
+    REQUIRE(aabb.max(1) == Approx(4.0));
+  }
+}
+//==============================================================================
+TEST_CASE("rectilinear_grid_push_back",
+          "[rectilinear_grid][push_back]") {
+  auto r =
+      rectilinear_grid{std::vector{1.0, 1.1, 2.0}, std::vector{2.0, 3.5, 4.0}, linspace{0.0, 1.0, 11}};
+  r.push_back<0>();
+  REQUIRE(r.dimension<0>().back() == Approx(2.9));
+  r.push_back<1>();
+  REQUIRE(r.dimension<1>().back() == Approx(4.5));
+  r.push_back<2>();
+  REQUIRE(r.dimension<2>().back() == Approx(1.1));
 }
 //==============================================================================
 TEST_CASE("rectilinear_grid_vertex_properties",
