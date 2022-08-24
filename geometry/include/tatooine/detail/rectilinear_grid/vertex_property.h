@@ -57,8 +57,7 @@ struct vertex_property {
   vertex_property(vertex_property const& other)     = default;
   vertex_property(vertex_property&& other) noexcept = default;
   //----------------------------------------------------------------------------
-  /// Destructor.
-  virtual ~vertex_property() {}
+  virtual ~vertex_property() = default;
   //----------------------------------------------------------------------------
   /// for identifying type.
   virtual auto type() const -> std::type_info const&           = 0;
@@ -113,7 +112,7 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
   typed_vertex_property_interface(typed_vertex_property_interface&&) noexcept =
       default;
   //----------------------------------------------------------------------------
-  ~typed_vertex_property_interface() override = default;
+  virtual ~typed_vertex_property_interface() = default;
   //============================================================================
   // methods
   //============================================================================
@@ -329,7 +328,8 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
   //----------------------------------------------------------------------------
   auto write_png(filesystem::path const& path, auto&& color_scale,
                  ValueType const min = 0, ValueType const max = 1) const
-  -> void requires(num_dimensions() == 2) && (is_floating_point<ValueType>) {
+      -> void requires(num_dimensions() == 2) &&
+      (is_floating_point<ValueType>) {
     png::image<png::rgb_pixel> image{
         static_cast<png::uint_32>(this->grid().size(0)),
         static_cast<png::uint_32>(this->grid().size(1))};
@@ -407,7 +407,7 @@ struct typed_vertex_property
   typed_vertex_property(typed_vertex_property const&)     = default;
   typed_vertex_property(typed_vertex_property&&) noexcept = default;
   //----------------------------------------------------------------------------
-  ~typed_vertex_property() override = default;
+  virtual ~typed_vertex_property() = default;
   //============================================================================
   // methods
   //============================================================================
@@ -517,15 +517,15 @@ struct differentiated_typed_vertex_property {
   using this_type =
       differentiated_typed_vertex_property<Grid, PropValueType,
                                            PropHasNonConstReference>;
-  using prop_t     = typed_vertex_property_interface<Grid, PropValueType,
-                                                 PropHasNonConstReference>;
+  using prop_type  = typed_vertex_property_interface<Grid, PropValueType,
+                                                    PropHasNonConstReference>;
   using value_type = vertex_property_differentiated_type<Grid, PropValueType>;
   using grid_type  = Grid;
   //----------------------------------------------------------------------------
   static constexpr auto num_dimensions() { return Grid::num_dimensions(); }
   //----------------------------------------------------------------------------
-  prop_t const& m_prop;
-  auto          grid() const -> auto const& { return m_prop.grid(); }
+  prop_type const& m_prop;
+  auto             grid() const -> auto const& { return m_prop.grid(); }
   //----------------------------------------------------------------------------
   // data access
   //----------------------------------------------------------------------------
@@ -539,10 +539,10 @@ struct differentiated_typed_vertex_property {
     return at(std::make_index_sequence<Grid::num_dimensions()>{}, is...);
   }
   //----------------------------------------------------------------------------
- private : template <std::size_t... Seq, typename... Is>
-           auto
-           at(std::index_sequence<Seq...> /*seq*/, Is const... is) const
-           -> value_type {
+ private:
+  template <std::size_t... Seq, typename... Is>
+  auto at(std::index_sequence<Seq...> /*seq*/, Is const... is) const
+      -> value_type {
     auto d = value_type{};
     (
         [&](auto const dim, auto const index) {
