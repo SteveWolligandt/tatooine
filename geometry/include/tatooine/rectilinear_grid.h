@@ -7,11 +7,11 @@
 #include <tatooine/chunked_multidim_array.h>
 #include <tatooine/concepts.h>
 #include <tatooine/detail/rectilinear_grid/cell_container.h>
-#include <tatooine/detail/rectilinear_grid/vtr_writer.h>
 #include <tatooine/detail/rectilinear_grid/creator.h>
 #include <tatooine/detail/rectilinear_grid/dimension.h>
 #include <tatooine/detail/rectilinear_grid/vertex_container.h>
 #include <tatooine/detail/rectilinear_grid/vertex_property.h>
+#include <tatooine/detail/rectilinear_grid/vtr_writer.h>
 #include <tatooine/filesystem.h>
 #include <tatooine/for_loop.h>
 #include <tatooine/hdf5.h>
@@ -22,12 +22,12 @@
 #include <tatooine/random.h>
 #include <tatooine/tags.h>
 #include <tatooine/template_helper.h>
+#include <tatooine/tuple.h>
 #include <tatooine/vec.h>
 
 #include <map>
 #include <memory>
 #include <mutex>
-#include <tuple>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -44,7 +44,9 @@ class rectilinear_grid {
   using pos_type      = vec_type;
   using sequence_type = std::make_index_sequence<num_dimensions()>;
 
-  using dimensions_type = std::tuple<std::decay_t<Dimensions>...>;
+  template <std::size_t I>
+  using dimension_type = variadic::ith_type<I, Dimensions...>;
+  using dimensions_type = tuple<std::decay_t<Dimensions>...>;
 
   using vertex_container =
       detail::rectilinear_grid::vertex_container<Dimensions...>;
@@ -162,7 +164,7 @@ class rectilinear_grid {
   template <std::size_t... Ds>
   constexpr auto copy_without_properties(
       std::index_sequence<Ds...> /*seq*/) const {
-    return this_type{std::get<Ds>(m_dimensions)...};
+    return this_type{m_dimensions.template at<Ds>()...};
   }
 
  public:
@@ -192,7 +194,7 @@ class rectilinear_grid {
   template <std::size_t I>
   requires(I < num_dimensions())
   constexpr auto dimension() const -> auto const& {
-    return std::get<I>(m_dimensions);
+    return m_dimensions.template at<I>();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// Returns a constant reference to the dimension of index I.
@@ -421,16 +423,39 @@ class rectilinear_grid {
     return std::numeric_limits<std::size_t>::max();
   }
   //----------------------------------------------------------------------------
+  ///
+  template <std::size_t I>
+  constexpr auto set_dimension(convertible_to<dimension_type<I>> auto && dim) {
+    // TODO update diff stencils
+    m_dimensions.template at<I>() = dim;
+  }
+  //----------------------------------------------------------------------------
   /// Inserts new discrete point in dimension I with extent of last cell.
   template <std::size_t I>
   constexpr auto push_back() {
-    auto& dim = std::get<I>(m_dimensions);
+    // TODO update diff stencils
+    auto& dim = m_dimensions.template at<I>();
     if constexpr (is_linspace<std::decay_t<decltype(dim)>>) {
       dim.push_back();
     } else {
       dim.push_back(dimension<I>().back() + extent<I>(size<I>() - 2));
     }
   }
+  //----------------------------------------------------------------------------
+  /// Removes last discrete point in dimension I.
+  template <std::size_t I>
+  requires requires(dimension_type<I> dim) { dim.pop_back(); }
+  constexpr auto pop_back() {
+    // TODO update diff stencils
+    m_dimensions.template at<I>().pop_back();
+  }
+  //----------------------------------------------------------------------------
+  /// Removes first discrete point in dimension I.
+  template <std::size_t I>
+  requires requires(dimension_type<I> dim) { dim.pop_back(); }
+  constexpr auto pop_front() {
+    // TODO update diff stencils
+    m_dimensions.template at<I>().pop_front(); }
   //----------------------------------------------------------------------------
  private:
   /// Checks if point [comps...] is inside of grid.
