@@ -5,7 +5,7 @@
 namespace tatooine::test {
 //==============================================================================
 TEST_CASE("tuple", "[tuple]") {
-  {
+  SECTION("int float") {
     auto const t = tuple{1, 2.0f};
     t.iterate([i = std::size_t{}](auto const& x) mutable {
       switch (i) {
@@ -25,7 +25,7 @@ TEST_CASE("tuple", "[tuple]") {
     REQUIRE(t.at<0>() == 1);
     REQUIRE(t.at<1>() == 2.0f);
   }
-  {
+  SECTION("float float") {
     auto t = tuple<float, float>{1, 2.0f};
     t.iterate([i = std::size_t{}](auto const& x) mutable {
       switch (i) {
@@ -48,10 +48,23 @@ TEST_CASE("tuple", "[tuple]") {
     REQUIRE(t.at<0>() == 1.0f);
     REQUIRE(t.at<1>() == 2.0f);
   }
-  {
+  SECTION("pointer"){
     auto t   = tuple{1};
     auto ptr = t.as_pointer();
     REQUIRE(ptr[0] == 1);
+  }
+  SECTION("indexing"){
+    auto t = tuple{3, 2, 1};
+    SECTION("at"){
+      REQUIRE(t.at<0>() == 3);
+      REQUIRE(t.at<1>() == 2);
+      REQUIRE(t.at<2>() == 1);
+    }
+    SECTION("get") {
+      REQUIRE(get<0>(t) == 3);
+      REQUIRE(get<1>(t) == 2);
+      REQUIRE(get<2>(t) == 1);
+    }
   }
 }
 //==============================================================================

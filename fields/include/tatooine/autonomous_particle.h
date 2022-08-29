@@ -603,28 +603,45 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
       uniform_rectilinear_grid<Real, NumDimensions> const& g,
       std::uint8_t const                                   max_split_depth,
       std::atomic_uint64_t&                                uuid_generator) {
+    return particles_from_grid_filling_gaps(
+        t0, g, max_split_depth, uuid_generator,
+        std::make_index_sequence<num_dimensions()>{});
+  }
+  //----------------------------------------------------------------------------
+  template <std::size_t... Is>
+  static auto particles_from_grid_filling_gaps(
+      real_type const                                      t0,
+      uniform_rectilinear_grid<Real, NumDimensions> const& g,
+      std::uint8_t const max_split_depth, std::atomic_uint64_t& uuid_generator,
+      std::index_sequence<Is...> /*idx_seq*/) {
     auto       particles                     = container_type{};
     auto       initial_particle_distribution = g.copy_without_properties();
     auto const radius =
         initial_particle_distribution.dimension(0).spacing() / 2;
-    for (std::size_t i = 0; i < NumDimensions; ++i) {
-      auto const spacing = initial_particle_distribution.dimension(i).spacing();
-      initial_particle_distribution.dimension(i).pop_front();
-      initial_particle_distribution.dimension(i).front() -= spacing / 2;
-      initial_particle_distribution.dimension(i).back() -= spacing / 2;
-    }
+    (
+        [&] {
+          auto dim = initial_particle_distribution.template dimension<Is>();
+          auto const half_spacing = dim.spacing() / 2;
+          dim.pop_front();
+          dim.front() -= half_spacing;
+          dim.back() -= half_spacing;
+          initial_particle_distribution.template set_dimension<Is>(dim);
+        }(),
+        ...);
     initial_particle_distribution.vertices().iterate_indices(
         [&](auto const... is) {
           particles.emplace_back(initial_particle_distribution.vertex_at(is...),
                                  t0, radius, max_split_depth, uuid_generator);
         });
 
-    for (std::size_t i = 0; i < NumDimensions; ++i) {
-      auto const spacing = initial_particle_distribution.dimension(i).spacing();
-      initial_particle_distribution.dimension(i).pop_front();
-      initial_particle_distribution.dimension(i).front() -= spacing / 2;
-      initial_particle_distribution.dimension(i).back() -= spacing / 2;
-    }
+    ([&](){
+      auto dim = initial_particle_distribution.template dimension<Is>();
+      auto const half_spacing = dim.spacing()/ 2;
+      dim.pop_front();
+      dim.front() -= half_spacing;
+      dim.back() -= half_spacing;
+      initial_particle_distribution.template set_dimension<Is>(dim);
+    }, ...);
     initial_particle_distribution.vertices().iterate_indices(
         [&](auto const... is) {
           particles.emplace_back(initial_particle_distribution.vertex_at(is...),
@@ -1080,7 +1097,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
           phi(ghosts_negative_offset, t_advected, stepwidth);
 
       // increase time
-      if (t_advected + stepwidth > t_end) {
+      if (t_advected + stepwidth + 1e-6 > t_end) {
         t_advected = t_end;
       } else {
         t_advected += stepwidth;
@@ -1102,13 +1119,10 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
       if (std::isnan(linearity)) {
         simple_particles.emplace_back(x0(), advected_ellipse.center(),
                                       t_advected);
+        return;
       }
       sqr_cond_H = eigvals_HHt(num_dimensions() - 1) / eigvals_HHt(0);
 
-      if (std::isnan(sqr_cond_H)) {
-        simple_particles.emplace_back(x0(), advected_ellipse.center(),
-                                      t_advected);
-      }
       advected_nabla_phi  = H * K;
       assembled_nabla_phi = advected_nabla_phi * m_nabla_phi;
 

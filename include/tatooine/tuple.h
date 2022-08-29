@@ -116,12 +116,12 @@ tuple(Head&&) -> tuple<std::decay_t<Head>>;
 //==============================================================================
 template <std::size_t Idx, typename... Ts>
 constexpr auto get(tuple<Ts...> const& t) -> auto const& {
-  return t.template at<Idx>(t);
+  return t.template at<Idx>();
 }
 //------------------------------------------------------------------------------
 template <std::size_t Idx, typename... Ts>
 constexpr auto get(tuple<Ts...>& t) -> auto& {
-  return t.template at<Idx>(t);
+  return t.template at<Idx>();
 }
 //==============================================================================
 }  // namespace tatooine

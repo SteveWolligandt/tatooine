@@ -22,13 +22,15 @@ struct staggered_flowmap_discretization {
                                    arithmetic auto const tau,
                                    arithmetic auto const delta_t,
                                    InternalFlowmapArgs&&... args) {
-    auto const t1     = t0 + tau;
-    real_type cur_t0 = t0;
+    auto const t_end  = t0 + tau;
+    auto       cur_t0 = real_type(t0);
     while (cur_t0 + 1e-10 < t0 + tau) {
       auto cur_tau = delta_t;
-      if (cur_t0 + cur_tau > t1) {
+      if (cur_t0 + cur_tau > t_end) {
         cur_tau = t0 + tau - cur_t0;
       }
+      std::cout << "[staggering] t0: " << cur_t0 << "            \n";
+      std::cout << "[staggering] tau: " << cur_tau << "               \n";
       m_steps.emplace_back(std::forward<Flowmap>(flowmap), cur_t0, cur_tau,
                            std::forward<InternalFlowmapArgs>(args)...);
       cur_t0 += cur_tau;
@@ -46,7 +48,7 @@ struct staggered_flowmap_discretization {
   /// Evaluates flow map in forward direction at time t0 with maximal available
   /// advection time.
   /// \param x position
-  /// \returns phi(x, t0, t1 - t0)
+  /// \returns phi(x, t0, t_end - t0)
   auto sample(pos_type x, forward_tag const tag) const {
     for (auto const& step : steps()) {
       x = step.sample(x, tag);
@@ -57,7 +59,7 @@ struct staggered_flowmap_discretization {
   /// Evaluates flow map in backward direction at time t0 with maximal available
   /// advection time.
   /// \param x position
-  /// \returns phi(x, t1, t0 - t1)
+  /// \returns phi(x, t_end, t0 - t_end)
   auto sample(pos_type x, backward_tag const tag) const {
     for (auto step = steps().rbegin(); step != steps().rend(); ++step) {
       x = step->sample(x, tag);

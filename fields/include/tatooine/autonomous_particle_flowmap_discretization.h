@@ -3,7 +3,7 @@
 //==============================================================================
 #include <tatooine/autonomous_particle.h>
 #include <tatooine/huber_loss.h>
-#include <tatooine/unstructured_simplicial_grid.h>
+#include <tatooine/unstructured_triangular_grid.h>
 
 #include <boost/range/adaptor/transformed.hpp>
 #include <boost/range/algorithm/copy.hpp>
@@ -24,7 +24,7 @@ struct autonomous_particle_flowmap_discretization {
   using particle_type      = autonomous_particle<real_type, NumDimensions>;
   using particle_list_type = std::vector<particle_type>;
 
-  using pointset_type = tatooine::pointset<Real, NumDimensions>;
+  using pointset_type = tatooine::unstructured_triangular_grid<Real, NumDimensions>;
   using vertex_handle = typename pointset_type::vertex_handle;
   using flowmap_vertex_property_type =
       typename pointset_type::template typed_vertex_property_type<pos_type>;
@@ -152,9 +152,10 @@ struct autonomous_particle_flowmap_discretization {
       std::index_sequence<Is...> /*seq*/) -> this_type {
     auto disc = this_type{};
     using namespace std::ranges;
-    auto points_forward = std::vector<std::pair<cgal_point, vertex_handle>>{};
+    using cgal_point_list = std::vector<std::pair<cgal_point, vertex_handle>>;
+    auto points_forward   = cgal_point_list{};
+    auto points_backward  = cgal_point_list{};
     points_forward.reserve(size(advected_particles));
-    auto points_backward = std::vector<std::pair<cgal_point, vertex_handle>>{};
     points_backward.reserve(size(advected_particles));
     for (auto const& p : advected_particles) {
       {
@@ -177,8 +178,23 @@ struct autonomous_particle_flowmap_discretization {
 
     disc.m_triangulation_forward =
         cgal_triangulation_type{begin(points_forward), end(points_forward)};
+    for (auto it = disc.m_triangulation_forward.finite_faces_begin();
+         it != disc.m_triangulation_forward.finite_faces_end(); ++it) {
+      std::cout << "face\n";
+      disc.m_pointset_forward.insert_simplex(
+          vertex_handle{it->vertex(0)->info()},
+          vertex_handle{it->vertex(1)->info()},
+          vertex_handle{it->vertex(2)->info()});
+    }
     disc.m_triangulation_backward =
         cgal_triangulation_type{begin(points_backward), end(points_backward)};
+    for (auto it = disc.m_triangulation_backward.finite_faces_begin();
+         it != disc.m_triangulation_backward.finite_faces_end(); ++it) {
+      disc.m_pointset_backward.insert_simplex(
+          vertex_handle{it->vertex(0)->info()},
+          vertex_handle{it->vertex(1)->info()},
+          vertex_handle{it->vertex(2)->info()});
+    }
     return disc;
   }
   //============================================================================
@@ -342,22 +358,16 @@ struct autonomous_particle_flowmap_discretization {
   [[nodiscard]] auto sample(pos_type const&                    q,
                             forward_or_backward_tag auto const direction,
                             std::index_sequence<Is...> /*seq*/) const {
-
-
-
-    using nnc_per_vertex_type =
-        std::vector<std::pair<typename cgal_triangulation_type::Vertex_handle,
-                              cgal_kernel::FT>>;
+    using nnc_type = std::pair<typename cgal_triangulation_type::Vertex_handle,
+                               cgal_kernel::FT>;
 
     // coordinates computation
-    auto       nnc_per_vertex = nnc_per_vertex_type{};
+    auto       nnc_per_vertex = std::vector<nnc_type>{};
     auto const result         = CGAL::natural_neighbor_coordinates_2(
                 triangulation(direction), cgal_point{q(Is)...},
-                std::back_inserter(nnc_per_vertex),
-                CGAL::Identity<
-            std::pair<typename cgal_triangulation_type::Vertex_handle,
-                      cgal_kernel::FT>>{});
-    if (!result.third) {
+                std::back_inserter(nnc_per_vertex), CGAL::Identity<nnc_type>{});
+    auto const success = result.third;
+    if (!success) {
       return pos_type::fill(0.0 / 0.0);
     }
     auto const norm = 1 / result.second;
