@@ -85,9 +85,10 @@ class rectilinear_grid {
   property_container_type m_vertex_properties;
   mutable bool            m_diff_stencil_coefficients_created_once = false;
 
-  using stencil_t      = std::vector<real_type>;
-  using stencil_list_t = std::vector<stencil_t>;
-  mutable std::array<std::array<std::vector<stencil_list_t>, num_stencils>,
+  using stencil_type      = std::vector<real_type>;
+  using stencil_list_type = std::vector<stencil_type>;
+  // diff stencils per stencil size per point
+  mutable std::array<std::array<std::vector<stencil_list_type>, num_stencils>,
                      num_dimensions()>
               m_diff_stencil_coefficients;
   std::size_t m_chunk_size_for_lazy_properties = 2;
@@ -574,12 +575,12 @@ class rectilinear_grid {
   }
   //----------------------------------------------------------------------------
   auto diff_stencil_coefficients_created_once() const {
-    auto lock = std::lock_guard {m_stencil_mutex};
+    auto lock = std::lock_guard{m_stencil_mutex};
     return m_diff_stencil_coefficients_created_once;
   }
   //----------------------------------------------------------------------------
   auto update_diff_stencil_coefficients() const {
-    auto lock = std::lock_guard {m_stencil_mutex};
+    auto lock = std::lock_guard{m_stencil_mutex};
     for (std::size_t dim = 0; dim < num_dimensions(); ++dim) {
       for (std::size_t i = 0; i < num_stencils; ++i) {
         m_diff_stencil_coefficients[dim][i].clear();
