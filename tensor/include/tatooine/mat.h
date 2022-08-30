@@ -38,6 +38,10 @@ struct mat : tensor<ValueType, M, N> {
   //----------------------------------------------------------------------------
   static auto constexpr ones() { return this_type{tag::fill<ValueType>{1}}; }
   //----------------------------------------------------------------------------
+  static auto constexpr nans() requires floating_point<ValueType> {
+    return this_type{tag::fill<ValueType>{ValueType{} / ValueType{}}};
+  }
+  //----------------------------------------------------------------------------
   static auto constexpr eye() { return this_type{tag::eye}; }
   //----------------------------------------------------------------------------
   template <typename RandEng = std::mt19937_64>

@@ -382,5 +382,24 @@ TEST_CASE("rectilinear_grid_chunked_vertex_property",
   REQUIRE_THROWS(g.vertex_property<double>("v"));
 }
 //==============================================================================
+TEST_CASE("rectilinear_grid_vertex_property_diff_scalar",
+          "[rectilinear_grid][vertex_property][diff][scalar]") {
+  auto  grid        = rectilinear_grid{5, 5};
+  auto& scalar      = grid.scalar_vertex_property("scalar");
+  scalar(0,0) = 1;
+  scalar(1,0) = 2;
+  scalar(2,0) = 3;
+  scalar(3,0) = 4;
+  scalar(4,0) = 5;
+  auto diff1_scalar = diff(scalar);
+  for (std::size_t i = 0; i < 5; ++i) {
+    REQUIRE(diff1_scalar(i, 0)(0) == Approx(4));
+  }
+  auto diff2_scalar = diff(diff1_scalar);
+  for (std::size_t i = 0; i < 5; ++i) {
+    REQUIRE(diff2_scalar(i, 0)(0, 0) == Approx(0).margin(1e-6));
+  }
+}
+//==============================================================================
 }  // namespace tatooine::test
 //==============================================================================
