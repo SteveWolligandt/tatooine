@@ -384,20 +384,48 @@ TEST_CASE("rectilinear_grid_chunked_vertex_property",
 //==============================================================================
 TEST_CASE("rectilinear_grid_vertex_property_diff_scalar",
           "[rectilinear_grid][vertex_property][diff][scalar]") {
-  auto  grid        = rectilinear_grid{5, 5};
+  auto  grid        = rectilinear_grid{5, 6};
   auto& scalar      = grid.scalar_vertex_property("scalar");
   scalar(0,0) = 1;
   scalar(1,0) = 2;
   scalar(2,0) = 3;
   scalar(3,0) = 4;
   scalar(4,0) = 5;
+  scalar(0,1) = 2;
+  scalar(1,1) = 3;
+  scalar(2,1) = 4;
+  scalar(3,1) = 5;
+  scalar(4,1) = 6;
+  scalar(0,2) = 3;
+  scalar(1,2) = 4;
+  scalar(2,2) = 5;
+  scalar(3,2) = 6;
+  scalar(4,2) = 7;
+  scalar(0,3) = 4;
+  scalar(1,3) = 5;
+  scalar(2,3) = 6;
+  scalar(3,3) = 7;
+  scalar(4,3) = 8;
+  scalar(0,4) = 5;
+  scalar(1,4) = 6;
+  scalar(2,4) = 7;
+  scalar(3,4) = 8;
+  scalar(4,4) = 9;
+  scalar(0,5) = 6;
+  scalar(1,5) = 7;
+  scalar(2,5) = 8;
+  scalar(3,5) = 9;
+  scalar(4,5) = 10;
   auto diff1_scalar = diff(scalar);
-  for (std::size_t i = 0; i < 5; ++i) {
-    REQUIRE(diff1_scalar(i, 0)(0) == Approx(4));
+  for (std::size_t iy = 0; iy < 5; ++iy) {
+    for (std::size_t ix = 0; ix < 5; ++ix) {
+      REQUIRE(diff1_scalar(ix, iy)(0) == Approx(4));
+      REQUIRE(diff1_scalar(ix, iy)(1) == Approx(5));
+    }
   }
   auto diff2_scalar = diff(diff1_scalar);
   for (std::size_t i = 0; i < 5; ++i) {
-    REQUIRE(diff2_scalar(i, 0)(0, 0) == Approx(0).margin(1e-6));
+    REQUIRE(diff2_scalar(i, i)(0, 0) == Approx(0).margin(1e-6));
   }
 }
 //==============================================================================

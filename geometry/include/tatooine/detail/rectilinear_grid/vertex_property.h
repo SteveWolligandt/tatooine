@@ -181,24 +181,24 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
     return at(h);
   }
   //----------------------------------------------------------------------------
-  constexpr auto operator()(std::array<std::size_t, num_dimensions()> const& is)
+  constexpr auto operator()(std::array<std::size_t, num_dimensions()> const& indices)
       const -> decltype(auto) {
-    return at(is);
+    return at(indices);
   }
   //----------------------------------------------------------------------------
-  constexpr auto operator()(std::array<std::size_t, num_dimensions()> const& is)
+  constexpr auto operator()(std::array<std::size_t, num_dimensions()> const& indices)
       -> decltype(auto) {
-    return at(is);
+    return at(indices);
   }
   //----------------------------------------------------------------------------
-  constexpr auto operator()(integral auto const... is) const
-      -> decltype(auto) requires(sizeof...(is) == num_dimensions()) {
-    return at(std::array{static_cast<std::size_t>(is)...});
+  constexpr auto operator()(integral auto const... indices) const
+      -> decltype(auto) requires(sizeof...(indices) == num_dimensions()) {
+    return at(std::array{static_cast<std::size_t>(indices)...});
   }
   //----------------------------------------------------------------------------
-  constexpr auto operator()(integral auto const... is)
-      -> decltype(auto) requires(sizeof...(is) == num_dimensions()) {
-    return at(std::array{static_cast<std::size_t>(is)...});
+  constexpr auto operator()(integral auto const... indices)
+      -> decltype(auto) requires(sizeof...(indices) == num_dimensions()) {
+    return at(std::array{static_cast<std::size_t>(indices)...});
   }
   //----------------------------------------------------------------------------
   constexpr auto at(vertex_handle const& h) const -> decltype(auto) {
@@ -224,20 +224,20 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
   }
   //----------------------------------------------------------------------------
  public:
-  auto at(integral auto const... is) const
-      -> decltype(auto) requires(sizeof...(is) == num_dimensions()) {
-    return at(std::array{static_cast<std::size_t>(is)...});
+  auto at(integral auto const... indices) const
+      -> decltype(auto) requires(sizeof...(indices) == num_dimensions()) {
+    return at(std::array{static_cast<std::size_t>(indices)...});
   }
   //----------------------------------------------------------------------------
-  auto at(integral auto const... is)
-      -> decltype(auto) requires(sizeof...(is) == num_dimensions()) {
-    return at(std::array{static_cast<std::size_t>(is)...});
+  auto at(integral auto const... indices)
+      -> decltype(auto) requires(sizeof...(indices) == num_dimensions()) {
+    return at(std::array{static_cast<std::size_t>(indices)...});
   }
   //----------------------------------------------------------------------------
-  virtual auto at(std::array<std::size_t, num_dimensions()> const& is) const
+  virtual auto at(std::array<std::size_t, num_dimensions()> const& indices) const
       -> const_reference = 0;
   //----------------------------------------------------------------------------
-  virtual auto at(std::array<std::size_t, num_dimensions()> const& is)
+  virtual auto at(std::array<std::size_t, num_dimensions()> const& indices)
       -> reference = 0;
   //----------------------------------------------------------------------------
   virtual auto plain_at(std::size_t) const -> const_reference = 0;
@@ -419,24 +419,24 @@ struct typed_vertex_property
     return typeid(Container);
   }
   //----------------------------------------------------------------------------
-  constexpr auto operator()(integral auto const... is) const
-      -> decltype(auto) requires(sizeof...(is) == Grid::num_dimensions()) {
-    return Container::at(is...);
+  constexpr auto operator()(integral auto const... indices) const
+      -> decltype(auto) requires(sizeof...(indices) == Grid::num_dimensions()) {
+    return Container::at(indices...);
   }
   //----------------------------------------------------------------------------
-  constexpr auto operator()(integral auto const... is)
-      -> decltype(auto) requires(sizeof...(is) == Grid::num_dimensions()) {
-    return Container::at(is...);
+  constexpr auto operator()(integral auto const... indices)
+      -> decltype(auto) requires(sizeof...(indices) == Grid::num_dimensions()) {
+    return Container::at(indices...);
   }
   //----------------------------------------------------------------------------
-  auto at(integral auto const... is) const
-      -> decltype(auto) requires(sizeof...(is) == Grid::num_dimensions()) {
-    return Container::at(is...);
+  auto at(integral auto const... indices) const
+      -> decltype(auto) requires(sizeof...(indices) == Grid::num_dimensions()) {
+    return Container::at(indices...);
   }
   //----------------------------------------------------------------------------
-  auto at(integral auto const... is)
-      -> decltype(auto) requires(sizeof...(is) == Grid::num_dimensions()) {
-    return Container::at(is...);
+  auto at(integral auto const... indices)
+      -> decltype(auto) requires(sizeof...(indices) == Grid::num_dimensions()) {
+    return Container::at(indices...);
   }
   //----------------------------------------------------------------------------
   template <std::size_t... Is>
@@ -535,10 +535,10 @@ struct differentiated_typed_vertex_property_interface : crtp<Impl> {
   //----------------------------------------------------------------------------
  private:
   //----------------------------------------------------------------------------
-  prop_type const&                                     m_prop;
+  prop_type const& m_prop;
   std::array<std::array<std::vector<real_type>, num_dimensions()>, DiffOrder>
-      m_diff_coeffs_per_order_per_dimension;
-  std::size_t                                          m_stencil_size;
+              m_diff_coeffs_per_order_per_dimension;
+  std::size_t m_stencil_size;
   //----------------------------------------------------------------------------
   template <std::size_t... Is>
   differentiated_typed_vertex_property_interface(prop_type const&  prop,
@@ -609,14 +609,14 @@ struct differentiated_typed_vertex_property_interface : crtp<Impl> {
   //----------------------------------------------------------------------------
   // data access
   //----------------------------------------------------------------------------
-  constexpr auto operator()(integral auto const... is) const -> value_type
-      requires(sizeof...(is) == Grid::num_dimensions()) {
-    return at(is...);
+  constexpr auto operator()(integral auto const... indices) const -> value_type
+      requires(sizeof...(indices) == Grid::num_dimensions()) {
+    return at(indices...);
   }
   //----------------------------------------------------------------------------
-  auto at(integral auto const... is) const -> value_type
-  requires (sizeof...(is) == Grid::num_dimensions()) {
-    return this->as_derived().at(is...);
+  auto at(integral auto const... indices) const -> value_type
+  requires (sizeof...(indices) == Grid::num_dimensions()) {
+    return this->as_derived().at(indices...);
   }
 };
 //==============================================================================
@@ -646,11 +646,11 @@ struct differentiated_typed_vertex_property<1, Grid, PropValueType, H>
                                        std::size_t      stencil_size = 5)
       : parent_type{prop, stencil_size} {}
   //----------------------------------------------------------------------------
-  auto at(integral auto const... is) const -> value_type {
-    auto       d                 = value_type{};
+  auto at(integral auto const... var_indices) const -> value_type {
+    auto       derivative        = value_type{};
     auto const half_stencil_size = long(stencil_size() / 2);
 
-    auto const indices = std::array{static_cast<std::size_t>(is)...};
+    auto const indices = std::array{static_cast<std::size_t>(var_indices)...};
 
     for (std::size_t i_dim = 0; i_dim < num_dimensions(); ++i_dim) {
       auto const i_x             = indices[i_dim];
@@ -664,10 +664,10 @@ struct differentiated_typed_vertex_property<1, Grid, PropValueType, H>
 
       for (std::size_t i = 0; i < stencil_size();
            ++i, ++running_indices[i_dim], ++stencil_it) {
-        d(i_dim) += *stencil_it * property().at(running_indices);
+        derivative(i_dim) += *stencil_it * property().at(running_indices);
       }
     }
-    return d;
+    return derivative;
   }
 };
 //==============================================================================
@@ -693,28 +693,33 @@ struct differentiated_typed_vertex_property<2, Grid, PropValueType, H>
                                        std::size_t      stencil_size = 5)
       : parent_type{prop, stencil_size} {}
   //----------------------------------------------------------------------------
-  auto at(integral auto const... is) const -> value_type {
-    auto       d                 = value_type::nans();
+  auto at(integral auto const... var_indices) const -> value_type {
+    auto       derivative        = value_type::zeros();
     auto const half_stencil_size = long(stencil_size() / 2);
 
-    auto const indices = std::array{static_cast<std::size_t>(is)...};
-
+    auto const indices = std::array{static_cast<std::size_t>(var_indices)...};
+    //for (std::size_t iy_dim = 0; iy_dim < num_dimensions(); ++iy_dim) {
     for (std::size_t i_dim = 0; i_dim < num_dimensions(); ++i_dim) {
       auto const i_x             = indices[i_dim];
       auto       running_indices = indices;
-      running_indices[i_dim]     = static_cast<std::size_t>(std::min<long>(
+      running_indices[i_dim]    = static_cast<std::size_t>(std::min<long>(
           (this->grid().size(i_dim) - 1) - (stencil_size() - 1),
           std::max<long>(0, static_cast<long>(i_x) - half_stencil_size)));
+      //running_indices[iy_dim]    = static_cast<std::size_t>(std::min<long>(
+      //    (this->grid().size(iy_dim) - 1) - (stencil_size() - 1),
+      //    std::max<long>(0, static_cast<long>(i_x) - half_stencil_size)));
 
-      auto stencil_it = next(begin(differentiation_coefficients(1, i_dim)),
+      auto stencil_it = next(begin(differentiation_coefficients(2, i_dim)),
                              running_indices[i_dim] * stencil_size());
 
       for (std::size_t i = 0; i < stencil_size();
            ++i, ++running_indices[i_dim], ++stencil_it) {
-        d(i_dim, i_dim) += *stencil_it * property().at(running_indices);
+        derivative(i_dim, i_dim) +=
+            *stencil_it * property().at(running_indices);
       }
     }
-    return d;
+    //}
+    return derivative;
   }
 };
 //==============================================================================
