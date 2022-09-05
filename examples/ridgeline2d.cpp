@@ -4,7 +4,7 @@ using namespace tatooine;
 auto main() -> int {
   auto grid = rectilinear_grid{linspace{-1.0, 1.0, 100}, linspace{-1.0, 1.0, 100}};
   auto const& f =
-      grid.sample_to_vertex_property([](auto const& x) { return gcem::sin(x.x()); }, "f");
+      grid.sample_to_vertex_property([](auto const& x) { return gcem::cos(x.x()); }, "f");
   auto g_tmp = diff(f);
   auto H_tmp = diff(g_tmp);
   auto & g = grid.sample_to_vertex_property(
