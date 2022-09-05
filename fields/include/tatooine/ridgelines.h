@@ -2,6 +2,7 @@
 #define TATOOINE_FIELDS_RIDGELINES_H
 //==============================================================================
 #include <tatooine/rectilinear_grid.h>
+#include <tatooine/edgeset.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -38,21 +39,21 @@ auto ridgelines(detail::rectilinear_grid::typed_vertex_property_interface<
   using real_type    = typename Grid::real_type;
   using edgeset_type = Edgeset2<real_type>;
   auto ridgelines    = edgeset_type{};
-  diff(data, 2);
-
-#ifdef NDEBUG
-  auto mutex = std::mutex{};
-#endif
-  auto const execution =
-#ifdef NDEBUG
-      execution_policy::sequential;
-#else
-      execution_policy::parallel;
-#endif
-  auto iteration = [&](std::size_t const ix, std::size_t const iy) {
-
-  };
-  for_loop(iteration, execution, g.size(0) - 1, g.size(1) - 1);
+//  diff<2>(data);
+//
+//#ifdef NDEBUG
+//  auto mutex = std::mutex{};
+//#endif
+//  auto const execution =
+//#ifdef NDEBUG
+//      execution_policy::sequential;
+//#else
+//      execution_policy::parallel;
+//#endif
+//  auto iteration = [&](std::size_t const ix, std::size_t const iy) {
+//
+//  };
+//  for_loop(iteration, execution, g.size(0) - 1, g.size(1) - 1);
   return ridgelines;
 }
 ////------------------------------------------------------------------------------
