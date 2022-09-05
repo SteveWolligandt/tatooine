@@ -1,17 +1,19 @@
 #ifndef TATOOINE_MAKE_ARRAY_H
 #define TATOOINE_MAKE_ARRAY_H
 //==============================================================================
-#include <array>
 #include <tatooine/invoke_unpacked.h>
+
+#include <array>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
 template <typename T, size_t... Is>
-constexpr auto make_array(T&& t, std::index_sequence<Is...> /*is*/) {
-  return std::array<std::decay_t<T>, sizeof...(Is)>{((void)Is, t)...};
+constexpr auto make_array(T&& default_data, std::index_sequence<Is...> /*is*/) {
+  return std::array<std::decay_t<T>, sizeof...(Is)>{
+      ((void)Is, default_data)...};
 }
 //------------------------------------------------------------------------------
-template <typename T, typename ... Data>
+template <typename T, typename... Data>
 constexpr auto make_array(Data&&... data) {
   return std::array<T, sizeof...(Data)>{static_cast<T>(data)...};
 }
@@ -22,8 +24,8 @@ constexpr auto make_array() {
 }
 //------------------------------------------------------------------------------
 template <size_t N, typename T>
-constexpr auto make_array(T&& t) {
-  return make_array(t, std::make_index_sequence<N>{});
+constexpr auto make_array(T&& default_data) {
+  return make_array(default_data, std::make_index_sequence<N>{});
 }
 //------------------------------------------------------------------------------
 template <typename T, size_t N>
