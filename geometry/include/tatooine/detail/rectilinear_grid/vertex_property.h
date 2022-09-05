@@ -558,33 +558,27 @@ struct differentiated_typed_vertex_property_interface : crtp<Impl> {
 
  private:
   //----------------------------------------------------------------------------
-  /// Generates diffentiation coefficients for dimension DimIndex.
-  template <std::size_t DimIndex>
+  /// Generates diffentiation coefficients for dimension i_dim.
+  template <std::size_t i_dim>
   auto generate_coefficients() {
-    for (std::size_t i_order = 0; i_order < differentiation_order();
-         ++i_order) {
-      auto const& dim      = grid().template dimension<DimIndex>();
-      auto&       stencils = m_diff_coeffs_per_order_per_dimension[i_order][DimIndex];
-      stencils.reserve(dim.size() * m_stencil_size);
+    auto        local_positions  = std::vector<real_type>(m_stencil_size, 0);
+    auto const& dim              = grid().template dimension<i_dim>();
+    auto const half_stencil_size = static_cast<std::size_t>(m_stencil_size / 2);
 
-      using dim_type  = std::decay_t<decltype(dim)>;
-      using real_type = typename dim_type::value_type;
-
-      // local positions relative to current position on dimension. relative
-      // position of current point will be 0.
-      auto local_positions = std::vector<real_type>(m_stencil_size, 0);
-
-      auto const half_stencil_size =
-          static_cast<std::size_t>(m_stencil_size / 2);
-      for (std::size_t i_x = 0; i_x < dim.size(); ++i_x) {
-        auto i_left = std::min<long>(
-            (dim.size() - 1) - (stencil_size() - 1),
-            std::max<long>(0, static_cast<long>(i_x) - half_stencil_size));
-        for (std::size_t i_local = 0; i_local < m_stencil_size; ++i_local) {
-          local_positions[i_local] = dim[i_left + i_local] - dim[i_x];
-        }
+    // local positions relative to current position on dimension. relative
+    // position of current point will be 0.
+    for (std::size_t i_x = 0; i_x < dim.size(); ++i_x) {
+      auto i_left = std::min<long>(
+          (dim.size() - 1) - (stencil_size() - 1),
+          std::max<long>(0, static_cast<long>(i_x) - half_stencil_size));
+      for (std::size_t i_local = 0; i_local < m_stencil_size; ++i_local) {
+        local_positions[i_local] = dim[i_left + i_local] - dim[i_x];
+      }
+      for (std::size_t i_order = 0; i_order < differentiation_order();
+           ++i_order) {
+        auto& stencils = m_diff_coeffs_per_order_per_dimension[i_order][i_dim];
         for (auto const c :
-             finite_differences_coefficients(DiffOrder, local_positions)) {
+             finite_differences_coefficients(i_order + 1, local_positions)) {
           stencils.push_back(c);
         }
       }
@@ -660,7 +654,7 @@ struct differentiated_typed_vertex_property<1, Grid, PropValueType, H>
           std::max<long>(0, static_cast<long>(i_x) - half_stencil_size)));
 
       auto stencil_it = next(begin(differentiation_coefficients(1, i_dim)),
-                             running_indices[i_dim] * stencil_size());
+                             i_x * stencil_size());
 
       for (std::size_t i = 0; i < stencil_size();
            ++i, ++running_indices[i_dim], ++stencil_it) {
@@ -695,30 +689,85 @@ struct differentiated_typed_vertex_property<2, Grid, PropValueType, H>
   //----------------------------------------------------------------------------
   auto at(integral auto const... var_indices) const -> value_type {
     auto       derivative        = value_type::zeros();
-    auto const half_stencil_size = long(stencil_size() / 2);
-
+    auto const half_stencil_size = static_cast<std::size_t>(stencil_size() / 2);
     auto const indices = std::array{static_cast<std::size_t>(var_indices)...};
-    //for (std::size_t iy_dim = 0; iy_dim < num_dimensions(); ++iy_dim) {
-    for (std::size_t i_dim = 0; i_dim < num_dimensions(); ++i_dim) {
-      auto const i_x             = indices[i_dim];
-      auto       running_indices = indices;
-      running_indices[i_dim]    = static_cast<std::size_t>(std::min<long>(
-          (this->grid().size(i_dim) - 1) - (stencil_size() - 1),
-          std::max<long>(0, static_cast<long>(i_x) - half_stencil_size)));
-      //running_indices[iy_dim]    = static_cast<std::size_t>(std::min<long>(
-      //    (this->grid().size(iy_dim) - 1) - (stencil_size() - 1),
-      //    std::max<long>(0, static_cast<long>(i_x) - half_stencil_size)));
+    auto       origin_indices = indices;
+    // compute start indices of data that is necessary to compute derivative
+    for (std::size_t i = 0; i < num_dimensions(); ++i) {
+      origin_indices[i] = static_cast<std::size_t>(std::min<long>(
+          (this->grid().size(i) - 1) - (stencil_size() - 1),
+          std::max<long>(0,
+                         static_cast<long>(indices[i]) - half_stencil_size)));
+    }
+    auto       data =
+        dynamic_multidim_array<PropValueType>{stencil_size(), stencil_size()};
+    auto diff_coeffs2d =
+        dynamic_multidim_array<PropValueType>{stencil_size(), stencil_size()};
+    // copy actual data
+    tatooine::for_loop(
+        [&, this](auto const ix, auto const iy) {
+          data(ix, iy) =
+              property().at(origin_indices[0] + ix, origin_indices[1] + iy);
+        },
+        stencil_size(), stencil_size());
 
-      auto stencil_it = next(begin(differentiation_coefficients(2, i_dim)),
-                             running_indices[i_dim] * stencil_size());
+    // compute second order derivatives by calculating outer products of first
+    // order derivative coefficients
 
-      for (std::size_t i = 0; i < stencil_size();
-           ++i, ++running_indices[i_dim], ++stencil_it) {
-        derivative(i_dim, i_dim) +=
-            *stencil_it * property().at(running_indices);
+    // for each element of the lower triangular matrix of the hessian matrix...
+    for (std::size_t i_dim0 = 0; i_dim0 < num_dimensions(); ++i_dim0) {
+      for (std::size_t i_dim1 = 0; i_dim1 <= i_dim0; ++i_dim1) {
+        if (i_dim0 == i_dim1) {
+          auto const i_dim           = i_dim0;
+          auto       running_indices = indices;
+          running_indices[i_dim]     = static_cast<std::size_t>(std::min<long>(
+              (this->grid().size(i_dim) - 1) - (stencil_size() - 1),
+              std::max<long>(
+                  0, static_cast<long>(indices[i_dim]) - half_stencil_size)));
+          auto stencil_it = next(begin(differentiation_coefficients(2, i_dim)),
+                                 indices[i_dim] * stencil_size());
+          for (std::size_t i = 0; i < stencil_size();
+               ++running_indices[i_dim], ++stencil_it, ++i) {
+            derivative(i_dim, i_dim) += *stencil_it * property().at(running_indices);
+          }
+          running_indices[i_dim] = half_stencil_size;
+          
+        } else {
+          auto const& diff_coeffs1d_x =
+              differentiation_coefficients(1, i_dim0);
+          auto const& diff_coeffs1d_y =
+              differentiation_coefficients(1, i_dim1);
+          // ... compute second order differentiation coefficients ...
+          for (std::size_t i_stencil1 = 0; i_stencil1 < stencil_size();
+               ++i_stencil1) {
+            for (std::size_t i_stencil0 = 0; i_stencil0 < stencil_size();
+                 ++i_stencil0) {
+              auto const stencil_ix =
+                  indices[i_dim0] * stencil_size() + i_stencil0;
+              auto const stencil_iy =
+                  indices[i_dim1] * stencil_size() + i_stencil1;
+              diff_coeffs2d(i_stencil0, i_stencil1) =
+                  diff_coeffs1d_x[stencil_ix] * diff_coeffs1d_y[stencil_iy];
+            }
+          }
+          // ... and compute derivative
+          for (std::size_t i_stencil1 = 0; i_stencil1 < stencil_size();
+               ++i_stencil1) {
+            for (std::size_t i_stencil0 = 0; i_stencil0 < stencil_size();
+                 ++i_stencil0) {
+              derivative(i_dim0, i_dim1) +=
+                  diff_coeffs2d(i_stencil0, i_stencil1) *
+                  data(i_stencil0, i_stencil1);
+            }
+          }
+          if (i_dim0 != i_dim1) {
+            derivative(i_dim1, i_dim0) = derivative(i_dim0, i_dim1);
+          }
+        }
       }
     }
-    //}
+
+    // mixed derivatives
     return derivative;
   }
 };
@@ -737,10 +786,17 @@ template <std::size_t DiffOrder = 1, std::size_t CurDiffOrder, typename Grid,
           typename ValueType, bool               HasNonConstReference>
 auto diff(differentiated_typed_vertex_property<CurDiffOrder, Grid, ValueType,
                                                HasNonConstReference> const& d,
-          std::size_t const stencil_size = 5) {
+          std::size_t const stencil_size) {
   return differentiated_typed_vertex_property<DiffOrder + CurDiffOrder, Grid,
                                               ValueType, HasNonConstReference>{
       d.property(), stencil_size};
+}
+//==============================================================================
+template <std::size_t DiffOrder = 1, std::size_t CurDiffOrder, typename Grid,
+          typename ValueType, bool               HasNonConstReference>
+auto diff(differentiated_typed_vertex_property<CurDiffOrder, Grid, ValueType,
+                                               HasNonConstReference> const& d) {
+  return diff<DiffOrder>(d, d.stencil_size());
 }
 //==============================================================================
 }  // namespace tatooine::detail::rectilinear_grid

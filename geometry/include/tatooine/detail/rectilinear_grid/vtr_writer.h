@@ -81,9 +81,9 @@ requires(Grid::num_dimensions() == 2 ||
   auto write_point_data(std::ofstream& file, std::size_t& offset) const {
     file << "      <PointData>\n";
     for (auto const& [name, prop] : m_grid.vertex_properties()) {
-      write_vertex_property_data_array<HeaderType, float, vec2f, vec3f, vec4f,
-                                       mat2f, mat3f, mat4f, double, vec2d,
-                                       vec3d, vec4d, mat2d, mat3d, mat4d>(
+      write_vertex_property_data_array<HeaderType, float, double, vec2f, vec2d,
+                                       vec3f, vec3d, vec4f, vec4d, mat2f, mat2d,
+                                       mat3f, mat3d, mat4f, mat4d>(
           name, *prop, file, offset);
     }
     file << "      </PointData>\n";

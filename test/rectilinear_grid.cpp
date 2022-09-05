@@ -183,8 +183,7 @@ TEST_CASE("rectilinear_grid_dimensions", "[rectilinear_grid][dimensions]") {
   }
 }
 //==============================================================================
-TEST_CASE("rectilinear_grid_topology",
-          "[rectilinear_grid][topology]") {
+TEST_CASE("rectilinear_grid_topology", "[rectilinear_grid][topology]") {
   auto const r =
       rectilinear_grid{std::vector{1.0, 1.1, 2.0}, std::vector{2.0, 3.1, 4.0}};
   SECTION("min") {
@@ -221,10 +220,9 @@ TEST_CASE("rectilinear_grid_topology",
   }
 }
 //==============================================================================
-TEST_CASE("rectilinear_grid_push_back",
-          "[rectilinear_grid][push_back]") {
-  auto r =
-      rectilinear_grid{std::vector{1.0, 1.1, 2.0}, std::vector{2.0, 3.5, 4.0}, linspace{0.0, 1.0, 11}};
+TEST_CASE("rectilinear_grid_push_back", "[rectilinear_grid][push_back]") {
+  auto r = rectilinear_grid{std::vector{1.0, 1.1, 2.0},
+                            std::vector{2.0, 3.5, 4.0}, linspace{0.0, 1.0, 11}};
   r.push_back<0>();
   REQUIRE(r.dimension<0>().back() == Approx(2.9));
   r.push_back<1>();
@@ -237,12 +235,11 @@ TEST_CASE("rectilinear_grid_vertex_properties",
           "[rectilinear_grid][vertex_properties]") {
   SECTION("copy without property") {
     auto const prop_name = "prop";
-    auto r = rectilinear_grid{32, 32};
+    auto       r         = rectilinear_grid{32, 32};
     r.scalar_vertex_property(prop_name);
     auto r_copy = r.copy_without_properties();
     REQUIRE_FALSE(r_copy.has_vertex_property(prop_name));
   }
-
 }
 //==============================================================================
 TEST_CASE("rectilinear_grid_vertex_property_sampler_scalar",
@@ -384,49 +381,40 @@ TEST_CASE("rectilinear_grid_chunked_vertex_property",
 //==============================================================================
 TEST_CASE("rectilinear_grid_vertex_property_diff_scalar",
           "[rectilinear_grid][vertex_property][diff][scalar]") {
-  auto  grid        = rectilinear_grid{5, 6};
-  auto& scalar      = grid.scalar_vertex_property("scalar");
-  scalar(0,0) = 1;
-  scalar(1,0) = 2;
-  scalar(2,0) = 3;
-  scalar(3,0) = 4;
-  scalar(4,0) = 5;
-  scalar(0,1) = 2;
-  scalar(1,1) = 3;
-  scalar(2,1) = 4;
-  scalar(3,1) = 5;
-  scalar(4,1) = 6;
-  scalar(0,2) = 3;
-  scalar(1,2) = 4;
-  scalar(2,2) = 5;
-  scalar(3,2) = 6;
-  scalar(4,2) = 7;
-  scalar(0,3) = 4;
-  scalar(1,3) = 5;
-  scalar(2,3) = 6;
-  scalar(3,3) = 7;
-  scalar(4,3) = 8;
-  scalar(0,4) = 5;
-  scalar(1,4) = 6;
-  scalar(2,4) = 7;
-  scalar(3,4) = 8;
-  scalar(4,4) = 9;
-  scalar(0,5) = 6;
-  scalar(1,5) = 7;
-  scalar(2,5) = 8;
-  scalar(3,5) = 9;
-  scalar(4,5) = 10;
-  auto diff1_scalar = diff(scalar);
-  for (std::size_t iy = 0; iy < 5; ++iy) {
-    for (std::size_t ix = 0; ix < 5; ++ix) {
-      REQUIRE(diff1_scalar(ix, iy)(0) == Approx(4));
-      REQUIRE(diff1_scalar(ix, iy)(1) == Approx(5));
-    }
-  }
+  auto const f    = [](auto const& p) { return p.x() * p.x() * p.y() * p.y(); };
+  auto const dfx  = [](auto const& p) { return 2 * p.x() * p.y() * p.y(); };
+  auto const dfy  = [](auto const& p) { return 2 * p.x() * p.x() * p.y(); };
+  auto const dfxx = [](auto const& p) { return 2 * p.y() * p.y(); };
+  auto const dfyy = [](auto const& p) { return 2 * p.x() * p.x(); };
+  auto const dfxy = [](auto const& p) { return 4 * p.x() * p.y(); };
+
+  auto grid =
+      // rectilinear_grid{std::vector{-2.0, -1.0, -0.8, 0.0, 0.7, 1.0, 2.0},
+      //                  std::vector{1.0, 2.0, 2.5, 3.0, 4.0, 5.0}};
+      rectilinear_grid{linspace{-1.0, 1.0, 1000}, linspace{1.0, 3.0, 110}};
+  auto const& scalar = grid.sample_to_vertex_property(f, "scalar");
+
+  auto diff1_scalar = diff(scalar, 5);
   auto diff2_scalar = diff(diff1_scalar);
-  for (std::size_t i = 0; i < 5; ++i) {
-    REQUIRE(diff2_scalar(i, i)(0, 0) == Approx(0).margin(1e-6));
-  }
+  grid.vertices().iterate_indices([&](auto const... is) {
+    auto const query_point = grid.vertex_at(is...);
+    auto const indices     = std::array{is...};
+    auto const first_derivative  = diff1_scalar(is...);
+    auto const second_derivative  = diff2_scalar(is...);
+    CAPTURE(query_point, indices, first_derivative, second_derivative);
+
+    CHECK(first_derivative(0) == Approx(dfx(query_point)));
+    CHECK(first_derivative(1) == Approx(dfy(query_point)));
+
+    CHECK(second_derivative(0, 0) == Approx(dfxx(query_point)));
+    CHECK(second_derivative(1, 1) == Approx(dfyy(query_point)));
+    CHECK(second_derivative(0, 1) == Approx(dfxy(query_point)).margin(4e-1));
+    REQUIRE(second_derivative(0, 1) == second_derivative(1, 0));
+  });
+  grid.vertices().iterate_indices([&](auto const... is) {
+    auto const query_point = grid.vertex_at(is...);
+    auto const indices     = std::array{is...};
+  });
 }
 //==============================================================================
 }  // namespace tatooine::test

@@ -107,7 +107,7 @@ macro(create_test NAME)
       CATCH_CONFIG_FAST_COMPILE)
   add_custom_target(
     ${TARGET}.run
-    COMMAND ./${TARGET}
+    COMMAND ./${TARGET} --colour-mode=ansi
     DEPENDS ${TARGET})
   if (TATOOINE_TEST_USE_FAST_MATH)
     target_compile_options(
@@ -235,7 +235,7 @@ target_compile_options(
 catch_discover_tests(unittests)
 add_custom_target(
   unittests.run
-  COMMAND ./unittests
+  COMMAND ./unittests --colour-mode=default
   DEPENDS unittests)
 add_custom_target (
   unittests.xml
