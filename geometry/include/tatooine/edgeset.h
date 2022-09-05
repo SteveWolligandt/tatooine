@@ -65,9 +65,9 @@ auto write_edgeset_container_to_vtk(
       num_pts += m.vertices().size();
     }
     std::vector<std::array<typename MeshCont::value_type::real_type, 3>> points;
-    std::vector<std::vector<std::size_t>>                             faces;
+    std::vector<std::vector<std::size_t>>                             edges;
     points.reserve(num_pts);
-    faces.reserve(grids.size());
+    edges.reserve(grids.size());
 
     for (auto const& m : grids) {
       // add points
@@ -75,12 +75,12 @@ auto write_edgeset_container_to_vtk(
         points.push_back(std::array{m[v](0), m[v](1), m[v](2)});
       }
 
-      // add faces
-      for (auto c : m.cells()) {
-        faces.emplace_back();
-        auto [v0, v1] = m[c];
-        faces.back().push_back(cur_first + v0.index());
-        faces.back().push_back(cur_first + v1.index());
+      // add edges
+      for (auto s : m.simplices()) {
+        edges.emplace_back();
+        auto [v0, v1] = m[s];
+        edges.back().push_back(cur_first + v0.index());
+        edges.back().push_back(cur_first + v1.index());
       }
       cur_first += m.vertices().size();
     }
@@ -89,7 +89,7 @@ auto write_edgeset_container_to_vtk(
     writer.set_title(title);
     writer.write_header();
     writer.write_points(points);
-    writer.write_polygons(faces);
+    writer.write_polygons(edges);
     // writer.write_point_data(num_pts);
     writer.close();
   }
@@ -118,7 +118,7 @@ auto write_edgeset_container_to_vtp(range auto const&            grids,
     using real_type = typename std::decay_t<decltype(g)>::real_type;
     file << "<Piece"
          << " NumberOfPoints=\"" << g.vertices().size() << "\""
-         << " NumberOfPolys=\"" << g.cells().size() << "\""
+         << " NumberOfPolys=\"" << g.simplices().size() << "\""
          << " NumberOfVerts=\"0\""
          << " NumberOfLines=\"0\""
          << " NumberOfStrips=\"0\""
@@ -146,7 +146,7 @@ auto write_edgeset_container_to_vtp(range auto const&            grids,
          << vtk::xml::data_array::to_string(
                 vtk::xml::data_array::to_type<polys_connectivity_int_t>())
          << "\" Name=\"connectivity\"/>\n";
-    auto const num_bytes_polys_connectivity = g.cells().size() *
+    auto const num_bytes_polys_connectivity = g.simplices().size() *
                                               g.num_vertices_per_simplex() *
                                               sizeof(polys_connectivity_int_t);
     offset += num_bytes_polys_connectivity + sizeof(header_type);
@@ -157,7 +157,7 @@ auto write_edgeset_container_to_vtp(range auto const&            grids,
                 vtk::xml::data_array::to_type<polys_offset_int_t>())
          << "\" Name=\"offsets\"/>\n";
     auto const num_bytes_polys_offsets =
-        sizeof(polys_offset_int_t) * g.cells().size();
+        sizeof(polys_offset_int_t) * g.simplices().size();
     offset += num_bytes_polys_offsets + sizeof(header_type);
     file << "</Polys>\n";
     file << "</Piece>\n\n";
@@ -178,14 +178,14 @@ auto write_edgeset_container_to_vtp(range auto const&            grids,
     // Writing polys connectivity data to appended data section
     {
       auto connectivity_data = std::vector<polys_connectivity_int_t>(
-          g.cells().size() * g.num_vertices_per_simplex());
-      std::ranges::copy(g.cells().data_container() |
+          g.simplices().size() * g.num_vertices_per_simplex());
+      std::ranges::copy(g.simplices().data_container() |
                             std::views::transform(
                                 [](auto const x) -> polys_connectivity_int_t {
                                   return x.index();
                                 }),
                         begin(connectivity_data));
-      arr_size = g.cells().size() * g.num_vertices_per_simplex() *
+      arr_size = g.simplices().size() * g.num_vertices_per_simplex() *
                  sizeof(polys_connectivity_int_t);
       file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
       file.write(reinterpret_cast<char const*>(connectivity_data.data()),
@@ -195,11 +195,11 @@ auto write_edgeset_container_to_vtp(range auto const&            grids,
     // Writing polys offsets to appended data section
     {
       auto offsets = std::vector<polys_offset_int_t>(
-          g.cells().size(), g.num_vertices_per_simplex());
+          g.simplices().size(), g.num_vertices_per_simplex());
       for (std::size_t i = 1; i < size(offsets); ++i) {
         offsets[i] += offsets[i - 1];
       }
-      arr_size = sizeof(polys_offset_int_t) * g.cells().size();
+      arr_size = sizeof(polys_offset_int_t) * g.simplices().size();
       file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
       file.write(reinterpret_cast<char const*>(offsets.data()), arr_size);
     }

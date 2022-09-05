@@ -115,7 +115,7 @@ auto isolines(detail::rectilinear_grid::typed_vertex_property_interface<
       [&](auto ix, auto iy, auto const& /*ps*/) -> auto const& {
         return data(ix, iy);
       },
-      data.rectilinear_grid(), isolevel);
+      data.grid(), isolevel);
 }
 //------------------------------------------------------------------------------
 template <arithmetic Real, typename Indexing, arithmetic BBReal>
