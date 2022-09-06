@@ -46,7 +46,7 @@ auto monkey_saddle_ridges() {
 //==============================================================================
 auto cos_field_ridges() {
   auto grid =
-      rectilinear_grid{linspace{-2.0, 2.0, 1000}, linspace{-2.0, 2.0, 1000}};
+      rectilinear_grid{linspace{-4.0, 4.0, 1000}, linspace{-4.0, 4.0, 1000}};
 
   auto const& f = grid.sample_to_vertex_property([](auto const& p){return gcem::cos(p.x()) * gcem::cos(p.y());}, "f",
                                                  execution_policy::parallel);
