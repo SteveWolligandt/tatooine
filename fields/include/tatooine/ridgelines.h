@@ -1,102 +1,94 @@
 #ifndef TATOOINE_FIELDS_RIDGELINES_H
 #define TATOOINE_FIELDS_RIDGELINES_H
 //==============================================================================
-#include <tatooine/rectilinear_grid.h>
 #include <tatooine/edgeset.h>
+#include <tatooine/isolines.h>
+#include <tatooine/rectilinear_grid.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-//template <typename XDomain, typename YDomain>
-//auto ridgelines(
-//    invocable<
-//        std::size_t, std::size_t,
-//        Vec2<typename rectilinear_grid<XDomain, YDomain>::real_type>> auto&&
-//                                              get_scalars,
-//    rectilinear_grid<XDomain, YDomain> const& g) {
-//  using real_type    = typename rectilinear_grid<XDomain, YDomain>::real_type;
-//  using edgeset_type = Edgeset2<real_type>;
-//  auto ridgelines    = edgeset_type{};
-//
-//#ifdef NDEBUG
-//  auto mutex = std::mutex{};
-//#endif
-//  auto const execution =
-//#ifdef NDEBUG
-//      execution_policy::sequential;
-//#else
-//      execution_policy::parallel;
-//#endif
-//  auto iteration = [&](std::size_t const ix, std::size_t const iy) {
-//    
-//  };
-//  for_loop(iteration, execution, g.size(0) - 1, g.size(1) - 1);
-//  return ridgelines;
-//}
-////------------------------------------------------------------------------------
+/// Implementation of \cite Peikert2008ridges without filters.
+template <typename Grid, arithmetic T, bool HasNonConstReference>
+requires (Grid::num_dimensions() == 2)
+auto ridgelines(detail::rectilinear_grid::typed_vertex_property_interface<
+                    Grid, T, HasNonConstReference> const& data,
+                execution_policy_tag auto const           exec) {
+  using real_type    = typename Grid::real_type;
+  using edgeset_type = Edgeset2<real_type>;
+  auto  helper_grid  = data.grid().copy_without_properties();
+  auto& g =
+      helper_grid.sample_to_vertex_property(diff<1>(data), "g", exec);
+  auto& c = helper_grid.sample_to_vertex_property(
+      [&](integral auto const... is) {
+        auto const& g_ = g(is...);
+        return vec{-g_(1), g_(0)};
+      },
+      "c", exec);
+  auto& hessian =
+      helper_grid.sample_to_vertex_property(diff<2>(data), "H", exec);
+
+  auto& Hg = helper_grid.sample_to_vertex_property(
+      [&](integral auto const... is) { return hessian(is...) * g(is...); },
+      "Hg", exec);
+  auto& Hc = helper_grid.sample_to_vertex_property(
+      [&](integral auto const... is) { return hessian(is...) * c(is...); },
+      "Hc", exec);
+  auto& lambda_g = helper_grid.sample_to_vertex_property(
+      [&](integral auto const... is) {
+        auto i       = std::size_t{};
+        auto max_abs = -std::numeric_limits<real_type>::max();
+        for (std::size_t j = 0; j < 2; ++j) {
+          if (auto const a = gcem::abs(g(is...)(j)); a > max_abs) {
+            max_abs = a;
+            i       = j;
+          }
+        }
+        return Hc(is...)(i) / g(is...)(i);
+      },
+      "lambda_g", exec);
+  auto& lambda_c = helper_grid.sample_to_vertex_property(
+      [&](integral auto const... is) {
+        auto i       = std::size_t{};
+        auto max_abs = -std::numeric_limits<real_type>::max();
+        for (std::size_t j = 0; j < 2; ++j) {
+          if (auto const a = gcem::abs(c(is...)(j)); a > max_abs) {
+            max_abs = a;
+            i       = j;
+          }
+        }
+        return Hc(is...)(i) / c(is...)(i);
+      },
+      "lambda_c", exec);
+  auto const compute_d = [&](integral auto const... is) {
+    auto const& g_  = g(is...);
+    auto const& Hg_ = Hg(is...);
+    return g_(0) * Hg_(1) - g_(1) * Hg_(0);
+  };
+  auto& d = helper_grid.sample_to_vertex_property(compute_d, "det(g|Hg)", exec);
+
+  auto const raw        = isolines(d, 0);
+  auto       ridgelines = edgeset_type{};
+  auto       lc         = lambda_c.linear_sampler();
+  for (auto const e : raw.simplices()) {
+    auto [v0, v1] = raw[e];
+    if (lc(raw[v0]) <= 0 && lc(raw[v1]) <= 0) {
+      auto vr0 = ridgelines.insert_vertex(raw[v0]);
+      auto vr1 = ridgelines.insert_vertex(raw[v1]);
+      ridgelines.insert_edge(vr0, vr1);
+    }
+  }
+
+  helper_grid.write("helper.vtr");
+  return ridgelines;
+}
+//------------------------------------------------------------------------------
+/// Implementation of \cite Peikert2008ridges without filters.
 template <typename Grid, arithmetic T, bool HasNonConstReference>
 auto ridgelines(detail::rectilinear_grid::typed_vertex_property_interface<
                 Grid, T, HasNonConstReference> const& data) {
-  using real_type    = typename Grid::real_type;
-  using edgeset_type = Edgeset2<real_type>;
-  auto ridgelines    = edgeset_type{};
-//  diff<2>(data);
-//
-//#ifdef NDEBUG
-//  auto mutex = std::mutex{};
-//#endif
-//  auto const execution =
-//#ifdef NDEBUG
-//      execution_policy::sequential;
-//#else
-//      execution_policy::parallel;
-//#endif
-//  auto iteration = [&](std::size_t const ix, std::size_t const iy) {
-//
-//  };
-//  for_loop(iteration, execution, g.size(0) - 1, g.size(1) - 1);
-  return ridgelines;
+  return ridgelines(data, execution_policy::sequential);
 }
-////------------------------------------------------------------------------------
-//template <arithmetic Real, typename Indexing, arithmetic BBReal>
-//auto ridgelines(dynamic_multidim_array<Real, Indexing> const& data,
-//              axis_aligned_bounding_box<BBReal, 2> const&   bb) {
-//  assert(data.num_dimensions() == 2);
-//  return ridgelines(
-//      [&](auto ix, auto iy, auto const& /*ps*/) -> auto const& {
-//        return data(ix, iy);
-//      },
-//      rectilinear_grid{linspace{bb.min(0), bb.max(0), data.size(0)},
-//                       linspace{bb.min(1), bb.max(1), data.size(1)}}
-//      );
-//}
-////------------------------------------------------------------------------------
-//template <arithmetic Real, arithmetic  BBReal, typename Indexing,
-//          typename MemLoc, std::size_t XRes, std::size_t YRes>
-//auto ridgelines(
-//    static_multidim_array<Real, Indexing, MemLoc, XRes, YRes> const& data,
-//    axis_aligned_bounding_box<BBReal, 2> const&                      bb) {
-//  return ridgelines(
-//      [&](auto ix, auto iy, auto const& /*ps*/) -> auto const& {
-//        return data(ix, iy);
-//      },
-//      rectilinear_grid{linspace{bb.min(0), bb.max(0), data.size(0)},
-//                       linspace{bb.min(1), bb.max(1), data.size(1)}}
-//      );
-//}
-//------------------------------------------------------------------------------
-//template <typename Field, typename FieldReal,
-//          detail::rectilinear_grid::dimension XDomain,
-//          detail::rectilinear_grid::dimension YDomain,
-//          arithmetic                          TReal = FieldReal>
-//auto ridgelines(scalarfield<Field, FieldReal, 2> const&   sf,
-//                rectilinear_grid<XDomain, YDomain> const& g,
-//                TReal const                               t = 0) {
-//  auto eval = [&](auto const /*ix*/, auto const /*iy*/, auto const& pos) {
-//    return sf(pos, t);
-//  };
-//  return ridgelines(eval, g);
-//}
 //==============================================================================
-}
+}  // namespace tatooine
 //==============================================================================
 #endif

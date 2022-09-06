@@ -181,12 +181,14 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
     return at(h);
   }
   //----------------------------------------------------------------------------
-  constexpr auto operator()(std::array<std::size_t, num_dimensions()> const& indices)
-      const -> decltype(auto) {
+  constexpr auto operator()(
+      std::array<std::size_t, num_dimensions()> const& indices) const
+      -> decltype(auto) {
     return at(indices);
   }
   //----------------------------------------------------------------------------
-  constexpr auto operator()(std::array<std::size_t, num_dimensions()> const& indices)
+  constexpr auto operator()(
+      std::array<std::size_t, num_dimensions()> const& indices)
       -> decltype(auto) {
     return at(indices);
   }
@@ -234,8 +236,8 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
     return at(std::array{static_cast<std::size_t>(indices)...});
   }
   //----------------------------------------------------------------------------
-  virtual auto at(std::array<std::size_t, num_dimensions()> const& indices) const
-      -> const_reference = 0;
+  virtual auto at(std::array<std::size_t, num_dimensions()> const& indices)
+      const -> const_reference = 0;
   //----------------------------------------------------------------------------
   virtual auto at(std::array<std::size_t, num_dimensions()> const& indices)
       -> reference = 0;
@@ -521,15 +523,17 @@ struct vertex_property_differentiated_type_impl<1, Grid, tensor<T, Dims...>> {
 //==============================================================================
 template <std::size_t DiffOrder, typename Grid, typename PropValueType,
           bool        PropHasNonConstReference, typename Impl>
-struct differentiated_typed_vertex_property_interface : crtp<Impl> {
-  using this_type = differentiated_typed_vertex_property_interface<
-      DiffOrder, Grid, PropValueType, PropHasNonConstReference, Impl>;
-  using prop_type  = typed_vertex_property_interface<Grid, PropValueType,
+struct differentiated_vertex_property_interface : crtp<Impl> {
+  using this_type =
+      differentiated_vertex_property_interface<DiffOrder, Grid, PropValueType,
+                                               PropHasNonConstReference, Impl>;
+  using prop_type = typed_vertex_property_interface<Grid, PropValueType,
                                                     PropHasNonConstReference>;
-  using crtp_type  = crtp<Impl>;
-  using value_type = vertex_property_differentiated_type<DiffOrder, Grid, PropValueType>;
-  using grid_type  = Grid;
-  using real_type  = typename Grid::real_type;
+  using crtp_type = crtp<Impl>;
+  using value_type =
+      vertex_property_differentiated_type<DiffOrder, Grid, PropValueType>;
+  using grid_type = Grid;
+  using real_type = typename Grid::real_type;
   //----------------------------------------------------------------------------
   static constexpr auto num_dimensions() { return Grid::num_dimensions(); }
   //----------------------------------------------------------------------------
@@ -539,22 +543,23 @@ struct differentiated_typed_vertex_property_interface : crtp<Impl> {
   std::array<std::array<std::vector<real_type>, num_dimensions()>, DiffOrder>
               m_diff_coeffs_per_order_per_dimension;
   std::size_t m_stencil_size;
+  std::size_t m_half_stencil_size;
   //----------------------------------------------------------------------------
   template <std::size_t... Is>
-  differentiated_typed_vertex_property_interface(prop_type const&  prop,
-                                       std::size_t       stencil_size,
-                                       std::index_sequence<Is...> /*seq*/)
+  differentiated_vertex_property_interface(prop_type const& prop,
+                                           std::size_t      stencil_size,
+                                           std::index_sequence<Is...> /*seq*/)
       : m_prop{prop},
-        m_stencil_size{stencil_size} {
+        m_stencil_size{stencil_size},
+        m_half_stencil_size{stencil_size / 2} {
     (generate_coefficients<Is>(), ...);
   }
   //----------------------------------------------------------------------------
  public:
-  differentiated_typed_vertex_property_interface(prop_type const&  prop,
-                                       std::size_t       stencil_size = 5)
-      : differentiated_typed_vertex_property_interface{
-            prop, stencil_size,
-            std::make_index_sequence<num_dimensions()>{}} {}
+  differentiated_vertex_property_interface(prop_type const& prop,
+                                           std::size_t      stencil_size)
+      : differentiated_vertex_property_interface{
+            prop, stencil_size, std::make_index_sequence<num_dimensions()>{}} {}
 
  private:
   //----------------------------------------------------------------------------
@@ -563,14 +568,11 @@ struct differentiated_typed_vertex_property_interface : crtp<Impl> {
   auto generate_coefficients() {
     auto        local_positions  = std::vector<real_type>(m_stencil_size, 0);
     auto const& dim              = grid().template dimension<i_dim>();
-    auto const half_stencil_size = static_cast<std::size_t>(m_stencil_size / 2);
 
     // local positions relative to current position on dimension. relative
     // position of current point will be 0.
     for (std::size_t i_x = 0; i_x < dim.size(); ++i_x) {
-      auto i_left = std::min<long>(
-          (dim.size() - 1) - (stencil_size() - 1),
-          std::max<long>(0, static_cast<long>(i_x) - half_stencil_size));
+      auto i_left = this->first_stencil_index(i_x, i_dim);
       for (std::size_t i_local = 0; i_local < m_stencil_size; ++i_local) {
         local_positions[i_local] = dim[i_left + i_local] - dim[i_x];
       }
@@ -591,7 +593,9 @@ struct differentiated_typed_vertex_property_interface : crtp<Impl> {
   //----------------------------------------------------------------------------
   auto grid() const -> auto const& { return property().grid(); }
   //----------------------------------------------------------------------------
-  auto stencil_size() const  { return m_stencil_size; }
+  auto stencil_size() const { return m_stencil_size; }
+  //----------------------------------------------------------------------------
+  auto half_stencil_size() const { return m_half_stencil_size; }
   //----------------------------------------------------------------------------
   static constexpr auto differentiation_order() { return DiffOrder; }
   //----------------------------------------------------------------------------
@@ -609,49 +613,55 @@ struct differentiated_typed_vertex_property_interface : crtp<Impl> {
   }
   //----------------------------------------------------------------------------
   auto at(integral auto const... indices) const -> value_type
-  requires (sizeof...(indices) == Grid::num_dimensions()) {
+      requires(sizeof...(indices) == Grid::num_dimensions()) {
     return this->as_derived().at(indices...);
+  }
+  //----------------------------------------------------------------------------
+  /// Computes the first index where the stencil at index i_x of dimension i_dim
+  /// begins.
+  auto first_stencil_index(std::size_t const i_x,
+                           std::size_t const i_dim) const {
+    return static_cast<std::size_t>(std::min<long>(
+        (this->grid().size(i_dim) - 1) - (stencil_size() - 1),
+        std::max<long>(0, static_cast<long>(i_x) - half_stencil_size())));
   }
 };
 //==============================================================================
-template <std::size_t DiffOrder, typename Grid, typename PropValueType,
-          bool        H>
-struct differentiated_typed_vertex_property;
+template <std::size_t DiffOrder, typename Grid, typename PropValueType, bool H>
+struct diffentiated_vertex_property;
 //==============================================================================
-/// Specializes first derivative of scalars
+/// Computes the gradient vector by specializing the first derivative of a
+/// scalar property.
 template <typename Grid, floating_point PropValueType, bool H>
-struct differentiated_typed_vertex_property<1, Grid, PropValueType, H>
-    : differentiated_typed_vertex_property_interface<
+struct diffentiated_vertex_property<1, Grid, PropValueType, H>
+    : differentiated_vertex_property_interface<
           1, Grid, PropValueType, H,
-          differentiated_typed_vertex_property<1, Grid, PropValueType, H>> {
-  using this_type =
-      differentiated_typed_vertex_property<1, Grid, PropValueType, H>;
+          diffentiated_vertex_property<1, Grid, PropValueType, H>> {
+  using this_type = diffentiated_vertex_property<1, Grid, PropValueType, H>;
   using parent_type =
-      differentiated_typed_vertex_property_interface<1, Grid, PropValueType, H,
-                                                     this_type>;
+      differentiated_vertex_property_interface<1, Grid, PropValueType, H,
+                                               this_type>;
   using parent_type::differentiation_coefficients;
+  using parent_type::half_stencil_size;
   using parent_type::num_dimensions;
   using parent_type::property;
   using parent_type::stencil_size;
   using typename parent_type::prop_type;
   using typename parent_type::value_type;
   //----------------------------------------------------------------------------
-  differentiated_typed_vertex_property(prop_type const& prop,
-                                       std::size_t      stencil_size = 5)
+  diffentiated_vertex_property(prop_type const& prop,
+                               std::size_t      stencil_size)
       : parent_type{prop, stencil_size} {}
   //----------------------------------------------------------------------------
   auto at(integral auto const... var_indices) const -> value_type {
-    auto       derivative        = value_type{};
-    auto const half_stencil_size = long(stencil_size() / 2);
+    auto derivative = value_type{};
 
     auto const indices = std::array{static_cast<std::size_t>(var_indices)...};
 
     for (std::size_t i_dim = 0; i_dim < num_dimensions(); ++i_dim) {
       auto const i_x             = indices[i_dim];
       auto       running_indices = indices;
-      running_indices[i_dim]     = static_cast<std::size_t>(std::min<long>(
-          (this->grid().size(i_dim) - 1) - (stencil_size() - 1),
-          std::max<long>(0, static_cast<long>(i_x) - half_stencil_size)));
+      running_indices[i_dim]     = this->first_stencil_index(i_x, i_dim);
 
       auto stencil_it = next(begin(differentiation_coefficients(1, i_dim)),
                              i_x * stencil_size());
@@ -665,41 +675,38 @@ struct differentiated_typed_vertex_property<1, Grid, PropValueType, H>
   }
 };
 //==============================================================================
-/// Specializes second derivative of scalars
+/// Computes the hessian matrix by specializing the second derivative of a
+/// scalar property.
 template <typename Grid, floating_point PropValueType, bool H>
-struct differentiated_typed_vertex_property<2, Grid, PropValueType, H>
-    : differentiated_typed_vertex_property_interface<
+struct diffentiated_vertex_property<2, Grid, PropValueType, H>
+    : differentiated_vertex_property_interface<
           2, Grid, PropValueType, H,
-          differentiated_typed_vertex_property<2, Grid, PropValueType, H>> {
-  using this_type =
-      differentiated_typed_vertex_property<2, Grid, PropValueType, H>;
+          diffentiated_vertex_property<2, Grid, PropValueType, H>> {
+  using this_type = diffentiated_vertex_property<2, Grid, PropValueType, H>;
   using parent_type =
-      differentiated_typed_vertex_property_interface<2, Grid, PropValueType, H,
-                                                     this_type>;
+      differentiated_vertex_property_interface<2, Grid, PropValueType, H,
+                                               this_type>;
   using parent_type::differentiation_coefficients;
+  using parent_type::half_stencil_size;
   using parent_type::num_dimensions;
   using parent_type::property;
   using parent_type::stencil_size;
   using typename parent_type::prop_type;
   using typename parent_type::value_type;
   //----------------------------------------------------------------------------
-  differentiated_typed_vertex_property(prop_type const& prop,
-                                       std::size_t      stencil_size = 5)
+  diffentiated_vertex_property(prop_type const& prop,
+                               std::size_t      stencil_size)
       : parent_type{prop, stencil_size} {}
   //----------------------------------------------------------------------------
   auto at(integral auto const... var_indices) const -> value_type {
-    auto       derivative        = value_type::zeros();
-    auto const half_stencil_size = static_cast<std::size_t>(stencil_size() / 2);
+    auto       derivative = value_type::zeros();
     auto const indices = std::array{static_cast<std::size_t>(var_indices)...};
     auto       origin_indices = indices;
     // compute start indices of data that is necessary to compute derivative
     for (std::size_t i = 0; i < num_dimensions(); ++i) {
-      origin_indices[i] = static_cast<std::size_t>(std::min<long>(
-          (this->grid().size(i) - 1) - (stencil_size() - 1),
-          std::max<long>(0,
-                         static_cast<long>(indices[i]) - half_stencil_size)));
+      origin_indices[i] = this->first_stencil_index(indices[i], i);
     }
-    auto       data =
+    auto data =
         dynamic_multidim_array<PropValueType>{stencil_size(), stencil_size()};
     auto diff_coeffs2d =
         dynamic_multidim_array<PropValueType>{stencil_size(), stencil_size()};
@@ -720,23 +727,20 @@ struct differentiated_typed_vertex_property<2, Grid, PropValueType, H>
         if (i_dim0 == i_dim1) {
           auto const i_dim           = i_dim0;
           auto       running_indices = indices;
-          running_indices[i_dim]     = static_cast<std::size_t>(std::min<long>(
-              (this->grid().size(i_dim) - 1) - (stencil_size() - 1),
-              std::max<long>(
-                  0, static_cast<long>(indices[i_dim]) - half_stencil_size)));
+          running_indices[i_dim] =
+              this->first_stencil_index(indices[i_dim], i_dim);
           auto stencil_it = next(begin(differentiation_coefficients(2, i_dim)),
                                  indices[i_dim] * stencil_size());
           for (std::size_t i = 0; i < stencil_size();
                ++running_indices[i_dim], ++stencil_it, ++i) {
-            derivative(i_dim, i_dim) += *stencil_it * property().at(running_indices);
+            derivative(i_dim, i_dim) +=
+                *stencil_it * property().at(running_indices);
           }
-          running_indices[i_dim] = half_stencil_size;
-          
+          running_indices[i_dim] = half_stencil_size();
+
         } else {
-          auto const& diff_coeffs1d_x =
-              differentiation_coefficients(1, i_dim0);
-          auto const& diff_coeffs1d_y =
-              differentiation_coefficients(1, i_dim1);
+          auto const& diff_coeffs1d_x = differentiation_coefficients(1, i_dim0);
+          auto const& diff_coeffs1d_y = differentiation_coefficients(1, i_dim1);
           // ... compute second order differentiation coefficients ...
           for (std::size_t i_stencil1 = 0; i_stencil1 < stencil_size();
                ++i_stencil1) {
@@ -772,30 +776,76 @@ struct differentiated_typed_vertex_property<2, Grid, PropValueType, H>
   }
 };
 //==============================================================================
+/// Computes the jacobian matrix by specializing the first derivative of a
+/// vector property.
+template <typename Grid, floating_point VecReal, std::size_t VecN, bool H>
+struct diffentiated_vertex_property<1, Grid, vec<VecReal, VecN>, H>
+    : differentiated_vertex_property_interface<
+          1, Grid, vec<VecReal, VecN>, H,
+          diffentiated_vertex_property<1, Grid, vec<VecReal, VecN>, H>> {
+  using this_type =
+      diffentiated_vertex_property<1, Grid, vec<VecReal, VecN>, H>;
+  using parent_type =
+      differentiated_vertex_property_interface<1, Grid, vec<VecReal, VecN>, H,
+                                               this_type>;
+  using parent_type::differentiation_coefficients;
+  using parent_type::half_stencil_size;
+  using parent_type::num_dimensions;
+  using parent_type::property;
+  using parent_type::stencil_size;
+  using typename parent_type::prop_type;
+  using typename parent_type::value_type;
+  //----------------------------------------------------------------------------
+  diffentiated_vertex_property(prop_type const& prop,
+                               std::size_t      stencil_size)
+      : parent_type{prop, stencil_size} {}
+  //----------------------------------------------------------------------------
+  auto at(integral auto const... var_indices) const -> value_type {
+    auto       d       = value_type{};
+    auto const indices = std::array{static_cast<std::size_t>(var_indices)...};
+    auto       running_indices = indices;
+    for (std::size_t i_dim = 0; i_dim < num_dimensions(); ++i_dim) {
+      auto const i_x          = indices[i_dim];
+      auto const coeffs_begin = next(
+          begin(differentiation_coefficients(1, i_dim)), i_x * stencil_size());
+      auto const coeffs_end  = next(coeffs_begin, stencil_size());
+      running_indices[i_dim] = this->first_stencil_index(i_x, i_dim);
+      for (auto coeffs_it = coeffs_begin; coeffs_it != coeffs_end;
+           ++coeffs_it, ++running_indices[i_dim]) {
+        d.template slice<value_type::rank() - 1>(i_dim) +=
+            property()(running_indices) * *coeffs_it;
+      }
+      running_indices[i_dim] = indices[i_dim];
+    }
+    return d;
+  }
+};
+//==============================================================================
+static auto constexpr default_diff_stencil_size = 5;
+//------------------------------------------------------------------------------
 template <std::size_t DiffOrder = 1, typename Grid, typename ValueType,
           bool        HasNonConstReference>
 auto diff(typed_vertex_property_interface<Grid, ValueType,
                                           HasNonConstReference> const& prop,
-          std::size_t const stencil_size = 5) {
-  return differentiated_typed_vertex_property<DiffOrder, Grid, ValueType,
-                                              HasNonConstReference>{
-      prop, stencil_size};
+          std::size_t const stencil_size = default_diff_stencil_size) {
+  return diffentiated_vertex_property<DiffOrder, Grid, ValueType,
+                                      HasNonConstReference>{prop, stencil_size};
 }
 //==============================================================================
 template <std::size_t DiffOrder = 1, std::size_t CurDiffOrder, typename Grid,
           typename ValueType, bool               HasNonConstReference>
-auto diff(differentiated_typed_vertex_property<CurDiffOrder, Grid, ValueType,
-                                               HasNonConstReference> const& d,
+auto diff(diffentiated_vertex_property<CurDiffOrder, Grid, ValueType,
+                                       HasNonConstReference> const& d,
           std::size_t const stencil_size) {
-  return differentiated_typed_vertex_property<DiffOrder + CurDiffOrder, Grid,
-                                              ValueType, HasNonConstReference>{
-      d.property(), stencil_size};
+  return diffentiated_vertex_property<DiffOrder + CurDiffOrder, Grid, ValueType,
+                                      HasNonConstReference>{d.property(),
+                                                            stencil_size};
 }
 //==============================================================================
 template <std::size_t DiffOrder = 1, std::size_t CurDiffOrder, typename Grid,
           typename ValueType, bool               HasNonConstReference>
-auto diff(differentiated_typed_vertex_property<CurDiffOrder, Grid, ValueType,
-                                               HasNonConstReference> const& d) {
+auto diff(diffentiated_vertex_property<CurDiffOrder, Grid, ValueType,
+                                       HasNonConstReference> const& d) {
   return diff<DiffOrder>(d, d.stencil_size());
 }
 //==============================================================================

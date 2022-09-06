@@ -425,11 +425,10 @@ struct unstructured_simplicial_grid
   }
   //----------------------------------------------------------------------------
   /// tidies up invalid vertices
- private
-     : template <std::size_t... Is>
-       auto
-       reindex_simplices_vertex_handles(std::index_sequence<Is...> /*seq*/) {
-    auto dec     = [](auto i) { return ++i; };
+ private:
+  template <std::size_t... Is>
+  auto reindex_simplices_vertex_handles(std::index_sequence<Is...> /*seq*/) {
+    auto dec     = [](auto i) { return --i; };
     auto offsets = std::vector<std::size_t>(size(vertex_position_data()), 0);
     for (auto const v : invalid_vertices()) {
       auto i = begin(offsets) + v.index();
@@ -719,9 +718,18 @@ struct unstructured_simplicial_grid
         throw std::runtime_error{
             ".vtk is not supported with this simplicial grid."};
       }
+    } else if (ext == ".vtp") {
+      if constexpr ((NumDimensions == 2 || NumDimensions == 3) &&
+                    SimplexDim == 1) {
+        write_vtp(path);
+        return;
+      } else {
+        throw std::runtime_error{
+            ".vtu is not supported with this simplicial grid."};
+      }
     } else if (ext == ".vtu") {
       if constexpr ((NumDimensions == 2 || NumDimensions == 3) &&
-                    (SimplexDim == 1 || SimplexDim == 2)) {
+                    SimplexDim == 2) {
         write_vtu(path);
         return;
       } else {
@@ -743,12 +751,16 @@ struct unstructured_simplicial_grid
     }
   }
   //----------------------------------------------------------------------------
-  auto write_vtu(filesystem::path const& path) const
-      requires((NumDimensions == 2 || NumDimensions == 3) &&
-               (SimplexDim == 1 || SimplexDim == 2)) {
+  auto write_vtp(filesystem::path const& path) const
+      requires((NumDimensions == 2 || NumDimensions == 3) && SimplexDim == 1) {
     if constexpr (SimplexDim == 1) {
       write_vtp_edges(path);
-    } else if constexpr (SimplexDim == 2) {
+    }
+  }
+  //----------------------------------------------------------------------------
+  auto write_vtu(filesystem::path const& path) const
+      requires((NumDimensions == 2 || NumDimensions == 3) && SimplexDim == 2) {
+    if constexpr (SimplexDim == 2) {
       write_vtu_triangular(path);
     }
   }
@@ -873,7 +885,7 @@ struct unstructured_simplicial_grid
             unsigned_integral CellTypesInt    = std::uint8_t>
   auto write_vtu_triangular(filesystem::path const& path) const
       requires((NumDimensions == 2 || NumDimensions == 3) && SimplexDim == 2) {
-    detail::unstructured_simplicial_grid::triangular_vtp_writer<
+    detail::unstructured_simplicial_grid::triangular_vtu_writer<
         this_type, HeaderType, ConnectivityInt, OffsetInt, CellTypesInt>{*this}
         .write(path);
   }

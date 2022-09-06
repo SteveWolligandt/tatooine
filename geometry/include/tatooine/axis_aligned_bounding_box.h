@@ -161,6 +161,15 @@ struct axis_aligned_bounding_box
   auto constexpr extents() const { return m_max - m_min; }
   auto constexpr extent(std::size_t i) const { return m_max(i) - m_min(i); }
   //----------------------------------------------------------------------------
+  auto constexpr volume() const {
+    auto const exts = extents();
+    auto       vol  = real_type(1);
+    for (auto const ext : exts) {
+      vol *= ext;
+    }
+    return vol;
+  }
+  //----------------------------------------------------------------------------
   auto constexpr center() const { return (m_max + m_min) * Real(0.5); }
   auto constexpr center(std::size_t const i) const {
     return (m_max(i) + m_min(i)) * Real(0.5);

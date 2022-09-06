@@ -1,5 +1,5 @@
-#ifndef TATOOINE_DETAIL_UNSTRUCTURED_SIMPLICIAL_GRID_TRIANGULAR_VTP_WRITER_H
-#define TATOOINE_DETAIL_UNSTRUCTURED_SIMPLICIAL_GRID_TRIANGULAR_VTP_WRITER_H
+#ifndef TATOOINE_DETAIL_UNSTRUCTURED_SIMPLICIAL_GRID_TRIANGULAR_VTU_WRITER_H
+#define TATOOINE_DETAIL_UNSTRUCTURED_SIMPLICIAL_GRID_TRIANGULAR_VTU_WRITER_H
 //==============================================================================
 #include <tatooine/concepts.h>
 #include <tatooine/filesystem.h>
@@ -16,7 +16,8 @@ template <typename Grid, unsigned_integral HeaderType = std::uint64_t,
           integral          OffsetInt       = std::int64_t,
           unsigned_integral CellTypesInt    = std::uint8_t>
 requires(Grid::num_dimensions() == 2 ||
-         Grid::num_dimensions() == 3) struct triangular_vtp_writer {
+         Grid::num_dimensions() == 3)
+struct triangular_vtu_writer {
   static auto constexpr num_dimensions() { return Grid::num_dimensions(); }
   using vertex_property_type = typename Grid::vertex_property_type;
   template <typename T>
@@ -45,12 +46,12 @@ requires(Grid::num_dimensions() == 2 ||
          << vtk::xml::data_array::to_string(
                 vtk::xml::data_array::to_type<HeaderType>())
          << "\">\n";
-    write_polydata(file, offset);
+    write_unstructured_grid(file, offset);
     write_appended_data(file);
     file << "</VTKFile>";
   }
   //----------------------------------------------------------------------------
-  auto write_polydata(std::ofstream& file, auto& offset) const {
+  auto write_unstructured_grid(std::ofstream& file, auto& offset) const {
     file << "  <UnstructuredGrid>\n";
     write_piece(file, offset);
     file << "  </UnstructuredGrid>\n";
