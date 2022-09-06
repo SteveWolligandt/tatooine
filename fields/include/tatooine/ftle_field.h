@@ -70,7 +70,8 @@ struct ftle_field
   auto evaluate(pos_type const& x, real_type t) const -> tensor_type final {
     auto const g       = m_flowmap_gradient(x, t, m_tau);
     auto const eigvals = eigenvalues_sym(transposed(g) * g);
-    return gcem::log(gcem::sqrt(eigvals(0))) / std::abs(m_tau);
+    return gcem::log(gcem::sqrt(eigvals(num_dimensions() - 1))) /
+           std::abs(m_tau);
   }
   //----------------------------------------------------------------------------
   auto tau() const { return m_tau; }

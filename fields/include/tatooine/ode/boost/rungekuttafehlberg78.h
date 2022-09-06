@@ -29,8 +29,8 @@ struct rungekuttafehlberg78
   using controller_type    = typename rkf78_aux<Real, N>::controller_type;
   using error_checker_type =  typename rkf78_aux<Real, N>::error_checker_type;
   rungekuttafehlberg78(Real const absolute_error_tolerance = 1e-10,
-                       Real const relative_error_tolerance = 1e-6,
-                       Real const initial_stepsize = 1e-2, Real const a_x = 1,
+                       Real const relative_error_tolerance = 1e-10,
+                       Real const initial_stepsize = 1e-6, Real const a_x = 1,
                        Real const a_dxdt = 1)
       : tatooine::ode::boost::solver<Real, N, controller_type>(
             controller_type{error_checker_type{absolute_error_tolerance,
