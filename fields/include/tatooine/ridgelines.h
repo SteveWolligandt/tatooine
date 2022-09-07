@@ -8,32 +8,35 @@
 namespace tatooine {
 //==============================================================================
 /// Implementation of \cite Peikert2008ridges without filters.
-template <typename Grid, arithmetic T, bool HasNonConstReference>
-requires (Grid::num_dimensions() == 2)
+///
+/// working_grid needs to have the same dimensions as data.grid()
+template <typename Grid, arithmetic T, bool HasNonConstReference,
+          typename DomainX, typename DomainY>
+requires(Grid::num_dimensions() == 2)
 auto ridgelines(detail::rectilinear_grid::typed_vertex_property_interface<
                     Grid, T, HasNonConstReference> const& data,
+                rectilinear_grid<DomainX, DomainY>&       working_grid,
                 execution_policy_tag auto const           exec) {
   using real_type    = typename Grid::real_type;
   using edgeset_type = Edgeset2<real_type>;
-  auto  helper_grid  = data.grid().copy_without_properties();
-  auto& g =
-      helper_grid.sample_to_vertex_property(diff<1>(data), "g", exec);
-  auto& c = helper_grid.sample_to_vertex_property(
+  auto& g            = working_grid.sample_to_vertex_property(diff<1>(data),
+                                                              "[ridgelines]_g", exec);
+  auto& c            = working_grid.sample_to_vertex_property(
       [&](integral auto const... is) {
         auto const& g_ = g(is...);
         return vec{-g_(1), g_(0)};
       },
-      "c", exec);
-  auto& hessian =
-      helper_grid.sample_to_vertex_property(diff<2>(data), "H", exec);
+      "[ridgelines]_c", exec);
+  auto& hessian = working_grid.sample_to_vertex_property(
+      diff<2>(data), "[ridgelines]_H", exec);
 
-  auto& Hg = helper_grid.sample_to_vertex_property(
+  auto& Hg = working_grid.sample_to_vertex_property(
       [&](integral auto const... is) { return hessian(is...) * g(is...); },
-      "Hg", exec);
-  auto& Hc = helper_grid.sample_to_vertex_property(
+      "[ridgelines]_Hg", exec);
+  auto& Hc = working_grid.sample_to_vertex_property(
       [&](integral auto const... is) { return hessian(is...) * c(is...); },
-      "Hc", exec);
-  auto& lambda_g = helper_grid.sample_to_vertex_property(
+      "[ridgelines]_Hc", exec);
+  working_grid.sample_to_vertex_property(
       [&](integral auto const... is) {
         auto i       = std::size_t{};
         auto max_abs = -std::numeric_limits<real_type>::max();
@@ -45,8 +48,8 @@ auto ridgelines(detail::rectilinear_grid::typed_vertex_property_interface<
         }
         return Hc(is...)(i) / g(is...)(i);
       },
-      "lambda_g", exec);
-  auto& lambda_c = helper_grid.sample_to_vertex_property(
+      "[ridgelines]_lambda_g", exec);
+  auto& lambda_c = working_grid.sample_to_vertex_property(
       [&](integral auto const... is) {
         auto i       = std::size_t{};
         auto max_abs = -std::numeric_limits<real_type>::max();
@@ -58,13 +61,14 @@ auto ridgelines(detail::rectilinear_grid::typed_vertex_property_interface<
         }
         return Hc(is...)(i) / c(is...)(i);
       },
-      "lambda_c", exec);
+      "[ridgelines]_lambda_c", exec);
   auto const compute_d = [&](integral auto const... is) {
     auto const& g_  = g(is...);
     auto const& Hg_ = Hg(is...);
     return g_(0) * Hg_(1) - g_(1) * Hg_(0);
   };
-  auto& d = helper_grid.sample_to_vertex_property(compute_d, "det(g|Hg)", exec);
+  auto& d = working_grid.sample_to_vertex_property(
+      compute_d, "[ridgelines]_det(g|Hg)", exec);
 
   auto const raw        = isolines(d, 0);
   auto       ridgelines = edgeset_type{};
@@ -77,16 +81,38 @@ auto ridgelines(detail::rectilinear_grid::typed_vertex_property_interface<
       ridgelines.insert_edge(vr0, vr1);
     }
   }
-
-  helper_grid.write("helper.vtr");
   return ridgelines;
 }
 //------------------------------------------------------------------------------
 /// Implementation of \cite Peikert2008ridges without filters.
+template <typename Grid, arithmetic T, bool HasNonConstReference,
+          typename DomainX, typename DomainY>
+requires(Grid::num_dimensions() == 2)
+auto ridgelines(detail::rectilinear_grid::typed_vertex_property_interface<
+                    Grid, T, HasNonConstReference> const& data,
+                execution_policy_tag auto const           exec) {
+  return ridgelines(data, data.grid.copy_without_properties(), exec);
+}
+//------------------------------------------------------------------------------
+/// Implementation of \cite Peikert2008ridges without filters.
+///
+/// working_grid needs to have the same dimensions as data.grid()
+template <typename Grid, arithmetic T, bool HasNonConstReference,
+          typename DomainX, typename DomainY>
+requires(Grid::num_dimensions() == 2)
+auto ridgelines(detail::rectilinear_grid::typed_vertex_property_interface<
+                    Grid, T, HasNonConstReference> const& data,
+                rectilinear_grid<DomainX, DomainY>&       working_grid) {
+  return ridgelines(data, working_grid, execution_policy::sequential);
+}
+//------------------------------------------------------------------------------
+/// Implementation of \cite Peikert2008ridges without filters.
 template <typename Grid, arithmetic T, bool HasNonConstReference>
+requires(Grid::num_dimensions() == 2)
 auto ridgelines(detail::rectilinear_grid::typed_vertex_property_interface<
                 Grid, T, HasNonConstReference> const& data) {
-  return ridgelines(data, execution_policy::sequential);
+  return ridgelines(data, data.grid.copy_without_properties(),
+                    execution_policy::sequential);
 }
 //==============================================================================
 }  // namespace tatooine

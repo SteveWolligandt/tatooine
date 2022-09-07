@@ -29,6 +29,7 @@ struct monkey_saddle : scalarfield<monkey_saddle<Real>, Real, 2> {
     return p.x() * p.x() * p.y();
   }
 };
+//==============================================================================
 monkey_saddle() -> monkey_saddle<real_number>;
 //==============================================================================
 }  // namespace tatooine::analytical::numerical

@@ -39,7 +39,6 @@ auto write_container_to_vtk(
     writer.write_header();
     writer.write_points(points);
     writer.write_polygons(edges);
-    // writer.write_point_data(num_pts);
     writer.close();
   }
 }

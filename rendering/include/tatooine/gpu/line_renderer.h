@@ -42,6 +42,6 @@ auto upload(const std::vector<parameterized_line<Real, N, Interpolator>>& ls) {
   return uploads;
 }
 //==============================================================================
-}
+}  // namespace tatooine::gpu
 //==============================================================================
 #endif

@@ -2,6 +2,7 @@
 #define TATOOINE_ANALYTICAL_NUMERICAL_MODIFIED_DOUBLEGYRE_H
 //==============================================================================
 #include <tatooine/algorithm.h>
+#include <tatooine/numerical_flowmap.h>
 #include <tatooine/field.h>
 #include <tatooine/line.h>
 #include <tatooine/linspace.h>
@@ -26,30 +27,31 @@ struct modified_doublegyre : vectorfield<modified_doublegyre<Real>, Real, 2> {
   static constexpr Real cc      = c * c;
   static constexpr Real d       = 9.964223388;
   //============================================================================
-  constexpr tensor_type evaluate(const pos_type& x, Real t) const {
-    const Real a  = epsilon * std::sin(omega * (t + timeoffset(t)));
-    const Real b  = 1 - 2 * a;
-    const Real f  = a * x(0) * x(0) + b * x(0);
-    const Real df = 2 * a * x(0) + b;
+  constexpr auto evaluate(pos_type const& x, Real const t) const
+      -> tensor_type {
+    Real const a  = epsilon * gcem::sin(omega * (t + timeoffset(t)));
+    Real const b  = 1 - 2 * a;
+    Real const f  = a * x(0) * x(0) + b * x(0);
+    Real const df = 2 * a * x(0) + b;
 
-    return tensor_type{-pi * A * std::sin(pi * f) * std::cos(pi * x(1)),
-                    pi * A * std::cos(pi * f) * std::sin(pi * x(1)) * df};
+    return tensor_type{-pi * A * gcem::sin(pi * f) * gcem::cos(pi * x(1)),
+                    pi * A * gcem::cos(pi * f) * gcem::sin(pi * x(1)) * df};
   }
 
   //----------------------------------------------------------------------------
-  constexpr static auto timeoffset(const Real t) {
-    const Real r = pi / 5 * t + d;
+  constexpr static auto timeoffset(Real const t) {
+    Real const r = pi / 5 * t + d;
 
-    const Real q =
-        std::clamp<Real>((4 * pi * c * sin(r) - 4 * std::asin(2 * c * cos(r))) /
+    auto const q =
+        std::clamp<Real>((4 * pi * c * sin(r) - 4 * gcem::asin(2 * c * cos(r))) /
                         (pi * (1 - cc * sin(r) * sin(r))),
                     -1, 1);
 
-    const Real p = 5 / pi * std::asin(q) - t;
+    Real const p = 5 / pi * gcem::asin(q) - t;
     return p;
     // Real       min_p       = p;
     // auto       closer_to_0 = [&min_p](Real p) -> Real {
-    //  if (std::abs(p) < std::abs(min_p)) { return p; }
+    //  if (gcem::abs(p) < gcem::abs(min_p)) { return p; }
     //  return min_p;
     //};
     //
@@ -67,40 +69,63 @@ struct modified_doublegyre : vectorfield<modified_doublegyre<Real>, Real, 2> {
   }
 
   //----------------------------------------------------------------------------
-  constexpr bool in_domain(const pos_type& x, Real) const {
+  constexpr bool in_domain(pos_type const& x, Real const) const {
     return x(0) >= 0 && x(0) <= 2 && x(1) >= 0 && x(1) <= 1;
   }
 
   //----------------------------------------------------------------------------
-  struct hyperbolic_trajectory_t {
-    auto at(Real t) const {
-      return vec<Real, 2>{c * std::sin(pi / 5 * t + d) + 1, 0};
+  struct hyperbolic_trajectory_type {
+    auto at(Real const t) const {
+      return vec<Real, 2>{c * gcem::sin(pi / 5 * t + d) + 1, 0};
     }
-    auto operator()(Real t) const { return at(t); }
+    auto operator()(Real const t) const { return at(t); }
   };
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr auto hyperbolic_trajectory() const {
-    return hyperbolic_trajectory_t{};
+    return hyperbolic_trajectory_type{};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr auto hyperbolic_trajectory(Real t) const {
-    return hyperbolic_trajectory_t{}(t);
+    return hyperbolic_trajectory_type{}(t);
   }
 
   //----------------------------------------------------------------------------
-  struct hyperbolic_trajectory_spacetime_t {
-    auto at(Real t) const {
-      return vec<Real, 3>{c * std::sin(pi / 5 * t + d) + 1, 0, t};
+  struct hyperbolic_trajectory_spacetime_type {
+    auto at(Real const t) const {
+      return vec<Real, 3>{c * gcem::sin(pi / 5 * t + d) + 1, 0, t};
     }
-    auto operator()(Real t) const { return at(t); }
+    auto operator()(Real const t) const { return at(t); }
   };
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr auto hyperbolic_trajectory_spacetime() const {
-    return hyperbolic_trajectory_spacetime_t{};
+    return hyperbolic_trajectory_spacetime_type{};
+  }
+  //----------------------------------------------------------------------------
+  template <template <typename, std::size_t> typename ODESolver>
+  struct lagrangian_coherent_structure_type {
+    Real m_t0;
+    Real m_eps;
+    this_type const& m_v;
+    numerical_flowmap<this_type const&, ODESolver> m_flowmap;
+    lagrangian_coherent_structure_type(this_type const& v, Real const t0,
+                                       Real const eps)
+        : m_t0{t0}, m_eps{eps}, m_v{v}, m_flowmap{flowmap(v)} {}
+    auto at(Real const t) const {
+      return m_flowmap(m_v.hyperbolic_trajectory(t) + Vec2<Real>{0, m_eps}, t,
+                       m_t0 - t);
+    }
+    auto operator()(Real const t) const { return at(t); }
+  };
+  //----------------------------------------------------------------------------
+  template <template <typename, std::size_t>
+            typename ODESolver = ode::boost::rungekuttafehlberg78>
+  auto lagrangian_coherent_structure(Real const t,
+                                     Real const eps = 1e-10) const {
+    return lagrangian_coherent_structure_type<ODESolver>{*this, t, eps};
   }
 };
 //==============================================================================
-modified_doublegyre()->modified_doublegyre<double>;
+modified_doublegyre()->modified_doublegyre<real_number>;
 //==============================================================================
 }  // namespace tatooine::analytical::numerical
 //==============================================================================

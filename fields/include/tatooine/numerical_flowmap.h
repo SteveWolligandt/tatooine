@@ -12,7 +12,8 @@
 namespace tatooine {
 //==============================================================================
 template <typename V, template <typename, std::size_t> typename ODESolver,
-          template <typename> typename InterpolationKernel>
+          template <typename> typename InterpolationKernel =
+              interpolation::cubic>
 struct numerical_flowmap {
   using this_type      = numerical_flowmap<V, ODESolver, InterpolationKernel>;
   using raw_field_type = std::remove_pointer_t<std::decay_t<V>>;
