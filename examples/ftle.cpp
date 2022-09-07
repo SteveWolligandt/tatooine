@@ -4,7 +4,7 @@
 #include <tatooine/analytical/numerical/saddle.h>
 #include <tatooine/color_scales/viridis.h>
 #include <tatooine/for_loop.h>
-#include <tatooine/ftle_field.h>
+#include <tatooine/ftle.h>
 #include <tatooine/rectilinear_grid.h>
 #include <tatooine/gpu/lic.h>
 #include <tatooine/linspace.h>

@@ -632,7 +632,6 @@ struct pointset {
     if (!file.is_open()) {
       throw std::runtime_error{"Could not write " + path.string()};
     }
-    // tidy_up();
     auto offset                       = std::size_t{};
     using header_type                 = std::uint64_t;
     using verts_connectivity_int_type = std::int64_t;

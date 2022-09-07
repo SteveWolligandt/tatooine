@@ -19,6 +19,9 @@ struct ftle_field
   using vec_type = typename FlowmapGradient::vec_type;
   using typename parent_type::pos_type;
   using typename parent_type::tensor_type;
+  static auto constexpr num_dimensions() {
+    return FlowmapGradient::num_dimensions();
+  }
   //============================================================================
  private:
   FlowmapGradient m_flowmap_gradient;
@@ -100,6 +103,36 @@ ftle_field(vectorfield<V, Real, N> const& v, arithmetic auto, arithmetic auto)
 template <typename V, typename Real, size_t N, typename EpsReal>
 ftle_field(vectorfield<V, Real, N> const& v, arithmetic auto,
            vec<EpsReal, N> const&) -> ftle_field<decltype(diff(flowmap(v)))>;
+//==============================================================================
+template <typename... Domains, typename Flowmap>
+auto ftle(rectilinear_grid<Domains...>& grid, Flowmap&& flowmap,
+          arithmetic auto const t0, arithmetic auto const tau,
+          execution_policy_tag auto const exec) -> auto& {
+  auto const fixed_time_phi = [&flowmap, t0, tau](auto const& x) {
+    return flowmap(x, t0, tau);
+  };
+
+  auto const& phi =
+      grid.sample_to_vertex_property(fixed_time_phi, "[ftle]_phi", exec);
+  auto const& nabla_phi =
+      grid.sample_to_vertex_property(diff(phi), "[ftle]_nabla_phi", exec);
+
+  auto const ftle_field = [&](integral auto const... is) {
+    auto const& nabla_phi_at_pos = nabla_phi(is...);
+    auto const  eigvals =
+        eigenvalues_sym(transposed(nabla_phi_at_pos) * nabla_phi_at_pos);
+    return gcem::log(gcem::sqrt(eigvals(sizeof...(Domains) - 1))) /
+           std::abs(tau);
+  };
+  return grid.sample_to_vertex_property(ftle_field, "ftle", exec);
+}
+//==============================================================================
+template <typename... Domains, typename Flowmap>
+auto ftle(rectilinear_grid<Domains...>& grid, Flowmap&& flowmap,
+          arithmetic auto const t0, arithmetic auto const tau)
+    -> decltype(auto) {
+  return ftle(grid, flowmap, t0, tau, execution_policy::sequential);
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

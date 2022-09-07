@@ -131,6 +131,9 @@ struct line {
       : m_vertices{pos_type{std::forward<decltype(vs)>(vs)}...},
         m_is_closed{false} {}
   //----------------------------------------------------------------------------
+  auto copy_without_properties() {
+
+  }
   //----------------------------------------------------------------------------
   auto empty() const { return m_vertices.empty(); }
   //----------------------------------------------------------------------------
@@ -242,7 +245,8 @@ struct line {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto vertices() const { return vertex_container_type{*this}; }
   //----------------------------------------------------------------------------
-  template <template <typename> typename InterpolationKernel>
+  template <template <typename>
+            typename InterpolationKernel = interpolation::cubic>
   auto sampler() const {
     return vertex_property_sampler_type<this_type, InterpolationKernel>{*this,
                                                                         *this};
