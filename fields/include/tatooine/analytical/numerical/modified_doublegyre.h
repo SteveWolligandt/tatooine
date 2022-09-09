@@ -23,9 +23,11 @@ struct modified_doublegyre : vectorfield<modified_doublegyre<Real>, Real, 2> {
   static constexpr Real epsilon = 0.25;
   static constexpr Real omega   = 2 * pi * 0.1;
   static constexpr Real A       = 0.1;
-  static constexpr Real c       = -0.2040811331;
+  //static constexpr Real c       = -0.2040811331;
+  static constexpr Real c       = .5;
   static constexpr Real cc      = c * c;
-  static constexpr Real d       = 9.964223388;
+  //static constexpr Real d       = 9.964223388;
+  static constexpr Real d       = -5;
   //============================================================================
   constexpr auto evaluate(pos_type const& x, Real const t) const
       -> tensor_type {
@@ -49,30 +51,11 @@ struct modified_doublegyre : vectorfield<modified_doublegyre<Real>, Real, 2> {
 
     Real const p = 5 / pi * gcem::asin(q) - t;
     return p;
-    // Real       min_p       = p;
-    // auto       closer_to_0 = [&min_p](Real p) -> Real {
-    //  if (gcem::abs(p) < gcem::abs(min_p)) { return p; }
-    //  return min_p;
-    //};
-    //
-    // for (int i = 0; i <= 1; ++i) {
-    //  min_p = closer_to_0(5 + i * 10 - 2 * t - p);
-    //  min_p = closer_to_0(5 - i * 10 - 2 * t - p);
-    //}
-    //
-    // for (int i = 1; i <= 1; ++i) {
-    //  min_p = closer_to_0(p + i * 10);
-    //  min_p = closer_to_0(p - i * 10);
-    //}
-    //
-    // return min_p;
   }
-
   //----------------------------------------------------------------------------
   constexpr bool in_domain(pos_type const& x, Real const) const {
     return x(0) >= 0 && x(0) <= 2 && x(1) >= 0 && x(1) <= 1;
   }
-
   //----------------------------------------------------------------------------
   struct hyperbolic_trajectory_type {
     auto at(Real const t) const {
@@ -88,7 +71,6 @@ struct modified_doublegyre : vectorfield<modified_doublegyre<Real>, Real, 2> {
   constexpr auto hyperbolic_trajectory(Real t) const {
     return hyperbolic_trajectory_type{}(t);
   }
-
   //----------------------------------------------------------------------------
   struct hyperbolic_trajectory_spacetime_type {
     auto at(Real const t) const {
@@ -100,19 +82,22 @@ struct modified_doublegyre : vectorfield<modified_doublegyre<Real>, Real, 2> {
   constexpr auto hyperbolic_trajectory_spacetime() const {
     return hyperbolic_trajectory_spacetime_type{};
   }
-  //----------------------------------------------------------------------------
+  //============================================================================
   template <template <typename, std::size_t> typename ODESolver>
   struct lagrangian_coherent_structure_type {
     Real m_t0;
     Real m_eps;
     this_type const& m_v;
     numerical_flowmap<this_type const&, ODESolver> m_flowmap;
+    //--------------------------------------------------------------------------
     lagrangian_coherent_structure_type(this_type const& v, Real const t0,
                                        Real const eps)
         : m_t0{t0}, m_eps{eps}, m_v{v}, m_flowmap{flowmap(v)} {}
     auto at(Real const t) const {
       return m_flowmap(m_v.hyperbolic_trajectory(t) + Vec2<Real>{0, m_eps}, t,
                        m_t0 - t);
+      //return m_flowmap(m_v.hyperbolic_trajectory(t) + Vec2<Real>{0, 1-m_eps}, t-m_t0,
+      //                 t);
     }
     auto operator()(Real const t) const { return at(t); }
   };
