@@ -56,7 +56,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //============================================================================
   // static members
   //============================================================================
-  static constexpr auto default_max_split_depth = 4;
+  static constexpr auto default_max_split_depth = 6;
   //============================================================================
   // members
   //============================================================================
@@ -618,16 +618,16 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     auto       initial_particle_distribution = g.copy_without_properties();
     auto const radius =
         initial_particle_distribution.dimension(0).spacing() / 2;
-    (
-        [&] {
-          auto dim = initial_particle_distribution.template dimension<Is>();
-          auto const half_spacing = dim.spacing() / 2;
-          dim.pop_front();
-          dim.front() -= half_spacing;
-          dim.back() -= half_spacing;
-          initial_particle_distribution.template set_dimension<Is>(dim);
-        }(),
-        ...);
+    //(
+    //    [&] {
+    //      auto dim = initial_particle_distribution.template dimension<Is>();
+    //      auto const half_spacing = dim.spacing() / 2;
+    //      dim.pop_front();
+    //      dim.front() -= half_spacing;
+    //      dim.back() -= half_spacing;
+    //      initial_particle_distribution.template set_dimension<Is>(dim);
+    //    }(),
+    //    ...);
     initial_particle_distribution.vertices().iterate_indices(
         [&](auto const... is) {
           particles.emplace_back(initial_particle_distribution.vertex_at(is...),
@@ -1139,7 +1139,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
       }
 
       // check if particle's ellipse has reached its splitting width
-      static auto constexpr linearity_threshold = 1e-2;
+      static auto constexpr linearity_threshold = 1e-3;
       if (split_depth() != max_split_depth() &&
           (linearity >= linearity_threshold || sqr_cond_H > 10)) {
         for (std::size_t i = 0; i < size(split_radii); ++i) {

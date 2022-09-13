@@ -23,11 +23,9 @@ struct modified_doublegyre : vectorfield<modified_doublegyre<Real>, Real, 2> {
   static constexpr Real epsilon = 0.25;
   static constexpr Real omega   = 2 * pi * 0.1;
   static constexpr Real A       = 0.1;
-  //static constexpr Real c       = -0.2040811331;
-  static constexpr Real c       = .5;
+  static constexpr Real c       = -0.2040811331;
   static constexpr Real cc      = c * c;
-  //static constexpr Real d       = 9.964223388;
-  static constexpr Real d       = -5;
+  static constexpr Real d       = 9.964223388;
   //============================================================================
   constexpr auto evaluate(pos_type const& x, Real const t) const
       -> tensor_type {
@@ -39,7 +37,6 @@ struct modified_doublegyre : vectorfield<modified_doublegyre<Real>, Real, 2> {
     return tensor_type{-pi * A * gcem::sin(pi * f) * gcem::cos(pi * x(1)),
                     pi * A * gcem::cos(pi * f) * gcem::sin(pi * x(1)) * df};
   }
-
   //----------------------------------------------------------------------------
   constexpr static auto timeoffset(Real const t) {
     Real const r = pi / 5 * t + d;
@@ -51,10 +48,6 @@ struct modified_doublegyre : vectorfield<modified_doublegyre<Real>, Real, 2> {
 
     Real const p = 5 / pi * gcem::asin(q) - t;
     return p;
-  }
-  //----------------------------------------------------------------------------
-  constexpr bool in_domain(pos_type const& x, Real const) const {
-    return x(0) >= 0 && x(0) <= 2 && x(1) >= 0 && x(1) <= 1;
   }
   //----------------------------------------------------------------------------
   struct hyperbolic_trajectory_type {
@@ -93,6 +86,7 @@ struct modified_doublegyre : vectorfield<modified_doublegyre<Real>, Real, 2> {
     lagrangian_coherent_structure_type(this_type const& v, Real const t0,
                                        Real const eps)
         : m_t0{t0}, m_eps{eps}, m_v{v}, m_flowmap{flowmap(v)} {}
+    //--------------------------------------------------------------------------
     auto at(Real const t) const {
       return m_flowmap(m_v.hyperbolic_trajectory(t) + Vec2<Real>{0, m_eps}, t,
                        m_t0 - t);

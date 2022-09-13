@@ -247,7 +247,8 @@ struct autonomous_particle_flowmap_discretization {
         "Number of dimensions of flowmap does not match number of dimensions.");
 
     fill(std::forward<Flowmap>(flowmap),
-         particle_type::particles_from_grid_filling_gaps(t0, g, max_split_depth, uuid_generator),
+         particle_type::particles_from_grid_filling_gaps(t0, g, max_split_depth,
+                                                         uuid_generator),
          t0 + tau, tau_step, uuid_generator);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
