@@ -39,6 +39,7 @@ namespace tatooine {
 //  return out;
 //}
 //------------------------------------------------------------------------------
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
 template <static_quadratic_mat Mat>
 auto eigenvectors_sym(Mat&& A) {
   static constexpr auto N = tensor_dimension<Mat, 0>;
@@ -48,6 +49,7 @@ auto eigenvectors_sym(Mat&& A) {
   lapack::syev(::lapack::Job::Vec, ::lapack::Uplo::Upper, W.first, W.second);
   return W;
 }
+#endif
 //==============================================================================
 template <fixed_size_quadratic_mat<2> Mat>
 constexpr auto eigenvalues_sym(Mat&& A) {
@@ -67,6 +69,7 @@ constexpr auto eigenvalues_sym(Mat&& A) {
   return lambda;
 }
 //------------------------------------------------------------------------------
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
 template <static_quadratic_mat Mat>
 constexpr auto eigenvalues_sym(Mat&& A) {
   auto constexpr N = tensor_dimensions<Mat>[0];
@@ -75,7 +78,9 @@ constexpr auto eigenvalues_sym(Mat&& A) {
   lapack::syev(::lapack::Job::NoVec, ::lapack::Uplo::Upper, A2, W);
   return W;
 }
+#endif
 //------------------------------------------------------------------------------
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
 template <static_quadratic_mat Mat>
 constexpr auto eigenvalues(Mat&& A) {
   using Real       = tensor_value_type<Mat>;
@@ -85,6 +90,7 @@ constexpr auto eigenvalues(Mat&& A) {
   [[maybe_unused]] auto const info = lapack::geev(A2, eig);
   return eig;
 }
+#endif
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <fixed_size_quadratic_mat<2> Mat>
 constexpr auto eigenvalues(Mat&& A)
@@ -112,6 +118,7 @@ constexpr auto eigenvalues(Mat&& A)
   return s;
 }
 //------------------------------------------------------------------------------
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
 template <static_quadratic_mat Mat>
 auto eigenvectors(Mat&& B) {
   auto constexpr N = tensor_dimensions<Mat>[0];
@@ -139,6 +146,7 @@ auto eigenvectors(Mat&& B) {
 
   return eig;
 }
+#endif
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

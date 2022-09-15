@@ -1,4 +1,4 @@
 #include <filesystem>
 auto main() -> int {
-  std::filesystem::path p {"../"};
+  auto p = std::filesystem::path{"../"};
 }

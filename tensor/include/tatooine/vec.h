@@ -133,11 +133,11 @@ vec(const Ts&...) -> vec<common_type<Ts...>, sizeof...(Ts)>;
 template <typename V, typename ValueType, std::size_t N>
 vec(base_tensor<V, ValueType, N> const&) -> vec<ValueType, N>;
 //==============================================================================
-namespace reflection {
-template <typename ValueType, std::size_t N>
-TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
-    (vec<ValueType, N>), TATOOINE_REFLECTION_INSERT_METHOD(data, data()))
-}  // namespace reflection
+//namespace reflection {
+//template <typename ValueType, std::size_t N>
+//TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
+//    (vec<ValueType, N>), TATOOINE_REFLECTION_INSERT_METHOD(data, data()))
+//}  // namespace reflection
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

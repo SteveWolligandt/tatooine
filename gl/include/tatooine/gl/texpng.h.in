@@ -1,5 +1,6 @@
 #ifndef TATOOINE_GL_TEX_PNG_H
 #define TATOOINE_GL_TEX_PNG_H
+#if TATOOINE_PNG_AVAILABLE
 //==============================================================================
 #include <tatooine/gl/texcomponents.h>
 
@@ -272,4 +273,5 @@ struct tex_png<ValueType, BGRA> {
 //==============================================================================
 }  // namespace tatooine::gl
 //==============================================================================
+#endif
 #endif

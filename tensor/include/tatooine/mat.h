@@ -158,11 +158,11 @@ mat(Rows const(&&... rows)[C]) -> mat<common_type<Rows...>, sizeof...(Rows), C>;
 template <typename Mat, typename ValueType, std::size_t M, std::size_t N>
 mat(base_tensor<Mat, ValueType, M, N>) -> mat<ValueType, M, N>;
 //==============================================================================
-namespace reflection {
-template <typename ValueType, std::size_t M, std::size_t N>
-TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
-    (mat<ValueType, M, N>), TATOOINE_REFLECTION_INSERT_METHOD(data, data()))
-}  // namespace reflection
+//namespace reflection {
+//template <typename ValueType, std::size_t M, std::size_t N>
+//TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
+//    (mat<ValueType, M, N>), TATOOINE_REFLECTION_INSERT_METHOD(data, data()))
+//}  // namespace reflection
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

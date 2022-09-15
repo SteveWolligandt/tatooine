@@ -13,10 +13,16 @@ configure_file(
 #--------------------------------------------------------------------------------
 # filesystem check
 #--------------------------------------------------------------------------------
-try_compile(TATOOINE_STD_FILESYSTEM_COMPILED "${CMAKE_BINARY_DIR}/temp" 
-            "${CMAKE_CURRENT_SOURCE_DIR}/src/test_has_filesystem.cpp" 
-            CMAKE_FLAGS -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_STANDARD_REQUIRED=ON
-            LINK_LIBRARIES stdc++fs)
+if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+  try_compile(TATOOINE_STD_FILESYSTEM_COMPILED "${CMAKE_BINARY_DIR}/temp" 
+              "${CMAKE_CURRENT_SOURCE_DIR}/src/test_has_filesystem.cpp" 
+              CMAKE_FLAGS -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_STANDARD_REQUIRED=ON
+              LINK_LIBRARIES stdc++fs)
+elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+  try_compile(TATOOINE_STD_FILESYSTEM_COMPILED "${CMAKE_BINARY_DIR}/temp" 
+              "${CMAKE_CURRENT_SOURCE_DIR}/src/test_has_filesystem.cpp" 
+              CMAKE_FLAGS -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_STANDARD_REQUIRED=ON)
+endif()
 #--------------------------------------------------------------------------------
 set(TATOOINE_EXTERNAL ${CMAKE_SOURCE_DIR}/external)
 include(target_link_libraries_system)
@@ -53,8 +59,12 @@ endif()
 #-------------------------------------------------------------------------------
 # create library target
 add_library(base INTERFACE)
-target_link_libraries(base INTERFACE ${Boost_LIBRARIES})
-target_compile_options(base INTERFACE -Wno-interference-size)
+set_property(TARGET base PROPERTY CXX_STANDARD 20)
+target_link_libraries(base INTERFACE Boost::boost)
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
+    "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  target_compile_options(base INTERFACE -Wno-interference-size)
+endif()
 #-------------------------------------------------------------------------------
 # set include dirs
 target_include_directories(base
@@ -68,9 +78,13 @@ target_include_directories(base
 
 if (TATOOINE_STD_FILESYSTEM_COMPILED)
   set(TATOOINE_STD_FILESYSTEM_AVAILABLE 1)
-  target_link_libraries(base INTERFACE stdc++fs)
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+    target_link_libraries(base INTERFACE stdc++fs)
+  endif()
 else()
   set(TATOOINE_STD_FILESYSTEM_AVAILABLE 0)
+  find_package(Boost REQUIRED COMPONENTS filesystem)
+  target_link_libraries(base INTERFACE Boost::filesystem)
 endif()
 target_compile_definitions(base
  INTERFACE
@@ -86,8 +100,9 @@ endif()
 #enable warnings
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  target_compile_options(base INTERFACE
-    -Wall -Wextra -Wpedantic)
+  target_compile_options(base INTERFACE -Wall -Wextra -Wpedantic)
+elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+  target_compile_options(base INTERFACE /W4)
 endif()
 #-------------------------------------------------------------------------------
 # force coloring
@@ -355,7 +370,7 @@ add_subdirectory(rendering)
 
 option(TATOOINE_BUILD_TESTS "" OFF)
 if (TATOOINE_BUILD_TESTS)
-  add_subdirectory(test EXCLUDE_FROM_ALL)
+  add_subdirectory(test)
 endif()
 
 option(TATOOINE_BUILD_BENCHMARKS "" OFF)
@@ -365,7 +380,7 @@ endif()
 
 option(TATOOINE_BUILD_EXAMPLES "" OFF)
 if (TATOOINE_BUILD_EXAMPLES)
-  add_subdirectory(examples EXCLUDE_FROM_ALL)
+  add_subdirectory(examples)
 endif()
 
 #if (TATOOINE_GL_AVAILABLE)

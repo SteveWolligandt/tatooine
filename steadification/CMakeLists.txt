@@ -52,18 +52,24 @@ set(HDF5_LIBS -lhdf5 -lhdf5_cpp -lhdf5_hl)
 add_executable (steadification main.cpp renderers.cpp shaders.cpp datasets.cpp)
 target_include_directories(steadification PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(steadification tatooine gl)
-target_compile_features(steadification PUBLIC cxx_std_20)
-target_compile_options(steadification PRIVATE
-  -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture
-  -march=native)
+set_property(TARGET steadification PROPERTY CXX_STANDARD 20)
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
+    "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  target_compile_options(steadification PRIVATE
+    -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture
+    -march=native)
+endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable (steadification.batch batch.cpp renderers.cpp shaders.cpp datasets.cpp)
 target_include_directories(steadification.batch PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(steadification.batch tatooine gl)
-target_compile_features(steadification.batch PUBLIC cxx_std_20)
-target_compile_options(steadification.batch PRIVATE
-  -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture
-  -march=native)
+set_property(TARGET steadification.batch PROPERTY CXX_STANDARD 20)
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
+    "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  target_compile_options(steadification.batch PRIVATE
+    -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture
+    -march=native)
+endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 if(CLANG_TIDY_EXECUTABLE)
   set(TATOOINE_CLANG_TIDY_CMD
@@ -79,18 +85,24 @@ endif()
 add_executable (integrate_grid_edge integrate_grid_edge.cpp)
 target_include_directories(integrate_grid_edge PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(integrate_grid_edge tatooine)
-target_compile_features(integrate_grid_edge PUBLIC cxx_std_20)
-target_compile_options(integrate_grid_edge PRIVATE
-  -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture
-  -march=native)
+set_property(TARGET integrate_grid_edge PROPERTY CXX_STANDARD 20)
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
+    "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  target_compile_options(integrate_grid_edge PRIVATE
+    -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture
+    -march=native)
+endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable (read_vtk_test read_vtk_test.cpp)
 target_include_directories(read_vtk_test PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(read_vtk_test tatooine)
-target_compile_features(read_vtk_test PUBLIC cxx_std_20)
-target_compile_options(read_vtk_test PRIVATE
-  -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture
-  -march=native)
+set_property(TARGET read_vtk_test PROPERTY CXX_STANDARD 20)
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
+    "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  target_compile_options(read_vtk_test PRIVATE
+    -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture
+    -march=native)
+endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 set(TATOOINE_STEADIFICATION_USE_FAST_MATH false CACHE BOOL
     "use -ffast-math for steadification")
@@ -112,16 +124,22 @@ add_custom_target(steadification.doublegyre
 add_executable (boussinesq_test boussinesq_test.cpp datasets.cpp)
 target_include_directories(boussinesq_test PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(boussinesq_test tatooine gl)
-target_compile_features(boussinesq_test PUBLIC cxx_std_20)
-target_compile_options(boussinesq_test PRIVATE
-  -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
+set_property(TARGET boussinesq_test PROPERTY CXX_STANDARD 20)
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
+    "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  target_compile_options(boussinesq_test PRIVATE
+    -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
+endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable (random_pathlines random_pathlines.cpp datasets.cpp shaders.cpp)
 target_include_directories(random_pathlines PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(random_pathlines tatooine gl)
-target_compile_features(random_pathlines PUBLIC cxx_std_20)
-target_compile_options(random_pathlines PRIVATE
-  -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
+set_property(TARGET random_pathlines PROPERTY CXX_STANDARD 20)
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
+    "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  target_compile_options(random_pathlines PRIVATE
+    -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
+endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 set(OpenGL_GL_PREFERENCE "GLVND")
 find_package(OpenGL REQUIRED)
@@ -129,7 +147,7 @@ find_package(GLUT)
 add_executable(steadification.ibfv ibfv.cpp)
 target_include_directories(steadification.ibfv PUBLIC ${GLUT_INCLUDE_DIRS})
 target_link_libraries(steadification.ibfv OpenGL::OpenGL OpenGL::GLU ${GLUT_LIBRARY})
-target_compile_features(steadification.ibfv PUBLIC cxx_std_20)
+set_property(TARGET steadification PROPERTY CXX_STANDARD 20)
 add_custom_target(steadification.ibfv.run.dg 
                   COMMAND ./steadification.ibfv dg 0 1000 0.05
                   DEPENDS steadification.ibfv)
@@ -140,7 +158,10 @@ add_custom_target(steadification.ibfv.run.sincos
 add_executable (steadification.render_grid_edge render_grid_edge.cpp renderers.cpp shaders.cpp)
 target_include_directories(steadification.render_grid_edge PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(steadification.render_grid_edge tatooine gl)
-target_compile_features(steadification.render_grid_edge PUBLIC cxx_std_20)
-target_compile_options(steadification.render_grid_edge PRIVATE
-  -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture
-  -march=native)
+set_property(TARGET steadification.render_grid_edge PROPERTY CXX_STANDARD 20)
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
+    "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  target_compile_options(steadification.render_grid_edge PRIVATE
+    -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture
+    -march=native)
+endif()

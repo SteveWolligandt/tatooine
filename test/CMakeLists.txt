@@ -81,20 +81,23 @@ macro(create_test NAME)
   endif()
   target_link_libraries(
     ${TARGET}
-    base fields rendering Catch2::Catch2)
+    base
+    #fields
+    #rendering
+    Catch2::Catch2)
   target_include_directories(
     ${TARGET}
     PRIVATE
       ${CMAKE_SOURCE_DIR}/external/catch2/include)
-  target_compile_features(
-    ${TARGET}
-      PUBLIC
-        cxx_std_20)
-  target_compile_options(
-    ${TARGET}
-    PRIVATE
-      -Wall -Wextra -pedantic -Wno-missing-braces
-      -Wno-gnu-zero-variadic-macro-arguments -ftemplate-backtrace-limit=0)
+  set_property(TARGET ${TARGET} PROPERTY CXX_STANDARD 20)
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
+      "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    target_compile_options(
+      ${TARGET}
+      PRIVATE
+        -Wall -Wextra -pedantic -Wno-missing-braces
+        -Wno-gnu-zero-variadic-macro-arguments -ftemplate-backtrace-limit=0)
+  endif()
   if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     target_compile_options(
       ${TARGET}
@@ -227,11 +230,14 @@ target_include_directories(
   unittests
   PRIVATE
     ${CMAKE_SOURCE_DIR}/external/catch2/include)
-target_compile_options(
-  unittests
-  PRIVATE
-    -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture
-    -Wno-gnu-zero-variadic-macro-arguments)
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
+    "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  target_compile_options(
+    unittests
+    PRIVATE
+      -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture
+      -Wno-gnu-zero-variadic-macro-arguments)
+endif()
 catch_discover_tests(unittests)
 add_custom_target(
   unittests.run

@@ -7,11 +7,12 @@ set(SRC_FILES
   src/parse.cpp
 )
 add_library(geometry STATIC ${SRC_FILES})
+set_property(TARGET geometry PROPERTY CXX_STANDARD 20)
 target_include_directories(geometry PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   #${CMAKE_CURRENT_BINARY_DIR}/include
   )
-target_link_libraries(geometry PUBLIC tensor fields)
+target_link_libraries(geometry PUBLIC tensor fields Boost::boost)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # CDT
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

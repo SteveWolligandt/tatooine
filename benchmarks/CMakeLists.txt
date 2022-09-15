@@ -21,8 +21,11 @@ macro(create_benchmark NAME)
   list(APPEND ALL_BENCH_CPPS "${NAME}.cpp")
   add_executable (${NAME}.benchmark ${NAME}.cpp main.cpp)
   target_link_libraries(${NAME}.benchmark tatooine benchmark)
-  target_compile_options(${NAME}.benchmark PRIVATE
-    -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
+      "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    target_compile_options(${NAME}.benchmark PRIVATE
+      -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
+  endif()
   add_custom_target (${NAME}.benchmark.run COMMAND ./${NAME}.benchmark DEPENDS ${NAME}.benchmark)
   if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND (
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
@@ -61,8 +64,11 @@ endforeach()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable (benchmarks main.cpp ${ALL_BENCH_CPPS})
 target_link_libraries(benchmarks tatooine benchmark)
-target_compile_options(benchmarks PRIVATE -Wall -Wextra -pedantic
-  -Wno-missing-braces -Wno-unused-lambda-capture)
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
+    "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  target_compile_options(benchmarks PRIVATE -Wall -Wextra -pedantic
+    -Wno-missing-braces -Wno-unused-lambda-capture)
+endif()
 add_custom_target (benchmarks.run COMMAND ./benchmarks DEPENDS benchmarks)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND (
   "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR

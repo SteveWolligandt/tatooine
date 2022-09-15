@@ -87,6 +87,7 @@ auto solve_cramer(MatA const& A, VecB const& b) -> std::optional<
 }
 //------------------------------------------------------------------------------
 template <static_quadratic_mat MatA, static_vec VecB>
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
 requires(tensor_dimension<MatA, 1> ==
          tensor_dimension<VecB, 0>)
 auto solve_lu_lapack(MatA& A_, VecB&& b_)
@@ -105,7 +106,9 @@ auto solve_lu_lapack(MatA& A_, VecB&& b_)
   }
   return b;
 }
+#endif
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
 template <static_quadratic_mat MatA, static_mat MatB>
 requires(tensor_dimension<MatA, 0> == tensor_dimension<MatB, 0>)
 auto solve_lu_lapack(MatA& A_, MatB& B_) -> std::optional<
@@ -124,44 +127,49 @@ auto solve_lu_lapack(MatA& A_, MatB& B_) -> std::optional<
   }
   return B;
 }
+#endif
 //------------------------------------------------------------------------------
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
 template <static_mat MatA, static_mat MatB>
-requires(tensor_dimension<MatA, 0> == tensor_dimension<MatB, 0>)
-auto solve_qr_lapack(MatA&& A_, MatB&& B_)
-    -> std::optional<
+requires(tensor_dimension<MatA, 0> ==
+         tensor_dimension<MatB, 0>) auto solve_qr_lapack(MatA&& A_,
+         MatB&& B_)
+-> std::optional<
         mat<common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>,
             tensor_dimension<MatA, 1>, tensor_dimension<MatB, 1>>> {
-      using out_value_type =
-          common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>;
-      static auto constexpr M = tensor_dimension<MatA, 0>;
-      static auto constexpr N = tensor_dimension<MatA, 1>;
-      static auto constexpr K = tensor_dimension<MatB, 1>;
+  using out_value_type =
+      common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>;
+  static auto constexpr M = tensor_dimension<MatA, 0>;
+  static auto constexpr N = tensor_dimension<MatA, 1>;
+  static auto constexpr K = tensor_dimension<MatB, 1>;
 
-      auto A   = mat<out_value_type, M, N>{A_};
-      auto B   = mat<out_value_type, M, K>{B_};
-      auto tau = vec<out_value_type, (M < N ? M : N)>{};
-      auto X   = mat<out_value_type, N, K>{};
+  auto A   = mat<out_value_type, M, N>{A_};
+  auto B   = mat<out_value_type, M, K>{B_};
+  auto tau = vec<out_value_type, (M < N ? M : N)>{};
+  auto X   = mat<out_value_type, N, K>{};
 
-      // Q * R = A
-      if (lapack::geqrf(A, tau) != 0) {
-        return std::nullopt;
-      }
-      // R * x = Q^T * B
-      if (lapack::ormqr(A, B, tau, ::lapack::Side::Left, ::lapack::Op::Trans) !=
-          0) {
-        return std::nullopt;
-      }
-      // Use back-substitution using the upper right part of A
-      if (lapack::trtrs(A, B, ::lapack::Uplo::Upper, ::lapack::Op::NoTrans,
-                        ::lapack::Diag::NonUnit)) {
-        return std::nullopt;
-      }
-      for_loop([&, i = std::size_t(0)](
-                   auto const... is) mutable { X(is...) = B(is...); },
-               N, K);
-      return X;
-    }
+  // Q * R = A
+  if (lapack::geqrf(A, tau) != 0) {
+    return std::nullopt;
+  }
+  // R * x = Q^T * B
+  if (lapack::ormqr(A, B, tau, ::lapack::Side::Left, ::lapack::Op::Trans) !=
+      0) {
+    return std::nullopt;
+  }
+  // Use back-substitution using the upper right part of A
+  if (lapack::trtrs(A, B, ::lapack::Uplo::Upper, ::lapack::Op::NoTrans,
+                    ::lapack::Diag::NonUnit)) {
+    return std::nullopt;
+  }
+  for_loop([&, i = std::size_t(0)](
+               auto const... is) mutable { X(is...) = B(is...); },
+           N, K);
+  return X;
+}
+#endif
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
 template <static_mat MatA, static_vec VecB>
 requires (tensor_dimension<MatA, 0> == tensor_dimension<VecB, 0>)
 auto solve_qr_lapack(MatA&& A_, VecB&& b_) -> std::optional<
@@ -195,6 +203,7 @@ auto solve_qr_lapack(MatA&& A_, VecB&& b_) -> std::optional<
   }
   return tau;
 }
+#endif
 //------------------------------------------------------------------------------
 template <static_mat MatA, static_mat MatB>
 requires (tensor_dimension<MatA, 0> == tensor_dimension<MatB, 0>)
@@ -204,15 +213,29 @@ auto solve(MatA&& A, MatB&& B) {
   static auto constexpr K = tensor_dimension<MatB, 1>;
   if constexpr (M == 2 && N == 2 && K >= M) {
     return solve_direct(std::forward<MatA>(A), std::forward<MatB>(B));
+
   } else if constexpr (M == N) {
     return solve_lu_lapack(std::forward<MatA>(A), std::forward<MatB>(B));
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
+    throw std::runtime_error{
+        "cannot do a LU-factorization because LAPACK is missing"};
+#endif
+
+
   } else if constexpr (M > N) {
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
     return solve_qr_lapack(std::forward<MatA>(A), std::forward<MatB>(B));
+#else
+    throw std::runtime_error{
+        "cannot do a QR-factorization because LAPACK is missing"};
+#endif
+
   } else {
     throw std::runtime_error{"System is under-determined."};
   }
 }
 //------------------------------------------------------------------------------
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
 template <dynamic_tensor TensorA, dynamic_tensor TensorB>
 auto solve_lu_lapack(TensorA&& A_, TensorB&& B_) -> std::optional<tensor<
     common_type<tensor_value_type<TensorA>, tensor_value_type<TensorB>>>> {
@@ -242,7 +265,9 @@ auto solve_lu_lapack(TensorA&& A_, TensorB&& B_) -> std::optional<tensor<
     return B;
   }
 }
+#endif
 //------------------------------------------------------------------------------
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
 template <dynamic_tensor TensorA, dynamic_tensor TensorB>
 auto solve_qr_lapack(TensorA&& A_, TensorB&& B_)
     -> std::optional<tensor<
@@ -285,6 +310,7 @@ auto solve_qr_lapack(TensorA&& A_, TensorB&& B_)
       N, K);
   return X;
 }
+#endif
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <static_mat MatA, static_vec VecB>
 requires (tensor_dimension<MatA, 0> == tensor_dimension<VecB, 0>)
@@ -296,14 +322,25 @@ auto solve(MatA&& A, VecB&& b) {
   } else if constexpr (M == 3 && N == 3) {
     return solve_cramer(std::forward<MatA>(A), std::forward<VecB>(b));
   } else if constexpr (M == N) {
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
     return solve_lu_lapack(std::forward<MatA>(A), std::forward<VecB>(b));
+#else
+    throw std::runtime_error{
+        "cannot do a LU-factorization because LAPACK is missing"};
+#endif
   } else if constexpr (M > N) {
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
     return solve_qr_lapack(std::forward<MatA>(A), std::forward<VecB>(b));
+#else
+    throw std::runtime_error{
+        "cannot do a QR-factorization because LAPACK is missing"};
+#endif
   } else {
     throw std::runtime_error{"System is under-determined."};
   }
 }
 //==============================================================================
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
 /// Computes the solution to a system of linear equations \(A X = B\), where A
 /// is an n-by-n symmetric matrix and X and B are n-by-nrhs matrices.
 ///
@@ -367,7 +404,9 @@ auto solve_symmetric_lapack(dynamic_tensor auto&& A_, dynamic_tensor auto&& B_,
     return B;
   }
 }
+#endif
 //==============================================================================
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
 /// Computes the solution to a system of linear equations \(A X = B\), where A
 /// is an n-by-n symmetric matrix and X and B are n-by-nrhs matrices.
 ///
@@ -431,7 +470,9 @@ auto solve_symmetric_lapack_aa(dynamic_tensor auto&& A_, dynamic_tensor auto&& B
     return B;
   }
 }
+#endif
 //==============================================================================
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
 /// Computes the solution to a system of linear equations.
 ///
 ///\[ A X = B, \]
@@ -505,11 +546,14 @@ auto solve_symmetric_lapack_rk(dynamic_tensor auto&& A_,
     return B;
   }
 }
+#endif
 //------------------------------------------------------------------------------
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
 auto solve_symmetric(dynamic_tensor auto&& A, dynamic_tensor auto&& B) {
   return solve_symmetric_lapack(std::forward<decltype(A)>(A),
                                 std::forward<decltype(B)>(B));
 }
+#endif
 //------------------------------------------------------------------------------
 auto solve(dynamic_tensor auto && A, dynamic_tensor auto && B) {
   assert(A.rank() == 2);
@@ -518,14 +562,25 @@ auto solve(dynamic_tensor auto && A, dynamic_tensor auto && B) {
   auto const M = A.dimension(0);
   auto const N = A.dimension(1);
   if (M == N) {
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
     return solve_lu_lapack(std::forward<decltype(A)>(A),
                            std::forward<decltype(B)>(B));
+#else
+    throw std::runtime_error{
+        "cannot do a LU-factorization because LAPACK is missing"};
+#endif
   } else if (M > N) {
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
     return solve_qr_lapack(std::forward<decltype(A)>(A),
                            std::forward<decltype(B)>(B));
+#else
+    throw std::runtime_error{
+        "cannot do a QR-factorization because LAPACK is missing"};
+#endif
   } else {
     throw std::runtime_error{"System is under-determined."};
   }
+  return 
 }
 //==============================================================================
 }  // namespace tatooine

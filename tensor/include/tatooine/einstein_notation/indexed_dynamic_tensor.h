@@ -1,7 +1,9 @@
 #ifndef TATOOINE_EINSTEIN_NOTATION_INDEXED_DYNAMIC_TENSOR_H
 #define TATOOINE_EINSTEIN_NOTATION_INDEXED_DYNAMIC_TENSOR_H
 //==============================================================================
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
 #include <tatooine/blas.h>
+#endif
 #include <tatooine/einstein_notation/index.h>
 #include <tatooine/for_loop.h>
 #include <tatooine/make_array.h>
@@ -257,6 +259,7 @@ struct indexed_dynamic_tensor {
     *this += contracted_dynamic_tensor{other};
     return *this;
   }
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// \f$\mA(i,k) = \mB(i,j) \mC(j, k) + \mA(i,k)\f$
   template <typename LHS, typename RHS, typename I, typename J, typename K>
@@ -367,6 +370,7 @@ struct indexed_dynamic_tensor {
                other.template at<1>().tensor(), value_type(1), m_tensor);
     return *this;
   }
+#endif
 };
 //==============================================================================
 }  // namespace tatooine::einstein_notation

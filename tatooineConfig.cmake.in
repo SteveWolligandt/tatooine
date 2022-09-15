@@ -7,6 +7,7 @@ cmake_policy(PUSH)
 cmake_policy(VERSION 2.6...3.21)
 find_package(OpenMP REQUIRED COMPONENTS CXX)
 find_package(Boost REQUIRED)
+set(TATOOINE_USE_BLAS_AND_LAPACK @TATOOINE_USE_BLAS_AND_LAPACK@)
 set(TATOOINE_CDT_AVAILABLE @TATOOINE_CDT_AVAILABLE@)
 set(TATOOINE_FLANN_AVAILABLE @TATOOINE_FLANN_AVAILABLE@)
 set(TATOOINE_CGAL_AVAILABLE @TATOOINE_CGAL_AVAILABLE@)
@@ -31,7 +32,10 @@ endif()
 set(_targetsDefined)
 set(_targetsNotDefined)
 set(_expectedTargets)
-set (targets tatooine::base tatooine::geometry tatooine::multidim_array tatooine::preprocessor tatooine::fields tatooine::tensor tatooine::rendering blaspp lapackpp)
+set(targets tatooine::base tatooine::geometry tatooine::multidim_array tatooine::preprocessor tatooine::fields tatooine::tensor tatooine::rendering)
+if (TATOOINE_USE_BLAS_AND_LAPACK)
+  list(APPEND targets blaspp lapackk)
+endif()
 if (TATOOINE_USE_CDT)
   list(APPEND targets tatooine::CDT)
 endif()
@@ -196,6 +200,7 @@ set_target_properties(tatooine::tensor PROPERTIES
   INTERFACE_LINK_LIBRARIES "@TENSOR_LINK_LIBRARIES@"
 )
 
+if (TATOOINE_USE_BLAS_AND_LAPACK)
 # Create imported target blaspp
 add_library(blaspp SHARED IMPORTED)
 
@@ -215,6 +220,7 @@ set_target_properties(lapackpp PROPERTIES
   INTERFACE_INCLUDE_DIRECTORIES "@LAPACKPP_INCLUDE_DIRECTORIES@"
   INTERFACE_LINK_LIBRARIES "@LAPACKPP_LINK_LIBRARIES@"
 )
+endif()
 
 if (TATOOINE_CDT_AVAILABLE)
   # Import target "tatooine::CDT" for configuration "Release"
