@@ -686,7 +686,8 @@ struct dataset : id_holder, attribute_creator<dataset<T>> {
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest>
   auto read(std::vector<std::size_t> const& offset,
-            std::vector<std::size_t> const& count) const {
+            std::vector<std::size_t> const& count) const 
+  requires (!is_same<hsize_t, std::size_t>){
     return read<IndexOrder>(std::vector<hsize_t>(begin(offset), end(offset)),
                             std::vector<hsize_t>(begin(count), end(count)));
   }

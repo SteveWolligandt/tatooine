@@ -1,8 +1,10 @@
 #ifndef TATOOINE_TENSOR_OPERATIONS_H
 #define TATOOINE_TENSOR_OPERATIONS_H
 //==============================================================================
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
 #include <tatooine/blas.h>
 #include <tatooine/lapack.h>
+#endif
 #include <tatooine/mat.h>
 #include <tatooine/transposed_tensor.h>
 #include <tatooine/vec.h>

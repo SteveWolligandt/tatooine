@@ -2,7 +2,11 @@
 # find OpenGL packages
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 set(OpenGL_GL_PREFERENCE "GLVND")
-find_package(OpenGL COMPONENTS OpenGL EGL)
+if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+  find_package(OpenGL COMPONENTS OpenGL)
+elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+  find_package(OpenGL COMPONENTS OpenGL EGL)
+endif()
 if (OpenGL_FOUND) 
   option(TATOOINE_BUILD_GL "build OpenGL wrapper" ON)
 else()
@@ -25,9 +29,20 @@ if (TATOOINE_BUILD_GL)
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
   # build glad
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-  add_library(glad STATIC external/glad/glad_egl.c external/glad/glad.c)
+  set(GLAD_FILES external/glad/src/glad.c)
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    list(APPEND GLAD_FILES external/glad_wgl/src/glad_wgl.c)
+  elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+    list(APPEND GLAD_FILES external/glad_wgl/src/glad_egl.c)
+  endif()
+  add_library(glad STATIC ${GLAD_FILES})
   target_link_libraries(glad PUBLIC ${CMAKE_DL_LIBS})
-  target_include_directories(glad PUBLIC external/glad)
+  target_include_directories(glad PUBLIC external/glad/include)
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    target_include_directories(glad PUBLIC external/glad_wgl/include)
+  elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+    target_include_directories(glad PUBLIC external/glad_egl/include)
+  endif()
   get_target_property(GLAD_LINK_LIBRARIES glad LINK_LIBRARIES)
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
   # build imgui
@@ -84,12 +99,15 @@ if (TATOOINE_BUILD_GL)
     src/window.cpp
   )
   add_library(gl STATIC ${TATOOINE_GL_SOURCES})
+  set_property(TARGET gl PROPERTY CXX_STANDARD 20)
   list(APPEND TATOOINE_EXPORTING_TARGETS gl imgui glfw glad)
   set(TATOOINE_EXPORTING_TARGETS ${TATOOINE_EXPORTING_TARGETS} PARENT_SCOPE)
-  target_compile_features(gl PUBLIC cxx_std_20)
   target_compile_definitions(gl PRIVATE DLL_EXPORT)
-  target_compile_options(gl PRIVATE
-                         -Wall -Wextra -pedantic)
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
+      "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    target_compile_options(gl PRIVATE
+                           -Wall -Wextra -pedantic)
+  endif()
 
   target_include_directories(gl
     PUBLIC 
@@ -106,9 +124,13 @@ if (TATOOINE_BUILD_GL)
       glad
       glfw
      PRIVATE
-      OpenGL::OpenGL
-      OpenGL::EGL
       imgui)
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+    target_link_libraries(OpenGL)
+  elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+    target_link_libraries(OpenGL::OpenGL OpenGL::EGL)
+  endif()
+
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
   # OpenGL call output
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 

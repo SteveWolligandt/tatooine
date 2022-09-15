@@ -9,9 +9,12 @@ endif()
 macro(create_executable NAME)
   add_executable (${NAME})
   target_link_libraries(${NAME} tatooine)
-  target_compile_features(${NAME} PUBLIC cxx_std_20)
-  target_compile_options(${NAME} PRIVATE
-    -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
+  set_property(TARGET ${NAME} PROPERTY CXX_STANDARD 20)
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
+      "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    target_compile_options(${NAME} PRIVATE
+      -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
+  endif()
 endmacro()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

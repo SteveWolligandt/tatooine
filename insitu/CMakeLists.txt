@@ -17,9 +17,13 @@ if (TARGET mpi)
     target_compile_options(insitu_interface
       PRIVATE  "-fdiagnostics-color=always")
   endif()
-  target_compile_options(insitu_interface
-    PRIVATE
-    -Wall -Wextra -pedantic)
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
+      "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    target_compile_options(
+      insitu_interface
+       PRIVATE
+        -Wall -Wextra -pedantic)
+  endif()
   target_include_directories(insitu_interface
     PUBLIC ${TATOOINE_INSITU_INTERFACE_INCLUDE_DIR})
   list(APPEND TATOOINE_EXPORTING_TARGETS insitu_interface)
@@ -38,10 +42,15 @@ if (TARGET mpi)
       "-fdiagnostics-color=always")
   endif()
 
-  target_compile_options(insitu_interface.feeder
-    PRIVATE
-    -Wall -Wextra -pedantic
-    -Wno-tautological-undefined-compare -Wno-gnu-zero-variadic-macro-arguments)
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
+      "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    target_compile_options(
+      insitu_interface.feeder
+       PRIVATE
+        -Wall -Wextra -Wpedantic
+        -Wno-tautological-undefined-compare
+        -Wno-gnu-zero-variadic-macro-arguments)
+  endif()
   target_include_directories(insitu_interface.feeder
     PUBLIC ${TATOOINE_INSITU_INTERFACE_INCLUDE_DIR})
   add_custom_target(insitu_interface.feeder.run

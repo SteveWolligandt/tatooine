@@ -285,13 +285,13 @@ class static_multidim_array
   }
 };
 //==============================================================================
-namespace reflection {
-template <typename ValueType, typename IndexOrder, typename MemLoc,
-          std::size_t... Resolution>
-TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
-    (static_multidim_array<ValueType, IndexOrder, MemLoc, Resolution...>),
-    TATOOINE_REFLECTION_INSERT_METHOD(data, data()))
-}  // namespace reflection
+//namespace reflection {
+//template <typename ValueType, typename IndexOrder, typename MemLoc,
+//          std::size_t... Resolution>
+//TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
+//    (static_multidim_array<ValueType, IndexOrder, MemLoc, Resolution...>),
+//    TATOOINE_REFLECTION_INSERT_METHOD(data, data()))
+//}  // namespace reflection
 //==============================================================================
 template <typename MemLocOut = tag::stack, typename IndexingOut = x_fastest,
           typename T0, typename T1, typename Indexing0, typename Indexing1,

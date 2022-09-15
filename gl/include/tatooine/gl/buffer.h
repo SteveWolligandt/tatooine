@@ -284,11 +284,11 @@ class buffer_iterator {
   buffer_iterator(buffer_t* buffer, std::size_t idx)
       : m_buffer(buffer), m_idx(idx) {}
   //----------------------------------------------------------------------------
-  buffer_iterator(const buffer_iterator& other)     = default;
-  buffer_iterator(buffer_iterator&& other) noexcept = default;
+  buffer_iterator(buffer_iterator const&)     = default;
+  buffer_iterator(buffer_iterator&&) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator=(const buffer_iterator& other) -> auto& = default;
-  auto operator=(buffer_iterator&& other) noexcept -> auto& = default;
+  auto operator=(buffer_iterator const&) -> buffer_iterator& = default;
+  auto operator=(buffer_iterator&&) noexcept -> buffer_iterator& = default;
   //----------------------------------------------------------------------------
   ~buffer_iterator() = default;
   //----------------------------------------------------------------------------
@@ -356,8 +356,9 @@ class cbuffer_iterator {
   cbuffer_iterator(const cbuffer_iterator& other)     = default;
   cbuffer_iterator(cbuffer_iterator&& other) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator=(const cbuffer_iterator& other) -> auto& = default;
-  auto operator=(cbuffer_iterator&& other) noexcept -> auto& = default;
+  auto operator=(const cbuffer_iterator& other) -> cbuffer_iterator& = default;
+  auto operator=(cbuffer_iterator&& other) noexcept
+      -> cbuffer_iterator& = default;
   //----------------------------------------------------------------------------
   ~cbuffer_iterator() = default;
   //----------------------------------------------------------------------------

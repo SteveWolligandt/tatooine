@@ -4,7 +4,9 @@
 #include <tatooine/einstein_notation/index.h>
 #include <tatooine/make_array.h>
 
-#include <blas.hh>
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
+#include <tatooine/blas.h>
+#endif
 #include <map>
 #include <tuple>
 //==============================================================================
@@ -220,6 +222,7 @@ struct indexed_static_tensor {
     *this += contracted_static_tensor{other};
     return *this;
   }
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// A(i,k) = B(i,j) * C(j, k)
   template <typename LHS, typename RHS, typename I, typename J, typename K>
@@ -237,6 +240,7 @@ struct indexed_static_tensor {
     }
     return *this;
   }
+#endif
 };
 //==============================================================================
 }  // namespace tatooine::einstein_notation

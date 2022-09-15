@@ -30,7 +30,7 @@ struct is_invocable_with_n_integrals_impl
                              unsigned long long> {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename F, std::size_t N>
-static constexpr bool is_invocable_with_n_integrals =
+static constexpr auto is_invocable_with_n_integrals =
     is_invocable_with_n_integrals_impl<F, N>::value;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename F, std::size_t N>

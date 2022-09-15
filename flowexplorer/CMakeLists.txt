@@ -74,13 +74,12 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   target_compile_options(flowexplorer PRIVATE  "-fdiagnostics-color=always")
 endif()
 target_link_libraries(flowexplorer tatooine gl)
-target_compile_features(flowexplorer PUBLIC cxx_std_17)
+set_property(TARGET flowexplorer PROPERTY CXX_STANDARD 20)
 target_include_directories(flowexplorer
  PUBLIC
   ${TATFE_INCLUDE_DIR} ${TATFE_BIN_INCLUDE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/external/tomlplusplus/include
   ${CMAKE_CURRENT_SOURCE_DIR}/external)
-
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
