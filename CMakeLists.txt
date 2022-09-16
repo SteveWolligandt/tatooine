@@ -59,6 +59,11 @@ endif()
 #-------------------------------------------------------------------------------
 # create library target
 add_library(base INTERFACE)
+
+if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+  target_compile_definitions(base INTERFACE _USE_MATH_DEFINES)
+  target_compile_definitions(base INTERFACE NOMINMAX)
+endif()
 set_property(TARGET base PROPERTY CXX_STANDARD 20)
 #-------------------------------------------------------------------------------
 # Boost

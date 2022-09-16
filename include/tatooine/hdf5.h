@@ -752,7 +752,7 @@ struct dataset : id_holder, attribute_creator<dataset<T>> {
   //----------------------------------------------------------------------------
   auto operator[](hsize_t const i) const { return read(i); }
   //----------------------------------------------------------------------------
-  auto num_dimensions() const {
+  auto num_dimensions() const -> std::size_t {
     auto dataset_space = H5Dget_space(id());
     auto ndims         = H5Sget_simple_extent_ndims(dataset_space);
     H5Sclose(dataset_space);

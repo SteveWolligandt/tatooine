@@ -19,7 +19,7 @@ struct unstructured_grid : pointset<Real, NumDimensions> {
   using typename parent_t::vertex_handle;
   template <typename T>
   using vertex_property_t = typename parent_t::template vertex_property_t<T>;
-  static constexpr auto num_dimensions() { return NumDimensions; }
+  static constexpr auto num_dimensions() -> std::size_t { return NumDimensions; }
 
   struct cell_vertex_iterator
       : boost::iterator_facade<cell_vertex_iterator, vertex_handle,

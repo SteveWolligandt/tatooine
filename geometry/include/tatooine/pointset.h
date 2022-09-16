@@ -37,15 +37,17 @@ template <floating_point Real, std::size_t NumDimensions, typename ValueType,
 struct natural_neighbor_coordinates_sampler_with_gradients;
 #endif
 //==============================================================================
+#if TATOOINE_FLANN_AVAILABLE
 template <floating_point Real, std::size_t NumDimensions, typename ValueType,
           invocable<Real> F>
-requires (flann_available())
 struct moving_least_squares_sampler;
+#endif
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions, typename ValueType>
 requires (flann_available())
 struct inverse_distance_weighting_sampler;
 //==============================================================================
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
 template <floating_point Real, std::size_t NumDimensions, typename ValueType,
           invocable<Real> Kernel>
 struct radial_basis_functions_sampler;
@@ -53,6 +55,7 @@ struct radial_basis_functions_sampler;
 template <floating_point Real, std::size_t NumDimensions, typename ValueType,
           typename GradientType>
 struct radial_basis_functions_sampler_with_gradients;
+#endif
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions>
 struct vertex_container;
@@ -65,7 +68,7 @@ template <floating_point Real, std::size_t NumDimensions>
 struct pointset {
   // static constexpr std::size_t triangle_dims = 2;
   // static constexpr std::size_t tetgen_dims = 3;
-  static constexpr auto num_dimensions() { return NumDimensions; }
+  static constexpr auto num_dimensions() -> std::size_t { return NumDimensions; }
   using real_type = Real;
   using this_type = pointset<Real, NumDimensions>;
   using vec_type  = vec<Real, NumDimensions>;
@@ -94,6 +97,7 @@ struct pointset {
   using inverse_distance_weighting_sampler_type =
       detail::pointset::inverse_distance_weighting_sampler<Real, NumDimensions,
                                                            T>;
+#if TATOOINE_CGAL_AVAILABLE
   template <typename T>
   using natural_neighbor_coordinates_sampler_type =
       detail::pointset::natural_neighbor_coordinates_sampler<Real,
@@ -102,6 +106,7 @@ struct pointset {
   using natural_neighbor_coordinates_sampler_with_gradients_type =
       detail::pointset::natural_neighbor_coordinates_sampler_with_gradients<
           Real, NumDimensions, T, Gradient>;
+#endif
   //============================================================================
  private:
   std::vector<pos_type>          m_vertex_position_data;
@@ -981,6 +986,7 @@ struct pointset {
   }
   /// \}
   //============================================================================
+#if TATOOINE_FLANN_AVAILABLE
   /// \{
   /// \brief Moving Least Squares Sampler.
   ///
@@ -1030,7 +1036,9 @@ struct pointset {
     );
   }
   ///\}
+  #endif
   //============================================================================
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
   /// \brief Constructs a radial basis functions interpolator.
   ///
   /// Constructs a radial basis functions interpolator with kernel function:
@@ -1119,6 +1127,7 @@ struct pointset {
         *this, values, gradients};
   }
   ///\}
+#endif
   //----------------------------------------------------------------------------
 #if TATOOINE_CGAL_AVAILABLE
   ///\{
@@ -1154,10 +1163,15 @@ using pointset5 = Pointset<5>;
 //==============================================================================
 #include <tatooine/detail/pointset/inverse_distance_weighting_sampler.h>
 #include <tatooine/detail/pointset/moving_least_squares_sampler.h>
+#if TATOOINE_CGAL_AVAILABLE
 #include <tatooine/detail/pointset/natural_neighbor_coordinates_sampler.h>
 #include <tatooine/detail/pointset/natural_neighbor_coordinates_sampler_with_gradients.h>
+#endif
+
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
 #include <tatooine/detail/pointset/radial_basis_functions_sampler.h>
 #include <tatooine/detail/pointset/radial_basis_functions_sampler_with_gradients.h>
+#endif
 #include <tatooine/detail/pointset/vertex_container.h>
 //==============================================================================
 #endif

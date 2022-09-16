@@ -47,7 +47,7 @@ struct vertex_property {
   using real_type     = typename Grid::real_type;
   using vertex_handle = typename Grid::vertex_handle;
   //============================================================================
-  static constexpr auto num_dimensions() { return Grid::num_dimensions(); }
+  static constexpr auto num_dimensions() -> std::size_t { return Grid::num_dimensions(); }
   //============================================================================
  private:
   Grid const* m_grid;
@@ -535,7 +535,7 @@ struct differentiated_vertex_property_interface : crtp<Impl> {
   using grid_type = Grid;
   using real_type = typename Grid::real_type;
   //----------------------------------------------------------------------------
-  static constexpr auto num_dimensions() { return Grid::num_dimensions(); }
+  static constexpr auto num_dimensions() -> std::size_t { return Grid::num_dimensions(); }
   //----------------------------------------------------------------------------
  private:
   //----------------------------------------------------------------------------

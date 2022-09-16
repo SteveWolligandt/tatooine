@@ -8,7 +8,7 @@ namespace tatooine {
 //==============================================================================
 template <typename Real, std::size_t NumDimensions>
 struct particle {
-  static constexpr auto num_dimensions() { return NumDimensions; }
+  static constexpr auto num_dimensions() -> std::size_t { return NumDimensions; }
   //----------------------------------------------------------------------------
   // typedefs
   //----------------------------------------------------------------------------

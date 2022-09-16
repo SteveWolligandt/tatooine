@@ -1,4 +1,5 @@
 if (TATOOINE_GL_AVAILABLE)
   add_executable(rendering.mesh.example triangular_mesh.cpp)
   target_link_libraries(rendering.mesh.example rendering)
+  set_property(TARGET rendering.mesh.example PROPERTY CXX_STANDARD 20)
 endif()

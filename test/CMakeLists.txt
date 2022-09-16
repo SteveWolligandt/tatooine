@@ -83,8 +83,8 @@ macro(create_test NAME)
     ${TARGET}
     base
     tensor
-    #fields
-    #rendering
+    fields
+    rendering
     Catch2::Catch2)
   target_include_directories(
     ${TARGET}

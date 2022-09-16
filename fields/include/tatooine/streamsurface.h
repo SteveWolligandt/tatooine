@@ -30,7 +30,7 @@ template <typename Flowmap,
           template <typename> typename SeedcurveInterpolationKernel>
 struct streamsurface {
   using flowmap_type = std::decay_t<Flowmap>;
-  static constexpr auto num_dimensions() {
+  static constexpr auto num_dimensions() -> std::size_t {
     return flowmap_type::num_dimensions();
   }
   using real_type      = typename flowmap_type::real_type;
@@ -195,7 +195,7 @@ struct front_evolving_streamsurface_discretization
   //============================================================================
   // typedefs
   //============================================================================
-  static constexpr auto num_dimensions() {
+  static constexpr auto num_dimensions() -> std::size_t {
     return Streamsurface::num_dimensions();
   }
   using real_type = typename Streamsurface::real_type;
@@ -412,7 +412,7 @@ struct multi_front_evolving_streamsurface_discretization
   //============================================================================
   // typedefs
   //============================================================================
-  static constexpr auto num_dimensions() {
+  static constexpr auto num_dimensions() -> std::size_t {
     return Streamsurface::num_dimensions();
   }
   using real_type = typename Streamsurface::real_type;
@@ -722,7 +722,7 @@ template <typename Streamsurface>
 struct naive_discretization
     : front_evolving_streamsurface_discretization<Streamsurface> {
   using real_type = typename Streamsurface::real_type;
-  static constexpr auto num_dimensions() {
+  static constexpr auto num_dimensions() -> std::size_t {
     return Streamsurface::num_dimensions();
   }
   using parent_type =
@@ -911,7 +911,7 @@ struct hultquist_discretization
 // struct schulze_discretization : multi_front_evolving_streamsurface_discretization<
 //                                    Flowmap, SeedcurveInterpolationKernel> {
 //  using real_type = typename Flowmap::real_type;
-//  static constexpr auto num_dimensions() { return Flowmap::num_dimensions(); }
+//  static constexpr auto num_dimensions() -> std::size_t { return Flowmap::num_dimensions(); }
 //  using parent_type =
 //      multi_front_evolving_streamsurface_discretization<Flowmap,
 //                                                  SeedcurveInterpolationKernel>;

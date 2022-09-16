@@ -108,7 +108,7 @@ struct axis_aligned_bounding_box
   using vec_type  = vec<Real, NumDimensions>;
   using pos_type  = vec_type;
 
-  static constexpr auto num_dimensions() { return NumDimensions; }
+  static constexpr auto num_dimensions() -> std::size_t { return NumDimensions; }
   static constexpr auto infinite() {
     return this_type{pos_type::ones() * -std::numeric_limits<real_type>::max(),
                      pos_type::ones() * std::numeric_limits<real_type>::max()};

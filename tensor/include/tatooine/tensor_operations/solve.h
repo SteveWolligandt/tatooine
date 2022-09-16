@@ -213,7 +213,6 @@ auto solve(MatA&& A, MatB&& B) {
   static auto constexpr K = tensor_dimension<MatB, 1>;
   if constexpr (M == 2 && N == 2 && K >= M) {
     return solve_direct(std::forward<MatA>(A), std::forward<MatB>(B));
-
   } else if constexpr (M == N) {
     return solve_lu_lapack(std::forward<MatA>(A), std::forward<MatB>(B));
 #if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
@@ -556,8 +555,8 @@ auto solve_symmetric(dynamic_tensor auto&& A, dynamic_tensor auto&& B) {
 #endif
 //------------------------------------------------------------------------------
 template <dynamic_tensor TensorA, dynamic_tensor TensorB>
-auto solve(TensorA&& A, TensorB&& B) -> tensor<
-    common_type<tensor_value_type<TensorB>, tensor_value_type<TensorB>>> {
+auto solve(TensorA&& A, TensorB&& B) -> std::optional<tensor<
+    common_type<tensor_value_type<TensorB>, tensor_value_type<TensorB>>>> {
   assert(A.rank() == 2);
   assert(B.rank() == 1 || B.rank() == 2);
   assert(B.dimension(0) == A.dimension(0));

@@ -68,10 +68,10 @@ class texture : public id_holder<GLuint> {
   static constexpr auto binding               = tex::binding<NumDimensions>;
   static constexpr auto default_interpolation = interpolation_mode::linear;
   static constexpr auto default_wrap_mode     = wrap_mode::repeat;
-  static constexpr auto num_components() {
+  static constexpr std::size_t num_components() {
     return components_type::num_components;
   }
-  static constexpr auto num_dimensions() { return NumDimensions; }
+  static constexpr std::size_t num_dimensions() { return NumDimensions; }
 
   static constexpr auto gl_internal_format =
       tex::settings<ValueType, Components>::internal_format;
@@ -821,11 +821,15 @@ class texture : public id_holder<GLuint> {
   //------------------------------------------------------------------------------
   auto read(std::string const& filepath) {
     auto ext = filepath.substr(filepath.find_last_of('.') + 1);
-    if constexpr (NumDimensions == 2 && is_readable_from_png) {
-      if (ext == "png") {
-        read_png(filepath);
-        return;
+    if constexpr (NumDimensions == 2) {
+#if TATOOINE_PNG_AVAILABLE
+      if constexpr (is_readable_from_png) {
+        if (ext == "png") {
+          read_png(filepath);
+          return;
+        }
       }
+#endif
     }
 
     throw std::runtime_error("could not read fileformat ." + ext);
@@ -833,74 +837,71 @@ class texture : public id_holder<GLuint> {
   //------------------------------------------------------------------------------
   auto write(std::string const filepath) const {
     auto ext = filepath.substr(filepath.find_last_of('.') + 1);
-    if constexpr (NumDimensions == 2 && is_writable_to_png) {
-      if constexpr (has_png_support()) {
+    if constexpr (NumDimensions == 2) {
+#if TATOOINE_PNG_AVAILABLE
+      if constexpr (is_writable_to_png) {
         if (ext == "png") {
           write_png(filepath);
           return;
         }
       }
+#endif
     }
     throw std::runtime_error("could not write fileformat ." + ext);
   }
   //----------------------------------------------------------------------------
-  auto read_png(std::string const& filepath) -> void
-  requires (has_png_support()) &&
-           (NumDimensions == 2) &&
-           is_readable_from_png {
-    if constexpr ((has_png_support()) && (NumDimensions == 2) &&
-                  is_readable_from_png) {
-      using tex_png_t = tex_png<value_type, components_type>;
-      auto image      = typename tex_png_t::png_t{};
-      image.read(filepath);
-      m_size[0] = image.get_width();
-      m_size[1] = image.get_height();
+#if TATOOINE_PNG_AVAILABLE
+  auto read_png(std::string const& filepath)
+          -> void requires(NumDimensions == 2) &&
+      is_readable_from_png {
+    using tex_png_t = tex_png<value_type, components_type>;
+    auto image      = typename tex_png_t::png_t{};
+    image.read(filepath);
+    m_size[0] = image.get_width();
+    m_size[1] = image.get_height();
 
-      auto data = [this]() {
-        if constexpr (num_components() == 1) {
-          auto data = std::vector<value_type>{};
-          data.reserve(num_texels());
-          return data;
-        } else {
-          auto data = std::vector<vec<value_type, num_components()>>{};
-          data.reserve(num_texels());
-          return data;
-        }
-      }();
-      for (png::uint_32 y = 0; y < m_size[1]; ++y) {
-        for (png::uint_32 x = 0; x < width(); ++x) {
-          tex_png_t::load_pixel(data, image, x, y);
-        }
+    auto data = [this]() {
+      if constexpr (num_components() == 1) {
+        auto data = std::vector<value_type>{};
+        data.reserve(num_texels());
+        return data;
+      } else {
+        auto data = std::vector<vec<value_type, num_components()>>{};
+        data.reserve(num_texels());
+        return data;
       }
-      if constexpr (is_floating_point<value_type>) {
-        auto normalize = [](auto d) { return d / 255.0F; };
-        std::ranges::transform(data, begin(data), normalize);
+    }();
+    for (png::uint_32 y = 0; y < m_size[1]; ++y) {
+      for (png::uint_32 x = 0; x < width(); ++x) {
+        tex_png_t::load_pixel(data, image, x, y);
       }
-
-      upload_data(data.data());
     }
+    if constexpr (is_floating_point<value_type>) {
+      auto normalize = [](auto d) { return d / 255.0F; };
+      std::ranges::transform(data, begin(data), normalize);
+    }
+
+    upload_data(data.data());
   }
   //------------------------------------------------------------------------------
   auto write_png(std::string const& filepath) const
       requires(NumDimensions == 2) &&
-      (has_png_support() && is_writable_to_png) {
-    if constexpr ((NumDimensions == 2) &&
-                  (has_png_support() && is_writable_to_png)) {
-      using tex_png_t = tex_png<value_type, components_type>;
-      auto image =
-          typename tex_png_t::png_t{static_cast<png::uint_32>(width()),
-                                    static_cast<png::uint_32>(m_size[1])};
-      auto data = download_data();
+      (is_writable_to_png) {
+    using tex_png_t = tex_png<value_type, components_type>;
+    auto image =
+        typename tex_png_t::png_t{static_cast<png::uint_32>(width()),
+                                  static_cast<png::uint_32>(m_size[1])};
+    auto data = download_data();
 
-      for (png::uint_32 y = 0; y < image.get_height(); ++y) {
-        for (png::uint_32 x = 0; x < image.get_width(); ++x) {
-          auto const idx = x + width() * y;
-          tex_png_t::save_pixel(data.internal_container(), image, x, y, idx);
-        }
+    for (png::uint_32 y = 0; y < image.get_height(); ++y) {
+      for (png::uint_32 x = 0; x < image.get_width(); ++x) {
+        auto const idx = x + width() * y;
+        tex_png_t::save_pixel(data.internal_container(), image, x, y, idx);
       }
-      image.write(filepath);
     }
+    image.write(filepath);
   }
+#endif
 };
 //==============================================================================
 template <texture_value ValueType, texture_component Components>

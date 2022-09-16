@@ -48,7 +48,7 @@ struct autonomous_particles_test_flowmap {
   using real_type = Real;
   using vec_t  = vec<real_type, 2>;
   using pos_type  = vec_t;
-  static constexpr auto num_dimensions() { return 2; }
+  static constexpr auto num_dimensions() -> std::size_t { return 2; }
   //----------------------------------------------------------------------------
   constexpr auto evaluate(pos_type const& x, real_type const /*t*/,
                           real_type const   tau) const -> pos_type {
@@ -97,7 +97,7 @@ struct autonomous_particles_test_flowmap_gradient {
   using pos_type      = vec_t;
   using mat_t      = mat<real_type, 2, 2>;
   using gradient_t = mat_t;
-  static constexpr auto num_dimensions() { return 2; }
+  static constexpr auto num_dimensions() -> std::size_t { return 2; }
   //----------------------------------------------------------------------------
   constexpr auto evaluate(pos_type const& x, real_type const /*t*/,
                           real_type const   tau) const -> gradient_t {

@@ -15,7 +15,7 @@ struct numerically_differentiated_flowmap {
   using flowmap_type = std::decay_t<Flowmap>;
   using this_type    = numerically_differentiated_flowmap<flowmap_type>;
   using real_type    = typename flowmap_type::real_type;
-  static constexpr auto num_dimensions() {
+  static constexpr auto num_dimensions() -> std::size_t {
     return flowmap_type::num_dimensions();
   }
   using vec_type      = typename flowmap_type::vec_type;
