@@ -9,55 +9,9 @@
 #include <tatooine/template_helper.h>
 #include <tatooine/type_traits.h>
 #include <tatooine/utility.h>
-
-#include <array>
-#include <cassert>
-#include <iostream>
-#include <numeric>
-#include <sstream>
+#include <tatooine/static_multidim_size.h>
 //==============================================================================
 namespace tatooine {
-//==============================================================================
-template <typename IndexOrder, std::size_t... Resolution>
-struct static_multidim_size {
-  static auto constexpr num_dimensions() { return sizeof...(Resolution); }
-  static auto constexpr num_components() { return (Resolution * ...); }
-  //----------------------------------------------------------------------------
-  static auto constexpr size() { return std::array{Resolution...}; }
-  //----------------------------------------------------------------------------
-  static auto constexpr size(std::size_t const i) { return size()[i]; }
-  //----------------------------------------------------------------------------
-  static auto constexpr in_range(integral auto const... indices) requires(
-      sizeof...(indices) == num_dimensions()) {
-    return ((indices >= 0) && ...) &&
-           ((static_cast<std::size_t>(indices) < Resolution) && ...);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  static auto constexpr in_range(integral_range auto const& indices) {
-    for (std::size_t i = 0; i < indices.size(); ++i) {
-      if (indices[i] >= size(i)) {
-        return false;
-      }
-    }
-    return true;
-  }
-  //----------------------------------------------------------------------------
-  static auto constexpr plain_index(integral auto const... indices) requires(
-      sizeof...(indices) == num_dimensions()) {
-    return IndexOrder::plain_index(size(), indices...);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  static auto plain_index(integral_range auto const& indices) {
-    return IndexOrder::plain_index(size(), indices);
-  }
-  //----------------------------------------------------------------------------
-  auto constexpr operator()(integral auto const... indices) const
-      requires(sizeof...(indices) == num_dimensions()) {
-    return plain_index(indices...);
-  }
-  //----------------------------------------------------------------------------
-  static auto constexpr indices() { return static_multidim{Resolution...}; }
-};
 //==============================================================================
 template <typename IndexOrder>
 class dynamic_multidim_size {

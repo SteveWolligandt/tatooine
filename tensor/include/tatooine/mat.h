@@ -27,7 +27,6 @@ struct mat : tensor<ValueType, M, N> {
   //============================================================================
   // inherited methods
   //============================================================================
-  using parent_type::parent_type;
   using parent_type::operator();
   using parent_type::at;
 
@@ -88,6 +87,8 @@ struct mat : tensor<ValueType, M, N> {
   //============================================================================
   // constructors
   //============================================================================
+  constexpr mat() = default;
+  //----------------------------------------------------------------------------
   constexpr mat(mat const&) = default;
   //----------------------------------------------------------------------------
   constexpr mat(mat&& other) noexcept = default;
@@ -122,6 +123,30 @@ struct mat : tensor<ValueType, M, N> {
       at(i, i) = 1;
     }
   }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename FillReal>
+  requires arithmetic<ValueType>
+  explicit constexpr mat(tag::fill<FillReal> const f) : parent_type{f} {}
+  explicit constexpr mat(tag::ones_t const ones) : parent_type{ones} {}
+  explicit constexpr mat(tag::zeros_t const zeros) : parent_type{zeros} {}
+  template <typename RandomReal, typename Engine>
+  requires is_arithmetic<ValueType>
+  explicit constexpr mat(random::uniform<RandomReal, Engine>&& rand)
+      : parent_type{std::move(rand)} {}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <arithmetic RandomReal, typename Engine>
+  explicit constexpr mat(random::uniform<RandomReal, Engine>& rand)
+      : parent_type{rand} {}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <arithmetic RandomReal, typename Engine>
+  requires is_arithmetic<ValueType>
+  explicit constexpr mat(random::normal<RandomReal, Engine>&& rand)
+      : parent_type{std::move(rand)} {}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <arithmetic RandomReal, typename Engine>
+  requires is_arithmetic<ValueType>
+  explicit constexpr mat(random::normal<RandomReal, Engine>& rand)
+      : parent_type{rand} {}
   //============================================================================
   // assign operators
   //============================================================================

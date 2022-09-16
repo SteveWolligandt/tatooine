@@ -1,10 +1,8 @@
 #ifndef TATOOINE_UTILITY_H
 #define TATOOINE_UTILITY_H
 //==============================================================================
-#include <tatooine/cxxstd.h>
 //#include <tatooine/rank.h>
 #include <tatooine/demangling.h>
-#include <tatooine/extract.h>
 #include <tatooine/make_array.h>
 #include <tatooine/variadic_helpers.h>
 

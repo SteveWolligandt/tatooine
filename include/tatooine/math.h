@@ -107,7 +107,8 @@ constexpr auto ipow(integral auto const base, integral auto const exp) {
   return p;
 }
 //------------------------------------------------------------------------------
-constexpr auto factorial(integral auto const i) -> std::decay_t<decltype(i)> {
+template <integral Int> // Windows needs this
+constexpr auto factorial(Int const i) -> std::decay_t<Int> {
   if (i == 0) {
     return 1;
   }

@@ -84,7 +84,7 @@ using type_list_back =
 //------------------------------------------------------------------------------
 template <typename... Types>
 struct type_list_back_impl<type_list_impl<Types...>> {
-  using type = variadic::back<Types...>;
+  using type = variadic::back_type<Types...>;
 };
 //------------------------------------------------------------------------------
 template <>
@@ -107,7 +107,7 @@ using type_list_front =
 //------------------------------------------------------------------------------
 template <typename... Types>
 struct type_list_front_impl<type_list_impl<Types...>> {
-  using type = variadic::front<Types...>;
+  using type = variadic::front_type<Types...>;
 };
 //------------------------------------------------------------------------------
 template <>

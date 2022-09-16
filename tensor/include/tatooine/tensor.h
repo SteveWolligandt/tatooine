@@ -4,7 +4,7 @@
 #include <tatooine/base_tensor.h>
 //==============================================================================
 #include <tatooine/math.h>
-#include <tatooine/multidim_array.h>
+#include <tatooine/static_multidim_array.h>
 #include <tatooine/tags.h>
 #include <tatooine/tensor_operations/same_dimensions.h>
 #include <tatooine/utility.h>
@@ -22,8 +22,6 @@ struct tensor
   using array_parent_type =
       static_multidim_array<ValueType, x_fastest, tag::stack, Dims...>;
 
-  using array_parent_type::operator();
-  using array_parent_type::at;
   using tensor_parent_type::dimension;
   using tensor_parent_type::num_components;
   using tensor_parent_type::rank;
@@ -54,15 +52,15 @@ struct tensor
   //----------------------------------------------------------------------------
   template <typename... Is>
   requires((einstein_notation::index<Is> && ...) ||
-           (integral<Is> && ...)) auto constexpr
-  operator()(Is const... is) -> decltype(auto) {
+           (integral<Is> && ...))
+  auto constexpr operator()(Is const... is) -> decltype(auto) {
     return at(is...);
   }
   //----------------------------------------------------------------------------
   template <typename... Is>
   requires((einstein_notation::index<Is> && ...) ||
-           (integral<Is> && ...)) auto constexpr
-  operator()(Is const... is) const -> decltype(auto) {
+           (integral<Is> && ...))
+  auto constexpr operator()(Is const... is) const -> decltype(auto) {
     return at(is...);
   }
   //----------------------------------------------------------------------------

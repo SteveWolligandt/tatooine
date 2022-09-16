@@ -9,14 +9,20 @@ using namespace Catch;
 namespace tatooine::test {
 //==============================================================================
 TEST_CASE("dynamic_tensor_access", "[dynamic][tensor]") {
-  auto t = tensor<real_number>{1.0, 2.0, 3.0};
-  REQUIRE(t(0) == 1);
-  REQUIRE(t(1) == 2);
-  REQUIRE(t(2) == 3);
+  auto t = tensor<real_number>{3, 3};
+  t(0, 0) = 1;
+  t(1, 0) = 2;
+  t(2, 0) = 3;
+  REQUIRE(t(0, 0) == 1);
+}
+//==============================================================================
+TEST_CASE("static_tensor_access", "[static][tensor]") {
+  auto t = tensor<real_number, 3>{};
+  t(0) = 1;
 }
 //==============================================================================
 TEST_CASE("tensor_initializers", "[tensor][initializers]") {
-  SECTION("constructors") {
+  SECTION("factory functions") {
     auto m3z = mat3::zeros();
     m3z.for_indices([&m3z](auto const... is) { CHECK(m3z(is...) == 0); });
     auto m3o = mat3::ones();
@@ -24,7 +30,7 @@ TEST_CASE("tensor_initializers", "[tensor][initializers]") {
     [[maybe_unused]] auto m3ru = mat3::randu();
     [[maybe_unused]] auto m3rn = mat3::randn();
   }
-  SECTION("factory functions") {
+  SECTION("constructors") {
     mat3 m3z{tag::zeros};
     m3z.for_indices([&m3z](auto const... is) { CHECK(m3z(is...) == 0); });
     mat3 m3o{tag::ones};
@@ -34,10 +40,6 @@ TEST_CASE("tensor_initializers", "[tensor][initializers]") {
     mat3 m3ru{random::uniform{}};
     mat3 m3rn{random::normal{}};
   }
-}
-//==============================================================================
-TEST_CASE("tensor_print_matrix", "[tensor][print][matrix]") {
-  // std::cerr << mat<int, 3, 3>{random::uniform{0, 9}} << '\n';
 }
 //==============================================================================
 TEST_CASE("tensor_assignment", "[tensor][assignment]") {
@@ -72,93 +74,81 @@ TEST_CASE("tensor_assignment", "[tensor][assignment]") {
 }
 //==============================================================================
 TEST_CASE("tensor_slice", "[tensor][slice]") {
-  vec v{1.0, 2.0, 3.0};
-  REQUIRE(v(0) == 1);
-  REQUIRE(v(1) == 2);
-  REQUIRE(v(2) == 3);
-  REQUIRE(v.rank() == 1);
-  REQUIRE(v.dimension(0) == 3);
-  REQUIRE(v.num_components() == 3);
-
-  auto v2 = vec{1.0, 2.0};
-  REQUIRE(v(0) == 1);
-  REQUIRE(v(1) == 2);
 
   auto m = mat{{1.0, 2.0},
                {3.0, 4.0},
                {5.0, 6.0}};
-  REQUIRE(m(0, 0) == 1);
-  REQUIRE(m(0, 1) == 2);
-  REQUIRE(m(1, 0) == 3);
-  REQUIRE(m(1, 1) == 4);
-  REQUIRE(m(2, 0) == 5);
-  REQUIRE(m(2, 1) == 6);
-  REQUIRE(m.rank() == 2);
-  REQUIRE(m.dimension(0) == 3);
-  REQUIRE(m.dimension(1) == 2);
-  REQUIRE(m.num_components() == 6);
 
   auto const c0 = m.col(0);
-  REQUIRE(c0(0) == 1);
-  REQUIRE(c0(1) == 3);
-  REQUIRE(c0(2) == 5);
   REQUIRE(c0.rank() == 1);
   REQUIRE(c0.dimension(0) == 3);
   REQUIRE(c0.num_components() == 3);
+  REQUIRE(c0(0) == 1);
+  REQUIRE(c0(1) == 3);
+  REQUIRE(c0(2) == 5);
+  REQUIRE(c0(0) == 1.0);
+  REQUIRE(c0(1) == 3.0);
+  REQUIRE(c0(2) == 5.0);
 
   auto c1 = m.col(1);
-  REQUIRE(c1(0) == 2);
-  REQUIRE(c1(1) == 4);
-  REQUIRE(c1(2) == 6);
   REQUIRE(c1.rank() == 1);
   REQUIRE(c1.dimension(0) == 3);
   REQUIRE(c1.num_components() == 3);
+  REQUIRE(c1(0) == 2);
+  REQUIRE(c1(1) == 4);
+  REQUIRE(c1(2) == 6);
+  c1(0) = 4;
+  c1(1) = 6;
+  c1(2) = 8;
+  REQUIRE(c1(0) == 4);
+  REQUIRE(c1(1) == 6);
+  REQUIRE(c1(2) == 8);
+  REQUIRE(m(0,1) == 4);
+  REQUIRE(m(1,1) == 6);
+  REQUIRE(m(2,1) == 8);
 
   auto const r0 = m.row(0);
-  REQUIRE(r0(0) == 1);
-  REQUIRE(r0(1) == 2);
   REQUIRE(r0.rank() == 1);
   REQUIRE(r0.dimension(0) == 2);
   REQUIRE(r0.num_components() == 2);
+  REQUIRE(r0(0) == 1);
+  REQUIRE(r0(1) == 4);
 
-  auto const r1 = m.row(1);
-  REQUIRE(r1(0) == 3);
-  REQUIRE(r1(1) == 4);
+  auto r1 = m.row(1);
   REQUIRE(r1.rank() == 1);
   REQUIRE(r1.dimension(0) == 2);
   REQUIRE(r1.num_components() == 2);
+  REQUIRE(r1(0) == 3);
+  REQUIRE(r1(1) == 6);
+  r1(0) = 10;
+  r1(1) = 11;
+  REQUIRE(r1(0) == 10);
+  REQUIRE(r1(1) == 11);
+  REQUIRE(m(1,0) == 10);
+  REQUIRE(m(1,1) == 11);
 
-  auto const r2 = m.row(2);
-  REQUIRE(r2(0) == 5);
-  REQUIRE(r2(1) == 6);
-  REQUIRE(r2.rank() == 1);
-  REQUIRE(r2.dimension(0) == 2);
-  REQUIRE(r2.num_components() == 2);
+  auto v1 = vec{1.0, 2.0, 3.0};
+  auto v2 = vec{1.0, 2.0};
+  REQUIRE(dot(m.col(0), m.col(1)) ==
+          (m(0, 0) * m(0, 1) + m(1, 0) * m(1, 1) + m(2, 0) * m(2, 1)));
 
-  REQUIRE(dot(m.col(0), m.col(1)) == (1 * 2 + 3 * 4 + 5 * 6));
-  auto const prod = m * v2;
-  REQUIRE(prod(0) == (1 * 1 + 2 * 2));
-  REQUIRE(prod(1) == (1 * 3 + 2 * 4));
-  REQUIRE(prod(2) == (1 * 5 + 2 * 6));
-  REQUIRE(prod.rank() == 1);
-  REQUIRE(prod.dimension(0) == 3);
-  REQUIRE(prod.num_components() == 3);
+  c1 = v1;
+  REQUIRE(m(0, 1) == 1);
+  REQUIRE(m(1, 1) == 2);
+  REQUIRE(m(2, 1) == 3);
 
-  c1 = v;
-  REQUIRE(c1(0) == 1);
-  REQUIRE(c1(1) == 2);
-  REQUIRE(c1(2) == 3);
-  REQUIRE(r0(1) == 1);
-  REQUIRE(r1(1) == 2);
-  REQUIRE(r2(1) == 3);
-
-  tensor<double, 3, 3, 3> t;
-  auto                    slice = t.slice<1>(0);
-  slice(2, 1);
+  auto t     = tensor<double, 3, 3, 3>{};
+  auto slice = t.slice<1>(1);
+  REQUIRE(slice.rank() == 2);
+  REQUIRE(slice.num_components() == 9);
+  slice(2, 0) = 3;
+  REQUIRE(t(2,1,0) == 3);
   auto slice2 = slice.slice<1>(2);
-  slice2(1);
+  REQUIRE(slice2.rank() == 1);
+  REQUIRE(slice2.num_components() == 3);
+  slice2.at(2) = 5;
+  REQUIRE(t(2,1,2) == 5);
 }
-
 //==============================================================================
 TEST_CASE("tensor_negate", "[tensor][operation][negate]") {
   auto m     = mat4::randu();
@@ -175,6 +165,7 @@ TEST_CASE("tensor_addition", "[tensor][operation][addition]") {
   });
 }
 //==============================================================================
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
 TEST_CASE("tensor_eigenvalue", "[tensor][eigenvalue]") {
   auto const eps = 1e-4;
   SECTION("2x2") {
@@ -261,6 +252,7 @@ TEST_CASE("tensor_eigenvalue", "[tensor][eigenvalue]") {
     REQUIRE(ve(2, 2) == Approx(0.40825).epsilon(eps));
   }
 }
+#endif
 //==============================================================================
 TEST_CASE("tensor_compare", "[tensor][compare]") {
   vec v1{0.1, 0.1};

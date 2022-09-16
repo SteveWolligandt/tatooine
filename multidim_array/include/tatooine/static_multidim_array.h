@@ -5,8 +5,7 @@
 #include <tatooine/index_order.h>
 #include <tatooine/linspace.h>
 #include <tatooine/make_array.h>
-#include <tatooine/multidim.h>
-#include <tatooine/multidim_size.h>
+#include <tatooine/static_multidim_size.h>
 #include <tatooine/png.h>
 #include <tatooine/random.h>
 #include <tatooine/reflection.h>
@@ -17,8 +16,7 @@ namespace tatooine {
 //==============================================================================
 template <typename ValueType, typename IndexOrder, typename MemLoc,
           std::size_t... Resolution>
-class static_multidim_array
-    : public static_multidim_size<IndexOrder, Resolution...> {
+class static_multidim_array {
   //============================================================================
   // assertions
   //============================================================================
@@ -30,17 +28,25 @@ class static_multidim_array
   // typedefs
   //============================================================================
  public:
+  using size_type = static_multidim_size<IndexOrder, Resolution...>;
   using value_type = ValueType;
   using this_type =
       static_multidim_array<ValueType, IndexOrder, MemLoc, Resolution...>;
-  using parent_type = static_multidim_size<IndexOrder, Resolution...>;
-  using parent_type::in_range;
-  using parent_type::indices;
-  using parent_type::num_components;
-  using parent_type::num_dimensions;
-  using parent_type::plain_index;
-  using parent_type::size;
-  using container_t =
+  static std::size_t constexpr num_components() {return size_type::num_components();}
+  static std::size_t constexpr num_dimensions() {return size_type::num_dimensions();}
+  static auto constexpr size() {return size_type::size();}
+  static auto constexpr plain_index(integral auto const... indices) requires(
+      sizeof...(indices) == num_dimensions()) {
+    return size_type::plain_index(indices...);
+  }
+  static auto plain_index(integral_range auto const& indices) {
+    return size_type::plain_index(indices);
+  }
+  static auto constexpr in_range(integral auto const... indices) requires(
+      sizeof...(indices) == num_dimensions()) {
+    return size_type::in_range(indices...);
+  }
+  using container_type =
       std::conditional_t<std::is_same<MemLoc, tag::stack>::value,
                          std::array<ValueType, num_components()>,
                          std::vector<ValueType>>;
@@ -86,7 +92,7 @@ class static_multidim_array
   // members
   //============================================================================
  private:
-  container_t m_data_container;
+  container_type m_data_container;
   //============================================================================
   // ctors
   //============================================================================
@@ -117,7 +123,7 @@ class static_multidim_array
       static_multidim_array<OtherT, OtherIndexing, OtherMemLoc,
                             Resolution...> const& other)
       -> static_multidim_array& {
-    for (auto is : tatooine::static_multidim{Resolution...}) {
+    for (auto is : size_type{}) {
       at(is) = other(is);
     }
     return *this;
@@ -197,14 +203,13 @@ class static_multidim_array
   //============================================================================
  public:
   [[nodiscard]] constexpr auto at(integral auto const... is) const -> const
-      auto& {
-    static_assert(sizeof...(is) == num_dimensions());
+      auto& requires(sizeof...(is) == num_dimensions()) {
     assert(in_range(is...));
     return m_data_container[plain_index(is...)];
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto at(integral auto const... is) -> auto& {
-    static_assert(sizeof...(is) == num_dimensions());
+  constexpr auto at(integral auto const... is)
+      -> auto& requires(sizeof...(is) == num_dimensions()) {
     assert(in_range(is...));
     return m_data_container[plain_index(is...)];
   }
@@ -220,8 +225,7 @@ class static_multidim_array
   }
   //----------------------------------------------------------------------------
   [[nodiscard]] constexpr auto operator()(integral auto const... is) const
-      -> auto const& {
-    static_assert(sizeof...(is) == num_dimensions());
+      -> auto const& requires(sizeof...(is) == num_dimensions()) {
     assert(in_range(is...));
     return m_data_container[plain_index(is...)];
   }
@@ -269,8 +273,8 @@ class static_multidim_array
   //============================================================================
   template <typename F>
   constexpr void unary_operation(F&& f) {
-    for (auto i : indices()) {
-      at(i) = f(at(i));
+    for (auto indices : size_type{}) {
+      at(indices) = f(at(indices));
     }
   }
   //----------------------------------------------------------------------------
@@ -279,7 +283,7 @@ class static_multidim_array
   constexpr void binary_operation(
       F&& f, static_multidim_array<OtherT, OtherIndexing, OtherMemLoc,
                                    Resolution...> const& other) {
-    for (auto const& i : indices()) {
+    for (auto const& i : size_type{}) {
       at(i) = f(at(i), other(i));
     }
   }

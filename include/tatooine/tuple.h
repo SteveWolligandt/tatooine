@@ -3,6 +3,7 @@
 //==============================================================================
 #include <concepts>
 #include <utility>
+#include <tatooine/variadic_helpers/ith_type.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -11,6 +12,8 @@ struct tuple;
 //------------------------------------------------------------------------------
 template <typename Head, typename... Tail>
 struct tuple<Head, Tail...> {
+  template <std::size_t I>
+  using type_at = variadic::ith_type<I, Head, Tail...>;
   Head           head;
   tuple<Tail...> tail;
   static auto constexpr size() { return 1 + sizeof...(Tail); }
@@ -123,6 +126,17 @@ template <std::size_t Idx, typename... Ts>
 constexpr auto get(tuple<Ts...>& t) -> auto& {
   return t.template at<Idx>();
 }
+//==============================================================================
+template <typename Tuple1, typename Tuple2>
+struct tuple_concat_types_impl ;
+//==============================================================================
+template <typename... TsTuple1, typename... TsTuple2>
+struct tuple_concat_types_impl<tuple<TsTuple1...>, tuple<TsTuple2...>> {
+  using type = tuple<TsTuple1..., TsTuple2...>;
+};
+template <typename Tuple1, typename Tuple2>
+using tuple_concat_types =
+    typename tuple_concat_types_impl<Tuple1, Tuple2>::type;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

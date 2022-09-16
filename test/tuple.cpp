@@ -1,6 +1,7 @@
 #include <tatooine/tuple.h>
 
 #include <catch2/catch_test_macros.hpp>
+#include <tatooine/type_traits.h>
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
@@ -65,6 +66,15 @@ TEST_CASE("tuple", "[tuple]") {
       REQUIRE(get<1>(t) == 2);
       REQUIRE(get<2>(t) == 1);
     }
+  }
+  SECTION("concatenation") {
+    using tuple_type1 = tuple<int, float>;
+    using tuple_type2 = tuple<double, char>;
+    using concatenated_tuple = tuple_concat_types<tuple_type1, tuple_type2>;
+    REQUIRE(is_same<concatenated_tuple::type_at<0>, int>);
+    REQUIRE(is_same<concatenated_tuple::type_at<1>, float>);
+    REQUIRE(is_same<concatenated_tuple::type_at<2>, double>);
+    REQUIRE(is_same<concatenated_tuple::type_at<3>, char>);
   }
 }
 //==============================================================================

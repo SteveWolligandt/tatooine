@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.15)
 project(Tatooine)
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -60,7 +60,11 @@ endif()
 # create library target
 add_library(base INTERFACE)
 set_property(TARGET base PROPERTY CXX_STANDARD 20)
-target_link_libraries(base INTERFACE Boost::boost)
+#-------------------------------------------------------------------------------
+# Boost
+#-------------------------------------------------------------------------------
+find_package(Boost REQUIRED)
+target_link_libraries(base INTERFACE Boost::headers)
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   target_compile_options(base INTERFACE -Wno-interference-size)
@@ -136,9 +140,6 @@ if (NOT TATOOINE_DOC_ONLY)
 #===============================================================================
 # Required Packages
 #===============================================================================
-# Boost
-#-------------------------------------------------------------------------------
-find_package(Boost REQUIRED)
 #-------------------------------------------------------------------------------
 # OpenMP
 #-------------------------------------------------------------------------------
