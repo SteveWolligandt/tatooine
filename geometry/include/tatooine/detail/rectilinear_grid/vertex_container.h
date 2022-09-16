@@ -24,7 +24,7 @@ struct vertex_container {
   using handle         = typename grid_type::vertex_handle;
   using pos_type       = typename grid_type::pos_type;
   using sequence_type  = typename grid_type::sequence_type;
-  static constexpr auto num_dimensions() { return sizeof...(Dimensions); }
+  static constexpr auto num_dimensions() -> std::size_t { return sizeof...(Dimensions); }
   //----------------------------------------------------------------------------
  private:
   grid_type const& m_grid;

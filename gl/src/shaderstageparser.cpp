@@ -19,7 +19,7 @@ auto shaderstageparser::parse(std::filesystem::path const& path,
   if (!file.is_open()) {
     throw std::runtime_error{"ERROR: Unable to open file " + path.string()};
   }
-  return parse_stream(file, vars, it, folder);
+  return parse_stream(file, vars, it, folder.string());
 }
 //------------------------------------------------------------------------------
 auto shaderstageparser::parse(shadersource const&   source,

@@ -18,7 +18,7 @@ struct numerical_flowmap {
   using this_type      = numerical_flowmap<V, ODESolver, InterpolationKernel>;
   using raw_field_type = std::remove_pointer_t<std::decay_t<V>>;
   using real_type      = typename raw_field_type::real_type;
-  static constexpr auto num_dimensions() {
+  static constexpr auto num_dimensions() -> std::size_t {
     return raw_field_type::num_dimensions();
   }
   using vec_type            = vec<real_type, num_dimensions()>;

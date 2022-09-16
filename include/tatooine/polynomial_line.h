@@ -24,7 +24,7 @@ class polynomial_line {
   // static methods
   //----------------------------------------------------------------------------
  public:
-  static constexpr auto num_dimensions() { return N; }
+  static constexpr auto num_dimensions() -> std::size_t { return N; }
   static constexpr auto degree() { return Degree; }
 
   //----------------------------------------------------------------------------

@@ -65,7 +65,7 @@ if (TATOOINE_BUILD_GL)
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
   set(TATOOINE_GL_SOURCES
     src/atomiccounterbuffer.cpp
-    src/bezier_widget.cpp
+    #src/bezier_widget.cpp
     src/computeshader.cpp
     src/errorcheck.cpp
     src/fragmentshader.cpp

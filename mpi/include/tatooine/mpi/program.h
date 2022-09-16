@@ -65,7 +65,7 @@ struct program {
   // Methods
   //============================================================================
   auto rank() const { return m_rank; }
-  auto num_dimensions() const { return m_num_dimensions; }
+  auto num_dimensions() const -> std::size_t { return m_num_dimensions; }
   auto num_processes() const { return m_num_processes; }
   auto global_grid_size() const -> auto const& { return m_global_grid_size; }
   auto global_grid_size(size_t i) const { return m_global_grid_size[i]; }

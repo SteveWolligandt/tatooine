@@ -484,7 +484,7 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_t
   //============================================================================
   // STATIC METHODS
   //============================================================================
-  static constexpr auto num_dimensions() { return NumDimensions; }
+  static constexpr auto num_dimensions() -> std::size_t { return NumDimensions; }
   //============================================================================
   // MEMBERS
   //============================================================================

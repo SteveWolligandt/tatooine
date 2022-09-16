@@ -11,7 +11,7 @@ namespace tatooine {
 //==============================================================================
 template <typename Mesh>
 struct kdtree : aabb<typename Mesh::real_type, Mesh::num_dimensions()> {
-  static constexpr auto num_dimensions() { return Mesh::num_dimensions(); }
+  static constexpr auto num_dimensions() -> std::size_t { return Mesh::num_dimensions(); }
   using real_type   = typename Mesh::real_type;
   using this_type   = kdtree<Mesh>;
   using parent_type = aabb<real_type, num_dimensions()>;

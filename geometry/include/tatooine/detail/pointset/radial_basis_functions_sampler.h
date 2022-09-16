@@ -1,3 +1,4 @@
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
 #ifndef TATOOINE_DETAIL_POINTSET_RADIAL_BASIS_FUNCTIONS_SAMPLER_H
 #define TATOOINE_DETAIL_POINTSET_RADIAL_BASIS_FUNCTIONS_SAMPLER_H
 //==============================================================================
@@ -165,4 +166,5 @@ radial_basis_functions_sampler(
 //==============================================================================
 }  // namespace tatooine::detail::pointset
 //==============================================================================
+#endif
 #endif

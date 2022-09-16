@@ -14,7 +14,9 @@
 #include <tatooine/detail/rectilinear_grid/vtr_writer.h>
 #include <tatooine/filesystem.h>
 #include <tatooine/for_loop.h>
+#if TATOOINE_HDF5_AVAILABLE
 #include <tatooine/hdf5.h>
+#endif
 #include <tatooine/interpolation.h>
 #include <tatooine/lazy_reader.h>
 #include <tatooine/linspace.h>
@@ -37,7 +39,7 @@ class rectilinear_grid {
  public:
   static constexpr bool is_uniform =
       (is_linspace<std::decay_t<Dimensions>> && ...);
-  static constexpr auto num_dimensions() { return sizeof...(Dimensions); }
+  static constexpr auto num_dimensions() -> std::size_t { return sizeof...(Dimensions); }
   using this_type     = rectilinear_grid<Dimensions...>;
   using real_type     = common_type<typename Dimensions::value_type...>;
   using vec_type      = vec<real_type, num_dimensions()>;
@@ -942,7 +944,7 @@ class rectilinear_grid {
                                    std::string const&      dataset_name)
       -> typed_vertex_property_interface_type<T, false>& {
     auto const ext = path.extension();
-#ifdef TATOOINE_HDF5_AVAILABLE
+#if TATOOINE_HDF5_AVAILABLE
     if (ext == ".h5") {
       return insert_hdf5_lazy_vertex_property<T, GlobalIndexOrder,
                                               LocalIndexOrder>(path,
@@ -961,7 +963,7 @@ class rectilinear_grid {
         "extension"};
   }
   //----------------------------------------------------------------------------
-#ifdef TATOOINE_HDF5_AVAILABLE
+#if TATOOINE_HDF5_AVAILABLE
   template <typename IndexOrder = x_fastest, typename T>
   auto insert_vertex_property(hdf5::dataset<T> const& dataset) -> auto& {
     return insert_vertex_property<IndexOrder>(dataset, dataset.name());
@@ -1679,6 +1681,7 @@ class rectilinear_grid {
 
  private:
   //----------------------------------------------------------------------------
+#if TATOOINE_HDF5_AVAILABLE
   template <typename T, bool HasNonConstReference, std::size_t... Is>
   void write_prop_hdf5(
       hdf5::file& f, std::string const& name,
@@ -1789,6 +1792,7 @@ class rectilinear_grid {
                                                                  seq);
     }
   }
+#endif
 
  private:
   template <std::size_t I>
@@ -1845,7 +1849,8 @@ rectilinear_grid(axis_aligned_bounding_box<Real, N> const& bb,
                  integral auto const... res)
     -> rectilinear_grid<linspace<std::conditional_t<true, Real, decltype(res)>>...>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-rectilinear_grid(integral auto const... res) -> rectilinear_grid<
+template <integral... Ints>
+rectilinear_grid(Ints const... res) -> rectilinear_grid<
     linspace<std::conditional_t<true, double, decltype(res)>>...>;
 //==============================================================================
 // operators

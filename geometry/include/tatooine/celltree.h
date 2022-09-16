@@ -93,7 +93,7 @@ struct celltree
       celltree<Mesh>, typename Mesh::real_type, Mesh::num_dimensions(),
       Mesh::num_vertices_per_simplex()>;
   using real_type = typename Mesh::real_type;
-  static constexpr auto num_dimensions() { return Mesh::num_dimensions(); }
+  static constexpr auto num_dimensions() -> std::size_t { return Mesh::num_dimensions(); }
   static constexpr auto num_vertices_per_simplex() {
     return Mesh::num_vertices_per_simplex();
   }

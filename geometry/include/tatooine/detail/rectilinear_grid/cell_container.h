@@ -27,7 +27,7 @@ struct cell_container {
   //using handle    = cell_handle<Dimensions...>;
   //using pos_type = typename grid_t::pos_type;
   using seq_t = typename grid_t::seq_t;
-  static constexpr auto num_dimensions() { return sizeof...(Dimensions); }
+  static constexpr auto num_dimensions() -> std::size_t { return sizeof...(Dimensions); }
   //----------------------------------------------------------------------------
   explicit cell_container(grid_t const& g) : m_grid{g} {}
   //----------------------------------------------------------------------------

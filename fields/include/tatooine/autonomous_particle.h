@@ -29,7 +29,7 @@ template <floating_point Real, std::size_t NumDimensions>
 struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   using split_behaviors =
       detail::autonomous_particle::split_behaviors<Real, NumDimensions>;
-  static constexpr auto num_dimensions() { return NumDimensions; }
+  static constexpr auto num_dimensions() -> std::size_t { return NumDimensions; }
   //============================================================================
   // TYPEDEFS
   //============================================================================

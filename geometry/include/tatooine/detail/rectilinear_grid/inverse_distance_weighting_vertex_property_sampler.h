@@ -12,7 +12,9 @@ struct inverse_distance_weighting_vertex_property_sampler
           inverse_distance_weighting_vertex_property_sampler<Grid, Property>,
           typename Grid::real_type, Grid::num_dimensions(),
           typename Property::value_type> {
-  static auto constexpr num_dimensions() { return Grid::num_dimensions(); }
+  static auto constexpr num_dimensions() -> std::size_t {
+    return Grid::num_dimensions();
+  }
 
   using this_type =
       inverse_distance_weighting_vertex_property_sampler<Grid, Property>;

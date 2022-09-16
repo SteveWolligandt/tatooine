@@ -25,7 +25,9 @@ struct vertex_iterator
     : boost::iterator_facade<vertex_iterator<Dimensions...>,
                              vertex_handle<sizeof...(Dimensions)>,
                              boost::bidirectional_traversal_tag> {
-  static constexpr auto num_dimensions() { return sizeof...(Dimensions); }
+  static constexpr auto num_dimensions() -> std::size_t {
+    return sizeof...(Dimensions);
+  }
   using difference_type   = size_t;
   using grid_t            = tatooine::rectilinear_grid<Dimensions...>;
   using value_type        = vertex_handle<num_dimensions()>;

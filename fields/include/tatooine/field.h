@@ -34,7 +34,7 @@ struct field {
   static constexpr auto is_scalarfield() { return is_arithmetic<Tensor>; }
   static constexpr auto is_vectorfield() { return tensor_rank() == 1; }
   static constexpr auto is_matrixfield() { return tensor_rank() == 2; }
-  static constexpr auto num_dimensions() { return NumDimensions; }
+  static constexpr auto num_dimensions() -> std::size_t { return NumDimensions; }
   //----------------------------------------------------------------------------
   static constexpr auto num_tensor_components() {
     if constexpr (is_scalarfield()) {

@@ -26,8 +26,10 @@ struct base_uniform_tree_hierarchy : aabb<Real, NumDims> {
   using parent_type::min;
   using typename parent_type::vec_type;
   friend class std::unique_ptr<this_type>;
-  static constexpr auto num_dimensions() { return NumDims; }
-  static constexpr auto num_children() { return ipow(2, NumDims); }
+  static constexpr auto num_dimensions() -> std::size_t { return NumDims; }
+  static constexpr auto num_children() -> std::size_t {
+    return ipow(2, NumDims);
+  }
 
   std::size_t                                          m_level;
   std::size_t                                          m_max_depth;

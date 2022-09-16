@@ -78,7 +78,7 @@ struct base_vertex_property_sampler {
   static constexpr auto current_dimension_index() {
     return DerivedSampler::current_dimension_index();
   }
-  static constexpr auto num_dimensions() {
+  static constexpr auto num_dimensions() -> std::size_t {
     return sizeof...(TailInterpolationKernels) + 1;
   }
   static constexpr auto num_components() {
@@ -283,7 +283,7 @@ struct vertex_property_sampler
   //============================================================================
   static constexpr size_t current_dimension_index() { return 0; }
   //----------------------------------------------------------------------------
-  static constexpr auto num_dimensions() {
+  static constexpr auto num_dimensions() -> std::size_t {
     return sizeof...(InterpolationKernels);
   }
   //----------------------------------------------------------------------------
@@ -355,7 +355,7 @@ struct vertex_property_sampler_view
       base_vertex_property_sampler<this_type, real_type, value_type,
                                    InterpolationKernels...>;
   //============================================================================
-  static constexpr auto num_dimensions() {
+  static constexpr auto num_dimensions() -> std::size_t {
     return TopSampler::num_dimensions() - 1;
   }
   //============================================================================
@@ -393,7 +393,7 @@ struct vertex_property_sampler_view
 template <typename GridVertexProperty,
           template <typename> typename... InterpolationKernels>
 struct differentiated_sampler {
-  static constexpr auto num_dimensions() {
+  static constexpr auto num_dimensions() -> std::size_t {
     return GridVertexProperty::num_dimensions();
   }
 
@@ -449,7 +449,7 @@ struct differentiated_sampler {
 template <typename GridVertexProperty>
 struct differentiated_sampler<GridVertexProperty, interpolation::linear,
                               interpolation::linear> {
-  static constexpr auto num_dimensions() { return 2; }
+  static constexpr auto num_dimensions() -> std::size_t { return 2; }
 
  private:
   vertex_property_sampler<GridVertexProperty, interpolation::linear,
@@ -493,7 +493,7 @@ struct differentiated_sampler<GridVertexProperty, interpolation::linear,
 template <typename GridVertexProperty>
 struct differentiated_sampler<GridVertexProperty, interpolation::linear,
                               interpolation::linear, interpolation::linear> {
-  static constexpr auto num_dimensions() { return 3; }
+  static constexpr auto num_dimensions() -> std::size_t { return 3; }
 
  private:
   vertex_property_sampler<GridVertexProperty, interpolation::linear,
