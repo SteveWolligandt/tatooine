@@ -82,6 +82,7 @@ macro(create_test NAME)
   target_link_libraries(
     ${TARGET}
     base
+    tensor
     #fields
     #rendering
     Catch2::Catch2)

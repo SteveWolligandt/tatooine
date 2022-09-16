@@ -212,13 +212,15 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   //============================================================================
   // methods
   //============================================================================
-  auto at(integral auto const... is) -> auto& {
+  template<integral... Int>
+  auto at(Int const... is) -> auto& {
     assert(sizeof...(is) == num_dimensions());
     assert(in_range(is...));
     return m_data_container[plain_index(is...)];
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto at(integral auto const... is) const -> auto const& {
+  template <integral... Int>
+  auto at(Int const... is) const -> auto const& {
     assert(sizeof...(is) == num_dimensions());
     assert(in_range(is...));
     return m_data_container[plain_index(is...)];
@@ -244,11 +246,13 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
     return at(indices);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator()(integral auto const... is) -> auto& {
+  template <integral... Int>
+  auto operator()( Int const... is) -> auto& {
     return at(is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator()(integral auto const... is) const -> auto const& {
+  template <integral... Int>
+  auto operator()( Int const... is) const -> auto const& {
     return at(is...);
   }
   //----------------------------------------------------------------------------

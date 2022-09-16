@@ -18,10 +18,10 @@ struct vec : tensor<ValueType, N> {
   using parent_type::operator();
   //============================================================================
   using iterator =
-      typename parent_type::array_parent_type::container_t::iterator;
+      typename parent_type::array_parent_type::container_type::iterator;
   //============================================================================
   using const_iterator =
-      typename parent_type::array_parent_type::container_t::const_iterator;
+      typename parent_type::array_parent_type::container_type::const_iterator;
   //============================================================================
   static auto constexpr zeros() { return this_type{tag::fill<ValueType>{0}}; }
   //----------------------------------------------------------------------------
@@ -43,6 +43,7 @@ struct vec : tensor<ValueType, N> {
     return this_type{random::normal<ValueType>{eng, mean, stddev}};
   }
   //----------------------------------------------------------------------------
+  constexpr vec()           = default;
   constexpr vec(vec const&)           = default;
   constexpr vec(vec&& other) noexcept = default;
   //----------------------------------------------------------------------------

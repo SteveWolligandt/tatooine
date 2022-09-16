@@ -4,6 +4,7 @@
 #include "glincludes.h"
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include "dllexport.h"
 
 //==============================================================================

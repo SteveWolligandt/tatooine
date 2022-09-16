@@ -3,7 +3,6 @@
 
 #include <functional>
 
-#include <tatooine/cxxstd.h>
 #include <tatooine/invoke_omitted.h>
 #include <tatooine/invoke_unpacked.h>
 #include <tatooine/map.h>

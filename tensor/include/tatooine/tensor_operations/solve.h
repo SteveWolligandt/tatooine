@@ -86,8 +86,8 @@ auto solve_cramer(MatA const& A, VecB const& b) -> std::optional<
   return result;
 }
 //------------------------------------------------------------------------------
-template <static_quadratic_mat MatA, static_vec VecB>
 #if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
+template <static_quadratic_mat MatA, static_vec VecB>
 requires(tensor_dimension<MatA, 1> ==
          tensor_dimension<VecB, 0>)
 auto solve_lu_lapack(MatA& A_, VecB&& b_)
@@ -555,7 +555,9 @@ auto solve_symmetric(dynamic_tensor auto&& A, dynamic_tensor auto&& B) {
 }
 #endif
 //------------------------------------------------------------------------------
-auto solve(dynamic_tensor auto && A, dynamic_tensor auto && B) {
+template <dynamic_tensor TensorA, dynamic_tensor TensorB>
+auto solve(TensorA&& A, TensorB&& B) -> tensor<
+    common_type<tensor_value_type<TensorB>, tensor_value_type<TensorB>>> {
   assert(A.rank() == 2);
   assert(B.rank() == 1 || B.rank() == 2);
   assert(B.dimension(0) == A.dimension(0));
@@ -577,10 +579,8 @@ auto solve(dynamic_tensor auto && A, dynamic_tensor auto && B) {
     throw std::runtime_error{
         "cannot do a QR-factorization because LAPACK is missing"};
 #endif
-  } else {
-    throw std::runtime_error{"System is under-determined."};
   }
-  return 
+  throw std::runtime_error{"System is under-determined."};
 }
 //==============================================================================
 }  // namespace tatooine

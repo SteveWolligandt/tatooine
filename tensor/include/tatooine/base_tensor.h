@@ -10,8 +10,6 @@
 #include <tatooine/tensor_operations/same_dimensions.h>
 #include <tatooine/type_traits.h>
 
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
 #include <cassert>
 #include <type_traits>
 //==============================================================================
@@ -264,9 +262,6 @@ struct base_tensor : crtp<Tensor> {
     });
     return b;
   }
-
- private:
-  friend class boost::serialization::access;
 };
 //==============================================================================
 template <arithmetic_or_complex ValueType, std::size_t... Dims>

@@ -262,8 +262,7 @@ struct tensor<T> : dynamic_multidim_array<T> {
     return const_indexed_type<Is...>{*this};
   }
   //----------------------------------------------------------------------------
-  auto operator()(einstein_notation::index auto const... is) const 
-  {
+  auto operator()(einstein_notation::index auto const... is) const {
     assert(rank() == 0 || sizeof...(is) == rank());
     return at(is...);
   }
@@ -271,6 +270,26 @@ struct tensor<T> : dynamic_multidim_array<T> {
   auto operator()(einstein_notation::index auto const... is) {
     assert(rank() == 0 || sizeof...(is) == rank());
     return at(is...);
+  }
+  //----------------------------------------------------------------------------
+  auto at(integral auto const... is) -> auto& {
+    assert(rank() == 0 || sizeof...(is) == rank());
+    return parent_type::at(is...);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto at(integral auto const... is) const -> auto const& {
+    assert(rank() == 0 || sizeof...(is) == rank());
+    return parent_type::at(is...);
+  }
+  //----------------------------------------------------------------------------
+  auto operator()(integral auto const... is) -> auto& {
+    assert(rank() == 0 || sizeof...(is) == rank());
+    return parent_type::at(is...);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto operator()(integral auto const... is) const -> auto const& {
+    assert(rank() == 0 || sizeof...(is) == rank());
+    return parent_type::at(is...);
   }
 };
 //==============================================================================

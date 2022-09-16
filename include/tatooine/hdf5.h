@@ -1,4 +1,4 @@
-//#if @TATOOINE_HDF5_AVAILABLE@
+#if TATOOINE_HDF5_AVAILABLE
 #ifndef TATOOINE_HDF5_H
 #define TATOOINE_HDF5_H
 //==============================================================================
@@ -902,6 +902,6 @@ struct file : node<file> {
 }  // namespace tatooine::hdf5
 //==============================================================================
 #endif
-//#else
-//#pragma message(including <tatooine / hdf5.h> without HDF5 support.)
-//#endif
+#else
+#pragma message("including <tatooine/hdf5.h> without HDF5 support.")
+#endif

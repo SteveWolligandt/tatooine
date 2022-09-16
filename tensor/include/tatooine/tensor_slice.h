@@ -2,6 +2,7 @@
 #define TATOOINE_TENSOR_SLICE_H
 //==============================================================================
 #include <tatooine/base_tensor.h>
+#include <tatooine/variadic_helpers.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -39,14 +40,18 @@ struct tensor_slice
       auto at_ = [this](const auto... is) -> decltype(auto) {
         return m_tensor->at(is...);
       };
-      return invoke_unpacked(at_, unpack(extract<0, FixedDim - 1>(is...)),
+      return invoke_unpacked(at_,
+                             unpack(variadic::extract<0, FixedDim>(
+                                 static_cast<std::size_t>(is)...)),
                              m_fixed_index,
-                             unpack(extract<FixedDim, rank() - 1>(is...)));
+                             unpack(variadic::extract<FixedDim, rank()>(
+                                 static_cast<std::size_t>(is)...)));
     };
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr auto at(integral auto const... is)
-      -> decltype(auto) requires is_non_const<Tensor> {
+      -> decltype(auto)
+      requires is_non_const<Tensor> {
     if constexpr (FixedDim == 0) {
       return m_tensor->at(m_fixed_index, is...);
 
@@ -57,9 +62,12 @@ struct tensor_slice
       auto at_ = [this](const auto... is) -> decltype(auto) {
         return m_tensor->at(is...);
       };
-      return invoke_unpacked(at_, unpack(extract<0, FixedDim - 1>(is...)),
+      return invoke_unpacked(at_,
+                             unpack(variadic::extract<0, FixedDim>(
+                                 static_cast<std::size_t>(is)...)),
                              m_fixed_index,
-                             unpack(extract<FixedDim, rank() - 1>(is...)));
+                             unpack(variadic::extract<FixedDim, rank()>(
+                                 static_cast<std::size_t>(is)...)));
     };
   }
 };
