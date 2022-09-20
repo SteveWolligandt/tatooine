@@ -68,7 +68,9 @@ struct line {
   //============================================================================
   // static methods
   //============================================================================
-  static constexpr auto num_dimensions() -> std::size_t noexcept { return NumDimensions; }
+  static constexpr auto num_dimensions() -> std::size_t {
+    return NumDimensions;
+  }
 
   //============================================================================
   // members

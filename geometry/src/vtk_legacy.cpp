@@ -750,9 +750,10 @@ auto legacy_file_writer::write_indices(
     auto size = static_cast<int>(p.size());
     size     = swap_endianess(size);
     m_file.write((char *)(&size), sizeof(int));
-    for (int i : p) {
-      i = swap_endianess(i);
-      m_file.write((char *)(&i), sizeof(int));
+    for (auto const& i : p) {
+      auto j = static_cast<int>(i);
+      j = swap_endianess(j);
+      m_file.write((char *)(&j), sizeof(int));
     }
   }
 }

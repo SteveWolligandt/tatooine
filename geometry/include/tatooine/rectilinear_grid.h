@@ -14,6 +14,7 @@
 #include <tatooine/detail/rectilinear_grid/vtr_writer.h>
 #include <tatooine/filesystem.h>
 #include <tatooine/for_loop.h>
+#include <tatooine/nan.h>
 #if TATOOINE_HDF5_AVAILABLE
 #include <tatooine/hdf5.h>
 #endif
@@ -1112,9 +1113,9 @@ class rectilinear_grid {
             prop(is...) = f(is...);
           } catch (std::exception&) {
             if constexpr (tensor_num_components<T> == 1) {
-              prop(is...) = T{0.0 / 0.0};
+              prop(is...) = nan<T>();
             } else {
-              prop(is...) = T::fill(0.0 / 0.0);
+              prop(is...) = T::fill(nan<T>());
             }
           }
         },
@@ -1133,9 +1134,9 @@ class rectilinear_grid {
             prop(is...) = f(vertices()(is...));
           } catch (std::exception&) {
             if constexpr (tensor_num_components<T> == 1) {
-              prop(is...) = T{0.0 / 0.0};
+              prop(is...) = T{nan<T>()};
             } else {
-              prop(is...) = T::fill(0.0 / 0.0);
+              prop(is...) = T::fill(nan<T>());
             }
           }
         },

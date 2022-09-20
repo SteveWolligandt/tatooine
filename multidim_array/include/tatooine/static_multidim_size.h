@@ -19,7 +19,7 @@ struct static_multidim_iterator {
   //----------------------------------------------------------------------------
  public:
   static constexpr auto begin() {
-    return static_multidim_iterator{std::array{(Resolution, std::size_t{})...}};
+    return static_multidim_iterator{std::array{((void)Resolution, std::size_t{})...}};
   }
   //----------------------------------------------------------------------------
   static constexpr auto end() {
@@ -50,7 +50,7 @@ struct static_multidim_iterator {
     ++m_status.front();
     auto status_it = std::begin(m_status);
     auto end_it = std::begin(resolution);
-    for (; end_it != prev(std::end(resolution)); ++status_it, ++end_it) {
+    for (; end_it != std::prev(std::end(resolution)); ++status_it, ++end_it) {
       auto & i = *status_it;
       auto & j = *std::next(status_it);
       auto const& end = *end_it;

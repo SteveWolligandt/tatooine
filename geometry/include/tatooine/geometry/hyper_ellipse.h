@@ -314,11 +314,11 @@ static_assert(is_derived_from_hyper_ellipse<geometry::HyperEllipse<2>>);
 //==============================================================================
 namespace tatooine::reflection {
 //==============================================================================
-template <typename Real, std::size_t NumDimensions>
-TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
-    (geometry::hyper_ellipse<Real, NumDimensions>),
-    TATOOINE_REFLECTION_INSERT_METHOD(center, center()),
-    TATOOINE_REFLECTION_INSERT_METHOD(S, S()))
+//template <typename Real, std::size_t NumDimensions>
+//TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
+//    (geometry::hyper_ellipse<Real, NumDimensions>),
+//    TATOOINE_REFLECTION_INSERT_METHOD(center, center()),
+//    TATOOINE_REFLECTION_INSERT_METHOD(S, S()))
 //==============================================================================
 }  // namespace tatooine::reflection
 //==============================================================================

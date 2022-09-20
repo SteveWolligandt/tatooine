@@ -19,7 +19,7 @@ struct renderer<tatooine::pointset<Real, 2>> {
   using renderable_type = tatooine::pointset<Real, 2>;
   template <typename T>
   using typed_vertex_property_type =
-      typename renderable_type::typed_vertex_property_type<T>;
+      typename renderable_type::template typed_vertex_property_type<T>;
   //==============================================================================
   struct shader : gl::shader {
     //------------------------------------------------------------------------------

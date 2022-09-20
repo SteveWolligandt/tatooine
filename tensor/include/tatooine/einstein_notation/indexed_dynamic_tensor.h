@@ -293,7 +293,7 @@ struct indexed_dynamic_tensor {
   {
     m_tensor.resize(other.template at<0>().tensor().dimension(0),
                     other.template at<1>().tensor().dimension(1));
-    blas::gemm(blas::Op::NoTrans, blas::Op::Trans, value_type(1),
+    blas::gemm(blas::op::no_transpose, blas::op::transpose, value_type(1),
                other.template at<0>().tensor(),
                other.template at<1>().tensor(), value_type(0), m_tensor);
     return *this;
@@ -312,7 +312,7 @@ struct indexed_dynamic_tensor {
   {
     m_tensor.resize(other.template at<0>().tensor().dimension(0),
                     other.template at<1>().tensor().dimension(1));
-    blas::gemm(blas::Op::Trans, blas::Op::NoTrans, value_type(1),
+    blas::gemm(blas::op::transpose, blas::op::no_transpose, value_type(1),
                other.template at<0>().tensor(),
                other.template at<1>().tensor(), value_type(0), m_tensor);
     return *this;

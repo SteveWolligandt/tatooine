@@ -13,25 +13,25 @@ struct ImGuiDataTypeTraits {
 };
 
 template <>
-struct ImGuiDataTypeTraits<int> {
+struct ImGuiDataTypeTraits<std::int32_t> {
   static constexpr ImGuiDataType value  = ImGuiDataType_S32;
   static constexpr const char*   format = "%d";
 };
 
 template <>
-struct ImGuiDataTypeTraits<unsigned int> {
+struct ImGuiDataTypeTraits<std::uint32_t> {
   static constexpr ImGuiDataType value  = ImGuiDataType_U32;
   static constexpr const char*   format = "%u";
 };
 
 template <>
-struct ImGuiDataTypeTraits<long> {
+struct ImGuiDataTypeTraits<std::int64_t> {
   static constexpr ImGuiDataType value  = ImGuiDataType_S64;
   static constexpr const char*   format = "%lld";
 };
 
 template <>
-struct ImGuiDataTypeTraits<unsigned long> {
+struct ImGuiDataTypeTraits<std::uint64_t> {
   static constexpr ImGuiDataType value  = ImGuiDataType_U64;
   static constexpr const char*   format = "%llu";
 };

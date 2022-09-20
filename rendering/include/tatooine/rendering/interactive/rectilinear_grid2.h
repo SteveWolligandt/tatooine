@@ -18,7 +18,8 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
   using renderable_type = tatooine::rectilinear_grid<Axis0, Axis1>;
   template <typename T>
   using typed_vertex_property_interface_type =
-      typename renderable_type::typed_vertex_property_interface_type<T>;
+      typename renderable_type::template typed_vertex_property_interface_type<
+          T>;
   //============================================================================
   struct geometry : gl::indexeddata<Vec2<GLfloat>> {
     static auto get() -> auto& {

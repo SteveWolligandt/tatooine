@@ -14,7 +14,7 @@ struct vec : tensor<ValueType, N> {
   using parent_type = tensor<ValueType, N>;
   using parent_type::at;
   using parent_type::dimension;
-  using parent_type::parent_type;
+  //using parent_type::parent_type;
   using parent_type::operator();
   //============================================================================
   using iterator =
@@ -43,7 +43,7 @@ struct vec : tensor<ValueType, N> {
     return this_type{random::normal<ValueType>{eng, mean, stddev}};
   }
   //----------------------------------------------------------------------------
-  constexpr vec()           = default;
+  constexpr vec()                     = default;
   constexpr vec(vec const&)           = default;
   constexpr vec(vec&& other) noexcept = default;
   //----------------------------------------------------------------------------
@@ -54,6 +54,30 @@ struct vec : tensor<ValueType, N> {
   template <typename OtherTensor, typename OtherReal>
   explicit constexpr vec(base_tensor<OtherTensor, OtherReal, N> const& other)
       : parent_type{other} {}
+  //----------------------------------------------------------------------------
+  template <typename FillReal>
+  requires arithmetic<ValueType>
+  explicit constexpr vec(tag::fill<FillReal> const f) : parent_type{f} {}
+  explicit constexpr vec(tag::ones_t const ones) : parent_type{ones} {}
+  explicit constexpr vec(tag::zeros_t const zeros) : parent_type{zeros} {}
+  template <typename RandomReal, typename Engine>
+  requires is_arithmetic<ValueType>
+  explicit constexpr vec(random::uniform<RandomReal, Engine>&& rand)
+      : parent_type{std::move(rand)} {}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <arithmetic RandomReal, typename Engine>
+  explicit constexpr vec(random::uniform<RandomReal, Engine>& rand)
+      : parent_type{rand} {}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <arithmetic RandomReal, typename Engine>
+  requires is_arithmetic<ValueType>
+  explicit constexpr vec(random::normal<RandomReal, Engine>&& rand)
+      : parent_type{std::move(rand)} {}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <arithmetic RandomReal, typename Engine>
+  requires is_arithmetic<ValueType>
+  explicit constexpr vec(random::normal<RandomReal, Engine>& rand)
+      : parent_type{rand} {}
   //----------------------------------------------------------------------------
   auto constexpr operator=(vec const&) -> vec& = default;
   auto constexpr operator=(vec&& other) noexcept -> vec& = default;

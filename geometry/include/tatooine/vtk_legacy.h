@@ -10,7 +10,7 @@
 #include <tatooine/type_traits.h>
 #include <tatooine/vtk/cell_type.h>
 
-#include <boost/filesystem.hpp>
+#include <tatooine/filesystem.h>
 #include <cassert>
 #include <cstdlib>
 #include <exception>
@@ -183,12 +183,12 @@ struct legacy_file_listener {
 class legacy_file {
   std::vector<legacy_file_listener *> m_listeners;
 
-  filesystem::path m_path;
-  format           m_format;
-  reader_data      m_data = reader_data::unknown;
-  size_t           m_data_size{};  // cell_data or point_data size
-  long             m_begin_of_data{};
-  char             buffer[256]{};
+  filesystem::path        m_path;
+  format                  m_format;
+  reader_data             m_data = reader_data::unknown;
+  size_t                  m_data_size{};  // cell_data or point_data size
+  std::ifstream::pos_type m_begin_of_data{};
+  char                    buffer[256]{};
 
  public:
   auto add_listener(legacy_file_listener &listener) -> void;

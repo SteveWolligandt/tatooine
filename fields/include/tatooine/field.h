@@ -3,6 +3,7 @@
 //==============================================================================
 #include <tatooine/tensor.h>
 #include <tatooine/type_traits.h>
+#include <tatooine/nan.h>
 
 #include <vector>
 //==============================================================================
@@ -19,13 +20,13 @@ struct field {
   using pos_type    = vec<real_type, NumDimensions>;
   static auto constexpr ood_tensor() {
     if constexpr (is_arithmetic<tensor_type>) {
-      return Real(0) / Real(0);
+      return nan<Real>();
     } else {
-      return tensor_type::fill(Real(0) / Real(0));
+      return tensor_type::fill(nan<Real>());
     }
   }
   static auto constexpr ood_position() {
-    return pos_type::fill(Real(0) / Real(0));
+    return pos_type::fill(nan<Real>());
   }
   //============================================================================
   // static methods

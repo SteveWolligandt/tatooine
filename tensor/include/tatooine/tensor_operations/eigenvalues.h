@@ -46,7 +46,7 @@ auto eigenvectors_sym(Mat&& A) {
 
   auto W = std::pair{mat<tensor_value_type<Mat>, N, N>{std::forward<Mat>(A)},
                      vec<tensor_value_type<Mat>, N>{}};
-  lapack::syev(::lapack::Job::Vec, ::lapack::Uplo::Upper, W.first, W.second);
+  lapack::syev(lapack::job::vec, lapack::uplo::upper, W.first, W.second);
   return W;
 }
 #endif
@@ -75,7 +75,7 @@ constexpr auto eigenvalues_sym(Mat&& A) {
   auto constexpr N = tensor_dimensions<Mat>[0];
   auto W           = vec<tensor_value_type<Mat>, N>{};
   auto A2          = mat<tensor_value_type<Mat>, N, N>{std::forward<Mat>(A)};
-  lapack::syev(::lapack::Job::NoVec, ::lapack::Uplo::Upper, A2, W);
+  lapack::syev(lapack::job::no_vec, lapack::uplo::upper, A2, W);
   return W;
 }
 #endif

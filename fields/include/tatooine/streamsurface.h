@@ -37,7 +37,7 @@ struct streamsurface {
   using this_type      = streamsurface<Flowmap, SeedcurveInterpolationKernel>;
   using seedcurve_type = line<real_type, num_dimensions()>;
   using seedcurve_interpolator_type =
-      typename seedcurve_type::vertex_property_sampler_type<
+      typename seedcurve_type::template vertex_property_sampler_type<
           seedcurve_type, SeedcurveInterpolationKernel>;
   using vec2     = vec<real_type, 2>;
   using pos_type = vec<real_type, num_dimensions()>;

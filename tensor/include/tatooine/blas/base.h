@@ -2,7 +2,6 @@
 #define TATOOINE_BLAS_BASE_H
 //==============================================================================
 #include <tatooine/concepts.h>
-#include <blas.hh>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -44,8 +43,15 @@ namespace tatooine::blas {
 /// <td>(complex) unitary matrix</tr> <tr><td>UP <td>(complex) unitary, packed
 /// storage matrix</tr>
 /// </table>
-using ::blas::Layout;
-using ::blas::Op;
+enum class op : char {
+  no_transpose        = 'N',
+  transpose           = 'T',
+  conjugate_transpose = 'C'
+};
+enum class uplo : char { upper = 'U', lower = 'L', general = 'G' };
+enum class diag : char { non_unit = 'N', unit = 'U' };
+enum class side : char { left = 'L', right = 'R' };
+enum class format : char { lapack = 'L', tile = 'T' };
 
 /// \defgroup blas1 BLAS Level 1
 /// \brief Vector Operations

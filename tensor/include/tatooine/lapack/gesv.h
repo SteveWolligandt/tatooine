@@ -1,7 +1,15 @@
 #ifndef TATOOINE_LAPACK_GESV_H
 #define TATOOINE_LAPACK_GESV_H
 //==============================================================================
+extern "C" {
+auto dgesv_(int* N, int* NRHS, double* A, int* LDA, int* IPIV, double* B,
+            int* LDB, int* INFO) -> void;
+auto sgesv_(int* N, int* NRHS, float* A, int* LDA, int* IPIV, float* B,
+            int* LDB, int* INFO) -> void;
+}
+//==============================================================================
 #include <tatooine/lapack/base.h>
+#include <concepts>
 //==============================================================================
 namespace tatooine::lapack {
 //==============================================================================
@@ -26,22 +34,35 @@ namespace tatooine::lapack {
 /// documentation</a>
 /// \{
 //==============================================================================
+template <std::floating_point Float>
+auto gesv(int N, int NRHS, Float* A, int LDA, int* IPIV, Float* B, int LDB)
+    -> int {
+  auto INFO = int{};
+  if constexpr (std::same_as<Float, double>) {
+    dgesv_(&N, &NRHS, A, &LDA, IPIV, B, &LDB, &INFO);
+  } else if constexpr (std::same_as<Float, float>) {
+    sgesv_(&N, &NRHS, A, &LDA, IPIV, B, &LDB, &INFO);
+  }
+  return INFO;
+}
+//------------------------------------------------------------------------------
 template <typename T, size_t N>
 auto gesv(tensor<T, N, N>& A,
           tensor<T, N>& b,
-          tensor<std::int64_t, N>& ipiv) {
-  return ::lapack::gesv(N, 1, A.data(), N, ipiv.data(), b.data(),
-                        N);
+          tensor<int, N>& ipiv) {
+  return gesv(N, 1, A.data(), N, ipiv.data(), b.data(), N);
 }
+//------------------------------------------------------------------------------
 template <typename T, size_t N, size_t K>
 auto gesv(tensor<T, N, N>& A,
           tensor<T, N, K>& B,
-          tensor<std::int64_t, N>& ipiv) {
-  return ::lapack::gesv(N, K, A.data(), N, ipiv.data(), B.data(),
+          tensor<int, N>& ipiv) {
+  return gesv(N, K, A.data(), N, ipiv.data(), B.data(),
                         N);
 }
+//------------------------------------------------------------------------------
 template <typename T>
-auto gesv(tensor<T>& A, tensor<T>& B, tensor<std::int64_t>& ipiv) {
+auto gesv(tensor<T>& A, tensor<T>& B, tensor<int>& ipiv) {
   assert(A.rank() == 2);
   assert(A.dimension(0) == A.dimension(1));
 
@@ -51,7 +72,7 @@ auto gesv(tensor<T>& A, tensor<T>& B, tensor<std::int64_t>& ipiv) {
   assert(A.dimension(0) == B.dimension(0));
 
   ipiv.resize(A.dimension(0));
-  return ::lapack::gesv(A.dimension(0), (B.rank() == 1 ? 1 : B.dimension(1)),
+  return gesv(A.dimension(0), (B.rank() == 1 ? 1 : B.dimension(1)),
                         A.data(), A.dimension(0), ipiv.data(),
                         B.data(), A.dimension(0));
 }

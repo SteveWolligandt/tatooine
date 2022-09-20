@@ -80,27 +80,24 @@ struct radial_basis_functions_sampler
     // solver
     m_radial_and_monomial_coefficients = *solve_symmetric_lapack(
         std::move(A), std::move(m_radial_and_monomial_coefficients),
-        lapack::Uplo::Lower);
+        lapack::uplo::lower);
   }
-  //--------------------------------------------------------------------------
+  //----------------------------------------------------------------------------
   radial_basis_functions_sampler(radial_basis_functions_sampler const&) =
       default;
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // -
   radial_basis_functions_sampler(radial_basis_functions_sampler&&) noexcept =
       default;
-  //--------------------------------------------------------------------------
+  //----------------------------------------------------------------------------
   auto operator=(radial_basis_functions_sampler const&)
       -> radial_basis_functions_sampler& = default;
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto operator=(radial_basis_functions_sampler&&) noexcept
       -> radial_basis_functions_sampler& = default;
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   ~radial_basis_functions_sampler() = default;
-
-  //------------------------------------------------------------------------------
+  //----------------------------------------------------------------------------
   static auto for_loop(auto&& iteration, std::size_t const degree,
                        std::size_t const dim, std::vector<std::size_t>& status)
       -> void {
@@ -115,7 +112,7 @@ struct radial_basis_functions_sampler
       status[dim] = 0;
     }
   }
-  //==========================================================================
+  //============================================================================
   [[nodiscard]] auto evaluate(pos_type const& q, real_type const /*t*/) const
       -> tensor_type {
     auto const N   = m_pointset.vertices().size();

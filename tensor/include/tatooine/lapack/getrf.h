@@ -1,6 +1,13 @@
 #ifndef TATOOINE_LAPACK_GETRF_H
 #define TATOOINE_LAPACK_GETRF_H
 //==============================================================================
+extern "C" {
+//==============================================================================
+auto dgetrf_(int* M, int* N, double* A, int* LDA, int* IPIV, int* INFO) -> void;
+auto sgetrf_(int* M, int* N, double* A, int* LDA, int* IPIV, int* INFO) -> void;
+//==============================================================================
+}
+//==============================================================================
 #include <tatooine/lapack/base.h>
 //==============================================================================
 namespace tatooine::lapack {
@@ -25,9 +32,21 @@ namespace tatooine::lapack {
 ///   Diagonal of \f$\mP\f$ that represents the permutation Matrix.
 ///   The pivot indices; for 1 <= i <= min(M,N), row i of the
 ///   matrix was interchanged with row p(i).
+//==============================================================================
+template <std::floating_point Float>
+auto getrf(int M, int N, double* A, int LDA, int* IPIV) -> int {
+  auto INFO = int{};
+  if constexpr (std::same_as<Float, double>) {
+    dgetrf_(&M, &N, A, &LDA, IPIV, &INFO);
+  } else if constexpr (std::same_as<Float, float>) {
+    sgetrf_(&M, &N, A, &LDA, IPIV, &INFO);
+  }
+  return INFO;
+}
+//------------------------------------------------------------------------------
 template <typename T, size_t M, size_t N>
 auto getrf(tensor<T, M, N>& A, tensor<int, tatooine::min(M, N)>& p) {
-  return ::lapack::getrf(M, N, A.data(), M, p.data());
+  return getrf(M, N, A.data(), M, p.data());
 }
 //==============================================================================
 /// \}

@@ -10,7 +10,6 @@
 #include <tatooine/numerical_flowmap.h>
 #include <tatooine/particle.h>
 #include <tatooine/random.h>
-#include <tatooine/reflection.h>
 #include <tatooine/tags.h>
 #include <tatooine/tensor.h>
 //==============================================================================
@@ -1317,17 +1316,18 @@ using autonomous_particle3 = AutonomousParticle<3>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-namespace tatooine::reflection {
+//#include <tatooine/reflection.h>
+//namespace tatooine::reflection {
 //==============================================================================
-template <floating_point Real, std::size_t NumDimensions>
-TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
-    (autonomous_particle<Real, NumDimensions>),
-    TATOOINE_REFLECTION_INSERT_METHOD(center, center()),
-    TATOOINE_REFLECTION_INSERT_METHOD(S, S()),
-    TATOOINE_REFLECTION_INSERT_METHOD(x, x()),
-    TATOOINE_REFLECTION_INSERT_METHOD(t, t()),
-    TATOOINE_REFLECTION_INSERT_METHOD(nabla_phi, nabla_phi()))
+//template <floating_point Real, std::size_t NumDimensions>
+//TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
+//    (autonomous_particle<Real, NumDimensions>),
+//    TATOOINE_REFLECTION_INSERT_METHOD(center, center()),
+//    TATOOINE_REFLECTION_INSERT_METHOD(S, S()),
+//    TATOOINE_REFLECTION_INSERT_METHOD(x, x()),
+//    TATOOINE_REFLECTION_INSERT_METHOD(t, t()),
+//    TATOOINE_REFLECTION_INSERT_METHOD(nabla_phi, nabla_phi()))
 //==============================================================================
-}  // namespace tatooine::reflection
+//}  // namespace tatooine::reflection
 //==============================================================================
 #endif

@@ -18,7 +18,7 @@ struct id_holder_default_param<GLuint> {
 //==============================================================================
 template <>
 struct id_holder_default_param<GLint> {
-  constexpr static GLuint value = -1;
+  constexpr static GLint value = GLint(-1);
 };
 
 //==============================================================================

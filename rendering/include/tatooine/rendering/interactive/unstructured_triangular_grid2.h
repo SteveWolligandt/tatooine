@@ -19,7 +19,7 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 2>> {
       tatooine::unstructured_simplicial_grid<Real, 2, 2>;
   template <typename T>
   using typed_vertex_property_interface_type =
-      typename renderable_type::typed_vertex_property_type<T>;
+      typename renderable_type::template typed_vertex_property_type<T>;
   //============================================================================
   struct property_shader : gl::shader {
     //--------------------------------------------------------------------------
