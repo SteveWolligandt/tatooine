@@ -159,7 +159,7 @@ auto main(int argc, char const** argv) -> int {
         // do not copy by moving A and weights_and_coeffs into solver
         weights_and_coeffs =
             *solve_symmetric_lapack(std::move(A), std::move(weights_and_coeffs),
-                                    tatooine::lapack::Uplo::Lower);
+                                    lapack::uplo::lower);
 
         auto acc = real_number{};
         // radial bases
@@ -225,7 +225,7 @@ auto main(int argc, char const** argv) -> int {
         // do not copy by moving A and weights_and_coeffs into solver
         weights_and_coeffs =
             *solve_symmetric_lapack(std::move(A), std::move(weights_and_coeffs),
-                                    tatooine::lapack::Uplo::Lower);
+                                    lapack::uplo::lower);
 
         auto acc = real_number{};
         // radial basis functions
@@ -293,7 +293,7 @@ auto main(int argc, char const** argv) -> int {
         // do not copy by moving A and weights_and_coeffs into solver
         weights_and_coeffs =
             *solve_symmetric_lapack(std::move(A), std::move(weights_and_coeffs),
-                                    tatooine::lapack::Uplo::Lower);
+                                    lapack::uplo::lower);
 
         auto acc = real_number{};
         // radial basis functions

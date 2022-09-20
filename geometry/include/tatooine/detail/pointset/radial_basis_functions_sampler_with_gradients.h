@@ -193,7 +193,7 @@ struct radial_basis_functions_sampler_with_gradients<Real, 2, ValueType,
   //    // do not copy by moving
   //    A and m_coefficients into solver m_coefficients =
   //    *solve_symmetric_lapack(
-  //        std::move(A), std::move(m_coefficients), lapack::Uplo::Lower);
+  //        std::move(A), std::move(m_coefficients), lapack::uplo::lower);
   //  }
   //----------------------------------------------------------------------------
   radial_basis_functions_sampler_with_gradients(
@@ -294,7 +294,7 @@ struct radial_basis_functions_sampler_with_gradients<Real, 2, ValueType,
     // and m_coefficients into
     // solver
     m_coefficients = *solve_symmetric_lapack(
-        std::move(A), std::move(m_coefficients), lapack::Uplo::Lower);
+        std::move(A), std::move(m_coefficients), lapack::uplo::lower);
   }
   //==========================================================================
   [[nodiscard]] auto evaluate(pos_type const& q, real_type const /*t*/) const
@@ -413,7 +413,7 @@ struct radial_basis_functions_sampler_with_gradients<Real, 2, vec<ValueType, 2>,
   //    // do not copy by moving
   //    A and m_coefficients into solver m_coefficients =
   //    *solve_symmetric_lapack(
-  //        std::move(A), std::move(m_coefficients), lapack::Uplo::Lower);
+  //        std::move(A), std::move(m_coefficients), lapack::uplo::lower);
   //  }
   //----------------------------------------------------------------------------
   radial_basis_functions_sampler_with_gradients(
@@ -520,7 +520,7 @@ struct radial_basis_functions_sampler_with_gradients<Real, 2, vec<ValueType, 2>,
     // and m_coefficients into
     // solver
     m_coefficients = *solve_symmetric_lapack(
-        std::move(A), std::move(m_coefficients), lapack::Uplo::Lower);
+        std::move(A), std::move(m_coefficients), lapack::uplo::lower);
   }
   //==========================================================================
   [[nodiscard]] auto evaluate(pos_type const& q, real_type const /*t*/) const

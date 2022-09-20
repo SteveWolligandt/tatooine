@@ -22,13 +22,13 @@ namespace tatooine::lapack {
 /// documentation</a>
 /// \{
 //==============================================================================
-template <typename T, size_t N>
-auto gecon(tensor<T, N, N>& A, Norm norm, T& rcond) {
-  auto const n    = lange(A, norm);
-  auto       ipiv = tensor<std::int64_t, N>{};
-  getrf(A, ipiv);
-  return ::lapack::gecon(norm, N, A.data(), N, n, &rcond);
-}
+//template <typename T, size_t N>
+//auto gecon(tensor<T, N, N>& A, Norm norm, T& rcond) {
+//  auto const n    = lange(A, norm);
+//  auto       ipiv = tensor<std::int64_t, N>{};
+//  getrf(A, ipiv);
+//  return ::lapack::gecon(norm, N, A.data(), N, n, &rcond);
+//}
 //==============================================================================
 /// \}
 //==============================================================================

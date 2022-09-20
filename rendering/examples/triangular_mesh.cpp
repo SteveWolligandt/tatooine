@@ -4,17 +4,20 @@
 #include <tatooine/random.h>
 #include <tatooine/streamsurface.h>
 #include <tatooine/analytical/abcflow.h>
+#include <tatooine/isosurface.h>
 //==============================================================================
 using namespace tatooine;
 //==============================================================================
 auto main() -> int {
-  auto const mesh = isosurface(
-      euclidean_length(analytical::numerical::abcflow{}),
-      rectilinear_grid{linspace{-10.0, 10.0, 256},
-                       linspace{-10.0, 10.0, 256},
-                       linspace{-10.0, 10.0, 256}},
-      1)
-  mesh.sample_to_vertex_property(v, "velocity");
-
+  std::cout << "foo\n";
+  auto grid =
+      rectilinear_grid{linspace{-10.0, 10.0, 256}, linspace{-10.0, 10.0, 256},
+                       linspace{-10.0, 10.0, 256}};
+  std::cout << "foo\n";
+  auto const& prop = grid.sample_to_vertex_property(
+      euclidean_length(analytical::numerical::abcflow{}), "length");
+  std::cout << "foo\n";
+  auto const mesh = isosurface(prop, 1);
+  std::cout << "foo\n";
   rendering::interactive::show(mesh);
 }

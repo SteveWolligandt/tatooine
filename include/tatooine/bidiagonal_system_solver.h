@@ -1,35 +1,31 @@
-#ifndef __TATOOINE_BIDIAGONAL_SYSTEM_QR_SOLVER_H
-#define __TATOOINE_BIDIAGONAL_SYSTEM_QR_SOLVER_H
-
+#ifndef TATOOINE_BIDIAGONAL_SYSTEM_QR_SOLVER_H
+#define TATOOINE_BIDIAGONAL_SYSTEM_QR_SOLVER_H
+//==============================================================================
 #include <cassert>
 #include <cmath>
 #include <cstdlib>
-
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-
-//-------------------------------------------------------------------------------
 // General solvers
 //-------------------------------------------------------------------------------
-
-//! Solve bidiagonal linear system A*x=b with superdiagonal.
-//! The _x x _n matrix A is bidiagonal with diagonal _d and \a superdiagonal
-//!_du. \param _n dimension of A and number of rows of RHS _b \param _nrhs
-//! number of RHS in _b \param _d main diagonal of A (array of size _n) \param
-//!_du superdiagonal of A (array of size _n-1) \param[in,out] _b RHS on input,
-//! solution x on output \param _ldb leading dimension of _b \return false if A
-//! is singular
+/// Solve bidiagonal linear system A*x=b with superdiagonal.
+/// The _x x _n matrix A is bidiagonal with diagonal _d and \a superdiagonal
+///_du. \param _n dimension of A and number of rows of RHS _b \param _nrhs
+/// number of RHS in _b \param _d main diagonal of A (array of size _n) \param
+///_du superdiagonal of A (array of size _n-1) \param[in,out] _b RHS on input,
+/// solution x on output \param _ldb leading dimension of _b \return false if A
+/// is singular
 template <typename T>
-bool bdsvu(int _n, int _nrhs, const T* __restrict__ _d,
-           const T* __restrict__ _du, T* __restrict__ _b, int _ldb) {
+bool bdsvu(int _n, int _nrhs, const T* _d, const T* _du, T* _b, int _ldb) {
   // assert(_n > 1);
   assert(_nrhs > 0);
   assert(_ldb >= _n || _nrhs == 1);
 
   if (_d[_n - 1] == T(0)) return false;  // shall we handle inf?
 
-  for (int j = 0; j < _nrhs; ++j) _b[(_n - 1) + j * _ldb] /= _d[_n - 1];
+  for (int j = 0; j < _nrhs; ++j)
+    _b[(_n - 1) + j * _ldb] /= _d[_n - 1];
 
   for (int i = _n - 2; i >= 0; --i) {
     if (_d[i] == T(0)) return false;
@@ -39,26 +35,26 @@ bool bdsvu(int _n, int _nrhs, const T* __restrict__ _d,
   }
   return true;
 }
-
-//! Solve bidiagonal linear system A*x=b with subdiagonal.
-//! The _x x _n matrix A is bidiagonal with diagonal _d and \a subdiagonal _dl.
-//! \param _n dimension of A and number of rows of RHS _b
-//! \param _nrhs number of RHS in _b
-//! \param _dl subdiagonal of A (array of size _n-1)
-//! \param _d main diagonal of A (array of size _n)
-//! \param[in,out] _b RHS on input, solution x on output
-//! \param _ldb leading dimension of _b
-//! \return false if A is singular
+//------------------------------------------------------------------------------
+/// Solve bidiagonal linear system A*x=b with subdiagonal.
+/// The _x x _n matrix A is bidiagonal with diagonal _d and \a subdiagonal _dl.
+/// \param _n dimension of A and number of rows of RHS _b
+/// \param _nrhs number of RHS in _b
+/// \param _dl subdiagonal of A (array of size _n-1)
+/// \param _d main diagonal of A (array of size _n)
+/// \param[in,out] _b RHS on input, solution x on output
+/// \param _ldb leading dimension of _b
+/// \return false if A is singular
 template <typename T>
-bool bdsvl(int _n, int _nrhs, const T* __restrict__ _dl,
-           const T* __restrict__ _d, T* __restrict__ _b, int _ldb) {
+bool bdsvl(int _n, int _nrhs, const T* _dl, const T* _d, T* _b, int _ldb) {
   // assert(_n > 1);
   assert(_nrhs > 0);
   assert(_ldb >= _n || _nrhs == 1);
 
   if (_d[0] == T(0)) return false;  // shall we handle inf?
 
-  for (int j = 0; j < _nrhs; ++j) _b[0 + j * _ldb] /= _d[0];
+  for (int j = 0; j < _nrhs; ++j)
+    _b[0 + j * _ldb] /= _d[0];
 
   for (int i = 1; i < _n; ++i) {
     if (_d[i] == T(0)) return false;
@@ -68,25 +64,22 @@ bool bdsvl(int _n, int _nrhs, const T* __restrict__ _dl,
   }
   return true;
 }
-
 //-------------------------------------------------------------------------------
 // Special solvers tailored to problem
 //-------------------------------------------------------------------------------
-
-//! This function solves your problem A*x=b blockwise w/o LAPACK.
-//! Assume quadratic matrix A=[A11,A12;ONES,1] with
-//! bidiagonal matrix A11=A(1:end-1,,1:end-1) and
-//! A12=[0,...0,a12]
-//! \param _n dimension of matrix A
-//! \param _d main diagonal of A11 (_n-1 entries)
-//! \param _du superdiagonal of A11 (first _n-2 entries) and a12 as (at index
-//!            _n-1) \param[in,out] _b right hand side on input, solution x on
-//!            output
-//!
-//! \b Note: calls \c alloca!
+/// This function solves your problem A*x=b blockwise w/o LAPACK.
+/// Assume quadratic matrix A=[A11,A12;ONES,1] with
+/// bidiagonal matrix A11=A(1:end-1,,1:end-1) and
+/// A12=[0,...0,a12]
+/// \param _n dimension of matrix A
+/// \param _d main diagonal of A11 (_n-1 entries)
+/// \param _du superdiagonal of A11 (first _n-2 entries) and a12 as (at index
+///            _n-1) \param[in,out] _b right hand side on input, solution x on
+///            output
+///
+/// \b Note: calls \c alloca!
 template <typename T>
-bool solve_blockwise(int _n, const T* __restrict__ _d,
-                     const T* __restrict__ _du, T* __restrict__ _b) {
+bool solve_blockwise(int _n, const T* _d, const T* _du, T* _b) {
   // assert(_n > 1);
 
   int m = _n - 1;
@@ -103,7 +96,6 @@ bool solve_blockwise(int _n, const T* __restrict__ _d,
       s -= x;
     }
   }
-  VC_DBG_P(s);
 
   // get y
   assert(_n < 2048 && "limit  temporary buffer size using alloca");
@@ -114,10 +106,9 @@ bool solve_blockwise(int _n, const T* __restrict__ _d,
   assert(regular);
 
   T y(b[m]);
-  for (int i = 0; i < m; ++i) y -= b[i];
+  for (int i = 0; i < m; ++i)
+    y -= b[i];
   y /= s;
-
-  VC_DBG_P(y);
 
   _b[m - 1] -= _du[m - 1] * y;
 
@@ -128,61 +119,57 @@ bool solve_blockwise(int _n, const T* __restrict__ _d,
 
   return true;
 }
-
 //-------------------------------------------------------------------------------
-
-//! Apply rotation _x=[_c,-_s;_s,_c]*_x.
-//! \param _c cosine
-//! \param _s sine
-//! \param _x[in,out] 2-vector
-//! \sa solve_qr()
+/// Apply rotation _x=[_c,-_s;_s,_c]*_x.
+/// \param _c cosine
+/// \param _s sine
+/// \param _x[in,out] 2-vector
+/// \sa solve_qr()
 template <typename T>
-void _planerot(T _c, T _s, T* __restrict__ _x) {
+void _planerot(T _c, T _s, T* _x) {
   T x   = _x[0];
   T y   = _x[1];
   _x[0] = _c * x - _s * y;
   _x[1] = _s * x + _c * y;
 }
-
-//! \def _Q_IN_NULL Tweak solve_qr()
-//!
-//! Store cosine and sine entries of Givens plane rotations in
-//! different places: cos go to a temporary array of length _n, sin go
-//! to _null.  The default is to use a 2*_n temporary array for both.
-//!
-//! This option may provide a slight advantage for rather large _n,
-//! because we are accessing less memory. -- However, the access pattern
-//! is worse!
+//------------------------------------------------------------------------------
+/// \def _Q_IN_NULL Tweak solve_qr()
+///
+/// Store cosine and sine entries of Givens plane rotations in
+/// different places: cos go to a temporary array of length _n, sin go
+/// to _null.  The default is to use a 2*_n temporary array for both.
+///
+/// This option may provide a slight advantage for rather large _n,
+/// because we are accessing less memory. -- However, the access pattern
+/// is worse!
 
 #ifdef DOXYGEN_SKIP
 #ifndef _Q_IN_NULL
 #define _Q_IN_NULL
 #endif
 #endif
-
-//! Get least-norm solution xln and _null space by QR factorization.
-//!
-//! \arg Input is the bidiagonal _n x (_n+_1) matrix A with diagonal _d and
-//!      superdiagonal  _du.
-//! \arg We use the factorization A'=Q*R.
-//! \arg Output is the least-norm xln solution to A*x=b in _b, the vector _null
-//!      spanning the kernel of A, and the factor R in _d (diagonal) and _du
-//!      (superdiagonal).
-//!
-//! \param _n number of rows in A
-//! \param[in,out] _d on \b input _d diagonal of A (_n elements),
-//!                   on \b output diagonal of R
-//! \param[in,out] _du on \b input _du superdiagonal of A (_n elements, because
-//!                    A is _n x (_n+1), on \b output superdiagonal of R
-//! \param[in,out] _b on \b input right hand side vector of length _n, on \b
-//!                   output least-norm solution xln of size _n+1 (reserve
-//!                   <b>_n+1</b> entries)
-//! \param[out] _null (_n+1)-vector spanning nullspace of A \return \c true on
-//!                   success, \c false if rank(A)<n
-//!
+/// Get least-norm solution xln and _null space by QR factorization.
+///
+/// \arg Input is the bidiagonal _n x (_n+_1) matrix A with diagonal _d and
+///      superdiagonal  _du.
+/// \arg We use the factorization A'=Q*R.
+/// \arg Output is the least-norm xln solution to A*x=b in _b, the vector _null
+///      spanning the kernel of A, and the factor R in _d (diagonal) and _du
+///      (superdiagonal).
+///
+/// \param _n number of rows in A
+/// \param[in,out] _d on \b input _d diagonal of A (_n elements),
+///                   on \b output diagonal of R
+/// \param[in,out] _du on \b input _du superdiagonal of A (_n elements, because
+///                    A is _n x (_n+1), on \b output superdiagonal of R
+/// \param[in,out] _b on \b input right hand side vector of length _n, on \b
+///                   output least-norm solution xln of size _n+1 (reserve
+///                   <b>_n+1</b> entries)
+/// \param[out] _null (_n+1)-vector spanning nullspace of A \return \c true on
+///                   success, \c false if rank(A)<n
+///
 template <typename T>
-bool solve_qr(int _n, T* __restrict__ _d, T* __restrict__ _du,
-              T* __restrict__ _b, T* __restrict__ _null) {
+bool solve_qr(int _n, T* _d, T* _du, T* _b, T* _null) {
   assert(_n < 2048 && "limit  temporary buffer size using alloca");
 #ifndef _Q_IN_NULL
   T* q = (T*)alloca(2 * _n * sizeof(T));  // store givens rotations
@@ -261,7 +248,6 @@ bool solve_qr(int _n, T* __restrict__ _d, T* __restrict__ _du,
 
   return true;
 }
-
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

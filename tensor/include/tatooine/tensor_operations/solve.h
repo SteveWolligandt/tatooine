@@ -30,25 +30,26 @@ auto copy_or_keep_if_rvalue_tensor_solve(tensor<T, Dims...> const& x) {
 }
 template <fixed_size_quadratic_mat<2> MatA, static_mat MatB>
 requires(tensor_dimension<MatB, 0> == 2)
-auto constexpr solve_direct(MatA&& A, MatB&& B)
-    -> std::optional<
-        mat<common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>, 2,
-            tensor_dimension<MatB, 1>>> {
-      using out_value_type =
-          common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>;
-      auto constexpr K = tensor_dimension<MatB, 1>;
-      auto const div   = (A(0, 0) * A(1, 1) - A(1, 0) * A(0, 1));
-      if (div == 0) {
-        return std::nullopt;
-      }
-      auto const p = 1 / div;
-      auto       X = mat<out_value_type, 2, K>{};
-      for (std::size_t i = 0; i < K; ++i) {
-        X(0, i) = -(A(0, 1) * B(1, i) - A(1, 1) * B(0, i)) * p;
-        X(1, i) = (A(0, 0) * B(1, i) - A(1, 0) * B(0, i)) * p;
-      }
-      return X;
-    }
+auto constexpr solve_direct(MatA&& A, MatB&& B) {
+  using out_value_type =
+      common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>;
+  auto constexpr K = tensor_dimension<MatB, 1>;
+
+  using out_mat_type = mat<out_value_type, 2, K>;
+  using out_type     = std::optional<out_mat_type>;
+
+  auto const div   = (A(0, 0) * A(1, 1) - A(1, 0) * A(0, 1));
+  if (div == 0) {
+    return out_type{std::nullopt};
+  }
+  auto const p = 1 / div;
+  auto       X = out_type{out_mat_type{}};
+  for (std::size_t i = 0; i < K; ++i) {
+    X->at(0, i) = -(A(0, 1) * B(1, i) - A(1, 1) * B(0, i)) * p;
+    X->at(1, i) = (A(0, 0) * B(1, i) - A(1, 0) * B(0, i)) * p;
+  }
+  return X;
+}
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <fixed_size_mat<2, 2> MatA, fixed_size_vec<2> VecB>
 auto solve_direct(MatA&& A, VecB&& b) -> std::optional<
@@ -131,39 +132,37 @@ auto solve_lu_lapack(MatA& A_, MatB& B_) -> std::optional<
 //------------------------------------------------------------------------------
 #if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
 template <static_mat MatA, static_mat MatB>
-requires(tensor_dimension<MatA, 0> ==
-         tensor_dimension<MatB, 0>) auto solve_qr_lapack(MatA&& A_,
-         MatB&& B_)
--> std::optional<
-        mat<common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>,
-            tensor_dimension<MatA, 1>, tensor_dimension<MatB, 1>>> {
+requires(tensor_dimension<MatA, 0> == tensor_dimension<MatB, 0>)
+auto solve_qr_lapack(MatA&& A_, MatB&& B_) {
   using out_value_type =
       common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>;
   static auto constexpr M = tensor_dimension<MatA, 0>;
   static auto constexpr N = tensor_dimension<MatA, 1>;
   static auto constexpr K = tensor_dimension<MatB, 1>;
+  using mat_out_type      = mat<out_value_type, N, K>;
+  using out_type = std::optional<mat_out_type>;
 
   auto A   = mat<out_value_type, M, N>{A_};
   auto B   = mat<out_value_type, M, K>{B_};
   auto tau = vec<out_value_type, (M < N ? M : N)>{};
-  auto X   = mat<out_value_type, N, K>{};
 
   // Q * R = A
   if (lapack::geqrf(A, tau) != 0) {
-    return std::nullopt;
+    return out_type{std::nullopt};
   }
   // R * x = Q^T * B
-  if (lapack::ormqr(A, B, tau, ::lapack::Side::Left, ::lapack::Op::Trans) !=
+  if (lapack::ormqr(A, B, tau, lapack::side::left, lapack::op::transpose) !=
       0) {
-    return std::nullopt;
+    return out_type{std::nullopt};
   }
   // Use back-substitution using the upper right part of A
-  if (lapack::trtrs(A, B, ::lapack::Uplo::Upper, ::lapack::Op::NoTrans,
-                    ::lapack::Diag::NonUnit)) {
-    return std::nullopt;
+  if (lapack::trtrs(A, B, lapack::uplo::upper, lapack::op::no_transpose,
+                    lapack::diag::non_unit)) {
+    return out_type{std::nullopt};
   }
+  auto X = out_type{mat_out_type{}};
   for_loop([&, i = std::size_t(0)](
-               auto const... is) mutable { X(is...) = B(is...); },
+               auto const... is) mutable { X->at(is...) = B(is...); },
            N, K);
   return X;
 }
@@ -172,34 +171,32 @@ requires(tensor_dimension<MatA, 0> ==
 #if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
 template <static_mat MatA, static_vec VecB>
 requires (tensor_dimension<MatA, 0> == tensor_dimension<VecB, 0>)
-auto solve_qr_lapack(MatA&& A_, VecB&& b_) -> std::optional<
-    vec<common_type<tensor_value_type<MatA>, tensor_value_type<VecB>>,
-        (tensor_dimension<MatA, 0> < tensor_dimension<MatA, 1>
-             ? tensor_dimension<MatA, 0>
-             : tensor_dimension<MatA, 1>)>> {
+auto solve_qr_lapack(MatA&& A_, VecB&& b_) {
   using out_value_type =
       common_type<tensor_value_type<MatA>, tensor_value_type<VecB>>;
   static auto constexpr M = tensor_dimension<MatA, 0>;
   static auto constexpr N = tensor_dimension<MatA, 1>;
-  auto A   = mat<out_value_type, M, N>{A_};
-  auto b   = vec<out_value_type, M>{b_};
-  auto tau = vec<out_value_type, (M < N ? M : N)>{};
+  auto A                  = mat<out_value_type, M, N>{A_};
+  auto b                  = vec<out_value_type, M>{b_};
+  using out_vec_type      = vec<out_value_type, (M < N ? M : N)>;
+  using out_type          = std::optional<out_vec_type>;
+  auto tau                = out_type{out_vec_type{}};
 
   // Q * R = A
-  if (lapack::geqrf(A, tau) != 0) {
-    return std::nullopt;
+  if (lapack::geqrf(A, *tau) != 0) {
+    return out_type{std::nullopt};
   }
   // R * x = Q^T * b
-  if (lapack::ormqr(A, b, tau, ::lapack::Side::Left, ::lapack::Op::Trans) != 0) {
-    return std::nullopt;
+  if (lapack::ormqr(A, b, *tau, lapack::side::left, lapack::op::transpose) != 0) {
+    return out_type{std::nullopt};
   }
   // Use back-substitution using the upper right part of A
-  if (lapack::trtrs(A, b, ::lapack::Uplo::Upper, ::lapack::Op::NoTrans,
-                ::lapack::Diag::NonUnit) != 0) {
-    return std::nullopt;
+  if (lapack::trtrs(A, b, lapack::uplo::upper, lapack::op::no_transpose,
+                lapack::diag::non_unit) != 0) {
+    return out_type{std::nullopt};
   }
-  for (std::size_t i = 0; i < tau.dimension(0); ++i) {
-    tau(i) = b(i);
+  for (std::size_t i = 0; i < tau->dimension(0); ++i) {
+    tau->at(i) = b(i);
   }
   return tau;
 }
@@ -289,13 +286,13 @@ auto solve_qr_lapack(TensorA&& A_, TensorB&& B_)
     return std::nullopt;
   }
   // R * x = Q^T * B
-  if (lapack::ormqr(A, B, tau, ::lapack::Side::Left, ::lapack::Op::Trans) !=
+  if (lapack::ormqr(A, B, tau, lapack::side::left, lapack::op::transpose) !=
       0) {
     return std::nullopt;
   }
   // Use back-substitution using the upper right part of A
-  if (lapack::trtrs(A, B, ::lapack::Uplo::Upper, ::lapack::Op::NoTrans,
-                    ::lapack::Diag::NonUnit) != 0) {
+  if (lapack::trtrs(A, B, lapack::uplo::upper, lapack::op::no_transpose,
+                    lapack::diag::non_unit) != 0) {
     return std::nullopt;
   }
   for_loop(
@@ -344,12 +341,13 @@ auto solve(MatA&& A, VecB&& b) {
 /// is an n-by-n symmetric matrix and X and B are n-by-nrhs matrices.
 ///
 /// The diagonal pivoting method is used to factor A as \(A = U D U^T\) if uplo
-/// = Upper, or \(A = L D L^T\) if uplo = Lower, where U (or L) is a product of
+/// = upper, or \(A = L D L^T\) if uplo = lower, where U (or L) is a product of
 /// permutation and unit upper (lower) triangular matrices, and D is symmetric
 /// and block diagonal with 1-by-1 and 2-by-2 diagonal blocks. The factored form
 /// of A is then used to solve the system of equations \(A X = B\).
-auto solve_symmetric_lapack(dynamic_tensor auto&& A_, dynamic_tensor auto&& B_,
-                            lapack::Uplo uplo = lapack::Uplo::Lower)
+template <dynamic_tensor TensorA, dynamic_tensor TensorB>
+auto solve_symmetric_lapack(TensorA&& A_, TensorB&& B_,
+                            lapack::uplo uplo = lapack::uplo::lower)
     -> std::optional<tensor<common_type<tensor_value_type<decltype(A_)>,
                                         tensor_value_type<decltype(B_)>>>> {
   // assert A is quadratic matrix
@@ -409,66 +407,66 @@ auto solve_symmetric_lapack(dynamic_tensor auto&& A_, dynamic_tensor auto&& B_,
 /// Computes the solution to a system of linear equations \(A X = B\), where A
 /// is an n-by-n symmetric matrix and X and B are n-by-nrhs matrices.
 ///
-/// Aasen's algorithm is used to factor A as \(A = U T U^T\) if uplo = Upper, or
-/// \(A = L T L^T\) if uplo = Lower, where U (or L) is a product of permutation
+/// Aasen's algorithm is used to factor A as \(A = U T U^T\) if uplo = upper, or
+/// \(A = L T L^T\) if uplo = lower, where U (or L) is a product of permutation
 /// and unit upper (lower) triangular matrices, and T is symmetric tridiagonal.
 /// The factored form of A is then used to solve the system of equations \(A X =
 /// B\).
-auto solve_symmetric_lapack_aa(dynamic_tensor auto&& A_, dynamic_tensor auto&& B_,
-                            lapack::Uplo uplo = lapack::Uplo::Lower)
-    -> std::optional<tensor<common_type<tensor_value_type<decltype(A_)>,
-                                        tensor_value_type<decltype(B_)>>>> {
-  // assert A is quadratic matrix
-  assert(A_.rank() == 2);
-  assert(A_.dimension(0) == A_.dimension(1));
-
-  // assert B is vector or matrix
-  assert(B_.rank() == 1 || B_.rank() == 2);
-  // assert B dimensions are correct
-  assert(B_.dimension(0) == A_.dimension(0));
-  if constexpr (same_as<tensor_value_type<decltype(A_)>,
-                        tensor_value_type<decltype(B_)>>) {
-    decltype(auto) A = copy_or_keep_if_rvalue_tensor_solve(A_);
-    decltype(auto) B = copy_or_keep_if_rvalue_tensor_solve(B_);
-
-    auto const info = lapack::sysv_aa(A, B, uplo);
-    if (info > 0) {
-      std::cerr
-          << "[lapack::sysv_aa]\n  D(" << info << ", " << info
-          << ") is exactly zero. The factorization has been completed, but the "
-             "block diagonal matrix D is exactly singular, so the solution "
-             "could "
-             "not be computed.\n";
-    } else if (info < 0) {
-      std::cerr << "[lapack::sysv_aa]\n  Parameter " << -info << " is wrong.\n";
-    }
-    if (info != 0) {
-      return std::nullopt;
-    }
-    return std::forward<decltype(B)>(B);
-  } else {
-    using T = common_type<tensor_value_type<decltype(A_)>,
-                          tensor_value_type<decltype(B_)>>;
-    auto A = tensor<T>{A_};
-    auto B = tensor<T>{B_};
-
-    auto const info = lapack::sysv_aa(A, B, uplo);
-    if (info > 0) {
-      std::cerr
-          << "[lapack::sysv_aa]\n  D(" << info << ", " << info
-          << ") is exactly zero. The factorization has been completed, but the "
-             "block diagonal matrix D is exactly singular, so the solution "
-             "could "
-             "not be computed.\n";
-    } else if (info < 0) {
-      std::cerr << "[lapack::sysv_aa]\n  Parameter " << -info << " is wrong.\n";
-    }
-    if (info != 0) {
-      return std::nullopt;
-    }
-    return B;
-  }
-}
+//auto solve_symmetric_lapack_aa(dynamic_tensor auto&& A_, dynamic_tensor auto&& B_,
+//                            lapack::uplo uplo = lapack::uplo::lower)
+//    -> std::optional<tensor<common_type<tensor_value_type<decltype(A_)>,
+//                                        tensor_value_type<decltype(B_)>>>> {
+//  // assert A is quadratic matrix
+//  assert(A_.rank() == 2);
+//  assert(A_.dimension(0) == A_.dimension(1));
+//
+//  // assert B is vector or matrix
+//  assert(B_.rank() == 1 || B_.rank() == 2);
+//  // assert B dimensions are correct
+//  assert(B_.dimension(0) == A_.dimension(0));
+//  if constexpr (same_as<tensor_value_type<decltype(A_)>,
+//                        tensor_value_type<decltype(B_)>>) {
+//    decltype(auto) A = copy_or_keep_if_rvalue_tensor_solve(A_);
+//    decltype(auto) B = copy_or_keep_if_rvalue_tensor_solve(B_);
+//
+//    auto const info = lapack::sysv_aa(A, B, uplo);
+//    if (info > 0) {
+//      std::cerr
+//          << "[lapack::sysv_aa]\n  D(" << info << ", " << info
+//          << ") is exactly zero. The factorization has been completed, but the "
+//             "block diagonal matrix D is exactly singular, so the solution "
+//             "could "
+//             "not be computed.\n";
+//    } else if (info < 0) {
+//      std::cerr << "[lapack::sysv_aa]\n  Parameter " << -info << " is wrong.\n";
+//    }
+//    if (info != 0) {
+//      return std::nullopt;
+//    }
+//    return std::forward<decltype(B)>(B);
+//  } else {
+//    using T = common_type<tensor_value_type<decltype(A_)>,
+//                          tensor_value_type<decltype(B_)>>;
+//    auto A = tensor<T>{A_};
+//    auto B = tensor<T>{B_};
+//
+//    auto const info = lapack::sysv_aa(A, B, uplo);
+//    if (info > 0) {
+//      std::cerr
+//          << "[lapack::sysv_aa]\n  D(" << info << ", " << info
+//          << ") is exactly zero. The factorization has been completed, but the "
+//             "block diagonal matrix D is exactly singular, so the solution "
+//             "could "
+//             "not be computed.\n";
+//    } else if (info < 0) {
+//      std::cerr << "[lapack::sysv_aa]\n  Parameter " << -info << " is wrong.\n";
+//    }
+//    if (info != 0) {
+//      return std::nullopt;
+//    }
+//    return B;
+//  }
+//}
 #endif
 //==============================================================================
 #if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
@@ -479,8 +477,8 @@ auto solve_symmetric_lapack_aa(dynamic_tensor auto&& A_, dynamic_tensor auto&& B
 /// where A is an n-by-n symmetric matrix and X and B are n-by-nrhs matrices.
 ///
 /// The bounded Bunch-Kaufman (rook) diagonal pivoting method is used to factor
-/// A as \(A = P U D U^T P^T\) if uplo = Upper, or \(A = P L D L^T P^T\) if uplo
-/// = Lower, where U (or L) is unit upper (or lower) triangular matrix, \(U^T\)
+/// A as \(A = P U D U^T P^T\) if uplo = upper, or \(A = P L D L^T P^T\) if uplo
+/// = lower, where U (or L) is unit upper (or lower) triangular matrix, \(U^T\)
 /// (or
 ///    \(L^T\)) is the transpose of U (or L), P is a permutation matrix, \(P^T\)
 /// is the transpose of P, and D is symmetric and block diagonal with 1-by-1 and
@@ -489,62 +487,62 @@ auto solve_symmetric_lapack_aa(dynamic_tensor auto&& A_, dynamic_tensor auto&& B
 /// lapack::sytrf_rk is called to compute the factorization of a symmetric
 /// matrix. The factored form of A is then used to solve the system of equations
 /// \(A X = B\) by calling lapack::sytrs_rk.
-auto solve_symmetric_lapack_rk(dynamic_tensor auto&& A_,
-                               dynamic_tensor auto&& B_,
-                               lapack::Uplo          uplo = lapack::Uplo::Lower)
-    -> std::optional<tensor<common_type<tensor_value_type<decltype(A_)>,
-                                        tensor_value_type<decltype(B_)>>>> {
-  // assert A is quadratic matrix
-  assert(A_.rank() == 2);
-  assert(A_.dimension(0) == A_.dimension(1));
-
-  // assert B is vector or matrix
-  assert(B_.rank() == 1 || B_.rank() == 2);
-  // assert B dimensions are correct
-  assert(B_.dimension(0) == A_.dimension(0));
-  if constexpr (same_as<tensor_value_type<decltype(A_)>,
-                        tensor_value_type<decltype(B_)>>) {
-    decltype(auto) A = copy_or_keep_if_rvalue_tensor_solve(A_);
-    decltype(auto) B = copy_or_keep_if_rvalue_tensor_solve(B_);
-
-    auto const info = lapack::sysv_rk(A, B, uplo);
-    if (info > 0) {
-      std::cerr
-          << "[lapack::sysv_rk]\n  D(" << info << ", " << info
-          << ") is exactly zero. The factorization has been completed, but the "
-             "block diagonal matrix D is exactly singular, so the solution "
-             "could "
-             "not be computed.\n";
-    } else if (info < 0) {
-      std::cerr << "[lapack::sysv_rk]\n  Parameter " << -info << " is wrong.\n";
-    }
-    if (info != 0) {
-      return std::nullopt;
-    }
-    return std::forward<decltype(B)>(B);
-  } else {
-    using T = common_type<tensor_value_type<decltype(A_)>,
-                          tensor_value_type<decltype(B_)>>;
-    auto A = tensor<T>{A_};
-    auto B = tensor<T>{B_};
-
-    auto const info = lapack::sysv_rk(A, B, uplo);
-    if (info > 0) {
-      std::cerr
-          << "[lapack::sysv_rk]\n  D(" << info << ", " << info
-          << ") is exactly zero. The factorization has been completed, but the "
-             "block diagonal matrix D is exactly singular, so the solution "
-             "could "
-             "not be computed.\n";
-    } else if (info < 0) {
-      std::cerr << "[lapack::sysv_rk]\n  Parameter " << -info << " is wrong.\n";
-    }
-    if (info != 0) {
-      return std::nullopt;
-    }
-    return B;
-  }
-}
+//auto solve_symmetric_lapack_rk(dynamic_tensor auto&& A_,
+//                               dynamic_tensor auto&& B_,
+//                               lapack::uplo          uplo = lapack::uplo::lower)
+//    -> std::optional<tensor<common_type<tensor_value_type<decltype(A_)>,
+//                                        tensor_value_type<decltype(B_)>>>> {
+//  // assert A is quadratic matrix
+//  assert(A_.rank() == 2);
+//  assert(A_.dimension(0) == A_.dimension(1));
+//
+//  // assert B is vector or matrix
+//  assert(B_.rank() == 1 || B_.rank() == 2);
+//  // assert B dimensions are correct
+//  assert(B_.dimension(0) == A_.dimension(0));
+//  if constexpr (same_as<tensor_value_type<decltype(A_)>,
+//                        tensor_value_type<decltype(B_)>>) {
+//    decltype(auto) A = copy_or_keep_if_rvalue_tensor_solve(A_);
+//    decltype(auto) B = copy_or_keep_if_rvalue_tensor_solve(B_);
+//
+//    auto const info = lapack::sysv_rk(A, B, uplo);
+//    if (info > 0) {
+//      std::cerr
+//          << "[lapack::sysv_rk]\n  D(" << info << ", " << info
+//          << ") is exactly zero. The factorization has been completed, but the "
+//             "block diagonal matrix D is exactly singular, so the solution "
+//             "could "
+//             "not be computed.\n";
+//    } else if (info < 0) {
+//      std::cerr << "[lapack::sysv_rk]\n  Parameter " << -info << " is wrong.\n";
+//    }
+//    if (info != 0) {
+//      return std::nullopt;
+//    }
+//    return std::forward<decltype(B)>(B);
+//  } else {
+//    using T = common_type<tensor_value_type<decltype(A_)>,
+//                          tensor_value_type<decltype(B_)>>;
+//    auto A = tensor<T>{A_};
+//    auto B = tensor<T>{B_};
+//
+//    auto const info = lapack::sysv_rk(A, B, uplo);
+//    if (info > 0) {
+//      std::cerr
+//          << "[lapack::sysv_rk]\n  D(" << info << ", " << info
+//          << ") is exactly zero. The factorization has been completed, but the "
+//             "block diagonal matrix D is exactly singular, so the solution "
+//             "could "
+//             "not be computed.\n";
+//    } else if (info < 0) {
+//      std::cerr << "[lapack::sysv_rk]\n  Parameter " << -info << " is wrong.\n";
+//    }
+//    if (info != 0) {
+//      return std::nullopt;
+//    }
+//    return B;
+//  }
+//}
 #endif
 //------------------------------------------------------------------------------
 #if TATOOINE_BLAS_AND_LAPACK_AVAILABLE

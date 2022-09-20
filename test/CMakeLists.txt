@@ -21,9 +21,7 @@ include(CTest)
 include(Catch)
 include(colors)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND (
-  "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU"
-  #OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"
-  ))
+  "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU"))
   include(CodeCoverage)
 endif()
 set(COVERAGE_EXCLUDES)
@@ -77,7 +75,7 @@ macro(create_test NAME)
     set_target_properties(
       ${TARGET}
       PROPERTIES CXX_CLANG_TIDY
-      "${CLANG_TIDY_EXECUTABLE};-checks=${CLANG_TIDY_CHECKS};-header-filter='${CMAKE_SOURCE_DIR}/*';-extra-arg=-std=c++17;-line-filter=[{\"name\":\"${NAME}.cpp\",\"lines\":[[1,1]]}]")
+      "${CLANG_TIDY_EXECUTABLE};-checks=${CLANG_TIDY_CHECKS};-header-filter='${CMAKE_SOURCE_DIR}/*';-extra-arg=-std=c++20;-line-filter=[{\"name\":\"${NAME}.cpp\",\"lines\":[[1,1]]}]")
   endif()
   target_link_libraries(
     ${TARGET}
@@ -104,6 +102,9 @@ macro(create_test NAME)
       ${TARGET}
       PRIVATE
         -Wno-unused-lambda-capture)
+  endif()
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    target_compile_options(${TARGET} PRIVATE "/Wall")
   endif()
   target_compile_definitions(
     ${TARGET}

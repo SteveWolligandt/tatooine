@@ -10,9 +10,9 @@ namespace tatooine::gl {
 //==============================================================================
 class computeshader : public shaderstage {
  public:
-  DLL_API computeshader(std::filesystem::path const& sourcepath);
-  DLL_API computeshader(shadersource const& sourcepath);
-  DLL_API computeshader(computeshader&& other);
+  computeshader(std::filesystem::path const& sourcepath);
+  computeshader(shadersource const& sourcepath);
+  computeshader(computeshader&& other);
 };
 //==============================================================================
 }  // namespace tatooine::gl

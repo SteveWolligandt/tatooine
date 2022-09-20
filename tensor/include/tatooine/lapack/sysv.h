@@ -1,6 +1,16 @@
 #ifndef TATOOINE_LAPACK_SYSV_H
 #define TATOOINE_LAPACK_SYSV_H
 //==============================================================================
+extern "C" {
+//==============================================================================
+auto dsysv_(char* UPLO, int* N, int* NRHS, double* A, int* LDA, int* IPIV,
+            double* B, int* LDB, double* WORK, int* LWORK, int* INFO) -> void;
+//------------------------------------------------------------------------------
+auto ssysv_(char* UPLO, int* N, int* NRHS, float* A, int* LDA, int* IPIV,
+            float* B, int* LDB, float* WORK, int* LWORK, int* INFO) -> void;
+//==============================================================================
+} // extern "C"
+//==============================================================================
 #include <tatooine/lapack/base.h>
 //==============================================================================
 namespace tatooine::lapack {
@@ -25,24 +35,48 @@ namespace tatooine::lapack {
 /// documentation</a>
 /// \{
 //==============================================================================
-template <typename T, size_t N>
-auto sysv(tensor<T, N, N>& A, tensor<T, N>& b,  Uplo const uplo) {
+template <std::floating_point Float>
+auto sysv(uplo u, int N, int NRHS, Float* A, int LDA, int* IPIV, Float* B,
+          int LDB, Float* WORK, int LWORK) -> int {
+  auto INFO = int{};
+  if constexpr (std::same_as<Float, double>) {
+    dsysv_(reinterpret_cast<char*>(&u), &N, &NRHS, A, &LDA, IPIV, B, &LDB, WORK, &LWORK, &INFO);
+  } else if constexpr (std::same_as<Float, float>) {
+    ssysv_(reinterpret_cast<char*>(&u), &N, &NRHS, A, &LDA, IPIV, B, &LDB, WORK,
+           &LWORK, &INFO);
+  }
+  return INFO;
+}
+//------------------------------------------------------------------------------
+template <std::floating_point Float>
+auto sysv(uplo u, int N, int NRHS, Float* A, int LDA, int* IPIV, Float* B,
+          int LDB) -> int {
+  auto LWORK = int{-1};
+  auto WORK  = std::unique_ptr<Float[]>{new Float[1]};
+  sysv<Float>(u, N, NRHS, A, LDA, IPIV, B, LDB, WORK.get(), LWORK);
+  LWORK = static_cast<int>(WORK[0]);
+  WORK  = std::unique_ptr<Float[]>{new Float[LWORK]};
+  return sysv<Float>(u, N, NRHS, A, LDA, IPIV, B, LDB, WORK.get(), LWORK);
+}
+//------------------------------------------------------------------------------
+template <std::floating_point Float, size_t N>
+auto sysv(tensor<Float, N, N>& A, tensor<Float, N>& b,  uplo const u) {
   auto       ipiv = std::unique_ptr<std::int64_t[]>(new std::int64_t[N]);
-  return ::lapack::sysv(uplo, N, 1, A.data(), N, ipiv.get(), b.data(),
+  return sysv<Float>(u, N, 1, A.data(), N, ipiv.get(), b.data(),
                         N);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T>
-auto sysv(tensor<T>& A, tensor<T>& B, Uplo const uplo) {
+template <std::floating_point Float>
+auto sysv(tensor<Float>& A, tensor<Float>& B, uplo const u) {
   assert(A.rank() == 2);
   assert(B.rank() == 1 || B.rank() == 2);
   assert(A.dimension(0) == A.dimension(1));
   assert(A.dimension(0) == B.dimension(0));
   auto const N    = A.dimension(0);
-  auto       ipiv = std::unique_ptr<std::int64_t[]>(new std::int64_t[N]);
+  auto       ipiv = std::unique_ptr<int[]>(new int[N]);
 
-  return ::lapack::sysv(uplo, N, B.rank() == 1 ? 1 : B.dimension(1),
-                        A.data(), N, ipiv.get(), B.data(), N);
+  return sysv<Float>(u, N, B.rank() == 1 ? 1 : B.dimension(1), A.data(), N,
+                     ipiv.get(), B.data(), N);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Computes the solution to a system of linear equations \(A X = B\), where A
@@ -53,18 +87,18 @@ auto sysv(tensor<T>& A, tensor<T>& B, Uplo const uplo) {
 /// and unit upper (lower) triangular matrices, and T is symmetric tridiagonal.
 /// The factored form of A is then used to solve the system of equations \(A X =
 /// B\).
-template <typename T>
-auto sysv_aa(tensor<T>& A, tensor<T>& B, Uplo const uplo) {
-  assert(A.rank() == 2);
-  assert(B.rank() == 1 || B.rank() == 2);
-  assert(A.dimension(0) == A.dimension(1));
-  assert(A.dimension(0) == B.dimension(0));
-  auto const N    = A.dimension(0);
-  auto       ipiv = std::unique_ptr<std::int64_t[]>(new std::int64_t[N]);
-
-  return ::lapack::sysv_aa(uplo, N, B.dimension(1), A.data(), N, ipiv.get(),
-                           B.data(), N);
-}
+//template <typename T>
+//auto sysv_aa(tensor<T>& A, tensor<T>& B, uplo const u) {
+//  assert(A.rank() == 2);
+//  assert(B.rank() == 1 || B.rank() == 2);
+//  assert(A.dimension(0) == A.dimension(1));
+//  assert(A.dimension(0) == B.dimension(0));
+//  auto const N    = A.dimension(0);
+//  auto       ipiv = std::unique_ptr<std::int64_t[]>(new std::int64_t[N]);
+//
+//  return sysv_aa(u, N, B.dimension(1), A.data(), N, ipiv.get(),
+//                           B.data(), N);
+//}
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Computes the solution to a system of linear equations.
 ///
@@ -83,18 +117,18 @@ auto sysv_aa(tensor<T>& A, tensor<T>& B, Uplo const uplo) {
 /// lapack::sytrf_rk is called to compute the factorization of a symmetric
 /// matrix. The factored form of A is then used to solve the system of equations
 /// \(A X = B\) by calling lapack::sytrs_rk.
-template <typename T>
-auto sysv_rk(tensor<T>& A, tensor<T>& B, Uplo const uplo) {
-  assert(A.rank() == 2);
-  assert(B.rank() == 1 || B.rank() == 2);
-  assert(A.dimension(0) == A.dimension(1));
-  assert(A.dimension(0) == B.dimension(0));
-  auto const N    = A.dimension(0);
-  auto       ipiv = std::unique_ptr<std::int64_t[]>(new std::int64_t[N]);
-
-  return ::lapack::sysv_rk(uplo, N, B.rank() == 1 ? 1 : B.dimension(1),
-                           A.data(), N, ipiv.get(), B.data(), N);
-}
+//template <typename T>
+//auto sysv_rk(tensor<T>& A, tensor<T>& B, uplo const u) {
+//  assert(A.rank() == 2);
+//  assert(B.rank() == 1 || B.rank() == 2);
+//  assert(A.dimension(0) == A.dimension(1));
+//  assert(A.dimension(0) == B.dimension(0));
+//  auto const N    = A.dimension(0);
+//  auto       ipiv = std::unique_ptr<std::int64_t[]>(new std::int64_t[N]);
+//
+//  return sysv_rk(u, N, B.rank() == 1 ? 1 : B.dimension(1),
+//                           A.data(), N, ipiv.get(), B.data(), N);
+//}
 //==============================================================================
 /// \}
 //==============================================================================

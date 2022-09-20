@@ -22,19 +22,19 @@ auto type_id() -> decltype(auto) {
 //==============================================================================
 namespace detail {
 //==============================================================================
-template <typename Child, typename T, size_t Size = sizeof(T)>
+template <typename Child, typename T, std::size_t Size = sizeof(T)>
 struct base_type {
   hid_t m_id;
   base_type() : m_id{H5Tcreate(H5T_COMPOUND, Size)} {}
   ~base_type() { H5Tclose(m_id); }
 
   template <typename S>
-  auto insert(char const* name, size_t offset = 0) {
+  auto insert(char const* name, std::size_t offset = 0) {
     H5Tinsert(m_id, name, offset, type_id<S>());
     return offset + sizeof(S);
   }
   template <typename S>
-  auto insert(std::string const& name, size_t offset) {
+  auto insert(std::string const& name, std::size_t offset) {
     insert<S>(name.c_str(), offset);
   }
   static auto instance() -> auto& {
@@ -44,11 +44,11 @@ struct base_type {
   static auto id() { return instance().m_id; }
 };
 //==============================================================================
-template <typename T, size_t... Dimensions>
+template <typename T, std::size_t... Dimensions>
 struct base_array_type {
-  hid_t m_id;
-  static auto dims() -> auto & {
-    static hsize_t const ds[sizeof...(Dimensions)]{Dimensions...};
+  hid_t       m_id;
+  static auto dims() -> auto& {
+    static std::size_t const ds[sizeof...(Dimensions)]{Dimensions...};
     return ds;
   };
 
@@ -147,10 +147,10 @@ struct type<double> {
   static auto id() { return little_endian(); }
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T, size_t N>
+template <typename T, std::size_t N>
 struct type<std::array<T, N>> : detail::base_array_type<T, N> {
   using parent_type = detail::base_array_type<T, 1>;
-  hsize_t dim[1]{N};
+  std::size_t dim[1]{N};
   type() : parent_type{dim} {}
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -163,12 +163,14 @@ struct type<std::string> {
   auto id() const { return m_id; }
   auto set_id(hid_t const id) { m_id = id; }
 
-  explicit type(size_t const size) : m_id{H5Tcopy(H5T_C_S1)} { set_size(1); }
-  type() : type{size_t(1)} {}
+  explicit type(std::size_t const size) : m_id{H5Tcopy(H5T_C_S1)} {
+    set_size(size);
+  }
+  type() : type{std::size_t(1)} {}
   type(hid_t const id) : m_id{id} {}
   ~type() { H5Tclose(m_id); }
 
-  auto set_size(size_t const size) -> void { H5Tset_size(m_id, size); }
+  auto set_size(std::size_t const size) -> void { H5Tset_size(m_id, size); }
   auto size() const { return H5Tget_size(m_id); }
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -197,7 +199,7 @@ struct reflected_type : detail::base_type<reflected_type<T>, T> {
 
   template <std::size_t... Is>
   auto setup(std::index_sequence<Is...>) -> void {
-    auto offset = size_t{};
+    auto offset = std::size_t{};
     (
         [&]() {
           offset =

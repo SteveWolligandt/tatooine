@@ -7,7 +7,7 @@
 //==============================================================================
 namespace ImGui {
 //==============================================================================
-DLL_API auto ToggleButton(const char* str_id, bool* v) -> bool;
+auto ToggleButton(const char* str_id, bool* v) -> bool;
 DLL_API auto InputDouble2(const char* label, double v[2],
                           const char*         format = "%.3lf",
                           ImGuiInputTextFlags flags  = 0) -> bool;

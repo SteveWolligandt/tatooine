@@ -207,6 +207,17 @@ auto isosurface(scalarfield<Field, FieldReal, 3> const&            sf,
           integral auto const /*iz*/, auto const& pos) { return sf(pos, t); },
       g, isolevel);
 }
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+template <typename Grid, arithmetic T, bool HasNonConstReference>
+auto isosurface(detail::rectilinear_grid::typed_vertex_property_interface<
+                  Grid, T, HasNonConstReference> const& data,
+              arithmetic auto const                     isolevel) {
+  return isosurface([&](integral auto const ix, integral auto const iy,
+                        integral auto const iz,
+                        auto const& /*pos*/) { return data(ix, iy, iz); },
+                    data.grid(), isolevel);
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

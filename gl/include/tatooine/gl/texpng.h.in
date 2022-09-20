@@ -76,9 +76,9 @@ struct tex_png<ValueType, RG> {
           image[image.get_height() - 1 - y][x].blue  = 0;
         }
       };
-  static constexpr auto load_pixel = [](std::vector<vec<ValueType, 2>>& data,
-                                        png_t& image, std::size_t x,
-                                        std::size_t y) {
+  static constexpr auto load_pixel = [](std::vector<vec<ValueType, 2>>& /*data*/,
+                                        png_t& /*image*/, std::size_t /*x*/,
+                                        std::size_t /*y*/) {
   };
 };
 

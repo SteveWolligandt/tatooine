@@ -3,7 +3,7 @@
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 set(OpenGL_GL_PREFERENCE "GLVND")
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
-  find_package(OpenGL COMPONENTS OpenGL)
+  find_package(OpenGL)
 elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
   find_package(OpenGL COMPONENTS OpenGL EGL)
 endif()
@@ -33,7 +33,7 @@ if (TATOOINE_BUILD_GL)
   if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     list(APPEND GLAD_FILES external/glad_wgl/src/glad_wgl.c)
   elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
-    list(APPEND GLAD_FILES external/glad_wgl/src/glad_egl.c)
+    list(APPEND GLAD_FILES external/glad_egl/src/glad_egl.c)
   endif()
   add_library(glad STATIC ${GLAD_FILES})
   target_link_libraries(glad PUBLIC ${CMAKE_DL_LIBS})
@@ -123,12 +123,11 @@ if (TATOOINE_BUILD_GL)
       tensor
       glad
       glfw
-     PRIVATE
       imgui)
-  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
-    target_link_libraries(OpenGL)
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    target_link_libraries(gl PUBLIC opengl32)
   elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
-    target_link_libraries(OpenGL::OpenGL OpenGL::EGL)
+    target_link_libraries(gl PUBLIC OpenGL::OpenGL OpenGL::EGL)
   endif()
 
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 

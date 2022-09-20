@@ -1038,10 +1038,10 @@ struct unstructured_simplicial_grid
           }
         }
       }
-      auto on_cells(std::vector<int> const& simplices) -> void override {
+      void on_cells(std::vector<int> const& simplices) override {
         add_simplices(simplices);
       }
-      auto on_dataset_type(vtk::dataset_type t) -> void override {
+      void on_dataset_type(vtk::dataset_type t) override {
         if (t != vtk::dataset_type::unstructured_grid &&
             t != vtk::dataset_type::polydata) {
           throw std::runtime_error{
@@ -1051,8 +1051,8 @@ struct unstructured_simplicial_grid
         }
       }
 
-      auto on_points(std::vector<std::array<float, 3>> const& ps)
-          -> void override {
+      void on_points(std::vector<std::array<float, 3>> const& ps)
+          override {
         for (const auto& p : ps) {
           if constexpr (NumDimensions == 2) {
             grid.insert_vertex(static_cast<Real>(p[0]),
@@ -1064,8 +1064,7 @@ struct unstructured_simplicial_grid
           }
         }
       }
-      auto on_points(std::vector<std::array<double, 3>> const& ps)
-          -> void override {
+      void on_points(std::vector<std::array<double, 3>> const& ps) override {
         for (const auto& p : ps) {
           if constexpr (NumDimensions == 2) {
             grid.insert_vertex(static_cast<Real>(p[0]),
@@ -1077,13 +1076,13 @@ struct unstructured_simplicial_grid
           }
         }
       }
-      auto on_polygons(std::vector<int> const& ps) -> void override {
+      void on_polygons(std::vector<int> const& ps) override {
         add_simplices(ps);
       }
-      auto on_scalars(std::string const& data_name,
+      void on_scalars(std::string const& data_name,
                       std::string const& /*lookup_table_name*/,
                       std::size_t num_comps, std::vector<double> const& scalars,
-                      vtk::reader_data data) -> void override {
+                      vtk::reader_data data) override {
         if (data == vtk::reader_data::point_data) {
           if (num_comps == 1) {
             auto& prop =

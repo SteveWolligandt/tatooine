@@ -1,15 +1,18 @@
-#ifndef __TATOOINE_MEMORY_USAGE_H__
-#define __TATOOINE_MEMORY_USAGE_H__
-
+#ifndef TATOOINE_MEMORY_USAGE_H
+#define TATOOINE_MEMORY_USAGE_H
+//==============================================================================
+#if defined(__unix__)
 #include <unistd.h>
-#include <optional>
-#include <fstream>
-#include <string>
+#elif defined(_WIN32) || defined(WIN32)
+#include <windows.h>
+#endif
 
+#include <fstream>
+#include <optional>
+#include <string>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-
 /// Total amount of RAM in kB
 inline size_t total_memory() {
   std::string   token;
@@ -28,9 +31,9 @@ inline size_t total_memory() {
   }
   throw std::runtime_error{"could not get total RAM"};
 }
-
-//! Attempts to read the system-dependent data for a process' virtual memory
-//! size and resident set size, and return the results in Byte.
+//------------------------------------------------------------------------------
+/// Attempts to read the system-dependent data for a process' virtual memory
+/// size and resident set size, and return the results in Byte.
 inline auto memory_usage() {
   // 'file' stat seems to give the most reliable results
   std::ifstream stat_stream{"/proc/self/stat", std::ios_base::in};
@@ -56,9 +59,7 @@ inline auto memory_usage() {
   auto page_size_b = sysconf(_SC_PAGE_SIZE);
   return std::pair{vsize, rss * page_size_b};
 }
-
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-
 #endif

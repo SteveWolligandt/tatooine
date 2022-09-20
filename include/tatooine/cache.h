@@ -1,11 +1,11 @@
 #ifndef TATOOINE_CACHE_H
 #define TATOOINE_CACHE_H
-
+//==============================================================================
 #include <map>
 #include <list>
 #include <optional>
 #include <algorithm>
-#include "memory_usage.h"
+//#include <tatooine/memory_usage.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -15,16 +15,16 @@ class cache {
   // typedefs
   //----------------------------------------------------------------------------
  public:
-  using container_t    = std::map<Key, Value>;
-  using const_iterator = typename container_t::const_iterator;
-  using usage_t        = std::list<const_iterator>;
+  using container_type = std::map<Key, Value>;
+  using const_iterator = typename container_type::const_iterator;
+  using usage_type     = std::list<const_iterator>;
 
   //----------------------------------------------------------------------------
   // members
   //----------------------------------------------------------------------------
  private:
-  container_t m_data;
-  mutable usage_t m_usage;
+  container_type m_data;
+  mutable usage_type m_usage;
   uint64_t m_max_elements;
   uint64_t m_max_memory_usage;
 
@@ -61,9 +61,10 @@ class cache {
   //----------------------------------------------------------------------------
  private:
   void capacity_check() {
-    while (m_data.size() > m_max_elements ||
-           (memory_usage().first / 1024.0 > m_max_memory_usage &&
-            !m_data.empty())) {
+    while (m_data.size() > m_max_elements
+           //|| (memory_usage().first / 1024.0 > m_max_memory_usage &&
+           //    !m_data.empty())
+    ) {
       m_data.erase(m_usage.back());
       m_usage.pop_back();
     }
