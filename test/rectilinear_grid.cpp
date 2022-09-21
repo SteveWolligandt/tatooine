@@ -129,149 +129,135 @@ TEST_CASE("rectilinear_grid_vertex_iterator",
 //  REQUIRE(idx7 == 23);
 //  // REQUIRE(factor6 == 1);
 //}
-////==============================================================================
-//TEST_CASE("rectilinear_grid_vertex_property", "[rectilinear_grid][property]") {
-//  auto g = rectilinear_grid{linspace{0.0, 1.0, 11}, linspace{0.0, 1.0, 11}};
-//  SECTION("contiguous") {
-//    auto& prop = g.insert_contiguous_vertex_property<double>("double_prop");
-//    REQUIRE(prop.size().size() == 2);
-//    REQUIRE(prop.size()[0] == 11);
-//    REQUIRE(prop.size()[1] == 11);
-//    REQUIRE(prop(0, 0) == double{});
-//    prop(0, 0) = 3;
-//    REQUIRE(prop(0, 0) == 3);
-//  }
-//  SECTION("chunked") {
-//    auto& prop = g.insert_chunked_vertex_property<double>("double_prop");
-//    REQUIRE(prop.size().size() == 2);
-//    REQUIRE(prop.size()[0] == 11);
-//    REQUIRE(prop.size()[1] == 11);
-//    REQUIRE(prop(0, 0) == double{});
-//    prop(0, 0) = 3;
-//    REQUIRE(prop(0, 0) == 3);
-//  }
-//}
-////==============================================================================
-//TEST_CASE("rectilinear_grid_dimensions", "[rectilinear_grid][dimensions]") {
-//  SECTION("mixed get") {
-//    auto r = rectilinear_grid{std::vector<double>{1, 2, 3},
-//                              std::array<double, 3>{1, 2, 3},
-//                              linspace<double>{1, 3, 3}};
-//    REQUIRE(
-//        is_same<std::decay_t<decltype(r.dimension<0>())>, std::vector<double>>);
-//    REQUIRE(is_same<std::decay_t<decltype(r.dimension<1>())>,
-//                    std::array<double, 3>>);
-//    REQUIRE(
-//        is_same<std::decay_t<decltype(r.dimension<2>())>, linspace<double>>);
-//  }
-//  SECTION("dynamic") {
-//    auto const r = rectilinear_grid{2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
-//    for (std::size_t i = 0; i < 11; ++i) {
-//      REQUIRE(r.size(i) == 2);
-//    }
-//    REQUIRE(&r.dimension(0) == &r.dimension<0>());
-//    REQUIRE(&r.dimension(1) == &r.dimension<1>());
-//    REQUIRE(&r.dimension(2) == &r.dimension<2>());
-//    REQUIRE(&r.dimension(3) == &r.dimension<3>());
-//    REQUIRE(&r.dimension(4) == &r.dimension<4>());
-//    REQUIRE(&r.dimension(5) == &r.dimension<5>());
-//    REQUIRE(&r.dimension(6) == &r.dimension<6>());
-//    REQUIRE(&r.dimension(7) == &r.dimension<7>());
-//    REQUIRE(&r.dimension(8) == &r.dimension<8>());
-//    REQUIRE(&r.dimension(9) == &r.dimension<9>());
-//    REQUIRE(&r.dimension(10) == &r.dimension<10>());
-//  }
-//}
-////==============================================================================
-//TEST_CASE("rectilinear_grid_topology", "[rectilinear_grid][topology]") {
-//  auto const r =
-//      rectilinear_grid{std::vector{1.0, 1.1, 2.0}, std::vector{2.0, 3.1, 4.0}};
-//  SECTION("min") {
-//    auto const min = r.min();
-//    REQUIRE(min(0) == 1.0);
-//    REQUIRE(min(1) == 2.0);
-//  }
-//  SECTION("max") {
-//    auto const max = r.max();
-//    REQUIRE(max(0) == 2.0);
-//    REQUIRE(max(1) == 4.0);
-//  }
-//  SECTION("center") {
-//    auto const center = r.center();
-//    REQUIRE(center(0) == Approx(1.5));
-//    REQUIRE(center(1) == Approx(3.0));
-//  }
-//  SECTION("extent") {
-//    auto const extent = r.extent();
-//    REQUIRE(extent(0) == Approx(1.0));
-//    REQUIRE(extent(1) == Approx(2.0));
-//
-//    REQUIRE(r.extent<0>(0) == Approx(0.1));
-//    REQUIRE(r.extent<0>(1) == Approx(0.9));
-//    REQUIRE(r.extent<1>(0) == Approx(1.1));
-//    REQUIRE(r.extent<1>(1) == Approx(0.9));
-//  }
-//  SECTION("aabb") {
-//    auto const aabb = r.bounding_box();
-//    REQUIRE(aabb.min(0) == Approx(1.0));
-//    REQUIRE(aabb.min(1) == Approx(2.0));
-//    REQUIRE(aabb.max(0) == Approx(2.0));
-//    REQUIRE(aabb.max(1) == Approx(4.0));
-//  }
-//}
-////==============================================================================
-//TEST_CASE("rectilinear_grid_push_back", "[rectilinear_grid][push_back]") {
-//  auto r = rectilinear_grid{std::vector{1.0, 1.1, 2.0},
-//                            std::vector{2.0, 3.5, 4.0}, linspace{0.0, 1.0, 11}};
-//  r.push_back<0>();
-//  REQUIRE(r.dimension<0>().back() == Approx(2.9));
-//  r.push_back<1>();
-//  REQUIRE(r.dimension<1>().back() == Approx(4.5));
-//  r.push_back<2>();
-//  REQUIRE(r.dimension<2>().back() == Approx(1.1));
-//}
-////==============================================================================
-//TEST_CASE("rectilinear_grid_vertex_properties",
-//          "[rectilinear_grid][vertex_properties]") {
-//  SECTION("copy without property") {
-//    auto const prop_name = "prop";
-//    auto       r         = rectilinear_grid{32, 32};
-//    r.scalar_vertex_property(prop_name);
-//    auto r_copy = r.copy_without_properties();
-//    REQUIRE_FALSE(r_copy.has_vertex_property(prop_name));
-//  }
-//}
-////==============================================================================
-//TEST_CASE("rectilinear_grid_vertex_property_sampler_scalar",
-//          "[rectilinear_grid][sampler][linear][scalar]") {
-//  auto  g = rectilinear_grid{linspace{0.0, 10.0, 11}, linspace{0.0, 10.0, 11}};
-//  auto& prop = g.insert_scalar_vertex_property("double_prop");
-//  prop(0, 0) = 1;
-//  prop(1, 0) = 2;
-//  prop(0, 1) = 3;
-//  prop(1, 1) = 4;
-//  REQUIRE(prop(0, 0) == 1);
-//  REQUIRE(prop(1, 0) == 2);
-//  REQUIRE(prop(0, 1) == 3);
-//  REQUIRE(prop(1, 1) == 4);
-//  auto sampler = prop.linear_sampler();
-//  REQUIRE(sampler(0, 0) == 1);
-//  REQUIRE(sampler(1, 0) == 2);
-//  REQUIRE(sampler(0, 1) == 3);
-//  REQUIRE(sampler(1, 1) == 4);
-//
-//  REQUIRE(sampler(0.5, 0) == 1.5);
-//  REQUIRE(sampler(0.25, 0) == 1.25);
-//  REQUIRE(sampler(0.5, 1) == 3.5);
-//  REQUIRE(sampler(0.25, 1) == 3.25);
-//  REQUIRE(sampler(0, 0.5) == 2);
-//  REQUIRE(sampler(0, 0.25) == 1.5);
-//  REQUIRE(sampler(1, 0.5) == 3);
-//  REQUIRE(sampler(1, 0.25) == 2.5);
-//  REQUIRE(sampler(0.5, 0.5) == 2.5);
-//  REQUIRE(sampler(0.25, 0.25) == 1.75);
-//}
-////==============================================================================
+//==============================================================================
+TEST_CASE("rectilinear_grid_vertex_property", "[rectilinear_grid][property]") {
+  auto g = rectilinear_grid{linspace{0.0, 1.0, 11}, linspace{0.0, 1.0, 11}};
+  auto& prop = g.scalar_vertex_property("double_prop");
+  REQUIRE(prop(0, 0) == real_number{});
+  prop(0, 0) = 3;
+  REQUIRE(prop(0, 0) == 3);
+}
+//==============================================================================
+TEST_CASE("rectilinear_grid_dimensions", "[rectilinear_grid][dimensions]") {
+  SECTION("mixed get") {
+    auto r = rectilinear_grid{std::vector<double>{1, 2, 3},
+                              std::array<double, 3>{1, 2, 3},
+                              linspace<double>{1, 3, 3}};
+    REQUIRE(
+        is_same<std::decay_t<decltype(r.dimension<0>())>, std::vector<double>>);
+    REQUIRE(is_same<std::decay_t<decltype(r.dimension<1>())>,
+                    std::array<double, 3>>);
+    REQUIRE(
+        is_same<std::decay_t<decltype(r.dimension<2>())>, linspace<double>>);
+  }
+  SECTION("dynamic") {
+    auto const r = rectilinear_grid{2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
+    for (std::size_t i = 0; i < 11; ++i) {
+      REQUIRE(r.size(i) == 2);
+    }
+    REQUIRE(&r.dimension(0) == &r.dimension<0>());
+    REQUIRE(&r.dimension(1) == &r.dimension<1>());
+    REQUIRE(&r.dimension(2) == &r.dimension<2>());
+    REQUIRE(&r.dimension(3) == &r.dimension<3>());
+    REQUIRE(&r.dimension(4) == &r.dimension<4>());
+    REQUIRE(&r.dimension(5) == &r.dimension<5>());
+    REQUIRE(&r.dimension(6) == &r.dimension<6>());
+    REQUIRE(&r.dimension(7) == &r.dimension<7>());
+    REQUIRE(&r.dimension(8) == &r.dimension<8>());
+    REQUIRE(&r.dimension(9) == &r.dimension<9>());
+    REQUIRE(&r.dimension(10) == &r.dimension<10>());
+  }
+}
+//==============================================================================
+TEST_CASE("rectilinear_grid_topology", "[rectilinear_grid][topology]") {
+  auto const r =
+      rectilinear_grid{std::vector{1.0, 1.1, 2.0}, std::vector{2.0, 3.1, 4.0}};
+  SECTION("min") {
+    auto const min = r.min();
+    REQUIRE(min(0) == 1.0);
+    REQUIRE(min(1) == 2.0);
+  }
+  SECTION("max") {
+    auto const max = r.max();
+    REQUIRE(max(0) == 2.0);
+    REQUIRE(max(1) == 4.0);
+  }
+  SECTION("center") {
+    auto const center = r.center();
+    REQUIRE(center(0) == Approx(1.5));
+    REQUIRE(center(1) == Approx(3.0));
+  }
+  SECTION("extent") {
+    auto const extent = r.extent();
+    REQUIRE(extent(0) == Approx(1.0));
+    REQUIRE(extent(1) == Approx(2.0));
+
+    REQUIRE(r.extent<0>(0) == Approx(0.1));
+    REQUIRE(r.extent<0>(1) == Approx(0.9));
+    REQUIRE(r.extent<1>(0) == Approx(1.1));
+    REQUIRE(r.extent<1>(1) == Approx(0.9));
+  }
+  SECTION("aabb") {
+    auto const aabb = r.bounding_box();
+    REQUIRE(aabb.min(0) == Approx(1.0));
+    REQUIRE(aabb.min(1) == Approx(2.0));
+    REQUIRE(aabb.max(0) == Approx(2.0));
+    REQUIRE(aabb.max(1) == Approx(4.0));
+  }
+}
+//==============================================================================
+TEST_CASE("rectilinear_grid_push_back", "[rectilinear_grid][push_back]") {
+  auto r = rectilinear_grid{std::vector{1.0, 1.1, 2.0},
+                            std::vector{2.0, 3.5, 4.0}, linspace{0.0, 1.0, 11}};
+  r.push_back<0>();
+  REQUIRE(r.dimension<0>().back() == Approx(2.9));
+  r.push_back<1>();
+  REQUIRE(r.dimension<1>().back() == Approx(4.5));
+  r.push_back<2>();
+  REQUIRE(r.dimension<2>().back() == Approx(1.1));
+}
+//==============================================================================
+TEST_CASE("rectilinear_grid_vertex_properties",
+          "[rectilinear_grid][vertex_properties]") {
+  SECTION("copy without property") {
+    auto const prop_name = "prop";
+    auto       r         = rectilinear_grid{32, 32};
+    r.scalar_vertex_property(prop_name);
+    auto r_copy = r.copy_without_properties();
+    REQUIRE_FALSE(r_copy.has_vertex_property(prop_name));
+  }
+}
+//==============================================================================
+TEST_CASE("rectilinear_grid_vertex_property_sampler_scalar",
+          "[rectilinear_grid][sampler][linear][scalar]") {
+  auto  g = rectilinear_grid{linspace{0.0, 10.0, 11}, linspace{0.0, 10.0, 11}};
+  auto& prop = g.insert_scalar_vertex_property("double_prop");
+  prop(0, 0) = 1;
+  prop(1, 0) = 2;
+  prop(0, 1) = 3;
+  prop(1, 1) = 4;
+  REQUIRE(prop(0, 0) == 1);
+  REQUIRE(prop(1, 0) == 2);
+  REQUIRE(prop(0, 1) == 3);
+  REQUIRE(prop(1, 1) == 4);
+  auto sampler = prop.linear_sampler();
+  REQUIRE(sampler(0, 0) == 1);
+  REQUIRE(sampler(1, 0) == 2);
+  REQUIRE(sampler(0, 1) == 3);
+  REQUIRE(sampler(1, 1) == 4);
+
+  REQUIRE(sampler(0.5, 0) == 1.5);
+  REQUIRE(sampler(0.25, 0) == 1.25);
+  REQUIRE(sampler(0.5, 1) == 3.5);
+  REQUIRE(sampler(0.25, 1) == 3.25);
+  REQUIRE(sampler(0, 0.5) == 2);
+  REQUIRE(sampler(0, 0.25) == 1.5);
+  REQUIRE(sampler(1, 0.5) == 3);
+  REQUIRE(sampler(1, 0.25) == 2.5);
+  REQUIRE(sampler(0.5, 0.5) == 2.5);
+  REQUIRE(sampler(0.25, 0.25) == 1.75);
+}
+//==============================================================================
 //TEST_CASE("rectilinear_grid_vertex_property_sampler_vec",
 //          "[rectilinear_grid][sampler][linear][vec]") {
 //  auto  g = rectilinear_grid{linspace{0.0, 10.0, 11}, linspace{0.0, 10.0, 11}};

@@ -11,13 +11,13 @@ using namespace tatooine;
 auto main() -> int {
   std::cout << "foo\n";
   auto grid =
-      rectilinear_grid{linspace{-10.0, 10.0, 256}, linspace{-10.0, 10.0, 256},
-                       linspace{-10.0, 10.0, 256}};
-  std::cout << "foo\n";
+      rectilinear_grid{linspace{-10.0, 10.0, 10},
+                       linspace{-10.0, 10.0, 10},
+                       linspace{-10.0, 10.0, 10}};
   auto const& prop = grid.sample_to_vertex_property(
       euclidean_length(analytical::numerical::abcflow{}), "length");
-  std::cout << "foo\n";
   auto const mesh = isosurface(prop, 1);
-  std::cout << "foo\n";
+  std::cout << mesh.vertices().size() <<"\n";
+  std::cout << mesh.simplices().size() <<"\n";
   rendering::interactive::show(mesh);
 }

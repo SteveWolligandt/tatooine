@@ -88,7 +88,7 @@ class texture : public id_holder<GLuint> {
 
  protected:
   //============================================================================
-  std::array<std::size_t, NumDimensions> m_size;
+  std::array<GLsizei, NumDimensions> m_size;
 
  public:
   //============================================================================
@@ -139,7 +139,7 @@ class texture : public id_holder<GLuint> {
   //----------------------------------------------------------------------------
   texture(integral auto const... sizes)
   requires(sizeof...(sizes) == NumDimensions)
-      : m_size{static_cast<std::size_t>(sizes)...} {
+      : m_size{static_cast<GLsizei>(sizes)...} {
     create_id();
     set_wrap_mode(default_wrap_mode);
     set_interpolation_mode(default_interpolation);
@@ -156,12 +156,11 @@ class texture : public id_holder<GLuint> {
   //----------------------------------------------------------------------------
   texture(ValueType const* const data, integral auto const... sizes)
   requires(sizeof...(sizes) == NumDimensions) 
-      : m_size{static_cast<std::size_t>(sizes)...} {
+      : m_size{static_cast<GLsizei>(sizes)...} {
     create_id();
     set_interpolation_mode(default_interpolation);
     set_wrap_mode(default_wrap_mode);
-    m_size = std::array<std::size_t, NumDimensions>{
-        static_cast<std::size_t>(sizes)...};
+    m_size = std::array{static_cast<GLsizei>(sizes)...};
     upload_data(data);
   }
   //----------------------------------------------------------------------------
@@ -338,7 +337,7 @@ class texture : public id_holder<GLuint> {
     if constexpr (NumDimensions == 1) {
       gl::copy_image_sub_data(other.id(), target, 0, 0, 0, 0, id(), target, 0,
                               0, 0, 0, m_size[0], 1, 1);
-    } else if (NumDimensions == 2) {
+    } else if constexpr (NumDimensions == 2) {
       gl::copy_image_sub_data(other.id(), target, 0, 0, 0, 0, id(), target, 0,
                               0, 0, 0, m_size[0], m_size[1], 1);
 
@@ -351,10 +350,10 @@ class texture : public id_holder<GLuint> {
   template <integral Size>
   auto resize(std::array<Size, NumDimensions> const& size) -> void {
     auto last_tex = bind();
-    if constexpr (is_same<std::size_t, Size>) {
+    if constexpr (is_same<GLsizei, Size>) {
       m_size = size;
     } else {
-      m_size = std::array<std::size_t, NumDimensions>{begin(size), end(size)};
+      m_size = std::array<GLsizei, NumDimensions>{begin(size), end(size)};
     }
     if constexpr (NumDimensions == 1) {
       gl::tex_image_1d(target, 0, gl_internal_format, width(), 0, gl_format,
@@ -375,7 +374,7 @@ class texture : public id_holder<GLuint> {
   requires(sizeof...(Sizes) == NumDimensions)
   auto resize(Sizes const... sizes)
       -> void {
-    m_size        = std::array{static_cast<std::size_t>(sizes)...};
+    m_size        = std::array{static_cast<GLsizei>(sizes)...};
     auto last_tex = bind();
     if constexpr (NumDimensions == 1) {
       gl::tex_image_1d(target, 0, gl_internal_format, width(), 0, gl_format,
@@ -434,7 +433,7 @@ class texture : public id_holder<GLuint> {
   template <integral... Sizes>
   requires (sizeof...(Sizes) == NumDimensions)
   auto upload_data(value_type const* const data, Sizes const... sizes) {
-    m_size = std::array{static_cast<std::size_t>(sizes)...};
+    m_size = std::array{static_cast<GLsizei>(sizes)...};
     upload_data(data);
   }
   //------------------------------------------------------------------------------
@@ -443,28 +442,34 @@ class texture : public id_holder<GLuint> {
            (num_components() > 1)
   auto upload_data(vec<value_type, num_components()> const* const data,
                    Sizes const... sizes) {
-    m_size = std::array{static_cast<std::size_t>(sizes)...};
+    m_size = std::array{static_cast<GLsizei>(sizes)...};
     upload_data(data->data());
   }
   //------------------------------------------------------------------------------
   auto upload_data(dynamic_multidim_array<value_type> const& data)
   requires (num_components() == 1) {
-    std::ranges::copy(data.size(), begin(m_size));
+    for (std::size_t i = 0; i < NumDimensions; ++i) {
+      m_size[i] = static_cast<GLsizei>(data.size()[i]);
+    }
     upload_data(data.data());
   }
   //------------------------------------------------------------------------------
   auto upload_data(
       dynamic_multidim_array<vec<value_type, num_components()>> const& data)
-  requires(num_components() > 1) {
-    std::ranges::copy(data.size(), begin(m_size));
+  requires(num_components() > GLsizei(1)) {
+    for (std::size_t i = 0; i < NumDimensions; ++i) {
+      m_size[i] = static_cast<GLsizei>(data.size()[i]);
+    }
     upload_data(data.internal_container().front().data());
   }
   //------------------------------------------------------------------------------
   template <convertible_to<value_type> OtherType>
-  requires (num_components() == 1)
+  requires (num_components() == GLsizei(1))
   auto upload_data(
       dynamic_multidim_array<OtherType> const& data) {
-    std::ranges::copy(data.size(), begin(m_size));
+    for (std::size_t i = 0; i < NumDimensions; ++i) {
+      m_size[i] = static_cast<GLsizei>(data.size()[i]);
+    }
     std::vector<value_type>{begin(data.internal_container()),
                             end(data.internal_container())};
     upload_data(data.data());
@@ -474,7 +479,9 @@ class texture : public id_holder<GLuint> {
   requires (num_components() > 1)
   auto upload_data(
       dynamic_multidim_array<vec<OtherType, num_components()>> const& data) {
-    std::ranges::copy(data.size(), begin(m_size));
+    for (std::size_t i = 0; i < NumDimensions; ++i) {
+      m_size[i] = static_cast<GLsizei>(data.size()[i]);
+    }
     auto const converted_data = std::vector<value_type>{
         begin(data.internal_container()), end(data.internal_container())};
     upload_data(converted_data.data());
@@ -486,7 +493,7 @@ class texture : public id_holder<GLuint> {
   auto upload_data(std::vector<value_type> const& data,
                    Sizes const... sizes) {
     assert((sizes * ...) == size(data));
-    m_size = std::array{static_cast<std::size_t>(sizes)...};
+    m_size = std::array{static_cast<GLsizei>(sizes)...};
     upload_data(data.data());
   }
   //------------------------------------------------------------------------------
@@ -496,7 +503,7 @@ class texture : public id_holder<GLuint> {
   auto upload_data(std::vector<vec<value_type, num_components()>> const& data,
                    Sizes const... sizes) {
     assert((sizes * ...) = size(data));
-    m_size = std::array{static_cast<std::size_t>(sizes)...};
+    m_size = std::array{static_cast<GLsizei>(sizes)...};
     upload_data(data.data());
   }
   //------------------------------------------------------------------------------
@@ -505,7 +512,7 @@ class texture : public id_holder<GLuint> {
            (sizeof...(Sizes) == NumDimensions)
   auto upload_data(std::vector<OtherType> const& data, Sizes const... sizes) {
     assert((sizes * ...) = size(data));
-    m_size = std::array{static_cast<std::size_t>(sizes)...};
+    m_size = std::array{static_cast<GLsizei>(sizes)...};
     auto converted_data = std::vector<value_type>(begin(data), end(data));
     upload_data(converted_data.data());
   }
@@ -516,7 +523,7 @@ class texture : public id_holder<GLuint> {
   auto upload_data(std::vector<vec<OtherType, num_components()>> const& data,
                    Sizes const... sizes) {
     assert((sizes * ...) = size(data));
-    m_size = std::array{static_cast<std::size_t>(sizes)...};
+    m_size = std::array{static_cast<GLsizei>(sizes)...};
     auto converted_data =
         std::vector<vec<value_type, num_components()>>(begin(data), end(data));
     upload_data(converted_data.data());
@@ -527,18 +534,16 @@ class texture : public id_holder<GLuint> {
   auto download_data() const {
     if constexpr (num_components() == 1) {
       auto data = dynamic_multidim_array<ValueType>{m_size};
-      gl::get_texture_image(
-          id(), 0, gl_format, gl_type,
-          num_components() * num_texels() * sizeof(value_type),
-          data.data());
+      auto const s    = static_cast<GLsizei>(num_components() * num_texels() *
+                                          sizeof(value_type));
+      gl::get_texture_image(id(), 0, gl_format, gl_type, s, data.data());
       return data;
     } else {
       auto data =
           dynamic_multidim_array<vec<ValueType, num_components()>>{m_size};
-      gl::get_texture_image(
-          id(), 0, gl_format, gl_type,
-          num_components() * num_texels() * sizeof(value_type),
-          data.data());
+      auto const s = static_cast<GLsizei>(num_components() * num_texels() *
+                                          sizeof(value_type));
+      gl::get_texture_image(id(), 0, gl_format, gl_type, s, data.data());
       return data;
     }
   }
@@ -562,9 +567,9 @@ class texture : public id_holder<GLuint> {
   }
   //------------------------------------------------------------------------------
   auto download_data(value_type* data) const -> void {
-    gl::get_texture_image(id(), 0, gl_format, gl_type,
-                          num_texels() * num_components() * sizeof(value_type),
-                          data);
+    auto const s = static_cast<GLsizei>(num_texels() * num_components() *
+                                        sizeof(value_type));
+    gl::get_texture_image(id(), 0, gl_format, gl_type, s, data);
   }
   //------------------------------------------------------------------------------
   auto& download_sub_data(GLint xoffset, GLsizei width,
@@ -574,9 +579,10 @@ class texture : public id_holder<GLuint> {
     if (data.size() != width * num_components()) {
       data.resize(width * num_components());
     }
+    auto const s = static_cast<GLsizei>(data.size() * sizeof(value_type));
     gl::get_texture_sub_image(id(), level, xoffset, 0, 0, width, 1, 1,
                               gl_format, gl_type,
-                              data.size() * sizeof(value_type), data.data());
+                              s, data.data());
     return data;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -588,10 +594,10 @@ class texture : public id_holder<GLuint> {
     if (data.size() != static_cast<std::size_t>(width)) {
       data.resize(width * num_components());
     }
-    gl::get_texture_sub_image(
-        id(), level, xoffset, 0, 0, width, 1, 1, gl_format, gl_type,
-        data.size() * num_components() * sizeof(value_type),
-        data.front().data());
+    auto const s = static_cast<GLsizei>(data.size() * num_components() *
+                                        sizeof(value_type));
+    gl::get_texture_sub_image(id(), level, xoffset, 0, 0, width, 1, 1,
+                              gl_format, gl_type, s, data.front().data());
     return data;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -599,15 +605,16 @@ class texture : public id_holder<GLuint> {
   requires (NumDimensions == 1) {
     if constexpr (num_components() == 1) {
       auto data = std::vector<ValueType>(width);
+      auto const s    = static_cast<GLsizei>(data.size() * sizeof(value_type));
       gl::get_texture_sub_image(id(), level, xoffset, 0, 0, width, 1, 1,
-                                gl_format, gl_type,
-                                data.size() * sizeof(value_type), data.data());
+                                gl_format, gl_type, s, data.data());
       return data;
     } else {
-      auto data = std::vector<vec<ValueType, num_components()>>(width);
-      gl::get_texture_sub_image(
-          id(), level, xoffset, 0, 0, width, 1, 1, gl_format, gl_type,
-          data.size() * num_components() * sizeof(value_type), data.front().data());
+      auto       data = std::vector<vec<ValueType, num_components()>>(width);
+      auto const s    = static_cast<GLsizei>(data.size() * num_components() *
+                                          sizeof(value_type));
+      gl::get_texture_sub_image(id(), level, xoffset, 0, 0, width, 1, 1,
+                                gl_format, gl_type, s, data.front().data());
       return data;
     }
   }
@@ -620,9 +627,10 @@ class texture : public id_holder<GLuint> {
     if (data.size() != static_cast<std::size_t>(width * height)) {
       data.resize(width * height);
     }
+    auto const s = static_cast<GLsizei>(data.size() * sizeof(value_type));
     gl::get_texture_sub_image(id(), level, xoffset, yoffset, 0, width, height,
                               1, gl_format, gl_type,
-                              data.size() * sizeof(value_type), data.data());
+                              s, data.data());
     return data;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -635,9 +643,10 @@ class texture : public id_holder<GLuint> {
     if (data.size() != static_cast<std::size_t>(width * height)) {
       data.resize(width * height);
     }
-    gl::get_texture_sub_image(
-        id(), level, xoffset, yoffset, 0, width, height, 1, gl_format, gl_type,
-        data.size() * num_components() * sizeof(value_type), data.front().data());
+    auto const s = static_cast<GLsizei>(data.size() * num_components() *
+                                        sizeof(value_type));
+    gl::get_texture_sub_image(id(), level, xoffset, yoffset, 0, width, height,
+                              1, gl_format, gl_type, s, data.front().data());
     return data;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -646,17 +655,17 @@ class texture : public id_holder<GLuint> {
   requires (NumDimensions == 2) {
     if constexpr (num_components() == 1) {
       auto data = dynamic_multidim_array<ValueType>{width, height};
+      auto const s =
+          static_cast<GLsizei>(data.num_components() * sizeof(value_type));
       gl::get_texture_sub_image(id(), level, xoffset, yoffset, 0, width, height,
-                                1, gl_format, gl_type,
-                                data.num_components() * sizeof(value_type), data.data());
+                                1, gl_format, gl_type, s, data.data());
       return data;
     } else {
       auto data = dynamic_multidim_array<vec<ValueType, num_components()>>{width, height};
-      gl::get_texture_sub_image(
-          id(), level, xoffset, yoffset, 0, width, height, 1, gl_format,
-          gl_type,
-          data.num_components() * num_components() * sizeof(value_type),
-          data.data());
+      auto const s = static_cast<GLsizei>(
+          data.num_components() * num_components() * sizeof(value_type));
+      gl::get_texture_sub_image(id(), level, xoffset, yoffset, 0, width, height,
+                                1, gl_format, gl_type, s, data.data());
       return data;
     }
   }
@@ -669,9 +678,10 @@ class texture : public id_holder<GLuint> {
     if (data.size() != static_cast<std::size_t>(width * height * depth)) {
       data.resize(width * height * depth);
     }
+    auto const s = static_cast<GLsizei>(data.size() * sizeof(value_type));
     gl::get_texture_sub_image(id(), level, xoffset, yoffset, zoffset, width,
-                              height, depth, gl_format, gl_type,
-                              data.size() * sizeof(value_type), data.data());
+                              height, depth, gl_format, gl_type, s,
+                              data.data());
     return data;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -684,10 +694,11 @@ class texture : public id_holder<GLuint> {
     if (data.size() != static_cast<std::size_t>(width * height * depth)) {
       data.resize(width * height * depth);
     }
-    gl::get_texture_sub_image(
-        id(), level, xoffset, yoffset, zoffset, width, height, depth, gl_format,
-        gl_type, data.size() * num_components() * sizeof(value_type),
-        data.front().data());
+    auto const s = static_cast<GLsizei>(data.size() * num_components() *
+                                        sizeof(value_type));
+    gl::get_texture_sub_image(id(), level, xoffset, yoffset, zoffset, width,
+                              height, depth, gl_format, gl_type, s,
+                              data.front().data());
     return data;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -697,16 +708,17 @@ class texture : public id_holder<GLuint> {
   requires(NumDimensions == 3) {
     if constexpr (num_components() == 1) {
       auto data = dynamic_multidim_array<ValueType>{width, height, depth};
+      auto const s = static_cast<GLsizei>(data.num_components() * sizeof(value_type));
       gl::get_texture_sub_image(id(), level, xoffset, yoffset, zoffset, width,
                                 height, depth, gl_format, gl_type,
-                                data.num_components() * sizeof(value_type), data.data());
+                                s, data.data());
       return data;
     } else {
       auto data = dynamic_multidim_array<vec<ValueType, num_components()>>{
           width, height, depth};
+      auto const s = static_cast<GLsizei>(data.num_components() * sizeof(value_type));
       gl::get_texture_sub_image(id(), level, xoffset, yoffset, zoffset, width,
-                                height, depth, gl_format, gl_type,
-                                data.num_components() * sizeof(value_type),
+                                height, depth, gl_format, gl_type, s,
                                 data.internal_container().front().data());
       return data;
     }

@@ -21,9 +21,8 @@ static constexpr auto num_bytes_header = std::size_t(2048);
 inline auto read_header(std::ifstream& file) {
   auto const cur_cursor_pos = file.tellg();
   // We read the first 2048 bytes into memory to parse the header.
-  auto constexpr num_bytes_header = std::size_t(2048);
-  auto buf                        = std::string(
-                             num_bytes_header / sizeof(typename std::string::value_type), ' ');
+  auto buf = std::string(
+      num_bytes_header / sizeof(typename std::string::value_type), ' ');
   file.read(buf.data(), num_bytes_header);
 
   // remove eof flag if read all data

@@ -12,7 +12,7 @@ TEST_CASE("for_loop_parallel_count", "[for_loop][parallel][count]") {
     std::atomic_size_t cnt       = 0;
     auto               iteration = [&](auto const... /*is*/) { ++cnt; };
     for_loop(iteration, execution_policy::parallel, 10, 10, 10, 10);
-    REQUIRE(cnt == 100000000);
+    REQUIRE(cnt == 10000);
   }
   SECTION("from 10 with c-arrays") {
     std::atomic_size_t cnt       = 0;

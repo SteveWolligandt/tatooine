@@ -29,11 +29,11 @@ void atomiccounterbuffer::set_all_to(GLuint val) {
   gl::unmap_named_buffer(this->id());
 }
 //------------------------------------------------------------------------------
-void atomiccounterbuffer::bind(size_t i) const {
+void atomiccounterbuffer::bind(GLuint i) const {
   gl::bind_buffer_base(GL_ATOMIC_COUNTER_BUFFER, i, this->id());
 }
 //------------------------------------------------------------------------------
-void atomiccounterbuffer::unbind(size_t i) {
+void atomiccounterbuffer::unbind(GLuint i) {
   gl::bind_buffer_base(GL_ATOMIC_COUNTER_BUFFER, i, 0);
 }
 //==============================================================================

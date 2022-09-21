@@ -111,7 +111,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   target_compile_options(base INTERFACE -Wall -Wextra -Wpedantic)
 elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-  target_compile_options(base INTERFACE /W4)
+  target_compile_options(base INTERFACE /W3)
 endif()
 #-------------------------------------------------------------------------------
 # force coloring
@@ -149,16 +149,22 @@ if (NOT TATOOINE_DOC_ONLY)
 # OpenMP
 #-------------------------------------------------------------------------------
 find_package(OpenMP REQUIRED COMPONENTS CXX)
-option(TATOOINE_COMPILE_WITH_OPENMP "" ON)
-if (TATOOINE_COMPILE_WITH_OPENMP)
-  set(TATOOINE_OPENMP_AVAILABLE 1)
-  target_link_libraries(base INTERFACE OpenMP::OpenMP_CXX)
-  target_compile_definitions(base INTERFACE TATOOINE_OPENMP_AVAILABLE)
-  message(STATUS "Compiling with OpenMP")
-else()
-  set(TATOOINE_OPENMP_AVAILABLE 0)
-  message(STATUS "OpenMP not available")
+if(OpenMP_FOUND)
+  option(TATOOINE_COMPILE_WITH_OPENMP "" ON)
+  if(TATOOINE_COMPILE_WITH_OPENMP)
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+      target_compile_options(base INTERFACE "/openmp:llvm")
+    else()
+    target_link_libraries(base INTERFACE OpenMP::OpenMP_CXX)
+    endif()
+    set(TATOOINE_OPENMP_AVAILABLE 1)
+    message(STATUS "Compiling with OpenMP")
+  else()
+    set(TATOOINE_OPENMP_AVAILABLE 0)
+    message(STATUS "OpenMP not available")
+  endif()
 endif()
+target_compile_definitions(base INTERFACE TATOOINE_OPENMP_AVAILABLE=${TATOOINE_OPENMP_AVAILABLE})
 
 #===============================================================================
 # Optional Packages

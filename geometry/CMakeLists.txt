@@ -42,7 +42,8 @@ else()
   set(TATOOINE_FLANN_AVAILABLE 0)
 endif()
 set(TATOOINE_FLANN_AVAILABLE ${TATOOINE_FLANN_AVAILABLE} PARENT_SCOPE)
-target_compile_definitions(geometry PUBLIC TATOOINE_FLANN_AVAILABLE=${TATOOINE_FLANN_AVAILABLE})
+target_compile_definitions(geometry PUBLIC
+  TATOOINE_FLANN_AVAILABLE=${TATOOINE_FLANN_AVAILABLE})
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # CGAL
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
