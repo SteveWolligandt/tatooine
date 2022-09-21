@@ -37,11 +37,11 @@ if (TATOOINE_BUILD_GL)
   endif()
   add_library(glad STATIC ${GLAD_FILES})
   target_link_libraries(glad PUBLIC ${CMAKE_DL_LIBS})
-  target_include_directories(glad PUBLIC external/glad/include)
+  target_include_directories(glad PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/glad/include)
   if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
-    target_include_directories(glad PUBLIC external/glad_wgl/include)
+    target_include_directories(glad PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/glad_wgl/include)
   elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
-    target_include_directories(glad PUBLIC external/glad_egl/include)
+    target_include_directories(glad PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/glad_egl/include)
   endif()
   get_target_property(GLAD_LINK_LIBRARIES glad LINK_LIBRARIES)
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -100,30 +100,22 @@ if (TATOOINE_BUILD_GL)
   )
   add_library(gl STATIC ${TATOOINE_GL_SOURCES})
   set_property(TARGET gl PROPERTY CXX_STANDARD 20)
-  list(APPEND TATOOINE_EXPORTING_TARGETS gl imgui glfw glad)
-  set(TATOOINE_EXPORTING_TARGETS ${TATOOINE_EXPORTING_TARGETS} PARENT_SCOPE)
   target_compile_definitions(gl PRIVATE DLL_EXPORT)
   if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
       "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     target_compile_options(gl PRIVATE
                            -Wall -Wextra -pedantic)
+  elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+    target_compile_options(gl PRIVATE /W4)
   endif()
 
-  target_include_directories(gl
-    PUBLIC 
-      "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
-      "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>"
-      ${TATOOINE_GL_IMGUI_INCLUDE_DIRS}
-      external/imgui
-      external/imgui-filebrowser)
+  target_include_directories(gl PUBLIC 
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>"
+    ${TATOOINE_GL_IMGUI_INCLUDE_DIRS}
+    external/imgui external/imgui-filebrowser)
 
-  target_link_libraries(
-    gl
-     PUBLIC
-      tensor
-      glad
-      glfw
-      imgui)
+  target_link_libraries(gl PUBLIC tensor glad glfw imgui)
   if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     target_link_libraries(gl PUBLIC opengl32)
   elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
@@ -188,6 +180,9 @@ if (TATOOINE_BUILD_GL)
 
   get_target_property(GL_COMPILE_DEFINITIONS gl COMPILE_DEFINITIONS)
   set(GL_COMPILE_DEFINITIONS ${GL_COMPILE_DEFINITIONS} PARENT_SCOPE)
+
+  get_target_property(GLAD_INCLUDE_DIRECTORIES glad INCLUDE_DIRECTORIES)
+  set(GLAD_INCLUDE_DIRECTORIES ${GLAD_INCLUDE_DIRECTORIES} PARENT_SCOPE)
 else()
   set(TATOOINE_GL_AVAILABLE 0 PARENT_SCOPE)
 endif()
