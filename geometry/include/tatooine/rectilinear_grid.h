@@ -1136,7 +1136,7 @@ class rectilinear_grid {
             if constexpr (tensor_num_components<T> == 1) {
               prop(is...) = T{nan<T>()};
             } else {
-              prop(is...) = T::fill(nan<T>());
+              prop(is...) = T::fill(nan<tensor_value_type<T>>());
             }
           }
         },
