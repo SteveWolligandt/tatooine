@@ -183,11 +183,11 @@ auto operator<<(std::ostream& out, linspace<Real> const& l) -> auto& {
 //==============================================================================
 namespace tatooine::reflection {
 //==============================================================================
-template <typename T>
-TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
-    linspace<T>, TATOOINE_REFLECTION_INSERT_METHOD(front, front()),
-    TATOOINE_REFLECTION_INSERT_METHOD(back, back()),
-    TATOOINE_REFLECTION_INSERT_METHOD(size, size()))
+//template <typename T>
+//TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
+//    linspace<T>, TATOOINE_REFLECTION_INSERT_METHOD(front, front()),
+//    TATOOINE_REFLECTION_INSERT_METHOD(back, back()),
+//    TATOOINE_REFLECTION_INSERT_METHOD(size, size()))
 //==============================================================================
 }  // namespace tatooine::reflection
 //==============================================================================
