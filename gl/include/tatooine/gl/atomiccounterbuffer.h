@@ -34,10 +34,10 @@ class atomiccounterbuffer
                               usage_t usage = default_usage);
   DLL_API atomiccounterbuffer(std::initializer_list<GLuint>&& data);
 
-  DLL_API void        set_all_to(GLuint val);
-  void                to_zero() { set_all_to(0); }
-  DLL_API void        bind(size_t i) const;
-  DLL_API static void unbind(size_t i);
+  DLL_API auto        set_all_to(GLuint val) -> void;
+  auto                to_zero() { set_all_to(0); }
+  DLL_API auto        bind(GLuint i) const -> void;
+  DLL_API static auto unbind(GLuint i) -> void;
 };
 //==============================================================================
 }  // namespace tatooine::gl

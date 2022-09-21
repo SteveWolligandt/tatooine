@@ -416,8 +416,8 @@ class buffer : public id_holder<GLuint> {
   friend class rbuffer_map_element<_array_type, T>;
   friend class rwbuffer_map_element<_array_type, T>;
 
-  constexpr static GLsizei     array_type = _array_type;
-  constexpr static std::size_t data_size  = sizeof(T);
+  constexpr static GLsizei array_type = _array_type;
+  constexpr static GLsizei data_size  = sizeof(T);
 
   using this_type = buffer<array_type, T>;
   using data_t = T;
@@ -623,13 +623,14 @@ void buffer<array_type, T>::upload_data(const T& data) {
 //------------------------------------------------------------------------------
 template <GLsizei array_type, typename T>
 void buffer<array_type, T>::upload_data(const std::vector<T>& data) {
+  auto const s = static_cast<GLsizei>(data_size * data.size());
   if (capacity() < data.size()) {
     // reallocate new memory
-    gl::named_buffer_data(id(), data_size * data.size(), data.data(), m_usage);
+    gl::named_buffer_data(id(), s, data.data(), m_usage);
     m_size = m_capacity = data.size();
   } else {
     // just update buffer
-    gl::named_buffer_data(id(), data_size * data.size(), data.data(), m_usage);
+    gl::named_buffer_data(id(), s, data.data(), m_usage);
     m_size = data.size();
   }
 }
@@ -661,18 +662,20 @@ auto buffer<array_type, T>::download_data() const -> std::vector<T> {
 //------------------------------------------------------------------------------
 template <GLsizei array_type, typename T>
 void buffer<array_type, T>::gpu_malloc(std::size_t n) {
-  gl::named_buffer_data<void>(this->id(), data_size * n, nullptr, m_usage);
+  auto const s = static_cast<GLsizei>(data_size * n);
+  gl::named_buffer_data<void>(this->id(), s, nullptr, m_usage);
   m_capacity = n;
 }
 //------------------------------------------------------------------------------
 template <GLsizei array_type, typename T>
 void buffer<array_type, T>::gpu_malloc(std::size_t n, const T& initial) {
+    auto const s = static_cast<GLsizei>(data_size * n);
   if constexpr (std::is_arithmetic_v<T>) {
-    gl::named_buffer_data<void>(this->id(), data_size * n, nullptr, m_usage);
+    gl::named_buffer_data<void>(this->id(), s, nullptr, m_usage);
     upload_data(initial);
   } else {
     std::vector<T> data(n, initial);
-    gl::named_buffer_data(this->id(), data_size * n, data.data(), m_usage);
+    gl::named_buffer_data(this->id(), s, data.data(), m_usage);
   }
   m_capacity = n;
 }

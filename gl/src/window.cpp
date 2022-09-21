@@ -63,7 +63,8 @@ void window::init_imgui(size_t width, size_t height) {
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   m_imgui_render_backend = std::make_unique<struct imgui_render_backend>();
-  imgui_api_backend::instance().on_resize(width, height);
+  imgui_api_backend::instance().on_resize(static_cast<int>(width),
+                                          static_cast<int>(height));
 
   ImVec4 *colors                         = ImGui::GetStyle().Colors;
   colors[ImGuiCol_Text]                  = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);

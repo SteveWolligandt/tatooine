@@ -100,7 +100,7 @@ auto solve_lu_lapack(MatA& A_, VecB&& b_)
   static constexpr auto N    = tensor_dimension<MatA, 1>;
   auto                  A    = tensor<common_type, M, N>{A_};
   auto                  b    = tensor<common_type, N>{b_};
-  auto                  ipiv = vec<std::int64_t, N>{};
+  auto                  ipiv = vec<int, N>{};
   [[maybe_unused]] auto info = lapack::gesv(A, b, ipiv);
   if (info != 0) {
     return std::nullopt;
@@ -112,19 +112,19 @@ auto solve_lu_lapack(MatA& A_, VecB&& b_)
 #if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
 template <static_quadratic_mat MatA, static_mat MatB>
 requires(tensor_dimension<MatA, 0> == tensor_dimension<MatB, 0>)
-auto solve_lu_lapack(MatA& A_, MatB& B_) -> std::optional<
-    mat<common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>,
-        tensor_dimension<MatA, 1>, tensor_dimension<MatB, 1>>> {
+auto solve_lu_lapack(MatA& A_, MatB& B_)  {
   using out_value_type =
       common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>;
   static constexpr auto N = tensor_dimension<MatA, 1>; 
-  static constexpr auto K = tensor_dimension<MatB, 1>; 
+  static constexpr auto K = tensor_dimension<MatB, 1>;
+  using out_mat_type         = mat<out_value_type, N, K>;
+  using out_type             = std::optional<out_mat_type>;
   auto                  A    = mat<out_value_type, N, N>{A_};
-  auto                  B    = mat<out_value_type, N, K>{B_};
-  auto                  ipiv = vec<std::int64_t, N>{};
-  [[maybe_unused]] auto info = lapack::gesv(A, B, ipiv);
+  auto                  B    = out_type{B_};
+  auto                  ipiv = vec<int, N>{};
+  [[maybe_unused]] auto info = lapack::gesv(A, *B, ipiv);
   if (info != 0) {
-    return std::nullopt;
+    return out_type{std::nullopt};
   }
   return B;
 }
@@ -239,7 +239,7 @@ auto solve_lu_lapack(TensorA&& A_, TensorB&& B_) -> std::optional<tensor<
   assert(A_.dimension(0) == A_.dimension(1));
   assert(A_.dimension(0) == B_.dimension(0));
   assert(B_.rank() == 1 || B_.rank() == 2);
-  auto ipiv   = tensor<std::int64_t>::zeros(A_.dimension(0));
+  auto ipiv   = tensor<int>::zeros(A_.dimension(0));
   if constexpr (same_as<tensor_value_type<TensorA>,
                         tensor_value_type<TensorB>>) {
     decltype(auto) A =

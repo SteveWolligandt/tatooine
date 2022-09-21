@@ -1,16 +1,16 @@
 #ifndef TATOOINE_FOR_LOOP_H
 #define TATOOINE_FOR_LOOP_H
 //==============================================================================
-#include <tatooine/cache_alignment.h>
-#include <vector>
-#include <tatooine/concepts.h>
 #include <tatooine/available_libraries.h>
+#include <tatooine/cache_alignment.h>
+#include <tatooine/concepts.h>
 #include <tatooine/tags.h>
 #include <tatooine/type_traits.h>
 #include <tatooine/utility.h>
 
 #include <array>
 #include <boost/range/algorithm/transform.hpp>
+#include <vector>
 #if TATOOINE_OPENMP_AVAILABLE
 #include <omp.h>
 #endif
@@ -51,20 +51,21 @@ struct for_loop_impl {
   //----------------------------------------------------------------------------
  private:
   /// recursively creates loops
-  template <std::size_t... Is,
-            invocable<decltype(((void)Is, Int{}))...> Iteration>
+  template <std::size_t... IndexSequence,
+            invocable<decltype(((void)IndexSequence, Int{}))...> Iteration>
   constexpr auto loop(Iteration&& iteration,
-                      std::index_sequence<Is...> /*unused*/) const {
+                      std::index_sequence<IndexSequence...> /*unused*/) const {
     // check if Iteration either returns bool or nothing
     using return_type =
-        std::invoke_result_t<Iteration, decltype(((void)Is, Int{}))...>;
+        std::invoke_result_t<Iteration,
+                             decltype(((void)IndexSequence, Int{}))...>;
     constexpr bool returns_void = is_same<return_type, void>;
     constexpr bool returns_bool = is_same<return_type, bool>;
     static_assert(returns_void || returns_bool);
     m_status[I - 1] = m_begins[I - 1];
     for (; m_status[I - 1] < m_ends[I - 1]; ++m_status[I - 1]) {
       if constexpr (returns_void) {
-        // if if returns nothing just create another nested loop
+        // if returns nothing just create another nested loop
         for_loop_impl<Int, N, I - 1, ParallelIndex>{
             m_status, m_begins, m_ends}(std::forward<Iteration>(iteration));
       } else {
@@ -110,13 +111,14 @@ struct for_loop_impl<Int, N, 1, ParallelIndex> {
   // methods
   //----------------------------------------------------------------------------
  private:
-  template <std::size_t... Is,
-            invocable<decltype(((void)Is, Int{}))...> Iteration>
+  template <std::size_t... IndexSequence,
+            invocable<decltype(((void)IndexSequence, Int{}))...> Iteration>
   constexpr auto loop(Iteration&& iteration,
-                      std::index_sequence<Is...> /*unused*/) const {
+                      std::index_sequence<IndexSequence...> /*unused*/) const {
     // check if Iteration either returns bool or nothing
     using return_type =
-        std::invoke_result_t<Iteration, decltype(((void)Is, Int{}))...>;
+        std::invoke_result_t<Iteration,
+                             decltype(((void)IndexSequence, Int{}))...>;
     constexpr auto returns_void = is_same<return_type, void>;
     constexpr auto returns_bool = is_same<return_type, bool>;
     static_assert(returns_void || returns_bool);
@@ -125,11 +127,11 @@ struct for_loop_impl<Int, N, 1, ParallelIndex> {
     for (; m_status[0] < m_ends[0]; ++m_status[0]) {
       if constexpr (returns_void) {
         // if returns nothing just call it
-        iteration(m_status[Is]...);
+        iteration(m_status[IndexSequence]...);
       } else {
         // if iteration returns bool and the current iteration returns false
         // stop the whole nested for loop by recursively returning false
-        if (!iteration(m_status[Is]...)) {
+        if (!iteration(m_status[IndexSequence]...)) {
           return false;
         }
       }
@@ -148,7 +150,7 @@ struct for_loop_impl<Int, N, 1, ParallelIndex> {
   }
 };
 #if TATOOINE_OPENMP_AVAILABLE
-////==============================================================================
+//==============================================================================
 /// nesting reached parallel state
 /// \tparam Int integer type for counting
 /// \tparam N number of nestings
@@ -168,15 +170,16 @@ struct for_loop_impl<Int, N, I, I> {
   //----------------------------------------------------------------------------
  private:
   /// recursively creates loops
-  template <std::size_t... Is,
-            invocable<decltype(((void)Is, Int{}))...> Iteration>
+  template <std::size_t... IndexSequence,
+            invocable<decltype(((void)IndexSequence, Int{}))...> Iteration>
   auto loop(Iteration&& iteration,
-            std::index_sequence<Is...> /*unused*/) const {
+            std::index_sequence<IndexSequence...> /*unused*/) const {
     // check if Iteration either returns bool or nothing
     using return_type =
-        std::invoke_result_t<Iteration, decltype(((void)Is, Int{}))...>;
-    constexpr auto returns_void = is_same<return_type, void>;
-    constexpr auto returns_bool = is_same<return_type, bool>;
+        std::invoke_result_t<Iteration,
+                             decltype(((void)IndexSequence, Int{}))...>;
+    static constexpr auto returns_void = is_same<return_type, void>;
+    static constexpr auto returns_bool = is_same<return_type, bool>;
     static_assert(returns_void || returns_bool);
 
 #pragma omp parallel for
@@ -227,13 +230,14 @@ struct for_loop_impl<Int, N, 1, 1> {
   // methods
   //----------------------------------------------------------------------------
  private:
-  template <std::size_t... Is,
-            invocable<decltype(((void)Is, Int{}))...> Iteration>
+  template <std::size_t... IndexSequence,
+            invocable<decltype(((void)IndexSequence, Int{}))...> Iteration>
   auto loop(Iteration&& iteration,
-            std::index_sequence<Is...> /*unused*/) const {
+            std::index_sequence<IndexSequence...> /*seq*/) const {
     // check if Iteration either returns bool or nothing
     using return_type =
-        std::invoke_result_t<Iteration, decltype(((void)Is, Int{}))...>;
+        std::invoke_result_t<Iteration,
+                             decltype(((void)IndexSequence, Int{}))...>;
     constexpr bool returns_void = is_same<return_type, void>;
     constexpr bool returns_bool = is_same<return_type, bool>;
     static_assert(returns_void || returns_bool);
@@ -244,11 +248,11 @@ struct for_loop_impl<Int, N, 1, 1> {
       status_copy[0]   = i;
       if constexpr (returns_void) {
         // if if returns nothing just call it
-        iteration(status_copy[Is]...);
+        iteration(status_copy[IndexSequence]...);
       } else {
         // if iteration returns bool and the current iteration returns false
         // stop the whole nested for loop by recursively returning false
-        auto const cont = iteration(status_copy[Is]...);
+        auto const cont = iteration(status_copy[IndexSequence]...);
         assert(cont && "cannot break in parallel loop");
       }
     }
@@ -267,22 +271,25 @@ struct for_loop_impl<Int, N, 1, 1> {
 };
 #endif  // TATOOINE_OPENMP_AVAILABLE
 //==============================================================================
-template <std::size_t ParallelIndex, typename Int, Int... Is,
+template <std::size_t ParallelIndex, typename Int, Int... IndexSequence,
           integral... Ranges,
-          invocable<decltype(((void)Is, Int{}))...> Iteration>
+          invocable<decltype(((void)IndexSequence, Int{}))...> Iteration>
 constexpr auto for_loop(Iteration&& iteration,
-                        std::integer_sequence<Int, Is...>,
+                        std::integer_sequence<Int, IndexSequence...>,
                         std::pair<Ranges, Ranges> const&... ranges) {
   // check if Iteration either returns bool or nothing
   using return_type =
-      std::invoke_result_t<Iteration, decltype(((void)Is, Int{}))...>;
+      std::invoke_result_t<Iteration,
+                           decltype(((void)IndexSequence, Int{}))...>;
   constexpr bool returns_void = is_same<return_type, void>;
   constexpr bool returns_bool = is_same<return_type, bool>;
   static_assert(returns_void || returns_bool);
 
-  auto       status = std::array{((void)Is, static_cast<Int>(ranges.first))...};
-  auto const begins = std::array{((void)Is, static_cast<Int>(ranges.first))...};
-  auto const ends   = std::array{static_cast<Int>(ranges.second)...};
+  auto status =
+      std::array{((void)IndexSequence, static_cast<Int>(ranges.first))...};
+  auto const begins =
+      std::array{((void)IndexSequence, static_cast<Int>(ranges.first))...};
+  auto const ends = std::array{static_cast<Int>(ranges.second)...};
   return for_loop_impl<Int, sizeof...(ranges), sizeof...(ranges),
                        ParallelIndex + 1>{
       status, begins, ends}(std::forward<Iteration>(iteration));
@@ -299,7 +306,7 @@ constexpr auto for_loop(Iteration&& iteration,
 /// to continue.
 template <typename Int = std::size_t, typename Iteration, integral... Ranges>
 constexpr auto for_loop(Iteration&& iteration, execution_policy::sequential_t,
-                        Ranges(&&... ranges)[2]) -> void {
+                        Ranges (&&... ranges)[2]) -> void {
   detail::for_loop::for_loop<sizeof...(ranges) + 1, Int>(
       std::forward<Iteration>(iteration),
       std::make_integer_sequence<Int, sizeof...(ranges)>{},
@@ -346,7 +353,7 @@ constexpr auto for_loop(Iteration&& iteration, execution_policy::sequential_t,
 /// to continue.
 template <typename Int = std::size_t, typename Iteration, integral... Ranges>
 constexpr auto for_loop(Iteration&& iteration, execution_policy::parallel_t,
-                        Ranges(&&... ranges)[2]) -> void {
+                        Ranges (&&... ranges)[2]) -> void {
 #ifdef _OPENMP
   return detail::for_loop::for_loop<sizeof...(ranges) - 1, Int>(
       std::forward<Iteration>(iteration),
@@ -413,7 +420,7 @@ constexpr auto for_loop(Iteration&& iteration,
 /// any state the whole nested iteration will stop. iteration must return true
 /// to continue.
 template <typename Int = std::size_t, typename Iteration, integral... Ranges>
-constexpr auto for_loop(Iteration&& iteration, Ranges(&&... ranges)[2])
+constexpr auto for_loop(Iteration&& iteration, Ranges (&&... ranges)[2])
     -> void {
   for_loop(std::forward<Iteration>(iteration), execution_policy::sequential,
            std::pair{ranges[0], ranges[1]}...);
@@ -574,12 +581,11 @@ auto for_loop(std::invocable<std::vector<Int>> auto&& iteration,
               std::vector<Int> const& begin, std::vector<Int> const& end,
               std::vector<Int>& status, Int const dim)
     -> std::invoke_result_t<decltype(iteration), decltype(status)>
-requires
-  std::same_as<std::invoke_result_t<
-    decltype(iteration), std::vector<Int>>, void> ||
-  std::same_as<std::invoke_result_t<
-    decltype(iteration), std::vector<Int>>, bool>
-{
+requires std::same_as <
+    std::invoke_result_t<decltype(iteration), std::vector<Int>>,
+void > ||
+    std::same_as<std::invoke_result_t<decltype(iteration), std::vector<Int>>,
+                 bool> {
   if (static_cast<std::size_t>(dim) == size(begin)) {
     return iteration(status);
   } else {
@@ -607,28 +613,25 @@ requires
 }
 //------------------------------------------------------------------------------
 template <std::integral Int>
-auto for_loop(std::invocable<std::vector<Int>> auto&& iteration,
-              std::vector<Int> const& begin, std::vector<Int> const& end)
-requires
-  std::same_as<std::invoke_result_t<
-    decltype(iteration), std::vector<Int>>, void> ||
-  std::same_as<std::invoke_result_t<
-    decltype(iteration), std::vector<Int>>, bool>
-{
+    auto for_loop(std::invocable<std::vector<Int>> auto&&iteration,
+                  std::vector<Int> const&                begin,
+                  std::vector<Int> const&end) requires std::same_as <
+    std::invoke_result_t<decltype(iteration), std::vector<Int>>,
+void > ||
+    std::same_as<std::invoke_result_t<decltype(iteration), std::vector<Int>>,
+                 bool> {
   auto status = std::vector{begin};
   for_loop<Int>(std::forward<decltype(iteration)>(iteration), begin, end,
                 status, 0);
 }
 //------------------------------------------------------------------------------
 template <std::integral Int>
-auto for_loop(std::invocable<std::vector<Int>> auto&& iteration,
-              std::vector<Int> const& end)
-requires
-  std::same_as<std::invoke_result_t<
-    decltype(iteration), std::vector<Int>>, void> ||
-  std::same_as<std::invoke_result_t<
-    decltype(iteration), std::vector<Int>>, bool>
-{
+    auto for_loop(std::invocable<std::vector<Int>> auto&&iteration,
+                  std::vector<Int> const&end) requires std::same_as <
+    std::invoke_result_t<decltype(iteration), std::vector<Int>>,
+void > ||
+    std::same_as<std::invoke_result_t<decltype(iteration), std::vector<Int>>,
+                 bool> {
   auto status = std::vector<Int>(size(end), 0);
   for_loop<Int>(std::forward<decltype(iteration)>(iteration),
                 std::vector<Int>(size(end), 0), end, status, 0);

@@ -32,8 +32,8 @@ class vertexbuffer
   static usage_t const default_usage = usage_t::STATIC_DRAW;
 
   static constexpr auto num_attributes = sizeof...(Ts);
-  static constexpr std::array<std::size_t, num_attributes> num_components{
-      tatooine::tensor_num_components<Ts>...};
+  static constexpr std::array<GLsizei, num_attributes> num_components{
+      static_cast<GLsizei>(tatooine::tensor_num_components<Ts>)...};
   static constexpr std::array<GLenum, num_attributes> types{
       value_type_v<Ts>...};
   static constexpr std::array<std::size_t, num_attributes> offsets =
@@ -82,26 +82,24 @@ class vertexbuffer
   }
   //----------------------------------------------------------------------------
  private:
-  template <typename... Normalized, std::size_t... Is>
-  static constexpr void activate_attributes(std::index_sequence<Is...>,
-                                            Normalized... normalized) {
+  template <std::convertible_to<GLboolean>... Normalized, GLsizei... Is>
+  static constexpr auto activate_attributes(
+      std::integer_sequence<GLsizei, Is...>, Normalized... normalized) -> void {
     static_assert(sizeof...(Normalized) == sizeof...(Is));
     static_assert(sizeof...(Normalized) == num_attributes);
-    // static_assert((std::is_same_v<GLboolean, std::decay_t<Normalized>> &&
-    // ...));
     (
-        [&](auto i, auto normalized) {
+        [&](GLsizei i, GLboolean normalized) {
           gl::enable_vertex_attrib_array(i);
           gl::vertex_attrib_pointer(i, num_components[i], types[i], normalized,
                                     data_size, (void*)offsets[i]);
-        }(Is, normalized),
+        }(Is, static_cast<GLboolean>(normalized)),
         ...);
   }
   //----------------------------------------------------------------------------
  public:
-  template <typename... Normalized>
+  template <std::convertible_to<GLboolean>... Normalized>
   static constexpr void activate_attributes(Normalized... normalized) {
-    activate_attributes(std::make_index_sequence<num_attributes>{},
+    activate_attributes(std::make_integer_sequence<GLsizei, num_attributes>{},
                         normalized...);
   }
   //----------------------------------------------------------------------------
