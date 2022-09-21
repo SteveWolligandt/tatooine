@@ -9,7 +9,6 @@
 using namespace tatooine;
 //==============================================================================
 auto main() -> int {
-  std::cout << "foo\n";
   auto grid =
       rectilinear_grid{linspace{-10.0, 10.0, 10},
                        linspace{-10.0, 10.0, 10},

@@ -1,6 +1,8 @@
 #ifndef TATOOINE_DETAIL_POINTSET_MOVING_LEAST_SQUARES_SAMPLER3_H
 #define TATOOINE_DETAIL_POINTSET_MOVING_LEAST_SQUARES_SAMPLER3_H
 //==============================================================================
+#if TATOOINE_FLANN_AVAILABLE
+//==============================================================================
 #include <tatooine/detail/pointset/moving_least_squares_samplerN.h>
 #include <tatooine/pointset.h>
 //==============================================================================
@@ -11,7 +13,6 @@ namespace tatooine::detail::pointset {
 /// Weighted Least Squares and Moving Least Squares Methods for Scattered Data
 /// Approximation and Interpolation</em> \cite nealen2004LeastSquaresIntro.
 template <floating_point Real, typename T, invocable<Real> Weighting>
-requires (flann_available())
 struct moving_least_squares_sampler<Real, 3, T, Weighting>
     : field<moving_least_squares_sampler<Real, 3, T, Weighting>, Real, 3, T> {
   using this_type   = moving_least_squares_sampler<Real, 3, T, Weighting>;
@@ -232,4 +233,8 @@ struct moving_least_squares_sampler<Real, 3, T, Weighting>
 //==============================================================================
 }  // namespace tatooine::detail::pointset
 //==============================================================================
+#else
+#pragma message(                                                               \
+    "including <tatooine/detail/pointset/moving_least_squares_sampler2.h> without FLANN support.")
+#endif
 #endif

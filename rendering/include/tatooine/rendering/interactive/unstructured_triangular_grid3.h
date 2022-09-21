@@ -553,22 +553,22 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
     property_shader::get().set_roughness(roughness);
     property_shader::get().set_irradi_perp(irradi_perp);
     gl::line_width(5);
-    {
-      auto vao = gl::vertexarray{};
-      vao.bind();
-      m_geometry.bind();
-      m_geometry.activate_attributes();
-      m_wireframe.bind();
-      vao.draw_lines(m_wireframe.size());
-    }
     //{
     //  auto vao = gl::vertexarray{};
     //  vao.bind();
     //  m_geometry.bind();
     //  m_geometry.activate_attributes();
-    //  m_triangles.bind();
-    //  vao.draw_triangles(m_triangles.size());
+    //  m_wireframe.bind();
+    //  vao.draw_lines(m_wireframe.size());
     //}
+    {
+      auto vao = gl::vertexarray{};
+      vao.bind();
+      m_geometry.bind();
+      m_geometry.activate_attributes();
+      m_triangles.bind();
+      vao.draw_triangles(m_triangles.size());
+    }
   }
   //----------------------------------------------------------------------------
   auto update(auto const dt, renderable_type const& grid,
