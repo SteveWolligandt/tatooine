@@ -567,6 +567,12 @@ class rectilinear_grid {
   requires (sizeof...(xs) == num_dimensions()) {
     return cell_index(sequence_type{}, xs...);
   }
+  //------------------------------------------------------------------------------
+  auto cell_index(fixed_size_vec<num_dimensions()> auto&& xs) const {
+    return invoke_unpacked(
+        [this](auto const... xs) { return cell_index(xs...); },
+        unpack(std::forward<decltype(xs)>(xs)));
+  }
   //----------------------------------------------------------------------------
   auto diff_stencil_coefficients(std::size_t const dim_index,
                                  std::size_t const stencil_size,

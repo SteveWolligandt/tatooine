@@ -891,7 +891,7 @@ struct hultquist_discretization
 
   //--------------------------------------------------------------------------
   auto evolve(front_type const& front, real_type step,
-              real_type desired_spatial_dist) {
+              real_type /*desired_spatial_dist*/) {
     auto advected_front = advect(front, step);
 
     //this->subdivide(advected_front, desired_spatial_dist);

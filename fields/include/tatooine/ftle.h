@@ -2,9 +2,10 @@
 #define TATOOINE_FTLE_FIELD_H
 //==============================================================================
 #include <tatooine/concepts.h>
+#include <tatooine/differentiated_flowmap.h>
 #include <tatooine/field.h>
 #include <tatooine/numerical_flowmap.h>
-#include <tatooine/differentiated_flowmap.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/tags.h>
 //==============================================================================
 namespace tatooine {

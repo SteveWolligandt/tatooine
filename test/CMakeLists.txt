@@ -172,6 +172,7 @@ endif()
       add_executable(
         ${TARGET}.gcov
         main.cpp ${NAME}.cpp)
+      set_property(TARGET ${TARGET}.gcov PROPERTY CXX_STANDARD 20)
       target_link_libraries(
         ${TARGET}.gcov
         base fields rendering Catch2::Catch2 gcov)
@@ -226,12 +227,13 @@ add_executable (
   unittests
   main.cpp
   ${TATOOINE_TEST_CPPS})
-  if(TATOOINE_USE_CLANG_TIDY)
-    set_target_properties(
-      unittests
-      PROPERTIES CXX_CLANG_TIDY
-                 "${CLANG_TIDY_EXECUTABLE};-checks=${CLANG_TIDY_CHECKS};-header-filter='${CMAKE_SOURCE_DIR}/*'")
-  endif()
+set_property(TARGET unittests PROPERTY CXX_STANDARD 20)
+if(TATOOINE_USE_CLANG_TIDY)
+  set_target_properties(
+    unittests
+    PROPERTIES CXX_CLANG_TIDY
+               "${CLANG_TIDY_EXECUTABLE};-checks=${CLANG_TIDY_CHECKS};-header-filter='${CMAKE_SOURCE_DIR}/*'")
+endif()
 target_link_libraries(
   unittests
   base fields rendering Catch2::Catch2)

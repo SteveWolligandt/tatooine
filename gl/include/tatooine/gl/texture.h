@@ -883,8 +883,8 @@ class texture : public id_holder<GLuint> {
         return data;
       }
     }();
-    for (png::uint_32 y = 0; y < m_size[1]; ++y) {
-      for (png::uint_32 x = 0; x < width(); ++x) {
+    for (png::uint_32 y = 0; y < static_cast<png::uint_32>(m_size[1]); ++y) {
+      for (png::uint_32 x = 0; x < static_cast<png::uint_32>(width()); ++x) {
         tex_png_t::load_pixel(data, image, x, y);
       }
     }
@@ -905,8 +905,10 @@ class texture : public id_holder<GLuint> {
                                   static_cast<png::uint_32>(m_size[1])};
     auto data = download_data();
 
-    for (png::uint_32 y = 0; y < image.get_height(); ++y) {
-      for (png::uint_32 x = 0; x < image.get_width(); ++x) {
+    for (png::uint_32 y = 0; y < static_cast<png::uint_32>(image.get_height());
+         ++y) {
+      for (png::uint_32 x = 0; x < static_cast<png::uint_32>(image.get_width());
+           ++x) {
         auto const idx = x + width() * y;
         tex_png_t::save_pixel(data.internal_container(), image, x, y, idx);
       }

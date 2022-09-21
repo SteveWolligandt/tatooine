@@ -16,10 +16,12 @@ struct contracted_static_tensor {
       tatooine::einstein_notation::free_indices<IndexedTensors...>;
   using contracted_indices =
       tatooine::einstein_notation::contracted_indices<IndexedTensors...>;
+
   static auto constexpr rank() { return free_indices::size; }
+
   template <typename E>
   static auto constexpr size() {
-    std::size_t s = 0;
+    auto s = std::size_t{};
     (
         [&] {
           if constexpr (IndexedTensors::template contains<E>()) {
@@ -45,15 +47,18 @@ struct contracted_static_tensor {
     return std::get<I>(m_tensors);
   }
   constexpr auto num_tensors() { return sizeof...(IndexedTensors); }
-
+  //----------------------------------------------------------------------------
   template <std::size_t... ContractedIndexSequence,
             std::size_t... ContractedTensorsSequence>
-  requires free_indices::empty auto to_scalar(
+  requires free_indices::empty
+  auto to_scalar(
       std::index_sequence<ContractedIndexSequence...> /*seq*/,
       std::index_sequence<ContractedTensorsSequence...> /*seq*/) const {
-    using map_t              = std::map<std::size_t, std::size_t>;
-    using contracted_static_tensor  = contracted_static_tensor<IndexedTensors...>;
-    using contracted_indices = typename contracted_static_tensor::contracted_indices;
+    using map_t = std::map<std::size_t, std::size_t>;
+    using contracted_static_tensor =
+        contracted_static_tensor<IndexedTensors...>;
+    using contracted_indices =
+        typename contracted_static_tensor::contracted_indices;
 
     auto const contracted_indices_map = map_t{map_t::value_type{
         contracted_indices::template at<ContractedIndexSequence>::get(),
@@ -61,8 +66,8 @@ struct contracted_static_tensor {
     }...};
     auto const tensor_index_maps = std::tuple{IndexedTensors::index_map()...};
     auto       index_arrays =
-        std::tuple{make_array<std::size_t, IndexedTensors::rank()>()...};
-    real_type acc = 0;
+        std::tuple{std::array<std::size_t, IndexedTensors::rank()>{}...};
+    auto acc = real_type{};
 
     for_loop(
         [&](auto const... contracted_indices) {
@@ -91,13 +96,10 @@ struct contracted_static_tensor {
                 ...);
           }
 
-          acc += (at<ContractedTensorsSequence>().tensor()(
-                      std::get<ContractedTensorsSequence>(index_arrays)) *
-                  ...);
+          acc += (at<ContractedTensorsSequence>().tensor()(std::get<ContractedTensorsSequence>(index_arrays)) * ...);
         },
-        contracted_static_tensor::template size<
-            typename contracted_indices::template at<
-                ContractedIndexSequence>>()...);
+        size<typename contracted_indices::template at<
+            ContractedIndexSequence>>()...);
     return acc;
   }
   //----------------------------------------------------------------------------
