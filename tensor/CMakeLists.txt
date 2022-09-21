@@ -18,19 +18,16 @@ if (BLAS_FOUND AND LAPACK_FOUND)
     target_link_libraries(tensor INTERFACE BLAS::BLAS LAPACK::LAPACK)
     #target_compile_options(lapackpp INTERFACE -Wno-unused-parameter)
     target_compile_definitions(tensor INTERFACE LAPACK_COMPLEX_CPP)
-    target_compile_definitions(tensor
-     INTERFACE
-     TATOOINE_BLAS_AND_LAPACK_AVAILABLE=1)
-   else()
-    target_compile_definitions(tensor
-     INTERFACE
-     TATOOINE_BLAS_AND_LAPACK_AVAILABLE=0)
+    set(TATOOINE_BLAS_AND_LAPACK_AVAILABLE 1)
+  else()
+    set(TATOOINE_BLAS_AND_LAPACK_AVAILABLE 0)
   endif()
 else()
-  target_compile_definitions(tensor
-   INTERFACE
-   TATOOINE_BLAS_AND_LAPACK_AVAILABLE=0)
+    set(TATOOINE_BLAS_AND_LAPACK_AVAILABLE 0)
 endif()
+target_compile_definitions(tensor INTERFACE
+TATOOINE_BLAS_AND_LAPACK_AVAILABLE=${TATOOINE_BLAS_AND_LAPACK_AVAILABLE})
+set(TATOOINE_BLAS_AND_LAPACK_AVAILABLE ${TATOOINE_BLAS_AND_LAPACK_AVAILABLE} PARENT_SCOPE)
 #-------------------------------------------------------------------------------
 # Get tensor properties for tatooineConfig.cmake
 # include directories
