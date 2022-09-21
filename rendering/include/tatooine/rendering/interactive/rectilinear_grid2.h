@@ -752,7 +752,7 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
     }
   }
   //----------------------------------------------------------------------------
-  auto update(auto const dt, renderable_type const& grid,
+  auto update(auto const /*dt*/, renderable_type const& grid,
               camera auto const& cam) {
     using CamReal = typename std::decay_t<decltype(cam)>::real_type;
     static auto constexpr cam_is_float = is_same<GLfloat, CamReal>;

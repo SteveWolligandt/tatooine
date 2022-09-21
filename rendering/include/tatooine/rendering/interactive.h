@@ -82,7 +82,7 @@ auto show(std::index_sequence<Is...> /*seq*/, Renderables&&... renderables) {
     window.camera_controller().use_perspective_camera();
     window.camera_controller().use_fps_controller();
   }
-  window.add_resize_event([&](int width, int height) {
+  window.add_resize_event([&](int /*width*/, int /*height*/) {
     auto const P =
         window.camera_controller().active_camera().projection_matrix();
     set_projection_matrices(P, renderer_type_set{});
@@ -131,7 +131,7 @@ auto show(std::index_sequence<Is...> /*seq*/, Renderables&&... renderables) {
   };
 
   window.add_button_released_event([&](gl::button b) {
-    foreach_renderer([&](auto& renderer, auto& renderable, auto i) {
+    foreach_renderer([&](auto& renderer, auto& /*renderable*/, auto i) {
       if (enable_renderer[i]) {
         if constexpr (requires { renderer.on_button_released(b); }) {
           renderer.on_button_released(b);
@@ -147,7 +147,7 @@ auto show(std::index_sequence<Is...> /*seq*/, Renderables&&... renderables) {
     });
   });
   window.add_button_pressed_event([&](gl::button b) {
-    foreach_renderer([&](auto& renderer, auto& renderable, auto i) {
+    foreach_renderer([&](auto& renderer, auto& /*renderable*/, auto i) {
       if (enable_renderer[i]) {
         if constexpr (requires { renderer.on_button_pressed(b); }) {
           renderer.on_button_pressed(b);
@@ -163,7 +163,7 @@ auto show(std::index_sequence<Is...> /*seq*/, Renderables&&... renderables) {
     });
   });
   window.add_cursor_moved_event([&](double const x, double const y) {
-    foreach_renderer([&](auto& renderer, auto& renderable, auto i) {
+    foreach_renderer([&](auto& renderer, auto& /*renderable*/, auto i) {
       if (enable_renderer[i]) {
         if constexpr (requires { renderer.on_cursor_moved(x, y); }) {
           renderer.on_cursor_moved(x, y);

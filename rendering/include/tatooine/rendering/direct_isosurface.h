@@ -105,8 +105,9 @@ auto direct_isosurface(Camera const&                             cam,
         auto cell_pos        = pos_type{};
         auto done            = false;
         auto update_cell_pos = [&](auto const& r) {
+          auto cells = g.cell_index(entry_point);
           for (std::size_t dim = 0; dim < 3; ++dim) {
-            auto const [ci, t] = g.cell_index(dim, entry_point(dim));
+            auto const [ci, t] = cells[dim];
             if (std::abs(t) < 1e-7) {
               cell_pos[dim] = ci;
               if (r.direction(dim) < 0 && ci == 0) {

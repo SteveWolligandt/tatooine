@@ -13,9 +13,8 @@ struct vec : tensor<ValueType, N> {
   using this_type   = vec<ValueType, N>;
   using parent_type = tensor<ValueType, N>;
   using parent_type::at;
-  using parent_type::dimension;
-  //using parent_type::parent_type;
   using parent_type::operator();
+  using parent_type::dimension;
   //============================================================================
   using iterator =
       typename parent_type::array_parent_type::container_type::iterator;
@@ -126,13 +125,6 @@ struct vec : tensor<ValueType, N> {
   auto constexpr w() const -> auto const& requires(N >= 4) { return at(3); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto constexpr w() -> auto& requires(N >= 4) { return at(3); }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename Archive>
-  auto serialize(Archive& ar, unsigned int const /*version*/) -> void {
-    for (std::size_t i = 0; i < N; ++i) {
-      ar& at(i);
-    }
-  }
 };
 //==============================================================================
 // type traits

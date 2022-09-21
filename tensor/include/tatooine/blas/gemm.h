@@ -38,31 +38,33 @@ namespace tatooine::blas {
 /// \{
 //==============================================================================
 template <std::floating_point Float>
-auto gemm(op TRANSA, op TRANSB, int M, int N, int K, Float ALPHA, Float* A,
-          int LDA, Float* B, int LDB, Float BETA, Float* C, int LDC) -> void {
+auto gemm(op TRANSA, op TRANSB, int M, int N, int K, Float ALPHA, Float const* A,
+          int LDA, Float const* B, int LDB, Float BETA, Float* C, int LDC) -> void {
   if constexpr (std::same_as<Float, double>) {
-    dgemm_(&TRANSA, &TRANSB, &M, &N, &K, &ALPHA, A, &LDA, B, &LDB, &BETA, C,
-           &LDC);
+    dgemm_(reinterpret_cast<char*>(&TRANSA), reinterpret_cast<char*>(&TRANSB),
+           &M, &N, &K, &ALPHA, const_cast<Float*>(A), &LDA,
+           const_cast<Float*>(B), &LDB, &BETA, C, &LDC);
   } else if constexpr (std::same_as<Float, float>) {
-    sgemm_(&TRANSA, &TRANSB, &M, &N, &K, &ALPHA, A, &LDA, B, &LDB, &BETA, C,
-           &LDC);
+    sgemm_(reinterpret_cast<char*>(&TRANSA), reinterpret_cast<char*>(&TRANSB),
+           &M, &N, &K, &ALPHA, const_cast<Float*>(A), &LDA,
+           const_cast<Float*>(B), &LDB, &BETA, C, &LDC);
   }
 }
 //==============================================================================
 /// See \ref blas_gemm.
-template <typename Real, std::size_t M, std::size_t N, std::size_t K>
-auto gemm(Real const alpha, tensor<Real, M, K> const& A,
-          tensor<Real, K, N> const& B, Real const beta, tensor<Real, M, N>& C) {
-  return gemm(op::no_transpose, op::no_transpose, M, N, K,
-                      alpha, A.data(), M, B.data(), N, beta,
-                      C.data(), M);
+template <std::floating_point Float, std::size_t M, std::size_t N, std::size_t K>
+auto gemm(Float const alpha, tensor<Float, M, K> const& A,
+          tensor<Float, K, N> const& B, Float const beta, tensor<Float, M, N>& C) {
+  return gemm<Float>(op::no_transpose, op::no_transpose, M, N, K, alpha,
+                     A.data(), M,
+                     B.data(), N, beta, C.data(), M);
 }
 //------------------------------------------------------------------------------
 /// See \ref blas_gemm.
-template <typename Real>
-auto gemm(blas::op trans_A, blas::op trans_B, Real const alpha,
-          tensor<Real> const& A, tensor<Real> const& B, Real const beta,
-          tensor<Real>& C) {
+template <std::floating_point Float>
+auto gemm(blas::op trans_A, blas::op trans_B, Float const alpha,
+          tensor<Float> const& A, tensor<Float> const& B, Float const beta,
+          tensor<Float>& C) {
   assert(A.rank() == 2);
   assert(B.rank() == 1 || B.rank() == 2);
   assert(C.rank() == B.rank());
@@ -73,15 +75,15 @@ auto gemm(blas::op trans_A, blas::op trans_B, Real const alpha,
   assert(C.dimension(0) == M);
   assert(C.rank() == 1 || C.dimension(1) == N);
 
-  return gemm(trans_A, trans_B, M, N, K, alpha, A.data(),
-              M, B.data(), K, beta, C.data(), M);
+  return gemm<Float>(trans_A, trans_B, M, N, K, alpha, A.data(), M, B.data(), K,
+                     beta, C.data(), M);
 }
 //------------------------------------------------------------------------------
 /// See \ref blas_gemm.
-template <typename Real>
-auto gemm(Real const alpha, tensor<Real> const& A, tensor<Real> const& B,
-          Real const beta, tensor<Real>& C) {
-  return gemm(op::no_transpose, op::no_transpose, alpha, A, B, beta, C);
+template <std::floating_point Float>
+auto gemm(Float const alpha, tensor<Float> const& A, tensor<Float> const& B,
+          Float const beta, tensor<Float>& C) {
+  return gemm<Float>(op::no_transpose, op::no_transpose, alpha, A, B, beta, C);
 }
 /// \}
 //==============================================================================

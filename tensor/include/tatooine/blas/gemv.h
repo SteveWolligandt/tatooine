@@ -1,14 +1,18 @@
-
 #ifndef TATOOINE_BLAS_GEMV_H
 #define TATOOINE_BLAS_GEMV_H
+//==============================================================================
 extern "C" {
+//==============================================================================
 auto dgemv_(char* TRANS, int* M, int* N, double* ALPHA, double* A, int* LDA,
             double* X, int* INCX, double* BETA, double* Y, int* INCY) -> void;
 auto sgemv_(char* TRANS, int* M, int* N, float* ALPHA, float* A, int* LDA,
             float* X, int* INCX, float* BETA, float* Y, int* INCY) -> void;
+//==============================================================================
 }
 //==============================================================================
 #include <tatooine/blas/base.h>
+
+#include <cassert>
 //==============================================================================
 namespace tatooine::blas {
 //==============================================================================
@@ -30,12 +34,16 @@ namespace tatooine::blas {
 /// \{
 //==============================================================================
 template <std::floating_point Float>
-auto gemv(op TRANS, int M, int N, Float ALPHA, Float* A, int LDA, Float* X,
-          int INCX, Float BETA, Float* Y, int INCY) -> void {
+auto gemv(op TRANS, int M, int N, Float ALPHA, Float const* A, int LDA,
+          Float const* X, int INCX, Float BETA, Float* Y, int INCY) -> void {
   if constexpr (std::same_as<Float, double>) {
-    dgemv_(&TRANS, &M, &N, &ALPHA, A, &LDA, X, &INCX, &BETA, Y, &INCY);
+    dgemv_(reinterpret_cast<char*>(&TRANS), &M, &N, &ALPHA,
+           const_cast<Float*>(A), &LDA, const_cast<Float*>(X), &INCX, &BETA, Y,
+           &INCY);
   } else if constexpr (std::same_as<Float, float>) {
-    sgemv_(&TRANS, &M, &N, &ALPHA, A, &LDA, X, &INCX, &BETA, Y, &INCY);
+    sgemv_(reinterpret_cast<char*>(&TRANS), &M, &N, &ALPHA,
+           const_cast<Float*>(A), &LDA, const_cast<Float*>(X), &INCX, &BETA, Y,
+           &INCY);
   }
 }
 //==============================================================================

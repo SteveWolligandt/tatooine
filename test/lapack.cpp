@@ -9,7 +9,7 @@ TEST_CASE("lapack", "[lapack]") {
   auto A    = mat2{{1, 2},
                    {2, 3}};
   auto b    = vec2 {3, 7};
-  auto ipiv = vec2i64{};
+  auto ipiv = vec2i{};
   [[maybe_unused]] auto res  = lapack::gesv(A, b, ipiv);
   REQUIRE(b(0) == 5);
   REQUIRE(b(1) == -1);

@@ -752,9 +752,12 @@ struct unstructured_simplicial_grid
   }
   //----------------------------------------------------------------------------
   auto write_vtp(filesystem::path const& path) const
-      requires((NumDimensions == 2 || NumDimensions == 3) && SimplexDim == 1) {
+      requires((NumDimensions == 2 || NumDimensions == 3) &&
+               (SimplexDim == 1 || SimplexDim == 2)) {
     if constexpr (SimplexDim == 1) {
       write_vtp_edges(path);
+    } else if constexpr (SimplexDim == 2) {
+      write_vtp_triangles(path);
     }
   }
   //----------------------------------------------------------------------------
@@ -864,6 +867,120 @@ struct unstructured_simplicial_grid
     }
 
     // Writing lines offsets to appended data section
+    {
+      auto offsets = std::vector<offset_int_type>(simplices().size(),
+                                                  num_vertices_per_simplex());
+      for (std::size_t i = 1; i < size(offsets); ++i) {
+        offsets[i] += offsets[i - 1];
+      };
+      file.write(reinterpret_cast<char const*>(&num_bytes_offsets),
+                 sizeof(header_type));
+      file.write(reinterpret_cast<char const*>(offsets.data()),
+                 num_bytes_offsets);
+    }
+    file << "\n</AppendedData>\n"
+         << "</VTKFile>";
+  }
+  //----------------------------------------------------------------------------
+  auto write_vtp_triangles(filesystem::path const& path) const
+      requires((NumDimensions == 2 || NumDimensions == 3) && SimplexDim == 2) {
+    auto file = std::ofstream{path, std::ios::binary};
+    if (!file.is_open()) {
+      throw std::runtime_error{"Could not write " + path.string()};
+    }
+    auto offset                 = std::size_t{};
+    using header_type           = std::uint64_t;
+    using connectivity_int_type = std::int64_t;
+    using offset_int_type       = connectivity_int_type;
+    auto const num_bytes_points =
+        header_type(sizeof(Real) * 3 * vertices().size());
+    auto const num_bytes_connectivity = simplices().size() *
+                                        num_vertices_per_simplex() *
+                                        sizeof(connectivity_int_type);
+    auto const num_bytes_offsets = sizeof(offset_int_type) * simplices().size();
+    file << "<VTKFile"
+         << " type=\"PolyData\""
+         << " version=\"1.0\""
+         << " byte_order=\"LittleEndian\""
+         << " header_type=\""
+         << vtk::xml::data_array::to_string(
+                vtk::xml::data_array::to_type<header_type>())
+         << "\">\n"
+         << "<PolyData>\n"
+         << "<Piece"
+         << " NumberOfPoints=\"" << vertices().size() << "\""
+         << " NumberOfPolys=\"" << simplices().size() << "\""
+         << " NumberOfVerts=\"0\""
+         << " NumberOfLines=\"0\""
+         << " NumberOfStrips=\"0\""
+         << ">\n"
+         // Points
+         << "<Points>"
+         << "<DataArray"
+         << " format=\"appended\""
+         << " offset=\"" << offset << "\""
+         << " type=\""
+         << vtk::xml::data_array::to_string(
+                vtk::xml::data_array::to_type<Real>())
+         << "\" NumberOfComponents=\"3\"/>"
+         << "</Points>\n";
+    offset += num_bytes_points + sizeof(header_type);
+    // Polys
+    file << "<Polys>\n"
+         // Polys - connectivity
+         << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
+         << vtk::xml::data_array::to_string(
+                vtk::xml::data_array::to_type<connectivity_int_type>())
+         << "\" Name=\"connectivity\"/>\n";
+    offset += num_bytes_connectivity + sizeof(header_type);
+    // Polys - offsets
+    file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
+         << vtk::xml::data_array::to_string(
+                vtk::xml::data_array::to_type<offset_int_type>())
+         << "\" Name=\"offsets\"/>\n";
+    offset += num_bytes_offsets + sizeof(header_type);
+    file << "</Polys>\n"
+         << "</Piece>\n"
+         << "</PolyData>\n"
+         << "<AppendedData encoding=\"raw\">\n_";
+    // Writing vertex data to appended data section
+
+    using namespace std::ranges;
+    {
+      file.write(reinterpret_cast<char const*>(&num_bytes_points),
+                 sizeof(header_type));
+      if constexpr (NumDimensions == 2) {
+        auto point_data      = std::vector<vec<Real, 3>>(vertices().size());
+        auto position        = [this](auto const v) -> auto& { return at(v); };
+        constexpr auto to_3d = [](auto const& p) {
+          return vec{p.x(), p.y(), Real(0)};
+        };
+        copy(vertices() | views::transform(position) | views::transform(to_3d),
+             begin(point_data));
+        file.write(reinterpret_cast<char const*>(point_data.data()),
+                   num_bytes_points);
+      } else if constexpr (NumDimensions == 3) {
+        file.write(reinterpret_cast<char const*>(vertices().data()),
+                   num_bytes_points);
+      }
+    }
+
+    // Writing polys connectivity data to appended data section
+    {
+      auto connectivity_data = std::vector<connectivity_int_type>(
+          simplices().size() * num_vertices_per_simplex());
+      auto index = [](auto const x) -> connectivity_int_type {
+        return x.index();
+      };
+      copy(simplices().data_container() | views::transform(index),
+           begin(connectivity_data));
+      file.write(reinterpret_cast<char const*>(&num_bytes_connectivity),
+                 sizeof(header_type));
+      file.write(reinterpret_cast<char const*>(connectivity_data.data()),
+                 num_bytes_connectivity);
+    }
+
+    // Writing polys offsets to appended data section
     {
       auto offsets = std::vector<offset_int_type>(simplices().size(),
                                                   num_vertices_per_simplex());

@@ -49,6 +49,14 @@ struct tensor
       -> decltype(auto) {
     return tensor_parent_type::at(is...);
   }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto at(integral_range auto const& indices) const -> auto const& {
+    return array_parent_type::at(indices);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto at(integral_range auto const& indices) -> auto& {
+    return array_parent_type::at(indices);
+  }
   //----------------------------------------------------------------------------
   template <typename... Is>
   requires((einstein_notation::index<Is> && ...) ||
@@ -62,6 +70,15 @@ struct tensor
            (integral<Is> && ...))
   auto constexpr operator()(Is const... is) const -> decltype(auto) {
     return at(is...);
+  }
+  //----------------------------------------------------------------------------
+  constexpr auto operator()(integral_range auto const& indices) const -> const
+      auto& {
+    return array_parent_type::at(indices);
+  }
+  //----------------------------------------------------------------------------
+  constexpr auto operator()(integral_range auto const& indices) -> auto& {
+    return array_parent_type::at(indices);
   }
   //----------------------------------------------------------------------------
   template <convertible_to<ValueType>... Ts>

@@ -57,6 +57,72 @@ using vec8d = VecD<8>;
 using vec9d = VecD<9>;
 
 template <std::size_t N>
+using VecI  = vec<int, N>;
+using vec2i = VecI<2>;
+using vec3i = VecI<3>;
+using vec4i = VecI<4>;
+using vec5i = VecI<5>;
+using vec6i = VecI<6>;
+using vec7i = VecI<7>;
+using vec8i = VecI<8>;
+using vec9i = VecI<9>;
+
+template <std::size_t N>
+using VecUI16  = vec<std::uint16_t, N>;
+using vec2ui16 = VecUI16<2>;
+using vec3ui16 = VecUI16<3>;
+using vec4ui16 = VecUI16<4>;
+using vec5ui16 = VecUI16<5>;
+using vec6ui16 = VecUI16<6>;
+using vec7ui16 = VecUI16<7>;
+using vec8ui16 = VecUI16<8>;
+using vec9ui16 = VecUI16<9>;
+
+template <std::size_t N>
+using VecI16  = vec<std::int16_t, N>;
+using vec2i16 = VecI16<2>;
+using vec3i16 = VecI16<3>;
+using vec4i16 = VecI16<4>;
+using vec5i16 = VecI16<5>;
+using vec6i16 = VecI16<6>;
+using vec7i16 = VecI16<7>;
+using vec8i16 = VecI16<8>;
+using vec9i16 = VecI16<9>;
+
+template <std::size_t N>
+using VecUI32  = vec<std::uint32_t, N>;
+using vec2ui32 = VecUI32<2>;
+using vec3ui32 = VecUI32<3>;
+using vec4ui32 = VecUI32<4>;
+using vec5ui32 = VecUI32<5>;
+using vec6ui32 = VecUI32<6>;
+using vec7ui32 = VecUI32<7>;
+using vec8ui32 = VecUI32<8>;
+using vec9ui32 = VecUI32<9>;
+
+template <std::size_t N>
+using VecI32  = vec<std::int32_t, N>;
+using vec2i32 = VecI32<2>;
+using vec3i32 = VecI32<3>;
+using vec4i32 = VecI32<4>;
+using vec5i32 = VecI32<5>;
+using vec6i32 = VecI32<6>;
+using vec7i32 = VecI32<7>;
+using vec8i32 = VecI32<8>;
+using vec9i32 = VecI32<9>;
+
+template <std::size_t N>
+using VecUI64  = vec<std::uint64_t, N>;
+using vec2ui64 = VecUI64<2>;
+using vec3ui64 = VecUI64<3>;
+using vec4ui64 = VecUI64<4>;
+using vec5ui64 = VecUI64<5>;
+using vec6ui64 = VecUI64<6>;
+using vec7ui64 = VecUI64<7>;
+using vec8ui64 = VecUI64<8>;
+using vec9ui64 = VecUI64<9>;
+
+template <std::size_t N>
 using VecI64  = vec<std::int64_t, N>;
 using vec2i64 = VecI64<2>;
 using vec3i64 = VecI64<3>;
