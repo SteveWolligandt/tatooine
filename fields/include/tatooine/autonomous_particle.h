@@ -633,19 +633,19 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
                                  t0, radius, max_split_depth, uuid_generator);
         });
 
-    ([&](){
-      auto dim = initial_particle_distribution.template dimension<Is>();
-      auto const half_spacing = dim.spacing()/ 2;
-      dim.pop_front();
-      dim.front() -= half_spacing;
-      dim.back() -= half_spacing;
-      initial_particle_distribution.template set_dimension<Is>(dim);
-    }, ...);
-    initial_particle_distribution.vertices().iterate_indices(
-        [&](auto const... is) {
-          particles.emplace_back(initial_particle_distribution.vertex_at(is...),
-                                 t0, radius, max_split_depth, uuid_generator);
-        });
+    //([&](){
+    //  auto dim = initial_particle_distribution.template dimension<Is>();
+    //  auto const half_spacing = dim.spacing()/ 2;
+    //  dim.pop_front();
+    //  dim.front() -= half_spacing;
+    //  dim.back() -= half_spacing;
+    //  initial_particle_distribution.template set_dimension<Is>(dim);
+    //}, ...);
+    //initial_particle_distribution.vertices().iterate_indices(
+    //    [&](auto const... is) {
+    //      particles.emplace_back(initial_particle_distribution.vertex_at(is...),
+    //                             t0, radius, max_split_depth, uuid_generator);
+    //    });
     return particles;
   }
   //----------------------------------------------------------------------------
