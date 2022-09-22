@@ -321,7 +321,33 @@ struct pointset {
       val->clear();
   }
   auto clear() { clear_vertices(); }
-
+  //============================================================================
+  template <typename F>
+  requires invocable_with_n_integrals<F, num_dimensions()> ||
+           invocable<F, pos_type>
+  auto sample_to_vertex_property(F&& f, std::string const& name) -> auto& {
+    return sample_to_vertex_property(std::forward<F>(f), name,
+                                     execution_policy::sequential);
+  }
+  //----------------------------------------------------------------------------
+  template <invocable<pos_type> F>
+  auto sample_to_vertex_property(F&& f, std::string const& name,
+                                 execution_policy_tag auto tag) -> auto& {
+    using T    = std::invoke_result_t<F, pos_type>;
+    auto& prop = vertex_property<T>(name);
+    for (auto const v : vertices()) {
+      try {
+        prop[v] = f(at(v));
+      } catch (std::exception&) {
+        if constexpr (tensor_num_components<T> == 1) {
+          prop[v] = T{nan<T>()};
+        } else {
+          prop[v] = T::fill(nan<tensor_value_type<T>>());
+        }
+      }
+    }
+    return prop;
+  }
   //----------------------------------------------------------------------------
   auto join(this_type const& other) {
     for (auto v : other.vertices()) {
@@ -587,7 +613,8 @@ struct pointset {
     }
   }
   //----------------------------------------------------------------------------
- private : auto write_vertices_vtk(vtk::legacy_file_writer& writer) const {
+ private:
+  auto write_vertices_vtk(vtk::legacy_file_writer& writer) const {
     using namespace std::ranges;
     if constexpr (NumDimensions == 2) {
       auto three_dims = [](vec<Real, 2> const& v2) {

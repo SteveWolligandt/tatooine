@@ -86,7 +86,7 @@ struct vertex_container {
           Iteration,
       std::size_t... Ds>
   auto iterate_indices(Iteration&&                    iteration,
-                       execution_policy::sequential_t exec,
+                       execution_policy_tag auto const exec,
                        std::index_sequence<Ds...>) const -> decltype(auto) {
     return tatooine::for_loop(
         std::forward<Iteration>(iteration), exec,
@@ -97,30 +97,8 @@ struct vertex_container {
   template <
       invocable<decltype(((void)std::declval<Dimensions>(), std::size_t{}))...>
           Iteration>
-  auto iterate_indices(Iteration&&                    iteration,
-                       execution_policy::sequential_t exec) const
-      -> decltype(auto) {
-    return iterate_indices(std::forward<Iteration>(iteration), exec,
-                           std::make_index_sequence<num_dimensions()>{});
-  }
-  //----------------------------------------------------------------------------
- private:
-  template <
-      invocable<decltype(((void)std::declval<Dimensions>(), std::size_t{}))...>
-          Iteration,
-      std::size_t... Ds>
-  auto iterate_indices(Iteration&& iteration, execution_policy::parallel_t exec,
-                       std::index_sequence<Ds...>) const -> decltype(auto) {
-    return tatooine::for_loop(std::forward<Iteration>(iteration), exec,
-                              m_grid.template size<Ds>()...);
-  }
-  //----------------------------------------------------------------------------
- public:
-  template <
-      invocable<decltype(((void)std::declval<Dimensions>(), std::size_t{}))...>
-          Iteration>
-  auto iterate_indices(Iteration&&                  iteration,
-                       execution_policy::parallel_t exec) const
+  auto iterate_indices(Iteration&&                     iteration,
+                       execution_policy_tag auto const exec) const
       -> decltype(auto) {
     return iterate_indices(std::forward<Iteration>(iteration), exec,
                            std::make_index_sequence<num_dimensions()>{});
@@ -133,6 +111,25 @@ struct vertex_container {
     return iterate_indices(std::forward<Iteration>(iteration),
                            execution_policy::sequential,
                            std::make_index_sequence<num_dimensions()>{});
+  }
+  //------------------------------------------------------------------------------
+  template <invocable<pos_type> Iteration>
+  auto iterate_positions(Iteration&& iteration) const -> decltype(auto) {
+    return iterate_indices(
+        [this, iteration = std::forward<Iteration>(iteration)](
+            auto const... is) { iteration(this->at(is...)); },
+        execution_policy::sequential,
+        std::make_index_sequence<num_dimensions()>{});
+  }
+  //------------------------------------------------------------------------------
+  template <invocable<pos_type> Iteration>
+  auto iterate_positions(Iteration&&                     iteration,
+                         execution_policy_tag auto const exec) const
+      -> decltype(auto) {
+    return iterate_indices(
+        [this, iteration = std::forward<Iteration>(iteration)](
+            auto const... is) { iteration(this->at(is...)); },
+        exec, std::make_index_sequence<num_dimensions()>{});
   }
 };
 //------------------------------------------------------------------------------

@@ -130,6 +130,40 @@ struct numerical_flowmap {
     return xes;
   }
   //============================================================================
+  [[nodiscard]] constexpr auto evaluate_uncached(
+      fixed_size_vec<num_dimensions()> auto const& x0, real_type const t0,
+      real_type const tau) const -> pos_type {
+    if (tau == 0) {
+      return pos_type{x0};
+    }
+    auto       x1       = pos_type::fill(0.0 / 0.0);
+    auto const t_end    = t0 + tau;
+    auto       callback = [t_end, &x1](const auto& y, auto const t) {
+      if (t_end == t) {
+        x1 = y;
+      }
+    };
+    m_ode_solver.solve(vectorfield(), x0, t0, tau, callback);
+    return x1;
+  }
+  //============================================================================
+  [[nodiscard]] constexpr auto evaluate_uncached_with_arc_length(
+      fixed_size_vec<num_dimensions()> auto const& x0, real_type const t0,
+      real_type const tau) const {
+    auto arc_length = real_type{};
+    if (tau == 0) {
+      return std::pair{pos_type{x0}, arc_length};
+    }
+    auto       x1         = x0;
+    auto const t_end      = t0 + tau;
+    auto callback = [t_end, &x1, &arc_length](const auto& y, auto const t) {
+      arc_length += euclidean_distance(y, x1);
+      x1 = y;
+    };
+    m_ode_solver.solve(vectorfield(), x0, t0, tau, callback);
+    return std::pair{x1, arc_length};
+  }
+  //============================================================================
   [[nodiscard]] constexpr auto evaluate(
       fixed_size_vec<num_dimensions()> auto const& x0, real_type const t0,
       real_type const tau) const -> pos_type {

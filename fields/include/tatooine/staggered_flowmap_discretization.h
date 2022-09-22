@@ -15,7 +15,7 @@ struct staggered_flowmap_discretization {
   using vec_type = vec<real_type, num_dimensions()>;
   using pos_type = vec_type;
   //============================================================================
-  std::list<internal_flowmap_discretization_type> m_steps;
+  std::vector<internal_flowmap_discretization_type> m_steps = {};
   //============================================================================
   template <typename Flowmap, typename... InternalFlowmapArgs>
   staggered_flowmap_discretization(Flowmap&& flowmap, arithmetic auto const t0,
@@ -23,28 +23,31 @@ struct staggered_flowmap_discretization {
                                    arithmetic auto const delta_t,
                                    InternalFlowmapArgs&&... args) {
     auto const t_end  = t0 + tau;
+    m_steps.reserve((t_end - t0) / delta_t + 2);
     auto       cur_t0 = real_type(t0);
     while (cur_t0 + 1e-10 < t0 + tau) {
       auto cur_tau = delta_t;
       if (cur_t0 + cur_tau > t_end) {
         cur_tau = t0 + tau - cur_t0;
       }
-      std::cout << "[staggering] t0: " << cur_t0 << "            \n";
-      std::cout << "[staggering] tau: " << cur_tau << "               \n";
       m_steps.emplace_back(std::forward<Flowmap>(flowmap), cur_t0, cur_tau,
                            std::forward<InternalFlowmapArgs>(args)...);
       cur_t0 += cur_tau;
     }
   }
+  //============================================================================
+  auto num_steps() const { return m_steps.size(); }
   //----------------------------------------------------------------------------
   auto steps() const -> auto const& {
     return m_steps;
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto steps() -> auto& {
-    return m_steps;
-  }
   //----------------------------------------------------------------------------
+  auto steps() -> auto& { return m_steps; }
+  //============================================================================
+  auto step(std::size_t const i) const -> auto const& { return m_steps[i]; }
+  //----------------------------------------------------------------------------
+  auto step(std::size_t const i) -> auto& { return m_steps[i]; }
+  //============================================================================
   /// Evaluates flow map in forward direction at time t0 with maximal available
   /// advection time.
   /// \param x position

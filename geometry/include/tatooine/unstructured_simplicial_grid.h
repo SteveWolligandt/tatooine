@@ -720,12 +720,12 @@ struct unstructured_simplicial_grid
       }
     } else if (ext == ".vtp") {
       if constexpr ((NumDimensions == 2 || NumDimensions == 3) &&
-                    SimplexDim == 1) {
+                    (SimplexDim == 1 || SimplexDim ==2)) {
         write_vtp(path);
         return;
       } else {
         throw std::runtime_error{
-            ".vtu is not supported with this simplicial grid."};
+            ".vtp is not supported with this simplicial grid."};
       }
     } else if (ext == ".vtu") {
       if constexpr ((NumDimensions == 2 || NumDimensions == 3) &&

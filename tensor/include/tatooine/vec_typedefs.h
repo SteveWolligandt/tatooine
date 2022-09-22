@@ -68,6 +68,17 @@ using vec8i = VecI<8>;
 using vec9i = VecI<9>;
 
 template <std::size_t N>
+using VecSizeT   = vec<std::size_t, N>;
+using vec2size_t = VecSizeT<2>;
+using vec3size_t = VecSizeT<3>;
+using vec4size_t = VecSizeT<4>;
+using vec5size_t = VecSizeT<5>;
+using vec6size_t = VecSizeT<6>;
+using vec7size_t = VecSizeT<7>;
+using vec8size_t = VecSizeT<8>;
+using vec9size_t = VecSizeT<9>;
+
+template <std::size_t N>
 using VecUI16  = vec<std::uint16_t, N>;
 using vec2ui16 = VecUI16<2>;
 using vec3ui16 = VecUI16<3>;
