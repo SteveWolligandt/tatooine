@@ -2,7 +2,34 @@ cmake_minimum_required(VERSION 3.15)
 project(Tatooine)
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
+#--------------------------------------------------------------------------------
+# git submodules
+#--------------------------------------------------------------------------------
+find_package(Git REQUIRED)
+function(update_git_submodule dir)
+  execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive -- ${dir}
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                  RESULT_VARIABLE GIT_SUBMOD_RESULT)
+  if(NOT GIT_SUBMOD_RESULT EQUAL "0")
+    message(FATAL_ERROR
+      "When updating submodule ${dir}:\n  git submodule update --init --recursive -- ${dir}\nfailed with ${GIT_SUBMOD_RESULT}, please checkout submodules.")
+  endif()
+endfunction()
+option(TATOOINE_BUILD_DOC "Builds the documentation" OFF)
+if (TATOOINE_BUILD_DOC) 
+  option(TATOOINE_DOC_ONLY "Only builds documentation" OFF)
+  add_subdirectory(doc)
+  target_compile_options(base INTERFACE -DTATOOINE_DOC_ONLY)
+endif () 
+#--------------------------------------------------------------------------------
+set(TATOOINE_MANDATORY_GIT_SUBMODULES
+  external/rapidxml
+  external/indicators
+  external/gcem)
+foreach(SUBMODULE ${TATOOINE_MANDATORY_GIT_SUBMODULES})
+  update_git_submodule(${SUBMODULE})
+endforeach()
+#--------------------------------------------------------------------------------
 set(REAL_NUMBER double float)
 set(TATOOINE_REAL_NUMBER_TYPE double CACHE STRING "Floating point type for real numbers")
 set_property(CACHE TATOOINE_REAL_NUMBER_TYPE PROPERTY STRINGS ${REAL_NUMBER})
@@ -121,25 +148,6 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   target_compile_options(base INTERFACE -fdiagnostics-color=always)
 endif()
-#--------------------------------------------------------------------------------
-# git submodules
-#--------------------------------------------------------------------------------
-find_package(Git REQUIRED)
-function(update_git_submodule dir)
-  execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive -- ${dir}
-                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                  RESULT_VARIABLE GIT_SUBMOD_RESULT)
-  if(NOT GIT_SUBMOD_RESULT EQUAL "0")
-    message(FATAL_ERROR
-      "When updating submodule ${dir}:\n  git submodule update --init --recursive -- ${dir}\nfailed with ${GIT_SUBMOD_RESULT}, please checkout submodules.")
-  endif()
-endfunction()
-option(TATOOINE_BUILD_DOC "Builds the documentation" OFF)
-if (TATOOINE_BUILD_DOC) 
-  option(TATOOINE_DOC_ONLY "Only builds documentation" OFF)
-  add_subdirectory(doc)
-  target_compile_options(base INTERFACE -DTATOOINE_DOC_ONLY)
-endif () 
 
 if (NOT TATOOINE_DOC_ONLY)
 #===============================================================================
@@ -408,22 +416,7 @@ endif()
 #    add_subdirectory(flowexplorer)
 #  endif()
 #endif()
-
-
-set(TATOOINE_MANDATORY_GIT_SUBMODULES
-  external/rapidxml
-  external/indicators
-  external/gcem)
-foreach(SUBMODULE ${TATOOINE_MANDATORY_GIT_SUBMODULES})
-  update_git_submodule(${SUBMODULE})
-endforeach()
 endif()
-#--------------------------------------------------------------------------------
-# configure files
-#--------------------------------------------------------------------------------
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/available_libraries.h.in"
-               "${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/available_libraries.h")
-#-------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------
 # Get base properties for tatooineConfig.cmake
 # include directories
@@ -453,10 +446,24 @@ endforeach()
 set(BASE_LINK_LIBRARIES ${FILTERED_BASE_LINK_LIBRARIES})
 get_target_property(BASE_COMPILE_DEFINITIONS base INTERFACE_COMPILE_DEFINITIONS)
 get_target_property(BASE_COMPILE_OPTIONS base INTERFACE_COMPILE_OPTIONS)
-# This makes the project importable from the build directory
-#export(TARGETS base preprocessor geometry tensor CDT multidim_array
-#       NAMESPACE tatooine::
-#       FILE tatooineConfig.cmake
-#       EXPORT_LINK_INTERFACE_LIBRARIES)
+
 configure_file(${CMAKE_SOURCE_DIR}/tatooineConfig.cmake.in ${CMAKE_BINARY_DIR}/tatooineConfig.cmake @ONLY)
+
+if (TATOOINE_GL_AVAILABLE) 
+  export(
+    TARGETS gl glfw imgui glad
+    APPEND FILE "${CMAKE_BINARY_DIR}/tatooineConfig.cmake"
+    NAMESPACE tatooine::)
+endif()
+
+export(
+  TARGETS rendering
+  APPEND FILE "${CMAKE_BINARY_DIR}/tatooineConfig.cmake"
+  NAMESPACE tatooine::)
+
 export(PACKAGE tatooine)
+#--------------------------------------------------------------------------------
+# configure files
+#--------------------------------------------------------------------------------
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/available_libraries.h.in"
+               "${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/available_libraries.h")
