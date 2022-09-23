@@ -1,17 +1,15 @@
 #ifndef TATOOINE_ALGORITHM_H
 #define TATOOINE_ALGORITHM_H
-
-#include <cstdint>
-
+//==============================================================================
+#include <cstddef>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-
 template <typename Range, typename RangeIt>
 decltype(auto) resize_prev_list(Range& range, RangeIt pos,
                                 std::size_t new_prev_size) {
   auto prev_size = distance(begin(range), pos);
-  int  size_change =
+  auto size_change =
       static_cast<int>(new_prev_size) - static_cast<int>(prev_size);
   if (size_change > 0) {
     for (std::size_t i = 0; i < static_cast<std::size_t>(size_change); ++i) {
@@ -22,7 +20,6 @@ decltype(auto) resize_prev_list(Range& range, RangeIt pos,
   }
   return range;
 }
-
 //------------------------------------------------------------------------------
 template <typename Range, typename RangeIt>
 decltype(auto) resize_next_list(Range& range, RangeIt pos,
@@ -38,20 +35,19 @@ decltype(auto) resize_next_list(Range& range, RangeIt pos,
     range.erase(prev(end(range), next_size - new_next_size), end(range));
   }
 }
-
+//------------------------------------------------------------------------------
 template <typename T>
 constexpr auto clamp(const T& v, const T& lo, const T& hi) -> const T& {
   assert(!(hi < lo));
   return (v < lo) ? lo : (hi < v) ? hi : v;
 }
-
+//------------------------------------------------------------------------------
 template <typename T, typename Compare>
 constexpr auto clamp(const T& v, const T& lo, const T& hi, Compare comp)
     -> const T& {
   assert(!comp(hi, lo));
   return comp(v, lo) ? lo : comp(hi, v) ? hi : v;
 }
-
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

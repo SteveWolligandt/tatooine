@@ -418,37 +418,19 @@ endif()
 #endif()
 endif()
 #-------------------------------------------------------------------------------
-# Get base properties for tatooineConfig.cmake
-# include directories
-get_target_property(BASE_INCLUDE_DIRECTORIES base INTERFACE_INCLUDE_DIRECTORIES)
-foreach(INCLUDE_DIRECTORY ${BASE_INCLUDE_DIRECTORIES})
-  if(${INCLUDE_DIRECTORY} MATCHES ".*BUILD_INTERFACE:.*")
-    string(LENGTH ${INCLUDE_DIRECTORY} len)
-    math(EXPR len ${len}-19)
-    string(SUBSTRING ${INCLUDE_DIRECTORY} 18 ${len} INCLUDE_DIRECTORY)
-    list(APPEND FILTERED_BASE_INCLUDE_DIRECTORIES ${INCLUDE_DIRECTORY})
-  elseif(NOT (INCLUDE_DIRECTORY MATCHES "\<.*_INTERFACE:.*\>"))
-    list(APPEND FILTERED_BASE_INCLUDE_DIRECTORIES ${INCLUDE_DIRECTORY})
-  else()
-  endif()
-endforeach()
-set(BASE_INCLUDE_DIRECTORIES ${FILTERED_BASE_INCLUDE_DIRECTORIES})
-
-get_target_property(BASE_LINK_LIBRARIES base INTERFACE_LINK_LIBRARIES)
-foreach(LINK_LIBRARY ${BASE_LINK_LIBRARIES})
-  if(${LINK_LIBRARY} MATCHES "preprocessor")
-    list(APPEND FILTERED_BASE_LINK_LIBRARIES "tatooine::preprocessor")
-  elseif(NOT (LINK_LIBRARY MATCHES "\<.*_INTERFACE:.*\>"))
-    list(APPEND FILTERED_BASE_LINK_LIBRARIES ${LINK_LIBRARY})
-  else()
-  endif()
-endforeach()
-set(BASE_LINK_LIBRARIES ${FILTERED_BASE_LINK_LIBRARIES})
-get_target_property(BASE_COMPILE_DEFINITIONS base INTERFACE_COMPILE_DEFINITIONS)
-get_target_property(BASE_COMPILE_OPTIONS base INTERFACE_COMPILE_OPTIONS)
-
 configure_file(${CMAKE_SOURCE_DIR}/tatooineConfig.cmake.in ${CMAKE_BINARY_DIR}/tatooineConfig.cmake @ONLY)
 
+export(
+  TARGETS base geometry multidim_array tensor preprocessor fields
+  APPEND FILE "${CMAKE_BINARY_DIR}/tatooineConfig.cmake"
+  NAMESPACE tatooine::)
+
+#if (TATOOINE_BLAS_AND_LAPACK_AVAILABLE) 
+#  export(
+#    TARGETS BLAS::BLAS LAPACK::LAPACK
+#    APPEND FILE "${CMAKE_BINARY_DIR}/tatooineConfig.cmake"
+#    NAMESPACE tatooine::)
+#endif()
 if (TATOOINE_GL_AVAILABLE) 
   export(
     TARGETS gl glfw imgui glad
@@ -460,6 +442,13 @@ export(
   TARGETS rendering
   APPEND FILE "${CMAKE_BINARY_DIR}/tatooineConfig.cmake"
   NAMESPACE tatooine::)
+
+if(TATOOINE_CDT_AVAILABLE)
+  export(
+    TARGETS CDT
+    APPEND FILE "${CMAKE_BINARY_DIR}/tatooineConfig.cmake"
+    NAMESPACE tatooine::)
+endif()
 
 export(PACKAGE tatooine)
 #--------------------------------------------------------------------------------

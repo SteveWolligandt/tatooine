@@ -9,7 +9,7 @@ template <typename InternalFlowmapDiscretization>
 struct staggered_flowmap_discretization {
   using internal_flowmap_discretization_type = InternalFlowmapDiscretization;
   using real_type = typename internal_flowmap_discretization_type::real_type;
-  static auto constexpr num_dimensions() {
+  static auto constexpr num_dimensions() -> std::size_t {
     return internal_flowmap_discretization_type::num_dimensions();
   }
   using vec_type = vec<real_type, num_dimensions()>;

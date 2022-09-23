@@ -1,30 +1,3 @@
 add_library(multidim_array INTERFACE)
-target_include_directories(multidim_array INTERFACE
-  ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(multidim_array INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(multidim_array INTERFACE base)
-#-------------------------------------------------------------------------------
-# Get multidim_array properties for tatooineConfig.cmake
-# include directories
-get_target_property(MULTIDIM_ARRAY_INCLUDE_DIRECTORIES multidim_array INTERFACE_INCLUDE_DIRECTORIES)
-foreach(INCLUDE_DIRECTORY ${MULTIDIM_ARRAY_INCLUDE_DIRECTORIES})
-  if(${INCLUDE_DIRECTORY} MATCHES ".*BUILD_INTERFACE:.*")
-    string(LENGTH ${INCLUDE_DIRECTORY} len)
-    math(EXPR len ${len}-19)
-    string(SUBSTRING ${INCLUDE_DIRECTORY} 18 ${len} INCLUDE_DIRECTORY)
-    list(APPEND FILTERED_MULTIDIM_ARRAY_INCLUDE_DIRECTORIES ${INCLUDE_DIRECTORY})
-  elseif(NOT (INCLUDE_DIRECTORY MATCHES "\<.*_INTERFACE:.*\>"))
-    list(APPEND FILTERED_MULTIDIM_ARRAY_INCLUDE_DIRECTORIES ${INCLUDE_DIRECTORY})
-  else()
-  endif()
-endforeach()
-set(MULTIDIM_ARRAY_INCLUDE_DIRECTORIES ${FILTERED_MULTIDIM_ARRAY_INCLUDE_DIRECTORIES} PARENT_SCOPE)
-
-get_target_property(MULTIDIM_ARRAY_LINK_LIBRARIES multidim_array INTERFACE_LINK_LIBRARIES)
-foreach(LINK_LIBRARY ${MULTIDIM_ARRAY_LINK_LIBRARIES})
-  if(${LINK_LIBRARY} MATCHES "base")
-    list(APPEND FILTERED_MULTIDIM_ARRAY_LINK_LIBRARIES "tatooine::base")
-  elseif(NOT (LINK_LIBRARY MATCHES "\<.*_INTERFACE:.*\>"))
-    list(APPEND FILTERED_MULTIDIM_ARRAY_LINK_LIBRARIES ${LINK_LIBRARY})
-  endif()
-endforeach()
-set(MULTIDIM_ARRAY_LINK_LIBRARIES ${FILTERED_MULTIDIM_ARRAY_LINK_LIBRARIES} PARENT_SCOPE)
