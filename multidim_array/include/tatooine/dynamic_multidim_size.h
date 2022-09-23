@@ -1,11 +1,10 @@
-#ifndef TATOOINE_MULTIDIM_SIZE_H
-#define TATOOINE_MULTIDIM_SIZE_H
+#ifndef TATOOINE_DYNAMIC_MULTIDIM_SIZE_H
+#define TATOOINE_DYNAMIC_MULTIDIM_SIZE_H
 //==============================================================================
 #include <tatooine/concepts.h>
 #include <tatooine/for_loop.h>
 #include <tatooine/functional.h>
 #include <tatooine/index_order.h>
-#include <tatooine/multidim.h>
 #include <tatooine/template_helper.h>
 #include <tatooine/type_traits.h>
 #include <tatooine/utility.h>
@@ -15,10 +14,15 @@ namespace tatooine {
 //==============================================================================
 template <typename IndexOrder>
 class dynamic_multidim_size {
+ public:
+  using this_type        = dynamic_multidim_size<IndexOrder>;
+  using index_order_type = IndexOrder;
+
+ private:
   //----------------------------------------------------------------------------
   // members
   //----------------------------------------------------------------------------
-  std::vector<std::size_t> m_size;
+  std::vector<std::size_t> m_size = {};
 
   //----------------------------------------------------------------------------
   // ctors
@@ -98,7 +102,6 @@ class dynamic_multidim_size {
   //----------------------------------------------------------------------------
   // methods
   //----------------------------------------------------------------------------
- public:
   auto num_dimensions() const { return m_size.size(); }
   //----------------------------------------------------------------------------
   [[nodiscard]] auto size() const -> auto const& { return m_size; }
@@ -154,8 +157,77 @@ class dynamic_multidim_size {
   auto constexpr multi_index(std::size_t const gi) const {
     return IndexOrder::multi_index(m_size, gi);
   }
+  //============================================================================
+  struct indices_iterator {
+    //--------------------------------------------------------------------------
+    this_type const*         m_multidim_size = nullptr;
+    std::vector<std::size_t> m_status        = {};
+    //--------------------------------------------------------------------------
+    indices_iterator(this_type const& c, std::vector<std::size_t> status)
+        : m_multidim_size{&c}, m_status{std::move(status)} {}
+    //--------------------------------------------------------------------------
+    indices_iterator(indices_iterator const& other)     = default;
+    indices_iterator(indices_iterator&& other) noexcept = default;
+    //--------------------------------------------------------------------------
+    auto operator=(indices_iterator const& other)
+        -> indices_iterator& = default;
+    auto operator=(indices_iterator&& other) noexcept
+        -> indices_iterator& = default;
+    //--------------------------------------------------------------------------
+    ~indices_iterator() = default;
+    //--------------------------------------------------------------------------
+    auto operator++() {
+      ++m_status.front();
+      auto size_it  = m_multidim_size->size().begin();
+      auto status_it = m_status.begin();
+      for (; size_it != prev(m_multidim_size->size().end());
+           ++status_it, ++size_it) {
+        if (size_it->second <= *status_it) {
+          *status_it = 0;
+          ++(*next(status_it));
+        }
+      }
+    }
+    //--------------------------------------------------------------------------
+    auto operator==(indices_iterator const& other) const {
+      if (m_multidim_size != other.m_multidim_size) {
+        return false;
+      }
+      for (std::size_t i = 0; i < m_multidim_size->num_dimensions(); ++i) {
+        if (m_status[i] != other.m_status[i]) {
+          return false;
+        }
+      }
+      return true;
+    }
+    //--------------------------------------------------------------------------
+    auto operator!=(indices_iterator const& other) const { return !operator==(other); }
+    //--------------------------------------------------------------------------
+    auto operator*() const -> auto const& { return m_status; }
+  };
   //----------------------------------------------------------------------------
-  auto constexpr indices() const { return dynamic_multidim{m_size}; }
+  auto begin_indices() {
+    return indices_iterator{*this,
+                            std::vector<std::size_t>(num_dimensions(), 0)};
+  }
+  //----------------------------------------------------------------------------
+  auto end_indices() {
+    auto v   = std::vector<std::size_t>(num_dimensions(), 0);
+    v.back() = size().back();
+    return indices_iterator{*this, std::move(v)};
+  }
+  //------------------------------------------------------------------------------
+  struct index_range {
+   private:
+    this_type const* m_multidim_size;
+
+   public:
+    explicit index_range(this_type const* multidim_size)
+        : m_multidim_size{multidim_size} {}
+    auto begin() { return m_multidim_size->begin_indices(); }
+    auto end() { return m_multidim_size->end_indices(); }
+  };
+  auto indices() const { return index_range{this}; }
 };
 //==============================================================================
 // deduction guides

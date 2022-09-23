@@ -5,7 +5,7 @@
 #include <tatooine/crtp.h>
 #include <tatooine/einstein_notation.h>
 #include <tatooine/index_order.h>
-#include <tatooine/multidim_size.h>
+#include <tatooine/dynamic_multidim_size.h>
 #include <tatooine/template_helper.h>
 #include <tatooine/tensor_operations/same_dimensions.h>
 #include <tatooine/type_traits.h>

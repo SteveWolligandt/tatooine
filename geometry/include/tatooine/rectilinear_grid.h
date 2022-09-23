@@ -429,9 +429,9 @@ class rectilinear_grid {
   //----------------------------------------------------------------------------
   ///
   template <std::size_t I>
-  constexpr auto set_dimension(convertible_to<dimension_type<I>> auto && dim) {
+  constexpr auto set_dimension(convertible_to<dimension_type<I>> auto&& dim) {
     // TODO update diff stencils
-    m_dimensions.template at<I>() = dim;
+    m_dimensions.template at<I>() = std::forward<decltype(dim)>(dim);
   }
   //----------------------------------------------------------------------------
   /// Inserts new discrete point in dimension I with extent of last cell.

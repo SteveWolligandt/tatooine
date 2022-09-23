@@ -1,7 +1,7 @@
 #ifndef TATOOINE_STRUCTURED_GRID_H
 #define TATOOINE_STRUCTURED_GRID_H
 //==============================================================================
-#include <tatooine/multidim_size.h>
+#include <tatooine/dynamic_multidim_size.h>
 #include <tatooine/pointset.h>
 #include <tatooine/uniform_tree_hierarchy.h>
 #include <tatooine/vtk/xml.h>
