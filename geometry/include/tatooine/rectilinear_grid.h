@@ -168,7 +168,7 @@ class rectilinear_grid {
   template <std::size_t... Ds>
   constexpr auto copy_without_properties(
       std::index_sequence<Ds...> /*seq*/) const {
-    return this_type{m_dimensions.template at<Ds>()...};
+    return this_type{dimension<Ds>()...};
   }
 
  public:
