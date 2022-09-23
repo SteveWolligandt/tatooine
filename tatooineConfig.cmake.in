@@ -16,7 +16,11 @@ set(TATOOINE_GL_AVAILABLE @TATOOINE_GL_AVAILABLE@)
 set(TATOOINE_BLAS_AND_LAPACK_AVAILABLE @TATOOINE_BLAS_AND_LAPACK_AVAILABLE@)
 set(TATOOINE_STD_FILESYSTEM_AVAILABLE @TATOOINE_STD_FILESYSTEM_AVAILABLE@)
 if (TATOOINE_GL_AVAILABLE) 
-  find_package(OpenGL COMPONENTS OpenGL EGL REQUIRED)
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    find_package(OpenGL)
+  elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+    find_package(OpenGL COMPONENTS OpenGL EGL)
+  endif()
 endif()
 if (TATOOINE_BLAS_AND_LAPACK_AVAILABLE) 
   find_package(BLAS REQUIRED)
@@ -37,15 +41,12 @@ endif()
 set(_targetsDefined)
 set(_targetsNotDefined)
 set(_expectedTargets)
-set(targets tatooine::base tatooine::geometry tatooine::multidim_array tatooine::preprocessor tatooine::fields tatooine::tensor tatooine::rendering)
+set(targets tatooine::base tatooine::geometry tatooine::multidim_array tatooine::preprocessor tatooine::fields tatooine::tensor)
 if (TATOOINE_USE_BLAS_AND_LAPACK)
-  list(APPEND targets blaspp lapackk)
+  list(APPEND targets BLAS::BLAS LAPACK::LAPACK)
 endif()
 if (TATOOINE_USE_CDT)
   list(APPEND targets tatooine::CDT)
-endif()
-if (TATOOINE_GL_AVAILABLE)
-  list(APPEND targets tatooine::gl tatooine::glad tatooine::glfw tatooine::imgui)
 endif()
 foreach(_expectedTarget ${targets})
   list(APPEND _expectedTargets ${_expectedTarget})
@@ -106,43 +107,6 @@ set_target_properties(tatooine::geometry PROPERTIES
   IMPORTED_LOCATION_RELEASE "@CMAKE_BINARY_DIR@/geometry/libgeometry.a"
   )
 
-if (TATOOINE_GL_AVAILABLE) 
-  # Create imported target tatooine::gl
-  add_library(tatooine::gl STATIC IMPORTED)
-
-  set_target_properties(tatooine::gl PROPERTIES
-    INTERFACE_COMPILE_DEFINITIONS "@GL_COMPILE_DEFINITIONS@"
-    INTERFACE_COMPILE_OPTIONS "@GL_COMPILE_OPTIONS@"
-    #INTERFACE_COMPILE_FEATURES "@GL_COMPILE_FEATURES@"
-    INTERFACE_INCLUDE_DIRECTORIES "@GL_INCLUDE_DIRECTORIES@"
-    INTERFACE_LINK_LIBRARIES "@GL_LINK_LIBRARIES@"
-  )
-
-  # Create imported target tatooine::glad
-  add_library(tatooine::glad STATIC IMPORTED)
-
-  # Create imported target tatooine::glfw
-  add_library(tatooine::glfw SHARED IMPORTED)
-
-  set_target_properties(tatooine::glfw PROPERTIES
-    INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/gl/external/glfw/include"
-  )
-  # Create imported target tatooine::imgui
-  add_library(tatooine::imgui STATIC IMPORTED)
-
-  set_target_properties(tatooine::imgui PROPERTIES
-    INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/gl/external/imgui"
-  )
-
-endif()
-# Create imported target tatooine::rendering
-add_library(tatooine::rendering INTERFACE IMPORTED)
-
-set_target_properties(tatooine::rendering PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES "@RENDERING_INCLUDE_DIRECTORIES@"
-  INTERFACE_LINK_LIBRARIES "@RENDERING_LINK_LIBRARIES@"
-)
-
 # Create imported target tatooine::base
 add_library(tatooine::base INTERFACE IMPORTED)
 
@@ -191,7 +155,7 @@ add_library(tatooine::tensor INTERFACE IMPORTED)
 #  INTERFACE_COMPILE_DEFINITIONS "LAPACK_COMPLEX_CPP"
 #  INTERFACE_COMPILE_FEATURES "cxx_std_20"
 #  INTERFACE_INCLUDE_DIRECTORIES "@CMAKE_SOURCE_DIR@/tensor/include"
-#  INTERFACE_LINK_LIBRARIES "tatooine::base;tatooine::multidim_array;lapackpp"
+#  INTERFACE_LINK_LIBRARIES "tatooine::base;tatooine::multidim_array"
 #)
 
 set_target_properties(tatooine::tensor PROPERTIES
@@ -202,30 +166,7 @@ set_target_properties(tatooine::tensor PROPERTIES
   INTERFACE_LINK_LIBRARIES "@TENSOR_LINK_LIBRARIES@"
 )
 
-if (TATOOINE_USE_BLAS_AND_LAPACK)
-# Create imported target blaspp
-add_library(blaspp SHARED IMPORTED)
-
-set_target_properties(blaspp PROPERTIES
-  INTERFACE_COMPILE_FEATURES "@BLASPP_COMPILE_FEATURES@"
-  INTERFACE_COMPILE_OPTIONS "@BLASPP_COMPILE_OPTIONS@"
-  INTERFACE_INCLUDE_DIRECTORIES "@BLASPP_INCLUDE_DIRECTORIES@"
-  INTERFACE_LINK_LIBRARIES "@BLASPP_LINK_LIBRARIES@"
-)
-
-# Create imported target lapackpp
-add_library(lapackpp SHARED IMPORTED)
-
-set_target_properties(lapackpp PROPERTIES
-  INTERFACE_COMPILE_FEATURES "@LAPACKPP_COMPILE_FEATURES@"
-  INTERFACE_COMPILE_OPTIONS "@LAPACKPP_COMPILE_OPTIONS@"
-  INTERFACE_INCLUDE_DIRECTORIES "@LAPACKPP_INCLUDE_DIRECTORIES@"
-  INTERFACE_LINK_LIBRARIES "@LAPACKPP_LINK_LIBRARIES@"
-)
-endif()
-
 if (TATOOINE_CDT_AVAILABLE)
-  # Import target "tatooine::CDT" for configuration "Release"
   set_property(TARGET tatooine::CDT APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
   set_target_properties(tatooine::CDT PROPERTIES
     IMPORTED_LOCATION_RELEASE "@CMAKE_BINARY_DIR@/geometry/external/CDT/CDT/libCDT.so.1.0.0"
@@ -233,59 +174,9 @@ if (TATOOINE_CDT_AVAILABLE)
     )
 endif()
 
-if(TATOOINE_GL_AVAILABLE)
-  # Import target "tatooine::gl" for configuration "Release"
-  set_property(TARGET tatooine::gl APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
-  set_target_properties(tatooine::gl PROPERTIES
-    IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "CXX"
-    IMPORTED_LOCATION_RELEASE "@CMAKE_BINARY_DIR@/gl/libgl.a"
-    )
-  # Import target "tatooine::glad" for configuration "Release"
-  set_property(TARGET tatooine::glad APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
-  set_target_properties(tatooine::glad PROPERTIES
-    INTERFACE_INCLUDE_DIRECTORIES "@GLAD_INCLUDE_DIRECTORIES@"
-    IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "C"
-    IMPORTED_LOCATION_RELEASE "@CMAKE_BINARY_DIR@/gl/libglad.a"
-    INTERFACE_LINK_LIBRARIES "@CMAKE_DL_LIBS@"
-    )
-
-  # Import target "tatooine::glfw" for configuration "Release"
-  set_property(TARGET tatooine::glfw APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
-  set_target_properties(tatooine::glfw PROPERTIES
-    IMPORTED_LOCATION_RELEASE "@CMAKE_BINARY_DIR@/gl/external/glfw/src/libglfw.so.3.4"
-    IMPORTED_SONAME_RELEASE "libglfw.so.3"
-    )
-
-  # Import target "tatooine::imgui" for configuration "Release"
-  set_property(TARGET tatooine::imgui APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
-  set_target_properties(tatooine::imgui PROPERTIES
-    IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "CXX"
-    IMPORTED_LOCATION_RELEASE "@CMAKE_BINARY_DIR@/gl/libimgui.a"
-    )
-endif()
-
-# Import target "blaspp" for configuration "Release"
-set_property(TARGET blaspp APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
-set_target_properties(blaspp PROPERTIES
-  IMPORTED_LOCATION_RELEASE "@CMAKE_BINARY_DIR@/tensor/external/blaspp/libblaspp.so"
-  IMPORTED_SONAME_RELEASE "libblaspp.so"
-  )
-
-# Import target "lapackpp" for configuration "Release"
-set_property(TARGET lapackpp APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
-set_target_properties(lapackpp PROPERTIES
-  IMPORTED_LOCATION_RELEASE "@CMAKE_BINARY_DIR@/tensor/external/lapackpp/liblapackpp.so"
-  IMPORTED_SONAME_RELEASE "liblapackpp.so"
-  )
-
 # Make sure the targets which have been exported in some other
 # export set exist.
 unset(${CMAKE_FIND_PACKAGE_NAME}_NOT_FOUND_MESSAGE_targets)
-foreach(_target "blaspp" )
-  if(NOT TARGET "${_target}" )
-    set(${CMAKE_FIND_PACKAGE_NAME}_NOT_FOUND_MESSAGE_targets "${${CMAKE_FIND_PACKAGE_NAME}_NOT_FOUND_MESSAGE_targets} ${_target}")
-  endif()
-endforeach()
 
 if(DEFINED ${CMAKE_FIND_PACKAGE_NAME}_NOT_FOUND_MESSAGE_targets)
   if(CMAKE_FIND_PACKAGE_NAME)
