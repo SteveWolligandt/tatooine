@@ -6,7 +6,7 @@
 #include <tatooine/linspace.h>
 #include <tatooine/make_array.h>
 #include <tatooine/multidim.h>
-#include <tatooine/multidim_size.h>
+#include <tatooine/dynamic_multidim_size.h>
 #include <tatooine/png.h>
 #include <tatooine/random.h>
 #include <tatooine/tags.h>
