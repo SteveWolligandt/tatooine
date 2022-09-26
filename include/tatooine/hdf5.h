@@ -126,13 +126,13 @@ struct dataspace : id_holder {
       : dataspace{std::array{static_cast<hsize_t>(size)...}} {}
   //----------------------------------------------------------------------------
   explicit dataspace(std::vector<hsize_t> cur_resolution)
-      : id_holder{H5Screate_simple(cur_resolution.size(),
+      : id_holder{H5Screate_simple(static_cast<int>(cur_resolution.size()),
                                    boost::reverse(cur_resolution).data(),
                                    nullptr)} {}
   //----------------------------------------------------------------------------
   dataspace(std::vector<hsize_t> cur_resolution,
             std::vector<hsize_t> max_resolution)
-      : id_holder{H5Screate_simple(cur_resolution.size(),
+      : id_holder{H5Screate_simple(static_cast<int>(cur_resolution.size()),
                                    boost::reverse(cur_resolution).data(),
                                    boost::reverse(max_resolution).data())} {}
   //----------------------------------------------------------------------------

@@ -12,7 +12,8 @@ window::window(size_t const width, size_t const height,
   glfwWindowHint(GLFW_CONTEXT_CREATION_API, GLFW_EGL_CONTEXT_API);
 #endif
   m_glfw_window =
-      glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
+      glfwCreateWindow(static_cast<int>(width), static_cast<int>(height),
+                       title.c_str(), nullptr, nullptr);
   if (!m_glfw_window) {
     throw std::runtime_error{"[GLFW] Could not create window."};
   }

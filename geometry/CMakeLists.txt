@@ -77,6 +77,7 @@ else()
     FetchContent_MakeAvailable(GMP)
     target_link_libraries(geometry INTERFACE GMP)
 
+    list(PREPEND CMAKE_MODULE_PATH "${CGAL_ROOT_DIR}/cmake/modules")
     set(CGAL_ARCHIVE_NAME "CGAL-5.5-library.tar.xz")
     set(CGAL_ARCHIVE ${CURRENT_EXTERNAL_DIR}/${CGAL_ARCHIVE_NAME})
     set(CGAL_ROOT_DIR ${CURRENT_EXTERNAL_DIR}/CGAL)
@@ -92,7 +93,12 @@ else()
       COMMAND ${CMAKE_COMMAND} -E rename "CGAL-5.5" "CGAL"
       WORKING_DIRECTORY ${CURRENT_EXTERNAL_DIR})
     target_include_directories(geometry INTERFACE ${CGAL_ROOT_DIR}/include)
+
+    #include(${CGAL_ROOT_DIR}/lib/cmake/CGAL/CGALConfig.cmake)
+    #include(${CGAL_ROOT_DIR}/lib/cmake/CGAL/CGALConfigBuildVersion.cmake)
+    #include(${CGAL_ROOT_DIR}/lib/cmake/CGAL/CGALConfigVersion.cmake)
     #add_subdirectory(${CGAL_ROOT_DIR})
+
     set(TATOOINE_CGAL_AVAILABLE 1)
     set(TATOOINE_USE_INSTALLED_CGAL 0)
   endif()

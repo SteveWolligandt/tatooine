@@ -128,11 +128,11 @@ auto BufferingBar(const char* label, float value, const ImVec2& size_arg,
   const auto c = speed * 0.666f;
 
   const auto o1 =
-      (circleWidth + r) * (t + a - speed * (int)((t + a) / speed)) / speed;
+      (circleWidth + r) * (t + a - speed * std::floor((t + a) / speed)) / speed;
   const auto o2 =
-      (circleWidth + r) * (t + b - speed * (int)((t + b) / speed)) / speed;
+      (circleWidth + r) * (t + b - speed * std::floor((t + b) / speed)) / speed;
   const auto o3 =
-      (circleWidth + r) * (t + c - speed * (int)((t + c) / speed)) / speed;
+      (circleWidth + r) * (t + c - speed * std::floor((t + c) / speed)) / speed;
 
   window->DrawList->AddCircleFilled(
       ImVec2(static_cast<float>(pos.x + circleEnd - o1),
