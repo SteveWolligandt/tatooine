@@ -73,7 +73,7 @@ auto shaderstage::delete_stage() -> void {
   set_id(0);
 }
 //------------------------------------------------------------------------------
-auto shaderstage::info_log(bool use_ansi_color) -> void {
+auto shaderstage::info_log(bool /*use_ansi_color*/) -> void {
   auto info_log_length = gl::get_shader_info_log_length(id());
   if (info_log_length > 0) {
     auto info_log = gl::get_shader_info_log(id(), info_log_length);

@@ -620,7 +620,7 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 2>> {
     render_property();
   }
   //----------------------------------------------------------------------------
-  auto update(auto const dt, renderable_type const& grid,
+  auto update(auto const /*dt*/, renderable_type const& /*grid*/,
               camera auto const& cam) {
     using CamReal = typename std::decay_t<decltype(cam)>::real_type;
     static auto constexpr cam_is_float = is_same<GLfloat, CamReal>;

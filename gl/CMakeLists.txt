@@ -60,6 +60,18 @@ if (TATOOINE_BUILD_GL)
   add_library(imgui STATIC ${TATOOINE_GL_IMGUI_FILES})
   target_include_directories(imgui PUBLIC ${TATOOINE_GL_IMGUI_DIR})
 
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
+      "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    target_compile_options(imgui PRIVATE
+      -Wall -Wextra -Wpedantic)
+  elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+    target_compile_options(imgui PRIVATE /Wall)
+  endif()
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    target_compile_options(imgui PRIVATE -fcolor-diagnostics)
+  elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    target_compile_options(imgui PRIVATE -fdiagnostics-color=always)
+  endif()
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
   # source files
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -104,9 +116,14 @@ if (TATOOINE_BUILD_GL)
   if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
       "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     target_compile_options(gl PRIVATE
-                           -Wall -Wextra -pedantic)
+      -Wall -Wextra -Wpedantic)
   elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    target_compile_options(gl PRIVATE /W4)
+    target_compile_options(gl PRIVATE /Wall)
+  endif()
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    target_compile_options(gl PRIVATE -fcolor-diagnostics)
+  elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    target_compile_options(gl PRIVATE -fdiagnostics-color=always)
   endif()
 
   target_include_directories(gl PUBLIC 

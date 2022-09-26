@@ -89,10 +89,10 @@ void imgui_render_backend::setup_render_state(ImDrawData* draw_data,
 void imgui_render_backend::render_draw_data(ImDrawData* draw_data) {
   // Avoid rendering when minimized, scale coordinates for retina displays
   // (screen coordinates != framebuffer coordinates)
-  int fb_width =
-      (int)(draw_data->DisplaySize.x * draw_data->FramebufferScale.x);
-  int fb_height =
-      (int)(draw_data->DisplaySize.y * draw_data->FramebufferScale.y);
+  auto fb_width  = static_cast<int>(draw_data->DisplaySize.x *
+                                   draw_data->FramebufferScale.x);
+  auto fb_height = static_cast<int>(draw_data->DisplaySize.y *
+                                    draw_data->FramebufferScale.y);
   if (fb_width <= 0 || fb_height <= 0) {
     return;
   }
@@ -169,22 +169,27 @@ void imgui_render_backend::render_draw_data(ImDrawData* draw_data) {
           pcmd->UserCallback(cmd_list, pcmd);
       } else {
         // Project scissor/clipping rectangles into framebuffer space
-        ImVec4 clip_rect;
-        clip_rect.x = (pcmd->ClipRect.x - clip_off.x) * clip_scale.x;
-        clip_rect.y = (pcmd->ClipRect.y - clip_off.y) * clip_scale.y;
-        clip_rect.z = (pcmd->ClipRect.z - clip_off.x) * clip_scale.x;
-        clip_rect.w = (pcmd->ClipRect.w - clip_off.y) * clip_scale.y;
+        auto clip_rect = ImVec4{};
+        clip_rect.x    = (pcmd->ClipRect.x - clip_off.x) * clip_scale.x;
+        clip_rect.y    = (pcmd->ClipRect.y - clip_off.y) * clip_scale.y;
+        clip_rect.z    = (pcmd->ClipRect.z - clip_off.x) * clip_scale.x;
+        clip_rect.w    = (pcmd->ClipRect.w - clip_off.y) * clip_scale.y;
 
-        if (clip_rect.x < fb_width && clip_rect.y < fb_height &&
+        if (clip_rect.x < static_cast<float>(fb_width) &&
+            clip_rect.y < static_cast<float>(fb_height) &&
             clip_rect.z >= 0.0f && clip_rect.w >= 0.0f) {
           // Apply scissor/clipping rectangle
           if (clip_origin_lower_left) {
-            gl::scissor((int)clip_rect.x, (int)(fb_height - clip_rect.w),
-                        (int)(clip_rect.z - clip_rect.x),
-                        (int)(clip_rect.w - clip_rect.y));
+            gl::scissor(static_cast<int>(clip_rect.x),
+                        fb_height - static_cast<int>(clip_rect.w),
+                        static_cast<int>(clip_rect.z - clip_rect.x),
+                        static_cast<int>(clip_rect.w - clip_rect.y));
           } else {
-            gl::scissor((int)clip_rect.x, (int)clip_rect.y, (int)clip_rect.z,
-                        (int)clip_rect.w);  // Support for GL 4.5 rarely used
+            gl::scissor(static_cast<int>(clip_rect.x),
+                        static_cast<int>(clip_rect.y),
+                        static_cast<int>(clip_rect.z),
+                        static_cast<int>(
+                            clip_rect.w));  // Support for GL 4.5 rarely used
                                             // glClipControl(GL_UPPER_LEFT)
           }
 
@@ -296,7 +301,7 @@ bool imgui_render_backend::check_shader(GLuint handle, const char* desc) {
               << desc << "!\n";
   if (log_length > 1) {
     ImVector<char> buf;
-    buf.resize((int)(log_length + 1));
+    buf.resize(static_cast<int>(log_length + 1));
     gl::get_shader_info_log(handle, log_length, nullptr, (GLchar*)buf.begin());
     std::cerr << buf.begin() << '\n';
   }
@@ -316,7 +321,7 @@ bool imgui_render_backend::check_program(GLuint handle, const char* desc) {
 
   if (log_length > 1) {
     ImVector<char> buf;
-    buf.resize((int)(log_length + 1));
+    buf.resize(static_cast<int>(log_length + 1));
     gl::get_program_info_log(handle, log_length, nullptr, (GLchar*)buf.begin());
     std::cerr << buf.begin() << '\n';
   }

@@ -624,7 +624,7 @@ void buffer<array_type, T>::upload_data(const T& data) {
 template <GLsizei array_type, typename T>
 void buffer<array_type, T>::upload_data(const std::vector<T>& data) {
   auto const s = static_cast<GLsizei>(data_size * data.size());
-  if (capacity() < data.size()) {
+  if (capacity() < static_cast<GLsizei>(data.size())) {
     // reallocate new memory
     gl::named_buffer_data(id(), s, data.data(), m_usage);
     m_size = m_capacity = static_cast<GLsizei>(data.size());
@@ -638,7 +638,7 @@ void buffer<array_type, T>::upload_data(const std::vector<T>& data) {
 template <GLsizei array_type, typename T>
 void buffer<array_type, T>::reserve(GLsizei size) {
   if (capacity() < size) {
-    this_type tmp(*this);
+    auto tmp = *this;
     gpu_malloc(size);
     copy(tmp);
   }

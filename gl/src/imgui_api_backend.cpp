@@ -1,13 +1,13 @@
 #include <tatooine/gl/imgui_api_backend.h>
 #include <tatooine/gl/keyboard.h>
-#include <memory>
+
 #include <iostream>
+#include <memory>
 //==============================================================================
 namespace tatooine::gl {
 //==============================================================================
 std::chrono::time_point<std::chrono::system_clock> imgui_api_backend::time =
     std::chrono::system_clock::now();
-
 //==============================================================================
 imgui_api_backend::imgui_api_backend() {
   ImGuiIO& io = ImGui::GetIO();
@@ -47,7 +47,7 @@ imgui_api_backend::imgui_api_backend() {
 imgui_api_backend::~imgui_api_backend() {}
 //------------------------------------------------------------------------------
 void imgui_api_backend::on_key_pressed(key k) {
-  ImGuiIO& io = ImGui::GetIO();
+  ImGuiIO&     io   = ImGui::GetIO();
   unsigned int k_id = static_cast<unsigned int>(k);
   io.KeysDown[k]    = true;
   if (k == KEY_CTRL_L || k == KEY_CTRL_R) {
@@ -89,23 +89,37 @@ void imgui_api_backend::on_key_released(key k) {
 //------------------------------------------------------------------------------
 void imgui_api_backend::on_button_pressed(button b) {
   ImGuiIO& io = ImGui::GetIO();
-  switch(b){
-    case button::left: io.MouseDown[0] = true; break;
-    case button::right: io.MouseDown[1] = true; break;
-    case button::middle: io.MouseDown[2] = true; break;
+  switch (b) {
+    case button::left:
+      io.MouseDown[0] = true;
+      break;
+    case button::right:
+      io.MouseDown[1] = true;
+      break;
+    case button::middle:
+      io.MouseDown[2] = true;
+      break;
     case button::unknown:
-    default: break;
+    default:
+      break;
   }
 }
 //------------------------------------------------------------------------------
 void imgui_api_backend::on_button_released(button b) {
   ImGuiIO& io = ImGui::GetIO();
   switch (b) {
-    case button::left: io.MouseDown[0] = false; break;
-    case button::right: io.MouseDown[1] = false; break;
-    case button::middle: io.MouseDown[2] = false; break;
+    case button::left:
+      io.MouseDown[0] = false;
+      break;
+    case button::right:
+      io.MouseDown[1] = false;
+      break;
+    case button::middle:
+      io.MouseDown[2] = false;
+      break;
     case button::unknown:
-    default: break;
+    default:
+      break;
   }
 }
 //------------------------------------------------------------------------------
@@ -126,13 +140,15 @@ void imgui_api_backend::on_cursor_moved(double x, double y) {
 //------------------------------------------------------------------------------
 void imgui_api_backend::new_frame() {
   // Setup time step
-  ImGuiIO& io            = ImGui::GetIO();
-  auto      current_time  = std::chrono::system_clock::now();
-  int       delta_time_ms =
+  auto&      io           = ImGui::GetIO();
+  auto const current_time = std::chrono::system_clock::now();
+  auto       delta_time_ms =
       std::chrono::duration_cast<std::chrono::milliseconds>(current_time - time)
           .count();
-  if (delta_time_ms <= 0) delta_time_ms = 1;
-  io.DeltaTime = delta_time_ms / 1000.0;
+  if (delta_time_ms <= 0) {
+    delta_time_ms = 1;
+  }
+  io.DeltaTime = static_cast<float>(delta_time_ms) / 1000.0f;
 
   time = current_time;
   // Start the frame
@@ -142,9 +158,9 @@ void imgui_api_backend::new_frame() {
 void imgui_api_backend::on_mouse_wheel(int dir) {
   ImGuiIO& io = ImGui::GetIO();
   if (dir > 0) {
-    io.MouseWheel += 1.0;
+    io.MouseWheel += 1.0f;
   } else if (dir < 0) {
-    io.MouseWheel -= 1.0;
+    io.MouseWheel -= 1.0f;
   }
 }
 //==============================================================================

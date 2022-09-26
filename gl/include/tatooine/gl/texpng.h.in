@@ -33,17 +33,20 @@ struct tex_png<ValueType, R> {
       if (std::isnan(data[idx])) {
         image[image.get_height() - 1 - y][x].red =
             image[image.get_height() - 1 - y][x].green =
-                image[image.get_height() - 1 - y][x].blue = 0;
+                image[image.get_height() - 1 - y][x].blue =
+                    static_cast<unsigned char>(0);
       } else {
         image[image.get_height() - 1 - y][x].red =
             image[image.get_height() - 1 - y][x].green =
                 image[image.get_height() - 1 - y][x].blue =
-                    std::min(1.0f, data[idx]) * 255.0f;
+                    static_cast<unsigned char>(std::min(1.0f, data[idx]) *
+                                               255.0f);
       }
     } else {
       image[image.get_height() - 1 - y][x].red =
           image[image.get_height() - 1 - y][x].green =
-              image[image.get_height() - 1 - y][x].blue = data[idx];
+              image[image.get_height() - 1 - y][x].blue =
+                  static_cast<unsigned char>(data[idx]);
     }
   };
 };
@@ -58,28 +61,35 @@ struct tex_png<ValueType, RG> {
          std::size_t x, std::size_t y, std::size_t idx) {
         if constexpr (is_floating_point<ValueType>) {
           if (std::isnan(data[idx](0))) {
-            image[image.get_height() - 1 - y][x].red = 0;
+            image[image.get_height() - 1 - y][x].red =
+                static_cast<unsigned char>(0);
           } else {
             image[image.get_height() - 1 - y][x].red =
-                std::min(1.0f, data[idx](0)) * 255.0f;
+                static_cast<unsigned char>(std::min(1.0f, data[idx](0)) *
+                                           255.0f);
           }
           if (std::isnan(data[idx](1))) {
-            image[image.get_height() - 1 - y][x].green = 0;
+            image[image.get_height() - 1 - y][x].green =
+                static_cast<unsigned char>(0);
           } else {
             image[image.get_height() - 1 - y][x].green =
-                std::min(1.0f, data[idx](1)) * 255.0f;
+                static_cast<unsigned char>(std::min(1.0f, data[idx](1)) *
+                                           255.0f);
           }
-          image[image.get_height() - 1 - y][x].blue = 0;
+          image[image.get_height() - 1 - y][x].blue =
+              static_cast<unsigned char>(0);
         } else {
-          image[image.get_height() - 1 - y][x].red   = data[idx](0);
-          image[image.get_height() - 1 - y][x].green = data[idx](1);
-          image[image.get_height() - 1 - y][x].blue  = 0;
+          image[image.get_height() - 1 - y][x].red =
+              static_cast<unsigned char>(data[idx](0));
+          image[image.get_height() - 1 - y][x].green =
+              static_cast<unsigned char>(data[idx](1));
+          image[image.get_height() - 1 - y][x].blue =
+              static_cast<unsigned char>(0);
         }
       };
-  static constexpr auto load_pixel = [](std::vector<vec<ValueType, 2>>& /*data*/,
-                                        png_t& /*image*/, std::size_t /*x*/,
-                                        std::size_t /*y*/) {
-  };
+  static constexpr auto load_pixel =
+      [](std::vector<vec<ValueType, 2>>& /*data*/, png_t& /*image*/,
+         std::size_t /*x*/, std::size_t /*y*/) {};
 };
 
 //==============================================================================
@@ -100,27 +110,36 @@ struct tex_png<ValueType, RGB> {
          std::size_t x, std::size_t y, std::size_t idx) {
         if constexpr (is_floating_point<ValueType>) {
           if (std::isnan(data[idx](0))) {
-            image[image.get_height() - 1 - y][x].red = 0;
+            image[image.get_height() - 1 - y][x].red =
+                static_cast<unsigned char>(0);
           } else {
             image[image.get_height() - 1 - y][x].red =
-                std::min(1.0f, data[idx](0)) * 255.0f;
+                static_cast<unsigned char>(std::min(1.0f, data[idx](0)) *
+                                           255.0f);
           }
           if (std::isnan(data[idx](1))) {
-            image[image.get_height() - 1 - y][x].green = 0;
+            image[image.get_height() - 1 - y][x].green =
+                static_cast<unsigned char>(0);
           } else {
             image[image.get_height() - 1 - y][x].green =
-                std::min(1.0f, data[idx](1)) * 255.0f;
+                static_cast<unsigned char>(std::min(1.0f, data[idx](1)) *
+                                           255.0f);
           }
           if (std::isnan(data[idx](2))) {
-            image[image.get_height() - 1 - y][x].blue = 0;
+            image[image.get_height() - 1 - y][x].blue =
+                static_cast<unsigned char>(0);
           } else {
             image[image.get_height() - 1 - y][x].blue =
-                std::min(1.0f, data[idx](2)) * 255.0f;
+                static_cast<unsigned char>(std::min(1.0f, data[idx](2)) *
+                                           255.0f);
           }
         } else {
-          image[image.get_height() - 1 - y][x].red   = data[idx](0);
-          image[image.get_height() - 1 - y][x].green = data[idx](1);
-          image[image.get_height() - 1 - y][x].blue  = data[idx](2);
+          image[image.get_height() - 1 - y][x].red =
+              static_cast<unsigned char>(data[idx](0));
+          image[image.get_height() - 1 - y][x].green =
+              static_cast<unsigned char>(data[idx](1));
+          image[image.get_height() - 1 - y][x].blue =
+              static_cast<unsigned char>(data[idx](2));
         }
       };
 };
@@ -143,27 +162,36 @@ struct tex_png<ValueType, BGR> {
          std::size_t x, std::size_t y, std::size_t idx) {
         if constexpr (is_floating_point<ValueType>) {
           if (std::isnan(data[idx](0))) {
-            image[image.get_height() - 1 - y][x].blue = 0;
+            image[image.get_height() - 1 - y][x].blue =
+                static_cast<unsigned char>(0);
           } else {
             image[image.get_height() - 1 - y][x].blue =
-                std::min(1.0f, data[idx](0)) * 255.0f;
+                static_cast<unsigned char>(std::min(1.0f, data[idx](0)) *
+                                           255.0f);
           }
           if (std::isnan(data[idx](1))) {
-            image[image.get_height() - 1 - y][x].green = 0;
+            image[image.get_height() - 1 - y][x].green =
+                static_cast<unsigned char>(0);
           } else {
             image[image.get_height() - 1 - y][x].green =
-                std::min(1.0f, data[idx](1)) * 255.0f;
+                static_cast<unsigned char>(std::min(1.0f, data[idx](1)) *
+                                           255.0f);
           }
           if (std::isnan(data[idx](2))) {
-            image[image.get_height() - 1 - y][x].red = 0;
+            image[image.get_height() - 1 - y][x].red =
+                static_cast<unsigned char>(0);
           } else {
             image[image.get_height() - 1 - y][x].red =
-                std::min(1.0f, data[idx](2)) * 255.0f;
+                static_cast<unsigned char>(std::min(1.0f, data[idx](2)) *
+                                           255.0f);
           }
         } else {
-          image[image.get_height() - 1 - y][x].blue  = data[idx](0);
-          image[image.get_height() - 1 - y][x].green = data[idx](1);
-          image[image.get_height() - 1 - y][x].red   = data[idx](2);
+          image[image.get_height() - 1 - y][x].blue =
+              static_cast<unsigned char>(data[idx](0));
+          image[image.get_height() - 1 - y][x].green =
+              static_cast<unsigned char>(data[idx](1));
+          image[image.get_height() - 1 - y][x].red =
+              static_cast<unsigned char>(data[idx](2));
         }
       };
 };
@@ -187,34 +215,46 @@ struct tex_png<ValueType, RGBA> {
          std::size_t x, std::size_t y, std::size_t idx) {
         if constexpr (is_floating_point<ValueType>) {
           if (std::isnan(data[idx](0))) {
-            image[image.get_height() - 1 - y][x].red = 0;
+            image[image.get_height() - 1 - y][x].red =
+                static_cast<unsigned char>(0);
           } else {
             image[image.get_height() - 1 - y][x].red =
-                std::min(1.0f, data[idx](0)) * 255.0f;
+                static_cast<unsigned char>(std::min(1.0f, data[idx](0)) *
+                                           255.0f);
           }
           if (std::isnan(data[idx](1))) {
-            image[image.get_height() - 1 - y][x].green = 0;
+            image[image.get_height() - 1 - y][x].green =
+                static_cast<unsigned char>(0);
           } else {
             image[image.get_height() - 1 - y][x].green =
-                std::min(1.0f, data[idx](1)) * 255.0f;
+                static_cast<unsigned char>(std::min(1.0f, data[idx](1)) *
+                                           255.0f);
           }
           if (std::isnan(data[idx](2))) {
-            image[image.get_height() - 1 - y][x].blue = 0;
+            image[image.get_height() - 1 - y][x].blue =
+                static_cast<unsigned char>(0);
           } else {
             image[image.get_height() - 1 - y][x].blue =
-                std::min(1.0f, data[idx](2)) * 255.0f;
+                static_cast<unsigned char>(std::min(1.0f, data[idx](2)) *
+                                           255.0f);
           }
           if (std::isnan(data[idx](3))) {
-            image[image.get_height() - 1 - y][x].alpha = 0;
+            image[image.get_height() - 1 - y][x].alpha =
+                static_cast<unsigned char>(0);
           } else {
             image[image.get_height() - 1 - y][x].alpha =
-                std::min(1.0f, data[idx](3)) * 255.0f;
+                static_cast<unsigned char>(std::min(1.0f, data[idx](3)) *
+                                           255.0f);
           }
         } else {
-          image[image.get_height() - 1 - y][x].red   = data[idx](0);
-          image[image.get_height() - 1 - y][x].green = data[idx](1);
-          image[image.get_height() - 1 - y][x].blue  = data[idx](2);
-          image[image.get_height() - 1 - y][x].alpha = data[idx](3);
+          image[image.get_height() - 1 - y][x].red =
+              static_cast<unsigned char>(data[idx](0));
+          image[image.get_height() - 1 - y][x].green =
+              static_cast<unsigned char>(data[idx](1));
+          image[image.get_height() - 1 - y][x].blue =
+              static_cast<unsigned char>(data[idx](2));
+          image[image.get_height() - 1 - y][x].alpha =
+              static_cast<unsigned char>(data[idx](3));
         }
       };
 };
@@ -238,34 +278,46 @@ struct tex_png<ValueType, BGRA> {
          std::size_t x, std::size_t y, std::size_t idx) {
         if constexpr (is_floating_point<ValueType>) {
           if (std::isnan(data[idx](0))) {
-            image[image.get_height() - 1 - y][x].blue = 0;
+            image[image.get_height() - 1 - y][x].blue =
+                static_cast<unsigned char>(0);
           } else {
             image[image.get_height() - 1 - y][x].blue =
-                std::min(1.0f, data[idx](0)) * 255.0f;
+                static_cast<unsigned char>(std::min(1.0f, data[idx](0)) *
+                                           255.0f);
           }
           if (std::isnan(data[idx](1))) {
-            image[image.get_height() - 1 - y][x].green = 0;
+            image[image.get_height() - 1 - y][x].green =
+                static_cast<unsigned char>(0);
           } else {
             image[image.get_height() - 1 - y][x].green =
-                std::min(1.0f, data[idx](1)) * 255.0f;
+                static_cast<unsigned char>(std::min(1.0f, data[idx](1)) *
+                                           255.0f);
           }
           if (std::isnan(data[idx](2))) {
-            image[image.get_height() - 1 - y][x].red = 0;
+            image[image.get_height() - 1 - y][x].red =
+                static_cast<unsigned char>(0);
           } else {
             image[image.get_height() - 1 - y][x].red =
-                std::min(1.0f, data[idx](2)) * 255.0f;
+                static_cast<unsigned char>(std::min(1.0f, data[idx](2)) *
+                                           255.0f);
           }
           if (std::isnan(data[idx](3))) {
-            image[image.get_height() - 1 - y][x].alpha = 0;
+            image[image.get_height() - 1 - y][x].alpha =
+                static_cast<unsigned char>(0);
           } else {
             image[image.get_height() - 1 - y][x].alpha =
-                std::min(1.0f, data[idx](3)) * 255.0f;
+                static_cast<unsigned char>(std::min(1.0f, data[idx](3)) *
+                                           255.0f);
           }
         } else {
-          image[image.get_height() - 1 - y][x].blue  = data[idx](0);
-          image[image.get_height() - 1 - y][x].green = data[idx](1);
-          image[image.get_height() - 1 - y][x].red   = data[idx](2);
-          image[image.get_height() - 1 - y][x].alpha = data[idx](3);
+          image[image.get_height() - 1 - y][x].blue =
+              static_cast<unsigned char>(data[idx](0));
+          image[image.get_height() - 1 - y][x].green =
+              static_cast<unsigned char>(data[idx](1));
+          image[image.get_height() - 1 - y][x].red =
+              static_cast<unsigned char>(data[idx](2));
+          image[image.get_height() - 1 - y][x].alpha =
+              static_cast<unsigned char>(data[idx](3));
         }
       };
 };
