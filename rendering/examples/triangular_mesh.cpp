@@ -9,14 +9,18 @@
 using namespace tatooine;
 //==============================================================================
 auto main() -> int {
-  auto grid =
-      rectilinear_grid{linspace{-10.0, 10.0, 256},
-                       linspace{-10.0, 10.0, 256},
-                       linspace{-10.0, 10.0, 256}};
-  auto const& prop = grid.sample_to_vertex_property(
-      euclidean_length(analytical::numerical::abcflow{}), "length");
-  auto const mesh = isosurface(prop, 1);
-  std::cout << mesh.vertices().size() <<"\n";
-  std::cout << mesh.simplices().size() <<"\n";
+  //auto grid =
+  //    rectilinear_grid{linspace{-10.0, 10.0, 256},
+  //                     linspace{-10.0, 10.0, 256},
+  //                     linspace{-10.0, 10.0, 256}};
+  //auto const& prop = grid.sample_to_vertex_property(
+  //    euclidean_length(analytical::numerical::abcflow{}), "length");
+  //auto const mesh = isosurface(prop, 1);
+  auto mesh = unstructured_triangular_grid2{};
+  mesh.insert_vertex(0,0);
+  mesh.insert_vertex(1,0);
+  mesh.insert_vertex(0,1);
+  mesh.insert_vertex(1,1);
+  mesh.build_delaunay_mesh();
   rendering::interactive::show(mesh);
 }
