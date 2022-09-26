@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.15)
 project(Tatooine)
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+include(FetchContent)
 #--------------------------------------------------------------------------------
 # git submodules
 #--------------------------------------------------------------------------------
