@@ -27,7 +27,7 @@ struct first_person_window : gl::window {
         m_time{std::chrono::system_clock::now()} {
     gl::enable_depth_test();
     this->add_listener(m_camera_controller);
-    m_camera_controller.on_resize(width, height);
+    m_camera_controller.on_resize(static_cast<int>(width), static_cast<int>(height));
   }
   virtual ~first_person_window() = default;
   //============================================================================

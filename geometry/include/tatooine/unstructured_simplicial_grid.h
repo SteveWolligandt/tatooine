@@ -952,8 +952,8 @@ struct unstructured_simplicial_grid
       if constexpr (NumDimensions == 2) {
         auto point_data      = std::vector<vec<Real, 3>>(vertices().size());
         auto position        = [this](auto const v) -> auto& { return at(v); };
-        constexpr auto to_3d = [](auto const& p) {
-          return vec{p.x(), p.y(), Real(0)};
+        constexpr auto to_3d           = [](auto const& p) {
+          return Vec3<Real>{p.x(), p.y(), 0};
         };
         copy(vertices() | views::transform(position) | views::transform(to_3d),
              begin(point_data));

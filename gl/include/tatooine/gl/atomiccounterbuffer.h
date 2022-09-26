@@ -27,8 +27,8 @@ class atomiccounterbuffer
 
   ~atomiccounterbuffer() = default;
 
-  DLL_API explicit atomiccounterbuffer(size_t n, usage_t usage = default_usage);
-  DLL_API atomiccounterbuffer(size_t n, GLuint initial,
+  DLL_API explicit atomiccounterbuffer(GLsizei n, usage_t usage = default_usage);
+  DLL_API atomiccounterbuffer(GLsizei n, GLuint initial,
                               usage_t usage = default_usage);
   DLL_API explicit atomiccounterbuffer(const std::vector<GLuint>& data,
                               usage_t usage = default_usage);

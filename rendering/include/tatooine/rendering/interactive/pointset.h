@@ -123,10 +123,10 @@ struct renderer<tatooine::pointset<Real, 2>> {
     bool         scale_inverted = false;
   };
   //==============================================================================
-  int                                                point_size = 1;
-  Vec4<GLfloat>                                      color      = {0, 0, 0, 1};
-  gl::indexeddata<Vec2<GLfloat>, GLfloat>            geometry;
-  vec2d                                              cursor_pos;
+  GLfloat                                               point_size = 1;
+  Vec4<GLfloat>                                         color = {0, 0, 0, 1};
+  gl::indexeddata<Vec2<GLfloat>, GLfloat>               geometry;
+  vec2d                                                 cursor_pos;
   typename renderable_type::vertex_property_type const* selected_property =
       nullptr;
   std::string const* selected_property_name = nullptr;
@@ -380,7 +380,7 @@ struct renderer<tatooine::pointset<Real, 2>> {
   //==============================================================================
   auto properties(renderable_type const& ps) {
     ImGui::Text("Pointset");
-    ImGui::DragInt("Point Size", &point_size, 1, 1, 20);
+    ImGui::DragFloat("Point Size", &point_size, 1.0f, 1.0f, 2.0f, "%.01f");
     ImGui::ColorEdit4("Color", color.data());
     ImGui::Checkbox("Show Property", &show_property);
     pointset_property_selection(ps);

@@ -15,7 +15,7 @@ struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
   using typename parent_type::real_type;
   using typename parent_type::tensor_type;
   //============================================================================
-  static constexpr auto pi = std::numbers::pi_v<Real>;
+  static constexpr auto pi = std::numbers::template pi_v<Real>;
   //============================================================================
   Real m_epsilon, m_omega, m_A;
   bool m_infinite_domain = false;

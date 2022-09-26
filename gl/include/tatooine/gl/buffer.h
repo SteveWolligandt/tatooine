@@ -49,10 +49,10 @@ class buffer_map {
         m_buffer->id(), data_size * offset, data_size * m_length, access);
     detail::mutex::gl_call.lock();
   }
-  buffer_map(const buffer_map&) = delete;
-  buffer_map(buffer_map&&)      = delete;
+  buffer_map(const buffer_map&)                    = delete;
+  buffer_map(buffer_map&&)                         = delete;
   auto operator=(const buffer_map&) -> buffer_map& = delete;
-  auto operator=(buffer_map&&) -> buffer_map& = delete;
+  auto operator=(buffer_map&&) -> buffer_map&      = delete;
 
   auto operator=(const std::vector<T>& data) -> buffer_map& {
     assert(size(data) == m_buffer->size());
@@ -134,8 +134,8 @@ using rwbuffer_map =
 template <GLsizei array_type, typename T>
 class rbuffer_map_element {
  public:
-  using buffer_t = buffer<array_type, T>;
-  using rmap_t   = rbuffer_map<array_type, T>;
+  using buffer_t      = buffer<array_type, T>;
+  using read_map_type = rbuffer_map<array_type, T>;
 
  private:
   const buffer_t* m_buffer;
@@ -147,9 +147,9 @@ class rbuffer_map_element {
   rbuffer_map_element(const rbuffer_map_element& other)     = default;
   rbuffer_map_element(rbuffer_map_element&& other) noexcept = default;
 
-  auto operator               =(const rbuffer_map_element& other)
+  auto operator=(const rbuffer_map_element& other)
       -> rbuffer_map_element& = default;
-  auto operator               =(rbuffer_map_element&& other) noexcept
+  auto operator=(rbuffer_map_element&& other) noexcept
       -> rbuffer_map_element& = default;
 
   ~rbuffer_map_element() = default;
@@ -158,7 +158,7 @@ class rbuffer_map_element {
   explicit operator T() const { return download(); }
 
   [[nodiscard]] auto download() const {
-    rmap_t map(m_buffer, m_idx, 1);
+    read_map_type map(m_buffer, m_idx, 1);
     return map.front();
   }
   auto operator==(const T& t) const -> bool { return download() == t; }
@@ -182,8 +182,8 @@ inline auto operator<<(std::ostream&                       out,
 template <GLsizei array_type, typename T>
 class rwbuffer_map_element {
  public:
-  using buffer_t = buffer<array_type, T>;
-  using rmap_t   = rbuffer_map<array_type, T>;
+  using buffer_t      = buffer<array_type, T>;
+  using read_map_type = rbuffer_map<array_type, T>;
 
  private:
   const buffer_t* m_buffer;
@@ -195,9 +195,9 @@ class rwbuffer_map_element {
   rwbuffer_map_element(const rwbuffer_map_element& other)     = default;
   rwbuffer_map_element(rwbuffer_map_element&& other) noexcept = default;
 
-  auto operator                =(const rwbuffer_map_element& other)
+  auto operator=(const rwbuffer_map_element& other)
       -> rwbuffer_map_element& = default;
-  auto operator                =(rwbuffer_map_element&& other) noexcept
+  auto operator=(rwbuffer_map_element&& other) noexcept
       -> rwbuffer_map_element& = default;
 
   ~rwbuffer_map_element() = default;
@@ -215,7 +215,7 @@ class rwbuffer_map_element {
   explicit operator T() const { return download(); }
 
   [[nodiscard]] auto download() const {
-    rmap_t map(m_buffer, m_idx, 1);
+    read_map_type map(m_buffer, m_idx, 1);
     return map.front();
   }
   auto operator==(const T& t) const -> bool { return download() == t; }
@@ -287,7 +287,7 @@ class buffer_iterator {
   buffer_iterator(buffer_iterator const&)     = default;
   buffer_iterator(buffer_iterator&&) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator=(buffer_iterator const&) -> buffer_iterator& = default;
+  auto operator=(buffer_iterator const&) -> buffer_iterator&     = default;
   auto operator=(buffer_iterator&&) noexcept -> buffer_iterator& = default;
   //----------------------------------------------------------------------------
   ~buffer_iterator() = default;
@@ -408,35 +408,35 @@ class cbuffer_iterator {
 
 //==============================================================================
 /// buffer base class for each of the OpenGL buffer types
-template <GLsizei _array_type, typename T>
+template <GLsizei ArrayType, typename T>
 class buffer : public id_holder<GLuint> {
  public:
   using parent_type = id_holder<GLuint>;
   using parent_type::id;
-  friend class rbuffer_map_element<_array_type, T>;
-  friend class rwbuffer_map_element<_array_type, T>;
+  friend class rbuffer_map_element<ArrayType, T>;
+  friend class rwbuffer_map_element<ArrayType, T>;
 
-  constexpr static GLsizei array_type = _array_type;
+  constexpr static GLsizei array_type = ArrayType;
   constexpr static GLsizei data_size  = sizeof(T);
 
-  using this_type = buffer<array_type, T>;
-  using data_t = T;
+  using this_type  = buffer<array_type, T>;
+  using value_type = T;
 
   using read_only_element_type  = rbuffer_map_element<array_type, T>;
   using read_write_element_type = rwbuffer_map_element<array_type, T>;
   using write_only_element_type = wbuffer_map_element<array_type, T>;
 
-  using iterator_t       = buffer_iterator<array_type, T>;
-  using const_iterator_t = cbuffer_iterator<array_type, T>;
+  using iterator       = buffer_iterator<array_type, T>;
+  using const_iterator = cbuffer_iterator<array_type, T>;
 
-  using rmap_t  = rbuffer_map<array_type, T>;
-  using wmap_t  = wbuffer_map<array_type, T>;
-  using rwmap_t = rwbuffer_map<array_type, T>;
+  using read_map_type       = rbuffer_map<array_type, T>;
+  using write_map_type      = wbuffer_map<array_type, T>;
+  using read_write_map_type = rwbuffer_map<array_type, T>;
 
  private:
-  std::size_t m_size     = 0;
-  std::size_t m_capacity = 0;
-  usage_t     m_usage;
+  GLsizei m_size     = 0;
+  GLsizei m_capacity = 0;
+  usage_t m_usage;
 
  public:
   explicit buffer(usage_t usage);
@@ -446,8 +446,8 @@ class buffer : public id_holder<GLuint> {
   auto operator=(buffer&& other) noexcept -> buffer&;
   auto operator=(const std::vector<T>& data) -> buffer&;
 
-  buffer(std::size_t n, usage_t usage);
-  buffer(std::size_t n, const T& initial, usage_t usage);
+  buffer(GLsizei n, usage_t usage);
+  buffer(GLsizei n, const T& initial, usage_t usage);
   buffer(const std::vector<T>& data, usage_t usage);
   ~buffer();
 
@@ -467,12 +467,12 @@ class buffer : public id_holder<GLuint> {
   [[nodiscard]] auto size() const { return m_size; }
   [[nodiscard]] auto capacity() const { return m_capacity; }
 
-  void reserve(std::size_t size);
-  void resize(std::size_t size);
+  void reserve(GLsizei size);
+  void resize(GLsizei size);
   void clear() { m_size = 0; }
 
-  void gpu_malloc(std::size_t n);
-  void gpu_malloc(std::size_t n, const T& initial);
+  void gpu_malloc(GLsizei n);
+  void gpu_malloc(GLsizei n, const T& initial);
   void set_usage(usage_t);
 
   void push_back(T const&);
@@ -503,24 +503,24 @@ class buffer : public id_holder<GLuint> {
   [[nodiscard]] auto back() { return at(m_size - 1); }
   [[nodiscard]] auto back() const { return at(m_size - 1); }
 
-  [[nodiscard]] auto begin() { return iterator_t(this, 0); }
-  [[nodiscard]] auto end() { return iterator_t(this, m_size); }
+  [[nodiscard]] auto begin() { return iterator(this, 0); }
+  [[nodiscard]] auto end() { return iterator(this, m_size); }
 
-  [[nodiscard]] auto begin() const { return const_iterator_t(this, 0); }
-  [[nodiscard]] auto end() const { return const_iterator_t(this, m_size); }
+  [[nodiscard]] auto begin() const { return const_iterator(this, 0); }
+  [[nodiscard]] auto end() const { return const_iterator(this, m_size); }
 
-  [[nodiscard]] auto rmap() const { return rmap_t(this, 0, m_size); }
-  [[nodiscard]] auto wmap() { return wmap_t(this, 0, m_size); }
-  [[nodiscard]] auto rwmap() { return rwmap_t(this, 0, m_size); }
+  [[nodiscard]] auto rmap() const { return read_map_type(this, 0, m_size); }
+  [[nodiscard]] auto wmap() { return write_map_type(this, 0, m_size); }
+  [[nodiscard]] auto rwmap() { return read_write_map_type(this, 0, m_size); }
 
-  [[nodiscard]] auto map() { return rwmap_t(this, 0, m_size); }
-  [[nodiscard]] auto map() const { return rmap_t(this, 0, m_size); }
+  [[nodiscard]] auto map() { return read_write_map_type(this, 0, m_size); }
+  [[nodiscard]] auto map() const { return read_map_type(this, 0, m_size); }
 
   [[nodiscard]] auto map(std::size_t offset, std::size_t length) {
-    return rwmap_t(this, offset, length);
+    return read_write_map_type(this, offset, length);
   }
   [[nodiscard]] auto map(std::size_t offset, std::size_t length) const {
-    return rmap_t(this, offset, length);
+    return read_map_type(this, offset, length);
   }
 };
 //==============================================================================
@@ -568,7 +568,7 @@ auto buffer<array_type, T>::operator=(const std::vector<T>& data) -> buffer& {
 }
 //------------------------------------------------------------------------------
 template <GLsizei array_type, typename T>
-buffer<array_type, T>::buffer(std::size_t n, usage_t usage)
+buffer<array_type, T>::buffer(GLsizei n, usage_t usage)
     : m_size{}, m_capacity{}, m_usage{usage} {
   create_handle();
   gpu_malloc(n);
@@ -576,7 +576,7 @@ buffer<array_type, T>::buffer(std::size_t n, usage_t usage)
 }
 //------------------------------------------------------------------------------
 template <GLsizei array_type, typename T>
-buffer<array_type, T>::buffer(std::size_t n, const T& initial, usage_t usage)
+buffer<array_type, T>::buffer(GLsizei n, const T& initial, usage_t usage)
     : m_size{}, m_capacity{}, m_usage{usage} {
   create_handle();
   gpu_malloc(n, initial);
@@ -627,16 +627,16 @@ void buffer<array_type, T>::upload_data(const std::vector<T>& data) {
   if (capacity() < data.size()) {
     // reallocate new memory
     gl::named_buffer_data(id(), s, data.data(), m_usage);
-    m_size = m_capacity = data.size();
+    m_size = m_capacity = static_cast<GLsizei>(data.size());
   } else {
     // just update buffer
     gl::named_buffer_data(id(), s, data.data(), m_usage);
-    m_size = data.size();
+    m_size = static_cast<GLsizei>(data.size());
   }
 }
 //------------------------------------------------------------------------------
 template <GLsizei array_type, typename T>
-void buffer<array_type, T>::reserve(std::size_t size) {
+void buffer<array_type, T>::reserve(GLsizei size) {
   if (capacity() < size) {
     this_type tmp(*this);
     gpu_malloc(size);
@@ -645,7 +645,7 @@ void buffer<array_type, T>::reserve(std::size_t size) {
 }
 //------------------------------------------------------------------------------
 template <GLsizei array_type, typename T>
-void buffer<array_type, T>::resize(std::size_t size) {
+void buffer<array_type, T>::resize(GLsizei size) {
   if (capacity() < size) {
     reserve(size);
   }
@@ -654,22 +654,22 @@ void buffer<array_type, T>::resize(std::size_t size) {
 //------------------------------------------------------------------------------
 template <GLsizei array_type, typename T>
 auto buffer<array_type, T>::download_data() const -> std::vector<T> {
-  rmap_t         map(this, 0, size());
+  read_map_type  map(this, 0, size());
   std::vector<T> data(size());
   std::copy(map.begin(), map.end(), data.begin());
   return data;
 }
 //------------------------------------------------------------------------------
 template <GLsizei array_type, typename T>
-void buffer<array_type, T>::gpu_malloc(std::size_t n) {
+void buffer<array_type, T>::gpu_malloc(GLsizei n) {
   auto const s = static_cast<GLsizei>(data_size * n);
   gl::named_buffer_data<void>(this->id(), s, nullptr, m_usage);
   m_capacity = n;
 }
 //------------------------------------------------------------------------------
 template <GLsizei array_type, typename T>
-void buffer<array_type, T>::gpu_malloc(std::size_t n, const T& initial) {
-    auto const s = static_cast<GLsizei>(data_size * n);
+void buffer<array_type, T>::gpu_malloc(GLsizei n, const T& initial) {
+  auto const s = static_cast<GLsizei>(data_size * n);
   if constexpr (std::is_arithmetic_v<T>) {
     gl::named_buffer_data<void>(this->id(), s, nullptr, m_usage);
     upload_data(initial);
@@ -708,7 +708,7 @@ void buffer<array_type, T>::copy(const this_type& other) {
 template <GLsizei array_type, typename T>
 void buffer<array_type, T>::push_back(T const& t) {
   if (m_capacity < m_size + 1) {
-    reserve(std::max<std::size_t>(m_size * 2, 1));
+    reserve(std::max<GLsizei>(m_size * 2, 1));
   }
   ++m_size;
   at(m_size - 1) = t;
@@ -725,7 +725,7 @@ void buffer<array_type, T>::emplace_back(Ts&&... ts) {
   if (m_capacity < m_size + 1) {
     // reallocate
     this_type tmp(*this);
-    gpu_malloc(m_size * 2.0);
+    gpu_malloc(m_size * 2);
     copy(tmp);
   }
   at(size()) = T(std::forward<Ts>(ts)...);

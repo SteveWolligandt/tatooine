@@ -25,8 +25,8 @@ class indexbuffer : public buffer<GL_ELEMENT_ARRAY_BUFFER, unsigned int> {
   DLL_API this_type& operator=(const this_type& other);
   DLL_API this_type& operator=(this_type&& other);
 
-  DLL_API indexbuffer(size_t n, usage_t usage = default_usage);
-  DLL_API indexbuffer(size_t n, unsigned int initial,
+  DLL_API indexbuffer(GLsizei n, usage_t usage = default_usage);
+  DLL_API indexbuffer(GLsizei n, unsigned int initial,
                       usage_t usage = default_usage);
   DLL_API indexbuffer(const std::vector<unsigned int>& data,
                       usage_t                          usage = default_usage);

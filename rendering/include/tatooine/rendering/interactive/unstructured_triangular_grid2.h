@@ -128,7 +128,7 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 2>> {
   };
   bool                                               show_wireframe     = false;
   Vec3<GLfloat>                                      m_solid_color      = {0.9,0.9,0.9};
-  int                                                line_width         = 1;
+  GLfloat                                            line_width         = 1;
   Vec4<GLfloat> wireframe_color = {0, 0, 0, 1};
   std::unordered_map<std::string, property_settings> settings;
   std::unordered_map<std::string, std::string_view>  selected_component;
@@ -271,7 +271,7 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 2>> {
   auto upload_data(auto&& prop, auto&& get_data, renderable_type const& grid) {
     auto data    = m_geometry.rwmap();
     for (std::size_t i = 0; i < grid.vertices().size(); ++i) {
-      get<1>(data[i]) = get_data(prop, i);
+      get<1>(data[i]) = static_cast<GLfloat>(get_data(prop, i));
     }
   };
   //----------------------------------------------------------------------------
@@ -537,8 +537,8 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 2>> {
         if constexpr (is_arithmetic<value_type>) {
           for (auto const v :grid.vertices()) {
             auto const p = prop[v.index()];
-            min_scalar   = std::min<GLfloat>(min_scalar, p);
-            max_scalar   = std::max<GLfloat>(max_scalar, p);
+            min_scalar   = std::min(min_scalar, static_cast<GLfloat>(p));
+            max_scalar   = std::max(max_scalar, static_cast<GLfloat>(p));
           }
         }
       });
@@ -557,8 +557,8 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 2>> {
                 mag += p(i) * p(i);
               }
               mag        = std::sqrt(mag);
-              min_scalar = std::min<GLfloat>(min_scalar, mag);
-              max_scalar = std::max<GLfloat>(max_scalar, mag);
+              min_scalar = std::min(min_scalar, static_cast<GLfloat>(mag));
+              max_scalar = std::max(max_scalar, static_cast<GLfloat>(mag));
             } else {
               auto s = typename value_type::value_type{};
               if (selected_component.at(*selected_property_name) ==
@@ -578,8 +578,8 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 2>> {
                   s = p.w();
                 }
               }
-              min_scalar = std::min<GLfloat>(min_scalar, s);
-              max_scalar = std::max<GLfloat>(max_scalar, s);
+              min_scalar = std::min(min_scalar, static_cast<GLfloat>(s));
+              max_scalar = std::max(max_scalar, static_cast<GLfloat>(s));
             }
           }
         }
@@ -592,7 +592,8 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 2>> {
   auto properties(renderable_type const& grid) {
     //ImGui::Text("Triangular Grid");
     ImGui::Checkbox("Show Grid", &show_wireframe);
-    ImGui::DragInt("Line width", &line_width, 1, 1, 20);
+    ImGui::DragFloat("Line width", &line_width, 1, 1, 20);
+    ImGui::DragFloat("Line width", &line_width, 1.0f, 1.0f, 2.0f, "%.01f");
     ImGui::ColorEdit4("Wireframe Color", wireframe_color.data());
     grid_property_selection(grid);
     if (selected_property != nullptr && vector_property) {
