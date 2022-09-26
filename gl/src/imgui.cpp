@@ -62,31 +62,31 @@ auto InputDouble4(const char* label, double v[4], const char* format,
                       format, flags);
 }
 //------------------------------------------------------------------------------
-auto DragSizeT(char const* label, size_t* v, size_t v_speed, size_t v_min,
+auto DragSizeT(char const* label, size_t* v, float v_speed, size_t v_min,
                size_t v_max) -> bool {
   return DragScalar(label, ImGuiDataTypeTraits<size_t>::value, v, v_speed,
                     &v_min, &v_max, ImGuiDataTypeTraits<size_t>::format);
 }
 //------------------------------------------------------------------------------
-auto DragDouble(const char* label, double* v, double v_speed, double v_min,
+auto DragDouble(const char* label, double* v, float v_speed, double v_min,
                 double v_max, const char* format, float power) -> bool {
   return DragScalar(label, ImGuiDataType_Double, v, v_speed, &v_min, &v_max,
                     format, power);
 }
 //------------------------------------------------------------------------------
-auto DragDouble2(const char* label, double v[2], double v_speed, double v_min,
+auto DragDouble2(const char* label, double v[2], float v_speed, double v_min,
                  double v_max, const char* format, float power) -> bool {
   return DragScalarN(label, ImGuiDataType_Double, v, 2, v_speed, &v_min, &v_max,
                      format, power);
 }
 //------------------------------------------------------------------------------
-auto DragDouble3(const char* label, double v[3], double v_speed, double v_min,
+auto DragDouble3(const char* label, double v[3], float v_speed, double v_min,
                  double v_max, const char* format, float power) -> bool {
   return DragScalarN(label, ImGuiDataType_Double, v, 3, v_speed, &v_min, &v_max,
                      format, power);
 }
 //------------------------------------------------------------------------------
-auto DragDouble4(const char* label, double v[4], double v_speed, double v_min,
+auto DragDouble4(const char* label, double v[4], float v_speed, double v_min,
                  double v_max, const char* format, float power) -> bool {
   return DragScalarN(label, ImGuiDataType_Double, v, 4, v_speed, &v_min, &v_max,
                      format, power);
@@ -119,27 +119,33 @@ auto BufferingBar(const char* label, float value, const ImVec2& size_arg,
   window->DrawList->AddRectFilled(
       bb.Min, ImVec2(pos.x + circleStart * value, bb.Max.y), fg_col);
 
-  const float t     = g.Time;
-  const float r     = size.y / 2;
-  const float speed = 1.5f;
+  const auto t     = g.Time;
+  const auto r     = size.y / 2;
+  const auto speed = 1.5f;
 
-  const float a = speed * 0;
-  const float b = speed * 0.333f;
-  const float c = speed * 0.666f;
+  const auto a = speed * 0;
+  const auto b = speed * 0.333f;
+  const auto c = speed * 0.666f;
 
-  const float o1 =
+  const auto o1 =
       (circleWidth + r) * (t + a - speed * (int)((t + a) / speed)) / speed;
-  const float o2 =
+  const auto o2 =
       (circleWidth + r) * (t + b - speed * (int)((t + b) / speed)) / speed;
-  const float o3 =
+  const auto o3 =
       (circleWidth + r) * (t + c - speed * (int)((t + c) / speed)) / speed;
 
   window->DrawList->AddCircleFilled(
-      ImVec2(pos.x + circleEnd - o1, bb.Min.y + r), r, bg_col);
+      ImVec2(static_cast<float>(pos.x + circleEnd - o1),
+             static_cast<float>(bb.Min.y + r)),
+      r, bg_col);
   window->DrawList->AddCircleFilled(
-      ImVec2(pos.x + circleEnd - o2, bb.Min.y + r), r, bg_col);
+      ImVec2(static_cast<float>(pos.x + circleEnd - o2),
+             static_cast<float>(bb.Min.y + r)),
+      r, bg_col);
   window->DrawList->AddCircleFilled(
-      ImVec2(pos.x + circleEnd - o3, bb.Min.y + r), r, bg_col);
+      ImVec2(static_cast<float>(pos.x + circleEnd - o3),
+             static_cast<float>(bb.Min.y + r)),
+      r, bg_col);
   return true;
 }
 //------------------------------------------------------------------------------
@@ -162,35 +168,40 @@ auto Spinner(const char* label, float radius, int thickness,
   // Render
   window->DrawList->PathClear();
 
-  int num_segments = 30;
-  int start        = abs(ImSin(g.Time * 1.8f) * (num_segments - 5));
+  auto const num_segments = std::size_t(30);
+  auto       start =
+      std::abs(ImSin(static_cast<float>(g.Time * 1.8)) * (num_segments - 5));
 
   const float a_min = IM_PI * 2.0f * ((float)start) / (float)num_segments;
   const float a_max =
       IM_PI * 2.0f * ((float)num_segments - 3) / (float)num_segments;
 
-  const ImVec2 centre =
+  auto const center =
       ImVec2(pos.x + radius, pos.y + radius + style.FramePadding.y);
 
-  for (int i = 0; i < num_segments; i++) {
+  for (std::size_t i = 0; i < num_segments; i++) {
     const float a = a_min + ((float)i / (float)num_segments) * (a_max - a_min);
-    window->DrawList->PathLineTo(
-        ImVec2(centre.x + ImCos(a + g.Time * 8) * radius,
-               centre.y + ImSin(a + g.Time * 8) * radius));
+    window->DrawList->PathLineTo(ImVec2(
+        static_cast<float>(center.x +
+                           ImCos(static_cast<float>(a + g.Time * 8)) * radius),
+        static_cast<float>(
+            center.y + ImSin(static_cast<float>(a + g.Time * 8)) * radius)));
   }
 
-  window->DrawList->PathStroke(color, false, thickness);
+  window->DrawList->PathStroke(color, false, static_cast<float>(thickness));
   return true;
 }
 //------------------------------------------------------------------------------
 auto StdStringNonStdResize(std::string& s, int size) -> void {
   IM_ASSERT(size >= 0);
-  const int oldLength = s.length();
-  if (size < oldLength)
+  auto const oldLength = static_cast<int>(s.length());
+  if (size < oldLength) {
     s = s.substr(0, size);
-  else if (size > oldLength)
-    for (int i = 0, icnt = size - oldLength; i < icnt; i++)
+  } else if (size > oldLength) {
+    for (int i = 0, icnt = size - oldLength; i < icnt; i++) {
       s += '\0';
+    }
+  }
 }
 ////------------------------------------------------------------------------------
 //// layouting

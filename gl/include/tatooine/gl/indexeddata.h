@@ -17,10 +17,10 @@ class indexeddata {
  public:
   using vbo_t        = gl::vertexbuffer<Ts...>;
   using ibo_t        = gl::indexbuffer;
-  using vbo_data_t   = typename vbo_t::data_t;
-  using ibo_data_t   = unsigned int;
-  using vbo_data_vec = std::vector<vbo_data_t>;
-  using ibo_data_vec = std::vector<ibo_data_t>;
+  using vbo_value_type   = typename vbo_t::value_type;
+  using ibo_value_type   = unsigned int;
+  using vbo_data_vec = std::vector<vbo_value_type>;
+  using ibo_data_vec = std::vector<ibo_value_type>;
   //============================================================================
   // MEMBERS
   //============================================================================

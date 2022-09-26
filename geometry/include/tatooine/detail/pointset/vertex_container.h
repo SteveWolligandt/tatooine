@@ -7,18 +7,18 @@ namespace tatooine::detail::pointset {
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions>
 struct const_vertex_container {
-  using pointset_t      = tatooine::pointset<Real, NumDimensions>;
-  using vertex_handle_t = typename pointset_t::vertex_handle;
+  using pointset_type = tatooine::pointset<Real, NumDimensions>;
+  using vertex_handle = typename pointset_type::vertex_handle;
   struct iterator : iterator_facade<iterator> {
     struct sentinel_type {};
     iterator() = default;
-    iterator(vertex_handle_t const vh, pointset_t const* ps)
+    iterator(vertex_handle const vh, pointset_type const* ps)
         : m_vh{vh}, m_ps{ps} {}
     iterator(iterator const& other) : m_vh{other.m_vh}, m_ps{other.m_ps} {}
 
    private:
-    vertex_handle_t   m_vh{};
-    pointset_t const* m_ps = nullptr;
+    vertex_handle m_vh{};
+    pointset_type const*      m_ps = nullptr;
 
    public:
     constexpr auto increment() {
@@ -43,18 +43,20 @@ struct const_vertex_container {
   };
   //==========================================================================
  private:
-  pointset_t const* m_pointset;
+  pointset_type const* m_pointset;
 
  public:
-  const_vertex_container(pointset_t const* ps) : m_pointset{ps} {}
+  const_vertex_container(pointset_type const* ps) : m_pointset{ps} {}
   const_vertex_container(const_vertex_container const&)     = default;
   const_vertex_container(const_vertex_container&&) noexcept = default;
-  auto operator=(const_vertex_container const&) -> const_vertex_container& = default;
-  auto operator=(const_vertex_container&&) noexcept -> const_vertex_container& = default;
-  ~const_vertex_container()                                              = default;
+  auto operator=(const_vertex_container const&)
+      -> const_vertex_container& = default;
+  auto operator=(const_vertex_container&&) noexcept
+      -> const_vertex_container& = default;
+  ~const_vertex_container()      = default;
   //==========================================================================
   auto begin() const {
-    iterator vi{vertex_handle_t{0}, m_pointset};
+    iterator vi{vertex_handle{0}, m_pointset};
     if (!m_pointset->is_valid(*vi)) {
       ++vi;
     }
@@ -72,34 +74,37 @@ struct const_vertex_container {
   }
   auto data() const { return data_container().data(); }
   auto operator[](std::size_t const i) const {
-    return m_pointset->at(vertex_handle_t{i});
+    return m_pointset->at(vertex_handle{i});
   }
   auto operator[](std::size_t const i) {
-    return m_pointset->at(vertex_handle_t{i});
+    return m_pointset->at(vertex_handle{i});
   }
-  auto operator[](vertex_handle_t const i) const { return m_pointset->at(i); }
-  auto operator[](vertex_handle_t const i) { return m_pointset->at(i); }
+  auto operator[](vertex_handle const i) const { return m_pointset->at(i); }
+  auto operator[](vertex_handle const i) { return m_pointset->at(i); }
   auto at(std::size_t const i) const {
-    return m_pointset->at(vertex_handle_t{i});
+    return m_pointset->at(vertex_handle{i});
   }
-  auto at(std::size_t const i) { return m_pointset->at(vertex_handle_t{i}); }
-  auto at(vertex_handle_t const i) const { return m_pointset->at(i); }
-  auto at(vertex_handle_t const i) { return m_pointset->at(i); }
+  auto at(std::size_t const i) { return m_pointset->at(vertex_handle{i}); }
+  auto at(vertex_handle const i) const { return m_pointset->at(i); }
+  auto at(vertex_handle const i) { return m_pointset->at(i); }
 };
+//==============================================================================
+static_assert(std::ranges::forward_range<const_vertex_container<real_number, 2>>);
+//static_assert(std::ranges::forward_range<const_vertex_container<real_number, 3>>);
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions>
 struct vertex_container {
-  using pointset_t      = tatooine::pointset<Real, NumDimensions>;
-  using vertex_handle_t = typename pointset_t::vertex_handle;
+  using pointset_type = tatooine::pointset<Real, NumDimensions>;
+  using vertex_handle = typename pointset_type::vertex_handle;
   struct iterator : iterator_facade<iterator> {
     struct sentinel_type {};
     iterator() = default;
-    iterator(vertex_handle_t const vh, pointset_t* ps) : m_vh{vh}, m_ps{ps} {}
+    iterator(vertex_handle const vh, pointset_type* ps) : m_vh{vh}, m_ps{ps} {}
     iterator(iterator const& other) : m_vh{other.m_vh}, m_ps{other.m_ps} {}
 
    private:
-    vertex_handle_t   m_vh{};
-    pointset_t*       m_ps = nullptr;
+    vertex_handle  m_vh{};
+    pointset_type* m_ps = nullptr;
 
    public:
     constexpr auto increment() {
@@ -124,18 +129,18 @@ struct vertex_container {
   };
   //==========================================================================
  private:
-  pointset_t* m_pointset;
+  pointset_type* m_pointset;
 
  public:
-  vertex_container(pointset_t* ps) : m_pointset{ps} {}
-  vertex_container(vertex_container const&)     = default;
-  vertex_container(vertex_container&&) noexcept = default;
-  auto operator=(vertex_container const&) -> vertex_container& = default;
+  vertex_container(pointset_type* ps) : m_pointset{ps} {}
+  vertex_container(vertex_container const&)                        = default;
+  vertex_container(vertex_container&&) noexcept                    = default;
+  auto operator=(vertex_container const&) -> vertex_container&     = default;
   auto operator=(vertex_container&&) noexcept -> vertex_container& = default;
   ~vertex_container()                                              = default;
   //==========================================================================
   auto begin() const {
-    iterator vi{vertex_handle_t{0}, m_pointset};
+    iterator vi{vertex_handle{0}, m_pointset};
     if (!m_pointset->is_valid(*vi)) {
       ++vi;
     }
@@ -153,19 +158,19 @@ struct vertex_container {
   }
   auto data() const { return data_container().data(); }
   auto operator[](std::size_t const i) const {
-    return m_pointset->at(vertex_handle_t{i});
+    return m_pointset->at(vertex_handle{i});
   }
   auto operator[](std::size_t const i) {
-    return m_pointset->at(vertex_handle_t{i});
+    return m_pointset->at(vertex_handle{i});
   }
-  auto operator[](vertex_handle_t const i) const { return m_pointset->at(i); }
-  auto operator[](vertex_handle_t const i) { return m_pointset->at(i); }
+  auto operator[](vertex_handle const i) const { return m_pointset->at(i); }
+  auto operator[](vertex_handle const i) { return m_pointset->at(i); }
   auto at(std::size_t const i) const {
-    return m_pointset->at(vertex_handle_t{i});
+    return m_pointset->at(vertex_handle{i});
   }
-  auto at(std::size_t const i) { return m_pointset->at(vertex_handle_t{i}); }
-  auto at(vertex_handle_t const i) const { return m_pointset->at(i); }
-  auto at(vertex_handle_t const i) { return m_pointset->at(i); }
+  auto at(std::size_t const i) { return m_pointset->at(vertex_handle{i}); }
+  auto at(vertex_handle const i) const { return m_pointset->at(i); }
+  auto at(vertex_handle const i) { return m_pointset->at(i); }
   auto resize(std::size_t const n) {
     m_pointset->m_vertex_position_data.resize(n);
     for (auto& [key, prop] : m_pointset->vertex_properties()) {
@@ -179,6 +184,9 @@ struct vertex_container {
     }
   }
 };
+//==============================================================================
+//static_assert(std::ranges::forward_range<vertex_container<real_number, 2>>);
+//static_assert(std::ranges::forward_range<vertex_container<real_number, 3>>);
 //==============================================================================
 template <typename Real, std::size_t NumDimensions>
 auto begin(vertex_container<Real, NumDimensions> verts) {

@@ -25,7 +25,7 @@ class vertexbuffer
       GL_ARRAY_BUFFER,
       std::conditional_t<sizeof...(Ts) == 1, head_t<Ts...>, tuple<Ts...> > >;
   using this_type = vertexbuffer<Ts...>;
-  using data_t = typename parent_type::data_t;
+  using typename parent_type::value_type;
 
   static constexpr auto data_size = parent_type::data_size;
 
@@ -56,12 +56,12 @@ class vertexbuffer
 
   vertexbuffer(std::size_t n, usage_t usage = default_usage)
       : parent_type(n, usage) {}
-  vertexbuffer(std::size_t n, data_t const& initial,
+  vertexbuffer(std::size_t n, value_type const& initial,
                usage_t usage = default_usage)
       : parent_type(n, initial, usage) {}
-  vertexbuffer(std::vector<data_t> const& data, usage_t usage = default_usage)
+  vertexbuffer(std::vector<value_type> const& data, usage_t usage = default_usage)
       : parent_type(data, usage) {}
-  vertexbuffer(std::initializer_list<data_t>&& list)
+  vertexbuffer(std::initializer_list<value_type>&& list)
       : parent_type(std::move(list), default_usage) {}
 
   void push_back(Ts const&... ts) {

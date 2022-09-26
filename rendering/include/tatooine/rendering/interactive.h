@@ -10,6 +10,7 @@
 #include <tatooine/rendering/interactive/unstructured_triangular_grid2.h>
 #include <tatooine/rendering/interactive/unstructured_triangular_grid3.h>
 #include <tatooine/type_set.h>
+#include <tatooine/functional.h>
 //==============================================================================
 namespace tatooine::rendering::interactive {
 //==============================================================================
@@ -17,37 +18,31 @@ namespace detail {
 //==============================================================================
 template <typename... Renderers>
 auto set_view_matrices(Mat4<GLfloat> const& V, type_set_impl<Renderers...>) {
-  (
-      [&] {
-        if constexpr (requires { Renderers::set_view_matrix(V); }) {
-          Renderers::set_view_matrix(V);
-        }
-      }(),
-      ...);
+  invoke([&] {
+    if constexpr (requires { Renderers::set_view_matrix(V); }) {
+      Renderers::set_view_matrix(V);
+    }
+  });
 }
 //==============================================================================
 template <typename... Renderers>
 auto set_projection_matrices(Mat4<GLfloat> const& P,
                              type_set_impl<Renderers...>) {
-  (
-      [&] {
-        if constexpr (requires { Renderers::set_projection_matrix(P); }) {
-          Renderers::set_projection_matrix(P);
-        }
-      }(),
-      ...);
+  invoke([&] {
+    if constexpr (requires { Renderers::set_projection_matrix(P); }) {
+      Renderers::set_projection_matrix(P);
+    }
+  });
 }
 //==============================================================================
 template <typename... Renderers>
 auto set_view_projection_matrices(Mat4<GLfloat> const& VP,
                                   type_set_impl<Renderers...>) {
-  (
-      [&] {
-        if constexpr (requires { Renderers::set_view_projection_matrix(VP); }) {
-          Renderers::set_view_projection_matrix(VP);
-        }
-      }(),
-      ...);
+  invoke([&] {
+    if constexpr (requires { Renderers::set_view_projection_matrix(VP); }) {
+      Renderers::set_view_projection_matrix(VP);
+    }
+  });
 }
 struct window {
   [[nodiscard]] static auto get() -> auto& {

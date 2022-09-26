@@ -133,7 +133,10 @@ struct camera_interface {
   }
   //----------------------------------------------------------------------------
   auto set_gl_viewport() const {
-    gl::viewport(m_viewport[0], m_viewport[1], m_viewport[2], m_viewport[3]);
+    gl::viewport(static_cast<GLint>(m_viewport[0]),
+                 static_cast<GLint>(m_viewport[1]),
+                 static_cast<GLsizei>(m_viewport[2]),
+                 static_cast<GLsizei>(m_viewport[3]));
   }
   //----------------------------------------------------------------------------
   auto constexpr look_at(vec3 const& eye, vec3 const& lookat,

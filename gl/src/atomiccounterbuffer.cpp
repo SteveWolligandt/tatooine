@@ -7,10 +7,10 @@ namespace tatooine::gl {
 //==============================================================================
 atomiccounterbuffer::atomiccounterbuffer(usage_t usage) : buffer(usage) {}
 //------------------------------------------------------------------------------
-atomiccounterbuffer::atomiccounterbuffer(size_t n, usage_t usage)
+atomiccounterbuffer::atomiccounterbuffer(GLsizei n, usage_t usage)
     : buffer(n, usage) {}
 //------------------------------------------------------------------------------
-atomiccounterbuffer::atomiccounterbuffer(size_t n, GLuint initial,
+atomiccounterbuffer::atomiccounterbuffer(GLsizei n, GLuint initial,
                                          usage_t usage)
     : buffer(n, initial, usage) {}
 //------------------------------------------------------------------------------
