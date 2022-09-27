@@ -77,7 +77,7 @@ struct camera_controller : gl::window_listener {
       : m_pcam{{Real(0), Real(0), Real(0)},
                {Real(0), Real(0), Real(1)},
                60,
-               0.01,
+               static_cast<Real>(0.01),
                100,
                res_x,
                res_y},
@@ -200,7 +200,7 @@ struct camera_controller : gl::window_listener {
   void on_resize(int w, int h) override {
     m_pcam.set_resolution(w, h);
     m_ocam.set_resolution(w, h);
-    m_pcam.set_projection_matrix(60, 0.001, 1000);
+    m_pcam.set_projection_matrix(60, static_cast<Real>(0.001), 1000);
     m_ocam.set_projection_matrix(m_orthographic_height);
     if (m_controller) {
       m_controller->on_resize(w, h);
@@ -226,7 +226,7 @@ struct fps_camera_controller : camera_controller_interface<Real> {
   enum buttons : std::uint8_t { w = 1, a = 2, s = 4, d = 8, q = 16, e = 32 };
 
   std::uint8_t m_buttons_down = 0;
-  double       m_mouse_pos_x, m_mouse_pos_y;
+  Real         m_mouse_pos_x, m_mouse_pos_y;
   bool         m_right_button_down = false;
   bool         m_shift_down        = false;
   bool         m_ctrl_down         = false;
@@ -305,8 +305,8 @@ struct fps_camera_controller : camera_controller_interface<Real> {
   //----------------------------------------------------------------------------
   void on_cursor_moved(double x, double y) override {
     if (m_right_button_down) {
-      Real const offset_x = gcem::ceil(x) - m_mouse_pos_x;
-      Real const offset_y = gcem::ceil(y) - m_mouse_pos_y;
+      auto const offset_x = static_cast<Real>(gcem::ceil(x)) - m_mouse_pos_x;
+      auto const offset_y = static_cast<Real>(gcem::ceil(y)) - m_mouse_pos_y;
 
       auto const old_view_dir = -controller().view_direction();
       auto       yaw          = gcem::atan2(old_view_dir(2), old_view_dir(0));
@@ -314,7 +314,8 @@ struct fps_camera_controller : camera_controller_interface<Real> {
 
       yaw += offset_x * Real(0.001);
       pitch                = std::clamp<Real>(pitch + offset_y * Real(0.001),
-                               -M_PI * 0.5 * 0.7, M_PI * 0.5 * 0.7);
+                               static_cast<Real>(-M_PI * 0.5 * 0.7),
+                               static_cast<Real>(M_PI * 0.5 * 0.7));
       auto const cos_pitch = gcem::cos(pitch);
       auto const sin_pitch = gcem::sin(pitch);
       auto const cos_yaw   = gcem::cos(yaw);
@@ -324,8 +325,8 @@ struct fps_camera_controller : camera_controller_interface<Real> {
           vec{cos_pitch * cos_yaw, sin_pitch, cos_pitch * sin_yaw};
       controller().look_at(eye, eye + normalize(new_view_dir));
     }                          
-    m_mouse_pos_x = gcem::ceil(x);
-    m_mouse_pos_y = gcem::ceil(y);
+    m_mouse_pos_x = static_cast<Real>(gcem::ceil(x));
+    m_mouse_pos_y = static_cast<Real>(gcem::ceil(y));
   }
   auto speed() const {
     if (m_shift_down) {
@@ -384,7 +385,7 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
   //============================================================================
   // members
   //============================================================================
-  int  m_mouse_pos_x, m_mouse_pos_y;
+  Real  m_mouse_pos_x, m_mouse_pos_y;
   bool m_right_button_down = false;
   //============================================================================
   // ctor
@@ -409,36 +410,39 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
   //----------------------------------------------------------------------------
   auto on_cursor_moved(double x, double y) -> void override {
     if (m_right_button_down) {
-      auto offset_x = std::ceil(x) - m_mouse_pos_x;
-      auto offset_y = std::ceil(y) - m_mouse_pos_y;
+      auto offset_x = static_cast<Real>(gcem::ceil(x)) - m_mouse_pos_x;
+      auto offset_y = static_cast<Real>(gcem::ceil(y)) - m_mouse_pos_y;
       auto new_eye  = controller().eye();
-      new_eye(0) -= static_cast<Real>(offset_x) *
-                    controller().orthographic_camera().aspect_ratio() /
-                    controller().orthographic_camera().plane_width() *
-                    controller().orthographic_camera().height();
-      new_eye(1) -= static_cast<Real>(offset_y) /
-                    controller().orthographic_camera().plane_height() *
-                    controller().orthographic_camera().height();
+      new_eye(0) -=
+          static_cast<Real>(offset_x) *
+          controller().orthographic_camera().aspect_ratio() /
+          static_cast<Real>(controller().orthographic_camera().plane_width()) *
+          controller().orthographic_camera().height();
+      new_eye(1) -=
+          static_cast<Real>(offset_y) /
+          static_cast<Real>(controller().orthographic_camera().plane_height()) *
+          controller().orthographic_camera().height();
       this->look_at(new_eye, new_eye + vec{0, 0, -1});
     }
-    m_mouse_pos_x = std::ceil(x);
-    m_mouse_pos_y = std::ceil(y);
+    m_mouse_pos_x = static_cast<Real>(gcem::ceil(x));
+    m_mouse_pos_y = static_cast<Real>(gcem::ceil(y));
   }
   //----------------------------------------------------------------------------
   auto on_wheel_down() -> void override {
-    controller().set_orthographic_height(controller().orthographic_height() / 0.9);
-    //controller().orthographic_camera().setup(
-    //    controller().eye(), controller().lookat(), controller().up(),
-    //    controller().orthographic_camera().width() / 0.9,
-    //    controller().orthographic_camera().height() / 0.9,
-    //    controller().orthographic_camera().near(),
-    //    controller().orthographic_camera().far(),
-    //    controller().plane_width(), controller().plane_height());
+    controller().set_orthographic_height(controller().orthographic_height() /
+                                         static_cast<Real>(0.9));
+    // controller().orthographic_camera().setup(
+    //     controller().eye(), controller().lookat(), controller().up(),
+    //     controller().orthographic_camera().width() / 0.9,
+    //     controller().orthographic_camera().height() / 0.9,
+    //     controller().orthographic_camera().near(),
+    //     controller().orthographic_camera().far(),
+    //     controller().plane_width(), controller().plane_height());
   }
   //----------------------------------------------------------------------------
   auto on_wheel_up() -> void override {
     controller().set_orthographic_height(controller().orthographic_height() *
-                                         0.9);
+                                         static_cast<Real>(0.9));
     //controller().orthographic_camera().setup(
     //    controller().eye(), controller().lookat(), controller().up(),
     //    controller().orthographic_camera().width() * 0.9,

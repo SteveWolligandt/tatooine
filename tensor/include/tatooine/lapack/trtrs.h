@@ -59,7 +59,8 @@ auto trtrs(uplo u, op t, diag d, int N, int NRHS, Float* A, int LDA,
 template <typename T, size_t M, size_t N, size_t NRHS>
 auto trtrs(tensor<T, M, N>& A, tensor<T, M, NRHS>& B, uplo const u,
            op const t, diag const d) {
-  return trtrs(u, t, d, N, NRHS, A.data(), M, B.data(), M);
+  return trtrs(u, t, d, static_cast<int>(N), static_cast<int>(NRHS), A.data(),
+               static_cast<int>(M), B.data(), static_cast<int>(M));
 }
 //------------------------------------------------------------------------------
 /// \param[in] A The triangular matrix \f$\mA\f$.
@@ -74,7 +75,8 @@ auto trtrs(tensor<T, M, N>& A, tensor<T, M, NRHS>& B, uplo const u,
 template <typename T, size_t M, size_t N>
 auto trtrs(tensor<T, M, N>& A, tensor<T, M>& b, uplo const u,
            op const t, diag const d) {
-  return trtrs(u, t, d, N, 1, A.data(), M, b.data(), M);
+  return trtrs(u, t, d, static_cast<int>(N), 1, A.data(), static_cast<int>(M),
+               b.data(), static_cast<int>(M));
 }
 //------------------------------------------------------------------------------
 /// \param[in] A The triangular matrix \f$\mA\f$.
@@ -95,7 +97,8 @@ auto trtrs(tensor<T>& A, tensor<T>& B, uplo const u,
   auto const M    = A.dimension(0);
   auto const N    = A.dimension(1);
   auto const NRHS = B.rank() == 2 ? B.dimension(1) : 1;
-  return trtrs(u, t, d, N, NRHS, A.data(), M, B.data(), M);
+  return trtrs(u, t, d, static_cast<int>(N), static_cast<int>(NRHS), A.data(),
+               static_cast<int>(M), B.data(), static_cast<int>(M));
 }
 //==============================================================================
 /// \}

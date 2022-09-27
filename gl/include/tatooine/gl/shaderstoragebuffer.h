@@ -18,26 +18,26 @@ class shaderstoragebuffer : public buffer<GL_SHADER_STORAGE_BUFFER, T> {
   //----------------------------------------------------------------------------
  public:
   using parent_type                     = buffer<GL_SHADER_STORAGE_BUFFER, T>;
-  static const usage_t default_usage = usage_t::DYNAMIC_DRAW;
+  static const buffer_usage default_usage = buffer_usage::DYNAMIC_DRAW;
 
   //----------------------------------------------------------------------------
   // ctors
   //----------------------------------------------------------------------------
  public:
-  shaderstoragebuffer(usage_t usage = default_usage) : parent_type(usage) {}
+  shaderstoragebuffer(buffer_usage usage = default_usage) : parent_type(usage) {}
   //----------------------------------------------------------------------------
   shaderstoragebuffer(const shaderstoragebuffer& other) : parent_type(other) {}
   //----------------------------------------------------------------------------
   shaderstoragebuffer(shaderstoragebuffer&& other)
       : parent_type(std::move(other)) {}
   //----------------------------------------------------------------------------
-  shaderstoragebuffer(size_t n, usage_t usage = default_usage)
+  shaderstoragebuffer(size_t n, buffer_usage usage = default_usage)
       : parent_type(n, usage) {}
   //----------------------------------------------------------------------------
-  shaderstoragebuffer(size_t n, const T& initial, usage_t usage = default_usage)
+  shaderstoragebuffer(size_t n, const T& initial, buffer_usage usage = default_usage)
       : parent_type(n, initial, usage) {}
   //----------------------------------------------------------------------------
-  shaderstoragebuffer(const std::vector<T>& data, usage_t usage = default_usage)
+  shaderstoragebuffer(const std::vector<T>& data, buffer_usage usage = default_usage)
       : parent_type(data, usage) {}
   //----------------------------------------------------------------------------
   shaderstoragebuffer(std::initializer_list<T>&& list)

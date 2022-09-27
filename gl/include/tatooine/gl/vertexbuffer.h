@@ -29,7 +29,7 @@ class vertexbuffer
 
   static constexpr auto data_size = parent_type::data_size;
 
-  static usage_t const default_usage = usage_t::STATIC_DRAW;
+  static buffer_usage const default_usage = buffer_usage::STATIC_DRAW;
 
   static constexpr auto num_attributes = sizeof...(Ts);
   static constexpr std::array<GLsizei, num_attributes> num_components{
@@ -40,7 +40,7 @@ class vertexbuffer
       attr_offset<num_attributes, Ts...>::gen(0, 0);
 
   //----------------------------------------------------------------------------
-  vertexbuffer(usage_t usage = default_usage) : parent_type{usage} {}
+  vertexbuffer(buffer_usage usage = default_usage) : parent_type{usage} {}
   vertexbuffer(vertexbuffer const& other) : parent_type{other} {}
   vertexbuffer(vertexbuffer&& other) noexcept : parent_type{other} {}
 
@@ -54,12 +54,12 @@ class vertexbuffer
     return *this;
   }
 
-  vertexbuffer(std::size_t n, usage_t usage = default_usage)
+  vertexbuffer(std::size_t n, buffer_usage usage = default_usage)
       : parent_type(n, usage) {}
   vertexbuffer(std::size_t n, value_type const& initial,
-               usage_t usage = default_usage)
+               buffer_usage usage = default_usage)
       : parent_type(n, initial, usage) {}
-  vertexbuffer(std::vector<value_type> const& data, usage_t usage = default_usage)
+  vertexbuffer(std::vector<value_type> const& data, buffer_usage usage = default_usage)
       : parent_type(data, usage) {}
   vertexbuffer(std::initializer_list<value_type>&& list)
       : parent_type(std::move(list), default_usage) {}

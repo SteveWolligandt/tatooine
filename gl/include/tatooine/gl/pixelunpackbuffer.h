@@ -21,23 +21,23 @@ class pixelunpackbuffer : public buffer<GL_PIXEL_UNPACK_BUFFER, T> {
  public:
   using parent_type                         = buffer<GL_PIXEL_UNPACK_BUFFER, T>;
   using this_type                           = pixelunpackbuffer<T>;
-  static constexpr usage_t default_usage = usage_t::STATIC_COPY;
+  static constexpr buffer_usage default_usage = buffer_usage::STATIC_COPY;
   //----------------------------------------------------------------------------
   // ctors
   //----------------------------------------------------------------------------
-  pixelunpackbuffer(usage_t usage = default_usage) : parent_type(usage) {}
+  pixelunpackbuffer(buffer_usage usage = default_usage) : parent_type(usage) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   pixelunpackbuffer(const pixelunpackbuffer& other) : parent_type(other) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   pixelunpackbuffer(pixelunpackbuffer&& other) : parent_type(std::move(other)) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  pixelunpackbuffer(size_t n, usage_t usage = default_usage)
+  pixelunpackbuffer(size_t n, buffer_usage usage = default_usage)
       : parent_type(n, usage) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  pixelunpackbuffer(size_t n, const T& initial, usage_t usage = default_usage)
+  pixelunpackbuffer(size_t n, const T& initial, buffer_usage usage = default_usage)
       : parent_type(n, initial, usage) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  pixelunpackbuffer(const std::vector<T>& data, usage_t usage = default_usage)
+  pixelunpackbuffer(const std::vector<T>& data, buffer_usage usage = default_usage)
       : parent_type(data, usage) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   pixelunpackbuffer(std::initializer_list<T>&& list)

@@ -72,9 +72,10 @@ auto gesv(tensor<T>& A, tensor<T>& B, tensor<int>& ipiv) {
   assert(A.dimension(0) == B.dimension(0));
 
   ipiv.resize(A.dimension(0));
-  return gesv(A.dimension(0), (B.rank() == 1 ? 1 : B.dimension(1)),
-                        A.data(), A.dimension(0), ipiv.data(),
-                        B.data(), A.dimension(0));
+  return gesv(static_cast<int>(A.dimension(0)),
+              static_cast<int>(B.rank() == 1 ? 1 : B.dimension(1)), A.data(),
+              static_cast<int>(A.dimension(0)), ipiv.data(), B.data(),
+              static_cast<int>(A.dimension(0)));
 }
 //==============================================================================
 /// \}

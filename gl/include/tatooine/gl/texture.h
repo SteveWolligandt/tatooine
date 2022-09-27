@@ -1101,7 +1101,8 @@ auto to_2d(tex1<float, Components> const& t1, std::size_t const height,
   dispatch_compute(
       static_cast<int>(
           std::ceil(t1.width() / static_cast<double>(local_size_x))),
-      static_cast<int>(std::ceil(height / static_cast<double>(local_size_y))),
+      static_cast<int>(std::ceil(static_cast<double>(height) /
+                                 static_cast<double>(local_size_y))),
       1);
   return t2;
 }
