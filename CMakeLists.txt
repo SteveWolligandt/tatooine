@@ -110,10 +110,9 @@ target_include_directories(base
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>"
     external/indicators/include
-    external/vcode/include
-    external/gcem/include
     external/rapidxml)
 
+target_include_directories(base SYSTEM INTERFACE external/gcem/include)
 if (TATOOINE_STD_FILESYSTEM_COMPILED)
   set(TATOOINE_STD_FILESYSTEM_AVAILABLE 1)
   if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")

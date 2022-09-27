@@ -1,9 +1,9 @@
-#include <tatooine/gl/indexbuffer.h>
 #include <tatooine/gl/glincludes.h>
+#include <tatooine/gl/indexbuffer.h>
 //==============================================================================
 namespace tatooine::gl {
 //==============================================================================
-indexbuffer::indexbuffer(usage_t usage) : buffer(usage) {}
+indexbuffer::indexbuffer(buffer_usage usage) : buffer(usage) {}
 //------------------------------------------------------------------------------
 indexbuffer::indexbuffer(const indexbuffer& other) : buffer(other) {}
 //------------------------------------------------------------------------------
@@ -19,12 +19,13 @@ indexbuffer& indexbuffer::operator=(indexbuffer&& other) {
   return *this;
 }
 //------------------------------------------------------------------------------
-indexbuffer::indexbuffer(GLsizei n, usage_t usage) : buffer(n, usage) {}
+indexbuffer::indexbuffer(GLsizei n, buffer_usage usage) : buffer(n, usage) {}
 //------------------------------------------------------------------------------
-indexbuffer::indexbuffer(GLsizei n, unsigned int initial, usage_t usage)
+indexbuffer::indexbuffer(GLsizei n, unsigned int initial, buffer_usage usage)
     : buffer(n, initial, usage) {}
 //------------------------------------------------------------------------------
-indexbuffer::indexbuffer(const std::vector<unsigned int>& data, usage_t usage)
+indexbuffer::indexbuffer(const std::vector<unsigned int>& data,
+                         buffer_usage                     usage)
     : buffer(data, usage) {}
 //------------------------------------------------------------------------------
 indexbuffer::indexbuffer(std::initializer_list<unsigned int>&& list)

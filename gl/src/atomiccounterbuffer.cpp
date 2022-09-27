@@ -5,17 +5,17 @@
 //==============================================================================
 namespace tatooine::gl {
 //==============================================================================
-atomiccounterbuffer::atomiccounterbuffer(usage_t usage) : buffer(usage) {}
+atomiccounterbuffer::atomiccounterbuffer(buffer_usage usage) : buffer(usage) {}
 //------------------------------------------------------------------------------
-atomiccounterbuffer::atomiccounterbuffer(GLsizei n, usage_t usage)
+atomiccounterbuffer::atomiccounterbuffer(GLsizei n, buffer_usage usage)
     : buffer(n, usage) {}
 //------------------------------------------------------------------------------
 atomiccounterbuffer::atomiccounterbuffer(GLsizei n, GLuint initial,
-                                         usage_t usage)
+                                         buffer_usage usage)
     : buffer(n, initial, usage) {}
 //------------------------------------------------------------------------------
 atomiccounterbuffer::atomiccounterbuffer(const std::vector<GLuint>& data,
-                                         usage_t                    usage)
+                                         buffer_usage               usage)
     : buffer(data, usage) {}
 //------------------------------------------------------------------------------
 atomiccounterbuffer::atomiccounterbuffer(std::initializer_list<GLuint>&& data)

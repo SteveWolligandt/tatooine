@@ -72,13 +72,16 @@ auto ormqr(side SIDE, op TRANS, int M, int N, int K, Float* A, int LDA,
 template <typename T, size_t K, size_t M>
 auto ormqr(tensor<T, M, K>& A, tensor<T, M>& c, tensor<T, K>& tau, side const s,
            op trans) {
-  return ormqr(s, trans, M, 1, K, A.data(), M, tau.data(), c.data(), M);
+  return ormqr(s, trans, static_cast<int>(M), 1, static_cast<int>(K), A.data(),
+               static_cast<int>(M), tau.data(), c.data(), static_cast<int>(M));
 }
 //==============================================================================
 template <typename T, size_t K, size_t M, size_t N>
 auto ormqr(tensor<T, M, K>& A, tensor<T, M, N>& C, tensor<T, K>& tau,
            side const s, op trans) {
-  return ormqr(s, trans, M, N, K, A.data(), M, tau.data(), C.data(), M);
+  return ormqr(s, trans, static_cast<int>(M), static_cast<int>(N),
+               static_cast<int>(K), A.data(), static_cast<int>(M), tau.data(),
+               C.data(), static_cast<int>(M));
 }
 //==============================================================================
 template <typename T>
@@ -91,7 +94,9 @@ auto ormqr(tensor<T>& A, tensor<T>& C, tensor<T>& tau, side const s, op trans) {
   auto const M = A.dimension(0);
   auto const K = A.dimension(1);
   auto const N = C.rank() == 2 ? C.dimension(1) : 1;
-  return ormqr(s, trans, M, N, K, A.data(), M, tau.data(), C.data(), M);
+  return ormqr(s, trans, static_cast<int>(M), static_cast<int>(N),
+               static_cast<int>(K), A.data(), static_cast<int>(M), tau.data(),
+               C.data(), static_cast<int>(M));
 }
 //==============================================================================
 /// \}

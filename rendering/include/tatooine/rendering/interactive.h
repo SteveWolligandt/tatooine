@@ -213,7 +213,7 @@ auto show(std::index_sequence<Is...> /*seq*/, Renderables&&... renderables) {
         }
       }
 
-      ImGui::PushID(i);
+      ImGui::PushID(static_cast<int>(i));
       ImGui::ToggleButton("##enable", &enable_renderer[i]);
       if constexpr (requires { renderer.properties(renderable); }) {
         ImGui::BeginGroup();

@@ -7,8 +7,8 @@
 namespace tatooine {
 //==============================================================================
 template <static_tensor Lhs, static_tensor Rhs>
-requires(same_dimensions<Lhs, Rhs>())
-auto constexpr operator==(Lhs const& lhs, Rhs const& rhs) {
+requires(same_dimensions<Lhs, Rhs>()) auto constexpr operator==(
+    Lhs const& lhs, Rhs const& rhs) {
   bool equal = true;
   for_loop_unpacked(
       [&](auto const... is) {
@@ -23,8 +23,8 @@ auto constexpr operator==(Lhs const& lhs, Rhs const& rhs) {
 }
 //------------------------------------------------------------------------------
 template <static_tensor Lhs, static_tensor Rhs>
-requires(same_dimensions<Lhs, Rhs>())
-auto constexpr operator!=(Lhs const& lhs, Rhs const& rhs) {
+requires(same_dimensions<Lhs, Rhs>()) auto constexpr operator!=(
+    Lhs const& lhs, Rhs const& rhs) {
   return !(lhs == rhs);
 }
 //------------------------------------------------------------------------------
@@ -39,8 +39,8 @@ auto constexpr operator+(static_tensor auto const&        lhs,
 //------------------------------------------------------------------------------
 /// matrix-matrix multiplication
 template <static_mat Lhs, static_mat Rhs>
-requires(Lhs::dimension(1) == Rhs::dimension(0))
-auto constexpr operator*(Lhs const& lhs, Rhs const& rhs) {
+requires(Lhs::dimension(1) == Rhs::dimension(0)) auto constexpr operator*(
+    Lhs const& lhs, Rhs const& rhs) {
   auto product =
       mat<common_type<typename Lhs::value_type, typename Rhs::value_type>,
           Lhs::dimension(0), Rhs::dimension(1)>{};
@@ -56,8 +56,8 @@ auto constexpr operator*(Lhs const& lhs, Rhs const& rhs) {
 //------------------------------------------------------------------------------
 /// matrix-vector-multiplication
 template <static_mat Lhs, static_vec Rhs>
-requires(Lhs::dimension(1) == Rhs::dimension(0))
-auto constexpr operator*(Lhs const& lhs, Rhs const& rhs) {
+requires(Lhs::dimension(1) == Rhs::dimension(0)) auto constexpr operator*(
+    Lhs const& lhs, Rhs const& rhs) {
   auto product =
       vec<common_type<typename Lhs::value_type, typename Rhs::value_type>,
           Lhs::dimension(0)>{};
@@ -71,8 +71,8 @@ auto constexpr operator*(Lhs const& lhs, Rhs const& rhs) {
 //------------------------------------------------------------------------------
 /// vector-matrix-multiplication
 template <static_vec Lhs, static_mat Rhs>
-requires(Lhs::dimension(0) == Rhs::dimension(0))
-auto constexpr operator*(Lhs const& lhs, Rhs const& rhs) {
+requires(Lhs::dimension(0) == Rhs::dimension(0)) auto constexpr operator*(
+    Lhs const& lhs, Rhs const& rhs) {
   auto product =
       vec<common_type<
               common_type<typename Lhs::value_type, typename Rhs::value_type>>,
@@ -88,41 +88,53 @@ auto constexpr operator*(Lhs const& lhs, Rhs const& rhs) {
 /// component-wise multiplication
 template <static_tensor Lhs, static_tensor Rhs>
 requires(same_dimensions<Lhs, Rhs>() && Lhs::rank() != 2 &&
-         Rhs::rank() != 2)
-auto constexpr operator*(Lhs const& lhs, Rhs const& rhs) {
+         Rhs::rank() != 2) auto constexpr
+operator*(Lhs const& lhs, Rhs const& rhs) {
   return binary_operation(
-      std::multiplies<
-          common_type<typename Lhs::value_type, typename Rhs::value_type>>{},
+      [](auto&& l, auto&& r) {
+        using out_type =
+            common_type<std::decay_t<decltype(l)>, std::decay_t<decltype(r)>>;
+        return static_cast<out_type>(l) * static_cast<out_type>(r);
+      },
       lhs, rhs);
 }
 //------------------------------------------------------------------------------
 /// component-wise division
 template <static_tensor Lhs, static_tensor Rhs>
-requires(same_dimensions<Lhs, Rhs>())
-auto constexpr operator/(Lhs const& lhs, Rhs const& rhs) {
+requires(same_dimensions<Lhs, Rhs>()) auto constexpr operator/(Lhs const& lhs,
+                                                               Rhs const& rhs) {
   return binary_operation(
-      std::divides<
-          common_type<typename Lhs::value_type, typename Rhs::value_type>>{},
+      [](auto&& l, auto&& r) {
+        using out_type =
+            common_type<std::decay_t<decltype(l)>, std::decay_t<decltype(r)>>;
+        return static_cast<out_type>(l) / static_cast<out_type>(r);
+      },
       lhs, rhs);
 }
 //------------------------------------------------------------------------------
 /// component-wise addition
 template <static_tensor Lhs, static_tensor Rhs>
-requires(same_dimensions<Lhs, Rhs>())
-auto constexpr operator+(Lhs const& lhs, Rhs const& rhs) {
+requires(same_dimensions<Lhs, Rhs>()) auto constexpr operator+(Lhs const& lhs,
+                                                               Rhs const& rhs) {
   return binary_operation(
-      std::plus<
-          common_type<typename Lhs::value_type, typename Rhs::value_type>>{},
+      [](auto&& l, auto&& r) {
+        using out_type =
+            common_type<std::decay_t<decltype(l)>, std::decay_t<decltype(r)>>;
+        return static_cast<out_type>(l) + static_cast<out_type>(r);
+      },
       lhs, rhs);
 }
 //------------------------------------------------------------------------------
 /// component-wise subtraction
 template <static_tensor Lhs, static_tensor Rhs>
-requires(same_dimensions<Lhs, Rhs>())
-auto constexpr operator-(Lhs const& lhs, Rhs const& rhs) {
+requires(same_dimensions<Lhs, Rhs>()) auto constexpr operator-(Lhs const& lhs,
+                                                               Rhs const& rhs) {
   return binary_operation(
-      std::minus<
-          common_type<typename Lhs::value_type, typename Rhs::value_type>>{},
+      [](auto&& l, auto&& r) {
+        using out_type =
+            common_type<std::decay_t<decltype(l)>, std::decay_t<decltype(r)>>;
+        return static_cast<out_type>(l) - static_cast<out_type>(r);
+      },
       lhs, rhs);
 }
 //------------------------------------------------------------------------------
@@ -140,14 +152,13 @@ auto constexpr operator*(arithmetic_or_complex auto const scalar,
 //------------------------------------------------------------------------------
 auto constexpr operator/(static_tensor auto const&        t,
                          arithmetic_or_complex auto const scalar) {
-  return t * (1/scalar);
+  return t * (1 / scalar);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 auto constexpr operator/(arithmetic_or_complex auto const scalar,
                          static_tensor auto const&        t) {
-  return unary_operation([scalar](auto const& component) {
-    return scalar / component;
-  }, t);
+  return unary_operation(
+      [scalar](auto const& component) { return scalar / component; }, t);
 }
 //------------------------------------------------------------------------------
 template <dynamic_tensor Lhs, dynamic_tensor Rhs>

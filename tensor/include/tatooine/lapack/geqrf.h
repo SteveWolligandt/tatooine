@@ -58,7 +58,8 @@ auto geqrf(tensor<T>& A, tensor<T>& tau) {
   auto const N = A.dimension(1);
   assert(tau.rank() == 1);
   assert(tau.dimension(0) >= tatooine::min(M, N));
-  return geqrf(M, N, A.data(), M, tau.data());
+  return geqrf(static_cast<int>(M), static_cast<int>(N), A.data(),
+               static_cast<int>(M), tau.data());
 }
 //==============================================================================
 /// \}
