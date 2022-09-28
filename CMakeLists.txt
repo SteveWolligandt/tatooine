@@ -417,7 +417,6 @@ endif()
 #    add_subdirectory(flowexplorer)
 #  endif()
 #endif()
-endif()
 #-------------------------------------------------------------------------------
 configure_file(${CMAKE_SOURCE_DIR}/tatooineConfig.cmake.in ${CMAKE_BINARY_DIR}/tatooineConfig.cmake @ONLY)
 
@@ -452,6 +451,7 @@ if(TATOOINE_CDT_AVAILABLE)
 endif()
 
 export(PACKAGE tatooine)
+endif()
 #--------------------------------------------------------------------------------
 # configure files
 #--------------------------------------------------------------------------------
