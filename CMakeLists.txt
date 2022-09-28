@@ -97,8 +97,6 @@ set_property(TARGET base PROPERTY CXX_STANDARD 20)
 #-------------------------------------------------------------------------------
 # Boost
 #-------------------------------------------------------------------------------
-find_package(Boost REQUIRED)
-target_link_libraries(base INTERFACE Boost::headers)
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   target_compile_options(base INTERFACE -Wno-interference-size)
@@ -154,6 +152,8 @@ if (NOT TATOOINE_DOC_ONLY)
 #===============================================================================
 # Required Packages
 #===============================================================================
+find_package(Boost REQUIRED)
+target_link_libraries(base INTERFACE Boost::headers)
 #-------------------------------------------------------------------------------
 # OpenMP
 #-------------------------------------------------------------------------------
