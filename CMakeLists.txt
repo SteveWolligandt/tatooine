@@ -17,12 +17,6 @@ function(update_git_submodule dir)
       "When updating submodule ${dir}:\n  git submodule update --init --recursive -- ${dir}\nfailed with ${GIT_SUBMOD_RESULT}, please checkout submodules.")
   endif()
 endfunction()
-option(TATOOINE_BUILD_DOC "Builds the documentation" OFF)
-if (TATOOINE_BUILD_DOC) 
-  option(TATOOINE_DOC_ONLY "Only builds documentation" OFF)
-  add_subdirectory(doc)
-  target_compile_options(base INTERFACE -DTATOOINE_DOC_ONLY)
-endif () 
 #--------------------------------------------------------------------------------
 set(TATOOINE_MANDATORY_GIT_SUBMODULES
   external/rapidxml
@@ -94,6 +88,13 @@ if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   target_compile_definitions(base INTERFACE NOMINMAX)
 endif()
 set_property(TARGET base PROPERTY CXX_STANDARD 20)
+
+option(TATOOINE_BUILD_DOC "Builds the documentation" OFF)
+if (TATOOINE_BUILD_DOC) 
+  option(TATOOINE_DOC_ONLY "Only builds documentation" OFF)
+  add_subdirectory(doc)
+  target_compile_options(base INTERFACE -DTATOOINE_DOC_ONLY)
+endif () 
 #-------------------------------------------------------------------------------
 # Boost
 #-------------------------------------------------------------------------------
