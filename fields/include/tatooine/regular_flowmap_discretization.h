@@ -81,7 +81,7 @@ struct regular_flowmap_discretization {
                                  Flowmap&& flowmap, arithmetic auto const t0,
                                  arithmetic auto const tau, pos_type const& min,
                                  pos_type const& max,
-                                 ExecutionPolicy execution_policy,
+                                 ExecutionPolicy /*execution_policy*/,
                                  integral auto const... resolution)
       : m_t0{real_type(t0)},
         m_t1{real_type(t0 + tau)},
@@ -113,7 +113,7 @@ struct regular_flowmap_discretization {
           }
           return flowmap(x, m_t0, m_tau);
         },
-        "flowmap_discretization", execution_policy);
+        "flowmap_discretization"/*, execution_policy*/);
 
     // create forward sampler
     m_forward_sampler =

@@ -1,6 +1,5 @@
 #include <tatooine/analytical/numerical/doublegyre.h>
 #include <tatooine/numerical_flowmap.h>
-#include <tatooine/ode/vclibs/rungekutta43.h>
 
 #include <catch2/catch_test_macros.hpp>
 //==============================================================================
@@ -27,7 +26,7 @@ TEST_CASE("numerical_flowmap_doublegyre",
 TEST_CASE("numerical_flowmap_internal_pointer",
           "[vc][rk43][rungekutta43][ode][integrator][integration][flowmap][dg]["
           "doublegyre][pointer]") {
-  numerical_flowmap_field_pointer<double, 2, ode::vclibs::rungekutta43,
+  numerical_flowmap_field_pointer<double, 2, ode::boost::rungekuttafehlberg78,
                                   interpolation::cubic> fm;
   analytical::numerical::doublegyre             v;
   polymorphic::vectorfield<double, 2>*                  polymorphic_field = &v;

@@ -30,8 +30,6 @@ set(COVERAGE_LCOV_EXCLUDES
   ${CMAKE_SOURCE_DIR}/test/*
   ${CMAKE_SOURCE_DIR}/external/gcem/include/*
   ${CMAKE_SOURCE_DIR}/external/gcem/include/*/*
-  ${CMAKE_SOURCE_DIR}/external/vcode/include/*
-  ${CMAKE_SOURCE_DIR}/external/vcode/include/*/*
   ${CMAKE_SOURCE_DIR}/gl/external/imgui/*
   ${CMAKE_SOURCE_DIR}/gl/external/imgui/*/*
   ${CMAKE_SOURCE_DIR}/test/external/catch2/*
@@ -84,10 +82,6 @@ macro(create_test NAME)
     fields
     rendering
     Catch2::Catch2)
-  target_include_directories(
-    ${TARGET}
-    PRIVATE
-      ${CMAKE_SOURCE_DIR}/external/catch2/include)
   set_property(TARGET ${TARGET} PROPERTY CXX_STANDARD 20)
   if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
       "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
@@ -237,10 +231,6 @@ endif()
 target_link_libraries(
   unittests
   base fields rendering Catch2::Catch2)
-target_include_directories(
-  unittests
-  PRIVATE
-    ${CMAKE_SOURCE_DIR}/external/catch2/include)
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   target_compile_options(

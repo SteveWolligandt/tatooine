@@ -27,7 +27,7 @@ struct lic_shader : gl::shader {
     bind();
     static auto const num_threads = Vec2<std::size_t>{32, 32};
     auto              num_blocks  = resolution / num_threads + 1;
-    gl::dispatch_compute(num_blocks(0), num_blocks(1), 1);
+    gl::dispatch_compute(static_cast<GLuint>(num_blocks(0)), static_cast<GLuint>(num_blocks(1)), GLuint(1));
   }
   auto set_nan() -> void { set_uniform("nan", GLfloat(0) / GLfloat(0)); }
   auto set_domain_min(GLfloat const x, GLfloat const y) {

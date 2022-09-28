@@ -5,7 +5,6 @@
 #include <tatooine/flowexplorer/nodes/position.h>
 #include <tatooine/flowexplorer/renderable.h>
 #include <tatooine/gpu/line_renderer.h>
-#include <tatooine/ode/vclibs/rungekutta43.h>
 
 #include <mutex>
 //==============================================================================
@@ -17,8 +16,8 @@ struct pathline : renderable<pathline> {
   //----------------------------------------------------------------------------
   using vectorfield2_t = polymorphic::vectorfield<real_type, 2>;
   using vectorfield3_t = polymorphic::vectorfield<real_type, 3>;
-  using integrator2_t  = ode::vclibs::rungekutta43<real_type, 2>;
-  using integrator3_t  = ode::vclibs::rungekutta43<real_type, 3>;
+  using integrator2_t  = ode::boost::rungekuttafehlberg78<real_type, 2>;
+  using integrator3_t  = ode::boost::rungekuttafehlberg78<real_type, 3>;
   //----------------------------------------------------------------------------
   ui::input_pin&                          m_t0_pin;
   ui::input_pin&                          m_backward_tau_pin;

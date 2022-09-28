@@ -517,6 +517,7 @@ class rectilinear_grid {
   auto cell_index(arithmetic auto x) const
       -> std::pair<std::size_t, real_type> {
     auto const& dim = dimension<DimensionIndex>();
+    using dim_value_type = value_type<std::decay_t<decltype(dim)>>;
     if (std::abs(x - dim.front()) < 1e-10) {
       x = dim.front();
     }
@@ -525,13 +526,13 @@ class rectilinear_grid {
     }
     if constexpr (is_linspace<std::decay_t<decltype(dim)>>) {
       // calculate
-      auto pos =
-          (x - dim.front()) / (dim.back() - dim.front()) * (dim.size() - 1);
+      auto pos = (x - dim.front()) / (dim.back() - dim.front()) *
+                 static_cast<dim_value_type>((dim.size() - 1));
       auto quantized_pos = static_cast<std::size_t>(std::floor(pos));
       if (quantized_pos == dim.size() - 1) {
         --quantized_pos;
       }
-      auto cell_position = pos - quantized_pos;
+      auto cell_position = pos - static_cast<dim_value_type>(quantized_pos);
       if (quantized_pos == dim.size() - 1) {
         --quantized_pos;
         cell_position = 1;

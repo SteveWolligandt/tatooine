@@ -190,8 +190,12 @@ struct camera_interface {
   /// Projects a homogeneous screen coordinates to world coordinates.
   auto unproject(vec4 p) const {
     // [0,w-1] x [0,h-1] -> [-1,1] x [-1,1]
-    p(0) = (p(0) - m_viewport(0)) / (m_viewport(2) - 1) * 2 - 1;
-    p(1) = (p(1) - m_viewport(1)) / (m_viewport(3) - 1) * 2 - 1;
+    p(0) = (p(0) - static_cast<Real>(m_viewport(0))) /
+               static_cast<Real>(m_viewport(2) - 1) * 2 -
+           1;
+    p(1) = (p(1) - static_cast<Real>(m_viewport(1))) /
+               static_cast<Real>(m_viewport(3) - 1) * 2 -
+           1;
     p(2) = p(2) * 2 - 1;
     p(3) = 1;
 
@@ -226,8 +230,8 @@ struct camera_interface {
     p(2) = p(2) * Real(0.5) + Real(0.5);
 
     // [0,1] to viewport
-    p(0) = p(0) * (plane_width() - 1) + m_viewport(0);
-    p(1) = p(1) * (plane_height() - 1) + m_viewport(1);
+    p(0) = p(0) * static_cast<Real>(plane_width() - 1) + static_cast<Real>(m_viewport(0));
+    p(1) = p(1) * static_cast<Real>(plane_height() - 1) + static_cast<Real>(m_viewport(1));
 
     return p;
   }

@@ -1,18 +1,16 @@
 #ifndef TATOOINE_POLYNOMIAL_H
 #define TATOOINE_POLYNOMIAL_H
 //==============================================================================
-#include <tatooine/linspace.h>
 #include <tatooine/make_array.h>
 #include <tatooine/tensor.h>
 #include <tatooine/type_traits.h>
 
-#include <array>
 #include <ostream>
 #include <type_traits>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Real, size_t Degree>
+template <typename Real, std::size_t Degree>
 struct polynomial {
   //----------------------------------------------------------------------------
   // typedefs
@@ -23,7 +21,7 @@ struct polynomial {
   // static methods
   //----------------------------------------------------------------------------
  public:
-  static constexpr size_t degree() { return Degree; }
+  static constexpr std::size_t degree() { return Degree; }
   //----------------------------------------------------------------------------
   // members
   //----------------------------------------------------------------------------
@@ -34,7 +32,7 @@ struct polynomial {
   // ctors
   //----------------------------------------------------------------------------
  public:
-  constexpr polynomial() : m_coefficients{make_array<Real, Degree + 1>()} {}
+  constexpr polynomial() : m_coefficients{std::array<Real, Degree + 1>{}} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr polynomial(polynomial const& other) = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -48,11 +46,11 @@ struct polynomial {
   constexpr polynomial(std::array<Real, Degree + 1> const& coeffs)
       : m_coefficients{coeffs} {}
   //----------------------------------------------------------------------------
-  template <typename OtherReal, size_t OtherDegree>
+  template <typename OtherReal, std::size_t OtherDegree>
   requires(OtherDegree <= Degree)
   constexpr polynomial(polynomial<OtherReal, OtherDegree> const& other)
       : m_coefficients{make_array<Degree + 1>(Real(0))} {
-    for (size_t i = 0; i < OtherDegree + 1; ++i) {
+    for (std::size_t i = 0; i < OtherDegree + 1; ++i) {
       m_coefficients[i] = other.coefficient(i);
     }
   }
@@ -81,24 +79,24 @@ struct polynomial {
   //----------------------------------------------------------------------------
  public:
   /// evaluates c0 * x^0 + c1 * x^1 + ... + c{N-1} * x^{N-1}
-  constexpr auto evaluate(Real x) const {
+  constexpr auto evaluate(arithmetic auto const x) const {
     Real y   = 0;
     Real acc = 1;
-    for (size_t i = 0; i < Degree + 1; ++i) {
+    for (std::size_t i = 0; i < Degree + 1; ++i) {
       y += acc * m_coefficients[i];
-      acc *= x;
+      acc *= static_cast<Real>(x);
     }
     return y;
   }
   //----------------------------------------------------------------------------
   /// evaluates c0 * x^0 + c1 * x^1 + ... + c{N-1} * x^{N-1}
-  constexpr auto operator()(Real x) const { return evaluate(x); }
+  constexpr auto operator()(arithmetic auto const x) const { return evaluate(x); }
   //----------------------------------------------------------------------------
-  auto c(size_t i) const -> auto const& { return m_coefficients[i]; }
-  auto c(size_t i) -> auto& { return m_coefficients[i]; }
+  auto c(std::size_t i) const -> auto const& { return m_coefficients[i]; }
+  auto c(std::size_t i) -> auto& { return m_coefficients[i]; }
   //----------------------------------------------------------------------------
-  auto coefficient(size_t i) const -> auto const& { return m_coefficients[i]; }
-  auto coefficient(size_t i) -> auto const& { return m_coefficients[i]; }
+  auto coefficient(std::size_t i) const -> auto const& { return m_coefficients[i]; }
+  auto coefficient(std::size_t i) -> auto const& { return m_coefficients[i]; }
   //----------------------------------------------------------------------------
   auto coefficients() const -> auto const& { return m_coefficients; }
   auto coefficients() -> auto const& { return m_coefficients; }
@@ -126,7 +124,7 @@ struct polynomial {
   }
   //----------------------------------------------------------------------------
  private:
-  template <size_t... Is>
+  template <std::size_t... Is>
   constexpr auto diff(std::index_sequence<Is...> /*seq*/) const {
     return polynomial<Real, Degree - 1>{(m_coefficients[Is + 1] * (Is + 1))...};
   }
@@ -152,7 +150,7 @@ struct polynomial {
         }
       }
     }
-    for (size_t i = 2; i < Degree + 1; ++i) {
+    for (std::size_t i = 2; i < Degree + 1; ++i) {
       if (c(i) != 0) {
         if (c(i) == 1) {
           out << " + " << x << "^" << i;
@@ -172,12 +170,12 @@ struct polynomial {
 template <typename... Coeffs>
 polynomial(Coeffs... coeffs)
     -> polynomial<common_type<Coeffs...>, sizeof...(Coeffs) - 1>;
-template <typename Real, size_t N>
+template <typename Real, std::size_t N>
 polynomial(tensor<Real, N> const&) -> polynomial<Real, N - 1>;
 //------------------------------------------------------------------------------
 // diff
 //------------------------------------------------------------------------------
-template <typename Real, size_t Degree>
+template <typename Real, std::size_t Degree>
 constexpr auto diff(polynomial<Real, Degree> const& f) {
   return f.diff();
 }
@@ -365,7 +363,7 @@ auto solve(polynomial<Real, 4> const& f) -> std::vector<Real> {
 //------------------------------------------------------------------------------
 // I/O
 //------------------------------------------------------------------------------
-template <typename Real, size_t Degree>
+template <typename Real, std::size_t Degree>
 auto& operator<<(std::ostream& out, polynomial<Real, Degree> const& f) {
   return f.print(out, "x");
 }
@@ -375,7 +373,7 @@ auto& operator<<(std::ostream& out, polynomial<Real, Degree> const& f) {
 template <typename T>
 struct is_polynomial_impl : std::false_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Real, size_t Degree>
+template <typename Real, std::size_t Degree>
 struct is_polynomial_impl<polynomial<Real, Degree>> : std::true_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>

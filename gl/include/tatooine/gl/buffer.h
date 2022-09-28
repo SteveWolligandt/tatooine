@@ -18,6 +18,7 @@ class buffer;
 template <GLsizei ArrayType, typename T, GLbitfield Access>
 class buffer_map {
  public:
+  using value_type                 = T;
   static constexpr auto access     = Access;
   static constexpr auto array_type = ArrayType;
   using buffer_type                = buffer<array_type, T>;

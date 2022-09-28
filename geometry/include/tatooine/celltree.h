@@ -17,8 +17,8 @@ namespace tatooine {
 //==============================================================================
 namespace detail {
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-template <typename Celltree, typename Real, size_t NumDimensions,
-          size_t NumVerticesPerSimplex>
+template <typename Celltree, typename Real, std::size_t NumDimensions,
+          std::size_t NumVerticesPerSimplex>
 struct celltree_parent {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Celltree, typename real_type>
@@ -41,9 +41,9 @@ struct celltree_parent<Celltree, real_type, 3, 3>
   }
   //============================================================================
   auto collect_possible_intersections(
-      ray<real_type, 3> const& r, size_t const ni,
+      ray<real_type, 3> const& r, std::size_t const ni,
       tatooine::axis_aligned_bounding_box<real_type, 3> const& cur_aabb,
-      std::vector<size_t>& possible_collisions) const -> void {
+      std::vector<std::size_t>& possible_collisions) const -> void {
     auto const& c = as_celltree();
     auto const& n = c.node(ni);
     if (n.is_leaf()) {
@@ -74,7 +74,7 @@ struct celltree_parent<Celltree, real_type, 3, 3>
   auto collect_possible_intersections(ray<real_type, 3> const& r) const {
     auto const&         c        = as_celltree();
     auto const          cur_aabb = tatooine::axis_aligned_bounding_box{c.m_min, c.m_max};
-    std::vector<size_t> possible_collisions;
+    std::vector<std::size_t> possible_collisions;
     if (cur_aabb.check_intersection(r)) {
       collect_possible_intersections(r, 0, cur_aabb, possible_collisions);
     }
@@ -199,7 +199,7 @@ struct celltree
     auto& initial_node           = m_nodes.emplace_back();
     initial_node.dim             = num_dimensions();
     initial_node.as_leaf().start = 0;
-    initial_node.as_leaf().size  = m_cell_handles.size();
+    initial_node.as_leaf().size  = static_cast<typename node_type::index_type>(m_cell_handles.size());
     split_if_necessary(0, 1, 2);
   }
   //---------------------------------------------------------------------------
@@ -213,14 +213,15 @@ struct celltree
     auto& initial_node           = m_nodes.emplace_back();
     initial_node.dim             = num_dimensions();
     initial_node.as_leaf().start = 0;
-    initial_node.as_leaf().size  = m_cell_handles.size();
+    initial_node.as_leaf().size =
+        static_cast<typename node_type::index_type>(m_cell_handles.size());
     split_if_necessary(0, 1, 2);
   }
   //===========================================================================
  public:
   constexpr auto mesh() const -> auto const& { return *m_mesh; }
   constexpr auto cell_handles() const -> auto const& { return m_cell_handles; }
-  constexpr auto node(size_t const i) const -> auto const& {
+  constexpr auto node(std::size_t const i) const -> auto const& {
     return m_nodes[i];
   }
   constexpr auto nodes() const -> auto const& { return m_nodes; }
@@ -229,29 +230,29 @@ struct celltree
  private:
   constexpr auto mesh() -> auto& { return *m_mesh; }
   constexpr auto cell_handles() -> auto& { return m_cell_handles; }
-  constexpr auto node(size_t const i) -> auto& { return m_nodes[i]; }
+  constexpr auto node(std::size_t const i) -> auto& { return m_nodes[i]; }
   constexpr auto nodes() -> auto& { return m_nodes; }
   constexpr auto indices() -> auto& { return m_cell_handles; }
   //===========================================================================
  public:
-  template <size_t... Seq>
-  constexpr auto min_cell_boundary(size_t const       cell_idx,
+  template <std::size_t... Seq>
+  constexpr auto min_cell_boundary(std::size_t const       cell_idx,
                                    std::uint8_t const dim,
                                    std::index_sequence<Seq...> /*seq*/) const {
     auto const cell_vertex_handles = mesh().simplex_at(cell_idx);
     return tatooine::min(mesh()[std::get<Seq>(cell_vertex_handles)](dim)...);
   }
   //----------------------------------------------------------------------------
-  template <size_t... Seq>
-  constexpr auto max_cell_boundary(size_t const       cell_idx,
+  template <std::size_t... Seq>
+  constexpr auto max_cell_boundary(std::size_t const       cell_idx,
                                    std::uint8_t const dim,
                                    std::index_sequence<Seq...> /*seq*/) const {
     auto const cell_vertex_handles = mesh().simplex_at(cell_idx);
     return tatooine::max(mesh()[std::get<Seq>(cell_vertex_handles)](dim)...);
   }
   //----------------------------------------------------------------------------
-  template <size_t... Seq>
-  constexpr auto cell_center(size_t const cell_idx, std::uint8_t const dim,
+  template <std::size_t... Seq>
+  constexpr auto cell_center(std::size_t const cell_idx, std::uint8_t const dim,
                              std::index_sequence<Seq...> /*seq*/) const {
     auto const cell_vertex_handles = mesh().simplex_at(cell_idx);
     auto const min =
@@ -266,16 +267,16 @@ struct celltree
   }
   //----------------------------------------------------------------------------
   auto cells_at(vec_t const& x) const {
-    std::vector<size_t> cells;
+    std::vector<std::size_t> cells;
     cells_at(x, 0, cells,
              std::make_index_sequence<num_vertices_per_simplex()>{});
     return cells;
   }
   //----------------------------------------------------------------------------
  private:
-  template <size_t... Seq>
-  auto cells_at(vec_t const& x, size_t const cur_node_idx,
-                std::vector<size_t>&        cells,
+  template <std::size_t... Seq>
+  auto cells_at(vec_t const& x, std::size_t const cur_node_idx,
+                std::vector<std::size_t>&        cells,
                 std::index_sequence<Seq...> seq) const -> void {
     auto const& n = node(cur_node_idx);
     if (n.is_leaf()) {
@@ -283,16 +284,16 @@ struct celltree
       auto       A              = mat<real_type, num_dimensions() + 1,
                    Mesh::num_vertices_per_simplex()>::ones();
       auto       b              = vec<real_type, num_dimensions() + 1>::ones();
-      for (size_t i = 0; i < num_dimensions(); ++i) {
+      for (std::size_t i = 0; i < num_dimensions(); ++i) {
         ((A(Seq, i) = mesh()[std::get<Seq>(vertex_handles)](i)), ...);
       }
-      for (size_t i = 0; i < num_dimensions(); ++i) {
+      for (std::size_t i = 0; i < num_dimensions(); ++i) {
         b(i) = x(i);
       }
       auto const          barycentric_coordinates = *solve(A, b);
       auto                is_inside               = true;
       constexpr real_type eps                     = 1e-6;
-      for (size_t i = 0; i < Mesh::num_vertices_per_simplex(); ++i) {
+      for (std::size_t i = 0; i < Mesh::num_vertices_per_simplex(); ++i) {
         is_inside &= barycentric_coordinates(0) >= -eps;
         is_inside &= barycentric_coordinates(0) <= 1 + eps;
       }
@@ -318,16 +319,16 @@ struct celltree
   }
   //===========================================================================
   /// \param ni node index
-  template <size_t... Seq>
-  auto split_dimension(size_t const ni,
+  template <std::size_t... Seq>
+  auto split_dimension(std::size_t const ni,
                        std::index_sequence<Seq...> /*seq*/) const {
     assert(node(ni).is_leaf());
     auto aabb = make_array<num_dimensions()>(std::tuple{
         std::uint8_t{0},
         std::numeric_limits<typename node_type::float_type>::max(),
         -std::numeric_limits<typename node_type::float_type>::max()});
-    for (size_t dim = 0; dim < num_dimensions(); ++dim) {
-      std::get<0>(aabb[dim]) = dim;
+    for (std::size_t dim = 0; dim < num_dimensions(); ++dim) {
+      std::get<0>(aabb[dim]) = static_cast<std::uint8_t>(dim);
     }
     auto const begin_it = begin(cell_handles()) + node(ni).as_leaf().start;
     auto const end_it   = begin_it + node(ni).as_leaf().size;
@@ -354,9 +355,9 @@ struct celltree
   }
   //----------------------------------------------------------------------------
   /// \param ni node index
-  auto add_children(size_t const ni) {
+  auto add_children(std::size_t const ni) {
     assert(node(ni).is_leaf());
-    size_t left_child_index;
+    std::size_t left_child_index;
     {
       // TODO this is a critical region (race condition)
       left_child_index = nodes().size();
@@ -367,9 +368,9 @@ struct celltree
     return left_child_index;
   }
   //----------------------------------------------------------------------------
-  template <size_t... Seq>
-  auto split_if_necessary(size_t const ni, size_t const level,
-                          size_t const max_level) {
+  template <std::size_t... Seq>
+  auto split_if_necessary(std::size_t const ni, std::size_t const level,
+                          std::size_t const max_level) {
     if (node(ni).as_leaf().size > 1 && level < max_level) {
       std::cout << "splitting node at index " << ni << '\n';
       split(ni, level, max_level);
@@ -379,14 +380,14 @@ struct celltree
     }
   }
   //----------------------------------------------------------------------------
-  template <size_t... Seq>
-  auto split(size_t const ni, size_t const level, size_t const max_level) {
+  template <std::size_t... Seq>
+  auto split(std::size_t const ni, std::size_t const level, std::size_t const max_level) {
     split(ni, level, max_level,
           std::make_index_sequence<num_vertices_per_simplex()>{});
   }
   //----------------------------------------------------------------------------
-  template <size_t... Seq>
-  auto split(size_t const ni, size_t const level, size_t const max_level,
+  template <std::size_t... Seq>
+  auto split(std::size_t const ni, std::size_t const level, std::size_t const max_level,
              std::index_sequence<Seq...> seq) -> void {
     assert(node(ni).is_leaf());
     auto const li = add_children(ni);
@@ -401,8 +402,8 @@ struct celltree
     split_if_necessary(ri, level + 1, max_level);
   }
   //----------------------------------------------------------------------------
-  template <size_t... Seq>
-  auto split_with_median(size_t const ni, size_t const li, size_t const ri,
+  template <std::size_t... Seq>
+  auto split_with_median(std::size_t const ni, std::size_t const li, std::size_t const ri,
                          std::uint8_t const          split_dim,
                          std::index_sequence<Seq...> seq) {
     sort_indices(ni, split_dim, seq);
@@ -432,8 +433,8 @@ struct celltree
   }
   //----------------------------------------------------------------------------
   /// TODO heuristic not working correctly
-  template <size_t... Seq>
-  auto split_with_heuristic(size_t const ni, size_t const li, size_t const ri,
+  template <std::size_t... Seq>
+  auto split_with_heuristic(std::size_t const ni, std::size_t const li, std::size_t const ri,
                             std::uint8_t const split_dim, real_type const min,
                             real_type const             max,
                             std::index_sequence<Seq...> seq) {
@@ -475,8 +476,8 @@ struct celltree
   }
   //----------------------------------------------------------------------------
   /// \param ni node index
-  template <size_t... Seq>
-  auto sort_indices(size_t const ni, std::uint8_t const dim,
+  template <std::size_t... Seq>
+  auto sort_indices(std::size_t const ni, std::uint8_t const dim,
                     std::index_sequence<Seq...> seq) {
     auto comparator = [this, ni, dim, seq](auto const i, auto const j) {
       return cell_center(i, dim, seq) < cell_center(j, dim, seq);
@@ -491,7 +492,7 @@ struct celltree
     vtk::legacy_file_writer f{path, vtk::dataset_type::polydata};
     f.write_header();
     std::vector<vec<real_type, 3>>   positions;
-    std::vector<std::vector<size_t>> indices;
+    std::vector<std::vector<std::size_t>> indices;
     auto const parent_bounding_box = tatooine::axis_aligned_bounding_box{m_min, m_max};
     write_vtk_collect_positions_and_indices(positions, indices, 0,
                                             parent_bounding_box);
@@ -502,10 +503,10 @@ struct celltree
  private:
   auto write_vtk_collect_positions_and_indices(
       std::vector<vec<real_type, num_dimensions()>>& positions,
-      std::vector<std::vector<size_t>>& indices, size_t cur_node_idx,
+      std::vector<std::vector<std::size_t>>& indices, std::size_t cur_node_idx,
       tatooine::axis_aligned_bounding_box<real_type, num_dimensions()> const&
              aabb,
-      size_t cur_level = 0, size_t cur_idx = 0) -> size_t {
+      std::size_t cur_level = 0, std::size_t cur_idx = 0) -> std::size_t {
     if (node(cur_node_idx).is_leaf()) {
       positions.push_back(vec{aabb.min(0), aabb.min(1), aabb.min(2)});
       positions.push_back(vec{aabb.max(0), aabb.min(1), aabb.min(2)});

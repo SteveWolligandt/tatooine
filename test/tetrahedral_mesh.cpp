@@ -91,7 +91,7 @@ TEST_CASE("unstructured_tetrahedral_grid_vertex_property_sampler",
   mesh.build_delaunay_mesh();
   auto& prop = mesh.scalar_vertex_property("prop");
   for (std::size_t i = 0; i < num_points; ++i) {
-    prop[v{i}] = i;
+    prop[v{i}] = static_cast<real_number>(i);
   }
   auto prop_sampler = mesh.sampler(prop);
   SECTION("Vertex Identities") {

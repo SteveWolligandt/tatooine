@@ -2,14 +2,12 @@
 #include "settings.h"
 #include <tatooine/streamsurface.h>
 #include <tatooine/spacetime_field.h>
-#include <tatooine/integration/vclibs/rungekutta43.h>
 //==============================================================================
 int main () {
   using namespace tatooine;
   using namespace steadification;
-  using seedcurve_t = parameterized_line<double, 3, interpolation::linear>;
-  using integrator_t =
-      integration::vclibs::rungekutta43<double, 3, interpolation::hermite>;
+  using seedcurve_t  = line<double, 3>;
+  using integrator_t = ode::boost::rungekuttafehlberg78<double, 3>;
 
   boussinesq v{dataset_dir + "/boussinesq.am"};
   spacetime_field vst{v};

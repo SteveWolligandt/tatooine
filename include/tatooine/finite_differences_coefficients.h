@@ -17,7 +17,8 @@ auto finite_differences_coefficients(std::size_t const derivative_order,
   auto V              = mat<real_type, N, N>::vander(xs...);
   V                   = transposed(V);
   auto b              = vec<real_type, N>::zeros();
-  b(derivative_order) = gcem::factorial(derivative_order);
+  b(derivative_order) =
+      static_cast<real_type>(gcem::factorial(derivative_order));
   return *solve(V, b);
 }
 //------------------------------------------------------------------------------
@@ -28,7 +29,7 @@ auto finite_differences_coefficients(std::size_t const derivative_order,
   auto V              = mat<Real, N, N>::vander(v);
   V                   = transposed(V);
   auto b              = vec<Real, N>::zeros();
-  b(derivative_order) = gcem::factorial(derivative_order);
+  b(derivative_order) = static_cast<Real>(gcem::factorial<std::size_t>(derivative_order));
   return *solve(V, b);
 }
 //------------------------------------------------------------------------------

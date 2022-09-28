@@ -7,10 +7,10 @@
 //==============================================================================
 namespace tatooine::netcdf {
 //==============================================================================
-size_t constexpr NX                       = 8;
-size_t constexpr NY                       = 6;
-size_t constexpr NZ                       = 4;
-size_t constexpr NT                       = 6;
+std::size_t constexpr NX                       = 8;
+std::size_t constexpr NY                       = 6;
+std::size_t constexpr NZ                       = 4;
+std::size_t constexpr NT                       = 6;
 std::string const variable_name           = "DATA";
 std::string const xdim_name               = "X";
 std::string const ydim_name               = "Y";
@@ -28,10 +28,10 @@ auto write_simple_xy() {
   // 2D data, a 8 x 6 rectilinear grid.
   std::vector<double> data_out(NX * NY);
   // create some data
-  for (size_t j = 0; j < NY; ++j) {
-    for (size_t i = 0; i < NX; ++i) {
-      size_t idx    = i + NX * j;
-      data_out[idx] = idx;
+  for (std::size_t j = 0; j < NY; ++j) {
+    for (std::size_t i = 0; i < NX; ++i) {
+      std::size_t idx    = i + NX * j;
+      data_out[idx] = static_cast<double>(idx);
     }
   }
   data_out[4 + NX * 0] = 0;
@@ -58,8 +58,8 @@ auto write_unlimited_mat_list() {
   
   // create some data
   random::uniform<double>    rand;
-  std::vector<size_t>       is{0, 0, 0};
-  std::vector<size_t> const cnt{1, 2, 2};
+  std::vector<std::size_t>       is{0, 0, 0};
+  std::vector<std::size_t> const cnt{1, 2, 2};
   for (; is.front() < 10; ++is.front()) {
     data_out.push_back(mat2{{is.front() * 4, is.front() * 4 + 2},
                             {is.front() * 4 + 1, is.front() * 4 + 3}});
@@ -74,11 +74,11 @@ auto write_simple_xyz() {
   // 3D data, a 8 x 6 x 4 rectilinear grid.
   std::vector<double> data_out(NX * NY * NZ);
   // create some data
-  for (size_t k = 0; k < NZ; ++k) {
-    for (size_t j = 0; j < NY; ++j) {
-      for (size_t i = 0; i < NX; ++i) {
-        size_t idx    = i + NX * j + NX * NY * k;
-        data_out[idx] = idx;
+  for (std::size_t k = 0; k < NZ; ++k) {
+    for (std::size_t j = 0; j < NY; ++j) {
+      for (std::size_t i = 0; i < NX; ++i) {
+        std::size_t idx    = i + NX * j + NX * NY * k;
+        data_out[idx] = static_cast<double>(idx);
       }
     }
   }
@@ -104,12 +104,12 @@ auto write_simple_xyzt() {
   // 4D data
   std::vector<double> data_out(NX * NY * NZ * NT);
   // create some data
-  for (size_t l = 0; l < NT; ++l) {
-    for (size_t k = 0; k < NZ; ++k) {
-      for (size_t j = 0; j < NY; ++j) {
-        for (size_t i = 0; i < NX; ++i) {
-          size_t idx    = i + NX * j + NX * NY * k + NX * NY * NZ * l;
-          data_out[idx] = idx;
+  for (std::size_t l = 0; l < NT; ++l) {
+    for (std::size_t k = 0; k < NZ; ++k) {
+      for (std::size_t j = 0; j < NY; ++j) {
+        for (std::size_t i = 0; i < NX; ++i) {
+          std::size_t idx    = i + NX * j + NX * NY * k + NX * NY * NZ * l;
+          data_out[idx]      = static_cast<double>(idx);
         }
       }
     }
@@ -162,9 +162,9 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
     std::cerr << '\n';
 
     // Check the values.
-    for (size_t j = 0; j < NY; ++j) {
-      for (size_t i = 0; i < NX; ++i) {
-        size_t idx = i + NX * j;
+    for (std::size_t j = 0; j < NY; ++j) {
+      for (std::size_t i = 0; i < NX; ++i) {
+        std::size_t idx = i + NX * j;
         CAPTURE(i, j, idx);
         REQUIRE(data_in(i, j) == data_out[idx]);
       }
@@ -173,7 +173,7 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
   SECTION("read single chunk") {
     SECTION("0,0|2,2") {
       auto chunk =
-          var.read_chunk(std::vector<size_t>{0, 0}, std::vector<size_t>{2, 2});
+          var.read_chunk(std::vector<std::size_t>{0, 0}, std::vector<std::size_t>{2, 2});
       std::cerr << "chunk: ";
       for (auto d : chunk.internal_container()) {
         std::cerr << d << ' ';
@@ -186,7 +186,7 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
     }
     SECTION("2,0|2,2") {
       auto chunk =
-          var.read_chunk(std::vector<size_t>{2, 0}, std::vector<size_t>{2, 2});
+          var.read_chunk(std::vector<std::size_t>{2, 0}, std::vector<std::size_t>{2, 2});
       std::cerr << "chunk: ";
       for (auto d : chunk.internal_container())
         std::cerr << d << ' ';
@@ -198,7 +198,7 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
     }
     SECTION("0,2|2,2") {
       auto chunk =
-          var.read_chunk(std::vector<size_t>{0, 2}, std::vector<size_t>{2, 2});
+          var.read_chunk(std::vector<std::size_t>{0, 2}, std::vector<std::size_t>{2, 2});
       std::cerr << "chunk: ";
       for (auto d : chunk.internal_container())
         std::cerr << d << ' ';
@@ -210,7 +210,7 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
     }
     SECTION("2,2|2,2") {
       auto chunk =
-          var.read_chunk(std::vector<size_t>{2, 2}, std::vector<size_t>{2, 2});
+          var.read_chunk(std::vector<std::size_t>{2, 2}, std::vector<std::size_t>{2, 2});
       std::cerr << "chunk: ";
       for (auto d : chunk.internal_container())
         std::cerr << d << ' ';
@@ -222,7 +222,7 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
     }
     SECTION("0,0|3,2") {
       auto chunk =
-          var.read_chunk(std::vector<size_t>{0, 0}, std::vector<size_t>{3, 2});
+          var.read_chunk(std::vector<std::size_t>{0, 0}, std::vector<std::size_t>{3, 2});
       std::cerr << "chunk: ";
       for (auto d : chunk.internal_container()) {
         std::cerr << d << ' ';
@@ -260,9 +260,9 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
     std::cerr << '\n';
 
     // Check the values.
-    for (size_t j = 0; j < NY; ++j) {
-      for (size_t i = 0; i < NX; ++i) {
-        size_t idx = i + NX * j;
+    for (std::size_t j = 0; j < NY; ++j) {
+      for (std::size_t i = 0; i < NX; ++i) {
+        std::size_t idx = i + NX * j;
         CAPTURE(i, j, idx);
         REQUIRE(data_in(i, j) == data_out[idx]);
       }
@@ -273,7 +273,7 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
 //TEST_CASE("netcdf_lazy_xy", "[netcdf][lazy][xy]") {
 //  auto const          data_out = write_simple_xy();
 //  auto                cont = lazy_reader<double>{file_path_xy, variable_name,
-//                                  std::vector<size_t>{2, 2}};
+//                                  std::vector<std::size_t>{2, 2}};
 //
 //  REQUIRE(cont.chunk_at_is_null(0));
 //  REQUIRE(cont(0, 0) == 0);
@@ -293,7 +293,7 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
 //TEST_CASE("netcdf_lazy_xyz", "[netcdf][lazy][xyz]") {
 //  auto const          data_out = write_simple_xyz();
 //  lazy_reader<double> cont{file_path_xyz, variable_name,
-//                           std::vector<size_t>{2, 2, 2}};
+//                           std::vector<std::size_t>{2, 2, 2}};
 //
 //  REQUIRE(cont.chunk_at_is_null(0));
 //  REQUIRE(cont(0, 0, 0) == 0);
@@ -313,7 +313,7 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
 //TEST_CASE("netcdf_lazy_xyzt", "[netcdf][lazy][xyzt]") {
 //  auto const          data_out = write_simple_xyzt();
 //  lazy_reader<double> cont{file_path_xyzt, variable_name,
-//                           std::vector<size_t>{2, 2, 2, 2}};
+//                           std::vector<std::size_t>{2, 2, 2, 2}};
 //
 //  REQUIRE(cont.chunk_at_is_null(0));
 //  REQUIRE(cont(0, 0, 0, 0) == 0);
@@ -333,7 +333,7 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
 //    for (int k = NZ - 1; k >= 0; --k) {
 //      for (int j = NY - 1; j >= 0; --j) {
 //        for (int i = NX - 1; i >= 0; --i) {
-//          size_t idx = i + NX * j + NX * NY * k + NX * NY * NZ * l;
+//          std::size_t idx = i + NX * j + NX * NY * k + NX * NY * NZ * l;
 //          REQUIRE(cont(i, j, k, l) == data_out[idx]);
 //        }
 //      }
@@ -353,8 +353,8 @@ TEST_CASE("netcdf_unlimited_mat", "[netcdf][unlimited][mat]") {
   REQUIRE(var.size(1) == 2);
   REQUIRE(var.size(2) == 2);
 
-  std::vector<size_t>       is{0, 0, 0};
-  std::vector<size_t> const cnt{1, 2, 2};
+  std::vector<std::size_t>       is{0, 0, 0};
+  std::vector<std::size_t> const cnt{1, 2, 2};
   for (; is.front() < var.size(0); ++is.front()) {
     auto const data_in = var.read_chunk(is, cnt);
     REQUIRE(data_in.size(0) == 1);

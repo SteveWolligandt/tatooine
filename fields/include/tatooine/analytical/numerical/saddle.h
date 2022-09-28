@@ -84,7 +84,7 @@ struct saddle_flowmap {
   }
 };
 template <floating_point Real>
-auto constexpr flowmap(saddle<Real> const& /*v*/, tag::analytical_t tag) {
+auto constexpr flowmap(saddle<Real> const& /*v*/, tag::analytical_t /*tag*/) {
   return analytical::numerical::saddle_flowmap<Real>{};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

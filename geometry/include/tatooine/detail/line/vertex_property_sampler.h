@@ -40,8 +40,8 @@ struct vertex_property_sampler {
     auto const rt = m_parameterization[range.second];
     t             = (t - lt) / (rt - lt);
 
-    return InterpolationKernel{m_property[range.first],
-                               m_property[range.second]}(t);
+    auto const interpolant = InterpolationKernel{m_property[range.first], m_property[range.second]};
+    return interpolant(t);
   }
 };
 //==============================================================================
@@ -84,7 +84,7 @@ struct vertex_property_sampler<Real, NumDimensions, Property,
       auto const rpotential = stencil_size - (rv.index() - lv.index() + 1);
       lv = rpotential > lv.index() ? handle_type{0} : lv - rpotential;
 
-      auto ts = std::vector<real_number>(stencil_size);
+      auto ts = std::vector<Real>(stencil_size);
       auto i  = std::size_t{};
       for (auto vi = lv; vi <= rv; ++vi, ++i) {
         ts[i] = m_parameterization[vi] - m_parameterization[v];
@@ -93,7 +93,8 @@ struct vertex_property_sampler<Real, NumDimensions, Property,
       auto derivative = value_type{};
       i               = 0;
       for (auto vi = lv; vi <= rv; ++vi, ++i) {
-        derivative += m_property[vi] * coeffs[i];
+        derivative += m_property[vi] *
+                      static_cast<tatooine::value_type<value_type>>(coeffs[i]);
       }
       return derivative;
     };

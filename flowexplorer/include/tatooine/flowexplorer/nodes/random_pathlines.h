@@ -5,7 +5,6 @@
 #include <tatooine/flowexplorer/renderable.h>
 #include <tatooine/gpu/line_renderer.h>
 #include <tatooine/gpu/line_shader.h>
-#include <tatooine/ode/vclibs/rungekutta43.h>
 
 #include <mutex>
 //==============================================================================
@@ -17,7 +16,7 @@ struct random_pathlines : renderable<random_pathlines<N>> {
   // typedefs
   //----------------------------------------------------------------------------
   using vectorfield_t = polymorphic::vectorfield<double, N>;
-  using integrator_t  = ode::vclibs::rungekutta43<double, N>;
+  using integrator_t  = ode::boost::rungekuttafehlberg78<double, N>;
   //----------------------------------------------------------------------------
 
   vectorfield_t const*              m_v           = nullptr;

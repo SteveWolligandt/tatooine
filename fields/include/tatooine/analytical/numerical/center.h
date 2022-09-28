@@ -3,7 +3,6 @@
 //==============================================================================
 #include <tatooine/field.h>
 #include <tatooine/numerical_flowmap.h>
-#include <tatooine/ode/vclibs/rungekutta43.h>
 //==============================================================================
 namespace tatooine::analytical::numerical {
 //==============================================================================
@@ -15,9 +14,9 @@ struct center : vectorfield<center<Real>, Real, 2> {
   using typename parent_type::tensor_type;
   //============================================================================
   constexpr center() noexcept {}
-  constexpr center(center const&)     = default;
-  constexpr center(center&&) noexcept = default;
-  constexpr auto operator=(center const&) -> center& = default;
+  constexpr center(center const&)                        = default;
+  constexpr center(center&&) noexcept                    = default;
+  constexpr auto operator=(center const&) -> center&     = default;
   constexpr auto operator=(center&&) noexcept -> center& = default;
   //----------------------------------------------------------------------------
   ~center() override = default;
@@ -49,15 +48,16 @@ struct center_flowmap {
   }
 };
 //------------------------------------------------------------------------------
-template <
-    template <typename, size_t> typename ODESolver = ode::vclibs::rungekutta43,
-    template <typename> typename InterpolationKernel = interpolation::cubic,
-    floating_point Real>
+template <template <typename, size_t>
+          typename ODESolver = ode::boost::rungekuttafehlberg78,
+          template <typename>
+          typename InterpolationKernel = interpolation::cubic,
+          floating_point Real>
 constexpr auto flowmap(
     vectorfield<analytical::numerical::center<Real>, Real, 2> const& v,
     tag::numerical_t /*tag*/) {
-  return numerical_flowmap<analytical::numerical::center<Real>,
-                           ODESolver, InterpolationKernel>{v};
+  return numerical_flowmap<analytical::numerical::center<Real>, ODESolver,
+                           InterpolationKernel>{v};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <floating_point Real>
@@ -68,8 +68,8 @@ constexpr auto flowmap(
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <floating_point Real>
-constexpr auto flowmap(vectorfield<analytical::numerical::center<Real>,
-                                   Real, 2> const& v) {
+constexpr auto flowmap(
+    vectorfield<analytical::numerical::center<Real>, Real, 2> const& v) {
   return flowmap(v, tag::analytical);
 }
 //==============================================================================
@@ -82,8 +82,7 @@ namespace tatooine {
 template <floating_point Real>
 struct differentiated_field<analytical::numerical::center<Real>>
     : matrixfield<analytical::numerical::center<Real>, Real, 2> {
-  using this_type =
-      differentiated_field<analytical::numerical::center<Real>>;
+  using this_type   = differentiated_field<analytical::numerical::center<Real>>;
   using parent_type = matrixfield<this_type, Real, 2>;
   using typename parent_type::pos_type;
   using typename parent_type::tensor_type;

@@ -1,4 +1,5 @@
 #include <tatooine/reflection.h>
+#include <tatooine/concepts.h>
 
 #include <catch2/catch_test_macros.hpp>
 //==============================================================================
@@ -38,12 +39,17 @@ namespace tatooine::test {
 TEST_CASE("reflection", "[reflection]") {
   auto obj = reflection_test{-1, 2};
   reflection::for_each(obj, [](auto name, auto&& val) {
+    using value_type = decltype(val);
     if (name == "i") {
-      REQUIRE(val == -1);
-      REQUIRE(std::is_same_v<decltype(val), int&>);
+      REQUIRE(same_as<value_type, int&>);
+      if constexpr (same_as<value_type, int&>) {
+        REQUIRE(val == -1);
+      }
     } else if (name == "j") {
-      REQUIRE(val == 2);
-      REQUIRE(std::is_same_v<decltype(val), float&>);
+      REQUIRE(same_as<value_type, float&>);
+      if constexpr (same_as<value_type, float&>) {
+        REQUIRE(val == 2.0f);
+      }
     }
   });
 }

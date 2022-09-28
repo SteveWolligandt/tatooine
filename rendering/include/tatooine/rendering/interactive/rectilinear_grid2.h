@@ -169,8 +169,8 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
   auto init_grid_geometry(renderable_type const& grid) {
     auto const num_vertices =
         grid.template size<0>() * 2 + grid.template size<1>() * 2;
-    geometry.vertexbuffer().resize(num_vertices);
-    geometry.indexbuffer().resize(num_vertices);
+    geometry.vertexbuffer().resize(static_cast<GLsizei>(num_vertices));
+    geometry.indexbuffer().resize(static_cast<GLsizei>(num_vertices));
     {
       auto data = geometry.vertexbuffer().wmap();
       auto k    = std::size_t{};
@@ -190,7 +190,7 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
     {
       auto data = geometry.indexbuffer().wmap();
       for (std::size_t i = 0; i < num_vertices; ++i) {
-        data[i] = i;
+        data[i] = static_cast<value_type<decltype(data)>>(i);
       }
     }
   }
@@ -208,8 +208,8 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
           if constexpr (is_arithmetic<value_type>) {
             grid.vertices().iterate_indices([&](auto const... is) {
               auto const p = prop.at(is...);
-              min_scalar   = std::min<GLfloat>(min_scalar, p);
-              max_scalar   = std::max<GLfloat>(max_scalar, p);
+              min_scalar   = gcem::min(min_scalar, static_cast<GLfloat>(p));
+              max_scalar   = gcem::max(max_scalar, static_cast<GLfloat>(p));
             });
           }
         });
@@ -230,13 +230,15 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
               for (std::size_t j = 0; j < num_comps; ++j) {
                 mag += p(j) * p(j);
                 min_scalars[j + 1] =
-                    std::min<GLfloat>(min_scalars[j + 1], p(j));
+                    gcem::min(min_scalars[j + 1], static_cast<GLfloat>(p(j)));
                 max_scalars[j + 1] =
-                    std::max<GLfloat>(max_scalars[j + 1], p(j));
+                    gcem::max(max_scalars[j + 1], static_cast<GLfloat>(p(j)));
               }
-              mag            = std::sqrt(mag);
-              min_scalars[0] = std::min<GLfloat>(min_scalars[0], mag);
-              max_scalars[0] = std::max<GLfloat>(max_scalars[0], mag);
+              mag = gcem::sqrt(mag);
+              min_scalars[0] =
+                  gcem::min(min_scalars[0], static_cast<GLfloat>(mag));
+              max_scalars[0] =
+                  gcem::max(max_scalars[0], static_cast<GLfloat>(mag));
             });
 
             for (std::size_t j = 0; j < num_comps + 1; ++j) {
@@ -285,8 +287,9 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
     auto texdata = std::vector<GLfloat>{};
     texdata.reserve(grid.vertices().size());
 
-    grid.vertices().iterate_indices(
-        [&](auto const... is) { texdata.push_back(get_data(prop, is...)); });
+    grid.vertices().iterate_indices([&](auto const... is) {
+      texdata.push_back(static_cast<GLfloat>(get_data(prop, is...)));
+    });
     tex.upload_data(texdata, grid.template size<0>(), grid.template size<1>());
   };
   //----------------------------------------------------------------------------
@@ -406,7 +409,7 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
             prop->type() == typeid(vec4f) || prop->type() == typeid(vec4d)) {
           auto is_selected = selected_property == prop.get();
           if (ImGui::Selectable(name.c_str(), is_selected)) {
-            show_property = true;
+            show_property          = true;
             selected_property      = prop.get();
             selected_property_name = &name;
             if (prop_holds_scalar(prop)) {
@@ -515,11 +518,13 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
         }
 
         ImGui::PushID("##cool_to_warm");
-        selected = ImGui::Selectable("", setting.c == &color_scale::cool_to_warm());
+        selected =
+            ImGui::Selectable("", setting.c == &color_scale::cool_to_warm());
         ImGui::PopID();
         ImGui::SameLine();
-        ImGui::Image((void*)(std::intptr_t)color_scale::cool_to_warm().tex_2d.id(),
-                     ImVec2(256, 20));
+        ImGui::Image(
+            (void*)(std::intptr_t)color_scale::cool_to_warm().tex_2d.id(),
+            ImVec2(256, 20));
         if (selected) {
           setting.c = &color_scale::cool_to_warm();
         }
@@ -666,8 +671,8 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
         if constexpr (is_arithmetic<value_type>) {
           grid.vertices().iterate_indices([&](auto const... is) {
             auto const p = prop.at(is...);
-            min_scalar   = std::min<GLfloat>(min_scalar, p);
-            max_scalar   = std::max<GLfloat>(max_scalar, p);
+            min_scalar   = gcem::min(min_scalar, static_cast<GLfloat>(p));
+            max_scalar   = gcem::max(max_scalar, static_cast<GLfloat>(p));
           });
         }
       });
@@ -685,9 +690,9 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
               for (std::size_t i = 0; i < num_comps; ++i) {
                 mag += p(i) * p(i);
               }
-              mag        = std::sqrt(mag);
-              min_scalar = std::min<GLfloat>(min_scalar, mag);
-              max_scalar = std::max<GLfloat>(max_scalar, mag);
+              mag        = gcem::sqrt(mag);
+              min_scalar = gcem::min(min_scalar, static_cast<GLfloat>(mag));
+              max_scalar = gcem::max(max_scalar, static_cast<GLfloat>(mag));
             } else {
               auto s = typename value_type::value_type{};
               if (selected_component.at(*selected_property_name) ==
@@ -707,8 +712,8 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
                   s = p.w();
                 }
               }
-              min_scalar = std::min<GLfloat>(min_scalar, s);
-              max_scalar = std::max<GLfloat>(max_scalar, s);
+              min_scalar = gcem::min(min_scalar, static_cast<GLfloat>(s));
+              max_scalar = gcem::max(max_scalar, static_cast<GLfloat>(s));
             }
           });
         }
@@ -782,19 +787,21 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
       if constexpr (cam_is_float) {
         property_shader::get().set_model_view_matrix(
             cam.view_matrix() *
-            translation_matrix<GLfloat>(grid.template dimension<0>().front(),
-                                        grid.template dimension<1>().front(),
-                                        0) *
-            scale_matrix<GLfloat>(grid.template extent<0>(),
-                                  grid.template extent<1>(), 1));
+            translation_matrix<GLfloat>(
+                static_cast<GLfloat>(grid.template dimension<0>().front()),
+                static_cast<GLfloat>(grid.template dimension<1>().front()), 0) *
+            scale_matrix<GLfloat>(
+                static_cast<GLfloat>(grid.template extent<0>()),
+                static_cast<GLfloat>(grid.template extent<1>()), 1));
       } else {
         property_shader::get().set_model_view_matrix(
             Mat4<GLfloat>{cam.view_matrix()} *
-            scale_matrix<GLfloat>(grid.template extent<0>(),
-                                  grid.template extent<1>(), 1) *
-            translation_matrix<GLfloat>(grid.template dimension<0>().front(),
-                                        grid.template dimension<1>().front(),
-                                        0));
+            scale_matrix<GLfloat>(
+                static_cast<GLfloat>(grid.template extent<0>()),
+                static_cast<GLfloat>(grid.template extent<1>()), 1) *
+            translation_matrix<GLfloat>(
+                static_cast<GLfloat>(grid.template dimension<0>().front()),
+                static_cast<GLfloat>(grid.template dimension<1>().front()), 0));
       }
       property_shader::get().set_extent(Vec2<GLfloat>{grid.extent()});
       property_shader::get().set_pixel_width(Vec2<GLfloat>{
@@ -809,7 +816,7 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
 
     line_shader.set_color(grid_color(0), grid_color(1), grid_color(2),
                           grid_color(3));
-    gl::line_width(line_width);
+    gl::line_width(static_cast<GLfloat>(line_width));
     geometry.draw_lines();
   }
   //----------------------------------------------------------------------------

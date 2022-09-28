@@ -5,6 +5,7 @@
 #include <tatooine/concepts.h>
 #include <tatooine/dynamic_multidim_array.h>
 #include <tatooine/functional.h>
+#include <tatooine/math.h>
 #include <tatooine/type_traits.h>
 #include <tatooine/utility.h>
 
@@ -92,7 +93,7 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
     auto size_it       = begin(size);
     auto chunk_size_it = begin(m_internal_chunk_size);
     for (; size_it < end(size); ++size_it, ++chunk_size_it) {
-      *size_it = static_cast<std::size_t>(std::ceil(
+      *size_it = static_cast<tatooine::value_type<std::decay_t<SizeRange>>>(gcem::ceil(
           static_cast<double>(*size_it) / static_cast<double>(*chunk_size_it)));
     }
     m_chunk_structure.resize(size);
@@ -100,14 +101,14 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
   }
   //----------------------------------------------------------------------------
   template <range SizeRange, range ChunkSizeRange>
-  auto resize(SizeRange&& size, ChunkSizeRange&& chunk_size)
-  requires (is_integral<typename std::decay_t<SizeRange>::value_type>) &&
-           (is_integral<typename std::decay_t<ChunkSizeRange>::value_type>) {
+      auto resize(SizeRange&& size, ChunkSizeRange&& chunk_size)
+  requires integral<tatooine::value_type<std::decay_t<SizeRange>>> &&
+           integral<tatooine::value_type<std::decay_t<ChunkSizeRange>>> {
     m_internal_chunk_size.resize(chunk_size.size());
-    std::copy(begin(chunk_size), end(chunk_size), begin(m_internal_chunk_size));
-    std::size_t i = 0;
+    std::ranges::copy(chunk_size, begin(m_internal_chunk_size));
+    auto i = std::size_t{};
     for (auto& s : m_internal_chunk_size) {
-      s = std::min<std::size_t>(s, size[i++]);
+      s = std::min(s, static_cast<std::size_t>(size[i++]));
     }
     resize(std::forward<SizeRange>(size));
   }
