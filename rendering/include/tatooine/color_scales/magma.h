@@ -290,9 +290,9 @@ struct magma {
     if (t >= 1) {
       return m_data[num_samples() - 1];
     }
-    t *= num_samples() - 1;
+    t *= static_cast<real_type>(num_samples() - 1);
     auto const i = static_cast<size_t>(std::floor(t));
-    t            = t - i;
+    t            = t - static_cast<real_type>(i);
     return m_data[i] * (1 - t) + m_data[i + 1] * t;
   }
   //----------------------------------------------------------------------------

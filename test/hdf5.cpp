@@ -91,21 +91,6 @@ TEST_CASE("hdf5_read_chunk", "[hdf5][read][chunk]") {
   }
 }
 //==============================================================================
-TEST_CASE("hdf5_unlimited_1d", "[hdf5][unlimited][1d]") {
-  using value_type        = linspace<real_number>;
-  auto const dataset_name = "foo";
-  auto const filepath = filesystem::path{"hdf5_unittest_unlimited_1d.h5"};
-
-  if (filesystem::exists(filepath)) {
-    filesystem::remove(filepath);
-  }
-  auto file    = hdf5::file{filepath};
-  auto dataset = file.create_dataset<value_type>(dataset_name, hdf5::unlimited);
-  dataset.push_back(linspace{0.0, 1.0, 11});
-  dataset.push_back(linspace{0.0, 2.0, 21});
-  dataset.push_back(linspace{0.0, 3.0, 31});
-}
-//==============================================================================
 TEST_CASE("hdf5_attribute", "[hdf5][attribute]") {
   auto const filepath = filesystem::path{"hdf5_unittest_attribute.h5"};
 

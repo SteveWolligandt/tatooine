@@ -21,7 +21,8 @@ TEST_CASE("rendering ortho cam") {
     auto projected   = cam.project(query_point);
     for (std::size_t i = 0; i < 2; ++i) {
       CAPTURE(i, query_point, projected);
-      REQUIRE(projected(i) == Approx((res(i) - 1) / 2.0).margin(1e-2));
+      REQUIRE(projected(i) ==
+              Approx(static_cast<real_number>(res(i) - 1) / 2.0).margin(1e-2));
     }
     auto unprojected = cam.unproject(projected);
     for (std::size_t i = 0; i < 3; ++i) {

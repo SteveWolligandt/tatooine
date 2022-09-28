@@ -1,5 +1,4 @@
 #include <tatooine/analytical/numerical/modified_doublegyre.h>
-#include <tatooine/ode/vclibs/rungekutta43.h>
 
 #include <catch2/catch_test_macros.hpp>
 //==============================================================================
@@ -14,7 +13,7 @@ TEST_CASE("modified_doublegyre_lcs_creation",
   real_number const tau = 20;
   real_number const step_width = 0.1;
   real_number const mu = 1e-6;
-  ode::vclibs::rungekutta43<real_number, 2> ode;
+  ode::boost::rungekuttafehlberg78<real_number, 2> ode;
 
   lcs.push_back(ht(t0));
   real_number t = t0;

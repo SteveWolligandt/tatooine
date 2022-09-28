@@ -4,6 +4,7 @@
 #include <tatooine/demangling.h>
 #include <tatooine/detail/line/vertex_container.h>
 #include <tatooine/finite_differences_coefficients.h>
+#include <tatooine/functional.h>
 #include <tatooine/handle.h>
 #include <tatooine/interpolation.h>
 #include <tatooine/linspace.h>
@@ -247,8 +248,7 @@ struct line {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto vertices() const { return vertex_container_type{*this}; }
   //----------------------------------------------------------------------------
-  template <template <typename>
-            typename InterpolationKernel = interpolation::cubic>
+  template <template <typename> typename InterpolationKernel>
   auto sampler() const {
     return vertex_property_sampler_type<this_type, InterpolationKernel>{*this,
                                                                         *this};
@@ -806,8 +806,7 @@ struct line {
     auto const prop_sampler   = sampler<InterpolationKernel>(prop);
     auto       v              = resampled_line.vertices().front();
     for (auto const t : resample_space) {
-      resampled_prop[v] = prop_sampler(t);
-      ++v;
+      resampled_prop[v++] = prop_sampler(t);
     }
   }
   //----------------------------------------------------------------------------
@@ -817,16 +816,14 @@ struct line {
       this_type& resampled_line, std::string const& name,
       vertex_property_type const&        prop,
       linspace<ResampleSpaceReal> const& resample_space) {
-    (
-        [&] {
-          if (prop.type() == typeid(Ts)) {
-            resample_vertex_property<InterpolationKernel>(
-                resampled_line, name,
-                *dynamic_cast<typed_vertex_property_type<Ts> const*>(&prop),
-                resample_space);
-          }
-        }(),
-        ...);
+    invoke([&] {
+      if (prop.type() == typeid(Ts)) {
+        resample_vertex_property<InterpolationKernel>(
+            resampled_line, name,
+            *dynamic_cast<typed_vertex_property_type<Ts> const*>(&prop),
+            resample_space);
+      }
+    }...);
   }
   //----------------------------------------------------------------------------
   template <template <typename> typename InterpolationKernel,

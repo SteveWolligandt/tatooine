@@ -73,7 +73,7 @@ auto direct_isosurface(Camera const&                             cam,
   for_loop(
       [&](auto const... is) {
         rendering(is...) = bg_color;
-        auto r           = cam.ray(is...);
+        auto r           = cam.ray(static_cast<cam_real_type>(is)...);
         r.normalize();
         if (auto const i = aabb.check_intersection(r); i) {
           auto lock = std::lock_guard {mutex};
@@ -108,20 +108,22 @@ auto direct_isosurface(Camera const&                             cam,
           auto cells = g.cell_index(entry_point);
           for (std::size_t dim = 0; dim < 3; ++dim) {
             auto const [ci, t] = cells[dim];
-            if (std::abs(t) < 1e-7) {
-              cell_pos[dim] = ci;
+            if (gcem::abs(t) < 1e-7) {
+              cell_pos[dim] = static_cast<grid_real_type>(ci);
               if (r.direction(dim) < 0 && ci == 0) {
                 done = true;
               }
-            } else if (std::abs(t - 1) < 1e-7) {
-              cell_pos[dim] = ci + 1;
+            } else if (gcem::abs(t - 1) < 1e-7) {
+              cell_pos[dim] = static_cast<grid_real_type>(ci + 1);
               if (r.direction(dim) > 0 && ci + 1 == g.size(dim) - 1) {
                 done = true;
               }
             } else {
-              cell_pos[dim] = ci + t;
+              cell_pos[dim] = static_cast<grid_real_type>(ci) + t;
             }
-            assert(cell_pos[dim] >= 0 && cell_pos[dim] <= g.size(dim) - 1);
+            assert(cell_pos[dim] >= 0 &&
+                   cell_pos[dim] <=
+                       static_cast<grid_real_type>(g.size(dim) - 1));
           }
         };
         update_cell_pos(r);
@@ -129,7 +131,7 @@ auto direct_isosurface(Camera const&                             cam,
         while (!done) {
           auto plane_indices_to_check = make_array<std::size_t, 3>();
           for (std::size_t dim = 0; dim < 3; ++dim) {
-            if (cell_pos[dim] - std::floor(cell_pos[dim]) == 0) {
+            if (cell_pos[dim] - gcem::floor(cell_pos[dim]) == 0) {
               if (r.direction(dim) > 0) {
                 plane_indices_to_check[dim] =
                     static_cast<std::size_t>(cell_pos[dim]) + 1;
@@ -139,9 +141,9 @@ auto direct_isosurface(Camera const&                             cam,
               }
             } else {
               if (r.direction(dim) > 0) {
-                plane_indices_to_check[dim] = std::ceil(cell_pos[dim]);
+                plane_indices_to_check[dim] = static_cast<std::size_t>(gcem::ceil(cell_pos[dim]));
               } else {
-                plane_indices_to_check[dim] = std::floor(cell_pos[dim]);
+                plane_indices_to_check[dim] = static_cast<std::size_t>(gcem::floor(cell_pos[dim]));
               }
             }
           }
@@ -171,7 +173,7 @@ auto direct_isosurface(Camera const&                             cam,
           std::array<std::size_t, 3> i0{0, 0, 0};
           std::array<std::size_t, 3> i1{0, 0, 0};
           for (std::size_t dim = 0; dim < 3; ++dim) {
-            if (cell_pos[dim] - std::floor(cell_pos[dim]) == 0) {
+            if (cell_pos[dim] - gcem::floor(cell_pos[dim]) == 0) {
               if (r.direction(dim) > 0) {
                 i0[dim] = static_cast<std::size_t>(cell_pos[dim]);
                 i1[dim] = static_cast<std::size_t>(cell_pos[dim]) + 1;
@@ -180,8 +182,8 @@ auto direct_isosurface(Camera const&                             cam,
                 i1[dim] = static_cast<std::size_t>(cell_pos[dim]);
               }
             } else {
-              i0[dim] = static_cast<std::size_t>(std::floor(cell_pos[dim]));
-              i1[dim] = static_cast<std::size_t>(std::ceil(cell_pos[dim]));
+              i0[dim] = static_cast<std::size_t>(gcem::floor(cell_pos[dim]));
+              i1[dim] = static_cast<std::size_t>(gcem::ceil(cell_pos[dim]));
             }
           }
           if constexpr (use_indices) {

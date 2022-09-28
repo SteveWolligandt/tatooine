@@ -2,7 +2,6 @@
 #define TATOOINE_LAGRANGIAN_Q_FIELD_H
 //==============================================================================
 #include <tatooine/field.h>
-#include <tatooine/ode/vclibs/rungekutta43.h>
 #include <tatooine/line.h>
 #include <tatooine/interpolation.h>
 #include <tatooine/Q_field.h>
@@ -23,7 +22,7 @@ class lagrangian_Q_field
   using parent_type::num_dimensions;
   using typename parent_type::pos_type;
   using typename parent_type::tensor_type;
-  using ode_solver_t = ode::vclibs::rungekutta43<real_type, 3>;
+  using ode_solver_t = ode::boost::rungekuttafehlberg78<real_type, 3>;
   //============================================================================
   // fields
   //============================================================================
@@ -52,7 +51,6 @@ class lagrangian_Q_field
     ode_solver_t ode_solver;
     auto     evaluator = [this, &Qf](auto const& y, auto const t) ->
         typename ode_solver_t::maybe_vec {
-          if (!m_v.in_domain(y, t)) { return ode::vclibs::out_of_domain; }
           return m_v(y, t);
         };
 

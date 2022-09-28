@@ -75,8 +75,10 @@ auto sysv(tensor<Float>& A, tensor<Float>& B, uplo const u) {
   auto const N    = A.dimension(0);
   auto       ipiv = std::unique_ptr<int[]>(new int[N]);
 
-  return sysv<Float>(u, N, B.rank() == 1 ? 1 : B.dimension(1), A.data(), N,
-                     ipiv.get(), B.data(), N);
+  return sysv<Float>(u, static_cast<int>(N),
+                     B.rank() == 1 ? 1 : static_cast<int>(B.dimension(1)),
+                     A.data(), static_cast<int>(N), ipiv.get(), B.data(),
+                     static_cast<int>(N));
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Computes the solution to a system of linear equations \(A X = B\), where A

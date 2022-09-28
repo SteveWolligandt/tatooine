@@ -59,7 +59,8 @@ auto gemv(op trans, Real const alpha, tensor<Real> const& A,
   assert(N == x.dimension(0));
   assert(y.dimension(0) == M);
 
-  return gemv(trans, M, N, alpha, A.data(), M, x.data(), 1, beta, y.data(), 1);
+  return gemv(trans, static_cast<int>(M), static_cast<int>(N), alpha, A.data(),
+              static_cast<int>(M), x.data(), 1, beta, y.data(), 1);
 }
 //------------------------------------------------------------------------------
 /// See \ref blas_gemv.

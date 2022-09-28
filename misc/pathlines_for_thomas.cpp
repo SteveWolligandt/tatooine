@@ -1,6 +1,5 @@
 #include <tatooine/boussinesq.h>
 #include <tatooine/cavity.h>
-#include <tatooine/integration/vclibs/rungekutta43.h>
 #include <tatooine/random.h>
 #include <tatooine/rbc.h>
 
@@ -33,7 +32,7 @@ auto resample_pathline_uniformly(const Pathline& pathline, double t0,
 template <typename V>
 auto generate_pathlines(const V& v, const boundingbox<double, 2>& domain,
                         size_t n, double t0, double tau, size_t num_samples) {
-  integration::vclibs::rungekutta43<double, 2> rk43;
+  integration::boost::rungekuttafehlberg78<double, 2> rk43;
 
   std::vector<line<double, 2>> lines;
   for (size_t i = 0; i < n; ++i) {

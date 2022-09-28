@@ -56,8 +56,8 @@ struct const_vertex_container {
   ~const_vertex_container()      = default;
   //==========================================================================
   auto begin() const {
-    iterator vi{vertex_handle{0}, m_pointset};
-    if (!m_pointset->is_valid(*vi)) {
+    auto vi = iterator{vertex_handle{0}, m_pointset};
+    while (!m_pointset->is_valid(*vi)) {
       ++vi;
     }
     return vi;
@@ -89,7 +89,9 @@ struct const_vertex_container {
   auto at(vertex_handle const i) { return m_pointset->at(i); }
 };
 //==============================================================================
-static_assert(std::ranges::forward_range<const_vertex_container<real_number, 2>>);
+static_assert(std::ranges::range<const_vertex_container<real_number, 2>>);
+//static_assert(std::input_iterator<std::ranges::iterator_t<const_vertex_container<real_number, 2>>>);
+//static_assert(std::ranges::forward_range<const_vertex_container<real_number, 2>>);
 //static_assert(std::ranges::forward_range<const_vertex_container<real_number, 3>>);
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions>
@@ -215,7 +217,7 @@ auto vertices(pointset<Real, NumDimensions> const& ps) {
 }  // namespace tatooine
 //==============================================================================
 template <typename Real, std::size_t NumDimensions>
-inline constexpr bool std::ranges::enable_borrowed_range<
+inline constexpr auto std::ranges::enable_borrowed_range<
     typename tatooine::detail::pointset::vertex_container<Real,
                                                           NumDimensions>> =
     true;

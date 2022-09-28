@@ -12,11 +12,15 @@ TEST_CASE("tuple", "[tuple]") {
       switch (i) {
         case 0:
           REQUIRE(std::same_as<std::decay_t<decltype(x)>, int>);
-          REQUIRE(x == 1);
+          if constexpr (std::same_as<std::decay_t<decltype(x)>, int>) {
+            REQUIRE(x == 1);
+          }
           break;
         case 1:
           REQUIRE(std::same_as<std::decay_t<decltype(x)>, float>);
-          REQUIRE(x == 2.0f);
+          if constexpr (std::same_as<std::decay_t<decltype(x)>, float>) {
+            REQUIRE(x == 2.0f);
+          }
           break;
         default:
           break;

@@ -44,8 +44,8 @@ struct linspace {
   //----------------------------------------------------------------------------
   constexpr linspace(arithmetic auto const min, arithmetic auto const max,
                      std::size_t const size) noexcept
-      : m_min{static_cast<Real>(std::min<Real>(min, max))},
-        m_max{static_cast<Real>(std::max<Real>(min, max))},
+      : m_min{std::min(static_cast<Real>(min), static_cast<Real>(max))},
+        m_max{std::max(static_cast<Real>(min), static_cast<Real>(max))},
         m_size{size} {}
   //----------------------------------------------------------------------------
   constexpr linspace(linspace const&)     = default;

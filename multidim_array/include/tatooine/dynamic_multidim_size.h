@@ -182,7 +182,7 @@ class dynamic_multidim_size {
       auto status_it = m_status.begin();
       for (; size_it != prev(m_multidim_size->size().end());
            ++status_it, ++size_it) {
-        if (size_it->second <= *status_it) {
+        if (*size_it <= *status_it) {
           *status_it = 0;
           ++(*next(status_it));
         }
@@ -206,12 +206,12 @@ class dynamic_multidim_size {
     auto operator*() const -> auto const& { return m_status; }
   };
   //----------------------------------------------------------------------------
-  auto begin_indices() {
+  auto begin_indices() const {
     return indices_iterator{*this,
                             std::vector<std::size_t>(num_dimensions(), 0)};
   }
   //----------------------------------------------------------------------------
-  auto end_indices() {
+  auto end_indices() const {
     auto v   = std::vector<std::size_t>(num_dimensions(), 0);
     v.back() = size().back();
     return indices_iterator{*this, std::move(v)};
@@ -224,8 +224,8 @@ class dynamic_multidim_size {
    public:
     explicit index_range(this_type const* multidim_size)
         : m_multidim_size{multidim_size} {}
-    auto begin() { return m_multidim_size->begin_indices(); }
-    auto end() { return m_multidim_size->end_indices(); }
+    auto begin() const { return m_multidim_size->begin_indices(); }
+    auto end() const { return m_multidim_size->end_indices(); }
   };
   auto indices() const { return index_range{this}; }
 };

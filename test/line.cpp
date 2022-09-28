@@ -76,74 +76,9 @@ TEST_CASE_METHOD(line2, "line_resample", "[line][parameterization][resample]") {
   prop[1] = 2;
   prop[2] = 5;
 
-  write_vtk("original_line.vtk");
-  resample<interpolation::linear>(linspace{0.0, 1.0, 101})
-      .write_vtk("line_linear_resampled.vtk");
-  resample<interpolation::cubic>(linspace{0.0, 1.0, 101})
-      .write_vtk("line_cubic_resampled.vtk");
+  resample<interpolation::linear>(linspace{0.0, 1.0, 101});
+  resample<interpolation::cubic>(linspace{0.0, 1.0, 101});
 }
-////==============================================================================
-// TEST_CASE("line_curvature", "[line][parameterization][curvature]") {
-//  parameterized_line<double, 2, interpolation::cubic> l;
-//  l.push_back(vec{0.0, 0.0}, 0);
-//  l.push_back(vec{1.0, 1.0}, 1);
-//  l.push_back(vec{2.0, 0.0}, 2);
-//  REQUIRE(!std::isnan(l.curvature(0)));
-//  REQUIRE(!std::isnan(l.curvature(1)));
-//  REQUIRE(!std::isnan(l.curvature(2)));
-//  REQUIRE(!std::isinf(l.curvature(0)));
-//  REQUIRE(!std::isinf(l.curvature(1)));
-//  REQUIRE(!std::isinf(l.curvature(2)));
-//}
-////==============================================================================
-// TEST_CASE("line_curvature2", "[line][parameterization][curvature1]") {
-//  using integral_curve_t =
-//      parameterized_line<double, 2, interpolation::cubic>;
-//  analytical::numerical::doublegyre v;
-//  ode::vclibs::rungekutta43<double, 2>      ode;
-//  integral_curve_t                          integral_curve;
-//  auto& tangents = integral_curve.tangents_property();
-//  ode.solve(v, vec{0.1, 0.1}, 5, 6,
-//            [&]( auto const& y, auto const t,auto const& dy) {
-//              integral_curve.push_back(y, t, false);
-//              tangents.back() = dy;
-//            });
-//  ode.solve(v, vec{0.1, 0.1}, 5, -6,
-//            [&](auto const& y, auto const t,auto const& dy) {
-//              integral_curve.push_front(y, t, false);
-//              tangents.front() = dy;
-//            });
-//  integral_curve.update_interpolators();
-//
-//  for (size_t i = 0; i < integral_curve.vertices().size(); ++i) {
-//    CAPTURE(i);
-//    CAPTURE(integral_curve.vertices().size());
-//    CAPTURE(integral_curve.parameterization_at(i));
-//    CAPTURE(integral_curve.vertex_at(i));
-//    CAPTURE(integral_curve.tangent_at(i));
-//    CAPTURE(
-//        v(integral_curve.vertex_at(i),
-//        integral_curve.parameterization_at(i)));
-//    REQUIRE(approx_equal(
-//        integral_curve.tangent_at(i),
-//        v(integral_curve.vertex_at(i),
-//        integral_curve.parameterization_at(i))));
-//  }
-//  double tfront = integral_curve.front_parameterization();
-//  double tback  = integral_curve.back_parameterization();
-//  REQUIRE(tfront == Approx(-1).margin(1e-10));
-//  REQUIRE(tback == Approx(11).margin(1e-10));
-//  {
-//    INFO("curve:\n" << integral_curve.interpolator(tfront).curve());
-//    INFO("tfront: " << tfront);
-//    INFO("pos:    " << integral_curve(tfront));
-//    INFO("vec:    " << v(integral_curve(tfront), tfront));
-//    INFO("tang:   " << integral_curve.tangent(tfront));
-//    const auto curv = integral_curve.curvature(tfront);
-//    REQUIRE(!std::isnan(curv));
-//    REQUIRE(!std::isinf(curv));
-//  }
-//}
 //==============================================================================
 }  // namespace tatooine::test
 //==============================================================================

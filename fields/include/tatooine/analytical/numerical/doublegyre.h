@@ -2,6 +2,7 @@
 #define TATOOINE_ANALYTICAL_NUMERICAL_DOUBLEGYRE_H
 //==============================================================================
 #include <tatooine/field.h>
+#include <numbers>
 #include <cmath>
 //==============================================================================
 namespace tatooine::analytical::numerical {

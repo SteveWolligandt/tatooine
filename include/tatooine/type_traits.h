@@ -1,11 +1,12 @@
 #ifndef TATOOINE_TYPE_TRAITS_H
 #define TATOOINE_TYPE_TRAITS_H
 //==============================================================================
-#include <type_traits>
+#include <tatooine/common_type.h>
+#include <tatooine/void_t.h>
+
 #include <array>
 #include <complex>
-#include <tatooine/void_t.h>
-#include <tatooine/common_type.h>
+#include <type_traits>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -260,6 +261,24 @@ template <typename T>
 static constexpr auto               is_bidirectional_iterator =
     are_equality_comparable<T, T>&& is_pre_incrementable<T>&&
         is_pre_decrementable<T>&& is_dereferencable<T>;
+//==============================================================================
+template <typename T>
+struct value_type_impl;
+//------------------------------------------------------------------------------
+template <typename T>
+requires requires { typename T::value_type; }
+struct value_type_impl<T>{
+  using type = typename T::value_type;
+};
+//------------------------------------------------------------------------------
+template <typename T>
+requires is_arithmetic<T>
+struct value_type_impl<T>{
+  using type = T;
+};
+//------------------------------------------------------------------------------
+template <typename T>
+using value_type = typename value_type_impl<T>::type;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

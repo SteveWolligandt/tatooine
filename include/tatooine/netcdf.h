@@ -35,17 +35,17 @@ struct nc_type<double> {
   static auto value() { return netCDF::ncDouble; }
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T, size_t M, size_t N>
+template <typename T, std::size_t M, std::size_t N>
 struct nc_type<mat<T, M, N>> {
   static auto value() { return nc_type<T>::value(); }
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T, size_t N>
+template <typename T, std::size_t N>
 struct nc_type<vec<T, N>> {
   static auto value() { return nc_type<T>::value(); }
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T, size_t... Dims>
+template <typename T, std::size_t... Dims>
 struct nc_type<tensor<T, Dims...>> {
   static auto value() { return nc_type<T>::value(); }
 };
@@ -76,12 +76,12 @@ class variable {
   auto operator=(variable const&) -> variable& = default;
   auto operator=(variable&&) noexcept -> variable& = default;
   //============================================================================
-  auto write(std::vector<size_t> const& is, T const& t) {
+  auto write(std::vector<std::size_t> const& is, T const& t) {
     std::lock_guard lock{*m_mutex};
     // std::reverse(begin(is), end(is));
     return m_var.putVar(is, t);
   }
-  auto write(std::vector<size_t> const& is, std::vector<size_t> const& count,
+  auto write(std::vector<std::size_t> const& is, std::vector<std::size_t> const& count,
              T const* const arr) {
     std::lock_guard lock{*m_mutex};
     // std::reverse(begin(is), end(is));
@@ -101,8 +101,8 @@ class variable {
   auto write(range auto const r) { return write(std::vector(begin(r), end(r))); }
   //----------------------------------------------------------------------------
   auto num_components() const {
-    size_t c = 1;
-    for (size_t i = 0; i < num_dimensions(); ++i) {
+    std::size_t c = 1;
+    for (std::size_t i = 0; i < num_dimensions(); ++i) {
       c *= size(i);
     }
     return c;
@@ -118,7 +118,7 @@ class variable {
     auto const n           = num_dimensions();
     bool       must_resize = n != arr.num_dimensions();
     if (!must_resize) {
-      for (size_t i = 0; i < n; ++i) {
+      for (std::size_t i = 0; i < n; ++i) {
         if (arr.size(i) != size(i)) {
           break;
         }
@@ -134,17 +134,17 @@ class variable {
     m_var.getVar(arr.data());
   }
   //----------------------------------------------------------------------------
-  auto read_chunked(size_t const chunk_size = 10) const {
+  auto read_chunked(std::size_t const chunk_size = 10) const {
     chunked_multidim_array<T, x_fastest> arr{
-        std::vector<size_t>(num_dimensions(), 0),
-        std::vector<size_t>(num_dimensions(), chunk_size)};
+        std::vector<std::size_t>(num_dimensions(), 0),
+        std::vector<std::size_t>(num_dimensions(), chunk_size)};
     read(arr);
     return arr;
   }
   //----------------------------------------------------------------------------
-  auto read_chunked(std::vector<size_t> const& chunk_size) const {
+  auto read_chunked(std::vector<std::size_t> const& chunk_size) const {
     chunked_multidim_array<T, x_fastest> arr{
-        std::vector<size_t>(num_dimensions(), 0), chunk_size};
+        std::vector<std::size_t>(num_dimensions(), 0), chunk_size};
     read(arr);
     return arr;
   }
@@ -152,7 +152,7 @@ class variable {
   auto read(chunked_multidim_array<T, x_fastest>& arr) const {
     bool must_resize = arr.num_dimensions() != num_dimensions();
     if (!must_resize) {
-      for (size_t i = 0; i < num_dimensions(); ++i) {
+      for (std::size_t i = 0; i < num_dimensions(); ++i) {
         must_resize = size(i) != arr.size(num_dimensions() - i - 1);
         if (must_resize) {
           break;
@@ -193,7 +193,7 @@ class variable {
     }
   }
   //----------------------------------------------------------------------------
-  template <typename MemLoc, size_t... Resolution>
+  template <typename MemLoc, std::size_t... Resolution>
   auto read(
       static_multidim_array<T, x_fastest, MemLoc, Resolution...>& arr) const {
     assert(sizeof...(Resolution) == num_dimensions());
@@ -222,11 +222,11 @@ class variable {
     return arr;
   }
   //----------------------------------------------------------------------------
-  auto read_single(std::vector<size_t> const& start_indices) const {
+  auto read_single(std::vector<std::size_t> const& start_indices) const {
     assert(size(start_indices) == num_dimensions());
     T               t;
     std::lock_guard lock{*m_mutex};
-    m_var.getVar(start_indices, std::vector<size_t>(num_dimensions(), 1), &t);
+    m_var.getVar(start_indices, std::vector<std::size_t>(num_dimensions(), 1), &t);
     return t;
   }
   //----------------------------------------------------------------------------
@@ -234,12 +234,12 @@ class variable {
     assert(num_dimensions() == sizeof...(is));
     T               t;
     std::lock_guard lock{*m_mutex};
-    m_var.getVar({static_cast<size_t>(is)...}, {((void)is, size_t(1))...}, &t);
+    m_var.getVar({static_cast<std::size_t>(is)...}, {((void)is, std::size_t(1))...}, &t);
     return t;
   }
   //----------------------------------------------------------------------------
-  auto read_chunk(std::vector<size_t> start_indices,
-                  std::vector<size_t> counts) const {
+  auto read_chunk(std::vector<std::size_t> start_indices,
+                  std::vector<std::size_t> counts) const {
     assert(start_indices.size() == counts.size());
     assert(start_indices.size() == num_dimensions());
 
@@ -251,7 +251,7 @@ class variable {
     return arr;
   }
   //----------------------------------------------------------------------------
-  auto read_chunk(std::vector<size_t> start_indices, std::vector<size_t> counts,
+  auto read_chunk(std::vector<std::size_t> start_indices, std::vector<std::size_t> counts,
                   T* ptr) const {
     assert(start_indices.size() == counts.size());
     assert(start_indices.size() == num_dimensions());
@@ -262,13 +262,13 @@ class variable {
     m_var.getVar(start_indices, counts, ptr);
   }
   //----------------------------------------------------------------------------
-  auto read_chunk(std::vector<size_t> const&            start_indices,
-                  std::vector<size_t> const&            counts,
+  auto read_chunk(std::vector<std::size_t> const&            start_indices,
+                  std::vector<std::size_t> const&            counts,
                   dynamic_multidim_array<T, x_fastest>& arr) const {
     if (num_dimensions() != arr.num_dimensions()) {
       arr.resize(counts);
     } else {
-      for (size_t i = 0; i < num_dimensions(); ++i) {
+      for (std::size_t i = 0; i < num_dimensions(); ++i) {
         if (arr.size(i) != size(i)) {
           arr.resize(counts);
           break;
@@ -279,30 +279,30 @@ class variable {
     m_var.getVar(start_indices, counts, arr.data());
   }
   //----------------------------------------------------------------------------
-  template <typename MemLoc, size_t... Resolution>
+  template <typename MemLoc, std::size_t... Resolution>
   auto read_chunk(
       static_multidim_array<T, x_fastest, MemLoc, Resolution...>& arr,
       integral auto const... start_indices) const {
     static_assert(sizeof...(start_indices) == sizeof...(Resolution));
     assert(sizeof...(Resolution) == num_dimensions());
     std::lock_guard lock{*m_mutex};
-    m_var.getVar(std::vector{static_cast<size_t>(start_indices)...},
+    m_var.getVar(std::vector{static_cast<std::size_t>(start_indices)...},
                  std::vector{Resolution...}, arr.data());
   }
   //----------------------------------------------------------------------------
-  template <typename MemLoc, size_t... Resolution>
+  template <typename MemLoc, std::size_t... Resolution>
   auto read_chunk(
-      std::vector<size_t> const&                                  start_indices,
+      std::vector<std::size_t> const&                                  start_indices,
       static_multidim_array<T, x_fastest, MemLoc, Resolution...>& arr) const {
     std::lock_guard lock{*m_mutex};
     m_var.getVar(start_indices, std::vector{Resolution...}, arr.data());
   }
   //----------------------------------------------------------------------------
-  auto read_chunk(std::vector<size_t> const& start_indices,
-                  std::vector<size_t> const& counts,
+  auto read_chunk(std::vector<std::size_t> const& start_indices,
+                  std::vector<std::size_t> const& counts,
                   std::vector<T>&            arr) const {
-    auto const n = std::accumulate(begin(counts), end(counts), size_t(1),
-                                   std::multiplies<size_t>{});
+    auto const n = std::accumulate(begin(counts), end(counts), std::size_t(1),
+                                   std::multiplies<std::size_t>{});
     if (size(arr) != n) {
       arr.resize(n);
     }
@@ -317,23 +317,23 @@ class variable {
   //----------------------------------------------------------------------------
   auto num_dimensions() const {
     std::lock_guard lock{*m_mutex};
-    return static_cast<size_t>(m_var.getDimCount());
+    return static_cast<std::size_t>(m_var.getDimCount());
   }
   //----------------------------------------------------------------------------
-  auto size(size_t i) const {
-    std::lock_guard lock{*m_mutex};
-    return m_var.getDim(i).getSize();
+  auto size(std::size_t i) const {
+    auto lock = std::lock_guard{*m_mutex};
+    return m_var.getDim(static_cast<int>(i)).getSize();
   }
   //----------------------------------------------------------------------------
-  auto dimension_name(size_t i) const {
+  auto dimension_name(std::size_t i) const {
     std::lock_guard lock{*m_mutex};
-    return m_var.getDim(i).getName();
+    return m_var.getDim(static_cast<int>(i)).getName();
   }
   //----------------------------------------------------------------------------
   auto size() const {
-    std::vector<size_t> res;
+    std::vector<std::size_t> res;
     res.reserve(num_dimensions());
-    for (size_t i = 0; i < num_dimensions(); ++i) {
+    for (std::size_t i = 0; i < num_dimensions(); ++i) {
       res.push_back(size(i));
     }
     return res;
@@ -382,7 +382,7 @@ class file {
     return m_file->addDim(dimension_name);
   }
   //----------------------------------------------------------------------------
-  auto add_dimension(std::string const& dimension_name, size_t const size) {
+  auto add_dimension(std::string const& dimension_name, std::size_t const size) {
     return m_file->addDim(dimension_name, size);
   }
   //----------------------------------------------------------------------------

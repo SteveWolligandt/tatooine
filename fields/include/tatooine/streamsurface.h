@@ -328,11 +328,11 @@ struct front_evolving_streamsurface_discretization
   }
   //----------------------------------------------------------------------------
   auto average_segment_length(vertex_list_type const& vertices) const {
-    real_type dist_acc = 0;
+    auto dist_acc = real_type{};
     for (auto v = begin(vertices); v != prev(end(vertices)); ++v) {
       dist_acc += euclidean_distance(at(*v), at(*next(v)));
     }
-    return dist_acc / (size(vertices) - 1);
+    return dist_acc / static_cast<real_type>(size(vertices) - 1);
   }
   //--------------------------------------------------------------------------
   auto seedcurve_to_front(std::size_t const seedline_resolution) {
