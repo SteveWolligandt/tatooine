@@ -35,7 +35,7 @@ TEST_CASE_METHOD(pointset3, "pointset_ranges", "[pointset][ranges]") {
   REQUIRE(is1[0] == 1);
 }
 //==============================================================================
-TEST_CASE_METHOD(pointset2, "pointset_tidyup", "[pointset][tidyup]") {
+TEST_CASE_METHOD(pointset2, "pointset_tidyup", "[pointset][tidyup][tidy]") {
   [[maybe_unused]] auto v0 = insert_vertex(1, 2);
   [[maybe_unused]] auto v1 = insert_vertex(2, 4);
   [[maybe_unused]] auto v2 = insert_vertex(3, 6);

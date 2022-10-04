@@ -102,28 +102,25 @@ struct unstructured_simplicial_grid
   simplex_property_container_type         m_simplex_properties;
   mutable std::unique_ptr<hierarchy_type> m_hierarchy;
 
- protected:
+ public:
+  //============================================================================
+  // GETTER
+  //============================================================================
   auto simplex_index_data() const -> auto const& {
     return m_simplex_index_data;
   }
-  auto simplex_index_data() -> auto& { return m_simplex_index_data; }
-
   auto invalid_simplices() const -> auto const& { return m_invalid_simplices; }
-  auto invalid_simplices() -> auto& { return m_invalid_simplices; }
-
   auto simplex_properties() const -> auto const& {
     return m_simplex_properties;
   }
-  auto simplex_properties() -> auto& { return m_simplex_properties; }
 
- public:
   //============================================================================
   constexpr unstructured_simplicial_grid() = default;
   //============================================================================
   unstructured_simplicial_grid(unstructured_simplicial_grid const& other)
       : parent_type{other}, m_simplex_index_data{other.m_simplex_index_data} {
     for (auto const& [key, prop] : other.simplex_properties()) {
-      simplex_properties().insert(std::pair{key, prop->clone()});
+      m_simplex_properties.insert(std::pair{key, prop->clone()});
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -133,10 +130,10 @@ struct unstructured_simplicial_grid
   auto operator=(unstructured_simplicial_grid const& other)
       -> unstructured_simplicial_grid& {
     parent_type::operator=(other);
-    simplex_properties().clear();
+    m_simplex_properties.clear();
     m_simplex_index_data = other.m_simplex_index_data;
     for (auto const& [key, prop] : other.simplex_properties()) {
-      simplex_properties().insert(std::pair{key, prop->clone()});
+      m_simplex_properties.insert(std::pair{key, prop->clone()});
     }
     return *this;
   }
@@ -321,12 +318,12 @@ struct unstructured_simplicial_grid
   auto simplex_at(std::size_t const i,
                   std::index_sequence<Seq...> /*seq*/) const
       -> const_simplex_at_return_type {
-    return {simplex_index_data()[i * num_vertices_per_simplex() + Seq]...};
+    return {m_simplex_index_data[i * num_vertices_per_simplex() + Seq]...};
   }
   template <std::size_t... Seq>
   auto simplex_at(std::size_t const i, std::index_sequence<Seq...> /*seq*/)
       -> simplex_at_return_type {
-    return {simplex_index_data()[i * num_vertices_per_simplex() + Seq]...};
+    return {m_simplex_index_data[i * num_vertices_per_simplex() + Seq]...};
   }
   //----------------------------------------------------------------------------
  public:
@@ -368,28 +365,49 @@ struct unstructured_simplicial_grid
       return contains(ch, vh);
     };
     copy_if(simplices(),
-            std::inserter(invalid_simplices(), end(invalid_simplices())),
+            std::inserter(m_invalid_simplices, end(m_invalid_simplices)),
             simplex_contains_vertex);
   }
   //----------------------------------------------------------------------------
-  auto remove(simplex_handle const ch) { invalid_simplices().insert(ch); }
+  auto remove_duplicate_vertices(Real const eps = 1e-7) {
+    auto const& data = this->m_vertex_position_data;
+    for (auto v0 = vertices().begin(); v0 != vertices().end(); ++v0) {
+//#pragma omp parallel for
+      for (auto v1 = next(v0); v1 != vertices().end; ++v1) {
+        auto const d = squared_euclidean_distance(at(v0), at(v1));
+        if (d <= eps) {
+          for (std::size_t is = 0; is < m_simplex_index_data.size();
+               is += num_vertices_per_simplex()) {
+            for (auto ivs = 0; ivs < num_vertices_per_simplex(); ++ivs) {
+              if (m_simplex_index_data[is + ivs] == v1) {
+                m_simplex_index_data[is + ivs] = v0;
+              }
+            }
+          }
+          parent_type::remove(v1);
+        }
+      }
+    }
+  }
+  //----------------------------------------------------------------------------
+  auto remove(simplex_handle const ch) { m_invalid_simplices.insert(ch); }
   //----------------------------------------------------------------------------
   template <typename... Handles>
   auto insert_simplex(Handles const... handles) requires(
       is_same<Handles, vertex_handle>&&...) {
     static_assert(sizeof...(Handles) == num_vertices_per_simplex(),
                   "wrong number of vertices for simplex");
-    (simplex_index_data().push_back(handles), ...);
-    for (auto& [key, prop] : simplex_properties()) {
+    (m_simplex_index_data.push_back(handles), ...);
+    for (auto& [key, prop] : m_simplex_properties) {
       prop->push_back();
     }
     return simplex_handle{simplices().size() - 1};
   }
   //----------------------------------------------------------------------------
- private : template <std::size_t... Seq>
-           auto
-           barycentric_coordinate(simplex_handle const& s, pos_type const& q,
-                                  std::index_sequence<Seq...> /*seq*/) const {
+ private:
+  template <std::size_t... Seq>
+  auto barycentric_coordinate(simplex_handle const& s, pos_type const& q,
+                              std::index_sequence<Seq...> /*seq*/) const {
     auto A           = mat<Real, NumDimensions + 1, NumDimensions + 1>::ones();
     auto b           = vec<Real, NumDimensions + 1>::zeros();
     b(NumDimensions) = 1;
@@ -426,13 +444,12 @@ struct unstructured_simplicial_grid
   //----------------------------------------------------------------------------
   /// tidies up invalid vertices
  private:
-  template <std::size_t... Is>
-  auto reindex_simplices_vertex_handles(std::index_sequence<Is...> /*seq*/) {
-    auto dec     = [](auto i) { return --i; };
+  auto reindex_simplices_vertex_handles() {
+    auto inc     = [](auto i) { return ++i; };
     auto offsets = std::vector<std::size_t>(size(vertex_position_data()), 0);
     for (auto const v : invalid_vertices()) {
       auto i = begin(offsets) + v.index();
-      std::ranges::transform(i, end(offsets), i, dec);
+      std::ranges::transform(i, end(offsets), i, inc);
     }
     for (auto& i : m_simplex_index_data) {
       i -= offsets[i.index()];
@@ -441,29 +458,59 @@ struct unstructured_simplicial_grid
   //----------------------------------------------------------------------------
  public:
   auto tidy_up() {
-    reindex_simplices_vertex_handles(
-        std::make_index_sequence<num_dimensions()>{});
+    reindex_simplices_vertex_handles();
     parent_type::tidy_up();
     auto correction = std::size_t{};
-    for (auto const c : invalid_simplices()) {
-      auto simplex_begin = begin(simplex_index_data()) +
+    for (auto const c : m_invalid_simplices) {
+      auto simplex_begin = begin(m_simplex_index_data) +
                            c.index() * num_vertices_per_simplex() - correction;
-      simplex_index_data().erase(simplex_begin,
+      m_simplex_index_data.erase(simplex_begin,
                                  simplex_begin + num_vertices_per_simplex());
-      for (auto const& [key, prop] : simplex_properties()) {
+      for (auto const& [key, prop] : m_simplex_properties) {
         prop->erase(c.index());
       }
       correction += num_vertices_per_simplex();
     }
-    invalid_simplices().clear();
+    m_invalid_simplices.clear();
   }
   //----------------------------------------------------------------------------
   auto clear() {
     parent_type::clear();
-    simplex_index_data().clear();
+    m_simplex_index_data.clear();
   }
   //----------------------------------------------------------------------------
   auto simplices() const { return simplex_container{this}; }
+  //----------------------------------------------------------------------------
+  auto clean_simplex_index_list() const {
+    if (m_invalid_simplices.empty()) {
+      return m_simplex_index_data;
+    }
+    auto indices = std::vector<vertex_handle>{};
+    indices.reserve(simplices().size() * num_vertices_per_simplex());
+    auto invalid_it = begin(m_invalid_simplices);
+
+    for (std::size_t i = 0; i < size(m_simplex_index_data()); ++i) {
+      if (*invalid_it == i) {
+        ++invalid_it;
+      } else {
+        for (std::size_t j = 0; j < num_vertices_per_simplex(); ++j) {
+          indices.push_back(m_simplex_index_data[i + j]);
+        }
+      }
+    }
+
+    auto constexpr inc     = [](auto i) { return ++i; };
+    auto offsets = std::vector<std::size_t>(size(vertex_position_data()), 0);
+    for (auto const v : invalid_vertices()) {
+      auto i = begin(offsets) + v.index();
+      std::ranges::transform(i, end(offsets), i, inc);
+    }
+    for (auto& i : indices) {
+      i -= offsets[i.index()];
+    }
+
+    return indices;
+  }
   //----------------------------------------------------------------------------
  private:
   template <std::size_t... Is>
@@ -490,7 +537,7 @@ struct unstructured_simplicial_grid
       auto build_delaunay_mesh(std::index_sequence<Seq...> /*seq*/)
           -> void requires(NumDimensions == 2) ||
       (NumDimensions == 3) {
-    simplex_index_data().clear();
+    m_simplex_index_data.clear();
     using kernel_type = CGAL::Exact_predicates_inexact_constructions_kernel;
     using triangulation_type =
         cgal::delaunay_triangulation_with_info<NumDimensions, kernel_type,
@@ -533,7 +580,7 @@ struct unstructured_simplicial_grid
                                    std::index_sequence<Seq...> /*seq*/)
           -> void requires(NumDimensions == 2) ||
       (NumDimensions == 3) {
-    simplex_index_data().clear();
+    m_simplex_index_data.clear();
     using kernel_type = CGAL::Exact_predicates_inexact_constructions_kernel;
     using triangulation_type =
         cgal::delaunay_triangulation_with_info<NumDimensions, kernel_type,
@@ -578,7 +625,7 @@ struct unstructured_simplicial_grid
           std::vector<std::pair<vertex_handle, vertex_handle>> const&
               constraints,
           std::index_sequence<Seq...> /*seq*/) -> void {
-    simplex_index_data().clear();
+    m_simplex_index_data.clear();
     std::vector<CDT::Edge> edges;
     edges.reserve(size(constraints));
     boost::transform(constraints, std::back_inserter(edges),
@@ -611,8 +658,8 @@ struct unstructured_simplicial_grid
  public:
   template <typename T>
   auto simplex_property(std::string const& name) -> auto& {
-    auto it = simplex_properties().find(name);
-    if (it == end(simplex_properties())) {
+    auto it = m_simplex_properties.find(name);
+    if (it == end(m_simplex_properties)) {
       return insert_simplex_property<T>(name);
     }
     if (typeid(T) != it->second->type()) {
@@ -622,13 +669,13 @@ struct unstructured_simplicial_grid
           ") does not match specified type " + type_name<T>() + "."};
     }
     return *dynamic_cast<simplex_property_type<T>*>(
-        simplex_properties().at(name).get());
+        m_simplex_properties.at(name).get());
   }
   //----------------------------------------------------------------------------
   template <typename T>
   auto simplex_property(std::string const& name) const -> const auto& {
-    auto it = simplex_properties().find(name);
-    if (it == end(simplex_properties())) {
+    auto it = m_simplex_properties.find(name);
+    if (it == end(m_simplex_properties)) {
       throw std::runtime_error{"property \"" + name + "\" not found"};
     }
     if (typeid(T) != it->second->type()) {
@@ -638,7 +685,7 @@ struct unstructured_simplicial_grid
           ") does not match specified type " + type_name<T>() + "."};
     }
     return *dynamic_cast<simplex_property_type<T>*>(
-        simplex_properties().at(name).get());
+        m_simplex_properties.at(name).get());
   }
   //----------------------------------------------------------------------------
   auto scalar_simplex_property(std::string const& name) const -> auto const& {
@@ -700,7 +747,7 @@ struct unstructured_simplicial_grid
   template <typename T>
   auto insert_simplex_property(std::string const& name, T const& value = T{})
       -> auto& {
-    auto [it, suc] = simplex_properties().insert(
+    auto [it, suc] = m_simplex_properties.insert(
         std::pair{name, std::make_unique<simplex_property_type<T>>(value)});
     auto prop = dynamic_cast<simplex_property_type<T>*>(it->second.get());
     prop->resize(simplices().size());
@@ -1283,8 +1330,8 @@ struct unstructured_simplicial_grid
   }
   //----------------------------------------------------------------------------
   constexpr auto is_valid(simplex_handle t) const {
-    return std::ranges::find(invalid_simplices(), t) ==
-           end(invalid_simplices());
+    return std::ranges::find(m_invalid_simplices, t) ==
+           end(m_invalid_simplices);
   }
   //----------------------------------------------------------------------------
   auto build_hierarchy() const {

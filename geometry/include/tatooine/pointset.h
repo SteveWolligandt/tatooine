@@ -108,8 +108,10 @@ struct pointset {
           Real, NumDimensions, T, Gradient>;
 #endif
   //============================================================================
+ protected:
+  std::vector<pos_type> m_vertex_position_data;
+
  private:
-  std::vector<pos_type>          m_vertex_position_data;
   std::set<vertex_handle>        m_invalid_vertices;
   vertex_property_container_type m_vertex_properties;
 #if TATOOINE_FLANN_AVAILABLE || defined(TATOOINE_DOC_ONLY)
@@ -192,20 +194,20 @@ struct pointset {
   }
   //----------------------------------------------------------------------------
   auto vertex_at(vertex_handle const v) -> auto& {
-    assert(v.index() < vertex_position_data().size());
+    assert(v.index() < m_vertex_position_data.size());
     return vertex_position_data()[v.index()];
   }
   auto vertex_at(vertex_handle const v) const -> auto const& {
-    assert(v.index() < vertex_position_data().size());
+    assert(v.index() < m_vertex_position_data.size());
     return vertex_position_data()[v.index()];
   }
   //----------------------------------------------------------------------------
   auto vertex_at(std::size_t const i) -> auto& {
-    assert(i < vertex_position_data().size());
+    assert(i < m_vertex_position_data.size());
     return vertex_position_data()[i];
   }
   auto vertex_at(std::size_t const i) const -> auto const& {
-    assert(i < vertex_position_data().size());
+    assert(i < m_vertex_position_data.size());
     return vertex_position_data()[i];
   }
   //----------------------------------------------------------------------------
@@ -215,8 +217,6 @@ struct pointset {
   auto vertices() const { return const_vertex_container{this}; }
   auto vertices() { return vertex_container{this}; }
   //----------------------------------------------------------------------------
- protected:
-  auto vertex_position_data() -> auto& { return m_vertex_position_data; }
   auto vertex_position_data() const -> auto const& {
     return m_vertex_position_data;
   }
@@ -227,7 +227,7 @@ struct pointset {
   ///\{
   auto insert_vertex(arithmetic auto const... ts) requires(sizeof...(ts) ==
                                                            NumDimensions) {
-    vertex_position_data().push_back(pos_type{static_cast<Real>(ts)...});
+    m_vertex_position_data.push_back(pos_type{static_cast<Real>(ts)...});
     for (auto& [key, prop] : vertex_properties()) {
       prop->push_back();
     }
@@ -236,7 +236,7 @@ struct pointset {
       auto lock = std::scoped_lock{m_flann_mutex};
       if (m_kd_tree != nullptr) {
         m_kd_tree->addPoints(flann::Matrix<Real>{
-            const_cast<Real*>(vertex_position_data().back().data()), 1,
+            const_cast<Real*>(m_vertex_position_data.back().data()), 1,
             num_dimensions()});
       }
     }
@@ -245,7 +245,7 @@ struct pointset {
   }
   //----------------------------------------------------------------------------
   auto insert_vertex(pos_type const& v) {
-    vertex_position_data().push_back(v);
+    m_vertex_position_data.push_back(v);
     for (auto& [key, prop] : vertex_properties()) {
       prop->push_back();
     }
@@ -254,7 +254,7 @@ struct pointset {
       auto lock = std::scoped_lock{m_flann_mutex};
       if (m_kd_tree != nullptr) {
         m_kd_tree->addPoints(flann::Matrix<Real>{
-            const_cast<Real*>(vertex_position_data().back().data()), 1,
+            const_cast<Real*>(m_vertex_position_data.back().data()), 1,
             num_dimensions()});
       }
     }
@@ -263,7 +263,7 @@ struct pointset {
   }
   //----------------------------------------------------------------------------
   auto insert_vertex(pos_type&& v) {
-    vertex_position_data().emplace_back(std::move(v));
+    m_vertex_position_data.emplace_back(std::move(v));
     for (auto& [key, prop] : vertex_properties()) {
       prop->push_back();
     }
@@ -272,7 +272,7 @@ struct pointset {
       auto lock = std::scoped_lock{m_flann_mutex};
       if (m_kd_tree != nullptr) {
         m_kd_tree->addPoints(flann::Matrix<Real>{
-            const_cast<Real*>(vertex_position_data().back().data()), 1,
+            const_cast<Real*>(m_vertex_position_data.back().data()), 1,
             num_dimensions()});
       }
     }
@@ -283,12 +283,33 @@ struct pointset {
   //----------------------------------------------------------------------------
   /// tidies up invalid vertices
   auto tidy_up() {
-    for (auto const v : invalid_vertices()) {
-      vertex_position_data().erase(begin(vertex_position_data()) + v.index());
-      for (auto const& [key, prop] : vertex_properties()) {
-        prop->erase(v.index());
+    //auto decrement_counter = std::size_t{};
+    //for (auto const v : invalid_vertices()) {
+    //  m_vertex_position_data.erase(begin(vertex_position_data()) +
+    //                               (v.index() - decrement_counter++));
+    //  for (auto const& [key, prop] : vertex_properties()) {
+    //    prop->erase(v.index());
+    //  }
+    //}
+    auto cleaned_positions = std::vector<pos_type>{};
+    cleaned_positions.reserve(vertices().size());
+    auto invalid_it = begin(m_invalid_vertices);
+    auto i          = std::size_t{};
+    for (auto const& pos : m_vertex_position_data) {
+      if (invalid_it != end(m_invalid_vertices) &&
+          *invalid_it == vertex_handle{i}) {
+        ++invalid_it;
+      } else {
+        cleaned_positions.push_back(pos);
       }
+      ++i;
     }
+    m_vertex_position_data = std::move(cleaned_positions);
+
+    for (auto & [name, prop] : m_vertex_properties) {
+      prop->clean(m_invalid_vertices);
+    }
+
     m_invalid_vertices.clear();
   }
   //----------------------------------------------------------------------------
@@ -314,8 +335,8 @@ struct pointset {
 
   //----------------------------------------------------------------------------
   auto clear_vertices() {
-    vertex_position_data().clear();
-    vertex_position_data().shrink_to_fit();
+    m_vertex_position_data.clear();
+    m_vertex_position_data.shrink_to_fit();
     invalid_vertices().clear();
     for (auto& [key, val] : vertex_properties())
       val->clear();
@@ -526,7 +547,7 @@ struct pointset {
     auto [it, suc] = vertex_properties().insert(std::pair{
         name, std::make_unique<typed_vertex_property_type<T>>(value)});
     auto prop = dynamic_cast<typed_vertex_property_type<T>*>(it->second.get());
-    prop->resize(vertex_position_data().size());
+    prop->resize(m_vertex_position_data.size());
     return *prop;
   }
   //----------------------------------------------------------------------------
@@ -637,7 +658,7 @@ struct pointset {
     if (!vertex_properties().empty()) {
       writer.write_point_data(vertices().size());
     }
-    for (const auto& p : this->m_vertex_properties) {
+    for (const auto& p : m_vertex_properties) {
       (
           [&] {
             auto const& [name, prop] = p;
@@ -902,7 +923,7 @@ struct pointset {
     auto lock = std::scoped_lock{m_flann_mutex};
     if (m_kd_tree == nullptr && vertices().size() > 0) {
       flann::Matrix<Real> dataset{
-          const_cast<Real*>(vertex_position_data().front().data()),
+          const_cast<Real*>(m_vertex_position_data.front().data()),
           vertices().size(), num_dimensions()};
       m_kd_tree = std::make_unique<flann_index_type>(
           dataset, flann::KDTreeSingleIndexParams{});

@@ -82,14 +82,29 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
     }
     {
       auto data = m_triangles.wmap();
-      auto k    = std::size_t{};
-      for (auto const s : grid.simplices()) {
-        auto const [v0, v1, v2] = grid[s];
-        data[k++] = v0.index();
-        data[k++] = v1.index();
-        data[k++] = v2.index();
+
+        auto k = std::size_t{};
+        for (auto const s : grid.simplices()) {
+          auto const [v0, v1, v2] = grid[s];
+          data[k++]               = v0.index();
+          data[k++]               = v1.index();
+          data[k++]               = v2.index();
+        }
+        if (!grid.invalid_simplices().empty()) {
+          auto invalid_it = begin(grid.invalid_simplices());
+
+          auto constexpr inc = [](auto i) { return ++i; };
+          auto offsets =
+              std::vector<std::size_t>(size(grid.vertex_position_data()), 0);
+          for (auto const v : grid.invalid_vertices()) {
+            auto i = begin(offsets) + v.index();
+            std::ranges::transform(i, end(offsets), i, inc);
+          }
+          for (auto& i : data) {
+            i -= offsets[i];
+          }
+        }
       }
-    }
     {
       auto data = m_wireframe.wmap();
       auto k    = std::size_t{};

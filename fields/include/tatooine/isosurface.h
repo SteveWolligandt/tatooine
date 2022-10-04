@@ -208,7 +208,6 @@ auto isosurface(scalarfield<Field, FieldReal, 3> const&            sf,
       g, isolevel);
 }
 //------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
 template <typename Grid, arithmetic T, bool HasNonConstReference>
 auto isosurface(detail::rectilinear_grid::typed_vertex_property_interface<
                   Grid, T, HasNonConstReference> const& data,

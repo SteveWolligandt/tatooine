@@ -4,21 +4,22 @@
 #include <cassert>
 #include <deque>
 #include <memory>
+#include <set>
 #include <vector>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Handle, typename T>
+template <typename Handle, typename ValueType>
 struct typed_vector_property;
 //==============================================================================
 template <typename Handle>
 struct vector_property {
   using this_type = vector_property<Handle>;
   //============================================================================
-  vector_property()                                 = default;
-  vector_property(const vector_property& other)     = default;
-  vector_property(vector_property&& other) noexcept = default;
-  auto operator=(const vector_property&) -> vector_property& = default;
+  vector_property()                                              = default;
+  vector_property(const vector_property& other)                  = default;
+  vector_property(vector_property&& other) noexcept              = default;
+  auto operator=(const vector_property&) -> vector_property&     = default;
   auto operator=(vector_property&&) noexcept -> vector_property& = default;
   //============================================================================
   /// Destructor.
@@ -42,48 +43,51 @@ struct vector_property {
   /// for identifying type.
   [[nodiscard]] virtual auto type() const -> const std::type_info& = 0;
   //----------------------------------------------------------------------------
-  template <typename T>
+  template <typename ValueType>
   auto holds_type() const {
-    return type() == typeid(T);
+    return type() == typeid(ValueType);
   }
   //----------------------------------------------------------------------------
   virtual auto clone() const -> std::unique_ptr<this_type> = 0;
   //----------------------------------------------------------------------------
-  template <typename T>
+  template <typename ValueType>
   auto cast_to_typed() -> decltype(auto) {
-    return *static_cast<typed_vector_property<Handle, T>*>(this);
+    return *static_cast<typed_vector_property<Handle, ValueType>*>(this);
   }
   //----------------------------------------------------------------------------
-  template <typename T>
+  template <typename ValueType>
   auto cast_to_typed() const -> decltype(auto) {
-    return *static_cast<typed_vector_property<Handle, T> const*>(this);
+    return *static_cast<typed_vector_property<Handle, ValueType> const*>(this);
   }
+  virtual auto clean(std::set<Handle> const&) -> void = 0;
 };
 //==============================================================================
-template <typename Handle, typename T>
+template <typename Handle, typename ValueType>
 struct typed_vector_property : vector_property<Handle> {
-  using this_type              = typed_vector_property<Handle, T>;
-  using parent_type            = vector_property<Handle>;
-  using container_type            = std::vector<T>;
-  using value_type             = typename container_type::value_type;
-  using allocator_type         = typename container_type::allocator_type;
-  using size_type              = typename container_type::size_type;
-  using difference_type        = typename container_type::difference_type;
-  using reference              = typename container_type::reference;
-  using const_reference        = typename container_type::const_reference;
-  using pointer                = typename container_type::pointer;
-  using const_pointer          = typename container_type::const_pointer;
-  using iterator               = typename container_type::iterator;
-  using const_iterator         = typename container_type::const_iterator;
-  using reverse_iterator       = typename container_type::reverse_iterator;
-  using const_reverse_iterator = typename container_type::const_reverse_iterator;
+  using this_type        = typed_vector_property<Handle, ValueType>;
+  using parent_type      = vector_property<Handle>;
+  using container_type   = std::vector<ValueType>;
+  using value_type       = typename container_type::value_type;
+  using allocator_type   = typename container_type::allocator_type;
+  using size_type        = typename container_type::size_type;
+  using difference_type  = typename container_type::difference_type;
+  using reference        = typename container_type::reference;
+  using const_reference  = typename container_type::const_reference;
+  using pointer          = typename container_type::pointer;
+  using const_pointer    = typename container_type::const_pointer;
+  using iterator         = typename container_type::iterator;
+  using const_iterator   = typename container_type::const_iterator;
+  using reverse_iterator = typename container_type::reverse_iterator;
+  using const_reverse_iterator =
+      typename container_type::const_reverse_iterator;
   //============================================================================
  private:
   container_type m_data;
-  T              m_value;
+  ValueType      m_value;
   //============================================================================
  public:
-  explicit typed_vector_property(const T& value = T{}) : m_value{value} {}
+  explicit typed_vector_property(const ValueType& value = ValueType{})
+      : m_value{value} {}
   //----------------------------------------------------------------------------
   typed_vector_property(const typed_vector_property& other)
       : parent_type{other}, m_data{other.m_data}, m_value{other.m_value} {}
@@ -95,15 +99,15 @@ struct typed_vector_property : vector_property<Handle> {
   //----------------------------------------------------------------------------
   auto operator=(const typed_vector_property& other) -> auto& {
     parent_type::operator=(other);
-    m_data               = other.m_data;
-    m_value              = other.m_value;
+    m_data  = other.m_data;
+    m_value = other.m_value;
     return *this;
   }
   //----------------------------------------------------------------------------
   auto operator=(typed_vector_property&& other) noexcept -> auto& {
     parent_type::operator=(std::move(other));
-    m_data               = std::move(other.m_data);
-    m_value              = std::move(other.m_value);
+    m_data  = std::move(other.m_data);
+    m_value = std::move(other.m_value);
     return *this;
   }
   //============================================================================
@@ -114,7 +118,7 @@ struct typed_vector_property : vector_property<Handle> {
   void resize(size_t n) override { m_data.resize(n, m_value); }
   //----------------------------------------------------------------------------
   void push_back() override { m_data.push_back(m_value); }
-  void push_back(const T& value) { m_data.push_back(value); }
+  void push_back(const ValueType& value) { m_data.push_back(value); }
   //----------------------------------------------------------------------------
   auto front() -> auto& { return m_data.front(); }
   auto front() const -> const auto& { return m_data.front(); }
@@ -207,11 +211,27 @@ struct typed_vector_property : vector_property<Handle> {
   }
   //----------------------------------------------------------------------------
   [[nodiscard]] auto type() const -> const std::type_info& override {
-    return typeid(T);
+    return typeid(ValueType);
   }
   //----------------------------------------------------------------------------
   auto clone() const -> std::unique_ptr<parent_type> override {
     return std::unique_ptr<this_type>{new this_type{*this}};
+  }
+  //----------------------------------------------------------------------------
+  auto clean(std::set<Handle> const& invalid_handles) -> void override {
+    auto cleaned_data = container_type{};
+    cleaned_data.reserve(m_data.size() - invalid_handles.size());
+    auto invalid_it = invalid_handles.begin();
+    auto i          = std::size_t{};
+    for (auto const& date : m_data) {
+      if (invalid_it != invalid_handles.end() && *invalid_it == Handle{i}) {
+        ++invalid_it;
+      } else {
+        cleaned_data.push_back(date);
+      }
+      ++i;
+    }
+    m_data = std::move(cleaned_data);
   }
 };
 //==============================================================================
@@ -219,9 +239,9 @@ template <typename Handle>
 struct deque_property {
   using this_type = deque_property<Handle>;
   //============================================================================
-  deque_property()                                = default;
-  deque_property(const deque_property& other)     = default;
-  deque_property(deque_property&& other) noexcept = default;
+  deque_property()                                         = default;
+  deque_property(const deque_property& other)              = default;
+  deque_property(deque_property&& other) noexcept          = default;
   auto operator=(const deque_property&) -> deque_property& = default;
   auto operator=(deque_property&&) noexcept -> deque_property&;
   //============================================================================
@@ -246,39 +266,40 @@ struct deque_property {
   /// for identifying type.
   [[nodiscard]] virtual auto type() const -> const std::type_info& = 0;
   //----------------------------------------------------------------------------
-  template <typename T>
+  template <typename ValueType>
   auto holds_type() const {
-    return type() == typeid(T);
+    return type() == typeid(ValueType);
   }
   //----------------------------------------------------------------------------
   virtual auto clone() const -> std::unique_ptr<this_type> = 0;
-
 };
 //==============================================================================
-template <typename Handle, typename T>
+template <typename Handle, typename ValueType>
 struct typed_deque_property : deque_property<Handle> {
-  using this_type              = typed_deque_property<Handle, T>;
-  using parent_type            = deque_property<Handle>;
-  using container_type            = std::deque<T>;
-  using value_type             = typename container_type::value_type;
-  using allocator_type         = typename container_type::allocator_type;
-  using size_type              = typename container_type::size_type;
-  using difference_type        = typename container_type::difference_type;
-  using reference              = typename container_type::reference;
-  using const_reference        = typename container_type::const_reference;
-  using pointer                = typename container_type::pointer;
-  using const_pointer          = typename container_type::const_pointer;
-  using iterator               = typename container_type::iterator;
-  using const_iterator         = typename container_type::const_iterator;
-  using reverse_iterator       = typename container_type::reverse_iterator;
-  using const_reverse_iterator = typename container_type::const_reverse_iterator;
+  using this_type        = typed_deque_property<Handle, ValueType>;
+  using parent_type      = deque_property<Handle>;
+  using container_type   = std::deque<ValueType>;
+  using value_type       = typename container_type::value_type;
+  using allocator_type   = typename container_type::allocator_type;
+  using size_type        = typename container_type::size_type;
+  using difference_type  = typename container_type::difference_type;
+  using reference        = typename container_type::reference;
+  using const_reference  = typename container_type::const_reference;
+  using pointer          = typename container_type::pointer;
+  using const_pointer    = typename container_type::const_pointer;
+  using iterator         = typename container_type::iterator;
+  using const_iterator   = typename container_type::const_iterator;
+  using reverse_iterator = typename container_type::reverse_iterator;
+  using const_reverse_iterator =
+      typename container_type::const_reverse_iterator;
   //============================================================================
  private:
   container_type m_data;
-  T           m_value;
+  ValueType      m_value;
   //============================================================================
  public:
-  explicit typed_deque_property(const T& value = T{}) : m_value{value} {}
+  explicit typed_deque_property(const ValueType& value = ValueType{})
+      : m_value{value} {}
   //----------------------------------------------------------------------------
   typed_deque_property(const typed_deque_property& other)
       : parent_type{other}, m_data{other.m_data}, m_value{other.m_value} {}
@@ -290,15 +311,15 @@ struct typed_deque_property : deque_property<Handle> {
   //----------------------------------------------------------------------------
   auto operator=(const typed_deque_property& other) -> auto& {
     parent_type::operator=(other);
-    m_data               = other.m_data;
-    m_value              = other.m_value;
+    m_data  = other.m_data;
+    m_value = other.m_value;
     return *this;
   }
   //----------------------------------------------------------------------------
   auto operator=(typed_deque_property&& other) noexcept -> auto& {
     parent_type::operator=(std::move(other));
-    m_data               = std::move(other.m_data);
-    m_value              = std::move(other.m_value);
+    m_data  = std::move(other.m_data);
+    m_value = std::move(other.m_value);
     return *this;
   }
   //============================================================================
@@ -308,10 +329,10 @@ struct typed_deque_property : deque_property<Handle> {
   void resize(size_t n) override { m_data.resize(n); }
   //----------------------------------------------------------------------------
   void push_back() override { m_data.push_back(m_value); }
-  void push_back(const T& value) { m_data.push_back(value); }
+  void push_back(const ValueType& value) { m_data.push_back(value); }
   //----------------------------------------------------------------------------
   void push_front() override { m_data.push_front(m_value); }
-  void push_front(const T& value) { m_data.push_front(value); }
+  void push_front(const ValueType& value) { m_data.push_front(value); }
   //----------------------------------------------------------------------------
   auto front() -> auto& { return m_data.front(); }
   auto front() const -> const auto& { return m_data.front(); }
@@ -392,7 +413,7 @@ struct typed_deque_property : deque_property<Handle> {
   }
   //----------------------------------------------------------------------------
   [[nodiscard]] auto type() const -> const std::type_info& override {
-    return typeid(T);
+    return typeid(ValueType);
   }
   //----------------------------------------------------------------------------
   auto clone() const -> std::unique_ptr<parent_type> override {
