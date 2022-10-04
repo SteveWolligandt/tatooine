@@ -33,27 +33,6 @@ struct handle {
     return *this;
   }
   constexpr auto operator=(handle&&) noexcept -> handle& = default;
-  //constexpr auto operator==(integral auto const other) const {
-  //  return this->i == static_cast<Int>(other);
-  //}
-  //constexpr auto operator==(handle<Child, Int> const other) const {
-  //  return this->i == other.i;
-  //}
-  //constexpr auto operator!=(handle<Child, Int> const other) const {
-  //  return this->i != other.i;
-  //}
-  //constexpr auto operator<(handle<Child, Int> const other) const {
-  //  return this->i < other.i;
-  //}
-  //constexpr auto operator<=(handle<Child, Int> const other) const {
-  //  return this->i <= other.i;
-  //}
-  //constexpr auto operator>(handle<Child, Int> const other) const {
-  //  return this->i > other.i;
-  //}
-  //constexpr auto operator>=(handle<Child, Int> const other) const {
-  //  return this->i >= other.i;
-  //}
   constexpr auto operator<=>(handle<Child, Int> const& other) const = default;
   //============================================================================
   constexpr auto operator++() -> auto& {
