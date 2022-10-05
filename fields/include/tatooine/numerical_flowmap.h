@@ -156,7 +156,7 @@ struct numerical_flowmap {
     }
     auto       x1         = x0;
     auto const t_end      = t0 + tau;
-    auto callback = [t_end, &x1, &arc_length](const auto& y, auto const t) {
+    auto callback = [t_end, &x1, &arc_length](const auto& y, auto const /*t*/) {
       arc_length += euclidean_distance(y, x1);
       x1 = y;
     };

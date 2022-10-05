@@ -237,7 +237,7 @@ auto write_vtp(std::vector<sampler<Real, 2>> const& samplers,
       file.write(reinterpret_cast<char const*>(&num_bytes_lines_offsets),
                  sizeof(header_type));
       file.write(reinterpret_cast<char const*>(offsets.data()),
-                 static_cast<std::streamsize>(num_bytes_lines_offsets_);
+                 static_cast<std::streamsize>(num_bytes_lines_offsets));
     }
   }
 

@@ -217,7 +217,6 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
         settings[name] = {&color_scale::viridis(), min_scalar, max_scalar};
       } else if (prop_holds_vector(prop)) {
         retrieve_typed_prop(prop.get(), [&](auto const& prop) {
-          auto const& [name, prop] = key_value;
           using prop_type  = std::decay_t<decltype(prop)>;
           using value_type = typename prop_type::value_type;
           if constexpr (static_vec<value_type>) {
