@@ -1,123 +1,67 @@
-#include <tatooine/gl/glwrapper.h>
 #include <tatooine/gl/glfunctions.h>
+#include <tatooine/gl/glwrapper.h>
 //==============================================================================
 namespace tatooine::gl {
 //==============================================================================
-void clear_color_buffer() {
-  gl::clear(GL_COLOR_BUFFER_BIT);
-}
-void clear_depth_buffer() {
-  gl::clear(GL_DEPTH_BUFFER_BIT);
-}
-void clear_color_depth_buffer() {
+auto clear_color_buffer() -> void { gl::clear(GL_COLOR_BUFFER_BIT); }
+auto clear_depth_buffer() -> void { gl::clear(GL_DEPTH_BUFFER_BIT); }
+auto clear_color_depth_buffer() -> void {
   gl::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 //==============================================================================
-void enable_depth_test() {
-  gl::enable(GL_DEPTH_TEST);
-}
-void disable_depth_test() {
-  gl::disable(GL_DEPTH_TEST);
-}
+auto enable_depth_test() -> void { gl::enable(GL_DEPTH_TEST); }
+auto disable_depth_test() -> void { gl::disable(GL_DEPTH_TEST); }
 //==============================================================================
-void enable_depth_write() {
-  gl::depth_mask(GL_TRUE);
-}
-void disable_depth_write() {
-  gl::depth_mask(GL_FALSE);
-}
+auto enable_depth_write() -> void { gl::depth_mask(GL_TRUE); }
+auto disable_depth_write() -> void { gl::depth_mask(GL_FALSE); }
 //==============================================================================
-void depth_func_never() {
-  gl::depth_func(GL_NEVER);
-}
-void depth_func_less() {
-  gl::depth_func(GL_LESS);
-}
-void depth_func_equal() {
-  gl::depth_func(GL_EQUAL);
-}
-void depth_func_lequal() {
-  gl::depth_func(GL_LEQUAL);
-}
-void depth_func_greater() {
-  gl::depth_func(GL_GREATER);
-}
-void depth_func_notequal() {
-  gl::depth_func(GL_NOTEQUAL);
-}
-void depth_func_gequal() {
-  gl::depth_func(GL_GEQUAL);
-}
-void depth_func_always() {
-  gl::depth_func(GL_ALWAYS);
-}
+auto depth_func_never() -> void { gl::depth_func(GL_NEVER); }
+auto depth_func_less() -> void { gl::depth_func(GL_LESS); }
+auto depth_func_equal() -> void { gl::depth_func(GL_EQUAL); }
+auto depth_func_lequal() -> void { gl::depth_func(GL_LEQUAL); }
+auto depth_func_greater() -> void { gl::depth_func(GL_GREATER); }
+auto depth_func_notequal() -> void { gl::depth_func(GL_NOTEQUAL); }
+auto depth_func_gequal() -> void { gl::depth_func(GL_GEQUAL); }
+auto depth_func_always() -> void { gl::depth_func(GL_ALWAYS); }
 //==============================================================================
-void enable_blending() {
-  gl::enable(GL_BLEND);
-}
-void disable_blending() {
-  gl::disable(GL_BLEND);
-}
+auto enable_blending() -> void { gl::enable(GL_BLEND); }
+auto disable_blending() -> void { gl::disable(GL_BLEND); }
 //==============================================================================
-void enable_scissor_test() {
-  gl::enable(GL_SCISSOR_TEST);
-}
+auto enable_scissor_test() -> void { gl::enable(GL_SCISSOR_TEST); }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void disable_scissor_test() {
-  gl::disable(GL_SCISSOR_TEST);
-}
+auto disable_scissor_test() -> void { gl::disable(GL_SCISSOR_TEST); }
 //==============================================================================
-void enable_face_culling() {
-  gl::enable(GL_CULL_FACE);
-}
+auto enable_face_culling() -> void { gl::enable(GL_CULL_FACE); }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void disable_face_culling() {
-  gl::disable(GL_CULL_FACE);
-}
+auto disable_face_culling() -> void { gl::disable(GL_CULL_FACE); }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void set_front_face_culling() {
-  gl::cull_face(GL_FRONT);
-}
+auto set_front_face_culling() -> void { gl::cull_face(GL_FRONT); }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void set_back_face_culling() {
-  gl::cull_face(GL_BACK);
-}
+auto set_back_face_culling() -> void { gl::cull_face(GL_BACK); }
 //------------------------------------------------------------------------------
 auto face_culling_enabled() -> GLboolean { return glIsEnabled(GL_CULL_FACE); }
 //==============================================================================
-void enable_multisampling() {
-  gl::enable(GL_MULTISAMPLE);
-}
-void disable_multisampling() {
-  gl::disable(GL_MULTISAMPLE);
-}
-bool multisampling_enabled() {
-  return gl::is_enabled(GL_MULTISAMPLE);
-}
+auto enable_multisampling() -> void { gl::enable(GL_MULTISAMPLE); }
+auto disable_multisampling() -> void { gl::disable(GL_MULTISAMPLE); }
+auto multisampling_enabled() -> bool { return gl::is_enabled(GL_MULTISAMPLE); }
 //==============================================================================
-void blend_func_additive() {
-  gl::blend_func(GL_ONE, GL_ONE);
-}
-void blend_func_multiplicative() {
-  gl::blend_func(GL_ONE, GL_ONE);
-}
-void blend_func_subtractive() {
-  gl::blend_func(GL_ONE, GL_ONE);
-}
-void blend_func_alpha() {
+auto blend_func_additive() -> void { gl::blend_func(GL_ONE, GL_ONE); }
+auto blend_func_multiplicative() -> void { gl::blend_func(GL_ONE, GL_ONE); }
+auto blend_func_subtractive() -> void { gl::blend_func(GL_ONE, GL_ONE); }
+auto blend_func_alpha() -> void {
   gl::blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 //------------------------------------------------------------------------------
-GLint get_total_available_memory() {
+auto get_total_available_memory() -> GLint {
   constexpr auto GL_GPU_MEM_INFO_TOTAL_AVAILABLE_MEM_NVX = 0x9048;
-  GLint          tam;
+  auto           tam                                     = GLint{};
   gl::get_integer_v(GL_GPU_MEM_INFO_TOTAL_AVAILABLE_MEM_NVX, &tam);
   return tam;
 }
 //------------------------------------------------------------------------------
-GLint get_current_available_memory() {
+auto get_current_available_memory() -> GLint {
   constexpr auto GL_GPU_MEM_INFO_CURRENT_AVAILABLE_MEM_NVX = 0x9049;
-  GLint          tam;
+  auto           tam                                       = GLint{};
   gl::get_integer_v(GL_GPU_MEM_INFO_CURRENT_AVAILABLE_MEM_NVX, &tam);
   return tam;
 }
@@ -131,49 +75,49 @@ auto scissor_test_enabled() -> GLboolean {
 }
 //------------------------------------------------------------------------------
 auto current_viewport() -> std::array<GLint, 4> {
-  std::array<GLint, 4> cur;
+  auto cur = std::array<GLint, 4>{};
   gl::get_integer_v(GL_VIEWPORT, cur.data());
   return cur;
 }
 //------------------------------------------------------------------------------
 auto current_scissor_box() -> std::array<GLint, 4> {
-  std::array<GLint, 4> cur;
+  auto cur = std::array<GLint, 4>{};
   gl::get_integer_v(GL_SCISSOR_BOX, cur.data());
   return cur;
 }
 //------------------------------------------------------------------------------
 auto current_blend_src_rgb() -> GLenum {
-  GLint cur;
+  auto cur = GLint{};
   gl::get_integer_v(GL_BLEND_SRC_RGB, &cur);
   return static_cast<GLenum>(cur);
 }
 //------------------------------------------------------------------------------
 auto current_blend_dst_rgb() -> GLenum {
-  GLint cur;
+  auto cur = GLint{};
   gl::get_integer_v(GL_BLEND_DST_RGB, &cur);
   return static_cast<GLenum>(cur);
 }
 //------------------------------------------------------------------------------
 auto current_blend_src_alpha() -> GLenum {
-  GLint cur;
+  auto cur = GLint{};
   gl::get_integer_v(GL_BLEND_SRC_ALPHA, &cur);
   return static_cast<GLenum>(cur);
 }
 //------------------------------------------------------------------------------
 auto current_blend_dst_alpha() -> GLenum {
-  GLint cur;
+  auto cur = GLint{};
   gl::get_integer_v(GL_BLEND_DST_ALPHA, &cur);
   return static_cast<GLenum>(cur);
 }
 //------------------------------------------------------------------------------
 auto current_blend_equation_rgb() -> GLenum {
-  GLint cur;
+  auto cur = GLint{};
   gl::get_integer_v(GL_BLEND_EQUATION_RGB, &cur);
   return static_cast<GLenum>(cur);
 }
 //------------------------------------------------------------------------------
 auto current_blend_equation_alpha() -> GLenum {
-  GLint cur;
+  auto cur = GLint{};
   gl::get_integer_v(GL_BLEND_EQUATION_ALPHA, &cur);
   return static_cast<GLenum>(cur);
 }
@@ -184,110 +128,110 @@ auto current_polygon_mode() -> std::array<GLenum, 2> {
   return {static_cast<GLenum>(cur[0]), static_cast<GLenum>(cur[1])};
 }
 //------------------------------------------------------------------------------
-GLuint bound_program() {
-  GLint cur;
+auto bound_program() -> GLuint {
+  auto cur = GLint{};
   gl::get_integer_v(GL_CURRENT_PROGRAM, &cur);
   return static_cast<GLuint>(cur);
 }
 //------------------------------------------------------------------------------
 auto bound_vertexbuffer() -> GLuint {
-  GLint cur;
+  auto cur = GLint{};
   gl::get_integer_v(GL_ARRAY_BUFFER_BINDING, &cur);
   return static_cast<GLuint>(cur);
 }
 //------------------------------------------------------------------------------
 auto bound_vertexarray() -> GLuint {
-  GLint cur;
+  auto cur = GLint{};
   gl::get_integer_v(GL_VERTEX_ARRAY_BINDING, &cur);
   return static_cast<GLuint>(cur);
 }
 //------------------------------------------------------------------------------
 auto current_active_texture() -> GLenum {
-  GLint cur;
+  auto cur = GLint{};
   gl::get_integer_v(GL_ACTIVE_TEXTURE, &cur);
-  return cur;
+  return static_cast<GLenum>(cur);
 }
 //------------------------------------------------------------------------------
 auto current_clip_origin() -> GLenum {
-  GLint cur;
+  auto cur = GLint{};
   gl::get_integer_v(GL_CLIP_ORIGIN, &cur);
-  return cur;
+  return static_cast<GLenum>(cur);
 }
 //------------------------------------------------------------------------------
 auto bound_sampler() -> GLuint {
-  GLint cur;
+  auto cur = GLint{};
   gl::get_integer_v(GL_SAMPLER_BINDING, &cur);
   return static_cast<GLuint>(cur);
 }
 //------------------------------------------------------------------------------
-GLuint bound_texture(GLenum binding) {
-  GLint tex;
+auto bound_texture(GLenum binding) -> GLuint {
+  auto tex = GLint{};
   gl::get_integer_v(binding, &tex);
   return static_cast<GLuint>(tex);
 }
 //------------------------------------------------------------------------------
-GLuint bound_texture1d() {
+auto bound_texture1d() -> GLuint {
   return bound_texture(GL_TEXTURE_BINDING_1D);
 }
 //------------------------------------------------------------------------------
-GLuint bound_texture2d() {
+auto bound_texture2d() -> GLuint {
   return bound_texture(GL_TEXTURE_BINDING_2D);
 }
 //------------------------------------------------------------------------------
-GLuint bound_texture3d() {
+auto bound_texture3d() -> GLuint {
   return bound_texture(GL_TEXTURE_BINDING_3D);
 }
 //==============================================================================
-GLint max_compute_shared_memory_size() {
-  GLint s;
+auto max_compute_shared_memory_size() -> GLint {
+  auto s = GLint{};
   gl::get_integer_v(GL_MAX_COMPUTE_SHARED_MEMORY_SIZE, &s);
   return s;
 }
 //------------------------------------------------------------------------------
-void barrier() { gl::memory_barrier(GL_ALL_BARRIER_BITS); }
+auto barrier() -> void { gl::memory_barrier(GL_ALL_BARRIER_BITS); }
 //------------------------------------------------------------------------------
-void shader_storage_barrier() {
+auto shader_storage_barrier() -> void {
   gl::memory_barrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 //------------------------------------------------------------------------------
-void shader_image_access_barrier() {
+auto shader_image_access_barrier() -> void {
   gl::memory_barrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 //------------------------------------------------------------------------------
-void atomic_counter_barrier() {
+auto atomic_counter_barrier() -> void {
   gl::memory_barrier(GL_ATOMIC_COUNTER_BARRIER_BIT);
 }
 //------------------------------------------------------------------------------
-std::array<GLint, 3> max_compute_work_group_count() {
-  std::array<GLint, 3> work_grp_cnt;
+auto max_compute_work_group_count() -> std::array<GLint, 3> {
+  auto work_grp_cnt = std::array<GLint, 3>{};
   gl::get_integeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &work_grp_cnt[0]);
   gl::get_integeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &work_grp_cnt[1]);
   gl::get_integeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &work_grp_cnt[2]);
   return work_grp_cnt;
 }
 //------------------------------------------------------------------------------
-std::array<GLint, 3> max_compute_work_group_size() {
-  std::array<GLint, 3> work_grp_size;
+auto max_compute_work_group_size() -> std::array<GLint, 3> {
+  auto work_grp_size = std::array<GLint, 3>{};
   gl::get_integeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &work_grp_size[0]);
   gl::get_integeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &work_grp_size[1]);
   gl::get_integeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &work_grp_size[2]);
   return work_grp_size;
 }
 //------------------------------------------------------------------------------
-GLint max_compute_work_group_invocations() {
-  GLint val;
+auto max_compute_work_group_invocations() -> GLint {
+  auto val = GLint{};
   gl::get_integer_v(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &val);
   return val;
 }
 //------------------------------------------------------------------------------
-GLint max_compute_image_uniforms() {
-  GLint val;
+auto max_compute_image_uniforms() -> GLint {
+  auto val = GLint{};
   gl::get_integer_v(GL_MAX_COMPUTE_IMAGE_UNIFORMS, &val);
   return val;
 }
 //==============================================================================
-std::pair<GLint, GLint> opengl_version() {
-  std::pair<GLint, GLint> version;
+auto opengl_version() -> std::pair<GLint, GLint> {
+  auto version = std::pair<GLint, GLint>{};
   gl::get_integer_v(GL_MAJOR_VERSION, &version.first);
   gl::get_integer_v(GL_MINOR_VERSION, &version.second);
   return version;

@@ -25,7 +25,8 @@ void atomiccounterbuffer::set_all_to(GLuint val) {
   auto gpu_data = reinterpret_cast<unsigned char*>(
       gl::map_named_buffer(this->id(), GL_WRITE_ONLY));
   gl_error_check("glMapNamedBuffer");
-  std::memset(gpu_data, val, sizeof(GLuint) * size());
+  std::memset(gpu_data, static_cast<int>(val),
+              sizeof(GLuint) * static_cast<std::size_t>(size()));
   gl::unmap_named_buffer(this->id());
 }
 //------------------------------------------------------------------------------

@@ -281,7 +281,8 @@ std::optional<std::string> shader::info_log() {
   if (info_log_length == 0) {
     return {};
   }
-  auto l = std::string(info_log_length, ' ');
+  auto l =
+      std::string(static_cast<std::string::size_type>(info_log_length), ' ');
   gl::get_program_info_log(id(), info_log_length, &chars_written, l.data());
 
   return l;

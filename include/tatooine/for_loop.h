@@ -22,7 +22,7 @@ auto create_aligned_data_for_parallel() {
 #pragma omp parallel
   {
     if (omp_get_thread_num()) {
-      num_threads = omp_get_num_threads();
+      num_threads = static_cast<std::size_t>(omp_get_num_threads());
     }
   }
   return std::vector<aligned<T>>(num_threads);

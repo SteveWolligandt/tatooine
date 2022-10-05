@@ -725,14 +725,15 @@ struct line {
       auto connectivity_data = std::vector<connectivity_int_t>{};
       connectivity_data.reserve((vertices().size() - (is_closed() ? 0 : 1)) * 2);
       for (std::size_t i = 0; i < vertices().size() - 1; ++i) {
-        connectivity_data.push_back(i);
-        connectivity_data.push_back(i + 1);
+        connectivity_data.push_back(static_cast<connectivity_int_t>(i));
+        connectivity_data.push_back(static_cast<connectivity_int_t>(i + 1));
       }
       if (is_closed()) {
         connectivity_data.push_back(vertices().size() - 1);
         connectivity_data.push_back(0);
       }
-      arr_size = connectivity_data.size() * sizeof(connectivity_int_t);
+      arr_size = static_cast<header_type>(connectivity_data.size() *
+                                          sizeof(connectivity_int_t));
       file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
       file.write(reinterpret_cast<char const*>(connectivity_data.data()),
                  arr_size);

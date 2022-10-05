@@ -89,7 +89,7 @@ requires(Grid::num_dimensions() == 2 ||
     file << "      </PointData>\n";
   }
   //------------------------------------------------------------------------------
-  auto write_cell_data(std::ofstream& file, std::size_t& offset) const {
+  auto write_cell_data(std::ofstream& file, std::size_t& /*offset*/) const {
     file << "      <CellData>\n";
     file << "      </CellData>\n";
   }
@@ -127,7 +127,7 @@ requires(Grid::num_dimensions() == 2 ||
   }
   //----------------------------------------------------------------------------
   template <typename T, std::size_t N>
-  auto write_dimension_data_array(std::array<T, N> const& dim,
+  auto write_dimension_data_array(std::array<T, N> const& /*dim*/,
                                   std::string const& name, std::ofstream& file,
                                   std::size_t& offset) const {
     file << "        <DataArray"
@@ -175,7 +175,7 @@ requires(Grid::num_dimensions() == 2 ||
     }
   }
   //----------------------------------------------------------------------------
-  auto write_appended_data_cell_data(std::ofstream& file) const {}
+  auto write_appended_data_cell_data(std::ofstream& /*file*/) const {}
   //----------------------------------------------------------------------------
   auto write_appended_data_coordinates(std::ofstream& file) const {
     write_dimension_appended_data(m_grid.template dimension<0>(), file);

@@ -17,20 +17,20 @@ struct infer_difference_type {
   using type = std::ptrdiff_t;
 };
 //------------------------------------------------------------------------------
-template <typename T>
-concept implements_distance_to = requires(T const it) {
-  it.distance_to(it);
+template <typename Iter>
+concept implements_distance_to = requires(Iter const left, Iter const right) {
+  left.distance_to(right);
 };
 //------------------------------------------------------------------------------
-/// Case when `T` provides a `distance_to`
-template <implements_distance_to T>
-struct infer_difference_type<T> {
-  static T const &it;
-  using type = decltype(it.distance_to(it));
+/// Case when `Iter` provides a `distance_to`
+template <implements_distance_to Iter>
+struct infer_difference_type<Iter> {
+  static Iter const &iter;
+  using type = decltype(iter.distance_to(iter));
 };
 //------------------------------------------------------------------------------
-template <typename T>
-using infer_difference_type_t = typename infer_difference_type<T>::type;
+template <typename Iter>
+using infer_difference_type_t = typename infer_difference_type<Iter>::type;
 //==============================================================================
 template <typename Arg, typename Iter>
 concept difference_type_arg =
@@ -39,17 +39,15 @@ concept difference_type_arg =
 // infer value type
 //==============================================================================
 /// Just use the return type of derefence operator.
-template <typename T>
+template <typename Iter>
 struct infer_value_type {
-  static T const &_it;
+  static Iter const &_it;
   using type = std::remove_cvref_t<decltype(*_it)>;
 };
 //------------------------------------------------------------------------------
 /// If `value_type` is explicitly given use this typedef
 template <typename T>
-requires requires {
-  typename T::value_type;
-}
+requires requires { typename T::value_type; }
 struct infer_value_type<T> {
   using type = typename T::value_type;
 };
@@ -58,13 +56,13 @@ template <typename T>
 using infer_value_type_t = typename infer_value_type<T>::type;
 //==============================================================================
 template <typename T>
-concept implements_decrement = requires(T it) {
-  it.decrement();
+concept implements_decrement = requires(T iter) {
+  iter.decrement();
 };
 //==============================================================================
 template <typename T>
-concept implements_increment = requires(T it) {
-  it.increment();
+concept implements_increment = requires(T iter) {
+  iter.increment();
 };
 //==============================================================================
 // Check for .advance
@@ -77,14 +75,14 @@ concept implements_advance = requires(T                                it,
 // Check for .equal_to
 template <typename T>
 concept implements_equal = requires(T const it) {
-  { it.equal(it) }
-  ->std::convertible_to<bool>;
+  { it.equal(it) } -> std::convertible_to<bool>;
 };
 //==============================================================================
 /// We can meet "random access" if it provides
 /// both .advance() and .distance_to()
 template <typename T>
-concept meets_random_access = implements_advance<T> &&implements_distance_to<T>;
+concept meets_random_access =
+    implements_advance<T> && implements_distance_to<T>;
 //==============================================================================
 /// We meet `bidirectional` if we are random_access, OR we have .decrement()
 template <typename T>
@@ -95,7 +93,13 @@ template <typename T>
 concept declares_single_pass = bool(T::single_pass_iterator);
 //==============================================================================
 template <typename T, typename Iter>
-concept iter_sentinel_arg = std::same_as<T, typename Iter::sentinel_type>;
+concept iter_sentinel_arg = std::same_as<std::decay_t<T>, typename Iter::sentinel_type>;
+//------------------------------------------------------------------------------
+template <typename Iter>
+concept implements_distance_to_sentinel =
+    requires(Iter const it, typename Iter::sentinel_type const sentinel) {
+  it.distance_to(sentinel);
+};
 //==============================================================================
 /// \brief C++20 implementation of an iterator facade.
 ///
@@ -124,20 +128,29 @@ concept iter_sentinel_arg = std::same_as<T, typename Iter::sentinel_type>;
 /// This is an example of how to implement an iterator class with help of
 /// iterator_facade:
 /// \include iterator_facade.cpp
-template <typename Derived>
+//==============================================================================
+template <typename Iter>
+class iterator_facade;
+//==============================================================================
+template <typename Iter>
+concept derived_from_iterator_facade =
+    std::is_base_of_v<tatooine::iterator_facade<Iter>, Iter>;
+//==============================================================================
+template <typename Iter>
 class iterator_facade {
  public:
-  using derived_type = Derived;
-
+  using iterator_type = Iter;
+  //==============================================================================
  private:
-  auto as_derived() -> auto & { return static_cast<derived_type &>(*this); }
+  auto as_derived() -> auto & { return static_cast<iterator_type &>(*this); }
   [[nodiscard]] auto as_derived() const -> auto const & {
-    return static_cast<derived_type const &>(*this);
+    return static_cast<iterator_type const &>(*this);
   }
-
  public:
+  //==============================================================================
   decltype(auto) operator*() const { return as_derived().dereference(); }
-  auto           operator->() const {
+  //==============================================================================
+  auto operator->() const {
     decltype(auto) ref = **this;
     if constexpr (std::is_reference_v<decltype(ref)>) {
       // `ref` is a true reference, and we're safe to take its address
@@ -148,130 +161,178 @@ class iterator_facade {
       return arrow_proxy<std::decay_t<decltype(ref)>>{std::move(ref)};
     }
   }
-
-  friend auto operator==(derived_type const &left, derived_type const &right)
-      -> bool {
-    if constexpr (implements_equal<derived_type>) {
-      return left.equal(right);
-    } else {
-      static_assert(implements_distance_to<derived_type>,
-                    "Iterator must provide `.equal()` "
-                    "or `.distance_to()`");
-      return left.distance_to(right) == 0;
-    }
-  }
-
-  friend auto operator==(
-      derived_type const &self,
-      iter_sentinel_arg<derived_type> auto const /*sentinel*/) -> bool {
-    return self.at_end();
-  }
-
-  friend auto operator==(
-      iter_sentinel_arg<derived_type> auto const /*sentinel*/,
-      derived_type const &self) -> bool {
-    return self.at_end();
-  }
-
-  friend auto operator+=(derived_type &                         self,
-                         difference_type_arg<derived_type> auto offset)
-      -> derived_type &requires implements_advance<derived_type> {
+  //==============================================================================
+  friend auto operator+=(iterator_type                          &self,
+                         difference_type_arg<iterator_type> auto offset)
+      -> iterator_type &
+  requires implements_advance<iterator_type> {
     self.advance(offset);
     return self;
   }
-
-  auto operator++() -> derived_type & {
-    if constexpr (implements_increment<derived_type>) {
+  //==============================================================================
+  auto operator++() -> iterator_type & {
+    if constexpr (implements_increment<iterator_type>) {
       // Prefer .increment() if available
       as_derived().increment();
     } else {
-      static_assert(implements_advance<derived_type>,
+      static_assert(implements_advance<iterator_type>,
                     "Iterator subclass must provide either "
                     ".advance() or .increment()");
       as_derived() += 1;
     }
     return as_derived();
   }
-
+  //==============================================================================
   auto operator++(int) {
     auto copy = as_derived();
     ++*this;
     return copy;
   }
-
-  auto operator--() -> derived_type & {
-    if constexpr (implements_decrement<derived_type>) {
+  //==============================================================================
+  auto operator--() -> iterator_type & {
+    if constexpr (implements_decrement<iterator_type>) {
       // Prefer .decrement() if available
       as_derived().decrement();
     } else {
-      static_assert(implements_advance<derived_type>,
+      static_assert(implements_advance<iterator_type>,
                     "Iterator subclass must provide either "
                     ".advance() or .decrement()");
       as_derived() -= 1;
     }
     return as_derived();
   }
-
+  //==============================================================================
   // Postfix:
-  auto operator--(int) requires implements_decrement<derived_type> {
+  auto operator--(int) requires implements_decrement<iterator_type> {
     auto copy = *this;
     --*this;
     return copy;
   }
-
-  friend auto operator+(derived_type                           left,
-                        difference_type_arg<derived_type> auto off)
-      -> derived_type requires implements_advance<derived_type> {
+  //==============================================================================
+  friend auto operator+(iterator_type                           left,
+                        difference_type_arg<iterator_type> auto off)
+      -> iterator_type
+  requires implements_advance<iterator_type> {
     return left += off;
   }
-
-  friend auto operator+(difference_type_arg<derived_type> auto off,
-                        derived_type right) -> derived_type
-      requires implements_advance<derived_type> {
+  //==============================================================================
+  friend auto operator+(difference_type_arg<iterator_type> auto off,
+                        iterator_type                           right)
+      -> iterator_type
+  requires implements_advance<iterator_type> {
     return right += off;
   }
-
-  friend auto operator-(derived_type                           left,
-                        difference_type_arg<derived_type> auto off)
-      -> derived_type requires implements_advance<derived_type> {
+  //==============================================================================
+  friend auto operator-(iterator_type                           left,
+                        difference_type_arg<iterator_type> auto off)
+      -> iterator_type
+  requires implements_advance<iterator_type> {
     return left + -off;
   }
-
-  friend auto operator-=(derived_type &                         left,
-                         difference_type_arg<derived_type> auto off)
-      -> derived_type &requires implements_advance<derived_type> {
+  //==============================================================================
+  friend auto operator-=(iterator_type                          &left,
+                         difference_type_arg<iterator_type> auto off)
+      -> iterator_type &
+  requires implements_advance<iterator_type> {
     return left = left - off;
   }
-
-  auto operator[](difference_type_arg<derived_type> auto pos)
-      -> decltype(auto) requires implements_advance<derived_type> {
+  //==============================================================================
+  friend auto operator-=(iterator_type                          &left,
+                         iter_sentinel_arg<iterator_type> auto sentinel)
+      -> iterator_type &
+  requires implements_advance<iterator_type> {
+    return left = left - sentinel;
+  }
+  //==============================================================================
+  auto operator[](difference_type_arg<iterator_type> auto pos)
+      -> decltype(auto)
+  requires implements_advance<iterator_type> {
     return *(as_derived() + pos);
   }
-
-  friend auto operator-(derived_type const &left, derived_type const &right)
-      -> derived_type &requires implements_distance_to<derived_type> {
-    // Many many times must we `++right` to reach `left` ?
+  //==============================================================================
+  friend auto operator-(iterator_type const &left, iterator_type const &right)
+      -> infer_difference_type_t<iterator_type>
+  requires implements_distance_to<iterator_type>
+  {
+    // How many times must we `++right` to reach `left`?
     return right.distance_to(left);
   }
-
-  friend auto operator<=>(
-      derived_type const &left,
-      derived_type const &right) requires implements_distance_to<derived_type> {
+  //==============================================================================
+  friend auto operator-(iterator_type const &left,
+                        iter_sentinel_arg<iterator_type> auto const sentinel)
+      -> infer_difference_type_t<iterator_type>
+  requires implements_distance_to_sentinel<iterator_type> {
+    // How many times must we `++right` to reach `left`?
+    return -left.distance_to(sentinel);
+  }
+  //==============================================================================
+  friend auto operator-(iter_sentinel_arg<iterator_type> auto const sentinel,
+                        iterator_type const &left)
+      -> infer_difference_type_t<iterator_type>
+  requires implements_distance_to_sentinel<iterator_type> {
+    // How many times must we `++right` to reach `left`?
+    return left.distance_to(sentinel);
+  }
+  //==============================================================================
+  friend auto operator<=>(iterator_type const &left,
+                          iterator_type const &right)
+  requires implements_distance_to<iterator_type> {
     return (left - right) <=> 0;
+  }
+  //==============================================================================
+  friend auto operator==(iterator_type const &left,
+                         iterator_type const &right)
+      -> bool {
+    if constexpr (implements_equal<iterator_type>) {
+      return left.equal(right);
+    } else {
+      static_assert(implements_distance_to<iterator_type>,
+                    "Iterator must provide `.equal()` "
+                    "or `.distance_to()`");
+      return left.distance_to(right) == 0;
+    }
+  }
+  //==============================================================================
+  friend auto operator!=(iterator_type const &left,
+                         iterator_type const &right)
+      -> bool {
+    return !operator==(left, right);
+  }
+  //==============================================================================
+  friend auto operator==(
+      iterator_type const &iter,
+      iter_sentinel_arg<iterator_type> auto const /*sentinel*/) -> bool {
+    return iter.at_end();
+  }
+  //==============================================================================
+  friend auto operator!=(
+      iterator_type const &iter,
+      iter_sentinel_arg<iterator_type> auto const /*sentinel*/) -> bool {
+    return !iter.at_end();
+  }
+  //==============================================================================
+  friend auto operator==(
+      iter_sentinel_arg<iterator_type> auto const /*sentinel*/,
+      iterator_type const &iter) -> bool {
+    return iter.at_end();
+  }
+  //==============================================================================
+  friend auto operator!=(
+      iter_sentinel_arg<iterator_type> auto const /*sentinel*/,
+      iterator_type const &iter) -> bool {
+    return !iter.at_end();
   }
 };
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-template <typename Iter>
-requires(std::is_base_of_v<tatooine::iterator_facade<Iter>,
-                           Iter>)
+template <tatooine::derived_from_iterator_facade Iter>
 struct std::iterator_traits<Iter> {
   static Iter const &_it;
-  using reference       = decltype(*_it);
-  using pointer         = decltype(_it.operator->());
-  using value_type      = tatooine::infer_value_type_t<Iter>;
-  using difference_type = tatooine::infer_difference_type_t<Iter>;
+  using reference         = decltype(*_it);
+  using pointer           = decltype(_it.operator->());
+  using value_type        = tatooine::infer_value_type_t<Iter>;
+  using difference_type   = tatooine::infer_difference_type_t<Iter>;
   using iterator_category = conditional_t<
       tatooine::meets_random_access<Iter>,
       // We meet the requirements of random-access:

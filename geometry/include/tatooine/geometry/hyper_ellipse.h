@@ -117,7 +117,7 @@ struct hyper_ellipse {
   //----------------------------------------------------------------------------
   /// Computes euclidean distance to nearest boundary point
   constexpr auto distance_to_boundary(pos_type const& x) const {
-    auto const x_local                  = local_coordinate();
+    auto const x_local                  = local_coordinate(x);
     auto const local_distance_to_point  = euclidian_length(x_local);
     auto const local_point_on_boundary  = x_local / local_distance_to_point;
     auto const local_offset_to_boundary = x_local - local_point_on_boundary;
@@ -125,7 +125,7 @@ struct hyper_ellipse {
   }
   //----------------------------------------------------------------------------
   auto local_nearest_point_boundary(pos_type const& x) const {
-    auto const local_point_on_boundary = normalize(local_coordinate());
+    auto const local_point_on_boundary = normalize(local_coordinate(x));
     return local_point_on_boundary;
   }
   //----------------------------------------------------------------------------

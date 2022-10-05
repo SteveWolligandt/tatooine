@@ -574,13 +574,13 @@ auto legacy_file::read_points(std::ifstream &file) -> void {
       read_points_ascii<float>(file, n);
     } else if (datatype_str == "double") {
       read_points_ascii<double>(file, n);
-}
+    }
   } else if (m_format == format::binary) {
     if (datatype_str == "float") {
       read_points_binary<float>(file, n);
     } else if (datatype_str == "double") {
       read_points_binary<double>(file, n);
-}
+    }
   }
 }
 //-----------------------------------------------------------------------------------------------
@@ -611,7 +611,8 @@ auto legacy_file::read_cell_types_ascii(std::ifstream &file,
 auto legacy_file::read_cell_types_binary(std::ifstream &file,
                                          size_t const num_cell_types) -> void {
   std::vector<cell_type> cell_types(num_cell_types);
-  file.read((char *)cell_types.data(), sizeof(int) * num_cell_types);
+  file.read((char *)cell_types.data(),
+            static_cast<std::streamsize>(sizeof(int) * num_cell_types));
   swap_endianess(cell_types);
   for (auto *listener : m_listeners) {
     listener->on_cell_types(cell_types);
@@ -646,9 +647,10 @@ auto legacy_file::read_indices_ascii(std::ifstream & /*file*/,
 //-----------------------------------------------------------------------------
 auto legacy_file::read_indices_binary(std::ifstream &file, size_t const size)
     -> std::vector<int> {
-  std::vector<int> data(size);
+  auto data = std::vector<int>(size);
   if (size > 0) {
-    file.read((char *)data.data(), sizeof(int) * size);
+    file.read((char *)data.data(),
+              static_cast<std::streamsize>(sizeof(int) * size));
     swap_endianess(data);
     consume_trailing_break(file);
   }

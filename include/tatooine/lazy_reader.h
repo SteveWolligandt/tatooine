@@ -155,12 +155,12 @@ struct lazy_reader
     return is_chunk_filled_with_value(plain_chunk_index, 0);
   }
   //----------------------------------------------------------------------------
-  auto set_max_num_chunks_loaded(std::size_t const max_num_chunks_loaded) {
+  auto set_max_num_chunks_loaded(std::size_t const /*max_num_chunks_loaded*/) {
     //limit_num_chunks_loaded();
     //m_max_num_chunks_loaded = max_num_chunks_loaded;
   }
   //----------------------------------------------------------------------------
-  auto limit_num_chunks_loaded(bool const l = true) {
+  auto limit_num_chunks_loaded(bool const /*l*/ = true) {
     //m_limit_num_chunks_loaded = l;
   }
   //----------------------------------------------------------------------------

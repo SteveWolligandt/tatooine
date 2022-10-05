@@ -390,7 +390,9 @@ class file {
   //----------------------------------------------------------------------------
   auto attributes() const { return m_file->getAtts(); }
   //----------------------------------------------------------------------------
-  auto num_dimensions() const -> std::size_t { return m_file->getDimCount(); }
+  auto num_dimensions() const -> std::size_t {
+    return static_cast<std::size_t>(m_file->getDimCount());
+  }
   //----------------------------------------------------------------------------
   auto size() const { return m_file->getDims(); }
   //----------------------------------------------------------------------------

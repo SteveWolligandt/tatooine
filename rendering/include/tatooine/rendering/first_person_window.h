@@ -66,8 +66,8 @@ struct first_person_window : gl::window {
   //----------------------------------------------------------------------------
   auto on_resize(int w, int h) -> void override {
     parent_type::on_resize(w, h);
-    m_width  = w;
-    m_height = h;
+    m_width  = static_cast<std::size_t>(w);
+    m_height = static_cast<std::size_t>(h);
     m_camera_controller.on_resize(w, h);
   }
   //----------------------------------------------------------------------------

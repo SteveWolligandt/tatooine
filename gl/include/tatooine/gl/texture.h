@@ -10,7 +10,6 @@
 #include <tatooine/gl/pixelunpackbuffer.h>
 #include <tatooine/gl/shader.h>
 #include <tatooine/gl/texcomponents.h>
-#include <tatooine/gl/texpng.h>
 #include <tatooine/gl/texsettings.h>
 #include <tatooine/gl/textarget.h>
 #include <tatooine/gl/type.h>
@@ -68,7 +67,7 @@ class texture : public id_holder<GLuint> {
   static constexpr auto binding               = tex::binding<NumDimensions>;
   static constexpr auto default_interpolation = interpolation_mode::linear;
   static constexpr auto default_wrap_mode     = wrap_mode::repeat;
-  static constexpr std::size_t num_components() {
+  static constexpr auto num_components() -> GLsizei {
     return components_type::num_components;
   }
   static constexpr std::size_t num_dimensions() { return NumDimensions; }
@@ -80,11 +79,6 @@ class texture : public id_holder<GLuint> {
   static constexpr auto gl_type = tex::settings<ValueType, Components>::type;
   static constexpr std::array<GLenum, 3> wrapmode_indices{
       GL_TEXTURE_WRAP_S, GL_TEXTURE_WRAP_T, GL_TEXTURE_WRAP_R};
-
-  static constexpr bool is_readable_from_png =
-      NumDimensions == 2 && is_either_of<Components, R, RGB, RGBA, BGR, BGRA>;
-  static constexpr bool is_writable_to_png =
-      NumDimensions == 2 && is_either_of<Components, R, RG, RGB, RGBA, BGR, BGRA>;
 
  protected:
   //============================================================================
@@ -241,18 +235,10 @@ class texture : public id_holder<GLuint> {
     set_wrap_mode(wrap_mode);
     upload_data(data);
   }
-  //----------------------------------------------------------------------------
-  texture(std::string const& filepath) : texture{} { read(filepath); }
-  //----------------------------------------------------------------------------
-  texture(interpolation_mode interp_mode, wrap_mode wrap_mode,
-          std::string const& filepath)
-      : texture{interp_mode, wrap_mode} {
-    read(filepath);
-  }
 
  private:
   //----------------------------------------------------------------------------
-  void create_id() { gl::create_textures(target, 1, &id_ref()); }
+  auto create_id() { gl::create_textures(target, 1, &id_ref()); }
 
  public:
   //----------------------------------------------------------------------------
@@ -323,16 +309,16 @@ class texture : public id_holder<GLuint> {
 
   //----------------------------------------------------------------------------
   template <std::size_t... Is>
-  std::size_t num_texels(std::index_sequence<Is...>) const {
+  auto num_texels(std::index_sequence<Is...>) const -> GLsizei {
     return (m_size[Is] * ...);
   }
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  std::size_t num_texels() const {
+  auto num_texels() const -> GLsizei {
     return num_texels(std::make_index_sequence<NumDimensions>{});
   }
 
   //----------------------------------------------------------------------------
-  void copy_data(texture const& other) {
+  auto copy_data(texture const& other) -> void {
     resize(other.m_size);
     if constexpr (NumDimensions == 1) {
       gl::copy_image_sub_data(other.id(), target, 0, 0, 0, 0, id(), target, 0,
@@ -534,22 +520,22 @@ class texture : public id_holder<GLuint> {
   auto download_data() const {
     if constexpr (num_components() == 1) {
       auto data = dynamic_multidim_array<ValueType>{m_size};
-      auto const s    = static_cast<GLsizei>(num_components() * num_texels() *
-                                          sizeof(value_type));
+      auto const s = static_cast<GLsizei>(sizeof(value_type)) * num_texels() *
+                     num_components();
       gl::get_texture_image(id(), 0, gl_format, gl_type, s, data.data());
       return data;
     } else {
       auto data =
           dynamic_multidim_array<vec<ValueType, num_components()>>{m_size};
-      auto const s = static_cast<GLsizei>(num_components() * num_texels() *
-                                          sizeof(value_type));
+      auto const s = num_components() * num_texels() *
+                     static_cast<GLsizei>(sizeof(value_type));
       gl::get_texture_image(id(), 0, gl_format, gl_type, s, data.data());
       return data;
     }
   }
   //------------------------------------------------------------------------------
   auto download_data(std::vector<value_type>& data) const -> void {
-    auto const n = num_components() * num_texels();
+    auto const n = static_cast<std::size_t>(num_components() * num_texels());
     if (data.size() != n) {
       data.resize(n);
     }
@@ -559,7 +545,7 @@ class texture : public id_holder<GLuint> {
   auto download_data(std::vector<vec<value_type, num_components()>>& data) const
       -> void
   requires(num_components() > 1) {
-    auto const n = num_texels();
+    auto const n = static_cast<std::size_t>(num_texels());
     if (data.size() != n) {
       data.resize(n);
     }
@@ -567,18 +553,21 @@ class texture : public id_holder<GLuint> {
   }
   //------------------------------------------------------------------------------
   auto download_data(value_type* data) const -> void {
-    auto const s = static_cast<GLsizei>(num_texels() * num_components() *
-                                        sizeof(value_type));
+    auto const s = static_cast<GLsizei>(num_components() * sizeof(value_type)) *
+                   num_texels();
     gl::get_texture_image(id(), 0, gl_format, gl_type, s, data);
   }
   //------------------------------------------------------------------------------
   auto& download_sub_data(GLint xoffset, GLsizei width,
                           std::vector<ValueType>& data, GLint level = 0) const
-  requires (num_components() == 1) &&
-           (num_dimensions() == 1) {
-    if (data.size() != width * num_components()) {
-      data.resize(width * num_components());
-    }
+  requires (num_components() == 1) && (num_dimensions() == 1) {
+      using container_type = std::vector<vec<ValueType, num_components()>>;
+      using size_type = typename container_type::size_type;
+      auto const size      = static_cast<size_type>(width * num_components());
+
+      if (data.size() != size) {
+        data.resize(size);
+      }
     auto const s = static_cast<GLsizei>(data.size() * sizeof(value_type));
     gl::get_texture_sub_image(id(), level, xoffset, 0, 0, width, 1, 1,
                               gl_format, gl_type,
@@ -592,7 +581,9 @@ class texture : public id_holder<GLuint> {
   requires (num_components() > 1) &&
            (num_dimensions() == 1) {
     if (data.size() != static_cast<std::size_t>(width)) {
-      data.resize(width * num_components());
+      using container_type = std::vector<vec<ValueType, num_components()>>;
+      using size_type = typename container_type::size_type;
+      data.resize(static_cast<size_type>(width * num_components()));
     }
     auto const s = static_cast<GLsizei>(data.size() * num_components() *
                                         sizeof(value_type));
@@ -604,13 +595,17 @@ class texture : public id_holder<GLuint> {
   auto download_sub_data(GLint xoffset, GLsizei width, GLint level = 0) const
   requires (NumDimensions == 1) {
     if constexpr (num_components() == 1) {
-      auto data = std::vector<ValueType>(width);
-      auto const s    = static_cast<GLsizei>(data.size() * sizeof(value_type));
+      using container_type = std::vector<ValueType>;
+      using size_type      = typename container_type::size_type;
+      auto       data      = container_type(static_cast<size_type>(width));
+      auto const s = static_cast<GLsizei>(data.size() * sizeof(value_type));
       gl::get_texture_sub_image(id(), level, xoffset, 0, 0, width, 1, 1,
                                 gl_format, gl_type, s, data.data());
       return data;
     } else {
-      auto       data = std::vector<vec<ValueType, num_components()>>(width);
+      using container_type = std::vector<vec<ValueType, num_components()>>;
+      using size_type      = typename container_type::size_type;
+      auto       data      = container_type(static_cast<size_type>(width));
       auto const s    = static_cast<GLsizei>(data.size() * num_components() *
                                           sizeof(value_type));
       gl::get_texture_sub_image(id(), level, xoffset, 0, 0, width, 1, 1,
@@ -625,7 +620,9 @@ class texture : public id_holder<GLuint> {
   requires (num_components() == 1) &&
            (NumDimensions == 2) {
     if (data.size() != static_cast<std::size_t>(width * height)) {
-      data.resize(width * height);
+      using container_type = std::vector<ValueType>;
+      using size_type      = typename container_type::size_type;
+      data.resize(static_cast<size_type>(width * height));
     }
     auto const s = static_cast<GLsizei>(data.size() * sizeof(value_type));
     gl::get_texture_sub_image(id(), level, xoffset, yoffset, 0, width, height,
@@ -640,11 +637,14 @@ class texture : public id_holder<GLuint> {
                           GLint level = 0) const
   requires (num_components() > 1) &&
            (NumDimensions == 2) {
-    if (data.size() != static_cast<std::size_t>(width * height)) {
-      data.resize(width * height);
+    using container_type = std::vector<vec<ValueType, num_components()>>;
+    using size_type      = typename container_type::size_type;
+    auto const size      = static_cast<size_type>(width * height);
+    if (data.size() != size) {
+      data.resize(size);
     }
-    auto const s = static_cast<GLsizei>(data.size() * num_components() *
-                                        sizeof(value_type));
+    auto const s = static_cast<GLsizei>(data.size() * sizeof(value_type)) *
+                   num_components();
     gl::get_texture_sub_image(id(), level, xoffset, yoffset, 0, width, height,
                               1, gl_format, gl_type, s, data.front().data());
     return data;
@@ -675,8 +675,11 @@ class texture : public id_holder<GLuint> {
                           std::vector<ValueType>& data, GLint level = 0) const
   requires (num_components() == 1) && 
            (NumDimensions == 3) {
-    if (data.size() != static_cast<std::size_t>(width * height * depth)) {
-      data.resize(width * height * depth);
+    using container_type = std::vector<ValueType>;
+    using size_type      = typename container_type::size_type;
+    auto const size      = static_cast<size_type>(width * height * depth);
+    if (data.size() != size) {
+      data.resize(size);
     }
     auto const s = static_cast<GLsizei>(data.size() * sizeof(value_type));
     gl::get_texture_sub_image(id(), level, xoffset, yoffset, zoffset, width,
@@ -691,8 +694,11 @@ class texture : public id_holder<GLuint> {
                           GLint level = 0) const
   requires (num_components() > 1) &&
            (NumDimensions == 3) {
-    if (data.size() != static_cast<std::size_t>(width * height * depth)) {
-      data.resize(width * height * depth);
+    using container_type = std::vector<vec<ValueType, num_components()>>;
+    using size_type      = typename container_type::size_type;
+    auto const size      = static_cast<size_type>(width * height * depth);
+    if (data.size() != size) {
+      data.resize(size);
     }
     auto const s = static_cast<GLsizei>(data.size() * num_components() *
                                         sizeof(value_type));
@@ -830,92 +836,6 @@ class texture : public id_holder<GLuint> {
       gl::bind_texture(target, last_tex);
     }
   }
-  //------------------------------------------------------------------------------
-  auto read(std::string const& filepath) {
-    auto ext = filepath.substr(filepath.find_last_of('.') + 1);
-    if constexpr (NumDimensions == 2) {
-#if TATOOINE_PNG_AVAILABLE
-      if constexpr (is_readable_from_png) {
-        if (ext == "png") {
-          read_png(filepath);
-          return;
-        }
-      }
-#endif
-    }
-
-    throw std::runtime_error("could not read fileformat ." + ext);
-  }
-  //------------------------------------------------------------------------------
-  auto write(std::string const filepath) const {
-    auto ext = filepath.substr(filepath.find_last_of('.') + 1);
-    if constexpr (NumDimensions == 2) {
-#if TATOOINE_PNG_AVAILABLE
-      if constexpr (is_writable_to_png) {
-        if (ext == "png") {
-          write_png(filepath);
-          return;
-        }
-      }
-#endif
-    }
-    throw std::runtime_error("could not write fileformat ." + ext);
-  }
-  //----------------------------------------------------------------------------
-#if TATOOINE_PNG_AVAILABLE
-  auto read_png(std::string const& filepath)
-          -> void requires(NumDimensions == 2) &&
-      is_readable_from_png {
-    using tex_png_t = tex_png<value_type, components_type>;
-    auto image      = typename tex_png_t::png_t{};
-    image.read(filepath);
-    m_size[0] = image.get_width();
-    m_size[1] = image.get_height();
-
-    auto data = [this]() {
-      if constexpr (num_components() == 1) {
-        auto data = std::vector<value_type>{};
-        data.reserve(num_texels());
-        return data;
-      } else {
-        auto data = std::vector<vec<value_type, num_components()>>{};
-        data.reserve(num_texels());
-        return data;
-      }
-    }();
-    for (png::uint_32 y = 0; y < static_cast<png::uint_32>(m_size[1]); ++y) {
-      for (png::uint_32 x = 0; x < static_cast<png::uint_32>(width()); ++x) {
-        tex_png_t::load_pixel(data, image, x, y);
-      }
-    }
-    if constexpr (is_floating_point<value_type>) {
-      auto normalize = [](auto d) { return d / 255.0F; };
-      std::ranges::transform(data, begin(data), normalize);
-    }
-
-    upload_data(data.data());
-  }
-  //------------------------------------------------------------------------------
-  auto write_png(std::string const& filepath) const
-      requires(NumDimensions == 2) &&
-      (is_writable_to_png) {
-    using tex_png_t = tex_png<value_type, components_type>;
-    auto image =
-        typename tex_png_t::png_t{static_cast<png::uint_32>(width()),
-                                  static_cast<png::uint_32>(m_size[1])};
-    auto data = download_data();
-
-    for (png::uint_32 y = 0; y < static_cast<png::uint_32>(image.get_height());
-         ++y) {
-      for (png::uint_32 x = 0; x < static_cast<png::uint_32>(image.get_width());
-           ++x) {
-        auto const idx = x + width() * y;
-        tex_png_t::save_pixel(data.internal_container(), image, x, y, idx);
-      }
-    }
-    image.write(filepath);
-  }
-#endif
 };
 //==============================================================================
 template <texture_value ValueType, texture_component Components>
@@ -1099,9 +1019,9 @@ auto to_2d(tex1<float, Components> const& t1, std::size_t const height,
   t1.bind_image_texture(0);
   t2.bind_image_texture(1);
   dispatch_compute(
-      static_cast<int>(
+      static_cast<GLuint>(
           std::ceil(t1.width() / static_cast<double>(local_size_x))),
-      static_cast<int>(std::ceil(static_cast<double>(height) /
+      static_cast<GLuint>(std::ceil(static_cast<double>(height) /
                                  static_cast<double>(local_size_y))),
       1);
   return t2;

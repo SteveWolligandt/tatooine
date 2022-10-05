@@ -68,9 +68,9 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
       normals[v2.index()] += n;
     }
 
-    m_geometry.resize(grid.vertices().size());
-    m_triangles.resize(grid.simplices().size() * 3);
-    m_wireframe.resize(grid.simplices().size() * 6);
+    m_geometry.resize(static_cast<GLsizei>(grid.vertices().size()));
+    m_triangles.resize(static_cast<GLsizei>(grid.simplices().size() * 3));
+    m_wireframe.resize(static_cast<GLsizei>(grid.simplices().size() * 6));
     {
       auto data = m_geometry.wmap();
       auto k    = std::size_t{};
@@ -86,16 +86,17 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
         auto k = std::size_t{};
         for (auto const s : grid.simplices()) {
           auto const [v0, v1, v2] = grid[s];
-          data[k++]               = v0.index();
-          data[k++]               = v1.index();
-          data[k++]               = v2.index();
+          data[k++] =
+              static_cast<typename gl::indexbuffer::value_type>(v0.index());
+          data[k++] =
+              static_cast<typename gl::indexbuffer::value_type>(v1.index());
+          data[k++] =
+              static_cast<typename gl::indexbuffer::value_type>(v2.index());
         }
         if (!grid.invalid_simplices().empty()) {
-          auto invalid_it = begin(grid.invalid_simplices());
-
           auto constexpr inc = [](auto i) { return ++i; };
           auto offsets =
-              std::vector<std::size_t>(size(grid.vertex_position_data()), 0);
+              std::vector<typename gl::indexbuffer::value_type>(size(grid.vertex_position_data()), 0);
           for (auto const v : grid.invalid_vertices()) {
             auto i = begin(offsets) + v.index();
             std::ranges::transform(i, end(offsets), i, inc);
@@ -110,12 +111,12 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
       auto k    = std::size_t{};
       for (auto const s : grid.simplices()) {
         auto const [v0, v1, v2] = grid[s];
-        data[k++] = v0.index();
-        data[k++] = v1.index();
-        data[k++] = v1.index();
-        data[k++] = v2.index();
-        data[k++] = v2.index();
-        data[k++] = v0.index();
+        data[k++] = static_cast<typename gl::indexbuffer::value_type>(v0.index());
+        data[k++] = static_cast<typename gl::indexbuffer::value_type>(v1.index());
+        data[k++] = static_cast<typename gl::indexbuffer::value_type>(v1.index());
+        data[k++] = static_cast<typename gl::indexbuffer::value_type>(v2.index());
+        data[k++] = static_cast<typename gl::indexbuffer::value_type>(v2.index());
+        data[k++] = static_cast<typename gl::indexbuffer::value_type>(v0.index());
       }
     }
   }
@@ -131,8 +132,8 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
           if constexpr (is_arithmetic<value_type>) {
             for (auto const v : grid.vertices()) {
               auto const p = prop[v.index()];
-              min_scalar   = std::min<GLfloat>(min_scalar, p);
-              max_scalar   = std::max<GLfloat>(max_scalar, p);
+              min_scalar   = std::min(min_scalar, static_cast<GLfloat>(p));
+              max_scalar   = std::max(max_scalar, static_cast<GLfloat>(p));
             }
           }
         });
@@ -153,13 +154,13 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
               for (std::size_t j = 0; j < num_comps; ++j) {
                 mag += p(j) * p(j);
                 min_scalars[j + 1] =
-                    std::min<GLfloat>(min_scalars[j + 1], p(j));
+                    std::min(min_scalars[j + 1], static_cast<GLfloat>(p(j)));
                 max_scalars[j + 1] =
-                    std::max<GLfloat>(max_scalars[j + 1], p(j));
+                    std::max(max_scalars[j + 1], static_cast<GLfloat>(p(j)));
               }
               mag            = std::sqrt(mag);
-              min_scalars[0] = std::min<GLfloat>(min_scalars[0], mag);
-              max_scalars[0] = std::max<GLfloat>(max_scalars[0], mag);
+              min_scalars[0] = std::min(min_scalars[0], static_cast<GLfloat>(mag));
+              max_scalars[0] = std::max(max_scalars[0], static_cast<GLfloat>(mag));
             }
 
             for (std::size_t j = 0; j < num_comps + 1; ++j) {
@@ -206,7 +207,7 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
   auto upload_data(auto&& prop, auto&& get_data, renderable_type const& grid) {
     auto data    = m_geometry.rwmap();
     for (std::size_t i = 0; i < grid.vertices().size(); ++i) {
-      get<2>(data[i]) = get_data(prop, i);
+      get<2>(data[i]) = static_cast<GLfloat>(get_data(prop, i));
     }
   };
   //----------------------------------------------------------------------------
@@ -469,8 +470,8 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
         if constexpr (is_arithmetic<value_type>) {
           for (auto const v :grid.vertices()) {
             auto const p = prop[v.index()];
-            min_scalar   = std::min<GLfloat>(min_scalar, p);
-            max_scalar   = std::max<GLfloat>(max_scalar, p);
+            min_scalar   = std::min(min_scalar, static_cast<GLfloat>(p));
+            max_scalar   = std::max(max_scalar, static_cast<GLfloat>(p));
           }
         }
       });
@@ -489,8 +490,8 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
                 mag += p(i) * p(i);
               }
               mag        = std::sqrt(mag);
-              min_scalar = std::min<GLfloat>(min_scalar, mag);
-              max_scalar = std::max<GLfloat>(max_scalar, mag);
+              min_scalar = std::min(min_scalar, static_cast<GLfloat>(mag));
+              max_scalar = std::max(max_scalar, static_cast<GLfloat>(mag));
             } else {
               auto s = typename value_type::value_type{};
               if (selected_component.at(*selected_property_name) ==
@@ -510,8 +511,8 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
                   s = p.w();
                 }
               }
-              min_scalar = std::min<GLfloat>(min_scalar, s);
-              max_scalar = std::max<GLfloat>(max_scalar, s);
+              min_scalar = std::min(min_scalar, static_cast<GLfloat>(s));
+              max_scalar = std::max(max_scalar, static_cast<GLfloat>(s));
             }
           }
         }
@@ -586,7 +587,7 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
     }
   }
   //----------------------------------------------------------------------------
-  auto update(auto const dt, renderable_type const& grid,
+  auto update(auto const /*dt*/, renderable_type const& /*grid*/,
               camera auto const& cam) {
     using CamReal = typename std::decay_t<decltype(cam)>::real_type;
     static auto constexpr cam_is_float = is_same<GLfloat, CamReal>;

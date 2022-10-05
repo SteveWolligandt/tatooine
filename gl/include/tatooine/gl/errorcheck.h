@@ -13,8 +13,8 @@ namespace tatooine::gl {
 
 class gl_error : public std::runtime_error {
  public:
-  DLL_API gl_error(const std::string& function_name,
-                   const std::string& message);
+  DLL_API gl_error(std::string_view const& function_name,
+                   std::string_view const& message);
 };
 
 class gl_framebuffer_not_complete_error : public std::runtime_error {

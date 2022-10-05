@@ -25,6 +25,8 @@ set(TATOOINE_MANDATORY_GIT_SUBMODULES
 foreach(SUBMODULE ${TATOOINE_MANDATORY_GIT_SUBMODULES})
   update_git_submodule(${SUBMODULE})
 endforeach()
+add_library(rapidxml INTERFACE)
+target_include_directories(rapidxml INTERFACE SYSTEM external/rapidxml)
 #--------------------------------------------------------------------------------
 set(REAL_NUMBER double float)
 set(TATOOINE_REAL_NUMBER_TYPE double CACHE STRING "Floating point type for real numbers")
@@ -98,18 +100,13 @@ endif ()
 #-------------------------------------------------------------------------------
 # Boost
 #-------------------------------------------------------------------------------
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
-    "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  target_compile_options(base INTERFACE -Wno-interference-size)
-endif()
-#-------------------------------------------------------------------------------
 # set include dirs
 target_include_directories(base
   INTERFACE
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>"
-    external/indicators/include
-    external/rapidxml)
+    external/indicators/include)
+target_link_libraries(base INTERFACE rapidxml)
 
 target_include_directories(base SYSTEM INTERFACE external/gcem/include)
 if (TATOOINE_STD_FILESYSTEM_COMPILED)

@@ -52,7 +52,7 @@ struct moving_least_squares_sampler<Real, 2, T, Weighting>
   ~moving_least_squares_sampler() = default;
   //----------------------------------------------------------------------------
  private:
-  [[nodiscard]] auto evaluate_0_neighbors(pos_type const& q) const {
+  [[nodiscard]] auto evaluate_0_neighbors(pos_type const& /*q*/) const {
     if constexpr (is_arithmetic<tensor_type>) {
       return Real(0) / Real(0);
     } else {

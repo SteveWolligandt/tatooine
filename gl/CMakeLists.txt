@@ -18,6 +18,7 @@ if (TATOOINE_BUILD_GL)
   update_git_submodule(external/glfw)
   update_git_submodule(external/imgui)
   update_git_submodule(external/imgui-filebrowser)
+
   set(TATOOINE_GL_AVAILABLE 1)
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
   # GLFW
@@ -48,7 +49,7 @@ if (TATOOINE_BUILD_GL)
   # build imgui
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
   set(TATOOINE_GL_IMGUI_DIR external/imgui)
-  set(TATOOINE_GL_IMGUI_INCLUDE_DIRS ${TATOOINE_GL_IMGUI_DIR} external/imgui-filebrowser)
+  set(TATOOINE_GL_IMGUI_INCLUDE_DIRS ${TATOOINE_GL_IMGUI_DIR})
   set(TATOOINE_GL_IMGUI_FILES
     ${TATOOINE_GL_IMGUI_DIR}/imgui.cpp
     ${TATOOINE_GL_IMGUI_DIR}/imgui_widgets.cpp
@@ -57,8 +58,12 @@ if (TATOOINE_BUILD_GL)
     ${TATOOINE_GL_IMGUI_DIR}/misc/cpp/imgui_stdlib.cpp
     ${TATOOINE_GL_IMGUI_DIR}/misc/fonts/binary_to_compressed_c.cpp
     )
+
   add_library(imgui STATIC ${TATOOINE_GL_IMGUI_FILES})
   target_include_directories(imgui PUBLIC ${TATOOINE_GL_IMGUI_DIR})
+
+  add_library(imgui-filebrowser INTERFACE)
+  target_include_directories(imgui-filebrowser SYSTEM INTERFACE external/imgui-filebrowser)
 
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
   # source files
@@ -119,7 +124,7 @@ if (TATOOINE_BUILD_GL)
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>"
     ${TATOOINE_GL_IMGUI_INCLUDE_DIRS})
 
-  target_link_libraries(gl PUBLIC tensor glad glfw imgui)
+  target_link_libraries(gl PUBLIC tensor glad glfw imgui imgui-filebrowser)
   if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     target_link_libraries(gl PUBLIC opengl32)
   elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")

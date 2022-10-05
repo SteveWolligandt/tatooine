@@ -96,7 +96,7 @@ struct sampler {
   //----------------------------------------------------------------------------
   auto distance_sqr(pos_type const&                    q,
                     forward_or_backward_tag auto const tag) const {
-    return tatooine::euclidean_length(local_pos(tag));
+    return tatooine::euclidean_length(local_pos(q, tag));
   }
   //----------------------------------------------------------------------------
   auto distance(pos_type const& q, auto const tag) const {
@@ -214,8 +214,8 @@ auto write_vtp(std::vector<sampler<Real, 2>> const& samplers,
       auto connectivity_data = std::vector<lines_connectivity_int_t>{};
       connectivity_data.reserve((n - 1) * 2);
       for (std::size_t i = 0; i < n - 1; ++i) {
-        connectivity_data.push_back(i);
-        connectivity_data.push_back(i + 1);
+        connectivity_data.push_back(static_cast<lines_connectivity_int_t>(i));
+        connectivity_data.push_back(static_cast<lines_connectivity_int_t>(i + 1));
       }
 
       auto const num_bytes_lines_connectivity =
@@ -223,7 +223,7 @@ auto write_vtp(std::vector<sampler<Real, 2>> const& samplers,
       file.write(reinterpret_cast<char const*>(&num_bytes_lines_connectivity),
                  sizeof(header_type));
       file.write(reinterpret_cast<char const*>(connectivity_data.data()),
-                 num_bytes_lines_connectivity);
+                 static_cast<std::streamsize>(num_bytes_lines_connectivity));
     }
 
     // Writing lines offsets to appended data section
@@ -237,7 +237,7 @@ auto write_vtp(std::vector<sampler<Real, 2>> const& samplers,
       file.write(reinterpret_cast<char const*>(&num_bytes_lines_offsets),
                  sizeof(header_type));
       file.write(reinterpret_cast<char const*>(offsets.data()),
-                 num_bytes_lines_offsets);
+                 static_cast<std::streamsize>(num_bytes_lines_offsets_);
     }
   }
 

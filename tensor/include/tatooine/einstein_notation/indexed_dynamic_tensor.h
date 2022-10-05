@@ -203,9 +203,9 @@ struct indexed_dynamic_tensor {
   }
   //----------------------------------------------------------------------------
   template <typename... IndexedTensors>
-  auto resize_internal_tensor(contracted_dynamic_tensor<IndexedTensors...> other,
-                       type_set_impl<> const /*ts*/,
-                       std::vector<std::size_t>& size) {
+  auto resize_internal_tensor(
+      contracted_dynamic_tensor<IndexedTensors...> /*other*/,
+      type_set_impl<> const /*ts*/, std::vector<std::size_t>& size) {
     m_tensor = tensor_type::zeros(size);
   }
   //----------------------------------------------------------------------------

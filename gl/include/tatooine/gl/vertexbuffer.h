@@ -82,16 +82,16 @@ class vertexbuffer
   }
   //----------------------------------------------------------------------------
  private:
-  template <std::convertible_to<GLboolean>... Normalized, GLsizei... Is>
+  template <std::convertible_to<GLboolean>... Normalized, std::size_t... Is>
   static constexpr auto activate_attributes(
-      std::integer_sequence<GLsizei, Is...>, Normalized... normalized) -> void {
+      std::index_sequence<Is...>, Normalized... normalized) -> void {
     static_assert(sizeof...(Normalized) == sizeof...(Is));
     static_assert(sizeof...(Normalized) == num_attributes);
     (
-        [&](GLsizei i, GLboolean normalized) {
-          gl::enable_vertex_attrib_array(i);
-          gl::vertex_attrib_pointer(i, num_components[i], types[i], normalized,
-                                    data_size, (void*)offsets[i]);
+        [&](std::size_t i, GLboolean normalized) {
+          gl::enable_vertex_attrib_array(static_cast<GLuint>(i));
+          gl::vertex_attrib_pointer(static_cast<GLuint>(i), num_components[i], types[i], normalized,
+                                    data_size, (void*)(offsets[i]));
         }(Is, static_cast<GLboolean>(normalized)),
         ...);
   }
@@ -99,7 +99,7 @@ class vertexbuffer
  public:
   template <std::convertible_to<GLboolean>... Normalized>
   static constexpr void activate_attributes(Normalized... normalized) {
-    activate_attributes(std::make_integer_sequence<GLsizei, num_attributes>{},
+    activate_attributes(std::make_index_sequence<num_attributes>{},
                         normalized...);
   }
   //----------------------------------------------------------------------------

@@ -17,11 +17,11 @@ namespace tatooine {
 struct x_fastest {
   static constexpr auto plain_index(std::forward_iterator auto resolution_it,
                                     integral auto const... is) {
-    size_t multiplier = 1;
-    size_t idx        = 0;
+    std::size_t multiplier = 1;
+    std::size_t idx        = 0;
     for_each(
-        [&](auto i) {
-          idx += i * multiplier;
+        [&](auto const i) {
+          idx += static_cast<std::size_t>(i) * multiplier;
           multiplier *= *(resolution_it++);
         },
         is...);
@@ -30,8 +30,8 @@ struct x_fastest {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   static constexpr auto plain_index(std::forward_iterator auto resolution_it,
                                     range auto const&          is) {
-    size_t multiplier = 1;
-    size_t idx        = 0;
+    std::size_t multiplier = 1;
+    std::size_t idx        = 0;
     for (auto i : is) {
       idx += i * multiplier;
       multiplier *= *(resolution_it++);
@@ -59,15 +59,15 @@ struct x_fastest {
     return plain_index(begin(resolution), indices);
   }
   //----------------------------------------------------------------------------
-  static auto multi_index(range auto const& resolution, size_t plain_index) {
-    std::vector<size_t> is(resolution.size());
-    size_t              multiplier =
+  static auto multi_index(range auto const& resolution, std::size_t plain_index) {
+    std::vector<std::size_t> is(resolution.size());
+    std::size_t              multiplier =
         std::accumulate(begin(resolution), std::prev(end(resolution)),
-                        size_t(1), std::multiplies<size_t>{});
+                        std::size_t(1), std::multiplies<std::size_t>{});
 
     auto resolution_it = std::prev(end(resolution), 2);
-    for (size_t j = 0; j < resolution.size(); ++j, --resolution_it) {
-      size_t i = resolution.size() - 1 - j;
+    for (std::size_t j = 0; j < resolution.size(); ++j, --resolution_it) {
+      std::size_t i = resolution.size() - 1 - j;
       is[i]    = plain_index / multiplier;
       plain_index -= is[i] * multiplier;
       if (resolution_it >= begin(resolution)) {
@@ -84,9 +84,9 @@ struct x_slowest {
  private:
   static constexpr auto internal_plain_index(
       std::forward_iterator auto resolution_it, range auto const& is)
-      -> size_t {
-    size_t multiplier = 1;
-    size_t idx        = 0;
+      -> std::size_t {
+    std::size_t multiplier = 1;
+    std::size_t idx        = 0;
 
     for (auto i : is | boost::adaptors::reversed) {
       idx += i * multiplier;
@@ -97,13 +97,13 @@ struct x_slowest {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   static constexpr auto internal_plain_index(range auto const& resolution,
                                              integral auto const... p_is)
-      -> size_t {
+      -> std::size_t {
     std::array is{p_is...};
 
-    size_t multiplier = 1;
-    size_t idx        = 0;
+    std::size_t multiplier = 1;
+    std::size_t idx        = 0;
 
-    for (size_t i = 0; i < size(is); ++i) {
+    for (std::size_t i = 0; i < size(is); ++i) {
       idx += is[is.size() - 1 - i] * multiplier;
       // idx += is[i] * multiplier;
       multiplier *= resolution[is.size() - 1 - i];
@@ -114,20 +114,20 @@ struct x_slowest {
  public:
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   static constexpr auto plain_index(range auto const& resolution,
-                                    integral auto const... is) -> size_t {
+                                    integral auto const... is) -> std::size_t {
     assert(sizeof...(is) == resolution.size());
     return internal_plain_index(resolution, is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   static auto plain_index(range auto const& resolution, range auto const& is)
-      -> size_t {
+      -> std::size_t {
     assert(is.size() == resolution.size());
     return internal_plain_index(prev(end(resolution)), is);
   }
   //----------------------------------------------------------------------------
-  static auto multi_index(range auto const& resolution, size_t plain_index) {
-    std::vector<size_t> is(resolution.size());
-    size_t              multiplier = 1;
+  static auto multi_index(range auto const& resolution, std::size_t plain_index) {
+    auto is = std::vector<std::size_t> (resolution.size());
+    std::size_t multiplier = 1;
 
     auto resolution_it = std::prev(end(resolution));
     auto is_it         = std::prev(end(is));

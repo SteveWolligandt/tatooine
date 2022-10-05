@@ -241,7 +241,7 @@ struct diag_dynamic_tensor {
                        internal_tensor().dimension(0)};
   }
   auto dimension(std::size_t const i) const {
-    return internal_tensor().dimension(0);
+    return internal_tensor().dimension(i);
   }
   //============================================================================
   auto at(integral auto const... is) const -> value_type {

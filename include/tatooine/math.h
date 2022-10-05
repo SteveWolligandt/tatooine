@@ -4,6 +4,7 @@
 #include <tatooine/concepts.h>
 #include <cmath>
 #include <gcem.hpp>
+#include <tatooine/pow.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================

@@ -79,7 +79,7 @@ struct renderer<Ellipse> {
     }
   }
   //==============================================================================
-  auto update(auto const dt, auto& ell, camera auto const& cam) {
+  auto update(auto const /*dt*/, auto& ell, camera auto const& cam) {
     auto& shader        = shader::get();
     using cam_real_type = typename std::decay_t<decltype(cam)>::real_type;
     static auto constexpr ell_is_float = is_same<GLfloat, real_type>;
@@ -120,13 +120,13 @@ struct renderer<EllipseRange> {
   int           line_width = 1;
   Vec4<GLfloat> color      = {0, 0, 0, 1};
   //==============================================================================
-  renderer(renderable_type const& ell) {}
+  renderer(renderable_type const& /*ell*/) {}
   //------------------------------------------------------------------------------
   static auto set_projection_matrix(Mat4<GLfloat> const& P) {
     shader::get().set_projection_matrix(P);
   }
   //------------------------------------------------------------------------------
-  auto properties(renderable_type const& ell) {
+  auto properties(renderable_type const& /*ell*/) {
     ImGui::Text("Ellipse");
     ImGui::DragInt("Line width", &line_width, 1, 1, 20);
     ImGui::ColorEdit4("Color", color.data());

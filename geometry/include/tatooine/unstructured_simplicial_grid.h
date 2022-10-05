@@ -370,21 +370,21 @@ struct unstructured_simplicial_grid
   }
   //----------------------------------------------------------------------------
   auto remove_duplicate_vertices(Real const eps = 1e-7) {
-    auto const& data = this->m_vertex_position_data;
+    //auto const& data = this->m_vertex_position_data;
     for (auto v0 = vertices().begin(); v0 != vertices().end(); ++v0) {
-//#pragma omp parallel for
-      for (auto v1 = next(v0); v1 != vertices().end; ++v1) {
-        auto const d = squared_euclidean_distance(at(v0), at(v1));
+      #pragma omp parallel for
+      for (auto v1 = next(v0); v1 != vertices().end(); ++v1) {
+        auto const d = squared_euclidean_distance(at(*v0), at(*v1));
         if (d <= eps) {
           for (std::size_t is = 0; is < m_simplex_index_data.size();
                is += num_vertices_per_simplex()) {
-            for (auto ivs = 0; ivs < num_vertices_per_simplex(); ++ivs) {
-              if (m_simplex_index_data[is + ivs] == v1) {
-                m_simplex_index_data[is + ivs] = v0;
+            for (std::size_t ivs = 0; ivs < num_vertices_per_simplex(); ++ivs) {
+              if (m_simplex_index_data[is + ivs] == *v1) {
+                m_simplex_index_data[is + ivs] = *v0;
               }
             }
           }
-          parent_type::remove(v1);
+          parent_type::remove(*v1);
         }
       }
     }
@@ -406,7 +406,7 @@ struct unstructured_simplicial_grid
   //----------------------------------------------------------------------------
  private:
   template <std::size_t... Seq>
-  auto barycentric_coordinate(simplex_handle const& s, pos_type const& q,
+  auto barycentric_coordinate(simplex_handle const& s, pos_type const& /*q*/,
                               std::index_sequence<Seq...> /*seq*/) const {
     auto A           = mat<Real, NumDimensions + 1, NumDimensions + 1>::ones();
     auto b           = vec<Real, NumDimensions + 1>::zeros();
@@ -1394,7 +1394,7 @@ struct unstructured_simplicial_grid
  private:
   template <invocable<vertex_handle> F>
   auto sample_to_vertex_property_vertex_handle(F&& f, std::string const& name,
-                                               execution_policy_tag auto tag)
+                                               execution_policy_tag auto /*tag*/)
       -> auto& {
     using T    = std::invoke_result_t<F, vertex_handle>;
     auto& prop = this->template vertex_property<T>(name);
@@ -1414,7 +1414,7 @@ struct unstructured_simplicial_grid
   //----------------------------------------------------------------------------
   template <invocable<pos_type> F>
   auto sample_to_vertex_property_pos(F&& f, std::string const& name,
-                                     execution_policy_tag auto tag) -> auto& {
+                                     execution_policy_tag auto /*tag*/) -> auto& {
     using T    = std::invoke_result_t<F, pos_type>;
     auto& prop = this->template vertex_property<T>(name);
     for (auto const v : vertices()) {
