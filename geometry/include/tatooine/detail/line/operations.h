@@ -466,7 +466,7 @@ auto line_segments_to_line_strips(
       static_cast<std::size_t>(std::ceil(std::log2(unmerged_lines.size())));
 
   for (std::size_t i = 0; i < num_merge_steps; i++) {
-    std::size_t offset = tatooine::pow(2, i);
+    std::size_t offset = tatooine::pow(std::size_t(2), i);
 
 #pragma omp parallel for
     for (std::size_t j = 0; j < unmerged_lines.size(); j += offset * 2) {
