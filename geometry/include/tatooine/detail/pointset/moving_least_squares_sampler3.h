@@ -141,7 +141,7 @@ struct moving_least_squares_sampler<Real, 3, T, Weighting>
   }
   //------------------------------------------------------------------------------
   auto construct_linear_part_of_B(std::vector<pos_type> const& local_positions,
-                                  pos_type const& q, auto& B) const {
+                                  pos_type const& /*q*/, auto& B) const {
     auto i = std::size_t{};
     for (auto const& x : local_positions) {
       B(i, 1) = x.x();
@@ -152,8 +152,8 @@ struct moving_least_squares_sampler<Real, 3, T, Weighting>
   }
   //------------------------------------------------------------------------------
   auto construct_quadratic_part_of_B(
-      std::vector<pos_type> const& local_positions, pos_type const& q,
-      auto& B) const {
+      std::vector<pos_type> const& local_positions, pos_type const& /*q*/,
+      auto&                        B) const {
     auto i = std::size_t{};
     for (auto const& x : local_positions) {
       B(i, 4) = x.x() * x.x();
@@ -167,7 +167,7 @@ struct moving_least_squares_sampler<Real, 3, T, Weighting>
   }
   //------------------------------------------------------------------------------
   auto construct_cubic_part_of_B(std::vector<pos_type> const& local_positions,
-                                 pos_type const& q, auto& B) const {
+                                 pos_type const& /*q*/, auto& B) const {
     auto i = std::size_t{};
     for (auto const& x : local_positions) {
       B(i, 10) = x.x() * x.x() * x.x();

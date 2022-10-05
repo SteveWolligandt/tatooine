@@ -24,8 +24,11 @@ auto reader::extract_appended_data(std::string& content)
     appended_data.resize((end_appended_data - begin_appended_data) *
                          sizeof(std::string::value_type) /
                          sizeof(std::uint8_t));
-    std::copy(next(begin(content), begin_appended_data),
-              next(begin(content), end_appended_data),
+    auto content_begin = begin(content);
+    using diff_type =
+        typename std::iterator_traits<std::string::iterator>::difference_type;
+    std::copy(next(content_begin, static_cast<diff_type>(begin_appended_data)),
+              next(content_begin, static_cast<diff_type>(end_appended_data)),
               reinterpret_cast<std::string::value_type*>(appended_data.data()));
   }
   content.erase(begin_appended_data, end_appended_data - begin_appended_data);

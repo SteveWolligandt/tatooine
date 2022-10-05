@@ -198,7 +198,8 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
   auto init_properties(renderable_type const& grid) {
     tex.resize(grid.template size<0>(), grid.template size<1>());
 
-    for (auto const& [name, prop] : grid.vertex_properties()) {
+    for (auto const& key_value : grid.vertex_properties()) {
+      auto const& [name, prop] = key_value;
       if (prop_holds_scalar(prop)) {
         auto min_scalar = std::numeric_limits<GLfloat>::max();
         auto max_scalar = -std::numeric_limits<GLfloat>::max();
@@ -216,6 +217,7 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
         settings[name] = {&color_scale::viridis(), min_scalar, max_scalar};
       } else if (prop_holds_vector(prop)) {
         retrieve_typed_prop(prop.get(), [&](auto const& prop) {
+          auto const& [name, prop] = key_value;
           using prop_type  = std::decay_t<decltype(prop)>;
           using value_type = typename prop_type::value_type;
           if constexpr (static_vec<value_type>) {

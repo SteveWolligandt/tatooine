@@ -155,20 +155,26 @@ struct dataspace : id_holder {
   auto rank() const { return H5Sget_simple_extent_ndims(id()); }
   //------------------------------------------------------------------------------
   auto current_resolution() const {
-    std::vector<hsize_t> cur_res(rank());
+    using res_container = std::vector<hsize_t>;
+    using size_type     = typename res_container::size_type;
+    auto cur_res        = res_container(static_cast<size_type>(rank()));
     H5Sget_simple_extent_dims(id(), cur_res.data(), nullptr);
     return boost::reverse(cur_res);
   }
   //------------------------------------------------------------------------------
   auto max_resolution() const {
-    std::vector<hsize_t> max_res(rank());
+    using res_container = std::vector<hsize_t>;
+    using size_type     = typename res_container::size_type;
+    auto max_res        = res_container(static_cast<size_type>(rank()));
     H5Sget_simple_extent_dims(id(), nullptr, max_res.data());
     return boost::reverse(max_res);
   }
   //------------------------------------------------------------------------------
   auto current_and_max_resolution() const {
-    auto ret =
-        std::tuple{std::vector<hsize_t>(rank()), std::vector<hsize_t>(rank())};
+    using hsize_t_container = std::vector<hsize_t>;
+    using size_type = typename hsize_t_container::size_type;
+    auto ret = std::tuple{hsize_t_container(static_cast<size_type>(rank())),
+                          hsize_t_container(static_cast<size_type>(rank()))};
     H5Sget_simple_extent_dims(id(), std::get<0>(ret).data(),
                               std::get<1>(ret).data());
     boost::reverse(std::get<0>(ret));
@@ -229,7 +235,9 @@ struct dataspace : id_holder {
   }
   //----------------------------------------------------------------------------
   auto name() const {
-    auto n = std::string(H5Aget_name(id(), 0, nullptr), ' ');
+    auto n = std::string(
+        static_cast<std::string::size_type>(H5Aget_name(id(), 0, nullptr)),
+        ' ');
     H5Aget_name(id(), n.size(), n.data());
     return n;
   }

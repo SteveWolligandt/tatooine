@@ -80,7 +80,7 @@ struct triangular_vtu_writer {
     file << "      </PointData>\n";
   }
   //------------------------------------------------------------------------------
-  auto write_cell_data(std::ofstream& file, std::size_t& offset) const {
+  auto write_cell_data(std::ofstream& file, std::size_t& /*offset*/) const {
     file << "      <CellData>\n";
     file << "      </CellData>\n";
   }
@@ -223,7 +223,7 @@ struct triangular_vtu_writer {
     }
   }
   //----------------------------------------------------------------------------
-  auto write_appended_data_cell_data(std::ofstream& file) const {}
+  auto write_appended_data_cell_data(std::ofstream& /*file*/) const {}
   //----------------------------------------------------------------------------
   template <typename... Ts>
   auto write_vertex_property_appended_data(vertex_property_type const& prop,

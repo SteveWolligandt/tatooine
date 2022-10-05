@@ -7,25 +7,25 @@
 namespace tatooine::gl {
 //==============================================================================
 struct R {
-  static constexpr std::size_t num_components = 1;
+  static constexpr GLsizei num_components = 1;
 };
 struct RG {
-  static constexpr std::size_t num_components = 2;
+  static constexpr GLsizei num_components = 2;
 };
 struct RGB {
-  static constexpr std::size_t num_components = 3;
+  static constexpr GLsizei num_components = 3;
 };
 struct RGBA {
-  static constexpr std::size_t num_components = 4;
+  static constexpr GLsizei num_components = 4;
 };
 struct BGR {
-  static constexpr std::size_t num_components = 3;
+  static constexpr GLsizei num_components = 3;
 };
 struct BGRA {
-  static constexpr std::size_t num_components = 4;
+  static constexpr GLsizei num_components = 4;
 };
 struct Depth {
-  static constexpr std::size_t num_components = 1;
+  static constexpr GLsizei num_components = 1;
 };
 //==============================================================================
 template <typename T>
@@ -41,5 +41,4 @@ concept texture_component =
 //==============================================================================
 }  // namespace tatooine::gl
 //==============================================================================
-
 #endif

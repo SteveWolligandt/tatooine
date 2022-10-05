@@ -39,7 +39,7 @@ class shaderstageparser {
     std::string line;
     shadersource content;
 
-    int line_number = 0;
+    auto line_number = std::size_t{};
 
     while (std::getline(stream, line)) {
       if (auto parsed_var = parse_varname(line); parsed_var)

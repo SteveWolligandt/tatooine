@@ -11,7 +11,7 @@ namespace tatooine::gl {
 struct include_tree {
  private:
   int                     m_line_number;
-  size_t                  m_num_lines;
+  std::size_t             m_num_lines;
   std::filesystem::path   m_path;
   std::list<include_tree> m_nested_include_trees;
   include_tree const*     m_parent;
@@ -33,7 +33,7 @@ struct include_tree {
  public:
   include_tree() : m_line_number{-1}, m_num_lines{0} {}
   //----------------------------------------------------------------------------
-  include_tree(size_t line_number, size_t num_lines,
+  include_tree(std::size_t line_number, std::size_t num_lines,
                std::filesystem::path const&   path,
                std::list<include_tree> const& nested_include_trees,
                include_tree const&            parent)
@@ -43,7 +43,7 @@ struct include_tree {
         m_nested_include_trees{nested_include_trees},
         m_parent{&parent} {}
   //----------------------------------------------------------------------------
-  include_tree(size_t line_number, size_t num_lines,
+  include_tree(std::size_t line_number, std::size_t num_lines,
                std::filesystem::path const&   path,
                std::list<include_tree> const& nested_include_trees)
       : m_line_number{static_cast<int>(line_number)},
@@ -51,13 +51,13 @@ struct include_tree {
         m_path{path},
         m_nested_include_trees{nested_include_trees} {}
   //----------------------------------------------------------------------------
-  include_tree(size_t line_number, size_t num_lines,
+  include_tree(std::size_t line_number, std::size_t num_lines,
                std::filesystem::path const& path)
       : m_line_number{static_cast<int>(line_number)},
         m_num_lines{num_lines},
         m_path{path} {}
   //----------------------------------------------------------------------------
-  include_tree(size_t line_number, size_t num_lines,
+  include_tree(std::size_t line_number, std::size_t num_lines,
                std::filesystem::path const& path, include_tree const& parent)
       : m_line_number{static_cast<int>(line_number)},
         m_num_lines{num_lines},
@@ -65,29 +65,30 @@ struct include_tree {
         m_parent{&parent} {}
   //----------------------------------------------------------------------------
   /// returns file and line number
-  auto parse_line(size_t n) const -> std::pair<include_tree const&, size_t> {
-    size_t cur_offset = 0;
+  auto parse_line(std::size_t n) const -> std::pair<include_tree const&, std::size_t> {
+    auto cur_offset = std::size_t{};
     for (auto const& nesting : m_nested_include_trees) {
-      if (n >= nesting.m_line_number + cur_offset &&
-          n < nesting.m_line_number + cur_offset +
-                  nesting.num_lines_with_includes())
-        return nesting.parse_line(n - cur_offset - nesting.m_line_number);
-      else
+      auto const line_number = static_cast<std::size_t>(nesting.m_line_number);
+      if (n >= line_number + cur_offset &&
+          n < line_number + cur_offset + nesting.num_lines_with_includes()) {
+        return nesting.parse_line(n - cur_offset - line_number);
+      } else {
         cur_offset += nesting.num_lines_with_includes() - 1;
+      }
     }
     return {*this, n - cur_offset};
   }
   //----------------------------------------------------------------------------
-  auto num_lines_with_includes() const -> size_t {
-    size_t n = m_num_lines;
+  auto num_lines_with_includes() const -> std::size_t {
+    auto n = m_num_lines;
     n -= m_nested_include_trees.size();
     for (auto const& nesting : m_nested_include_trees)
       n += nesting.num_lines_with_includes();
     return n;
   }
   //----------------------------------------------------------------------------
-  auto print(size_t indent = 0) const -> void {
-    for (size_t i = 0; i < indent; ++i) {
+  auto print(std::size_t indent = 0) const -> void {
+    for (std::size_t i = 0; i < indent; ++i) {
       std::cerr << ' ';
     }
     std::cerr << m_line_number << "/" << std::to_string(m_num_lines) << ": "

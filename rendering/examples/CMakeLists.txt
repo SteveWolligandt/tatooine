@@ -6,6 +6,6 @@ if (TATOOINE_GL_AVAILABLE)
 
   add_executable(rendering.example.isosurface_abcflow isosurface_abcflow.cpp)
   target_link_libraries(rendering.example.isosurface_abcflow rendering)
-  target_compile_options(rendering.example.isosurface_abcflow PRIVATE -Wconversion)
+  #target_compile_options(rendering.example.isosurface_abcflow PRIVATE -Wconversion -fconcepts-diagnostics-depth=4)
   set_property(TARGET rendering.example.isosurface_abcflow PROPERTY CXX_STANDARD 20)
 endif()

@@ -35,7 +35,7 @@ struct natural_neighbor_coordinates_sampler_with_gradients
   using cgal_triangulation_type =
       cgal::delaunay_triangulation_with_info<NumDimensions, cgal_kernel,
                                              vertex_handle>;
-  using cgal_point = cgal_triangulation_type::Point;
+  using cgal_point = typename cgal_triangulation_type::Point;
 
   //==========================================================================
   pointset_type const&                 m_p;

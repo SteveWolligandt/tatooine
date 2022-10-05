@@ -7,10 +7,10 @@ namespace tatooine::gl {
 imgui_render_backend::imgui_render_backend() {
   // Query for GL version
   auto const [major, minor] = opengl_version();
-  m_gl_version              = major * 1000 + minor;
+  m_gl_version              = static_cast<GLuint>(major * 1000 + minor);
 
   // Setup back-end capabilities flags
-  ImGuiIO& io            = ImGui::GetIO();
+  auto& io               = ImGui::GetIO();
   io.BackendRendererName = "tatooine";
 
   if (m_gl_version >= 3200) {
@@ -151,11 +151,15 @@ void imgui_render_backend::render_draw_data(ImDrawData* draw_data) {
 
     // Upload vertex/index buffers
     gl::buffer_data(GL_ARRAY_BUFFER,
-                    (GLsizeiptr)cmd_list->VtxBuffer.Size * sizeof(ImDrawVert),
-                    (const GLvoid*)cmd_list->VtxBuffer.Data, GL_STREAM_DRAW);
+                    static_cast<GLsizeiptr>(
+                        static_cast<std::size_t>(cmd_list->VtxBuffer.Size) *
+                        sizeof(ImDrawVert)),
+                    (GLvoid const*)cmd_list->VtxBuffer.Data, GL_STREAM_DRAW);
     gl::buffer_data(GL_ELEMENT_ARRAY_BUFFER,
-                    (GLsizeiptr)cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx),
-                    (const GLvoid*)cmd_list->IdxBuffer.Data, GL_STREAM_DRAW);
+                    static_cast<GLsizeiptr>(
+                        static_cast<std::size_t>(cmd_list->IdxBuffer.Size) *
+                        sizeof(ImDrawIdx)),
+                    (GLvoid const*)cmd_list->IdxBuffer.Data, GL_STREAM_DRAW);
 
     for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++) {
       const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[cmd_i];

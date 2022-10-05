@@ -2,6 +2,7 @@
 #define TATOOINE_DETAIL_LINE_OPERATIONS_H
 //==============================================================================
 #include <tatooine/line.h>
+#include <tatooine/pow.h>
 //==============================================================================
 namespace tatooine::detail::line {
 //==============================================================================
@@ -123,14 +124,14 @@ void write_line_container_to_vtp(LineCont const&         lines,
       connectivity_data.reserve((l.vertices().size() - (l.is_closed() ? 0 : 1)) *
                                 2);
       for (std::size_t i = 0; i < l.vertices().size() - 1; ++i) {
-        connectivity_data.push_back(i);
-        connectivity_data.push_back(i + 1);
+        connectivity_data.push_back(static_cast<connectivity_int_t>(i));
+        connectivity_data.push_back(static_cast<connectivity_int_t>(i + 1));
       }
       if (l.is_closed()) {
         connectivity_data.push_back(l.vertices().size() - 1);
         connectivity_data.push_back(0);
       }
-      arr_size = connectivity_data.size() * sizeof(connectivity_int_t);
+      arr_size = static_cast<header_type>(connectivity_data.size() * sizeof(connectivity_int_t));
       file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
       file.write(reinterpret_cast<char const*>(connectivity_data.data()),
                  arr_size);
@@ -324,8 +325,7 @@ void write_vtk(const std::list<line<Real, NumDimensions>>& lines,
 }
 template <typename Real, std::size_t NumDimensions>
 void write(const std::vector<line<Real, NumDimensions>>& lines,
-           const filesystem::path&                       path,
-           const std::string& title = "tatooine lines") {
+           const filesystem::path&                       path) {
   auto const ext = path.extension();
   if constexpr (NumDimensions == 2 || NumDimensions == 3) {
     if (ext == ".vtk") {
@@ -341,8 +341,7 @@ void write(const std::vector<line<Real, NumDimensions>>& lines,
 }
 template <typename Real, std::size_t NumDimensions>
 void write(const std::list<line<Real, NumDimensions>>& lines,
-           const filesystem::path&                     path,
-           const std::string& title = "tatooine lines") {
+           const filesystem::path&                     path) {
   auto const ext = path.extension();
   if constexpr (NumDimensions == 2 || NumDimensions == 3) {
     if (ext == ".vtk") {
@@ -467,7 +466,7 @@ auto line_segments_to_line_strips(
       static_cast<std::size_t>(std::ceil(std::log2(unmerged_lines.size())));
 
   for (std::size_t i = 0; i < num_merge_steps; i++) {
-    std::size_t offset = std::pow(2, i);
+    std::size_t offset = tatooine::pow(2, i);
 
 #pragma omp parallel for
     for (std::size_t j = 0; j < unmerged_lines.size(); j += offset * 2) {

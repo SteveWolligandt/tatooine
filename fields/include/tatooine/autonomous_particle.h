@@ -795,7 +795,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
 #pragma omp parallel
     {
       if (omp_get_thread_num() == 0) {
-        num_threads = omp_get_num_threads();
+        num_threads = static_cast<std::size_t>(omp_get_num_threads());
       }
     }
     return num_threads;
@@ -821,7 +821,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //----------------------------------------------------------------------------
   template <split_behavior SplitBehavior, typename Flowmap>
   static auto advect_particle_pools(
-      std::size_t const num_threads, Flowmap&& phi, real_type const stepwidth,
+      std::size_t const /*num_threads*/, Flowmap&& phi, real_type const stepwidth,
       real_type const t_end, auto& particles_per_thread,
       std::vector<hierarchy_pair>& hierarchy_pairs, std::mutex& hierarchy_mutex,
       std::atomic_uint64_t& uuid_generator) {
@@ -1042,8 +1042,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
                           container_type&                 splitted_particles,
                           container_type&                 finished_particles,
                           simple_particle_container_type& simple_particles,
-                          std::vector<hierarchy_pair>&    hierarchy_pairs,
-                          std::mutex&                     hierarchy_mutex,
+                          std::vector<hierarchy_pair>&    /*hierarchy_pairs*/,
+                          std::mutex&                     /*hierarchy_mutex*/,
                           std::atomic_uint64_t& uuid_generator) const {
     if constexpr (is_cacheable<std::decay_t<decltype(phi)>>()) {
       phi.use_caching(false);
@@ -1175,7 +1175,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
 template <floating_point Real>
 auto write_vtp(std::vector<autonomous_particle<Real, 2>> const& particles,
                std::size_t const n, filesystem::path const& path,
-               backward_tag const tag) {
+               backward_tag const /*tag*/) {
   auto file = std::ofstream{path, std::ios::binary};
   if (!file.is_open()) {
     throw std::runtime_error{"Could not write " + path.string()};
@@ -1271,8 +1271,8 @@ auto write_vtp(std::vector<autonomous_particle<Real, 2>> const& particles,
       auto connectivity_data = std::vector<lines_connectivity_int_t>{};
       connectivity_data.reserve((n - 1) * 2);
       for (std::size_t i = 0; i < n - 1; ++i) {
-        connectivity_data.push_back(i);
-        connectivity_data.push_back(i + 1);
+        connectivity_data.push_back(static_cast<lines_connectivity_int_t>(i));
+        connectivity_data.push_back(static_cast<lines_connectivity_int_t>(i + 1));
       }
 
       auto const num_bytes_lines_connectivity =
@@ -1280,7 +1280,7 @@ auto write_vtp(std::vector<autonomous_particle<Real, 2>> const& particles,
       file.write(reinterpret_cast<char const*>(&num_bytes_lines_connectivity),
                  sizeof(header_type));
       file.write(reinterpret_cast<char const*>(connectivity_data.data()),
-                 num_bytes_lines_connectivity);
+                 static_cast<std::streamsize>(num_bytes_lines_connectivity));
     }
 
     // Writing lines offsets to appended data section
@@ -1294,7 +1294,7 @@ auto write_vtp(std::vector<autonomous_particle<Real, 2>> const& particles,
       file.write(reinterpret_cast<char const*>(&num_bytes_lines_offsets),
                  sizeof(header_type));
       file.write(reinterpret_cast<char const*>(offsets.data()),
-                 num_bytes_lines_offsets);
+                 static_cast<std::streamsize>(num_bytes_lines_offsets));
     }
   }
 

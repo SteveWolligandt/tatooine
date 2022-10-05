@@ -25,29 +25,29 @@ class buffer_map {
   static constexpr auto data_size  = buffer_type::data_size;
 
  private:
-  const buffer_type* m_buffer;
-  std::size_t        m_offset;
-  std::size_t        m_length;
+  buffer_type const* m_buffer;
+  GLsizei            m_offset;
+  GLsizei        m_length;
   T*                 m_gpu_mapping;
   bool               m_unmapped = false;
 
  public:
   /// constructor gets a mapping to gpu_buffer
-  buffer_map(const buffer_type* buffer, std::size_t offset, std::size_t length)
-      : m_buffer(buffer), m_offset(offset), m_length(length) {
-    m_gpu_mapping = (T*)gl::map_named_buffer_range(
-        m_buffer->id(), data_size * offset,
-        static_cast<GLsizei>(data_size * m_length), access);
+  buffer_map(buffer_type const* buffer, GLsizei offset, GLsizei length)
+      : m_buffer{buffer}, m_offset{offset}, m_length{length} {
+    m_gpu_mapping = static_cast<T*>(gl::map_named_buffer_range(
+        m_buffer->id(), data_size * m_offset,
+        static_cast<GLsizei>(data_size * m_length), access));
     detail::mutex::gl_call.lock();
   }
   //============================================================================
-  buffer_map(const buffer_map&) = delete;
+  buffer_map(buffer_map const&) = delete;
   buffer_map(buffer_map&&)      = delete;
   //============================================================================
-  auto operator=(const buffer_map&) -> buffer_map& = delete;
+  auto operator=(buffer_map const&) -> buffer_map& = delete;
   auto operator=(buffer_map&&) -> buffer_map&      = delete;
   //============================================================================
-  auto operator=(const std::vector<T>& data) -> buffer_map& {
+  auto operator=(std::vector<T> const& data) -> buffer_map& {
     assert(size(data) == m_buffer->size());
     for (std::size_t i = 0; i < size(data); ++i) {
       at(i) = data[i];
@@ -67,16 +67,16 @@ class buffer_map {
   }
   //============================================================================
   auto at(std::size_t i) -> auto& { return m_gpu_mapping[i]; }
-  auto at(std::size_t i) const -> const auto& { return m_gpu_mapping[i]; }
+  auto at(std::size_t i) const -> auto const& { return m_gpu_mapping[i]; }
   //============================================================================
   auto front() -> auto& { return at(0); }
-  auto front() const -> const auto& { return at(0); }
+  auto front() const -> auto const& { return at(0); }
   //============================================================================
   auto back() -> auto& { return at(m_length - 1); }
-  auto back() const -> const auto& { return at(m_length - 1); }
+  auto back() const -> auto const& { return at(m_length - 1); }
   //============================================================================
   auto operator[](std::size_t i) -> auto& { return at(i); }
-  auto operator[](std::size_t i) const -> const auto& { return at(i); }
+  auto operator[](std::size_t i) const -> auto const& { return at(i); }
   //============================================================================
   auto begin() { return m_gpu_mapping; }
   auto begin() const { return m_gpu_mapping; }

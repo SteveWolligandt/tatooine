@@ -193,7 +193,7 @@ auto write_unstructured_triangular_grid_container_to_vtp(
                  sizeof(polys_connectivity_int_t);
       file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
       file.write(reinterpret_cast<char const*>(connectivity_data.data()),
-                 arr_size);
+                 static_cast<std::streamsize>(arr_size));
     }
 
     // Writing polys offsets to appended data section
@@ -206,7 +206,7 @@ auto write_unstructured_triangular_grid_container_to_vtp(
       arr_size = sizeof(polys_offset_int_t) * g.simplices().size();
       file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
       file.write(reinterpret_cast<char const*>(offsets.data()),
-                 arr_size);
+                 static_cast<std::streamsize>(arr_size));
     }
   }
   file << "</AppendedData>";

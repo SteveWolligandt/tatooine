@@ -193,7 +193,8 @@ struct renderer<tatooine::pointset<Real, 2>> {
   }
   //----------------------------------------------------------------------------
   auto init_properties(renderable_type const& ps) {
-    for (auto const& [name, prop] : ps.vertex_properties()) {
+    for (auto const& key_value : ps.vertex_properties()) {
+      auto const& [name, prop] = key_value;
       if (prop_holds_scalar(prop)) {
         auto min_scalar = std::numeric_limits<GLfloat>::max();
         auto max_scalar = -std::numeric_limits<GLfloat>::max();
@@ -233,7 +234,7 @@ struct renderer<tatooine::pointset<Real, 2>> {
               min_scalars[0] = std::min<GLfloat>(min_scalars[0], mag);
               max_scalars[0] = std::max<GLfloat>(max_scalars[0], mag);
             }
-
+            auto const& [name, prop] = key_value;
             for (std::size_t j = 0; j < num_comps + 1; ++j) {
               settings[name + '_' + std::string{vector_component_names[j]}] = {
                   &color_scale::viridis(), min_scalars[j], max_scalars[j]};

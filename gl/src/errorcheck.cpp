@@ -7,10 +7,11 @@
 //==============================================================================
 namespace tatooine::gl {
 //==============================================================================
-gl_error::gl_error(const std::string& function_name, const std::string& message)
-    : std::runtime_error(std::string{ansi::red} + std::string{ansi::bold} +
-                         "[" + function_name + "] " + std::string{ansi::reset} +
-                         message) {}
+gl_error::gl_error(const std::string_view& function_name,
+                   const std::string_view& message)
+    : std::runtime_error{std::string{ansi::red} + std::string{ansi::bold} +
+                         "[" + std::string{function_name} + "] " +
+                         std::string{ansi::reset} + std::string{message}} {}
 //------------------------------------------------------------------------------
 gl_framebuffer_not_complete_error::gl_framebuffer_not_complete_error(
     const std::string& what)

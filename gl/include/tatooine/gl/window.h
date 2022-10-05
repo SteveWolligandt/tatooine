@@ -79,7 +79,7 @@ class window : public window_notifier, public window_listener {
     }();
 
     *it = std::thread{[this, it, f = std::forward<F>(f)] {
-      auto ctx = context{this};
+      auto ctx = context{*this};
       ctx.make_current();
       f();
       std::lock_guard task_lock{m_async_tasks_mutex};

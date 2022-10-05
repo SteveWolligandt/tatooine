@@ -14,24 +14,30 @@ struct const_vertex_container_iterator
   const_vertex_container_iterator() = default;
   const_vertex_container_iterator(vertex_handle const  vh,
                                   pointset_type const* ps)
-      : m_vh{vh}, m_ps{ps} {}
-  const_vertex_container_iterator(const_vertex_container_iterator const& other)
-      : m_vh{other.m_vh}, m_ps{other.m_ps} {}
+      : m_vh{vh}, m_pointset{ps} {}
+  const_vertex_container_iterator(
+      const_vertex_container_iterator const& other) = default;
+  const_vertex_container_iterator(
+      const_vertex_container_iterator&& other) noexcept = default;
+  auto operator=(const_vertex_container_iterator const& other)
+      -> const_vertex_container_iterator& = default;
+  auto operator=(const_vertex_container_iterator&& other) noexcept
+      -> const_vertex_container_iterator& = default;
+  ~const_vertex_container_iterator()      = default;
 
- private:
-  vertex_handle        m_vh{};
-  pointset_type const* m_ps = nullptr;
+      private : vertex_handle m_vh{};
+  pointset_type const* m_pointset = nullptr;
 
  public:
   constexpr auto increment() {
     do {
       ++m_vh;
-    } while (!m_ps->is_valid(m_vh));
+    } while (!m_pointset->is_valid(m_vh));
   }
   constexpr auto decrement() {
     do {
       --m_vh;
-    } while (!m_ps->is_valid(m_vh));
+    } while (!m_pointset->is_valid(m_vh));
   }
 
   [[nodiscard]] constexpr auto equal(
@@ -41,12 +47,26 @@ struct const_vertex_container_iterator
   [[nodiscard]] constexpr auto equal(sentinel_type const /*other*/) const {
     return at_end();
   }
+  [[nodiscard]] constexpr auto distance_to(
+      const_vertex_container_iterator const& other) const -> std::ptrdiff_t {
+    return m_vh.index() - other.m_vh.index();
+  }
+  [[nodiscard]] constexpr auto distance_to(
+      sentinel_type const /*sentinel*/) const -> std::ptrdiff_t {
+    return m_vh.index() - m_pointset->vertex_position_data().size();
+  }
+  [[nodiscard]] constexpr auto advance(std::ptrdiff_t off) {
+    m_vh += off;
+  }
   [[nodiscard]] auto dereference() const { return m_vh; }
 
   constexpr auto at_end() const {
-    return m_vh.index() == m_ps->vertex_position_data().size();
+    return m_vh.index() == m_pointset->vertex_position_data().size();
   }
 };
+//==============================================================================
+static_assert(std::input_or_output_iterator<
+              const_vertex_container_iterator<real_number, 2>>);
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions>
 struct const_vertex_container {
@@ -58,7 +78,7 @@ struct const_vertex_container {
   pointset_type const* m_pointset;
 
  public:
-  const_vertex_container(pointset_type const* ps) : m_pointset{ps} {}
+  explicit const_vertex_container(pointset_type const* ps) : m_pointset{ps} {}
   const_vertex_container(const_vertex_container const&)     = default;
   const_vertex_container(const_vertex_container&&) noexcept = default;
   auto operator=(const_vertex_container const&)
@@ -114,37 +134,51 @@ struct vertex_container_iterator
   struct sentinel_type {};
   vertex_container_iterator() = default;
   vertex_container_iterator(vertex_handle const vh, pointset_type* ps)
-      : m_vh{vh}, m_ps{ps} {}
-  vertex_container_iterator(vertex_container_iterator const& other)
-      : m_vh{other.m_vh}, m_ps{other.m_ps} {}
+      : m_vh{vh}, m_pointset{ps} {}
+  vertex_container_iterator(vertex_container_iterator const& other) = default;
+  vertex_container_iterator(vertex_container_iterator&& other) noexcept =
+      default;
+  auto operator=(vertex_container_iterator const& other)
+      -> vertex_container_iterator& = default;
+  auto operator=(vertex_container_iterator&& other) noexcept
+      -> vertex_container_iterator& = default;
+  ~vertex_container_iterator()      = default;
 
  private:
   vertex_handle  m_vh{};
-  pointset_type* m_ps = nullptr;
+  pointset_type* m_pointset = nullptr;
 
  public:
   constexpr auto increment() {
     do {
       ++m_vh;
-    } while (!m_ps->is_valid(m_vh));
+    } while (!m_pointset->is_valid(m_vh));
   }
   constexpr auto decrement() {
     do {
       --m_vh;
-    } while (!m_ps->is_valid(m_vh));
+    } while (!m_pointset->is_valid(m_vh));
   }
 
+  [[nodiscard]] constexpr auto distance_to(
+      vertex_container_iterator const& other) const -> std::ptrdiff_t {
+    return m_vh.index() - other.m_vh.index();
+  }
+  [[nodiscard]] constexpr auto distance_to(
+      sentinel_type const /*sentinel*/) const -> std::ptrdiff_t {
+    return m_vh.index() - m_pointset->vertex_position_data().size();
+  }
+  [[nodiscard]] constexpr auto advance(std::ptrdiff_t off) {
+     m_vh += off;
+  }
   [[nodiscard]] constexpr auto equal(
       vertex_container_iterator const& other) const {
     return m_vh == other.m_vh;
   }
-  [[nodiscard]] constexpr auto equal(sentinel_type const /*sentinel*/) const {
-    return at_end();
-  }
   [[nodiscard]] auto dereference() const { return m_vh; }
 
   constexpr auto at_end() const {
-    return m_vh.index() == m_ps->vertex_position_data().size();
+    return m_vh.index() == m_pointset->vertex_position_data().size();
   }
 };
 //==============================================================================
@@ -158,7 +192,7 @@ struct vertex_container {
   pointset_type* m_pointset;
 
  public:
-  vertex_container(pointset_type* ps) : m_pointset{ps} {}
+  explicit vertex_container(pointset_type* ps) : m_pointset{ps} {}
   vertex_container(vertex_container const&)                        = default;
   vertex_container(vertex_container&&) noexcept                    = default;
   auto operator=(vertex_container const&) -> vertex_container&     = default;

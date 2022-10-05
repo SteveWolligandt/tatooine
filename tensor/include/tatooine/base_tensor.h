@@ -3,9 +3,9 @@
 //==============================================================================
 #include <tatooine/concepts.h>
 #include <tatooine/crtp.h>
+#include <tatooine/dynamic_multidim_size.h>
 #include <tatooine/einstein_notation.h>
 #include <tatooine/index_order.h>
-#include <tatooine/dynamic_multidim_size.h>
 #include <tatooine/template_helper.h>
 #include <tatooine/tensor_operations/same_dimensions.h>
 #include <tatooine/type_traits.h>
@@ -117,10 +117,10 @@ struct base_tensor : crtp<Tensor> {
       -> decltype(auto) requires(sizeof...(is) == rank()) {
     return as_derived().at(is...);
   }  //----------------------------------------------------------------------------
- private : template <std::size_t... Seq>
-           auto constexpr at(integral_range auto const& is,
-                             std::index_sequence<Seq...> /*seq*/)
-               -> decltype(auto) {
+ private:
+  template <std::size_t... Seq>
+  auto constexpr at(integral_range auto const& is,
+                    std::index_sequence<Seq...> /*seq*/) -> decltype(auto) {
     return at(is[Seq]...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -205,10 +205,12 @@ struct base_tensor : crtp<Tensor> {
   }
 
   //----------------------------------------------------------------------------
-  template <typename OtherTensor, typename OtherReal>
-  auto operator+=(base_tensor<OtherTensor, OtherReal, Dims...> const& other)
-      -> auto& {
-    for_indices([&](auto const... is) { at(is...) += other(is...); });
+  template <typename OtherTensor, typename OtherValueType>
+  auto operator+=(
+      base_tensor<OtherTensor, OtherValueType, Dims...> const& other) -> auto& {
+    for_indices([&](auto const... is) {
+      at(is...) += static_cast<ValueType>(other(is...));
+    });
     return *this;
   }
   //----------------------------------------------------------------------------
@@ -217,10 +219,12 @@ struct base_tensor : crtp<Tensor> {
     return *this;
   }
   //----------------------------------------------------------------------------
-  template <typename OtherTensor, typename OtherReal>
-  auto operator-=(base_tensor<OtherTensor, OtherReal, Dims...> const& other)
-      -> auto& {
-    for_indices([&](auto const... is) { at(is...) -= other(is...); });
+  template <typename OtherTensor, typename OtherValueType>
+  auto operator-=(
+      base_tensor<OtherTensor, OtherValueType, Dims...> const& other) -> auto& {
+    for_indices([&](auto const... is) {
+      at(is...) -= static_cast<ValueType>(other(is...));
+    });
     return *this;
   }
   //----------------------------------------------------------------------------

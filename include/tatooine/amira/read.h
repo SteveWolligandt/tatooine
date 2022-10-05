@@ -75,10 +75,10 @@ inline auto read_header(std::ifstream& file) {
 
   // Find the beginning of the data section
   auto const data_follows_pos = buffer.str().find(data_follows);
-  auto break_pos = static_cast<std::streamoff>(
-      buffer.str().find('\n', static_cast<std::streamoff>(data_follows_pos)));
-  break_pos =
-      static_cast<std::streamoff>(buffer.str().find('\n', break_pos + 1));
+  auto       break_pos = static_cast<std::string::size_type>(buffer.str().find(
+            '\n', static_cast<std::string::size_type>(data_follows_pos)));
+  break_pos            = static_cast<std::string::size_type>(
+      buffer.str().find('\n', break_pos + 1));
   auto data_begin_pos   = std::streamoff{};
   if (data_follows_pos != std::string::npos) {
     data_begin_pos = static_cast<std::streamoff>(break_pos + 1);

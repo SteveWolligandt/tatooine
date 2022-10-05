@@ -1374,8 +1374,8 @@ class rectilinear_grid {
     }
   }
   //----------------------------------------------------------------------------
-  auto read_amira(filesystem::path const& path) requires is_uniform &&
-      ((num_dimensions() == 2) || (num_dimensions() == 3)) {
+  auto read_amira(filesystem::path const& path)
+  requires is_uniform && ((num_dimensions() == 2) || (num_dimensions() == 3)) {
     auto const reader_data = amira::read<real_type>(path);
     auto const& [data, dims, aabb, num_components] = reader_data;
     if (dims[2] == 1 && num_dimensions() == 3) {
@@ -1433,14 +1433,14 @@ class rectilinear_grid {
     } else if (num_components == 2) {
       auto& prop = vertex_property<vec<real_type, 2>>(path.filename().string());
       vertices().iterate_indices([&](auto const... is) {
-        auto const& data = std::get<0>(reader_data);
-        prop(is...)      = {data[i], data[i + 1]};
+        auto const& [data, dims, aabb, num_components] = reader_data;
+        prop(is...)                                    = {data[i], data[i + 1]};
         i += num_components;
       });
     } else if (num_components == 3) {
       auto& prop = vertex_property<vec<real_type, 3>>(path.filename().string());
       vertices().iterate_indices([&](auto const... is) {
-        auto const& data = std::get<0>(reader_data);
+        auto const& [data, dims, aabb, num_components] = reader_data;
         prop(is...) = {data[i], data[i + 1], data[i + 2]};
         i += num_components;
       });
@@ -1555,9 +1555,11 @@ class rectilinear_grid {
     data.reserve(size<0>() * size<1>() * size<2>());
     auto back_inserter = [&](auto const... is) { data.push_back(prop(is...)); };
     for_loop(back_inserter, size<0>(), size<1>(), size<2>());
-    outfile.write((char*)header_string.c_str(),
-                  header_string.size() * sizeof(char));
-    outfile.write((char*)data.data(), data.size() * sizeof(T));
+    outfile.write(
+        (char*)header_string.c_str(),
+        static_cast<std::streamsize>(header_string.size() * sizeof(char)));
+    outfile.write((char*)data.data(),
+                  static_cast<std::streamsize>(data.size() * sizeof(T)));
   }
   //----------------------------------------------------------------------------
 
@@ -1664,14 +1666,13 @@ class rectilinear_grid {
   //----------------------------------------------------------------------------
   template <typename... Ts>
   auto write_vtk_prop(vtk::legacy_file_writer& writer) const -> void {
-    for (const auto& [name, prop] : this->m_vertex_properties) {
-      (
-          [&] {
-            if (prop->type() == typeid(Ts)) {
-              write_vtk_prop(writer, name, prop->template cast_to_typed<Ts>());
-            }
-          }(),
-          ...);
+    for (auto const& key_value : this->m_vertex_properties) {
+      invoke([&] {
+        auto const& [name, prop] = key_value;
+        if (prop->type() == typeid(Ts)) {
+          write_vtk_prop(writer, name, prop->template cast_to_typed<Ts>());
+        }
+      }...);
     }
   }
 
