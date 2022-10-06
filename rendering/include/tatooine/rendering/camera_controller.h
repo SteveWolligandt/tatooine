@@ -67,11 +67,11 @@ struct camera_controller : gl::window_listener {
   using mat3 = mat<Real, 3, 3>;
   using mat4 = mat<Real, 4, 4>;
   friend struct camera_controller_interface<Real>;
+  Real                                               m_orthographic_height = 1;
   struct perspective_camera<Real>                    m_pcam;
   struct orthographic_camera<Real>                   m_ocam;
   camera_interface<Real>*                            m_active_cam;
   std::unique_ptr<camera_controller_interface<Real>> m_controller;
-  Real                                               m_orthographic_height = 1;
   //============================================================================
   camera_controller(size_t const res_x, size_t const res_y)
       : m_pcam{{Real(0), Real(0), Real(0)},
@@ -198,8 +198,8 @@ struct camera_controller : gl::window_listener {
     }
   }
   void on_resize(int w, int h) override {
-    m_pcam.set_resolution(w, h);
-    m_ocam.set_resolution(w, h);
+    m_pcam.set_resolution(static_cast<std::size_t>(w), static_cast<std::size_t>(h));
+    m_ocam.set_resolution(static_cast<std::size_t>(w), static_cast<std::size_t>(h));
     m_pcam.set_projection_matrix(60, static_cast<Real>(0.001), 1000);
     m_ocam.set_projection_matrix(m_orthographic_height);
     if (m_controller) {

@@ -48,9 +48,9 @@ struct renderer<tatooine::axis_aligned_bounding_box<Real, 2>> {
 
  public:
   //============================================================================
-  renderer(renderable_type const& aabb) {}
+  renderer(renderable_type const& /*aabb*/) {}
   //----------------------------------------------------------------------------
-  auto properties(renderable_type const& aabb) {
+  auto properties(renderable_type const& /*aabb*/) {
     ImGui::Text("Axis Aligned Bounding Box");
     ImGui::DragInt("Line width", &line_width, 1, 1, 20);
     ImGui::ColorEdit4("Color", color.data());
@@ -65,7 +65,7 @@ struct renderer<tatooine::axis_aligned_bounding_box<Real, 2>> {
     geometry::get().draw_line_loop();
   }
   //----------------------------------------------------------------------------
-  auto update(auto const dt, renderable_type const& aabb,
+  auto update(auto const /*dt*/, renderable_type const& aabb,
               camera auto const& cam) {
     using CamReal = typename std::decay_t<decltype(cam)>::real_type;
     static auto constexpr cam_is_float = is_same<GLfloat, CamReal>;

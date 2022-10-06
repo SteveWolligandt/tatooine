@@ -187,28 +187,28 @@ struct pointset {
   auto vertex_properties() -> auto& { return m_vertex_properties; }
   //----------------------------------------------------------------------------
   auto at(vertex_handle const v) -> auto& {
-    return vertex_position_data()[v.index()];
+    return m_vertex_position_data[v.index()];
   }
   auto at(vertex_handle const v) const -> auto const& {
-    return vertex_position_data()[v.index()];
+    return m_vertex_position_data[v.index()];
   }
   //----------------------------------------------------------------------------
   auto vertex_at(vertex_handle const v) -> auto& {
     assert(v.index() < m_vertex_position_data.size());
-    return vertex_position_data()[v.index()];
+    return m_vertex_position_data[v.index()];
   }
   auto vertex_at(vertex_handle const v) const -> auto const& {
     assert(v.index() < m_vertex_position_data.size());
-    return vertex_position_data()[v.index()];
+    return m_vertex_position_data[v.index()];
   }
   //----------------------------------------------------------------------------
   auto vertex_at(std::size_t const i) -> auto& {
     assert(i < m_vertex_position_data.size());
-    return vertex_position_data()[i];
+    return m_vertex_position_data[i];
   }
   auto vertex_at(std::size_t const i) const -> auto const& {
     assert(i < m_vertex_position_data.size());
-    return vertex_position_data()[i];
+    return m_vertex_position_data[i];
   }
   //----------------------------------------------------------------------------
   auto operator[](vertex_handle const v) -> auto& { return at(v); }
@@ -241,7 +241,7 @@ struct pointset {
       }
     }
 #endif
-    return vertex_handle{size(vertex_position_data()) - 1};
+    return vertex_handle{size(m_vertex_position_data) - 1};
   }
   //----------------------------------------------------------------------------
   auto insert_vertex(pos_type const& v) {
@@ -259,7 +259,7 @@ struct pointset {
       }
     }
 #endif
-    return vertex_handle{size(vertex_position_data()) - 1};
+    return vertex_handle{size(m_vertex_position_data) - 1};
   }
   //----------------------------------------------------------------------------
   auto insert_vertex(pos_type&& v) {
@@ -277,7 +277,7 @@ struct pointset {
       }
     }
 #endif
-    return vertex_handle{size(vertex_position_data()) - 1};
+    return vertex_handle{size(m_vertex_position_data) - 1};
   }
   ///\}
   //----------------------------------------------------------------------------
@@ -285,7 +285,7 @@ struct pointset {
   auto tidy_up() {
     //auto decrement_counter = std::size_t{};
     //for (auto const v : invalid_vertices()) {
-    //  m_vertex_position_data.erase(begin(vertex_position_data()) +
+    //  m_vertex_position_data.erase(begin(m_vertex_position_data) +
     //                               (v.index() - decrement_counter++));
     //  for (auto const& [key, prop] : vertex_properties()) {
     //    prop->erase(v.index());
@@ -345,8 +345,36 @@ struct pointset {
   //============================================================================
   template <invocable<pos_type> F>
   auto sample_to_vertex_property(F&& f, std::string const& name) -> auto& {
+    return sample_to_vertex_property(std::forward<F>(f), name, execution_policy::sequential);
+  }
+  //============================================================================
+  template <invocable<pos_type> F>
+  auto sample_to_vertex_property(F&& f, std::string const& name,
+                                 execution_policy::sequential_t /*policy*/)
+      -> auto& {
     using T    = std::invoke_result_t<F, pos_type>;
     auto& prop = vertex_property<T>(name);
+    for (auto const v : vertices()) {
+      try {
+        prop[v] = f(at(v));
+      } catch (std::exception&) {
+        if constexpr (tensor_num_components<T> == 1) {
+          prop[v] = T{nan<T>()};
+        } else {
+          prop[v] = T::fill(nan<tensor_value_type<T>>());
+        }
+      }
+    }
+    return prop;
+  }
+  //============================================================================
+  template <invocable<pos_type> F>
+  auto sample_to_vertex_property(F&& f, std::string const& name,
+                                 execution_policy::parallel_t /*policy*/)
+      -> auto& {
+    using T    = std::invoke_result_t<F, pos_type>;
+    auto& prop = vertex_property<T>(name);
+#pragma omp parallel for
     for (auto const v : vertices()) {
       try {
         prop[v] = f(at(v));
@@ -634,10 +662,10 @@ struct pointset {
       };
       auto v3s               = std::vector<vec<Real, 3>>(vertices().size());
       auto three_dimensional = views::transform(three_dims);
-      copy(vertex_position_data() | three_dimensional, begin(v3s));
+      copy(m_vertex_position_data | three_dimensional, begin(v3s));
       writer.write_points(v3s);
     } else if constexpr (NumDimensions == 3) {
-      writer.write_points(vertex_position_data());
+      writer.write_points(m_vertex_position_data);
     }
 
     auto vertex_indices = std::vector<std::vector<std::size_t>>(
@@ -778,7 +806,7 @@ struct pointset {
         constexpr auto to_3d = [](auto const& p) {
           return vec{p.x(), p.y(), Real(0)};
         };
-        copy(vertex_position_data() | views::transform(to_3d),
+        copy(m_vertex_position_data | views::transform(to_3d),
              begin(point_data));
         file.write(reinterpret_cast<char const*>(point_data.data()),
                    num_bytes_points);

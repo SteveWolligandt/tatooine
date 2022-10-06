@@ -243,10 +243,10 @@ struct renderer<tatooine::rectilinear_grid<Axis0, Axis1>> {
             });
 
             for (std::size_t j = 0; j < num_comps + 1; ++j) {
-              settings[name + '_' + std::string{vector_component_names[j]}] = {
+              settings[key_value.first+ '_' + std::string{vector_component_names[j]}] = {
                   &color_scale::viridis(), min_scalars[j], max_scalars[j]};
             }
-            selected_component[name] = vector_component_names[0];
+            selected_component[key_value.first] = vector_component_names[0];
           }
         });
       }

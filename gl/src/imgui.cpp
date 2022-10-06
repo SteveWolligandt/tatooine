@@ -193,7 +193,6 @@ auto Spinner(const char* label, float radius, int thickness,
 }
 //------------------------------------------------------------------------------
 auto StdStringNonStdResize(std::string& s, std::size_t size) -> void {
-  IM_ASSERT(size >= 0);
   auto const oldLength = s.length();
   if (size < oldLength) {
     s = s.substr(0, size);
