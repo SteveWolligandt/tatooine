@@ -58,60 +58,61 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
   }
   //----------------------------------------------------------------------------
   auto init_grid_geometry(renderable_type const& grid) {
-    auto normals = std::vector<Vec3<GLfloat>>(grid.vertices().size(),
-                                              Vec3<GLfloat>::zeros());
-    for (auto const t : grid.simplices()) {
-      auto const [v0, v1, v2] = grid[t];
-      auto const n            = cross(grid[v2] - grid[v0], grid[v1] - grid[v0]);
-      normals[v0.index()] += n;
-      normals[v1.index()] += n;
-      normals[v2.index()] += n;
-    }
+    auto const n = grid.vertices().size();
+    m_geometry.resize(static_cast<GLsizei>(n));
+    m_triangles.resize(static_cast<GLsizei>(n) * 3);
+    m_wireframe.resize(static_cast<GLsizei>(n) * 6);
 
-    m_geometry.resize(static_cast<GLsizei>(grid.vertices().size()));
-    m_triangles.resize(static_cast<GLsizei>(grid.simplices().size() * 3));
-    m_wireframe.resize(static_cast<GLsizei>(grid.simplices().size() * 6));
     {
       auto data = m_geometry.wmap();
-      auto k    = std::size_t{};
       for (auto const v : grid.vertices()) {
-        data[k].template at<0>() = Vec3<GLfloat>{grid[v]};
-        data[k].template at<1>() = Vec3<GLfloat>{normals[v.index()]};
-        ++k;
+        data[v.index()].template at<0>() = Vec3<GLfloat>{grid[v]};
+        data[v.index()].template at<1>() = Vec3<GLfloat>::zeros();
+      }
+      for (auto const t : grid.simplices()) {
+        auto const [v0, v1, v2] = grid[t];
+        auto const n = cross(grid[v2] - grid[v0], grid[v1] - grid[v0]);
+        data[v0.index()].template at<1>() += n;
+        data[v1.index()].template at<1>() += n;
+        data[v2.index()].template at<1>() += n;
+      }
+      for (auto const v : grid.vertices()) {
+        data[v.index()].template at<1>() =
+            normalize(data[v.index()].template at<1>());
       }
     }
     {
       auto data = m_triangles.wmap();
-
-        auto k = std::size_t{};
-        for (auto const s : grid.simplices()) {
-          auto const [v0, v1, v2] = grid[s];
-          data[k++] =
-              static_cast<typename gl::indexbuffer::value_type>(v0.index());
-          data[k++] =
-              static_cast<typename gl::indexbuffer::value_type>(v1.index());
-          data[k++] =
-              static_cast<typename gl::indexbuffer::value_type>(v2.index());
+      auto k    = std::size_t{};
+      for (auto const s : grid.simplices()) {
+        auto const [v0, v1, v2] = grid[s];
+        data[k++] =
+            static_cast<typename gl::indexbuffer::value_type>(v0.index());
+        data[k++] =
+            static_cast<typename gl::indexbuffer::value_type>(v1.index());
+        data[k++] =
+            static_cast<typename gl::indexbuffer::value_type>(v2.index());
         }
         if (!grid.invalid_simplices().empty()) {
           auto constexpr inc = [](auto i) { return ++i; };
           auto offsets =
               std::vector<typename gl::indexbuffer::value_type>(size(grid.vertex_position_data()), 0);
           for (auto const v : grid.invalid_vertices()) {
-            auto i = begin(offsets) + v.index();
+            auto i = begin(offsets) + static_cast<std::ptrdiff_t>(v.index());
             std::ranges::transform(i, end(offsets), i, inc);
           }
           for (auto& i : data) {
             i -= offsets[i];
           }
         }
-      }
+    }
     {
       auto data = m_wireframe.wmap();
       auto k    = std::size_t{};
       for (auto const s : grid.simplices()) {
         auto const [v0, v1, v2] = grid[s];
-        data[k++] = static_cast<typename gl::indexbuffer::value_type>(v0.index());
+        data[k++] =
+            static_cast<typename gl::indexbuffer::value_type>(v0.index());
         data[k++] = static_cast<typename gl::indexbuffer::value_type>(v1.index());
         data[k++] = static_cast<typename gl::indexbuffer::value_type>(v1.index());
         data[k++] = static_cast<typename gl::indexbuffer::value_type>(v2.index());
@@ -122,7 +123,8 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
   }
   //----------------------------------------------------------------------------
   auto init_properties(renderable_type const& grid) {
-    for (auto const& [name, prop] : grid.vertex_properties()) {
+    for (auto const& key_value : grid.vertex_properties()) {
+      auto const& [name, prop] = key_value;
       if (prop_holds_scalar(prop)) {
         auto min_scalar = std::numeric_limits<GLfloat>::max();
         auto max_scalar = -std::numeric_limits<GLfloat>::max();
@@ -164,10 +166,10 @@ struct renderer<tatooine::unstructured_triangular_grid<Real, 3>> {
             }
 
             for (std::size_t j = 0; j < num_comps + 1; ++j) {
-              settings[name + '_' + std::string{vector_component_names[j]}] = {
+              settings[key_value.first + '_' + std::string{vector_component_names[j]}] = {
                   &color_scale::viridis(), min_scalars[j], max_scalars[j]};
             }
-            selected_component[name] = vector_component_names[0];
+            selected_component[key_value.first] = vector_component_names[0];
           }
         });
       }

@@ -3,6 +3,7 @@
 #include <tatooine/rectilinear_grid.h>
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_vector.hpp>
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
@@ -161,7 +162,7 @@ TEST_CASE_METHOD(pointset3, "pointset_delete_vertex",
 //  REQUIRE((nearest_0_5_2[0] == v1 || nearest_0_5_2[1] == v1));
 //}
 //==============================================================================
-TEST_CASE_METHOD((pointset2), "pointset_inverse_distance_weighting_sampler",
+TEST_CASE_METHOD(pointset2, "pointset_inverse_distance_weighting_sampler",
                  "[pointset][inverse_distance_weighting_sampler]") {
   random::uniform rand{-1.0, 1.0, std::mt19937_64{1234}};
   auto&           prop = scalar_vertex_property("prop");
@@ -170,10 +171,33 @@ TEST_CASE_METHOD((pointset2), "pointset_inverse_distance_weighting_sampler",
     prop[v] = rand() * 10;
   }
   auto sampler = inverse_distance_weighting_sampler(prop, 0.1);
-  uniform_rectilinear_grid2 gr{linspace{-1.0, 1.0, 500},
-                               linspace{-1.0, 1.0, 500}};
+  auto gr      = uniform_rectilinear_grid2{linspace{-1.0, 1.0, 500},
+                                      linspace{-1.0, 1.0, 500}};
   gr.sample_to_vertex_property(sampler, "interpolated_data");
-  gr.write_vtk("inverse_distance_weighting_sampler.vtk");
+}
+//==============================================================================
+TEST_CASE_METHOD(pointset2, "pointset_vertex_range",
+                 "[pointset][range][vertex_container]") {
+  using Catch::Matchers::Equals;
+  auto rand = random::uniform{-1.0, 1.0, std::mt19937_64{1234}};
+  auto& prop = scalar_vertex_property("prop");
+  for (size_t i = 0; i < 4; ++i) {
+    insert_vertex(rand(), rand());
+  }
+
+  auto vs_vec = std::vector<vertex_handle>{};
+  auto const vs_vec_expected = std::vector{vertex_handle{0}, vertex_handle{1},
+                                           vertex_handle{2}, vertex_handle{3}};
+  std::ranges::copy(vertices(), std::back_inserter(vs_vec));
+  REQUIRE_THAT(vs_vec, Equals(vs_vec_expected));
+
+  #pragma omp parallel for
+  for (auto const v : vertices()) {
+    prop[v] = static_cast<real_number>(v.index());
+  }
+  for (auto const v : vertices()) {
+    REQUIRE(prop[v] == static_cast<real_number>(v.index()));
+  }
 }
 //==============================================================================
 }  // namespace tatooine::test

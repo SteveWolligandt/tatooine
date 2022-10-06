@@ -12,7 +12,7 @@ option(TATOOINE_TEST_USE_FAST_MATH
     "use -ffast-math for unittests" OFF)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-list(APPEND CMAKE_CXX_FLAGS "-fcolor-diagnostics")
+  list(APPEND CMAKE_CXX_FLAGS "-fcolor-diagnostics")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   list(APPEND CMAKE_CXX_FLAGS "-fdiagnostics-color=always")
 endif()
@@ -90,6 +90,12 @@ macro(create_test NAME)
       PRIVATE
         -Wall -Wextra -pedantic -Wno-missing-braces
         -Wno-gnu-zero-variadic-macro-arguments -ftemplate-backtrace-limit=0)
+  endif()
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(
+      ${TARGET}
+      PRIVATE
+        -fconcepts-diagnostics-depth=10)
   endif()
   if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     target_compile_options(

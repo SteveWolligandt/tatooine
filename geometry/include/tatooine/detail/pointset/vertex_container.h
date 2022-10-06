@@ -5,12 +5,13 @@
 //==============================================================================
 namespace tatooine::detail::pointset {
 //==============================================================================
+struct sentinel {};
 template <floating_point Real, std::size_t NumDimensions>
 struct const_vertex_container_iterator
     : iterator_facade<const_vertex_container_iterator<Real, NumDimensions>> {
   using pointset_type = tatooine::pointset<Real, NumDimensions>;
   using vertex_handle = typename pointset_type::vertex_handle;
-  struct sentinel_type {};
+  using sentinel_type  = sentinel;
   const_vertex_container_iterator() = default;
   const_vertex_container_iterator(vertex_handle const  vh,
                                   pointset_type const* ps)
@@ -55,7 +56,7 @@ struct const_vertex_container_iterator
       sentinel_type const /*sentinel*/) const -> std::ptrdiff_t {
     return m_vh.index() - m_pointset->vertex_position_data().size();
   }
-  [[nodiscard]] constexpr auto advance(std::ptrdiff_t off) {
+  constexpr auto advance(std::ptrdiff_t const off) {
     m_vh += off;
   }
   [[nodiscard]] auto dereference() const { return m_vh; }
@@ -72,7 +73,8 @@ template <floating_point Real, std::size_t NumDimensions>
 struct const_vertex_container {
   using pointset_type = tatooine::pointset<Real, NumDimensions>;
   using vertex_handle = typename pointset_type::vertex_handle;
-  using iterator      = const_vertex_container_iterator<Real, NumDimensions>;
+  using iterator       = const_vertex_container_iterator<Real, NumDimensions>;
+  using const_iterator = const_vertex_container_iterator<Real, NumDimensions>;
   //==========================================================================
  private:
   pointset_type const* m_pointset;
@@ -94,8 +96,11 @@ struct const_vertex_container {
     }
     return vi;
   }
+  auto cbegin() const { return begin(); }
   //--------------------------------------------------------------------------
   static constexpr auto end() { return typename iterator::sentinel_type{}; }
+  //--------------------------------------------------------------------------
+  static constexpr auto cend() { return end(); }
   //--------------------------------------------------------------------------
   auto size() const {
     return m_pointset->vertex_position_data().size() -
@@ -131,7 +136,7 @@ struct vertex_container_iterator
     : iterator_facade<vertex_container_iterator<Real, NumDimensions>> {
   using pointset_type = tatooine::pointset<Real, NumDimensions>;
   using vertex_handle = typename pointset_type::vertex_handle;
-  struct sentinel_type {};
+  using sentinel_type = sentinel;
   vertex_container_iterator() = default;
   vertex_container_iterator(vertex_handle const vh, pointset_type* ps)
       : m_vh{vh}, m_pointset{ps} {}
@@ -168,8 +173,10 @@ struct vertex_container_iterator
       sentinel_type const /*sentinel*/) const -> std::ptrdiff_t {
     return m_vh.index() - m_pointset->vertex_position_data().size();
   }
-  [[nodiscard]] constexpr auto advance(std::ptrdiff_t off) {
-     m_vh += off;
+  constexpr auto advance(std::ptrdiff_t const off)
+      -> vertex_container_iterator& {
+    m_vh += off;
+    return *this;
   }
   [[nodiscard]] constexpr auto equal(
       vertex_container_iterator const& other) const {
@@ -184,9 +191,10 @@ struct vertex_container_iterator
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions>
 struct vertex_container {
-  using pointset_type = tatooine::pointset<Real, NumDimensions>;
-  using vertex_handle = typename pointset_type::vertex_handle;
-  using iterator      = vertex_container_iterator<Real, NumDimensions>;
+  using pointset_type  = tatooine::pointset<Real, NumDimensions>;
+  using vertex_handle  = typename pointset_type::vertex_handle;
+  using iterator       = vertex_container_iterator<Real, NumDimensions>;
+  using const_iterator = const_vertex_container_iterator<Real, NumDimensions>;
   //============================================================================
  private:
   pointset_type* m_pointset;
@@ -207,7 +215,17 @@ struct vertex_container {
     return vi;
   }
   //--------------------------------------------------------------------------
+  auto cbegin() const {
+    auto vi = const_iterator{vertex_handle{0}, m_pointset};
+    if (!m_pointset->is_valid(*vi)) {
+      ++vi;
+    }
+    return vi;
+  }
+  //--------------------------------------------------------------------------
   static constexpr auto end() { return typename iterator::sentinel_type{}; }
+  //--------------------------------------------------------------------------
+  static constexpr auto cend() { return typename const_iterator::sentinel_type{}; }
   //--------------------------------------------------------------------------
   auto size() const {
     return m_pointset->vertex_position_data().size() -

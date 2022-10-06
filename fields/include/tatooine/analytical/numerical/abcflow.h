@@ -34,9 +34,9 @@ struct abcflow : vectorfield<abcflow<real_type>, real_type, 3> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   [[nodiscard]] constexpr auto evaluate(pos_type const& x,
                                         real_type const /*t*/) const -> tensor_type {
-    return tensor_type{m_a * std::sin(x(2)) + m_c * std::cos(x(1)),
-                    m_b * std::sin(x(0)) + m_a * std::cos(x(2)),
-                    m_c * std::sin(x(1)) + m_b * std::cos(x(0))};
+    return {m_a * gcem::sin(x(2)) + m_c * gcem::cos(x(1)),
+            m_b * gcem::sin(x(0)) + m_a * gcem::cos(x(2)),
+            m_c * gcem::sin(x(1)) + m_b * gcem::cos(x(0))};
   }
   [[nodiscard]] constexpr auto in_domain(pos_type const& /*x*/,
                                          real_type const /*t*/) const -> bool {

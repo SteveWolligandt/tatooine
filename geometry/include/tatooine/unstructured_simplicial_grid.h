@@ -369,11 +369,38 @@ struct unstructured_simplicial_grid
             simplex_contains_vertex);
   }
   //----------------------------------------------------------------------------
-  auto remove_duplicate_vertices(Real const eps = 1e-7) {
+  auto remove_duplicate_vertices(Real const eps = Real{}) {
+    remove_duplicate_vertices(execution_policy::parallel, eps);
+  }
+  //----------------------------------------------------------------------------
+  auto remove_duplicate_vertices(execution_policy::parallel_t /*policy*/,
+                                 Real const eps = Real{}) {
+    auto m = std::mutex{};
+    for (auto v0 = vertices().cbegin(); v0 != vertices().cend(); ++v0) {
+#pragma omp parallel for
+      for (auto v1 = next(v0); v1 != vertices().cend(); ++v1) {
+        auto const d = squared_euclidean_distance(at(*v0), at(*v1));
+        if (d <= eps) {
+          for (std::size_t is = 0; is < m_simplex_index_data.size();
+               is += num_vertices_per_simplex()) {
+            for (std::size_t ivs = 0; ivs < num_vertices_per_simplex(); ++ivs) {
+              if (m_simplex_index_data[is + ivs] == *v1) {
+                m_simplex_index_data[is + ivs] = *v0;
+              }
+            }
+          }
+          auto l = std::lock_guard{m};
+          parent_type::remove(*v1);
+        }
+      }
+    }
+  }
+  //----------------------------------------------------------------------------
+  auto remove_duplicate_vertices(execution_policy::sequential_t /*policy*/,
+                                 Real const eps = Real{}) {
     //auto const& data = this->m_vertex_position_data;
-    for (auto v0 = vertices().begin(); v0 != vertices().end(); ++v0) {
-      #pragma omp parallel for
-      for (auto v1 = next(v0); v1 != vertices().end(); ++v1) {
+    for (auto v0 = vertices().cbegin(); v0 != vertices().cend(); ++v0) {
+      for (auto v1 = next(v0); v1 != vertices().cend(); ++v1) {
         auto const d = squared_euclidean_distance(at(*v0), at(*v1));
         if (d <= eps) {
           for (std::size_t is = 0; is < m_simplex_index_data.size();

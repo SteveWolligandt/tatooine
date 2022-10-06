@@ -26,7 +26,7 @@ foreach(SUBMODULE ${TATOOINE_MANDATORY_GIT_SUBMODULES})
   update_git_submodule(${SUBMODULE})
 endforeach()
 add_library(rapidxml INTERFACE)
-target_include_directories(rapidxml INTERFACE SYSTEM external/rapidxml)
+target_include_directories(rapidxml SYSTEM INTERFACE external/rapidxml)
 #--------------------------------------------------------------------------------
 set(REAL_NUMBER double float)
 set(TATOOINE_REAL_NUMBER_TYPE double CACHE STRING "Floating point type for real numbers")
@@ -107,6 +107,9 @@ target_include_directories(base
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>"
     external/indicators/include)
 target_link_libraries(base INTERFACE rapidxml)
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  target_compile_options(base INTERFACE -Wno-interference-size)
+endif()
 
 target_include_directories(base SYSTEM INTERFACE external/gcem/include)
 if (TATOOINE_STD_FILESYSTEM_COMPILED)
@@ -419,7 +422,7 @@ endif()
 configure_file(${CMAKE_SOURCE_DIR}/tatooineConfig.cmake.in ${CMAKE_BINARY_DIR}/tatooineConfig.cmake @ONLY)
 
 export(
-  TARGETS base geometry multidim_array tensor preprocessor fields
+  TARGETS base geometry multidim_array tensor preprocessor fields rapidxml
   APPEND FILE "${CMAKE_BINARY_DIR}/tatooineConfig.cmake"
   NAMESPACE tatooine::)
 
@@ -431,7 +434,7 @@ export(
 #endif()
 if (TATOOINE_GL_AVAILABLE) 
   export(
-    TARGETS gl glfw imgui glad
+    TARGETS gl glfw imgui imgui-filebrowser glad
     APPEND FILE "${CMAKE_BINARY_DIR}/tatooineConfig.cmake"
     NAMESPACE tatooine::)
 endif()

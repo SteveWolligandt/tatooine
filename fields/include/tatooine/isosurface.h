@@ -39,11 +39,14 @@ auto isosurface(GetScalars&&                                       get_scalars,
   std::mutex mutex;
 #endif
   auto process_cube = [&](auto ix, auto iy, auto iz) {
-    auto       vertlist = make_array<pos_type, 12>();
-    std::array p{g.vertex_at(ix, iy, iz + 1),     g.vertex_at(ix + 1, iy, iz + 1),
-                 g.vertex_at(ix + 1, iy, iz),     g.vertex_at(ix, iy, iz),
-                 g.vertex_at(ix, iy + 1, iz + 1), g.vertex_at(ix + 1, iy + 1, iz + 1),
-                 g.vertex_at(ix + 1, iy + 1, iz), g.vertex_at(ix, iy + 1, iz)};
+    auto vertlist            = make_array<pos_type, 12>();
+    using vertlist_type      = decltype(vertlist);
+    using vertlist_size_type = typename vertlist_type::size_type;
+    std::array p{
+        g.vertex_at(ix, iy, iz + 1),     g.vertex_at(ix + 1, iy, iz + 1),
+        g.vertex_at(ix + 1, iy, iz),     g.vertex_at(ix, iy, iz),
+        g.vertex_at(ix, iy + 1, iz + 1), g.vertex_at(ix + 1, iy + 1, iz + 1),
+        g.vertex_at(ix + 1, iy + 1, iz), g.vertex_at(ix, iy + 1, iz)};
 
     decltype(auto) s0 = get_scalars(ix, iy, iz + 1, p[0]);
     decltype(auto) s1 = get_scalars(ix + 1, iy, iz + 1, p[1]);
@@ -143,12 +146,12 @@ auto isosurface(GetScalars&&                                       get_scalars,
       for (std::size_t i = 0;
            marchingcubes_lookup::tri_table[cube_index][i] != -1; i += 3) {
         iso_volume.insert_simplex(
-            iso_volume.insert_vertex(
-                vertlist[marchingcubes_lookup::tri_table[cube_index][i]]),
-            iso_volume.insert_vertex(
-                vertlist[marchingcubes_lookup::tri_table[cube_index][i + 2]]),
-            iso_volume.insert_vertex(
-                vertlist[marchingcubes_lookup::tri_table[cube_index][i + 1]]));
+            iso_volume.insert_vertex(vertlist[static_cast<vertlist_size_type>(
+                marchingcubes_lookup::tri_table[cube_index][i])]),
+            iso_volume.insert_vertex(vertlist[static_cast<vertlist_size_type>(
+                marchingcubes_lookup::tri_table[cube_index][i + 2])]),
+            iso_volume.insert_vertex(vertlist[static_cast<vertlist_size_type>(
+                marchingcubes_lookup::tri_table[cube_index][i + 1])]));
       }
 #if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
     }

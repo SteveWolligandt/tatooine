@@ -53,8 +53,8 @@ struct field {
     }
   }
   //----------------------------------------------------------------------------
-  static constexpr auto tensor_dimension(std::size_t i) requires(tensor_rank >
-                                                                 0) {
+  static constexpr auto tensor_dimension(std::size_t i)
+  requires(tensor_rank() > 0) {
     return tensor_type::dimension(i);
   }
   //============================================================================

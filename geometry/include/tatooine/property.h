@@ -26,16 +26,16 @@ struct vector_property {
   virtual ~vector_property() = default;
   //----------------------------------------------------------------------------
   /// Reserve memory for n elements.
-  virtual void reserve(size_t n) = 0;
+  virtual void reserve(std::size_t n) = 0;
   //----------------------------------------------------------------------------
   /// Resize storage to hold n elements.
-  virtual void resize(size_t n) = 0;
+  virtual void resize(std::size_t n) = 0;
   //----------------------------------------------------------------------------
   /// pushes element at back
   virtual void push_back() = 0;
   //----------------------------------------------------------------------------
   /// Resize storage to hold n elements.
-  virtual void erase(size_t) = 0;
+  virtual void erase(std::size_t) = 0;
   //----------------------------------------------------------------------------
   /// Free unused memory.
   virtual void clear() = 0;
@@ -113,9 +113,9 @@ struct typed_vector_property : vector_property<Handle> {
   //============================================================================
   auto size() { return m_data.size(); }
   //----------------------------------------------------------------------------
-  void reserve(size_t n) override { m_data.reserve(n); }
+  void reserve(std::size_t n) override { m_data.reserve(n); }
   //----------------------------------------------------------------------------
-  void resize(size_t n) override { m_data.resize(n, m_value); }
+  void resize(std::size_t n) override { m_data.resize(n, m_value); }
   //----------------------------------------------------------------------------
   void push_back() override { m_data.push_back(m_value); }
   void push_back(const ValueType& value) { m_data.push_back(value); }
@@ -138,7 +138,9 @@ struct typed_vector_property : vector_property<Handle> {
     return m_data.erase(first, last);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void erase(size_t i) override { erase(begin() + i); }
+  auto erase(std::size_t i) -> void override {
+    erase(begin() + static_cast<difference_type>(i));
+  }
   //----------------------------------------------------------------------------
   auto begin() { return m_data.begin(); }
   auto begin() const { return m_data.begin(); }
@@ -249,7 +251,7 @@ struct deque_property {
   virtual ~deque_property() = default;
   //----------------------------------------------------------------------------
   /// Resize storage to hold n elements.
-  virtual void resize(size_t n) = 0;
+  virtual void resize(std::size_t n) = 0;
   //----------------------------------------------------------------------------
   /// pushes element at back
   virtual void push_back() = 0;
@@ -258,7 +260,7 @@ struct deque_property {
   virtual void push_front() = 0;
   //----------------------------------------------------------------------------
   /// Resize storage to hold n elements.
-  virtual void erase(size_t) = 0;
+  virtual void erase(std::size_t) = 0;
   //----------------------------------------------------------------------------
   /// Free unused memory.
   virtual void clear() = 0;
@@ -326,7 +328,7 @@ struct typed_deque_property : deque_property<Handle> {
   auto size() { return m_data.size(); }
   //----------------------------------------------------------------------------
   /// Resize storage to hold n elements.
-  void resize(size_t n) override { m_data.resize(n); }
+  void resize(std::size_t n) override { m_data.resize(n); }
   //----------------------------------------------------------------------------
   void push_back() override { m_data.push_back(m_value); }
   void push_back(const ValueType& value) { m_data.push_back(value); }
@@ -352,7 +354,7 @@ struct typed_deque_property : deque_property<Handle> {
     return m_data.erase(first, last);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void erase(size_t i) override { erase(next(begin(), i)); }
+  void erase(std::size_t i) override { erase(next(begin(), i)); }
   //----------------------------------------------------------------------------
   auto begin() { return m_data.begin(); }
   auto begin() const { return m_data.begin(); }

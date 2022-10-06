@@ -5,7 +5,8 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-constexpr auto pow(std::integral auto x, std::unsigned_integral auto const p) {
+constexpr auto pow(std::integral auto x, std::unsigned_integral auto const p)
+    -> std::decay_t<decltype(x)> {
   if (p == 0) {
     return 1;
   }
