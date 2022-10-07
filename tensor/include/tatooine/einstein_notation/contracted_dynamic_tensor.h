@@ -7,7 +7,7 @@ namespace tatooine::einstein_notation {
 //==============================================================================
 template <typename... IndexedTensors>
 struct contracted_dynamic_tensor {
-  using real_type =
+  using value_type =
       common_type<typename IndexedTensors::tensor_type::value_type...>;
   using indices_per_tensor = type_list<typename IndexedTensors::indices...>;
   template <std::size_t I>
@@ -69,7 +69,7 @@ struct contracted_dynamic_tensor {
     auto const tensor_index_maps = std::tuple{IndexedTensors::index_map()...};
     auto       index_arrays =
         std::tuple{make_array<std::size_t, IndexedTensors::rank()>()...};
-    real_type acc = 0;
+    value_type acc = 0;
 
     for_loop(
         [&](auto const... contracted_indices) {
@@ -108,12 +108,12 @@ struct contracted_dynamic_tensor {
     return acc;
   }
   //----------------------------------------------------------------------------
-  operator real_type() const {
+  operator value_type() const {
     if constexpr (free_indices::empty) {
       return to_scalar(std::make_index_sequence<contracted_indices::dimension>{},
                        std::make_index_sequence<sizeof...(IndexedTensors)>{});
     } else {
-      return real_type(0) / real_type(0);
+      return value_type(0) / value_type(0);
     }
   }
 };

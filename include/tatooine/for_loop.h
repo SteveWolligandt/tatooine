@@ -13,11 +13,20 @@
 #include <vector>
 #if TATOOINE_OPENMP_AVAILABLE
 #include <omp.h>
+#define TATOOINE_PARALLEL_FOR_LOOPS_AVAILABLE 1
+#else
+#define TATOOINE_PARALLEL_FOR_LOOPS_AVAILABLE 0
 #endif
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-#if TATOOINE_OPENMP_AVAILABLE
+#if TATOOINE_PARALLEL_FOR_LOOPS_AVAILABLE
+static constexpr bool parallel_for_loop_support = true;
+#else
+static constexpr bool parallel_for_loop_support = false;
+#endif
+
+#if TATOOINE_PARALLEL_FOR_LOOPS_AVAILABLE
 template <typename T>
 auto create_aligned_data_for_parallel() {
   auto num_threads = std::size_t{};
@@ -30,6 +39,7 @@ auto create_aligned_data_for_parallel() {
   return std::vector<aligned<T>>(num_threads);
 }
 #endif
+
 //==============================================================================
 namespace detail::for_loop {
 //==============================================================================
@@ -152,7 +162,7 @@ struct for_loop_impl<Int, N, 1, ParallelIndex> {
                 std::make_index_sequence<N>{});
   }
 };
-#if TATOOINE_OPENMP_AVAILABLE
+#if TATOOINE_PARALLEL_FOR_LOOPS_AVAILABLE
 //==============================================================================
 /// nesting reached parallel state
 /// \tparam Int integer type for counting
@@ -272,7 +282,7 @@ struct for_loop_impl<Int, N, 1, 1> {
                 std::make_index_sequence<N>{});
   }
 };
-#endif  // TATOOINE_OPENMP_AVAILABLE
+#endif  // TATOOINE_PARALLEL_FOR_LOOPS_AVAILABLE
 //==============================================================================
 template <std::size_t ParallelIndex, typename Int, Int... IndexSequence,
           integral... Ranges,
@@ -300,6 +310,18 @@ constexpr auto for_loop(Iteration&& iteration,
 //==============================================================================
 }  // namespace detail::for_loop
 //==============================================================================
+template <typename Iteration, typename Range>
+concept for_loop_range_iteration =
+    std::invocable<Iteration, std::ranges::range_value_t<Range>>
+    && either_of<std::invoke_result_t<Iteration, std::ranges::range_value_t<Range>>,
+                 void, bool>;
+//------------------------------------------------------------------------------
+template <typename Iteration, typename IntRange>
+concept for_loop_nested_index_iteration =
+    std::invocable<Iteration, IntRange> &&
+    either_of<std::invoke_result_t<Iteration, IntRange>,
+             void, bool>;
+//------------------------------------------------------------------------------
 /// \brief Use this function for creating a sequential nested loop.
 ///
 /// First Index grows fastest, then the second and so on.
@@ -355,18 +377,16 @@ constexpr auto for_loop(Iteration&& iteration, execution_policy::sequential_t,
 /// any state the whole nested iteration will stop. iteration must return true
 /// to continue.
 template <typename Int = std::size_t, typename Iteration, integral... Ranges>
-constexpr auto for_loop(Iteration&& iteration, execution_policy::parallel_t,
-                        Ranges (&&... ranges)[2]) -> void {
-#ifdef _OPENMP
+constexpr auto for_loop([[maybe_unused]] Iteration&& iteration,
+                        execution_policy::parallel_t,
+                        [[maybe_unused]] Ranges (&&... ranges)[2])
+    -> void requires parallel_for_loop_support {
+#if TATOOINE_PARALLEL_FOR_LOOPS_AVAILABLE
   return detail::for_loop::for_loop<sizeof...(ranges) - 1, Int>(
       std::forward<Iteration>(iteration),
       std::make_integer_sequence<Int, sizeof...(ranges)>{},
       std::pair{ranges[0], ranges[1]}...);
-#else
-  //#pragma message "Not able to execute nested for loop in parallel because
-  // OpenMP is not available."
-  return for_loop(std::forward<Iteration>(iteration), ranges...);
-#endif  // _OPENMP
+#endif
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// \brief Use this function for creating a parallel nested loop.
@@ -377,18 +397,15 @@ constexpr auto for_loop(Iteration&& iteration, execution_policy::parallel_t,
 /// any state the whole nested iteration will stop. iteration must return true
 /// to continue.
 template <typename Int = std::size_t, typename Iteration, integral... Ranges>
-constexpr auto for_loop(Iteration&& iteration,
+constexpr auto for_loop([[maybe_unused]] Iteration&& iteration,
                         execution_policy::parallel_t /*policy*/,
-                        std::pair<Ranges, Ranges> const&... ranges) -> void {
-#ifdef _OPENMP
+                        [[maybe_unused]] std::pair<Ranges, Ranges> const&... ranges)
+    -> void requires parallel_for_loop_support {
+#if TATOOINE_PARALLEL_FOR_LOOPS_AVAILABLE
   return detail::for_loop::for_loop<sizeof...(ranges) - 1, Int>(
       std::forward<Iteration>(iteration),
       std::make_integer_sequence<Int, sizeof...(ranges)>{}, ranges...);
-#else
-  //#pragma message "Not able to execute nested for loop in parallel because
-  // OpenMP is not available."
-  return for_loop(std::forward<Iteration>(iteration), ranges...);
-#endif  // _OPENMP
+#endif
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// \brief Use this function for creating a parallel nested loop.
@@ -399,20 +416,16 @@ constexpr auto for_loop(Iteration&& iteration,
 /// any state the whole nested iteration will stop. iteration must return true
 /// to continue.
 template <typename Int = std::size_t, typename Iteration, integral... Ends>
-constexpr auto for_loop(Iteration&& iteration,
+constexpr auto for_loop([[maybe_unused]] Iteration&& iteration,
                         execution_policy::parallel_t /*policy*/,
-                        Ends const... ends) -> void
-// requires invocable<Iteration, decltype((Ends, Int{}))...>
-{
-#ifdef _OPENMP
+                        [[maybe_unused]] Ends const... ends)
+    -> void requires parallel_for_loop_support {
+#if TATOOINE_PARALLEL_FOR_LOOPS_AVAILABLE
   return detail::for_loop::for_loop<sizeof...(ends) - 1, Int>(
       std::forward<Iteration>(iteration),
       std::make_integer_sequence<Int, sizeof...(ends)>{},
       std::pair{Ends(0), ends}...);
-#else
-  static_assert(false,
-                "OpenMP is not available. Cannot execute parallel for loop");
-#endif  // _OPENMP
+#endif
 }
 //==============================================================================
 /// \brief Use this function for creating a sequential nested loop.
@@ -456,13 +469,12 @@ constexpr auto for_loop(Iteration&& iteration, Ends const... ends) -> void {
            ends...);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Iteration, typename ExecutionPolicy, integral Int,
-          std::size_t N>
-auto for_loop_unpacked(Iteration&& iteration, ExecutionPolicy pol,
+template <typename Iteration, integral Int, std::size_t N>
+auto for_loop_unpacked(Iteration&& iteration, execution_policy_tag auto policy,
                        std::array<Int, N> const& sizes) {
   invoke_unpacked(
       [&](auto const... is) {
-        for_loop(std::forward<Iteration>(iteration), pol, is...);
+        for_loop(std::forward<Iteration>(iteration), policy, is...);
       },
       unpack(sizes));
 }
@@ -472,50 +484,63 @@ auto for_loop_unpacked(Iteration&& iteration, std::array<Int, N> const& sizes) {
   for_loop_unpacked(std::forward<Iteration>(iteration),
                     execution_policy::sequential, sizes);
 }
-//=========i=====================================================================
+//==============================================================================
 template <typename Int = std::size_t, integral... Ends>
 constexpr auto chunked_for_loop(
     invocable<decltype(((void)std::declval<Ends>(),
                         std::declval<Int>()))...> auto&& iteration,
-    auto exec_policy, integral auto const chunk_size, Ends const... ends)
-    -> void requires(
-        is_same<execution_policy::parallel_t, decltype(exec_policy)> ||
-        is_same<execution_policy::sequential_t, decltype(exec_policy)>) {
+    execution_policy_tag auto policy, integral auto const chunk_size,
+    Ends const... ends) -> void {
   for_loop(
       [&](auto const... chunk_is) {
         for_loop(
             [&](auto const... inner_is) {
               iteration((chunk_is * chunk_size + inner_is)...);
             },
-            exec_policy,
+            policy,
             std::min<Int>(chunk_size, chunk_is * chunk_size - ends)...);
       },
       ends / chunk_size...);
 }
 //------------------------------------------------------------------------------
-template <typename Int = std::size_t, integral... Ends>
-constexpr auto chunked_for_loop(
-    invocable<decltype((std::declval<Ends>(), std::declval<Int>()))...> auto&&
-                        iteration,
-    integral auto const chunk_size, Ends const... ends) -> void {
-  chunked_for_loop(std::forward<decltype(iteration)>(iteration),
+template <typename Int = std::size_t, typename Iteration, integral... Ends>
+requires invocable<Iteration,
+                   decltype((std::declval<Ends>(), std::declval<Int>()))...>
+constexpr auto chunked_for_loop(Iteration&&         iteration,
+                                integral auto const chunk_size,
+                                Ends const... ends) -> void {
+  chunked_for_loop(std::forward<Iteration>(iteration),
                    execution_policy::sequential, chunk_size, ends...);
 }
 //==============================================================================
-/// dynamically-sized for loop
-template <typename Iteration, range_of_integral_pairs Ranges>
-auto for_loop(Iteration&& iteration, Ranges const& ranges,
+/// Sequential nested loop over index ranges. Pairs describe begin and ends of
+/// single ranges. Second element of pair is excluded.
+template <integral_pair_range IntPairRange,
+          for_loop_nested_index_iteration<std::vector<common_type<
+              typename std::ranges::range_value_t<IntPairRange>::first_type,
+              typename std::ranges::range_value_t<IntPairRange>::second_type>>>
+              Iteration>
+auto for_loop(Iteration&& iteration, IntPairRange const& ranges,
               execution_policy::sequential_t) {
-  using pair_type  = std::ranges::range_value_t<Ranges>;
-  using int_t      = common_type<typename pair_type::first_type,
-                            typename pair_type::second_type>;
+  using integral_pair_t = std::ranges::range_value_t<IntPairRange>;
+  using int_t           = common_type<typename integral_pair_t::first_type,
+                                      typename integral_pair_t::second_type>;
+  using iteration_invoke_result_type =
+      std::invoke_result_t<Iteration, std::vector<int_t>>;
   auto cur_indices = std::vector<int_t>(size(ranges));
   std::transform(
       begin(ranges), end(ranges), begin(cur_indices),
       [](auto const& range) { return static_cast<int_t>(range.first); });
   auto finished = false;
   while (!finished) {
-    iteration(cur_indices);
+    if constexpr (same_as<bool, iteration_invoke_result_type>) {
+      auto const can_continue = iteration(cur_indices);
+      if (!can_continue) {
+        finished = true;
+      }
+    } else {
+      iteration(cur_indices);
+    }
     ++cur_indices.front();
     for (std::size_t i = 0; i < size(ranges) - 1; ++i) {
       if (cur_indices[i] == static_cast<int_t>(ranges[i].second)) {
@@ -532,92 +557,142 @@ auto for_loop(Iteration&& iteration, Ranges const& ranges,
   }
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// dynamically-sized for loop
-template <typename Iteration>
-auto for_loop(Iteration&&                         iteration,
-              range_of_integral_pairs auto const& ranges) {
+/// Either sequential or parallel nested loop over index ranges. Pairs describe
+/// begin and ends of single ranges. Second element of pair is excluded.
+template <integral_pair_range IntPairRange,
+          for_loop_nested_index_iteration<std::vector<common_type<
+              typename std::ranges::range_value_t<IntPairRange>::first_type,
+              typename std::ranges::range_value_t<IntPairRange>::second_type>>>
+              Iteration>
+auto for_loop(Iteration&& iteration, IntPairRange const& ranges,
+              execution_policy_tag auto policy) {
+  for_loop(std::forward<Iteration>(iteration), ranges, policy);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Sequential nested loop over index ranges. Pairs describe begin and ends of
+/// single ranges. Second element of pair is excluded.
+template <integral_pair_range IntPairRange,
+          for_loop_nested_index_iteration<std::vector<common_type<
+              typename std::ranges::range_value_t<IntPairRange>::first_type,
+              typename std::ranges::range_value_t<IntPairRange>::second_type>>>
+              Iteration>
+auto for_loop(Iteration&& iteration, IntPairRange const& ranges) {
   for_loop(std::forward<Iteration>(iteration), ranges,
            execution_policy::sequential);
 }
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// dynamically-sized for loop
-template <typename Iteration, typename ExecutionPolicy>
-auto for_loop(Iteration&& iteration, ExecutionPolicy pol,
-              std::vector<std::size_t> const& sizes) {
-  auto ranges = std::vector<std::pair<std::size_t, std::size_t>>(sizes.size());
-  boost::transform(sizes, begin(ranges), [](auto const s) {
-    return std::pair{std::size_t(0), s};
-  });
-  for_loop(std::forward<Iteration>(iteration), pol, ranges);
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// dynamically-sized for loop
-template <typename Iteration>
-auto for_loop(Iteration&& iteration, std::vector<std::size_t> const& sizes) {
-  for_loop(std::forward<Iteration>(iteration), execution_policy::sequential,
-           sizes);
-}
-
 //------------------------------------------------------------------------------
-template <std::integral Int>
-auto for_loop(std::invocable<std::vector<Int>> auto&& iteration,
-              std::vector<Int> const& begin, std::vector<Int> const& end,
-              std::vector<Int>& status, Int const dim)
-    -> std::invoke_result_t<decltype(iteration), decltype(status)>
-requires std::same_as <
-    std::invoke_result_t<decltype(iteration), std::vector<Int>>,
-void > ||
-    std::same_as<std::invoke_result_t<decltype(iteration), std::vector<Int>>,
-                 bool> {
-  if (static_cast<std::size_t>(dim) == size(begin)) {
-    return iteration(status);
-  } else {
-    for (; status[dim] < end[dim]; ++status[dim]) {
-      if constexpr (std::same_as<std::invoke_result_t<decltype(iteration),
-                                                      std::vector<int>>,
-                                 bool>) {
-        auto const can_continue =
-            for_loop(iteration, begin, end, status, dim + 1);
-        if (!can_continue) {
-          return false;
+/// Sequential nested loop over index ranges from [begins] to [ends], excluding
+/// indices that are equal to elements of ends.
+template <integral_range                            IntRange,
+          for_loop_nested_index_iteration<IntRange> Iteration>
+auto for_loop(Iteration&& iteration, IntRange const& begin,
+              IntRange const& ends, execution_policy::sequential_t)
+/*-> std::invoke_result_t<Iteration, decltype(status)>*/ {
+  assert(size(begin) == size(ends));
+  auto const nesting_depth = size(ends);
+  using int_t              = std::ranges::range_value_t<IntRange>;
+  using iteration_invoke_result_type =
+      std::invoke_result_t<Iteration, std::vector<int_t>>;
+  auto cur_indices = begin;
+  auto finished    = false;
+  while (!finished) {
+    if constexpr (same_as<bool, iteration_invoke_result_type>) {
+      auto const can_continue = iteration(cur_indices);
+      if (!can_continue) {
+        finished = true;
+      }
+    } else {
+      iteration(cur_indices);
+    }
+    ++cur_indices.front();
+    for (std::size_t i = 0; i < nesting_depth - 1; ++i) {
+      if (cur_indices[i] == ends[i]) {
+        cur_indices[i] = begin[i];
+        ++cur_indices[i + 1];
+        if (i == nesting_depth - 2 && cur_indices[i + 1] == ends[i + 1]) {
+          finished = true;
         }
       } else {
-        for_loop(std::forward<decltype(iteration)>(iteration), begin, end,
-                 status, dim + 1);
+        break;
       }
     }
-    status[dim] = begin[dim];
-  }
-  if constexpr (std::same_as<
-                    std::invoke_result_t<decltype(iteration), std::vector<int>>,
-                    bool>) {
-    return true;
   }
 }
 //------------------------------------------------------------------------------
-template <std::integral Int>
-    auto for_loop(std::invocable<std::vector<Int>> auto&&iteration,
-                  std::vector<Int> const&                begin,
-                  std::vector<Int> const&end) requires std::same_as <
-    std::invoke_result_t<decltype(iteration), std::vector<Int>>,
-void > ||
-    std::same_as<std::invoke_result_t<decltype(iteration), std::vector<Int>>,
-                 bool> {
-  auto status = std::vector{begin};
-  for_loop<Int>(std::forward<decltype(iteration)>(iteration), begin, end,
-                status, 0);
+/// Sequential nested loop over index ranges from [begins] to [ends], excluding
+/// indices that are equal to elements of ends.
+template <integral_range                            IntRange,
+          for_loop_nested_index_iteration<IntRange> Iteration>
+auto for_loop(Iteration&& iteration, IntRange const& begin,
+              IntRange const& ends) {
+  return for_loop(std::forward<Iteration>(iteration), begin, ends,
+                  execution_policy::sequential);
 }
 //------------------------------------------------------------------------------
-template <std::integral Int>
-    auto for_loop(std::invocable<std::vector<Int>> auto&&iteration,
-                  std::vector<Int> const&end) requires std::same_as <
-    std::invoke_result_t<decltype(iteration), std::vector<Int>>,
-void > ||
-    std::same_as<std::invoke_result_t<decltype(iteration), std::vector<Int>>,
-                 bool> {
-  auto status = std::vector<Int>(size(end), 0);
-  for_loop<Int>(std::forward<decltype(iteration)>(iteration),
-                std::vector<Int>(size(end), 0), end, status, 0);
+/// Either sequential or parallel nested loop over index ranges from [0,..,0] to
+/// [ends], excluding indices that are equal to elements of ends.
+template <integral_range                            IntRange,
+          for_loop_nested_index_iteration<IntRange> Iteration>
+auto for_loop(Iteration&& iteration, IntRange const& ends,
+              execution_policy_tag auto policy) {
+  using int_t = std::ranges::range_value_t<IntRange>;
+  for_loop<int_t>(std::forward<Iteration>(iteration),
+                  std::vector<int_t>(size(ends), 0), ends, policy);
+}
+//------------------------------------------------------------------------------
+/// Sequential nested loop over index ranges from [0,..,0]  to
+/// [ends], excluding indices that are equal to elements of ends.
+template <integral_range                            IntRange,
+          for_loop_nested_index_iteration<IntRange> Iteration>
+auto for_loop(Iteration&& iteration, IntRange const& ends) {
+  using int_t = std::ranges::range_value_t<IntRange>;
+  for_loop(std::forward<Iteration>(iteration),
+           std::vector<int_t>(size(ends), 0), ends,
+           execution_policy::sequential);
+}
+//------------------------------------------------------------------------------
+/// Sequential nested loop over a generic range.
+template <range Range, for_loop_range_iteration<Range> Iteration>
+requires (!integral<std::ranges::range_value_t<Range>>) &&
+         (!integral_pair<std::ranges::range_value_t<Range>>)
+auto for_loop([[maybe_unused]] Iteration&& iteration,
+              [[maybe_unused]] Range const& r,
+              execution_policy::parallel_t /*seq*/)
+requires parallel_for_loop_support {
+#if TATOOINE_PARALLEL_FOR_LOOPS_AVAILABLE
+#pragma omp parallel for
+  for (auto const& elem : r) {
+    iteration(elem);
+  }
+#endif
+}
+//------------------------------------------------------------------------------
+/// Sequential nested loop over a generic range.
+template <range Range, for_loop_range_iteration<Range> Iteration>
+requires (!integral<std::ranges::range_value_t<Range>>) &&
+         (!integral_pair<std::ranges::range_value_t<Range>>)
+auto for_loop(Iteration&& iteration, Range const& r,
+              execution_policy::sequential_t /*seq*/) {
+  using iteration_invoke_result_type =
+      std::invoke_result_t<Iteration, std::ranges::range_value_t<Range>>;
+  for (auto const& elem : r) {
+    if constexpr (same_as<bool, iteration_invoke_result_type>) {
+      auto const can_continue = iteration(elem);
+      if (!can_continue) {
+        break;
+      }
+    } else {
+      iteration(elem);
+    }
+  }
+}
+//------------------------------------------------------------------------------
+/// Sequential loop over a generic range.
+template <range Range, for_loop_range_iteration<Range> Iteration>
+requires (!integral<std::ranges::range_value_t<Range>>) &&
+         (!integral_pair<std::ranges::range_value_t<Range>>)
+auto for_loop(Iteration && iteration, Range const& r) {
+  for_loop(std::forward<Iteration>(iteration), r, execution_policy::sequential);
 }
 //==============================================================================
 }  // namespace tatooine

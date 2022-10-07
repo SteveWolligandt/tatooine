@@ -124,7 +124,7 @@ concept integral_pair = is_pair<T> && integral<typename T::first_type> &&
     integral<typename T::second_type>;
 //------------------------------------------------------------------------------
 template <typename T>
-concept range_of_integral_pairs =
+concept integral_pair_range =
     range<T> && integral_pair<std::ranges::range_value_t<T>>;
 //------------------------------------------------------------------------------
 template <typename T, typename... Ss>
