@@ -16,6 +16,8 @@
 #endif
 //==============================================================================
 namespace tatooine {
+//==============================================================================
+#if TATOOINE_OPENMP_AVAILABLE
 template <typename T>
 auto create_aligned_data_for_parallel() {
   auto num_threads = std::size_t{};
@@ -27,6 +29,7 @@ auto create_aligned_data_for_parallel() {
   }
   return std::vector<aligned<T>>(num_threads);
 }
+#endif
 //==============================================================================
 namespace detail::for_loop {
 //==============================================================================
@@ -469,29 +472,7 @@ auto for_loop_unpacked(Iteration&& iteration, std::array<Int, N> const& sizes) {
   for_loop_unpacked(std::forward<Iteration>(iteration),
                     execution_policy::sequential, sizes);
 }
-//------------------------------------------------------------------------------
-template <typename Iteration>
-auto        for_loop(Iteration&&       iteration, execution_policy::parallel_t,
-                     range auto const& r) {
-#pragma omp parallel for
-  for (auto it = begin(r); it < end(r); it++) {
-    iteration(*it);
-  }
-}
-//------------------------------------------------------------------------------
-template <typename Iteration>
-auto for_loop(Iteration&&       iteration, execution_policy::sequential_t,
-              range auto const& r) {
-  for (auto const& s : r) {
-    iteration(s);
-  }
-}
-//------------------------------------------------------------------------------
-template <typename Iteration>
-auto for_loop(Iteration&& iteration, range auto const& r) {
-  for_loop(std::forward<Iteration>(iteration), execution_policy::sequential, r);
-}
-//==============================================================================
+//=========i=====================================================================
 template <typename Int = std::size_t, integral... Ends>
 constexpr auto chunked_for_loop(
     invocable<decltype(((void)std::declval<Ends>(),
@@ -522,23 +503,26 @@ constexpr auto chunked_for_loop(
 }
 //==============================================================================
 /// dynamically-sized for loop
-template <typename Iteration>
-auto for_loop(
-    Iteration&& iteration, execution_policy::sequential_t,
-    range_of<std::pair<std::size_t, std::size_t>> auto const& ranges) {
-  auto cur_indices = std::vector<std::size_t>(size(ranges));
-  std::transform(begin(ranges), end(ranges), begin(cur_indices),
-                 [](auto const& range) { return range.first; });
-  bool finished = false;
+template <typename Iteration, range_of_integral_pairs Ranges>
+auto for_loop(Iteration&& iteration, Ranges const& ranges,
+              execution_policy::sequential_t) {
+  using pair_type  = std::ranges::range_value_t<Ranges>;
+  using int_t      = common_type<typename pair_type::first_type,
+                            typename pair_type::second_type>;
+  auto cur_indices = std::vector<int_t>(size(ranges));
+  std::transform(
+      begin(ranges), end(ranges), begin(cur_indices),
+      [](auto const& range) { return static_cast<int_t>(range.first); });
+  auto finished = false;
   while (!finished) {
     iteration(cur_indices);
     ++cur_indices.front();
     for (std::size_t i = 0; i < size(ranges) - 1; ++i) {
-      if (cur_indices[i] == ranges[i].second) {
-        cur_indices[i] = ranges[i].first;
+      if (cur_indices[i] == static_cast<int_t>(ranges[i].second)) {
+        cur_indices[i] = static_cast<int_t>(ranges[i].first);
         ++cur_indices[i + 1];
         if (i == size(ranges) - 2 &&
-            cur_indices[i + 1] == ranges[i + 1].second) {
+            cur_indices[i + 1] == static_cast<int_t>(ranges[i + 1].second)) {
           finished = true;
         }
       } else {
@@ -550,11 +534,10 @@ auto for_loop(
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// dynamically-sized for loop
 template <typename Iteration>
-auto for_loop(
-    Iteration&&                                               iteration,
-    range_of<std::pair<std::size_t, std::size_t>> auto const& ranges) {
-  for_loop(std::forward<Iteration>(iteration), execution_policy::sequential,
-           ranges);
+auto for_loop(Iteration&&                         iteration,
+              range_of_integral_pairs auto const& ranges) {
+  for_loop(std::forward<Iteration>(iteration), ranges,
+           execution_policy::sequential);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// dynamically-sized for loop

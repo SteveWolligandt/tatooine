@@ -280,6 +280,15 @@ struct value_type_impl<T>{
 template <typename T>
 using value_type = typename value_type_impl<T>::type;
 //==============================================================================
+template <typename T>
+struct is_pair_impl : std::false_type{};
+//------------------------------------------------------------------------------
+template <typename First, typename Second>
+struct is_pair_impl<std::pair<First, Second>> : std::true_type{};
+//------------------------------------------------------------------------------
+template <typename T>
+static constexpr auto is_pair = is_pair_impl<T>::value;
+//==============================================================================
 }  // namespace tatooine
 //==============================================================================
 #endif
