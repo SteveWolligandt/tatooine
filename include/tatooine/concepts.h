@@ -119,6 +119,14 @@ template <typename T, typename S>
 concept range_of =
     range<T> && same_as<std::ranges::range_value_t<T>, S>;
 //------------------------------------------------------------------------------
+template <typename T>
+concept integral_pair = is_pair<T> && integral<typename T::first_type> &&
+    integral<typename T::second_type>;
+//------------------------------------------------------------------------------
+template <typename T>
+concept range_of_integral_pairs =
+    range<T> && integral_pair<std::ranges::range_value_t<T>>;
+//------------------------------------------------------------------------------
 template <typename T, typename... Ss>
 concept range_of_either =
     range<T> && either_of<std::ranges::range_value_t<T>, Ss...>;
