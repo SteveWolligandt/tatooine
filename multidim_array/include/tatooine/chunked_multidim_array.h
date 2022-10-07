@@ -141,7 +141,7 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
     assert(m_chunks[plain_chunk_index] != nullptr);
     assert(sizeof...(is) == m_chunks[plain_chunk_index]->num_dimensions());
     return m_chunks[plain_chunk_index]->plain_index(
-        (is % m_internal_chunk_size[Seq])...);
+        (static_cast<std::size_t>(is) % m_internal_chunk_size[Seq])...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
@@ -158,7 +158,8 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
   auto plain_chunk_index_from_global_indices(
       std::index_sequence<Seq...> /*seq*/, integral auto const... is) const {
     assert(sizeof...(is) == num_dimensions());
-    return m_chunk_structure.plain_index((is / m_internal_chunk_size[Seq])...);
+    return m_chunk_structure.plain_index(
+        (static_cast<std::size_t>(is) / m_internal_chunk_size[Seq])...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
@@ -547,7 +548,7 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
 
     // outer loop iterates over chunks
     for_loop(
-        [&](auto const& outer_indices) {
+        [&](std::vector<std::size_t> const& outer_indices) {
           for (std::size_t i = 0; i < num_dimensions(); ++i) {
             auto chunk_size = m_internal_chunk_size[i];
             if (outer_indices[i] == m_chunk_structure.size(i) - 1) {
@@ -560,8 +561,9 @@ struct chunked_multidim_array : dynamic_multidim_size<GlobalIndexOrder> {
           }
           // inner loop iterates indices of current chunk
           for_loop(
-              [&](auto const& inner_indices) {
-                std::vector<std::size_t> global_indices(num_dimensions());
+              [&](std::vector<std::size_t> const& inner_indices) {
+                auto global_indices =
+                    std::vector<std::size_t>(num_dimensions());
 
                 for (std::size_t i = 0; i < num_dimensions(); ++i) {
                   global_indices[i] =

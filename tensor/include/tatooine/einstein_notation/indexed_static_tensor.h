@@ -22,6 +22,7 @@ template <static_tensor Tensor, index... Indices>
 struct indexed_static_tensor {
   static_assert(std::decay_t<Tensor>::rank() == sizeof...(Indices));
   using tensor_type = std::decay_t<Tensor>;
+  using value_type  = typename tensor_type::value_type;
 
  private:
   Tensor m_tensor;
