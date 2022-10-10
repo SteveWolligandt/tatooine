@@ -15,20 +15,19 @@ struct iterator_sentinel{};
 //==============================================================================
 /// Just use the return type of derefence operator.
 template <typename Iter>
-struct infer_value_type {
-  static Iter const &_it;
-  using type = std::remove_cvref_t<decltype(*_it)>;
+struct infer_value_type_impl {
+  using type = std::remove_cvref_t<decltype(*std::declval<Iter>())>;
 };
 //------------------------------------------------------------------------------
 /// If `value_type` is explicitly given use this typedef
 template <typename T>
 requires requires { typename T::value_type; }
-struct infer_value_type<T> {
+struct infer_value_type_impl<T> {
   using type = typename T::value_type;
 };
 //------------------------------------------------------------------------------
 template <typename T>
-using infer_value_type_t = typename infer_value_type<T>::type;
+using infer_value_type = typename infer_value_type_impl<T>::type;
 //==============================================================================
 template <typename Iter>
 concept implements_distance_to = requires(Iter const iter) {
@@ -167,7 +166,7 @@ class iterator_facade {
 
  public:
   //==============================================================================
-  decltype(auto) operator*() const requires implements_dereference<Iter> {
+  auto operator*() const -> decltype(auto) requires implements_dereference<Iter> {
     return as_derived().dereference();
   }
   //==============================================================================
@@ -184,6 +183,10 @@ class iterator_facade {
   }
   //==============================================================================
   auto operator++() -> auto &requires implements_increment<Iter> {
+    as_derived().increment();
+    return as_derived();
+  }
+  auto foo() -> auto &requires implements_increment<Iter> {
     as_derived().increment();
     return as_derived();
   }
@@ -377,7 +380,7 @@ struct std::iterator_traits<Iter> {
   static Iter const &_it;
   using reference         = decltype(*_it);
   using pointer           = decltype(_it.operator->());
-  using value_type        = tatooine::infer_value_type_t<Iter>;
+  using value_type        = tatooine::infer_value_type<Iter>;
   using difference_type   = tatooine::infer_difference_type<Iter>;
   using iterator_category = conditional_t<
       tatooine::meets_random_access<Iter>,

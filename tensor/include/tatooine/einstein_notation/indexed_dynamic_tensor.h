@@ -24,6 +24,7 @@ template <typename... ContractedTensors>
 struct added_contracted_dynamic_tensor;
 //==============================================================================
 template <dynamic_tensor Tensor, index... Indices>
+requires(sizeof...(Indices) > 0)
 struct indexed_dynamic_tensor {
   using tensor_type = std::decay_t<Tensor>;
   using value_type = tensor_value_type<tensor_type>;
@@ -183,15 +184,21 @@ struct indexed_dynamic_tensor {
   }
   //----------------------------------------------------------------------------
   template <typename... IndexedTensors>
-  auto operator+=(contracted_dynamic_tensor<IndexedTensors...> other)
+  auto add(contracted_dynamic_tensor<IndexedTensors...> other)
       -> indexed_dynamic_tensor&
   requires(!is_const<std::remove_reference_t<Tensor>>)
   {
-    add(other, std::make_index_sequence<rank()>{},
+    return add(other, std::make_index_sequence<rank()>{},
         std::make_index_sequence<contracted_dynamic_tensor<
             IndexedTensors...>::contracted_indices::size>{},
         std::make_index_sequence<rank()>{});
-    return *this;
+  }
+  //----------------------------------------------------------------------------
+  template <typename... IndexedTensors>
+  auto operator+=(contracted_dynamic_tensor<IndexedTensors...> other)
+      -> indexed_dynamic_tensor&
+  requires(!is_const<std::remove_reference_t<Tensor>>) {
+    return add(other);
   }
   //----------------------------------------------------------------------------
   template <typename... IndexedTensors, index T, index... Ts>
@@ -220,12 +227,12 @@ struct indexed_dynamic_tensor {
   }
   //----------------------------------------------------------------------------
   template <typename... IndexedTensors>
-  auto assign(contracted_dynamic_tensor<IndexedTensors...> other) 
-  requires(!is_const<std::remove_reference_t<Tensor>>)
-  {
+  auto assign(contracted_dynamic_tensor<IndexedTensors...> other)
+      -> indexed_dynamic_tensor&
+  requires(!is_const<std::remove_reference_t<Tensor>>) {
     resize_internal_tensor(
         other);
-    add(other, std::make_index_sequence<rank()>{},
+    return add(other, std::make_index_sequence<rank()>{},
         std::make_index_sequence<
             contracted_dynamic_tensor<IndexedTensors...>::contracted_indices::size>{},
         std::make_index_sequence<rank()>{});
@@ -234,8 +241,7 @@ struct indexed_dynamic_tensor {
   template <typename... IndexedTensors>
   auto operator=(contracted_dynamic_tensor<IndexedTensors...> other)
       -> indexed_dynamic_tensor&
-  requires(!is_const<std::remove_reference_t<Tensor>>)
-  {
+  requires(!is_const<std::remove_reference_t<Tensor>>) {
     assign(other);
     return *this;
   }
@@ -243,8 +249,7 @@ struct indexed_dynamic_tensor {
   template <typename... ContractedTensors>
   auto operator=(added_contracted_dynamic_tensor<ContractedTensors...> other)
       -> indexed_dynamic_tensor&
-  requires(!is_const<std::remove_reference_t<Tensor>>)
-  {
+  requires(!is_const<std::remove_reference_t<Tensor>>) {
     m_tensor = tensor_type::zeros();
     assign(other, std::make_index_sequence<sizeof...(ContractedTensors)>{});
     return *this;
@@ -253,106 +258,55 @@ struct indexed_dynamic_tensor {
   template <typename Tensors, typename... Is>
   auto operator=(indexed_dynamic_tensor<Tensors, Is...> other)
       -> indexed_dynamic_tensor&
-  requires(!is_const<std::remove_reference_t<Tensor>>)
-  {
+  requires(!is_const<std::remove_reference_t<Tensor>>) {
     m_tensor = tensor_type::zeros();
     *this += contracted_dynamic_tensor{other};
     return *this;
   }
-#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /// \f$\mA(i,k) = \mB(i,j) \mC(j, k) + \mA(i,k)\f$
-  template <typename LHS, typename RHS, typename I, typename J, typename K>
+#if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
+  /// \brief \f$\mA(i,k) <- \mB(i,j) \mC(j, k) + \mA(i,k)\f$
+  ///
+  /// NOTE: index_at<1> cannot be performed as a requirement because clang
+  /// evaluates this requirement even if rank() > 2 is required before
+  /// index_at<1>. So this ugly way of writing it needs to be done.
+  template <typename LHS, typename RHS, same_as<index_at<0>> I, index J,
+            same_as<index_at<1>> K>
   auto operator+=(contracted_dynamic_tensor<indexed_dynamic_tensor<LHS, I, J>,
                                             indexed_dynamic_tensor<RHS, J, K>>
-                     other) -> indexed_dynamic_tensor&
-  requires(!is_const<std::remove_reference_t<Tensor>> &&
-           is_same<value_type, tensor_value_type<LHS>> &&
-           is_same<value_type, tensor_value_type<RHS>> &&
-           is_same<I, index_at<0>> &&
-           is_same<K, index_at<1>>)
-  {
-    assert(m_tensor.dimension(0) == other.template at<0>().tensor().dimension(0));
-    assert(m_tensor.dimension(1) == other.template at<1>().tensor().dimension(1));
-    blas::gemm(value_type(1),
-               other.template at<0>().tensor(),
+                      other)
+      -> indexed_dynamic_tensor& requires(
+          !is_const<std::remove_reference_t<Tensor>> &&
+          is_same<value_type, tensor_value_type<LHS>> &&
+          is_same<value_type, tensor_value_type<RHS>>) {
+    m_tensor.resize(other.template at<0>().tensor().dimension(0),
+                    other.template at<1>().tensor().dimension(1));
+    blas::gemm(value_type(1), other.template at<0>().tensor(),
                other.template at<1>().tensor(), value_type(1), m_tensor);
     return *this;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /// \f$\mA(i,k) = \mB(i,j) \mC(k, j)\f$
-  template <typename LHS, typename RHS, typename I, typename J, typename K>
-  auto operator=(contracted_dynamic_tensor<indexed_dynamic_tensor<LHS, I, J>,
-                                           indexed_dynamic_tensor<RHS, K, J>>
-                     other) -> indexed_dynamic_tensor&
-  requires(!is_const<std::remove_reference_t<Tensor>> &&
-           is_same<value_type, tensor_value_type<LHS>> &&
-           is_same<value_type, tensor_value_type<RHS>> &&
-           is_same<I, index_at<0>> &&
-           is_same<K, index_at<1>>)
-  {
-    m_tensor.resize(other.template at<0>().tensor().dimension(0),
-                    other.template at<1>().tensor().dimension(1));
-    blas::gemm(blas::op::no_transpose, blas::op::transpose, value_type(1),
-               other.template at<0>().tensor(),
-               other.template at<1>().tensor(), value_type(0), m_tensor);
-    return *this;
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /// \f$\mA(i,k) = \mB(j,i) \mC(j, k)\f$
-  template <typename LHS, typename RHS, typename I, typename J, typename K>
-  auto operator=(contracted_dynamic_tensor<indexed_dynamic_tensor<LHS, J, I>,
-                                           indexed_dynamic_tensor<RHS, J, K>>
-                     other) -> indexed_dynamic_tensor&
-  requires(!is_const<std::remove_reference_t<Tensor>> &&
-           is_same<value_type, tensor_value_type<LHS>> &&
-           is_same<value_type, tensor_value_type<RHS>> &&
-           is_same<I, index_at<0>> &&
-           is_same<K, index_at<1>>)
-  {
-    m_tensor.resize(other.template at<0>().tensor().dimension(0),
-                    other.template at<1>().tensor().dimension(1));
-    blas::gemm(blas::op::transpose, blas::op::no_transpose, value_type(1),
-               other.template at<0>().tensor(),
-               other.template at<1>().tensor(), value_type(0), m_tensor);
-    return *this;
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// \f$\mA(i,k) = \mB(i,j) \mC(j, k)\f$
-  template <typename LHS, typename RHS, typename I, typename J, typename K>
+  ///
+  /// NOTE: index_at<1> cannot be performed as a requirement because clang
+  /// evaluates this requirement even if rank() > 2 is required before
+  /// index_at<1>. So this ugly way of writing it needs to be done.
+  template <typename LHS, typename RHS, same_as<index_at<0>> I, index J,
+            same_as<index_at<1>> K>
   auto operator=(contracted_dynamic_tensor<indexed_dynamic_tensor<LHS, I, J>,
                                            indexed_dynamic_tensor<RHS, J, K>>
-                     other) -> indexed_dynamic_tensor&
-  requires(!is_const<std::remove_reference_t<Tensor>> &&
-           is_same<value_type, tensor_value_type<LHS>> &&
-           is_same<value_type, tensor_value_type<RHS>> &&
-           is_same<I, index_at<0>> &&
-           is_same<K, index_at<1>>)
-  {
-    m_tensor.resize(other.template at<0>().tensor().dimension(0),
-                    other.template at<1>().tensor().dimension(1));
-    blas::gemm(value_type(1),
-               other.template at<0>().tensor(),
-               other.template at<1>().tensor(), value_type(0), m_tensor);
+                     other)
+      ->indexed_dynamic_tensor& requires(
+          !is_const<std::remove_reference_t<Tensor>> &&
+          is_same<value_type, tensor_value_type<LHS>> &&
+          is_same<value_type, tensor_value_type<RHS>>) {
+      m_tensor.resize(other.template at<0>().tensor().dimension(0),
+                      other.template at<1>().tensor().dimension(1));
+      blas::gemm(value_type(1), other.template at<0>().tensor(),
+                 other.template at<1>().tensor(), value_type(0), m_tensor);
     return *this;
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /// \f$\va(i) = \mB(i,j) \vc(j)\f$
-  template <typename LHS, typename RHS, typename I, typename J>
-  auto operator=(contracted_dynamic_tensor<indexed_dynamic_tensor<LHS, I, J>,
-                                           indexed_dynamic_tensor<RHS, J>>
-                     other) -> indexed_dynamic_tensor&
-  requires(!is_const<std::remove_reference_t<Tensor>> &&
-           is_same<value_type, tensor_value_type<LHS>> &&
-           is_same<value_type, tensor_value_type<RHS>> &&
-           is_same<I, index_at<0>>)
-  {
-    m_tensor.resize(other.template at<0>().tensor().dimension(0));
-    blas::gemv(value_type(1), other.template at<0>().tensor(),
-               other.template at<1>().tensor(), value_type(0), m_tensor);
-    return *this;
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //----------------------------------------------------------------------------
   /// \f$\va(i) = \mB(i,j) \vc(j) + \va(i)\f$
   template <typename LHS, typename RHS, typename I, typename J>
   auto operator+=(contracted_dynamic_tensor<indexed_dynamic_tensor<LHS, I, J>,
@@ -362,12 +316,27 @@ struct indexed_dynamic_tensor {
   requires(!is_const<std::remove_reference_t<Tensor>> &&
            is_same<value_type, tensor_value_type<LHS>> &&
            is_same<value_type, tensor_value_type<RHS>> &&
-           is_same<I, index_at<0>>)
-  {
+           is_same<I, index_at<0>>) {
     assert(m_tensor.dimension(0) ==
            other.template at<0>().tensor().dimension(0));
     blas::gemm(value_type(1), other.template at<0>().tensor(),
                other.template at<1>().tensor(), value_type(1), m_tensor);
+    return *this;
+  }
+  //----------------------------------------------------------------------------
+  /// \f$\va(i) = \mB(i,j) \vc(j)\f$
+  template <typename LHS, typename RHS, typename I, typename J>
+  auto operator=(contracted_dynamic_tensor<indexed_dynamic_tensor<LHS, I, J>,
+                                           indexed_dynamic_tensor<RHS, J>>
+                     other)
+      -> indexed_dynamic_tensor& requires(
+          !is_const<std::remove_reference_t<Tensor>> &&
+          is_same<value_type, tensor_value_type<LHS>> &&
+          is_same<value_type, tensor_value_type<RHS>> &&
+          is_same<I, index_at<0>>) {
+    m_tensor.resize(other.template at<0>().tensor().dimension(0));
+    blas::gemv(value_type(1), other.template at<0>().tensor(),
+               other.template at<1>().tensor(), value_type(0), m_tensor);
     return *this;
   }
 #endif

@@ -49,6 +49,7 @@ struct type_list_size_impl<type_list_impl<Types...>>
 /// Access to the Ith element of TypeList
 template <typename TypeList, std::size_t I>
 struct type_list_at_impl;
+struct type_list_out_of_bounds{};
 //------------------------------------------------------------------------------
 /// Access to the Ith element of TypeList
 template <typename TypeList, std::size_t I>
@@ -57,9 +58,13 @@ using type_list_at = typename type_list_at_impl<TypeList, I>::type;
 /// Recursive Stepping through all types of a list.
 template <typename Front, typename... Rest, std::size_t I>
 struct type_list_at_impl<type_list_impl<Front, Rest...>, I> {
-  static size_t constexpr Size = sizeof...(Rest) + 1;
-  static_assert(I < Size, "Index exceeds range.");
   using type = typename type_list_at_impl<type_list_impl<Rest...>, I - 1>::type;
+};
+//------------------------------------------------------------------------------
+/// Recursive Stepping through all types of a list.
+template <std::size_t I>
+struct type_list_at_impl<type_list_impl<>, I> {
+  using type = type_list_out_of_bounds;
 };
 //------------------------------------------------------------------------------
 /// Returns the front of a tatooine::type_list_impl with I = 0.
@@ -253,13 +258,15 @@ struct type_list_impl {
   using pop_back = type_list_pop_back<this_type>;
   using pop_front = type_list_pop_front<this_type>;
 
-  template <std::size_t I>
-  using at = type_list_at<this_type, I>;
   template <typename T>
   static bool constexpr contains = type_list_contains<this_type, T>;
 
   static auto constexpr size = type_list_size<this_type>;
+
   static bool constexpr empty = size == 0;
+
+  template <std::size_t I>
+  using at = type_list_at<this_type, I>;
 };
 //==============================================================================
 /// \brief An empty struct that holds types.
@@ -272,16 +279,19 @@ struct type_list_impl<> {
 
   template <typename T>
   using push_back = type_list_push_back<this_type, T>;
+
   template <typename T>
   using push_front = type_list_push_front<this_type, T>;
 
-  template <std::size_t I>
-  using at = type_list_at<this_type, I>;
   template <typename T>
   static bool constexpr contains = type_list_contains<this_type, T>;
 
   static auto constexpr size = 0;
+
   static bool constexpr empty = true;
+
+  template <std::size_t I>
+  using at = type_list_at<this_type, I>;
 };
 //==============================================================================
 /// Constructor for tatooine::type_list_impl
