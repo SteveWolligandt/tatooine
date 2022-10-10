@@ -126,27 +126,12 @@ target_compile_definitions(base
  INTERFACE
   TATOOINE_STD_FILESYSTEM_AVAILABLE=${TATOOINE_STD_FILESYSTEM_AVAILABLE})
 
-# force coloring
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  target_compile_options(base INTERFACE -fcolor-diagnostics)
-elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-  target_compile_options(base INTERFACE -fdiagnostics-color=always)
-endif()
-
 #enable warnings
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   target_compile_options(base INTERFACE -Wall -Wextra -Wpedantic -Wconversion)
 elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   target_compile_options(base INTERFACE /Wall)
-endif()
-#-------------------------------------------------------------------------------
-# force coloring
-#-------------------------------------------------------------------------------
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  target_compile_options(base INTERFACE -fcolor-diagnostics)
-elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-  target_compile_options(base INTERFACE -fdiagnostics-color=always)
 endif()
 
 if (NOT TATOOINE_DOC_ONLY)

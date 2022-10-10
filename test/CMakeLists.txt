@@ -75,6 +75,13 @@ macro(create_test NAME)
       PROPERTIES CXX_CLANG_TIDY
       "${CLANG_TIDY_EXECUTABLE};-checks=${CLANG_TIDY_CHECKS};-header-filter='${CMAKE_SOURCE_DIR}/*';-extra-arg=-std=c++20;-line-filter=[{\"name\":\"${NAME}.cpp\",\"lines\":[[1,1]]}]")
   endif()
+
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    target_compile_options(${TARGET} PRIVATE -fcolor-diagnostics)
+  elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    target_compile_options(${TARGET} PRIVATE -fdiagnostics-color=always)
+  endif()
+
   target_link_libraries(
     ${TARGET}
     base
@@ -172,6 +179,11 @@ endif()
       add_executable(
         ${TARGET}.gcov
         main.cpp ${NAME}.cpp)
+      if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+        target_compile_options(${TARGET}.gcov PRIVATE -fcolor-diagnostics)
+      elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+        target_compile_options(${TARGET}.gcov PRIVATE -fdiagnostics-color=always)
+      endif()
       set_property(TARGET ${TARGET}.gcov PROPERTY CXX_STANDARD 20)
       target_link_libraries(
         ${TARGET}.gcov
@@ -227,6 +239,11 @@ add_executable (
   unittests
   main.cpp
   ${TATOOINE_TEST_CPPS})
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  target_compile_options(unittests PRIVATE -fcolor-diagnostics)
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  target_compile_options(unittests PRIVATE -fdiagnostics-color=always)
+endif()
 set_property(TARGET unittests PROPERTY CXX_STANDARD 20)
 if(TATOOINE_USE_CLANG_TIDY)
   set_target_properties(
@@ -297,6 +314,11 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_executable(
       unittests.gcov
       main.cpp ${TATOOINE_TEST_CPPS})
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+      target_compile_options(unittests.gcov PRIVATE -fcolor-diagnostics)
+    elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+      target_compile_options(unittests.gcov PRIVATE -fdiagnostics-color=always)
+    endif()
     target_link_libraries(
       unittests.gcov
       base fields rendering Catch2::Catch2 gcov)

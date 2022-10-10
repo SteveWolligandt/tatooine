@@ -124,7 +124,7 @@ TEST_CASE("for_loop_generic_range_sequential",
 TEST_CASE("for_loop_generic_range_parallel",
           "[for_loop][parallel][generic_range]") {
   auto const range = std::vector{1.0, 2.0, 3.0, 4.0};
-  auto acc = std::atomic_double{};
+  auto acc = std::atomic<double>{};
   auto       iteration = [&](auto const& elem) { acc += elem; };
   for_loop(iteration, range, execution_policy::parallel);
   REQUIRE(acc == 10.0);

@@ -54,6 +54,7 @@ struct solver : ode::solver<solver<Real, N, Stepper>, Real, N> {
       return;
     }
     auto x_copy = pos_type{y0};
+    try {
     ::boost::numeric::odeint::integrate_adaptive(
         m_stepper,
         [&evaluator, tau, t0](pos_type const& y, pos_type& sample, Real t) {
@@ -67,6 +68,14 @@ struct solver : ode::solver<solver<Real, N, Stepper>, Real, N> {
             callback(y, t, evaluator(y, t));
           }
         });
+    } catch (::boost::numeric::odeint::step_adjustment_error const&) {
+      if constexpr (!callback_takes_derivative) {
+        callback(pos_type::fill(nan()), nan());
+      } else {
+        using derivative_type = decltype(evaluator(y0, t0));
+        callback(pos_type::fill(nan()), nan(), derivative_type::fill(nan()));
+      }
+    }
   }
   //----------------------------------------------------------------------------
   auto stepsize() -> auto& { return m_stepsize; }
