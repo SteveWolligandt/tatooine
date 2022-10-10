@@ -3,6 +3,7 @@
 //==============================================================================
 #include <cmath>
 #include <tatooine/concepts.h>
+#include <tatooine/real.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -21,7 +22,7 @@ struct nan_impl<long double> {
   static auto value(const char* arg) { return std::nanl(arg); }
 };
 
-template <floating_point Float>
+template <floating_point Float = real_number>
 auto nan(const char* arg = "") {
   return nan_impl<Float>::value(arg);
 }

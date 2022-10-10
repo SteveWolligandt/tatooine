@@ -2,6 +2,7 @@
 #define TATOOINE_SPACETIME_SPLITTED_VECTORFIELD_H
 //==============================================================================
 #include <tatooine/field.h>
+#include <tatooine/concepts.h>
 #include <tatooine/spacetime_vectorfield.h>
 //==============================================================================
 namespace tatooine {
@@ -24,7 +25,7 @@ struct spacetime_splitted_vectorfield
   //============================================================================
   V m_v;
   //============================================================================
-  auto internal_field() const -> auto const& {
+  constexpr auto internal_field() const -> auto const& {
     if constexpr (std::is_pointer_v<std::decay_t<V>>) {
       return *m_v;
     } else {
@@ -33,82 +34,89 @@ struct spacetime_splitted_vectorfield
   }
   //----------------------------------------------------------------------------
   template <typename W>
-  requires std::is_pointer_v<V>
-  void set_field(vectorfield<W, real_type, num_dimensions() + 1> const& v) {
+  auto set_field(vectorfield<W, real_type, num_dimensions() + 1> const& v) 
+  requires std::is_pointer_v<V> {
     m_v = &v;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename = void>
-  requires std::is_pointer_v<V>
-  void set_field(polymorphic::vectorfield<real_type, num_dimensions() + 1> const& v) {
+  auto set_field(
+      polymorphic::vectorfield<real_type, num_dimensions() + 1> const& v)
+  requires std::is_pointer_v<V> {
     m_v = &v;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename = void>
-  requires std::is_pointer_v<V>
-  void set_field(polymorphic::vectorfield<real_type, num_dimensions() + 1> const* v) {
+  auto set_field(
+      polymorphic::vectorfield<real_type, num_dimensions() + 1> const* v)
+  requires std::is_pointer_v<V> {
     m_v = v;
   }
   //============================================================================
-  template <typename V_>
-  explicit spacetime_splitted_vectorfield(V_&& v) : m_v{std::forward<V_>(v)} {}
+  constexpr explicit spacetime_splitted_vectorfield(convertible_to<V> auto&& v)
+      : m_v{std::forward<decltype(v)>(v)} {}
   //----------------------------------------------------------------------------
-  spacetime_splitted_vectorfield(spacetime_splitted_vectorfield const&) =
+  constexpr spacetime_splitted_vectorfield(spacetime_splitted_vectorfield const&) =
       default;
-  spacetime_splitted_vectorfield(spacetime_splitted_vectorfield&&) noexcept =
+  constexpr spacetime_splitted_vectorfield(spacetime_splitted_vectorfield&&) noexcept =
       default;
   //----------------------------------------------------------------------------
   ~spacetime_splitted_vectorfield() override = default;
   //----------------------------------------------------------------------------
-  [[nodiscard]] auto evaluate(pos_type const& x, real_type const t) const
-      -> tensor_type final {
-    vec<real_type, num_dimensions() + 1> pt;
-    for (size_t i = 0; i < num_dimensions(); ++i) {
-      pt(i) = x(i);
+  [[nodiscard]] constexpr auto evaluate(pos_type const& x, real_type const t) const
+      -> tensor_type {
+    auto spatio_temporal_position = vec<real_type, num_dimensions() + 1>{};
+    for (std::size_t i = 0; i < num_dimensions(); ++i) {
+      spatio_temporal_position(i) = x(i);
     }
-    pt(num_dimensions()) = t;
-    auto const vt        = internal_field()(pt, t);
-    tensor_type   v;
-    for (size_t i = 0; i < num_dimensions(); ++i) {
-      v(i) = vt(i);
+    spatio_temporal_position(num_dimensions()) = t;
+    auto vt = internal_field()(spatio_temporal_position, t);
+    if constexpr (!same_as<decltype(vt), tensor_type>) {
+      auto v = tensor_type{};
+      for (std::size_t i = 0; i < num_dimensions(); ++i) {
+        v(i) = vt(i);
+      }
+      return v;
+    } else {
+      return vt;
     }
-    return v;
-  }
-  //----------------------------------------------------------------------------
-  [[nodiscard]] auto in_domain(pos_type const& x, real_type t) const -> bool final {
-    vec<real_type, num_dimensions() + 1> pt;
-    for (size_t i = 0; i < num_dimensions(); ++i) {
-      pt(i) = x(i);
-    }
-    pt(num_dimensions()) = t;
-    return internal_field().in_domain(pt, t);
   }
 };
+template <typename V>
+spacetime_splitted_vectorfield(V&& v) -> spacetime_splitted_vectorfield<V&&>;
+template <typename V>
+spacetime_splitted_vectorfield(V const& v)
+    -> spacetime_splitted_vectorfield<V const&>;
+template <typename V>
+spacetime_splitted_vectorfield(V& v) -> spacetime_splitted_vectorfield<V&>;
+template <typename V>
+spacetime_splitted_vectorfield(V* v) -> spacetime_splitted_vectorfield<V*>;
+template <typename V>
+spacetime_splitted_vectorfield(V const* v)
+    -> spacetime_splitted_vectorfield<V const*>;
 //==============================================================================
-template <typename V, typename VReal, size_t N>
-auto split_spacetime(vectorfield<V, VReal, N> const& v) {
+template <typename V, typename VReal, std::size_t N, std::size_t NV>
+auto split_spacetime(vectorfield<V, VReal, N, NV> const& v) {
   return spacetime_splitted_vectorfield<V const&>{v.as_derived()};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename V, typename VReal, size_t N>
-auto split_spacetime(vectorfield<V, VReal, N>& v) {
+template <typename V, typename VReal, std::size_t N, std::size_t NV>
+auto split_spacetime(vectorfield<V, VReal, N, NV>& v) {
   return spacetime_splitted_vectorfield<V&>{v.as_derived()};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename V, typename VReal, size_t N>
-auto split_spacetime(vectorfield<V, VReal, N>&& v) {
+template <typename V, typename VReal, std::size_t N, std::size_t NV>
+auto split_spacetime(vectorfield<V, VReal, N, NV>&& v) {
   return spacetime_splitted_vectorfield<V>{std::move(v.as_derived())};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename VReal, size_t N>
-auto split_spacetime(polymorphic::vectorfield<VReal, N>* v) {
-  return spacetime_splitted_vectorfield<polymorphic::vectorfield<VReal, N>*>{v};
+template <typename VReal, std::size_t N, std::size_t NV>
+auto split_spacetime(polymorphic::vectorfield<VReal, N, NV>* v) {
+  return spacetime_splitted_vectorfield<polymorphic::vectorfield<VReal, N, NV>*>{v};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename VReal, size_t N>
-auto split_spacetime(polymorphic::vectorfield<VReal, N> const* v) {
-  return spacetime_splitted_vectorfield<polymorphic::vectorfield<VReal, N> const*>{
-      v};
+template <typename VReal, std::size_t N, std::size_t NV>
+auto split_spacetime(polymorphic::vectorfield<VReal, N, NV> const* v) {
+  return spacetime_splitted_vectorfield<
+      polymorphic::vectorfield<VReal, N, NV> const*>{v};
 }
 //==============================================================================
 }  // namespace tatooine

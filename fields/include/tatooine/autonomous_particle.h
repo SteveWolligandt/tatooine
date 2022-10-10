@@ -618,14 +618,14 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     auto       initial_particle_distribution = g.copy_without_properties();
     auto const radius =
         initial_particle_distribution.dimension(0).spacing() / 2;
-    //invoke([&] {
-    //  auto       dim = initial_particle_distribution.template dimension<Is>();
-    //  auto const half_spacing = dim.spacing() / 2;
-    //  dim.pop_front();
-    //  dim.front() -= half_spacing;
-    //  dim.back() -= half_spacing;
-    //  initial_particle_distribution.template set_dimension<Is>(dim);
-    //}...);
+    invoke([&] {
+      auto       dim = initial_particle_distribution.template dimension<Is>();
+      auto const half_spacing = dim.spacing() / 2;
+      dim.pop_front();
+      dim.front() -= half_spacing;
+      dim.back() -= half_spacing;
+      initial_particle_distribution.template set_dimension<Is>(dim);
+    }...);
     initial_particle_distribution.vertices().iterate_positions(
         [&](auto const& x) {
           particles.emplace_back(x, t0, radius, max_split_depth,

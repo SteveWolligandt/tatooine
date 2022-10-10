@@ -269,9 +269,9 @@ struct vertex_property_sampler
           typename GridVertexProperty::value_type> {
   static_assert(sizeof...(InterpolationKernels) ==
                 GridVertexProperty::num_dimensions());
-  using property_t = GridVertexProperty;
+  using property_type = GridVertexProperty;
   using this_type =
-      vertex_property_sampler<property_t, InterpolationKernels...>;
+      vertex_property_sampler<property_type, InterpolationKernels...>;
   using real_type  = typename GridVertexProperty::real_type;
   using value_type = typename GridVertexProperty::value_type;
   using parent_type =
@@ -290,10 +290,10 @@ struct vertex_property_sampler
   static_assert(is_floating_point<tensor_value_type<value_type>>);
   //============================================================================
  private:
-  property_t const& m_property;
+  property_type const& m_property;
   //============================================================================
  public:
-  vertex_property_sampler(property_t const& prop) : m_property{prop} {}
+  vertex_property_sampler(property_type const& prop) : m_property{prop} {}
   //----------------------------------------------------------------------------
   vertex_property_sampler(vertex_property_sampler const& other)     = default;
   vertex_property_sampler(vertex_property_sampler&& other) noexcept = default;
