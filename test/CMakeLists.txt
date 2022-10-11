@@ -11,11 +11,6 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/external/catch2/contr
 option(TATOOINE_TEST_USE_FAST_MATH
     "use -ffast-math for unittests" OFF)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  list(APPEND CMAKE_CXX_FLAGS "-fcolor-diagnostics")
-elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-  list(APPEND CMAKE_CXX_FLAGS "-fdiagnostics-color=always")
-endif()
 enable_testing()
 include(CTest)
 include(Catch)

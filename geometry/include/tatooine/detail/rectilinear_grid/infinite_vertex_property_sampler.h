@@ -4,7 +4,7 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <detail::rectilinear_grid::dimension... Dimensions>
+template <floating_point_range... Dimensions>
 requires(sizeof...(Dimensions) > 1)
 class rectilinear_grid;
 //==============================================================================

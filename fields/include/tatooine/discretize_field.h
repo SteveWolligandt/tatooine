@@ -9,7 +9,7 @@ namespace tatooine {
 //==============================================================================
 template <
     typename V, arithmetic VReal, std::size_t NumDimensions, typename Tensor,
-    detail::rectilinear_grid::dimension... SpatialDimensions, arithmetic T>
+    floating_point_range... SpatialDimensions, arithmetic T>
 auto sample_to_raw(
     field<V, VReal, NumDimensions, Tensor> const& f,
     rectilinear_grid<SpatialDimensions...> const& discretized_domain, T const t,
@@ -37,8 +37,8 @@ auto sample_to_raw(
 //------------------------------------------------------------------------------
 template <typename V, arithmetic VReal, std::size_t NumDimensions,
           typename Tensor,
-          detail::rectilinear_grid::dimension... SpatialDimensions,
-          detail::rectilinear_grid::dimension TemporalDimension>
+          floating_point_range... SpatialDimensions,
+          floating_point_range TemporalDimension>
 auto sample_to_raw(
     field<V, VReal, NumDimensions, Tensor> const& f,
     rectilinear_grid<SpatialDimensions...> const& discretized_domain,
@@ -69,7 +69,7 @@ auto sample_to_raw(
 }
 //------------------------------------------------------------------------------
 template <arithmetic VReal, std::size_t NumDimensions, typename Tensor,
-          detail::rectilinear_grid::dimension... SpatialDimensions>
+          floating_point_range... SpatialDimensions>
 auto sample_to_vector(
     polymorphic::field<VReal, NumDimensions, Tensor> const& f,
     rectilinear_grid<SpatialDimensions...> const&           discretized_domain,
@@ -88,7 +88,7 @@ auto sample_to_vector(
 }
 //------------------------------------------------------------------------------
 template <arithmetic VReal, std::size_t NumDimensions, typename Tensor,
-          detail::rectilinear_grid::dimension... SpatialDimensions>
+          floating_point_range... SpatialDimensions>
 auto discretize(
     polymorphic::field<VReal, NumDimensions, Tensor> const& f,
     rectilinear_grid<SpatialDimensions...> const&           discretized_domain,
@@ -103,7 +103,7 @@ auto discretize(
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <arithmetic VReal, std::size_t NumDimensions, typename Tensor,
-          detail::rectilinear_grid::dimension... SpatialDimensions>
+          floating_point_range... SpatialDimensions>
 auto discretize(
     polymorphic::field<VReal, NumDimensions, Tensor> const& f,
     rectilinear_grid<SpatialDimensions...> const&           discretized_domain,
@@ -112,7 +112,7 @@ auto discretize(
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <arithmetic VReal, std::size_t NumDimensions, typename Tensor,
-          detail::rectilinear_grid::dimension... SpatialDimensions>
+          floating_point_range... SpatialDimensions>
 auto discretize(
     polymorphic::field<VReal, NumDimensions, Tensor> const& f,
     rectilinear_grid<SpatialDimensions...> const& discretized_domain) -> auto& {
@@ -120,7 +120,7 @@ auto discretize(
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <arithmetic VReal, std::size_t NumDimensions, typename Tensor,
-          detail::rectilinear_grid::dimension... SpatialDimensions>
+          floating_point_range... SpatialDimensions>
 auto discretize(
     polymorphic::field<VReal, NumDimensions, Tensor> const& f,
     rectilinear_grid<SpatialDimensions...> const&           discretized_domain,
@@ -129,7 +129,7 @@ auto discretize(
 }
 //------------------------------------------------------------------------------
 template <arithmetic VReal, std::size_t NumDimensions, typename Tensor,
-          detail::rectilinear_grid::dimension... SpatialDimensions>
+          floating_point_range... SpatialDimensions>
 auto discretize(polymorphic::field<VReal, NumDimensions, Tensor> const& f,
                 rectilinear_grid<SpatialDimensions...>& discretized_domain,
                 std::string const& property_name, arithmetic auto const t,
@@ -160,7 +160,7 @@ auto discretize(polymorphic::field<VReal, NumDimensions, Tensor> const& f,
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <arithmetic VReal, std::size_t NumDimensions, typename Tensor,
-          detail::rectilinear_grid::dimension... SpatialDimensions>
+          floating_point_range... SpatialDimensions>
 auto discretize(polymorphic::field<VReal, NumDimensions, Tensor> const& f,
                 rectilinear_grid<SpatialDimensions...>& discretized_domain,
                 std::string const& property_name, arithmetic auto const t)
@@ -170,7 +170,7 @@ auto discretize(polymorphic::field<VReal, NumDimensions, Tensor> const& f,
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <arithmetic VReal, std::size_t NumDimensions, typename Tensor,
-          detail::rectilinear_grid::dimension... SpatialDimensions>
+          floating_point_range... SpatialDimensions>
 auto discretize(polymorphic::field<VReal, NumDimensions, Tensor> const& f,
                 rectilinear_grid<SpatialDimensions...>& discretized_domain,
                 std::string const& property_name) -> auto& {
@@ -179,7 +179,7 @@ auto discretize(polymorphic::field<VReal, NumDimensions, Tensor> const& f,
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <arithmetic VReal, std::size_t NumDimensions, typename Tensor,
-          detail::rectilinear_grid::dimension... SpatialDimensions>
+          floating_point_range... SpatialDimensions>
 auto discretize(polymorphic::field<VReal, NumDimensions, Tensor> const& f,
                 rectilinear_grid<SpatialDimensions...>& discretized_domain,
                 std::string const&                      property_name,

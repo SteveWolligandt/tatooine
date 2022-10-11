@@ -126,16 +126,12 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
     using sampler_t =
         repeated_interpolation_kernel_for_vertex_property<this_type,
                                                           InterpolationKernel>;
-    grid().update_diff_stencil_coefficients();
     return sampler_t{*this};
   }
   //----------------------------------------------------------------------------
  public:
   template <template <typename> typename... InterpolationKernels>
   auto sampler() const {
-    if (!grid().diff_stencil_coefficients_created_once()) {
-      grid().update_diff_stencil_coefficients();
-    }
     static_assert(
         sizeof...(InterpolationKernels) == 0 ||
             sizeof...(InterpolationKernels) == 1 ||

@@ -15,60 +15,56 @@ namespace tatooine {
 /// converts multi-dimensional index to a one dimensional index where first
 /// dimensions grows fastest
 struct x_fastest {
-  static constexpr auto plain_index(std::forward_iterator auto resolution_it,
+  template <std::forward_iterator Iterator>
+  static constexpr auto plain_index(Iterator resolution_it,
                                     integral auto const... is) {
-    std::size_t multiplier = 1;
-    std::size_t idx        = 0;
-    for_each(
-        [&](auto const i) {
-          idx += static_cast<std::size_t>(i) * multiplier;
-          multiplier *= *(resolution_it++);
-        },
-        is...);
+    using int_t     = typename std::iterator_traits<Iterator>::value_type;
+    auto multiplier = int_t(1);
+    auto idx        = int_t(0);
+    auto it         = [&](int_t const i) {
+      idx += i * multiplier;
+      multiplier *= *(resolution_it++);
+    };
+    for_each(it, static_cast<int_t>(is)...);
     return idx;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  static constexpr auto plain_index(std::forward_iterator auto resolution_it,
-                                    range auto const&          is) {
-    std::size_t multiplier = 1;
-    std::size_t idx        = 0;
-    for (auto i : is) {
-      idx += i * multiplier;
+  template <std::forward_iterator Iterator>
+  static constexpr auto plain_index(Iterator                  resolution_it,
+                                    integral_range auto const& is) {
+    using int_t     = typename std::iterator_traits<Iterator>::value_type;
+    auto multiplier = int_t(1);
+    auto idx        = int_t(0);
+    for (auto const i : is) {
+      idx += static_cast<int_t>(i) * multiplier;
       multiplier *= *(resolution_it++);
     }
     return idx;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  static constexpr auto plain_index(range auto const& resolution,
+  static constexpr auto plain_index(integral_range auto const& resolution,
                                     integral auto const... is) {
-    using Resolution = std::decay_t<decltype(resolution)>;
-    static_assert(is_integral<typename Resolution::value_type>,
-                  "resolution range must hold integral type");
     return plain_index(begin(resolution), is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  static constexpr auto plain_index(range auto const& resolution,
-                                    range auto const& indices) {
-    using Resolution = std::decay_t<decltype(resolution)>;
-    using Indices    = std::decay_t<decltype(resolution)>;
-    static_assert(is_integral<typename Resolution::value_type>,
-                  "resolution range must hold integral type");
-    static_assert(is_integral<typename Indices::value_type>,
-                  "index range must hold integral type");
+  static constexpr auto plain_index(integral_range auto const& resolution,
+                                    integral_range auto const& indices) {
     assert(resolution.size() == indices.size());
     return plain_index(begin(resolution), indices);
   }
   //----------------------------------------------------------------------------
-  static auto multi_index(range auto const& resolution, std::size_t plain_index) {
-    std::vector<std::size_t> is(resolution.size());
-    std::size_t              multiplier =
-        std::accumulate(begin(resolution), std::prev(end(resolution)),
-                        std::size_t(1), std::multiplies<std::size_t>{});
+  template <integral_range Resolution>
+  static auto multi_index(Resolution const& resolution,
+                          integral auto     plain_index) {
+    using int_t     = std::ranges::range_value_t<Resolution>;
+    auto is         = std::vector<int_t>(resolution.size());
+    auto multiplier = std::accumulate(begin(resolution), prev(end(resolution)),
+                                      int_t(1), std::multiplies<int_t>{});
 
-    auto resolution_it = std::prev(end(resolution), 2);
+    auto resolution_it = prev(end(resolution), 2);
     for (std::size_t j = 0; j < resolution.size(); ++j, --resolution_it) {
-      std::size_t i = resolution.size() - 1 - j;
-      is[i]    = plain_index / multiplier;
+      auto i = resolution.size() - 1 - j;
+      is[i]  = plain_index / multiplier;
       plain_index -= is[i] * multiplier;
       if (resolution_it >= begin(resolution)) {
         multiplier /= *resolution_it;
@@ -85,8 +81,8 @@ struct x_slowest {
   static constexpr auto internal_plain_index(
       std::forward_iterator auto resolution_it, range auto const& is)
       -> std::size_t {
-    std::size_t multiplier = 1;
-    std::size_t idx        = 0;
+    auto multiplier = std::size_t(1);
+    auto idx        = std::size_t(0);
 
     for (auto i : is | boost::adaptors::reversed) {
       idx += i * multiplier;
@@ -129,8 +125,8 @@ struct x_slowest {
     auto is = std::vector<std::size_t> (resolution.size());
     std::size_t multiplier = 1;
 
-    auto resolution_it = std::prev(end(resolution));
-    auto is_it         = std::prev(end(is));
+    auto resolution_it = prev(end(resolution));
+    auto is_it         = prev(end(is));
     for (; resolution_it != begin(resolution); --resolution_it, --is_it) {
       *is_it = plain_index * multiplier;
       plain_index -= *is_it;

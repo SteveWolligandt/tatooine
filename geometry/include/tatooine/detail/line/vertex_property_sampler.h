@@ -72,7 +72,7 @@ struct vertex_property_sampler<Real, NumDimensions, Property,
       return;
     }
     auto const stencil_size =
-        std::min<std::size_t>(3, m_line.vertices().size());
+        min<std::size_t>(3, m_line.vertices().size());
     auto const half         = stencil_size / 2;
     auto       derivatives  = std::vector<value_type>{};
 

@@ -238,48 +238,18 @@ struct iterator : iterator_facade<iterator<Real>> {
   //============================================================================
   constexpr auto equal(iterator const& other) const { return m_i == other.m_i; }
   constexpr auto dereference() const { return m_lin->at(m_i); }
-  constexpr auto increment() { ++m_i; }
-  constexpr auto decrement() { --m_i; }
+  constexpr auto increment(std::size_t inc = 1) { m_i += inc; }
+  constexpr auto decrement(std::size_t dec = 1) { m_i -= dec; }
   constexpr auto at_end() const { return m_i == m_lin->size(); }
-};
-//------------------------------------------------------------------------------
-template <floating_point Real>
-constexpr auto distance(iterator<Real> const& it0, iterator<Real> const& it1) {
-  return it0.distance(it1);
-}
-//------------------------------------------------------------------------------
-template <floating_point Real>
-auto next(iterator<Real> const& l, std::size_t diff = 1) {
-  iterator<Real> it{l};
-  it.increment(diff);
-  return it;
-}
-//------------------------------------------------------------------------------
-template <floating_point Real>
-auto prev(iterator<Real> const& it, std::size_t const diff = 1) {
-  auto prev_it = iterator<Real> {it};
-  prev_it.decrement(diff);
-  return prev_it;
-}
-//------------------------------------------------------------------------------
-template <floating_point Real>
-auto prev(sentinel<Real> const& it, std::size_t const diff = 1) {
-  return iterator<Real>{it.linspace, it.linspace->size() - diff};
-}
-//------------------------------------------------------------------------------
-template <floating_point Real>
-inline auto advance(iterator<Real>& it, long n = 1) -> auto& {
-  if (n < 0) {
-    while (n++) {
-      --it;
-    }
-  } else {
-    while (n--) {
-      ++it;
-    }
+  constexpr auto distance_to(iterator const& other) const -> std::ptrdiff_t {
+    return other.m_i - m_i;
   }
-  return it;
-}
+  constexpr auto distance_to(sentinel_type const /*sentinel*/) const
+      -> std::ptrdiff_t {
+    return m_lin->size() - m_i;
+  }
+  constexpr auto advance(std::ptrdiff_t const off) { m_i += off; }
+};
 //==============================================================================
 }  // namespace tatooine::detail::linspace
 //============================================================================
