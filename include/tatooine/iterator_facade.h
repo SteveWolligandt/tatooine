@@ -186,10 +186,6 @@ class iterator_facade {
     as_derived().increment();
     return as_derived();
   }
-  auto foo() -> auto &requires implements_increment<Iter> {
-    as_derived().increment();
-    return as_derived();
-  }
   //==============================================================================
   auto operator++(int) requires implements_increment<Iter> {
     auto copy = as_derived();
@@ -260,14 +256,14 @@ class iterator_facade {
   friend auto operator-(iterator_type const &left, iterator_type const &right)
   requires implements_distance_to<iterator_type> {
     // How many times must we `++right` to reach `left`?
-    return left.distance_to(right);
+    return right.distance_to(left);
   }
   //==============================================================================
   friend auto operator-(iterator_type const &left,
                         iter_sentinel_arg<iterator_type> auto const sentinel)
   requires implements_distance_to<iterator_type> {
     // How many times must we `++right` to reach `left`?
-    return left.distance_to(sentinel);
+    return -left.distance_to(sentinel);
   }
   //==============================================================================
   friend auto operator-(iter_sentinel_arg<iterator_type> auto const sentinel,
@@ -371,6 +367,12 @@ template <derived_from_iterator_facade Iter>
 requires implements_advance<Iter>
 auto advance(Iter &iter, difference_type_arg<Iter> auto off) {
   return iter.advance(off);
+}
+//------------------------------------------------------------------------------
+template <derived_from_iterator_facade Iter>
+requires implements_distance_to<Iter>
+constexpr auto distance(Iter const& it0, Iter const& it1) {
+  return it0.distance_to(it1);
 }
 //==============================================================================
 }  // namespace tatooine

@@ -174,8 +174,8 @@ struct unstructured_simplicial_grid
   }
 
  public:
-  template <detail::rectilinear_grid::dimension DimX,
-            detail::rectilinear_grid::dimension DimY>
+  template <floating_point_range DimX,
+            floating_point_range DimY>
   requires(NumDimensions == 2) && (SimplexDim == 2)
   explicit unstructured_simplicial_grid(rectilinear_grid<DimX, DimY> const& g) {
     auto const s0 = g.size(0);
@@ -216,9 +216,9 @@ struct unstructured_simplicial_grid
     }, s0-1, s1-1);
   }
   //----------------------------------------------------------------------------
-  template <detail::rectilinear_grid::dimension DimX,
-            detail::rectilinear_grid::dimension DimY,
-            detail::rectilinear_grid::dimension DimZ>
+  template <floating_point_range DimX,
+            floating_point_range DimY,
+            floating_point_range DimZ>
   requires(NumDimensions == 3) && (SimplexDim == 3)
   explicit unstructured_simplicial_grid(
       rectilinear_grid<DimX, DimY, DimZ> const& g) {

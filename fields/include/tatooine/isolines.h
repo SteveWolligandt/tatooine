@@ -148,8 +148,8 @@ auto isolines(
 }
 //------------------------------------------------------------------------------
 template <typename Field, typename FieldReal,
-          detail::rectilinear_grid::dimension XDomain,
-          detail::rectilinear_grid::dimension YDomain,
+          floating_point_range XDomain,
+          floating_point_range YDomain,
           arithmetic                          TReal = FieldReal>
 auto isolines(scalarfield<Field, FieldReal, 2> const&         sf,
               rectilinear_grid<XDomain, YDomain> const& g,

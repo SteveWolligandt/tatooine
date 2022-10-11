@@ -8,7 +8,6 @@
 #include <tatooine/concepts.h>
 #include <tatooine/detail/rectilinear_grid/cell_container.h>
 #include <tatooine/detail/rectilinear_grid/creator.h>
-#include <tatooine/detail/rectilinear_grid/dimension.h>
 #include <tatooine/detail/rectilinear_grid/vertex_container.h>
 #include <tatooine/detail/rectilinear_grid/vertex_property.h>
 #include <tatooine/detail/rectilinear_grid/vtr_writer.h>
@@ -34,7 +33,7 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <detail::rectilinear_grid::dimension... Dimensions>
+template <floating_point_range... Dimensions>
 requires(sizeof...(Dimensions) > 1)
 class rectilinear_grid {
  public:
@@ -77,23 +76,18 @@ class rectilinear_grid {
   using property_ptr_type       = std::unique_ptr<vertex_property_type>;
   using property_container_type = std::map<std::string, property_ptr_type>;
   //============================================================================
-  static constexpr std::size_t min_stencil_size = 2;
-  static constexpr std::size_t max_stencil_size = 11;
-
  private:
-  static constexpr std::size_t num_stencils =
-      max_stencil_size - min_stencil_size + 1;
   mutable std::mutex      m_stencil_mutex;
   dimensions_type         m_dimensions;
   property_container_type m_vertex_properties;
-  mutable bool            m_diff_stencil_coefficients_created_once = false;
 
   using stencil_type      = std::vector<real_type>;
   using stencil_list_type = std::vector<stencil_type>;
-  // diff stencils per stencil size per point
-  mutable std::array<std::array<std::vector<stencil_list_type>, num_stencils>,
-                     num_dimensions()>
-              m_diff_stencil_coefficients;
+  // finite difference stencils per size per dimension
+  mutable std::vector<std::array<stencil_list_type, num_dimensions()>>
+      m_diff_stencil_coefficients;
+  mutable std::vector<std::array<std::vector<std::size_t>, num_dimensions()>>
+              m_diff_stencil_centers;
   std::size_t m_chunk_size_for_lazy_properties = 2;
   //============================================================================
  public:
@@ -126,7 +120,7 @@ class rectilinear_grid {
   template <typename... Dimensions_>
   requires
     (sizeof...(Dimensions_) == sizeof...(Dimensions)) &&
-    (detail::rectilinear_grid::dimension<std::decay_t<Dimensions_>> && ...)
+    (floating_point_range<std::decay_t<Dimensions_>> && ...)
   constexpr rectilinear_grid(Dimensions_&&... dimensions)
       : m_dimensions{std::forward<Dimensions_>(dimensions)...} {}
   //----------------------------------------------------------------------------
@@ -575,76 +569,52 @@ class rectilinear_grid {
         unpack(std::forward<decltype(xs)>(xs)));
   }
   //----------------------------------------------------------------------------
-  auto diff_stencil_coefficients(std::size_t const dim_index,
-                                 std::size_t const stencil_size,
-                                 std::size_t const stencil_center,
-                                 std::size_t const i) const -> auto const& {
-    return m_diff_stencil_coefficients[dim_index]
-                                      [stencil_size - min_stencil_size]
-                                      [stencil_center][i];
-  }
-  //----------------------------------------------------------------------------
-  auto diff_stencil_coefficients_created_once() const {
-    auto lock = std::lock_guard{m_stencil_mutex};
-    return m_diff_stencil_coefficients_created_once;
-  }
-  //----------------------------------------------------------------------------
-  auto update_diff_stencil_coefficients() const {
-    auto lock = std::lock_guard{m_stencil_mutex};
-    for (std::size_t dim = 0; dim < num_dimensions(); ++dim) {
-      for (std::size_t i = 0; i < num_stencils; ++i) {
-        m_diff_stencil_coefficients[dim][i].clear();
-        m_diff_stencil_coefficients[dim][i].shrink_to_fit();
-      }
+  auto finite_differences_coefficients(std::size_t const stencil_size,
+                                      std::size_t const dim_index,
+                                      std::size_t const i) const
+      -> auto const& {
+    if (stencil_size > m_diff_stencil_coefficients.size()) {
+      auto lock = std::lock_guard{m_stencil_mutex};
+      create_finite_differences_coefficients(stencil_size);
     }
-    update_diff_stencil_coefficients(
-        std::make_index_sequence<num_dimensions()>{});
-    m_diff_stencil_coefficients_created_once = true;
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <std::size_t... DimSeq>
-  auto update_diff_stencil_coefficients(
-      std::index_sequence<DimSeq...> /*seq*/) const {
-    [[maybe_unused]] auto const dim_seqs = std::array{DimSeq...};
-    (update_diff_stencil_coefficients_dim<DimSeq>(), ...);
+    return m_diff_stencil_coefficients[stencil_size - 1][dim_index][i];
   }
   //----------------------------------------------------------------------------
-  template <std::size_t Dim>
-  auto update_diff_stencil_coefficients_dim() const {
-    auto const& dim                   = dimension<Dim>();
-    auto&       stencils_of_dimension = m_diff_stencil_coefficients[Dim];
-    for (std::size_t stencil_size = min_stencil_size;
-         stencil_size <= std::min(max_stencil_size, dim.size());
-         ++stencil_size) {
-      auto& stencils_of_cur_size =
-          stencils_of_dimension[stencil_size - min_stencil_size];
-      stencils_of_cur_size.resize(stencil_size);
-      for (std::size_t stencil_center = 0; stencil_center < stencil_size;
-           ++stencil_center) {
-        update_diff_stencil_coefficients(dim,
-                                         stencils_of_cur_size[stencil_center],
-                                         stencil_size, stencil_center);
-      }
+  auto create_finite_differences_coefficients(
+      std::size_t const stencil_size) const {
+    using namespace std::ranges;
+    if (m_diff_stencil_coefficients.size() < stencil_size) {
+      m_diff_stencil_coefficients.resize(stencil_size);
+      m_diff_stencil_centers.resize(stencil_size);
     }
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename Dim>
-  auto update_diff_stencil_coefficients(
-      Dim const& dim, std::vector<std::vector<real_type>>& stencils,
-      std::size_t const stencil_size, std::size_t const stencil_center) const {
-    stencils.reserve(dim.size());
+    auto& stencil_per_size = m_diff_stencil_coefficients[stencil_size-1];
 
-    for (std::size_t i = 0; i < stencil_center; ++i) {
-      stencils.emplace_back();
-    }
-    for (std::size_t i = stencil_center;
-         i < dim.size() - (stencil_size - stencil_center - 1); ++i) {
-      std::vector<real_type> xs(stencil_size);
-      for (std::size_t j = 0; j < stencil_size; ++j) {
-        xs[j] = dim[i - stencil_center + j] - dim[i];
+    auto const half_stencil_size = stencil_size / 2;
+    auto       local_positions   = std::vector<real_type>(stencil_size);
+
+    auto dim_idx = std::size_t{};
+    auto foreach_dim = [&](auto const& dim) {
+      auto stencil_begin = begin(dim);
+      auto stencil_end   = next(begin(dim), stencil_size);
+      assert(stencil_size <= dim.size());
+      for (auto it = begin(dim); it != end(dim); ++it) {
+        auto distance_to_center = [&it](auto const& x) { return x - *it; };
+        //auto const stencil_center_index = distance(stencil_begin, it);
+        copy(subrange{stencil_begin, stencil_end} |
+                 views::transform(distance_to_center),
+             begin(local_positions));
+        stencil_per_size[dim_idx].push_back(
+            tatooine::finite_differences_coefficients(1, local_positions));
+        if (distance(stencil_begin, it) >=
+                static_cast<long>(half_stencil_size) &&
+            stencil_end != end(dim)) {
+          ++stencil_begin;
+          ++stencil_end;
+        }
       }
-      stencils.push_back(finite_differences_coefficients(1, xs));
-    }
+      ++dim_idx;
+    };
+    m_dimensions.iterate(foreach_dim);
   }
   //----------------------------------------------------------------------------
   auto vertices() const { return vertex_container{*this}; }
@@ -700,7 +670,7 @@ class rectilinear_grid {
  private:
   template <std::size_t... Is>
   auto add_dimension(
-      detail::rectilinear_grid::dimension auto&& additional_dimension,
+      floating_point_range auto&& additional_dimension,
       std::index_sequence<Is...> /*seq*/) const {
     return rectilinear_grid<Dimensions...,
                             std::decay_t<decltype(additional_dimension)>>{
@@ -710,7 +680,7 @@ class rectilinear_grid {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
   auto add_dimension(
-      detail::rectilinear_grid::dimension auto&& additional_dimension) const {
+      floating_point_range auto&& additional_dimension) const {
     return add_dimension(
         std::forward<decltype(additional_dimension)>(additional_dimension),
         sequence_type{});
@@ -1133,17 +1103,18 @@ class rectilinear_grid {
   template <invocable<pos_type> F>
   auto sample_to_vertex_property_pos(F&& f, std::string const& name,
                                      execution_policy_tag auto tag) -> auto& {
-    using T    = std::invoke_result_t<F, pos_type>;
-    auto& prop = vertex_property<T>(name);
+    using invoke_result    = std::decay_t<std::invoke_result_t<F, pos_type>>;
+    auto& prop             = vertex_property<invoke_result>(name);
     vertices().iterate_indices(
         [&](auto const... is) {
           try {
             prop(is...) = f(vertices()(is...));
           } catch (std::exception&) {
-            if constexpr (tensor_num_components<T> == 1) {
-              prop(is...) = T{nan<T>()};
+            if constexpr (tensor_num_components<invoke_result> == 1) {
+              prop(is...) = invoke_result{nan<invoke_result>()};
             } else {
-              prop(is...) = T::fill(nan<tensor_value_type<T>>());
+              prop(is...) =
+                  invoke_result::fill(nan<tensor_value_type<invoke_result>>());
             }
           }
         },
@@ -1842,14 +1813,14 @@ auto operator<<(std::ostream& out, rectilinear_grid<Dimensions...> const& g)
     -> auto& {
   return g.print(out);
 }
-template <detail::rectilinear_grid::dimension... Dimensions>
+template <floating_point_range... Dimensions>
 auto vertices(rectilinear_grid<Dimensions...> const& g) {
   return g.vertices();
 }
 //==============================================================================
 // deduction guides
 //==============================================================================
-template <detail::rectilinear_grid::dimension... Dimensions>
+template <floating_point_range... Dimensions>
 rectilinear_grid(Dimensions&&...)
     -> rectilinear_grid<std::decay_t<Dimensions>...>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1864,16 +1835,16 @@ rectilinear_grid(Ints const... res) -> rectilinear_grid<
 //==============================================================================
 // operators
 //==============================================================================
-template <detail::rectilinear_grid::dimension... Dimensions,
-          detail::rectilinear_grid::dimension AdditionalDimension>
+template <floating_point_range... Dimensions,
+          floating_point_range AdditionalDimension>
 auto operator+(rectilinear_grid<Dimensions...> const& rectilinear_grid,
                AdditionalDimension&&                  additional_dimension) {
   return rectilinear_grid.add_dimension(
       std::forward<AdditionalDimension>(additional_dimension));
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <detail::rectilinear_grid::dimension... Dimensions,
-          detail::rectilinear_grid::dimension AdditionalDimension>
+template <floating_point_range... Dimensions,
+          floating_point_range AdditionalDimension>
 auto operator+(AdditionalDimension&&                  additional_dimension,
                rectilinear_grid<Dimensions...> const& rectilinear_grid) {
   return rectilinear_grid.add_dimension(
