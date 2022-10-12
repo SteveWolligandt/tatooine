@@ -189,10 +189,13 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   dynamic_multidim_array(std::vector<value_type> const& data, Size&& size)
       : parent_type{std::forward<Size>(size)}, m_data_container(data) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <integral_range Size>
-  dynamic_multidim_array(std::vector<value_type>&& data, Size&& size)
-      : parent_type{std::forward<Size>(size)},
-        m_data_container(std::move(data)) {}
+  template <range_of<value_type> Data, integral_range Size>
+  requires (!integral<value_type>)
+  dynamic_multidim_array(Data&& data, Size&& size)
+      : parent_type{std::forward<Size>(size)} {
+    std::ranges::copy(std::forward<Data>(data),
+                      std::back_inserter(m_data_container));
+  }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <integral_range Size, random_number_generator Rand>
   requires arithmetic<value_type> dynamic_multidim_array(Rand&& rand, Size&& size)

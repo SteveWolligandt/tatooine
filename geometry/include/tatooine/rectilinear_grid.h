@@ -81,13 +81,10 @@ class rectilinear_grid {
   dimensions_type         m_dimensions;
   property_container_type m_vertex_properties;
 
-  using stencil_type      = std::vector<real_type>;
-  using stencil_list_type = std::vector<stencil_type>;
+  using stencil_list_type = std::vector<real_type>;
   // finite difference stencils per size per dimension
   mutable std::vector<std::array<stencil_list_type, num_dimensions()>>
-      m_diff_stencil_coefficients;
-  mutable std::vector<std::array<std::vector<std::size_t>, num_dimensions()>>
-              m_diff_stencil_centers;
+      m_finite_difference_coefficients;
   std::size_t m_chunk_size_for_lazy_properties = 2;
   //============================================================================
  public:
@@ -97,7 +94,7 @@ class rectilinear_grid {
   /// Copy CTOR
   constexpr rectilinear_grid(rectilinear_grid const& other)
       : m_dimensions{other.m_dimensions},
-        m_diff_stencil_coefficients{other.m_diff_stencil_coefficients} {
+        m_finite_difference_coefficients{other.m_finite_difference_coefficients} {
     for (auto const& [name, prop] : other.m_vertex_properties) {
       auto& emplaced_prop =
           m_vertex_properties.emplace(name, prop->clone()).first->second;
@@ -109,8 +106,8 @@ class rectilinear_grid {
   constexpr rectilinear_grid(rectilinear_grid&& other) noexcept
       : m_dimensions{std::move(other.m_dimensions)},
         m_vertex_properties{std::move(other.m_vertex_properties)},
-        m_diff_stencil_coefficients{
-            std::move(other.m_diff_stencil_coefficients)} {
+        m_finite_difference_coefficients{
+            std::move(other.m_finite_difference_coefficients)} {
     for (auto const& [name, prop] : m_vertex_properties) {
       prop->set_grid(*this);
     }
@@ -178,7 +175,7 @@ class rectilinear_grid {
       -> rectilinear_grid& {
     m_dimensions                = std::move(other.m_dimensions);
     m_vertex_properties         = std::move(other.m_vertex_properties);
-    m_diff_stencil_coefficients = std::move(other.m_diff_stencil_coefficients);
+    m_finite_difference_coefficients = std::move(other.m_finite_difference_coefficients);
     for (auto const& [name, prop] : m_vertex_properties) {
       prop->set_grid(*this);
     }
@@ -570,41 +567,45 @@ class rectilinear_grid {
   }
   //----------------------------------------------------------------------------
   auto finite_differences_coefficients(std::size_t const stencil_size,
-                                      std::size_t const dim_index,
-                                      std::size_t const i) const
-      -> auto const& {
-    if (stencil_size > m_diff_stencil_coefficients.size()) {
+                                       std::size_t const dim_index,
+                                       std::size_t const i) const {
+    if (stencil_size > m_finite_difference_coefficients.size()) {
       auto lock = std::lock_guard{m_stencil_mutex};
       create_finite_differences_coefficients(stencil_size);
     }
-    return m_diff_stencil_coefficients[stencil_size - 1][dim_index][i];
+    auto beg =
+        begin(m_finite_difference_coefficients[stencil_size - 1][dim_index]);
+    return std::ranges::subrange{beg + stencil_size * i,
+                                 beg + stencil_size * (i + 1)};
   }
   //----------------------------------------------------------------------------
+  /// \brief Computes finite difference coefficients for given stencil size.
+  ///
+  /// On the borders of the grid the position for which the coefficients are
+  /// being computed may not be in the center of the stencil. The stencil is
+  /// adjusted so that the stencil size keeps constant.
   auto create_finite_differences_coefficients(
       std::size_t const stencil_size) const {
     using namespace std::ranges;
-    if (m_diff_stencil_coefficients.size() < stencil_size) {
-      m_diff_stencil_coefficients.resize(stencil_size);
-      m_diff_stencil_centers.resize(stencil_size);
+    if (m_finite_difference_coefficients.size() < stencil_size) {
+      m_finite_difference_coefficients.resize(stencil_size);
     }
-    auto& stencil_per_size = m_diff_stencil_coefficients[stencil_size-1];
+    auto& stencil_per_size = m_finite_difference_coefficients[stencil_size - 1];
 
     auto const half_stencil_size = stencil_size / 2;
     auto       local_positions   = std::vector<real_type>(stencil_size);
 
-    auto dim_idx = std::size_t{};
-    auto foreach_dim = [&](auto const& dim) {
+    auto foreach_dim = [&, dim_idx = std::size_t{}](auto const& dim) mutable {
       auto stencil_begin = begin(dim);
       auto stencil_end   = next(begin(dim), stencil_size);
       assert(stencil_size <= dim.size());
       for (auto it = begin(dim); it != end(dim); ++it) {
-        auto distance_to_center = [&it](auto const& x) { return x - *it; };
-        //auto const stencil_center_index = distance(stencil_begin, it);
-        copy(subrange{stencil_begin, stencil_end} |
-                 views::transform(distance_to_center),
-             begin(local_positions));
-        stencil_per_size[dim_idx].push_back(
-            tatooine::finite_differences_coefficients(1, local_positions));
+        auto& stencil_per_dim    = stencil_per_size[dim_idx];
+        auto  distance_to_center = [&it](auto const& x) { return x - *it; };
+        copy(tatooine::finite_differences_coefficients(
+                 1, subrange{stencil_begin, stencil_end} |
+                        views::transform(distance_to_center)),
+             std::back_inserter(stencil_per_dim));
         if (distance(stencil_begin, it) >=
                 static_cast<long>(half_stencil_size) &&
             stencil_end != end(dim)) {

@@ -137,8 +137,9 @@ struct base_vertex_property_sampler {
  protected:
   auto finite_differences_coefficients(std::size_t const vertex_index,
                                        std::size_t const stencil_size) const {
-    return grid().finite_differences_coefficients(
+    auto d = grid().finite_differences_coefficients(
         stencil_size, current_dimension_index(), vertex_index);
+    return d;
   }
   //----------------------------------------------------------------------------
   /// Calcuates derivative from samples and differential coefficients.
@@ -179,30 +180,28 @@ struct base_vertex_property_sampler {
     auto const  half_stencil_size = stencil_size / 2;
 
     auto left_global_begin = left_global_index < half_stencil_size
-                                       ? std::size_t(0)
-                                       : left_global_index - half_stencil_size;
-    auto left_global_end   = left_global_begin + stencil_size;
-
-    if (left_global_end > dim.size()) {
-      left_global_begin -= left_global_end - dim.size();
-      left_global_end -= left_global_end - dim.size();
+                                 ? std::size_t(0)
+                                 : left_global_index - half_stencil_size;
+    if (auto potential_left_global_end = left_global_begin + stencil_size;
+        potential_left_global_end > dim.size()) {
+      left_global_begin -= potential_left_global_end - dim.size();
     }
-    auto const right_global_end =
+    auto const left_global_end = left_global_begin + stencil_size;
+
+    auto right_global_end =
         dim.size() - right_global_index <= half_stencil_size
             ? dim.size()
             : right_global_index + half_stencil_size + 1;
+    if (right_global_end < stencil_size) {
+      right_global_end = stencil_size ;
+    }
     auto const right_global_begin = right_global_end - stencil_size;
 
     auto const range_global_begin = min(left_global_begin, right_global_begin);
     auto const range_global_end   = max(left_global_end, right_global_end);
-    auto const range_size = range_global_end - range_global_begin;
 
     auto const left_local_index = left_global_index - range_global_begin;
     auto const right_local_index = left_local_index + 1;
-    auto const right_vertex_index_in_range =
-        min(range_size - half_stencil_size - 1,
-            range_size - dim.size() -
-                right_global_index - 1);
 
     // get samples for calculating derivatives
     auto samples = std::vector<value_type>{};
@@ -217,13 +216,13 @@ struct base_vertex_property_sampler {
     }
 
     // differentiate left sample
-    auto const& coeffs_left =
+    auto coeffs_left =
         finite_differences_coefficients(left_global_index, stencil_size);
     auto const dleft_dx = differentiate(coeffs_left, begin(samples),
                                         begin(samples) + stencil_size);
 
     // differentiate right sample
-    auto const& coeffs_right =
+    auto coeffs_right =
         finite_differences_coefficients(right_global_index, stencil_size);
     auto const dright_dx =
         differentiate(coeffs_right, end(samples) - stencil_size, end(samples));

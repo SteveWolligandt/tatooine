@@ -49,9 +49,9 @@ template <floating_point_range R>
 requires (!static_tensor<R>)
 auto finite_differences_coefficients(std::size_t const derivative_order,
                                      R const& v) {
-  using real_type     = typename std::decay_t<R>::value_type;
+  using real_type     = std::ranges::range_value_t<R>;
   auto const V        = transposed(tensor<real_type>::vander(v));
-  auto       b        = tensor<real_type>::zeros(size(v));
+  auto       b        = tensor<real_type>::zeros(std::ranges::size(v));
   b(derivative_order) =
       static_cast<real_type>(gcem::factorial(derivative_order));
   return solve(V, b)->internal_container();
