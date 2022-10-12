@@ -17,25 +17,6 @@ TEST_CASE_METHOD(pointset2, "pointset_vtp_matrix",
   write_vtp("pointset.unittests.vtp_matrix.vtp");
 }
 //==============================================================================
-TEST_CASE_METHOD(pointset3, "pointset_ranges", "[pointset][ranges]") {
-  auto                  v0    = insert_vertex(1, 2, 3);
-  [[maybe_unused]] auto v1    = insert_vertex(2, 4, 6);
-  auto                  is0   = std::vector<std::size_t>{};
-  constexpr auto        index = [](auto const vh) { return vh.index(); };
-  using namespace std::ranges;
-  copy(vertices() | views::transform(index), std::back_inserter(is0));
-  remove(v0);
-  auto is1       = std::vector<std::size_t>{};
-  auto get_index = [](auto const vh) { return vh.index(); };
-  copy(vertices() | views::transform(get_index), std::back_inserter(is1));
-
-  REQUIRE(size(is0) == 2);
-  REQUIRE(is0[0] == 0);
-  REQUIRE(is0[1] == 1);
-  REQUIRE(size(is1) == 1);
-  REQUIRE(is1[0] == 1);
-}
-//==============================================================================
 TEST_CASE_METHOD(pointset2, "pointset_tidyup", "[pointset][tidyup][tidy]") {
   [[maybe_unused]] auto v0 = insert_vertex(1, 2);
   [[maybe_unused]] auto v1 = insert_vertex(2, 4);
@@ -76,8 +57,8 @@ TEST_CASE_METHOD(pointset2, "pointset_tidyup", "[pointset][tidyup][tidy]") {
   REQUIRE(vertex_at(2)(1) == 8);
 }
 //==============================================================================
-TEST_CASE_METHOD(pointset3, "pointset", "[pointset][general]") {
-  auto& prop1 = insert_scalar_vertex_property("prop1", 0);
+TEST_CASE_METHOD(pointset3, "pointset", "[pointset][vertex_property]") {
+  auto& prop1 = scalar_vertex_property("prop1");
   auto  v0    = insert_vertex(1, 2, 3);
   auto  v1    = insert_vertex(2, 4, 6);
   prop1[v0]   = 123;
@@ -87,9 +68,9 @@ TEST_CASE_METHOD(pointset3, "pointset", "[pointset][general]") {
   }
   auto&                  prop2 = insert_scalar_vertex_property("prop2", 2);
   [[maybe_unused]] auto& prop3 =
-      insert_vec3_vertex_property("prop3", {1, 0, 2});
+      insert_vec3_vertex_property("prop3", vec3{1, 0, 2});
 
-  REQUIRE(vertices().size() == 10);
+  REQUIRE(size(vertices()) == 10);
   REQUIRE(prop1.size() == 10);
   REQUIRE(prop1[v0] == 123);
   REQUIRE(prop1[v1] == 246);
@@ -177,26 +158,51 @@ TEST_CASE_METHOD(pointset2, "pointset_inverse_distance_weighting_sampler",
 }
 //==============================================================================
 TEST_CASE_METHOD(pointset2, "pointset_vertex_range",
-                 "[pointset][range][vertex_container]") {
+                 "[pointset][range][vertex_container][iterators]") {
   using Catch::Matchers::Equals;
-  auto rand = random::uniform{-1.0, 1.0, std::mt19937_64{1234}};
-  auto& prop = scalar_vertex_property("prop");
+  auto  rand = random::uniform{-1.0, 1.0, std::mt19937_64{1234}};
+  auto& prop = vertex_property<std::size_t>("prop");
   for (size_t i = 0; i < 4; ++i) {
     insert_vertex(rand(), rand());
   }
 
-  auto vs_vec = std::vector<vertex_handle>{};
-  auto const vs_vec_expected = std::vector{vertex_handle{0}, vertex_handle{1},
-                                           vertex_handle{2}, vertex_handle{3}};
-  std::ranges::copy(vertices(), std::back_inserter(vs_vec));
-  REQUIRE_THAT(vs_vec, Equals(vs_vec_expected));
-
-  #pragma omp parallel for
-  for (auto const v : vertices()) {
-    prop[v] = static_cast<real_number>(v.index());
+  SECTION("iterator") {
+    auto it = begin(vertices());
   }
-  for (auto const v : vertices()) {
-    REQUIRE(prop[v] == static_cast<real_number>(v.index()));
+
+  SECTION("range-based for-loop"){
+    SECTION("sequential") {
+      for (auto const v : vertices()) {
+        prop[v] = static_cast<real_number>(v.index());
+      }
+      for (auto const v : vertices()) {
+        CAPTURE(v);
+        REQUIRE(prop[v] == static_cast<real_number>(v.index()));
+      }
+    }
+    SECTION("parallel") {
+#pragma omp parallel for
+      for (auto const v : vertices()) {
+        prop[v] = static_cast<real_number>(v.index());
+        std::cout << v.index() << '\n';
+      }
+      for (auto const v : vertices()) {
+        CAPTURE(v);
+        REQUIRE(prop[v] == v.index());
+      }
+    }
+  }
+
+  SECTION("C++20 ranges library") {
+    SECTION("copy") {
+      auto       vs_vec = std::vector<vertex_handle>{};
+      auto const vs_vec_expected =
+          std::vector{vertex_handle{0}, vertex_handle{1}, vertex_handle{2},
+                      vertex_handle{3}};
+      std::ranges::copy(vertices(), std::back_inserter(vs_vec));
+      REQUIRE_THAT(vs_vec, Equals(vs_vec_expected));
+
+    }
   }
 }
 //==============================================================================

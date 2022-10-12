@@ -263,39 +263,9 @@ struct vertex_container {
   }
 };
 //==============================================================================
-//static_assert(std::ranges::forward_range<vertex_container<real_number, 2>>);
+static_assert(std::ranges::forward_range<vertex_container<real_number, 2>>);
 //static_assert(std::ranges::forward_range<vertex_container<real_number, 3>>);
 //==============================================================================
-template <typename Real, std::size_t NumDimensions>
-auto begin(vertex_container<Real, NumDimensions> verts) {
-  return verts.begin();
-}
-//------------------------------------------------------------------------------
-template <typename Real, std::size_t NumDimensions>
-auto end(vertex_container<Real, NumDimensions> verts) {
-  return verts.end();
-}
-//------------------------------------------------------------------------------
-template <typename Real, std::size_t NumDimensions>
-auto next(vertex_container_iterator<Real, NumDimensions> it) {
-  return ++it;
-}
-//------------------------------------------------------------------------------
-template <typename Real, std::size_t NumDimensions>
-auto next(const_vertex_container_iterator<Real, NumDimensions> it) {
-  return ++it;
-}
-//------------------------------------------------------------------------------
-template <typename Real, std::size_t NumDimensions>
-auto prev(vertex_container_iterator<Real, NumDimensions> it) {
-  return --it;
-}
-//------------------------------------------------------------------------------
-template <typename Real, std::size_t NumDimensions>
-auto prev(const_vertex_container_iterator<Real, NumDimensions> it) {
-  return --it;
-}
-//------------------------------------------------------------------------------
 template <typename Real, std::size_t NumDimensions>
 auto size(vertex_container<Real, NumDimensions> verts) {
   return verts.size();
