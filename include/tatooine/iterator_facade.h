@@ -255,22 +255,20 @@ class iterator_facade {
   //==============================================================================
   friend auto operator-(iterator_type const &left, iterator_type const &right)
   requires implements_distance_to<iterator_type> {
-    // How many times must we `++right` to reach `left`?
     return right.distance_to(left);
   }
   //==============================================================================
   friend auto operator-(iterator_type const &left,
-                        iter_sentinel_arg<iterator_type> auto const sentinel)
+                        iter_sentinel_arg<iterator_type> auto const right)
   requires implements_distance_to<iterator_type> {
     // How many times must we `++right` to reach `left`?
-    return -left.distance_to(sentinel);
+    return -left.distance_to(right);
   }
   //==============================================================================
-  friend auto operator-(iter_sentinel_arg<iterator_type> auto const sentinel,
+  friend auto operator-(iter_sentinel_arg<iterator_type> auto const right,
                         iterator_type const &left)
   requires implements_distance_to<iterator_type> {
-    // How many times must we `++right` to reach `left`?
-    return -left.distance_to(sentinel);
+    return left.distance_to(right);
   }
   //==============================================================================
   friend auto operator<=>(iterator_type const &left,
@@ -373,6 +371,18 @@ template <derived_from_iterator_facade Iter>
 requires implements_distance_to<Iter>
 constexpr auto distance(Iter const& it0, Iter const& it1) {
   return it0.distance_to(it1);
+}
+//------------------------------------------------------------------------------
+template <derived_from_iterator_facade Iter>
+requires implements_distance_to<Iter>
+constexpr auto distance(Iter const& it0, iter_sentinel_arg<Iter> auto const& it1) {
+  return it0.distance_to(it1);
+}
+//------------------------------------------------------------------------------
+template <derived_from_iterator_facade Iter>
+requires implements_distance_to<Iter>
+constexpr auto distance(iter_sentinel_arg<Iter> auto const& it0, Iter const& it1) {
+  return -it1.distance_to(it0);
 }
 //==============================================================================
 }  // namespace tatooine
