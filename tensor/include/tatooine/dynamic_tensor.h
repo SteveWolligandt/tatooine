@@ -101,7 +101,7 @@ struct tensor<T> : dynamic_multidim_array<T> {
   }
   //----------------------------------------------------------------------------
   static auto vander(arithmetic_range auto const& v) {
-    return vander(v, size(v));
+    return vander(v, std::ranges::size(v));
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <arithmetic Real_, std::size_t N>
@@ -111,7 +111,7 @@ struct tensor<T> : dynamic_multidim_array<T> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   static auto vander(arithmetic_range auto const& v,
                      integral auto const          degree) {
-    auto V             = this_type{v.size(), degree};
+    auto V             = this_type{std::ranges::size(v), degree};
     auto factor_up_row = [row = 0ul, &V, degree](auto const x) mutable {
       V(row, 0) = 1;
       for (std::size_t col = 1; col < degree; ++col) {
@@ -119,8 +119,9 @@ struct tensor<T> : dynamic_multidim_array<T> {
       }
       ++row;
     };
-    for (std::size_t i = 0; i < degree; ++i) {
-      factor_up_row(static_cast<T>(v[i]));
+    auto v_it = begin(v);
+    for (std::size_t i = 0; i < degree; ++i, ++v_it) {
+      factor_up_row(static_cast<T>(*v_it));
     }
     return V;
   }
@@ -175,6 +176,11 @@ struct tensor<T> : dynamic_multidim_array<T> {
       (!integral<std::decay_t<Components>> && ...))
       : parent_type{std::vector<T>{std::forward<Components>(components)...},
                     sizeof...(Components)} {}
+  //----------------------------------------------------------------------------
+  /// Constructs a rank 1 tensor aka vector.
+  template <floating_point_range Components>
+  explicit tensor(Components&& components)
+      : parent_type{std::forward<Components>(components)} {}
   //----------------------------------------------------------------------------
   /// Constructs a rank 2 tensor aka matrix.
   template <arithmetic_or_complex... Rows, std::size_t N>
