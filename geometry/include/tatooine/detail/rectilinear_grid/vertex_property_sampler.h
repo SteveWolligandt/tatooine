@@ -172,28 +172,43 @@ struct base_vertex_property_sampler {
   //----------------------------------------------------------------------------
   auto interpolate_cell_with_one_derivative(auto const& cit_head,
                                             auto const&... cit_tail) const {
-    auto const [cell_index, interpolation_factor] = cit_head;
-    auto const  left_index                        = cell_index;
-    auto const  right_index                       = cell_index + 1;
+    auto const [left_global_index, interpolation_factor] = cit_head;
+    auto const  right_global_index                = left_global_index + 1;
     auto const& dim = grid().template dimension<current_dimension_index()>();
-    auto constexpr targeted_stencil_size = std::size_t(3);
-    auto constexpr offset = static_cast<long>(targeted_stencil_size) / 2;
+    auto const  stencil_size      = min(dim.size(), std::size_t(5));
+    auto const  half_stencil_size = stencil_size / 2;
 
-    auto const left_negative_offset =
-        left_index < offset ? -static_cast<long>(left_index) : -offset;
+    auto left_global_begin = left_global_index < half_stencil_size
+                                       ? std::size_t(0)
+                                       : left_global_index - half_stencil_size;
+    auto left_global_end   = left_global_begin + stencil_size;
 
-    auto const right_negative_offset =
-        right_index < offset ? -static_cast<long>(right_index) : -offset;
-    auto const right_positive_offset = std::min(
-        static_cast<long>(dim.size() - right_index - 1),
-        static_cast<long>(targeted_stencil_size + right_negative_offset - 1));
+    if (left_global_end > dim.size()) {
+      left_global_begin -= left_global_end - dim.size();
+      left_global_end -= left_global_end - dim.size();
+    }
+    auto const right_global_end =
+        dim.size() - right_global_index <= half_stencil_size
+            ? dim.size()
+            : right_global_index + half_stencil_size + 1;
+    auto const right_global_begin = right_global_end - stencil_size;
+
+    auto const range_global_begin = min(left_global_begin, right_global_begin);
+    auto const range_global_end   = max(left_global_end, right_global_end);
+    auto const range_size = range_global_end - range_global_begin;
+
+    auto const left_local_index = left_global_index - range_global_begin;
+    auto const right_local_index = left_local_index + 1;
+    auto const right_vertex_index_in_range =
+        min(range_size - half_stencil_size - 1,
+            range_size - dim.size() -
+                right_global_index - 1);
 
     // get samples for calculating derivatives
     auto samples = std::vector<value_type>{};
-    samples.reserve(right_positive_offset - left_negative_offset + 2);
+    samples.reserve(stencil_size + 1);
     // get samples
-    for (std::size_t i = left_negative_offset + left_index;
-         i <= right_positive_offset + right_index; ++i) {
+    for (auto i = range_global_begin; i < range_global_end; ++i) {
       if constexpr (num_dimensions() == 1) {
         samples.push_back(at(i));
       } else {
@@ -203,20 +218,20 @@ struct base_vertex_property_sampler {
 
     // differentiate left sample
     auto const& coeffs_left =
-        finite_differences_coefficients(left_index, targeted_stencil_size);
+        finite_differences_coefficients(left_global_index, stencil_size);
     auto const dleft_dx = differentiate(coeffs_left, begin(samples),
-                                        begin(samples) + targeted_stencil_size);
+                                        begin(samples) + stencil_size);
 
     // differentiate right sample
     auto const& coeffs_right =
-        finite_differences_coefficients(right_index, targeted_stencil_size);
-    auto const dright_dx = differentiate(
-        coeffs_right, end(samples) - targeted_stencil_size, end(samples));
+        finite_differences_coefficients(right_global_index, stencil_size);
+    auto const dright_dx =
+        differentiate(coeffs_right, end(samples) - stencil_size, end(samples));
 
-    auto const dy = dim[right_index] - dim[left_index];
+    auto const dy = dim[right_global_index] - dim[left_global_index];
     return HeadInterpolationKernel<value_type>{
-        samples[-left_negative_offset], samples[-left_negative_offset + 1],
-        dleft_dx * dy, dright_dx * dy}(interpolation_factor);
+        samples[left_local_index], samples[right_local_index], dleft_dx * dy,
+        dright_dx * dy}(interpolation_factor);
   }
   //----------------------------------------------------------------------------
   /// Decides if first derivative is needed or not.
