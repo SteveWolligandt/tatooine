@@ -2,7 +2,7 @@
 
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_all.hpp>
+#include <tatooine/test/ApproxRange.h>
 using namespace Catch;
 //==============================================================================
 namespace tatooine::test {
@@ -264,26 +264,21 @@ TEST_CASE("rectilinear_grid_finite_differences_stencil_coefficients",
   auto const g =
       rectilinear_grid{linspace{0.0, 1.0, 3}, std::vector{0.0, 0.1, 1.0, 1.5}};
   REQUIRE_THAT(g.finite_differences_coefficients(3, 0, 0),
-               Catch::Matchers::Approx(
-                   std::vector{-3.0, 4.0, -1.0}));
+               ApproxRange(std::vector{-3.0, 4.0, -1.0}));
   REQUIRE_THAT(g.finite_differences_coefficients(3, 0, 1),
-               Catch::Matchers::Approx(
-                   std::vector{-1.0, 0.0, 1.0}));
+               ApproxRange(std::vector{-1.0, 0.0, 1.0}));
   REQUIRE_THAT(g.finite_differences_coefficients(3, 0, 2),
-               Catch::Matchers::Approx(
-                   std::vector{1.0, -4.0, 3.0}));
+               ApproxRange(std::vector{1.0, -4.0, 3.0}));
   REQUIRE_THAT(g.finite_differences_coefficients(3, 1, 0),
-               Catch::Matchers::Approx(
-                   std::vector{-99.0 / 9.0, 100.0 / 9.0, -1.0 / 9.0}));
+               ApproxRange(std::vector{-99.0 / 9.0, 100.0 / 9.0, -1.0 / 9.0}));
   REQUIRE_THAT(g.finite_differences_coefficients(3, 1, 1),
-               Catch::Matchers::Approx(
-                   std::vector{-81.0 / 9.0, 80.0 / 9.0, 1.0 / 9.0}));
-  REQUIRE_THAT(g.finite_differences_coefficients(3, 1, 2),
-               Catch::Matchers::Approx(
-                   std::vector{-25.0 / 63.0, -56.0 / 63.0, 81.0 / 63.0}));
-  REQUIRE_THAT(g.finite_differences_coefficients(3, 1, 3),
-               Catch::Matchers::Approx(
-                   std::vector{25.0 / 63.0, -196.0 / 63.0, 171.0 / 63.0}));
+               ApproxRange(std::vector{-81.0 / 9.0, 80.0 / 9.0, 1.0 / 9.0}));
+  REQUIRE_THAT(
+      g.finite_differences_coefficients(3, 1, 2),
+      ApproxRange(std::vector{-25.0 / 63.0, -56.0 / 63.0, 81.0 / 63.0}));
+  REQUIRE_THAT(
+      g.finite_differences_coefficients(3, 1, 3),
+      ApproxRange(std::vector{25.0 / 63.0, -196.0 / 63.0, 171.0 / 63.0}));
 }
 //==============================================================================
 //TEST_CASE("rectilinear_grid_vertex_property_sampler_vec",

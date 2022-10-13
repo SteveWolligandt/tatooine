@@ -58,10 +58,10 @@ struct x_fastest {
                           integral auto     plain_index) {
     using int_t     = std::ranges::range_value_t<Resolution>;
     auto is         = std::vector<int_t>(resolution.size());
-    auto multiplier = std::accumulate(begin(resolution), prev(end(resolution)),
+    auto multiplier = std::accumulate(std::ranges::begin(resolution), std::ranges::prev(end(resolution)),
                                       int_t(1), std::multiplies<int_t>{});
 
-    auto resolution_it = prev(end(resolution), 2);
+    auto resolution_it = std::ranges::prev(end(resolution), 2);
     for (std::size_t j = 0; j < resolution.size(); ++j, --resolution_it) {
       auto i = resolution.size() - 1 - j;
       is[i]  = plain_index / multiplier;

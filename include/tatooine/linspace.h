@@ -14,6 +14,9 @@ namespace tatooine::detail::linspace {
 //============================================================================
 template <floating_point Real>
 struct iterator;
+//==============================================================================
+template <floating_point Real>
+struct iterator_sentinel;
 //============================================================================
 }  // namespace tatooine::detail::linspace
 //============================================================================
@@ -80,10 +83,10 @@ struct linspace {
     return m_min + spacing() * static_cast<Real>(i);
   }
   //----------------------------------------------------------------------------
-  constexpr auto operator[](std::size_t i) const { return at(i); }
+  constexpr auto operator[](std::size_t const i) const { return at(i); }
   //----------------------------------------------------------------------------
   constexpr auto begin() const { return iterator{this, 0}; }
-  constexpr auto end() const { return typename iterator::sentinel_type{}; }
+  constexpr auto end() const { return typename iterator::sentinel_type{this}; }
   //----------------------------------------------------------------------------
   constexpr auto size() const { return m_size; }
   constexpr auto size() -> auto& { return m_size; }
@@ -118,23 +121,6 @@ struct linspace {
   //----------------------------------------------------------------------------
   constexpr auto resize(std::size_t const s) { m_size = s; }
 };
-//==============================================================================
-// free functions
-//==============================================================================
-template <floating_point Real>
-constexpr auto begin(linspace<Real> const& l) {
-  return l.begin();
-}
-//------------------------------------------------------------------------------
-template <floating_point Real>
-constexpr auto end(linspace<Real> const& l) {
-  return l.end();
-}
-//------------------------------------------------------------------------------
-template <floating_point Real>
-auto size(linspace<Real> const& l) {
-  return l.size();
-}
 //------------------------------------------------------------------------------
 template <floating_point Real>
 auto front(linspace<Real> const& l) {
@@ -196,8 +182,13 @@ namespace tatooine::reflection {
 namespace tatooine::detail::linspace {
 //==============================================================================
 template <floating_point Real>
+struct iterator_sentinel {
+  tatooine::linspace<Real> const* m_lin;
+};
+//==============================================================================
+template <floating_point Real>
 struct iterator : iterator_facade<iterator<Real>> {
-  using sentinel_type = iterator_sentinel;
+  using sentinel_type = detail::linspace::iterator_sentinel<Real>;
   using linspace_type = tatooine::linspace<Real>;
   //============================================================================
   // typedefs
@@ -246,6 +237,11 @@ struct iterator : iterator_facade<iterator<Real>> {
   }
   constexpr auto advance(std::ptrdiff_t const off) { m_i += off; }
 };
+//==============================================================================
+template <floating_point Real>
+auto prev(iterator_sentinel<Real>const& sent) {
+  return iterator{sent.m_lin, sent.m_lin->size() - 1};
+}
 //==============================================================================
 }  // namespace tatooine::detail::linspace
 //============================================================================
