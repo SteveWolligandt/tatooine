@@ -167,11 +167,11 @@ struct vertex_container_iterator
 
   [[nodiscard]] constexpr auto distance_to(
       vertex_container_iterator const& other) const -> std::ptrdiff_t {
-    return m_vh.index() - other.m_vh.index();
+    return other.m_vh.index() - m_vh.index();
   }
   [[nodiscard]] constexpr auto distance_to(
       sentinel_type const /*sentinel*/) const -> std::ptrdiff_t {
-    return m_vh.index() - m_pointset->vertex_position_data().size();
+    return m_pointset->vertex_position_data().size() - m_vh.index();
   }
   constexpr auto advance(std::ptrdiff_t const off)
       -> vertex_container_iterator& {

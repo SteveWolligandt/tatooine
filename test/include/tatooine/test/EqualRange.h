@@ -5,34 +5,34 @@
 #include <catch2/matchers/catch_matchers_templated.hpp>
 //==============================================================================
 template <std::ranges::range Range>
-struct ApproxRangeMatcher : Catch::Matchers::MatcherGenericBase {
+struct EqualRangeMatcher : Catch::Matchers::MatcherGenericBase {
  private:
   Range range;
 
  public:
   template <std::convertible_to<Range> OtherRange>
-  ApproxRangeMatcher(OtherRange&& range) : range{std::forward<Range>(range)} {}
+  EqualRangeMatcher(OtherRange&& range) : range{std::forward<Range>(range)} {}
 
   auto match(std::ranges::range auto const& other) const -> bool {
     return std::ranges::all_of(
         range, [it = std::ranges::begin(other)](auto const& elem) mutable {
-          return elem == Catch::Approx(*(it++));
+          return elem == *(it++);
         });
   }
 
   auto describe() const -> std::string override {
-    return "Approx: " + Catch::rangeToString(range);
+    return "Equal: " + Catch::rangeToString(range);
   }
 };
 template <typename T>
-ApproxRangeMatcher(T&&) -> ApproxRangeMatcher<T>;
+EqualRangeMatcher(T&&) -> EqualRangeMatcher<T>;
 template <typename T>
-ApproxRangeMatcher(T const&) -> ApproxRangeMatcher<T const&>;
+EqualRangeMatcher(T const&) -> EqualRangeMatcher<T const&>;
 template <typename T>
-ApproxRangeMatcher(T&) -> ApproxRangeMatcher<T const&>;
+EqualRangeMatcher(T&) -> EqualRangeMatcher<T const&>;
 
-auto ApproxRange(std::ranges::range auto && range) {
-  return ApproxRangeMatcher{range};
+auto EqualRange(std::ranges::range auto && range) {
+  return EqualRangeMatcher{range};
 }
 //==============================================================================
 #endif

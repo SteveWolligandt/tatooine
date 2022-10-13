@@ -1,9 +1,9 @@
 #include <tatooine/pointset.h>
 #include <tatooine/random.h>
 #include <tatooine/rectilinear_grid.h>
+#include <tatooine/test/EqualRange.h>
 
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_vector.hpp>
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
@@ -159,32 +159,47 @@ TEST_CASE_METHOD(pointset2, "pointset_inverse_distance_weighting_sampler",
 //==============================================================================
 TEST_CASE_METHOD(pointset2, "pointset_vertex_range",
                  "[pointset][range][vertex_container][iterators]") {
-  using Catch::Matchers::Equals;
+  using vh = vertex_handle;
   auto  rand = random::uniform{-1.0, 1.0, std::mt19937_64{1234}};
   auto& prop = vertex_property<std::size_t>("prop");
-  for (size_t i = 0; i < 4; ++i) {
+  auto num_vertices = std::size_t(4);
+  for (size_t i = 0; i < num_vertices; ++i) {
     insert_vertex(rand(), rand());
   }
+  auto const vertices_expected = std::vector{vh{0}, vh{1}, vh{2}, vh{3}};
 
   SECTION("iterator") {
-    auto it = begin(vertices());
+      auto it0           = begin(vertices());
+      auto it1           = begin(vertices_expected);
+
+      auto x = it0 - next(it0) == it1 - next(it1);
+      REQUIRE(x);
+      REQUIRE(next(it0) - it0 == next(it1) - it1);
+      REQUIRE(distance(end(vertices()), begin(vertices())) ==
+              distance(end(vertices_expected), begin(vertices_expected)));
+      REQUIRE(end(vertices()) - begin(vertices()) ==
+              end(vertices_expected) - begin(vertices_expected));
+      REQUIRE(distance(begin(vertices()), end(vertices())) ==
+              distance(begin(vertices_expected), end(vertices_expected)));
+      REQUIRE(begin(vertices()) - end(vertices()) ==
+              begin(vertices_expected) - end(vertices_expected));
+      REQUIRE(distance(it0, next(it0)) == distance(it1, next(it1)));
   }
 
   SECTION("range-based for-loop"){
     SECTION("sequential") {
       for (auto const v : vertices()) {
-        prop[v] = static_cast<real_number>(v.index());
+        prop[v] = v.index();
       }
       for (auto const v : vertices()) {
         CAPTURE(v);
-        REQUIRE(prop[v] == static_cast<real_number>(v.index()));
+        REQUIRE(prop[v] == v.index());
       }
     }
     SECTION("parallel") {
 #pragma omp parallel for
       for (auto const v : vertices()) {
-        prop[v] = static_cast<real_number>(v.index());
-        std::cout << v.index() << '\n';
+        prop[v] = v.index();
       }
       for (auto const v : vertices()) {
         CAPTURE(v);
@@ -195,13 +210,9 @@ TEST_CASE_METHOD(pointset2, "pointset_vertex_range",
 
   SECTION("C++20 ranges library") {
     SECTION("copy") {
-      auto       vs_vec = std::vector<vertex_handle>{};
-      auto const vs_vec_expected =
-          std::vector{vertex_handle{0}, vertex_handle{1}, vertex_handle{2},
-                      vertex_handle{3}};
+      auto       vs_vec = std::vector<vh>{};
       std::ranges::copy(vertices(), std::back_inserter(vs_vec));
-      REQUIRE_THAT(vs_vec, Equals(vs_vec_expected));
-
+      REQUIRE_THAT(vs_vec, EqualRange(vertices_expected));
     }
   }
 }
