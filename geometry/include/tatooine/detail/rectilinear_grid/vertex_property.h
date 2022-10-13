@@ -141,16 +141,12 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
     if constexpr (sizeof...(InterpolationKernels) == 0) {
       using sampler_t = repeated_interpolation_kernel_for_vertex_property<
           this_type, interpolation::cubic>;
-      grid().update_diff_stencil_coefficients();
       return sampler_t{*this};
     } else if constexpr (sizeof...(InterpolationKernels) == 1) {
       return sampler_<InterpolationKernels...>();
     } else {
       using sampler_t =
           vertex_property_sampler<this_type, InterpolationKernels...>;
-      if (!grid().diff_stencil_coefficients_created_once()) {
-        grid().update_diff_stencil_coefficients();
-      }
       return sampler_t{*this};
     }
   }
