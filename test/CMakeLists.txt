@@ -64,6 +64,7 @@ macro(create_test NAME)
   add_executable(
     ${TARGET} EXCLUDE_FROM_ALL
     ${NAME}.cpp main.cpp)
+  target_include_directories(${TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
   if(TATOOINE_USE_CLANG_TIDY)
     set_target_properties(
       ${TARGET}
@@ -174,6 +175,7 @@ endif()
       add_executable(
         ${TARGET}.gcov
         main.cpp ${NAME}.cpp)
+      target_include_directories(${TARGET}.gcov PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
       if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
         target_compile_options(${TARGET}.gcov PRIVATE -fcolor-diagnostics)
       elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
@@ -234,6 +236,7 @@ add_executable (
   unittests
   main.cpp
   ${TATOOINE_TEST_CPPS})
+target_include_directories(unittests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   target_compile_options(unittests PRIVATE -fcolor-diagnostics)
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
@@ -309,6 +312,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_executable(
       unittests.gcov
       main.cpp ${TATOOINE_TEST_CPPS})
+    target_include_directories(unittests.gcov PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
       target_compile_options(unittests.gcov PRIVATE -fcolor-diagnostics)
     elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
