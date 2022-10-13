@@ -172,8 +172,7 @@ TEST_CASE_METHOD(pointset2, "pointset_vertex_range",
       auto it0           = begin(vertices());
       auto it1           = begin(vertices_expected);
 
-      auto x = it0 - next(it0) == it1 - next(it1);
-      REQUIRE(x);
+      REQUIRE(it0 - next(it0) == it1 - next(it1));
       REQUIRE(next(it0) - it0 == next(it1) - it1);
       REQUIRE(distance(end(vertices()), begin(vertices())) ==
               distance(end(vertices_expected), begin(vertices_expected)));
