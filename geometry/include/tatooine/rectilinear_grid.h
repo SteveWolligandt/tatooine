@@ -569,9 +569,11 @@ class rectilinear_grid {
   auto finite_differences_coefficients(std::size_t const stencil_size,
                                        std::size_t const dim_index,
                                        std::size_t const i) const {
-    if (stencil_size > m_finite_difference_coefficients.size()) {
+    {
       auto lock = std::lock_guard{m_stencil_mutex};
-      create_finite_differences_coefficients(stencil_size);
+      if (stencil_size > m_finite_difference_coefficients.size()) {
+        create_finite_differences_coefficients(stencil_size);
+      }
     }
     auto beg =
         begin(m_finite_difference_coefficients[stencil_size - 1][dim_index]);
