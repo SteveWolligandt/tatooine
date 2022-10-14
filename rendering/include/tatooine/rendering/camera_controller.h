@@ -238,56 +238,56 @@ struct fps_camera_controller : camera_controller_interface<Real> {
   virtual ~fps_camera_controller() = default;
   //----------------------------------------------------------------------------
   auto on_key_pressed(gl::key k) -> void override {
-    if (k == gl::KEY_CTRL_L || k == gl::KEY_CTRL_R) {
+    if (k == gl::key::KEY_CTRL_L || k == gl::key::KEY_CTRL_R) {
       m_ctrl_down = true;
     }
-    if (k == gl::KEY_SHIFT_L || k == gl::KEY_SHIFT_R) {
+    if (k == gl::key::KEY_SHIFT_L || k == gl::key::KEY_SHIFT_R) {
       m_shift_down = true;
     }
-    if (k == gl::KEY_W) {
-      m_buttons_down = m_buttons_down | static_cast<std::uint8_t>(buttons::w);
+    if (k == gl::key::KEY_W) {
+      m_buttons_down = m_buttons_down | buttons::w;
     }
-    if (k == gl::KEY_S) {
+    if (k == gl::key::KEY_S) {
       m_buttons_down = m_buttons_down | static_cast<std::uint8_t>(buttons::s);
     }
-    if (k == gl::KEY_A) {
+    if (k == gl::key::KEY_A) {
       m_buttons_down = m_buttons_down | static_cast<std::uint8_t>(buttons::a);
     }
-    if (k == gl::KEY_D) {
+    if (k == gl::key::KEY_D) {
       m_buttons_down = m_buttons_down | static_cast<std::uint8_t>(buttons::d);
     }
-    if (k == gl::KEY_Q) {
+    if (k == gl::key::KEY_Q) {
       m_buttons_down = m_buttons_down | static_cast<std::uint8_t>(buttons::q);
     }
-    if (k == gl::KEY_E) {
+    if (k == gl::key::KEY_E) {
       m_buttons_down = m_buttons_down | static_cast<std::uint8_t>(buttons::e);
     }
   }
   //----------------------------------------------------------------------------
   void on_key_released(gl::key k) override {
-    if (k == gl::KEY_CTRL_L || k == gl::KEY_CTRL_R) {
+    if (k == gl::key::KEY_CTRL_L || k == gl::key::KEY_CTRL_R) {
       m_ctrl_down = false;
     }
-    if (k == gl::KEY_SHIFT_L || k == gl::KEY_SHIFT_R) {
+    if (k == gl::key::KEY_SHIFT_L || k == gl::key::KEY_SHIFT_R) {
       m_shift_down = false;
     }
-    if (k == gl::KEY_W) {
-      m_buttons_down = m_buttons_down & ~buttons::w;
+    if (k == gl::key::KEY_W) {
+      m_buttons_down = static_cast<std::uint8_t>(m_buttons_down & ~buttons::w);
     }
-    if (k == gl::KEY_S) {
-      m_buttons_down = m_buttons_down & ~buttons::s;
+    if (k == gl::key::KEY_S) {
+      m_buttons_down = static_cast<std::uint8_t>(m_buttons_down & ~buttons::s);
     }
-    if (k == gl::KEY_A) {
-      m_buttons_down = m_buttons_down & ~buttons::a;
+    if (k == gl::key::KEY_A) {
+      m_buttons_down = static_cast<std::uint8_t>(m_buttons_down & ~buttons::a);
     }
-    if (k == gl::KEY_D) {
-      m_buttons_down = m_buttons_down & ~buttons::d;
+    if (k == gl::key::KEY_D) {
+      m_buttons_down = static_cast<std::uint8_t>(m_buttons_down & ~buttons::d);
     }
-    if (k == gl::KEY_Q) {
-      m_buttons_down = m_buttons_down & ~buttons::q;
+    if (k == gl::key::KEY_Q) {
+      m_buttons_down = static_cast<std::uint8_t>(m_buttons_down & ~buttons::q);
     }
-    if (k == gl::KEY_E) {
-      m_buttons_down = m_buttons_down & ~buttons::e;
+    if (k == gl::key::KEY_E) {
+      m_buttons_down = static_cast<std::uint8_t>(m_buttons_down & ~buttons::e);
     }
   }
   //----------------------------------------------------------------------------

@@ -73,13 +73,13 @@ struct first_person_window : gl::window {
   //----------------------------------------------------------------------------
   auto on_key_pressed(gl::key k) -> void override {
     parent_type::on_key_pressed(k);
-    if (k == gl::KEY_F2) {
+    if (k == gl::key::KEY_F2) {
       camera_controller().use_orthographic_camera();
       camera_controller().use_orthographic_controller();
-    } else if (k == gl::KEY_F3) {
+    } else if (k == gl::key::KEY_F3) {
       camera_controller().use_perspective_camera();
       camera_controller().use_fps_controller();
-    } else if (k == gl::KEY_F4) {
+    } else if (k == gl::key::KEY_F4) {
       camera_controller().look_at({0, 0, -1}, {0, 0, 0});
     }
   }
