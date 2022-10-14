@@ -1,5 +1,5 @@
-#ifndef TATOOINE_DETAIL_UNSTRUCTURED_SIMPLICIAL_GRID_TRIANGULAR_VTP_WRITER_H
-#define TATOOINE_DETAIL_UNSTRUCTURED_SIMPLICIAL_GRID_TRIANGULAR_VTP_WRITER_H
+#ifndef TATOOINE_DETAIL_UNSTRUCTURED_SIMPLICIAL_GRID_EDGE_VTP_WRITER_H
+#define TATOOINE_DETAIL_UNSTRUCTURED_SIMPLICIAL_GRID_EDGE_VTP_WRITER_H
 //==============================================================================
 #include <tatooine/concepts.h>
 #include <tatooine/filesystem.h>
@@ -15,7 +15,7 @@ template <typename Grid, unsigned_integral HeaderType = std::uint64_t,
           integral          ConnectivityInt = std::int64_t,
           integral          OffsetInt       = std::int64_t>
 requires(Grid::num_dimensions() == 2 || Grid::num_dimensions() == 3)
-struct triangular_vtp_writer {
+struct edge_vtp_writer {
   static auto constexpr num_dimensions() { return Grid::num_dimensions(); }
   using vertex_property_type = typename Grid::vertex_property_type;
   template <typename T>
@@ -36,12 +36,13 @@ struct triangular_vtp_writer {
   //----------------------------------------------------------------------------
  private:
   auto write_vtk_file(std::ofstream& file, auto& offset) const {
-    auto const num_bytes_points =
-        HeaderType(sizeof(typename Grid::real_type) * 3 * m_grid.vertices().size());
+    auto const num_bytes_points = HeaderType(sizeof(typename Grid::real_type) *
+                                             3 * m_grid.vertices().size());
     auto const num_bytes_connectivity = m_grid.simplices().size() *
                                         m_grid.num_vertices_per_simplex() *
                                         sizeof(ConnectivityInt);
-    auto const num_bytes_offsets = sizeof(OffsetInt) * m_grid.simplices().size();
+    auto const num_bytes_offsets =
+        sizeof(OffsetInt) * m_grid.simplices().size();
     file << "<VTKFile"
          << " type=\"PolyData\""
          << " version=\"1.0\""
@@ -53,9 +54,9 @@ struct triangular_vtp_writer {
          << "<PolyData>\n"
          << "<Piece"
          << " NumberOfPoints=\"" << m_grid.vertices().size() << "\""
-         << " NumberOfPolys=\"" << m_grid.simplices().size() << "\""
+         << " NumberOfPolys=\"0\""
          << " NumberOfVerts=\"0\""
-         << " NumberOfLines=\"0\""
+         << " NumberOfLines=\"" << m_grid.simplices().size() << "\""
          << " NumberOfStrips=\"0\""
          << ">\n"
          // Points
@@ -69,21 +70,21 @@ struct triangular_vtp_writer {
          << "\" NumberOfComponents=\"3\"/>"
          << "</Points>\n";
     offset += num_bytes_points + sizeof(HeaderType);
-    // Polys
-    file << "<Polys>\n"
-         // Polys - connectivity
+    // Lines
+    file << "<Lines>\n"
+         // Lines - connectivity
          << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
          << vtk::xml::data_array::to_string(
                 vtk::xml::data_array::to_type<ConnectivityInt>())
          << "\" Name=\"connectivity\"/>\n";
     offset += num_bytes_connectivity + sizeof(HeaderType);
-    // Polys - offsets
+    // Lines - offsets
     file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
          << vtk::xml::data_array::to_string(
                 vtk::xml::data_array::to_type<OffsetInt>())
          << "\" Name=\"offsets\"/>\n";
     offset += num_bytes_offsets + sizeof(HeaderType);
-    file << "</Polys>\n"
+    file << "</Lines>\n"
          << "</Piece>\n"
          << "</PolyData>\n"
          << "<AppendedData encoding=\"raw\">\n_";
@@ -98,7 +99,7 @@ struct triangular_vtp_writer {
             m_grid.vertices().size());
         auto position = [this](auto const v) -> auto& { return m_grid.at(v); };
         constexpr auto to_3d = [](auto const& p) {
-          return Vec3<typename Grid::real_type>{p.x(), p.y(), 0};
+          return vec{p.x(), p.y(), typename Grid::real_type(0)};
         };
         copy(m_grid.vertices() | views::transform(position) |
                  views::transform(to_3d),
@@ -111,7 +112,7 @@ struct triangular_vtp_writer {
       }
     }
 
-    // Writing polys connectivity data to appended data section
+    // Writing lines connectivity data to appended data section
     {
       auto connectivity_data = std::vector<ConnectivityInt>(
           m_grid.simplices().size() * m_grid.num_vertices_per_simplex());
@@ -124,7 +125,7 @@ struct triangular_vtp_writer {
                  num_bytes_connectivity);
     }
 
-    // Writing polys offsets to appended data section
+    // Writing lines offsets to appended data section
     {
       auto offsets = std::vector<OffsetInt>(m_grid.simplices().size(),
                                             m_grid.num_vertices_per_simplex());
