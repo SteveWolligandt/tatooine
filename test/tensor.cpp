@@ -2,11 +2,18 @@
 #include <tatooine/tensor.h>
 #include <tatooine/utility.h>
 
+#include <tatooine/test/EqualRange.h>
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 using namespace Catch;
 //==============================================================================
 namespace tatooine::test {
+//==============================================================================
+TEST_CASE("vec_copy", "[vec][copy]") {
+  auto v1 = vec2{1, 2};
+  auto v2 = vec2{v1};
+  REQUIRE_THAT(v1, EqualRange(v2));
+}
 //==============================================================================
 TEST_CASE("dynamic_tensor_access", "[dynamic][tensor]") {
   auto t = tensor<real_number>{3, 3};

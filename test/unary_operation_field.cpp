@@ -1,6 +1,6 @@
 #include <tatooine/analytical/numerical/doublegyre.h>
-#include <tatooine/unary_operation_field.h>
 #include <tatooine/test/ApproxRange.h>
+#include <tatooine/unary_operation_field.h>
 
 #include <catch2/catch_test_macros.hpp>
 //==============================================================================
@@ -8,9 +8,7 @@ namespace tatooine::test {
 //==============================================================================
 TEST_CASE("unary_operation_field_identity_rvalue",
           "[unary_operation_field][identity][rvalue]") {
-  constexpr auto identity = [](auto&& p) -> decltype(auto) {
-    return std::forward<decltype(p)>(p);
-  };
+  constexpr auto identity = [](auto&& p) { return p; };
   auto v  = analytical::numerical::doublegyre{} | identity;
   using V = decltype(v);
   REQUIRE(!std::is_reference_v<V::internal_field_type>);
@@ -21,12 +19,10 @@ TEST_CASE("unary_operation_field_identity_rvalue",
 TEST_CASE("unary_operation_field_identity_ref",
           "[unary_operation_field][identity][ref]") {
   auto           v        = analytical::numerical::doublegyre{};
-  constexpr auto identity = [](auto&& p) -> decltype(auto) {
-    return std::forward<decltype(p)>(p);
-  };
-  auto       v_id = v | identity;
-  using V         = decltype(v);
-  using VId       = decltype(v_id);
+  constexpr auto identity = [](auto&& p) { return p; };
+  auto v_id = v | identity;
+  using V   = decltype(v);
+  using VId = decltype(v_id);
   CHECK(is_same<field_real_type<V>, field_real_type<VId>>);
 
   {
@@ -48,10 +44,8 @@ TEST_CASE("unary_operation_field_identity_ref",
 TEST_CASE("unary_operation_field_identity_ptr",
           "[unary_operation_field][identity][ptr][pointer]") {
   analytical::numerical::doublegyre         v;
-  polymorphic::vectorfield<real_number, 2>* v_ptr = &v;
-  constexpr auto identity = [](auto&& p) -> decltype(auto) {
-    return std::forward<decltype(p)>(p);
-  };
+  polymorphic::vectorfield<real_number, 2>* v_ptr    = &v;
+  constexpr auto identity = [](auto&& p) { return p; };
   auto v_id = v_ptr | identity;
   using V   = decltype(v);
   using VId = decltype(v_id);
