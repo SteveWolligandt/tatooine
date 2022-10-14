@@ -6,129 +6,128 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename InternalField, typename Op>
+template <typename Field, typename Op>
+requires (is_field<Field>) &&
+         (invocable<Op, field_tensor_type<Field>>)
 struct unary_operation_field
-    : field<unary_operation_field<InternalField, Op>,
-            field_real_type<InternalField>, field_num_dimensions<InternalField>,
-            std::invoke_result_t<Op, field_tensor_type<InternalField>>> {
+    : field<unary_operation_field<Field, Op>, field_real_type<Field>,
+            field_num_dimensions<Field>,
+            std::invoke_result_t<Op, field_tensor_type<Field>>> {
  public:
-  using this_type           = unary_operation_field<InternalField, Op>;
-  using internal_field_t = InternalField;
-  using raw_internal_field_t =
-      std::decay_t<std::remove_pointer_t<internal_field_t>>;
-  using parent_t =
-      field<this_type, typename raw_internal_field_t::real_type,
-            raw_internal_field_t::num_dimensions(),
-            std::invoke_result_t<Op, typename raw_internal_field_t::tensor_type>>;
-  using typename parent_t::pos_type;
-  using typename parent_t::real_type;
-  using typename parent_t::tensor_type;
+  using this_type           = unary_operation_field<Field, Op>;
+  using internal_field_type = Field;
+  using parent_type =
+      field<this_type, field_real_type<Field>, field_num_dimensions<Field>,
+            std::invoke_result_t<Op, field_tensor_type<Field>>>;
+
+  using typename parent_type::pos_type;
+  using typename parent_type::real_type;
+  using typename parent_type::tensor_type;
 
  private:
-  internal_field_t m_field;
-  Op               m_op;
+  Field m_field;
+  Op    m_op;
 
  public:
-  constexpr unary_operation_field(unary_operation_field const&)     = default;
-  constexpr unary_operation_field(unary_operation_field&&) noexcept = default;
-  template <typename Field_, typename Op_>
+  template <convertible_to<Field> Field_, convertible_to<Op> Op_>
   constexpr unary_operation_field(Field_&& field, Op_&& op)
       : m_field{std::forward<Field_>(field)}, m_op{std::forward<Op_>(op)} {}
-
- public:
-  constexpr auto operator       =(unary_operation_field const&)
+  //----------------------------------------------------------------------------
+  template <convertible_to<Op> Op_>
+  constexpr unary_operation_field(Op_&& op)
+  requires std::is_pointer_v<std::decay_t<Field>>
+    : m_field{nullptr}, m_op{std::forward<Op_>(op)} {}
+  //----------------------------------------------------------------------------
+  constexpr unary_operation_field(unary_operation_field const&) = default;
+  //----------------------------------------------------------------------------
+  constexpr unary_operation_field(unary_operation_field&&) noexcept = default;
+  //----------------------------------------------------------------------------
+  constexpr auto operator=(unary_operation_field const&)
       -> unary_operation_field& = default;
-  constexpr auto operator       =(unary_operation_field&&) noexcept
+  //----------------------------------------------------------------------------
+  constexpr auto operator=(unary_operation_field&&) noexcept
       -> unary_operation_field& = default;
-
- public:
+  //----------------------------------------------------------------------------
   ~unary_operation_field() override = default;
   //============================================================================
   constexpr auto evaluate(pos_type const& x, real_type const t) const
-      -> tensor_type final {
-    if constexpr (std::is_pointer_v<std::decay_t<InternalField>>) {
+      -> tensor_type {
+    if constexpr (std::is_pointer_v<std::decay_t<Field>>) {
       return m_op(m_field->evaluate(x, t));
     } else {
       return m_op(m_field(x, t));
     }
   }
+  //============================================================================
   auto internal_field() const -> decltype(auto) { return m_field; }
   auto internal_field() -> decltype(auto) { return m_field; }
 };
 //==============================================================================
-template <typename Field, typename Real, typename Tensor, size_t N, typename Op>
-constexpr auto make_unary_operation_field(
-    field<Field, Real, N, Tensor> const& field, Op const& op) {
-  return unary_operation_field<Field const&, Op const&>{field.as_derived(), op};
-}
+template <typename Field, typename Op>
+requires (!std::is_pointer_v<std::decay_t<Field>>)
+unary_operation_field(Field&& field, Op&& op)
+    -> unary_operation_field<Field, Op>;
 //------------------------------------------------------------------------------
-template <typename Field, typename Real, size_t N, typename Tensor, typename Op>
-constexpr auto make_unary_operation_field(field<Field, Real, N, Tensor>&& field,
-                                          Op const&                       op) {
-  return unary_operation_field<Field, Op const&>{std::move(field.as_derived()),
-                                                 op};
-}
+template <typename Field, typename Op>
+requires (!std::is_pointer_v<Field>)
+unary_operation_field(Field const& field, Op&& op)
+    -> unary_operation_field<Field const&, Op>;
 //------------------------------------------------------------------------------
-template <typename Field, typename Real, size_t N, typename Tensor, typename Op>
-constexpr auto make_unary_operation_field(
-    field<Field, Real, N, Tensor> const& field, Op&& op) {
-  return unary_operation_field<Field const&, std::decay_t<Op>>{
-      field.as_derived(), std::move(op)};
-}
-//------------------------------------------------------------------------------
-template <typename Field, typename Real, size_t N, typename Tensor, typename Op>
-constexpr auto make_unary_operation_field(field<Field, Real, N, Tensor>&& field,
-                                          Op&&                            op) {
-  return unary_operation_field<Field, std::decay_t<Op>>{
-      std::move(field.as_derived()), std::move(op)};
-}
-//------------------------------------------------------------------------------
-template <typename Real, size_t N, typename Tensor, typename Op>
-constexpr auto make_unary_operation_field(
-    polymorphic::field<Real, N, Tensor>* field, Op const& op) {
-  return unary_operation_field<polymorphic::field<Real, N, Tensor>*, Op const&>{
-      field, op};
-}
-//------------------------------------------------------------------------------
-template <typename Real, size_t N, typename Tensor, typename Op>
-constexpr auto make_unary_operation_field(
-    polymorphic::field<Real, N, Tensor>* field, Op&& op) {
-  return unary_operation_field<polymorphic::field<Real, N, Tensor>*,
-                               std::decay_t<Op>>{field->as_derived(),
-                                                 std::move(op)};
-}
+template <typename Field, typename Op>
+requires (!std::is_pointer_v<Field>)
+unary_operation_field(Field& field, Op&& op)
+    -> unary_operation_field<Field&, Op>;
 //==============================================================================
-template <typename Field, typename Real, typename Tensor, size_t N, typename Op>
-constexpr auto operator|(field<Field, Real, N, Tensor> const& field,
-                         Op const&                            op) {
-  return make_unary_operation_field(field, op);
-}
+template <typename Field, typename Op>
+requires (!std::is_pointer_v<std::decay_t<Field>>)
+unary_operation_field(Field&& field, Op const& op)
+    -> unary_operation_field<Field, Op const&>;
 //------------------------------------------------------------------------------
-template <typename Field, typename Real, typename Tensor, size_t N, typename Op>
-constexpr auto operator|(field<Field, Real, N, Tensor>&& field, Op const& op) {
-  return make_unary_operation_field(std::move(field.as_derived()), op);
-}
+template <typename Field, typename Op>
+requires (!std::is_pointer_v<Field>)
+unary_operation_field(Field const& field, Op const& op)
+    -> unary_operation_field<Field const&, Op const&>;
 //------------------------------------------------------------------------------
-template <typename Field, typename Real, typename Tensor, size_t N, typename Op>
-constexpr auto operator|(field<Field, Real, N, Tensor> const& field, Op&& op) {
-  return make_unary_operation_field(field.as_derived(), std::move(op));
-}
+template <typename Field, typename Op>
+requires (!std::is_pointer_v<Field>)
+unary_operation_field(Field& field, Op const& op)
+    -> unary_operation_field<Field&, Op const&>;
+//==============================================================================
+template <typename Field, typename Op>
+requires (!std::is_pointer_v<std::decay_t<Field>>)
+unary_operation_field(Field&& field, Op& op)
+    -> unary_operation_field<Field, Op&>;
 //------------------------------------------------------------------------------
-template <typename Field, typename Real, typename Tensor, size_t N, typename Op>
-constexpr auto operator|(field<Field, Real, N, Tensor>&& field, Op&& op) {
-  return make_unary_operation_field(std::move(field.as_derived()),
-                                    std::move(op));
+template <typename Field, typename Op>
+requires (!std::is_pointer_v<Field>)
+unary_operation_field(Field const& field, Op& op)
+    -> unary_operation_field<Field const&, Op&>;
+//------------------------------------------------------------------------------
+template <typename Field, typename Op>
+requires (!std::is_pointer_v<Field>)
+unary_operation_field(Field& field, Op& op)
+    -> unary_operation_field<Field&, Op&>;
+//==============================================================================
+template <typename Field, typename Op>
+unary_operation_field(Field* field, Op&& op)
+    -> unary_operation_field<Field*, Op>;
+//------------------------------------------------------------------------------
+template <typename Field, typename Op>
+unary_operation_field(Field const* field, Op&& op)
+    -> unary_operation_field<Field const*, Op>;
+//==============================================================================
+template <typename Field, typename Op>
+requires (is_field<Field>) &&
+         (invocable<Op, field_tensor_type<Field>>)
+constexpr auto operator|(Field&& field, Op&& op) {
+  return unary_operation_field{std::forward<Field>(field),
+                               std::forward<Op>(op)};
 }
 //------------------------------------------------------------------------------
 template <typename Real, size_t N, typename Tensor, typename Op>
-constexpr auto operator|(polymorphic::field<Real, N, Tensor>* field,
-                         Op const&                            op) {
-  return make_unary_operation_field(field, op);
-}
-//------------------------------------------------------------------------------
-template <typename Real, size_t N, typename Tensor, typename Op>
+requires (invocable<Op, Tensor>)
 constexpr auto operator|(polymorphic::field<Real, N, Tensor>* field, Op&& op) {
-  return make_unary_operation_field(field, std::move(op));
+  return unary_operation_field{field, std::forward<Op>(op)};
 }
 //==============================================================================
 }  // namespace tatooine

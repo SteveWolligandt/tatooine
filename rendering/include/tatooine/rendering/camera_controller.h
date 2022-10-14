@@ -245,22 +245,22 @@ struct fps_camera_controller : camera_controller_interface<Real> {
       m_shift_down = true;
     }
     if (k == gl::KEY_W) {
-      m_buttons_down = m_buttons_down | buttons::w;
+      m_buttons_down = m_buttons_down | static_cast<std::uint8_t>(buttons::w);
     }
     if (k == gl::KEY_S) {
-      m_buttons_down = m_buttons_down | buttons::s;
+      m_buttons_down = m_buttons_down | static_cast<std::uint8_t>(buttons::s);
     }
     if (k == gl::KEY_A) {
-      m_buttons_down = m_buttons_down | buttons::a;
+      m_buttons_down = m_buttons_down | static_cast<std::uint8_t>(buttons::a);
     }
     if (k == gl::KEY_D) {
-      m_buttons_down = m_buttons_down | buttons::d;
+      m_buttons_down = m_buttons_down | static_cast<std::uint8_t>(buttons::d);
     }
     if (k == gl::KEY_Q) {
-      m_buttons_down = m_buttons_down | buttons::q;
+      m_buttons_down = m_buttons_down | static_cast<std::uint8_t>(buttons::q);
     }
     if (k == gl::KEY_E) {
-      m_buttons_down = m_buttons_down | buttons::e;
+      m_buttons_down = m_buttons_down | static_cast<std::uint8_t>(buttons::e);
     }
   }
   //----------------------------------------------------------------------------
