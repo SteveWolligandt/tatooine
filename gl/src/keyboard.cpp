@@ -2,7 +2,7 @@
 //==============================================================================
 namespace tatooine::gl {
 //==============================================================================
-std::string to_string(key k) {
+auto to_string(key k) -> std::string {
   switch (k) {
     case key::KEY_0: return "0";
     case key::KEY_1: return "1";

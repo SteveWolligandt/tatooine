@@ -1,11 +1,12 @@
 #ifndef TATOOINE_GL_KEYBOARD_H
 #define TATOOINE_GL_KEYBOARD_H
 //==============================================================================
+#include <cstdint>
 #include <string>
 //==============================================================================
 namespace tatooine::gl {
 //==============================================================================
-enum key {
+enum class key : std::uint8_t {
   KEY_0,
   KEY_1,
   KEY_2,
@@ -117,7 +118,7 @@ enum key {
   KEY_UNKNOWN
 };
 
-auto to_string(key k) -> std::string;
+auto to_string(key const k) -> std::string;
 
 struct keyboard_listener {
   virtual void on_key_pressed(key /*k*/) {}

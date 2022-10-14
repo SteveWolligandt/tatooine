@@ -20,69 +20,74 @@ imgui_api_backend::imgui_api_backend() {
 
   io.BackendPlatformName = "imgui_impl_tatooine";
 
-  io.KeyMap[ImGuiKey_Tab]         = KEY_TAB;
-  io.KeyMap[ImGuiKey_LeftArrow]   = KEY_LEFT;
-  io.KeyMap[ImGuiKey_RightArrow]  = KEY_RIGHT;
-  io.KeyMap[ImGuiKey_UpArrow]     = KEY_UP;
-  io.KeyMap[ImGuiKey_DownArrow]   = KEY_DOWN;
-  io.KeyMap[ImGuiKey_PageUp]      = KEY_PAGE_UP;
-  io.KeyMap[ImGuiKey_PageDown]    = KEY_PAGE_DOWN;
-  io.KeyMap[ImGuiKey_Home]        = KEY_HOME;
-  io.KeyMap[ImGuiKey_End]         = KEY_END;
-  io.KeyMap[ImGuiKey_Insert]      = KEY_INSERT;
-  io.KeyMap[ImGuiKey_Delete]      = KEY_DELETE;
-  io.KeyMap[ImGuiKey_Backspace]   = KEY_BACKSPACE;
-  io.KeyMap[ImGuiKey_Space]       = KEY_SPACE;
-  io.KeyMap[ImGuiKey_Enter]       = KEY_ENTER;
-  io.KeyMap[ImGuiKey_Escape]      = KEY_ESCAPE;
-  io.KeyMap[ImGuiKey_KeyPadEnter] = KEY_KP_ENTER;
-  io.KeyMap[ImGuiKey_A]           = KEY_A;
-  io.KeyMap[ImGuiKey_C]           = KEY_C;
-  io.KeyMap[ImGuiKey_V]           = KEY_V;
-  io.KeyMap[ImGuiKey_X]           = KEY_X;
-  io.KeyMap[ImGuiKey_Y]           = KEY_Y;
-  io.KeyMap[ImGuiKey_Z]           = KEY_Z;
+  io.KeyMap[ImGuiKey_Tab]         = static_cast<int>(key::KEY_TAB);
+  io.KeyMap[ImGuiKey_LeftArrow]   = static_cast<int>(key::KEY_LEFT);
+  io.KeyMap[ImGuiKey_RightArrow]  = static_cast<int>(key::KEY_RIGHT);
+  io.KeyMap[ImGuiKey_UpArrow]     = static_cast<int>(key::KEY_UP);
+  io.KeyMap[ImGuiKey_DownArrow]   = static_cast<int>(key::KEY_DOWN);
+  io.KeyMap[ImGuiKey_PageUp]      = static_cast<int>(key::KEY_PAGE_UP);
+  io.KeyMap[ImGuiKey_PageDown]    = static_cast<int>(key::KEY_PAGE_DOWN);
+  io.KeyMap[ImGuiKey_Home]        = static_cast<int>(key::KEY_HOME);
+  io.KeyMap[ImGuiKey_End]         = static_cast<int>(key::KEY_END);
+  io.KeyMap[ImGuiKey_Insert]      = static_cast<int>(key::KEY_INSERT);
+  io.KeyMap[ImGuiKey_Delete]      = static_cast<int>(key::KEY_DELETE);
+  io.KeyMap[ImGuiKey_Backspace]   = static_cast<int>(key::KEY_BACKSPACE);
+  io.KeyMap[ImGuiKey_Space]       = static_cast<int>(key::KEY_SPACE);
+  io.KeyMap[ImGuiKey_Enter]       = static_cast<int>(key::KEY_ENTER);
+  io.KeyMap[ImGuiKey_Escape]      = static_cast<int>(key::KEY_ESCAPE);
+  io.KeyMap[ImGuiKey_KeyPadEnter] = static_cast<int>(key::KEY_KP_ENTER);
+  io.KeyMap[ImGuiKey_A]           = static_cast<int>(key::KEY_A);
+  io.KeyMap[ImGuiKey_C]           = static_cast<int>(key::KEY_C);
+  io.KeyMap[ImGuiKey_V]           = static_cast<int>(key::KEY_V);
+  io.KeyMap[ImGuiKey_X]           = static_cast<int>(key::KEY_X);
+  io.KeyMap[ImGuiKey_Y]           = static_cast<int>(key::KEY_Y);
+  io.KeyMap[ImGuiKey_Z]           = static_cast<int>(key::KEY_Z);
 }
 //------------------------------------------------------------------------------
 imgui_api_backend::~imgui_api_backend() {}
 //------------------------------------------------------------------------------
 void imgui_api_backend::on_key_pressed(key k) {
-  ImGuiIO&     io   = ImGui::GetIO();
-  unsigned int k_id = static_cast<unsigned int>(k);
-  io.KeysDown[k]    = true;
-  if (k == KEY_CTRL_L || k == KEY_CTRL_R) {
+  ImGuiIO&   io     = ImGui::GetIO();
+  auto const k_id   = static_cast<uint8_t>(k);
+  io.KeysDown[k_id] = true;
+  if (k == key::KEY_CTRL_L || k == key::KEY_CTRL_R) {
     io.KeyCtrl = true;
-  } else if (k == KEY_SHIFT_L || k == KEY_SHIFT_R) {
+  } else if (k == key::KEY_SHIFT_L || k == key::KEY_SHIFT_R) {
     io.KeyShift = true;
-  } else if (k == KEY_ALT_L || k == KEY_ALT_R) {
+  } else if (k == key::KEY_ALT_L || k == key::KEY_ALT_R) {
     io.KeyAlt = true;
-  } else if (k_id >= KEY_0 && k_id <= KEY_9) {
-    io.AddInputCharacter((unsigned int)('0' + (unsigned int)(k - KEY_0)));
-  } else if (k_id == KEY_SPACE) {
+  } else if (k_id >= static_cast<std::uint8_t>(key::KEY_0) &&
+             k_id <= static_cast<std::uint8_t>(key::KEY_9)) {
+    io.AddInputCharacter(static_cast<std::uint8_t>('0') +
+                         (k_id - static_cast<std::uint8_t>(key::KEY_0)));
+  } else if (k == key::KEY_SPACE) {
     io.AddInputCharacter((unsigned int)(' '));
-  } else if (k_id >= KEY_A && k_id <= KEY_Z) {
+  } else if (k_id >= static_cast<std::uint8_t>(key::KEY_A) &&
+             k_id <= static_cast<std::uint8_t>(key::KEY_Z)) {
     if (io.KeyShift) {
-      io.AddInputCharacter((unsigned int)('A' + (unsigned int)(k - KEY_A)));
+      io.AddInputCharacter(static_cast<uint8_t>('A') +
+                           (k_id - static_cast<std::uint8_t>(key::KEY_A)));
     } else {
-      io.AddInputCharacter((unsigned int)('a' + (unsigned int)(k - KEY_A)));
+      io.AddInputCharacter(static_cast<uint8_t>('a') +
+                           (k_id - static_cast<std::uint8_t>(key::KEY_A)));
     }
-  } else if (k_id == KEY_DECIMALPOINT) {
-    io.AddInputCharacter((unsigned int)('.'));
-  } else if (k_id == KEY_MINUS) {
-    io.AddInputCharacter((unsigned int)('-'));
+  } else if (k == key::KEY_DECIMALPOINT) {
+    io.AddInputCharacter(static_cast<unsigned int>('.'));
+  } else if (k == key::KEY_MINUS) {
+    io.AddInputCharacter(static_cast<unsigned int>('-'));
   }
 }
 //------------------------------------------------------------------------------
-void imgui_api_backend::on_key_released(key k) {
-  ImGuiIO& io    = ImGui::GetIO();
-  io.KeysDown[k] = false;
-  if (k == KEY_CTRL_L || k == KEY_CTRL_R) {
+auto imgui_api_backend::on_key_released(key const k) -> void {
+  auto& io    = ImGui::GetIO();
+  io.KeysDown[static_cast<std::uint8_t>(k)] = false;
+  if (k == key::KEY_CTRL_L || k == key::KEY_CTRL_R) {
     io.KeyCtrl = false;
   }
-  if (k == KEY_SHIFT_L || k == KEY_SHIFT_R) {
+  if (k == key::KEY_SHIFT_L || k == key::KEY_SHIFT_R) {
     io.KeyShift = false;
   }
-  if (k == KEY_ALT_L || k == KEY_ALT_R) {
+  if (k == key::KEY_ALT_L || k == key::KEY_ALT_R) {
     io.KeyAlt = false;
   }
 }
