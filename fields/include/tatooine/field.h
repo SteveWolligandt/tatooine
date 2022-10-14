@@ -220,7 +220,9 @@ template <typename T, typename = void>
 struct is_field_impl : std::false_type {};
 //------------------------------------------------------------------------------
 template <typename T>
-struct is_field_impl<T> : std::integral_constant<bool, T::is_field()> {};
+struct is_field_impl<T>
+    : std::integral_constant<
+          bool, std::remove_pointer_t<std::decay_t<T>>::is_field()> {};
 //------------------------------------------------------------------------------
 template <typename T>
 static constexpr bool is_field = is_field_impl<T>::value;

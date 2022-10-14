@@ -97,23 +97,23 @@ constexpr auto operator/(ScalarReal const                  scalar,
 //}
 template <typename V, typename VReal, std::size_t N>
 constexpr auto squared_euclidean_length(vectorfield<V, VReal, N> const& v) {
-  return make_unary_operation_field(
-      v, [](auto const& v) { return squared_euclidean_length(v); });
+  return unary_operation_field{
+      v, [](auto const& v) { return squared_euclidean_length(v); }};
 }
 template <typename V, typename VReal, std::size_t N>
 constexpr auto squared_euclidean_length(vectorfield<V, VReal, N>&& v) {
-  return make_unary_operation_field(
-      std::move(v), [](auto const& v) { return squared_euclidean_length(v); });
+  return unary_operation_field{
+      std::move(v), [](auto const& v) { return squared_euclidean_length(v); }};
 }
 template <typename V, typename VReal, std::size_t N>
 constexpr auto euclidean_length(vectorfield<V, VReal, N> const& v) {
-  return make_unary_operation_field(
-      v, [](auto const& v) { return euclidean_length(v); });
+  return unary_operation_field{
+      v, [](auto const& v) { return euclidean_length(v); }};
 }
 template <typename V, typename VReal, std::size_t N>
 constexpr auto euclidean_length(vectorfield<V, VReal, N>&& v) {
-  return make_unary_operation_field(
-      std::move(v), [](auto const& v) { return euclidean_length(v); });
+  return unary_operation_field{
+      std::move(v), [](auto const& v) { return euclidean_length(v); }};
 }
 //==============================================================================
 }  // namespace tatooine
