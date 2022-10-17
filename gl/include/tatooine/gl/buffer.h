@@ -27,7 +27,7 @@ class buffer_map {
  private:
   buffer_type const* m_buffer;
   GLsizei            m_offset;
-  GLsizei        m_length;
+  GLsizei            m_length;
   T*                 m_gpu_mapping;
   bool               m_unmapped = false;
 
