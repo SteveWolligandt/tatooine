@@ -60,7 +60,8 @@ struct line {
       std::map<std::string, std::unique_ptr<vertex_property_type>>;
 
   using parameterization_property_type = typed_vertex_property_type<Real>;
-  using tangent_property_type = typed_vertex_property_type<vec<Real, NumDimensions>>;
+  using tangent_property_type =
+      typed_vertex_property_type<vec<Real, NumDimensions>>;
 
   template <typename T, template <typename> typename InterpolationKernel>
   using vertex_property_sampler_type =
@@ -134,9 +135,7 @@ struct line {
       : m_vertices{pos_type{std::forward<decltype(vs)>(vs)}...},
         m_is_closed{false} {}
   //----------------------------------------------------------------------------
-  auto copy_without_properties() {
-
-  }
+  auto copy_without_properties() {}
   //----------------------------------------------------------------------------
   auto empty() const { return m_vertices.empty(); }
   //----------------------------------------------------------------------------
@@ -393,8 +392,8 @@ struct line {
   template <typename T>
   auto insert_vertex_property(std::string const& name, T const& value = T{})
       -> auto& {
-    auto [it, suc] = m_vertex_properties.insert(
-        std::pair{name, std::make_unique<typed_vertex_property_type<T>>(value)});
+    auto [it, suc] = m_vertex_properties.insert(std::pair{
+        name, std::make_unique<typed_vertex_property_type<T>>(value)});
     auto prop = dynamic_cast<typed_vertex_property_type<T>*>(it->second.get());
     prop->resize(m_vertices.size());
     return *prop;
@@ -477,7 +476,7 @@ struct line {
       lv = rpotential > lv.index() ? vertex_handle{0} : lv - rpotential;
 
       std::vector<real_type> ts(stencil_size);
-      std::size_t         i = 0;
+      std::size_t            i = 0;
       for (auto vi = lv; vi <= rv; ++vi, ++i) {
         ts[i] = t[vi] - t[v];
       }
@@ -510,7 +509,7 @@ struct line {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto compute_uniform_parameterization(Real const t0 = 0) -> void {
-    auto& t               = parameterization();
+    auto& t   = parameterization();
     t.front() = t0;
     for (std::size_t i = 1; i < vertices().size(); ++i) {
       t[i] = t[i - 1] + 1;
@@ -523,11 +522,10 @@ struct line {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto compute_chordal_parameterization(Real const t0 = 0) -> void {
-    auto& t               = parameterization();
+    auto& t   = parameterization();
     t.front() = t0;
     for (std::size_t i = 1; i < vertices().size(); ++i) {
-      t[i] =
-          t[i - 1] + euclidean_distance(vertex_at(i), vertex_at(i - 1));
+      t[i] = t[i - 1] + euclidean_distance(vertex_at(i), vertex_at(i - 1));
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -537,7 +535,7 @@ struct line {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto compute_centripetal_parameterization(Real const t0 = 0) -> void {
-    auto& t               = parameterization();
+    auto& t   = parameterization();
     t.front() = t0;
     for (std::size_t i = 1; i < vertices().size(); ++i) {
       t[i] = t[i - 1] +
@@ -545,7 +543,8 @@ struct line {
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto compute_normalized_centripetal_parameterization(Real const t0 = 0) -> void {
+  auto compute_normalized_centripetal_parameterization(Real const t0 = 0)
+      -> void {
     compute_centripetal_parameterization(t0);
     normalize_parameterization();
   }
@@ -664,7 +663,8 @@ struct line {
          << " NumberOfPoints=\"" << vertices().size() << "\""
          << " NumberOfPolys=\"0\""
          << " NumberOfVerts=\"0\""
-         << " NumberOfLines=\"" << (vertices().size() - (is_closed() ? 0 : 1)) << "\""
+         << " NumberOfLines=\"" << (vertices().size() - (is_closed() ? 0 : 1))
+         << "\""
          << " NumberOfStrips=\"0\""
          << ">\n";
 
@@ -685,15 +685,18 @@ struct line {
     // Lines
     file << "      <Lines>\n";
     // Lines - connectivity
-    file << "        <DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
+    file << "        <DataArray format=\"appended\" offset=\"" << offset
+         << "\" type=\""
          << vtk::xml::data_array::to_string(
                 vtk::xml::data_array::to_type<connectivity_int_t>())
          << "\" Name=\"connectivity\"/>\n";
     auto const num_bytes_connectivity =
-        (vertices().size() - (is_closed() ? 0 : 1)) * 2 * sizeof(connectivity_int_t);
+        (vertices().size() - (is_closed() ? 0 : 1)) * 2 *
+        sizeof(connectivity_int_t);
     offset += num_bytes_connectivity + sizeof(header_type);
     // Lines - offsets
-    file << "        <DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
+    file << "        <DataArray format=\"appended\" offset=\"" << offset
+         << "\" type=\""
          << vtk::xml::data_array::to_string(
                 vtk::xml::data_array::to_type<offset_int_t>())
          << "\" Name=\"offsets\"/>\n";
@@ -723,7 +726,8 @@ struct line {
     // Writing lines connectivity data to appended data section
     {
       auto connectivity_data = std::vector<connectivity_int_t>{};
-      connectivity_data.reserve((vertices().size() - (is_closed() ? 0 : 1)) * 2);
+      connectivity_data.reserve((vertices().size() - (is_closed() ? 0 : 1)) *
+                                2);
       for (std::size_t i = 0; i < vertices().size() - 1; ++i) {
         connectivity_data.push_back(static_cast<connectivity_int_t>(i));
         connectivity_data.push_back(static_cast<connectivity_int_t>(i + 1));
@@ -741,8 +745,8 @@ struct line {
 
     // Writing lines offsets to appended data section
     {
-      auto offsets =
-          std::vector<offset_int_t>(vertices().size() - (is_closed() ? 0 : 1), 2);
+      auto offsets = std::vector<offset_int_t>(
+          vertices().size() - (is_closed() ? 0 : 1), 2);
       for (std::size_t i = 1; i < size(offsets); ++i) {
         offsets[i] += offsets[i - 1];
       }
@@ -759,8 +763,8 @@ struct line {
   static auto write_prop_to_vtk(
       vtk::legacy_file_writer& writer, std::string const& name,
       std::unique_ptr<vertex_property_type> const& prop) -> void {
-    auto const& deque =
-        dynamic_cast<typed_vertex_property_type<T>*>(prop.get())->internal_container();
+    auto const& deque = dynamic_cast<typed_vertex_property_type<T>*>(prop.get())
+                            ->internal_container();
 
     writer.write_scalars(name, std::vector<T>(begin(deque), end(deque)));
   }
@@ -855,6 +859,24 @@ template <typename... Tensors, typename... Reals, std::size_t NumDimensions>
 line(base_tensor<Tensors, Reals, NumDimensions>&&... vertices)
     -> line<common_type<Reals...>, NumDimensions>;
 //==============================================================================
+// type traits
+//==============================================================================
+/// All types that are no lines.
+template <typename T>
+struct is_line_impl : std::false_type {};
+//------------------------------------------------------------------------------
+/// All types are no lines.
+template <typename Real, std::size_t N>
+struct is_line_impl<line<Real, N>> : std::true_type {};
+//------------------------------------------------------------------------------
+template <typename T>
+static auto constexpr is_line = is_line_impl<T>::value;
+//==============================================================================
+// concepts
+//==============================================================================
+template <typename T>
+concept range_of_lines = range<T> && is_line<std::ranges::range_value_t<T>>;
+//==============================================================================
 // typedefs
 //==============================================================================
 template <typename T>
@@ -876,13 +898,13 @@ using line5 = Line<5>;
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions>
 template <typename Pred>
-std::vector<line<Real, NumDimensions>> line<Real, NumDimensions>::filter(
-    Pred&& pred) const {
-  std::vector<line<Real, NumDimensions>> filtered_lines;
-  bool                                   need_new_strip = true;
+auto line<Real, NumDimensions>::filter(Pred&& pred) const
+    -> std::vector<line<Real, NumDimensions>> {
+  auto filtered_lines = std::vector<line<Real, NumDimensions>>{};
+  auto need_new_strip = true;
 
-  std::size_t i      = 0;
-  bool        closed = is_closed();
+  auto i      = std::size_t{};
+  auto closed = is_closed();
   for (auto const x : vertices()) {
     if (pred(x, i)) {
       if (need_new_strip) {
@@ -897,7 +919,7 @@ std::vector<line<Real, NumDimensions>> line<Real, NumDimensions>::filter(
           filtered_lines.back().vertices().size() <= 1)
         filtered_lines.pop_back();
     }
-    i++;
+    ++i;
   }
 
   if (!filtered_lines.empty() && filtered_lines.back().vertices().size() <= 1) {

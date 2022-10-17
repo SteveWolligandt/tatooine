@@ -14,6 +14,10 @@ using field_tensor_type = typename std::decay_t<
     std::remove_pointer_t<std::decay_t<Field>>>::tensor_type;
 //==============================================================================
 template <typename Field>
+using field_pos_type = typename std::decay_t<
+    std::remove_pointer_t<std::decay_t<Field>>>::pos_type;
+//==============================================================================
+template <typename Field>
 static constexpr auto field_num_dimensions =
     std::decay_t<std::remove_pointer_t<std::decay_t<Field>>>::num_dimensions();
 //==============================================================================
