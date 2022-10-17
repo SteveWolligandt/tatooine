@@ -1,7 +1,7 @@
 #ifndef TATOOINE_PARALLEL_VECTORS_H
 #define TATOOINE_PARALLEL_VECTORS_H
 //==============================================================================
-#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
+#if TATOOINE_OPENMP_AVAILABLE
 #include <tatooine/cache_alignment.h>
 
 #include <mutex>
@@ -11,12 +11,10 @@
 #include <tatooine/for_loop.h>
 #include <tatooine/line.h>
 #include <tatooine/rectilinear_grid.h>
-//#include <tatooine/openblas.h>
 #include <tatooine/type_traits.h>
 
 #include <array>
-#include <boost/range/adaptors.hpp>
-#include <boost/range/numeric.hpp>
+#include <ranges>
 #include <optional>
 #include <tuple>
 #include <vector>
@@ -128,7 +126,7 @@ constexpr auto pv_on_tri(Vec3<Real> const& p0, Vec3<Real> const& v0,
   auto const reig               = real(eigvecs);
 
   auto barycentric_coords = std::vector<Vec3<Real>>{};
-  for (size_t i = 0; i < 3; ++i) {
+  for (std::size_t i = 0; i < 3; ++i) {
     if ((ieig(0, i) == 0 && ieig(1, i) == 0 && ieig(2, i) == 0) &&
         ((reig(0, i) <= 0 && reig(1, i) <= 0 && reig(2, i) <= 0) ||
          (reig(0, i) >= 0 && reig(1, i) >= 0 && reig(2, i) >= 0))) {
@@ -238,8 +236,8 @@ static auto check_tet(std::optional<Vec3<Real>> const& tri0,
   }
 }
 //------------------------------------------------------------------------------
-auto constexpr turned(size_t const ix, size_t const iy, size_t const iz)
-    -> bool {
+auto constexpr turned(std::size_t const ix, std::size_t const iy,
+                      std::size_t const iz) -> bool {
   auto const xodd = ix % 2 == 0 ? 1 : -1;
   auto const yodd = iy % 2 == 0 ? 1 : -1;
   auto const zodd = iz % 2 == 0 ? 1 : -1;
@@ -251,10 +249,11 @@ auto constexpr turned(size_t const ix, size_t const iy, size_t const iz)
 /// \param getw function for getting value for W field
 template <typename Real, typename GetV, typename GetW, typename XDomain,
           typename YDomain, typename ZDomain, invocable<Vec3<Real>>... Preds>
-auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
-                           tatooine::rectilinear_grid<XDomain, YDomain, ZDomain> const& g,
-                           Preds&&... preds) -> std::vector<Line3<Real>> {
-#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
+auto calc_parallel_vectors(
+    GetV&& getv, GetW&& getw,
+    tatooine::rectilinear_grid<XDomain, YDomain, ZDomain> const& g,
+    Preds&&... preds) -> std::vector<Line3<Real>> {
+#if TATOOINE_OPENMP_AVAILABLE
   auto constexpr policy = execution_policy::parallel;
 #else
   auto constexpr policy = execution_policy::sequential;
@@ -262,7 +261,6 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
 
   //     turned tets per cube: [0]: 0236 | [1]: 0135 | [2]: 3567 | [3]: 0356
   // non-turned tets per cube: [0]: 0124 | [1]: 1457 | [2]: 2467 | [3]: 1247
-  using boost::copy;
   using vec3 = Vec3<Real>;
   auto iz    = std::size_t(0);
   // turned inner tet order:
@@ -271,7 +269,7 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
   //   [0]: 024 / 135 | [1]: 246 / 357
   auto x_faces = dynamic_multidim_array<std::array<std::optional<vec3>, 2>>{
       g.template size<0>(), g.template size<1>() - 1};
-  auto update_x_faces = [&](size_t const ix, size_t const iy) {
+  auto update_x_faces = [&](std::size_t const ix, std::size_t const iy) {
     auto const gv = g.vertices();
     auto const p  = std::array{
         gv(ix, iy, iz),         // 0
@@ -335,7 +333,7 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
   auto y_faces = dynamic_multidim_array<std::array<std::optional<vec3>, 2>>{
       g.template size<0>() - 1, g.template size<1>()};
   auto update_y_faces = [&g, &getv, &getw, &y_faces, &iz, &preds...](
-                            size_t const ix, size_t const iy) {
+                            std::size_t const ix, std::size_t const iy) {
     auto const gv = g.vertices();
     auto const p0 = gv(ix, iy, iz);
     auto const p1 = gv(ix + 1, iy, iz);
@@ -397,8 +395,8 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
   auto z_faces = dynamic_multidim_array<std::array<std::optional<vec3>, 2>>{
       2, g.template size<0>() - 1, g.template size<1>() - 1};
   auto update_z = [&z_faces, &g, &getv, &getw, &preds...](
-                      size_t const ix, size_t const iy, size_t const iz,
-                      size_t const write_iz) {
+                      std::size_t const ix, std::size_t const iy,
+                      std::size_t const iz, std::size_t const write_iz) {
     assert(write_iz == 0 || write_iz == 1);
     auto const gv = g.vertices();
     auto const p0 = gv(ix, iy, iz);
@@ -462,7 +460,7 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
   // initialize front constant-z-face
   tatooine::for_loop([&](auto const... is) { update_z(is..., 0, 0); }, policy,
                      g.template size<0>() - 1, g.template size<1>() - 1);
-  auto update_z_faces = [&](size_t const ix, size_t const iy) {
+  auto update_z_faces = [&](std::size_t const ix, std::size_t const iy) {
     update_z(ix, iy, iz + 1, 1);
   };
 
@@ -472,7 +470,7 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
   //   [0]: 124 | [1]: 127 | [2]: 147 | [3]: 247
   auto inner_faces = dynamic_multidim_array<std::array<std::optional<vec3>, 4>>{
       g.template size<0>() - 1, g.template size<1>() - 1};
-  auto update_inner_faces = [&](size_t ix, size_t iy) {
+  auto update_inner_faces = [&](std::size_t ix, std::size_t iy) {
     auto const gv = g.vertices();
     if (turned(ix, iy, iz)) {
       auto const p0 = gv(ix, iy, iz);
@@ -576,7 +574,7 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
                             std::forward<Preds>(preds)...);
     }
   };
-#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
+#if TATOOINE_OPENMP_AVAILABLE
   auto num_threads = std::size_t{};
 #pragma omp parallel
   {
@@ -597,7 +595,7 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
                 y_faces(iy + 1, ix)[0],  // 236
                 z_faces(0, ix, iy)[1],   // 023
                 inner_faces(ix, iy)[1],  // 036
-#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
+#if TATOOINE_OPENMP_AVAILABLE
                 *lines[thread_id], mutex
 #else
                 lines
@@ -608,7 +606,7 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
                 y_faces(ix, iy)[0],      // 015
                 z_faces(0, ix, iy)[0],   // 013
                 inner_faces(ix, iy)[0],  // 035
-#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
+#if TATOOINE_OPENMP_AVAILABLE
                 *lines[thread_id], mutex
 #else
                 lines
@@ -619,7 +617,7 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
                 y_faces(ix, iy + 1)[1],  // 367
                 z_faces(1, ix, iy)[1],   // 567
                 inner_faces(ix, iy)[2],  // 356
-#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
+#if TATOOINE_OPENMP_AVAILABLE
                 *lines[thread_id], mutex
 #else
                 lines
@@ -630,7 +628,7 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
                 y_faces(ix, iy)[1],      // 045
                 z_faces(1, ix, iy)[0],   // 456
                 inner_faces(ix, iy)[3],  // 056
-#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
+#if TATOOINE_OPENMP_AVAILABLE
                 *lines[thread_id], mutex
 #else
                 lines
@@ -641,7 +639,7 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
                 inner_faces(ix, iy)[1],  // 036
                 inner_faces(ix, iy)[2],  // 356
                 inner_faces(ix, iy)[3],  // 056
-#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
+#if TATOOINE_OPENMP_AVAILABLE
                 *lines[thread_id], mutex
 #else
                 lines
@@ -653,7 +651,7 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
                 y_faces(ix, iy)[0],      // 014
                 z_faces(0, ix, iy)[0],   // 012
                 inner_faces(ix, iy)[0],  // 124
-#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
+#if TATOOINE_OPENMP_AVAILABLE
                 *lines[thread_id], mutex
 #else
                 lines
@@ -664,7 +662,7 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
                 y_faces(ix, iy)[1],      // 145
                 z_faces(1, ix, iy)[0],   // 457
                 inner_faces(ix, iy)[2],  // 147
-#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
+#if TATOOINE_OPENMP_AVAILABLE
                 *lines[thread_id], mutex
 #else
                 lines
@@ -675,7 +673,7 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
                 y_faces(ix, iy + 1)[1],  // 267
                 z_faces(1, ix, iy)[1],   // 467
                 inner_faces(ix, iy)[3],  // 247
-#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
+#if TATOOINE_OPENMP_AVAILABLE
                 *lines[thread_id], mutex
 #else
                 lines
@@ -686,7 +684,7 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
                 y_faces(ix, iy + 1)[0],  // 237
                 z_faces(0, ix, iy)[1],   // 123
                 inner_faces(ix, iy)[1],  // 127
-#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
+#if TATOOINE_OPENMP_AVAILABLE
                 *lines[thread_id], mutex
 #else
                 lines
@@ -697,7 +695,7 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
                 inner_faces(ix, iy)[1],  // 127
                 inner_faces(ix, iy)[2],  // 147
                 inner_faces(ix, iy)[3],  // 247
-#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
+#if TATOOINE_OPENMP_AVAILABLE
                 *lines[thread_id], mutex
 #else
                 lines
@@ -720,11 +718,12 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
       move_zs();
     }
   }
-#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
-  using namespace boost::adaptors;
+#if TATOOINE_OPENMP_AVAILABLE
+  using namespace std::ranges::views;
+  using boost::accumulate;
   auto const s = [](auto const& l) { return l->size(); };
   auto       l = std::vector<Line3<Real>>{};
-  l.reserve(boost::accumulate(lines | transformed(s), std::size_t(0)));
+  l.reserve(accumulate(lines | transform(s), std::size_t(0)));
   for (auto& li : lines) {
     std::move(begin(*li), end(*li), std::back_inserter(l));
   }
@@ -829,10 +828,10 @@ auto parallel_vectors(
   assert(vf.size(2) == wf.size(2));
 
   return detail::calc_parallel_vectors<common_type<VReal, WReal>>(
-      [&vf](auto ix, auto iy, auto iz, auto const & /*p*/) -> auto const& {
+      [&vf](auto ix, auto iy, auto iz, auto const& /*p*/) -> auto const& {
         return vf(ix, iy, iz);
       },
-      [&wf](auto ix, auto iy, auto iz, auto const & /*p*/) -> auto const& {
+      [&wf](auto ix, auto iy, auto iz, auto const& /*p*/) -> auto const& {
         return wf(ix, iy, iz);
       },
       rectilinear_grid{linspace{bb.min(0), bb.max(0), vf.size(0)},

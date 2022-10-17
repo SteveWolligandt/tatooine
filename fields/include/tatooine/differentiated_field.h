@@ -26,23 +26,20 @@ struct numerically_differentiated_field
       raw_internal_field_t::num_dimensions(),
       tensor_add_dimension_right<raw_internal_field_t::num_dimensions(),
                                  typename raw_internal_field_t::tensor_type>>;
-  using parent_type::num_dimensions;
+  static constexpr auto num_dimensions() {
+    return parent_type::num_dimensions();
+  }
   using typename parent_type::pos_type;
   using typename parent_type::real_type;
   using vec_type = vec<real_type, num_dimensions()>;
   using typename parent_type::tensor_type;
-
-  // static_assert(raw_internal_field_t::tensor_rank() == 1);
-  // static_assert(tensor_type::rank() == 2);
-  // static_assert(raw_internal_field_t::tensor_rank() + 1 ==
-  //              parent_type::tensor_rank());
   //============================================================================
  private:
   InternalField m_internal_field;
   vec_type      m_eps;
   //============================================================================
  public:
-  template <typename Field_, arithmetic Eps>
+  template <convertible_to<InternalField> Field_, arithmetic Eps>
   numerically_differentiated_field(Field_&& f, Eps const eps)
       : m_internal_field{std::forward<Field_>(f)}, m_eps{tag::fill{eps}} {}
   //----------------------------------------------------------------------------
@@ -52,11 +49,11 @@ struct numerically_differentiated_field
       : m_internal_field{nullptr},
         m_eps{eps} {}
   //----------------------------------------------------------------------------
-  template <typename Field_>
+  template <convertible_to<InternalField> Field_>
   numerically_differentiated_field(Field_&& f, vec_type const& eps)
       : m_internal_field{std::forward<Field_>(f)}, m_eps{eps} {}
   //----------------------------------------------------------------------------
-  template <typename Field_, arithmetic Real>
+  template <convertible_to<InternalField> Field_, arithmetic Real>
   numerically_differentiated_field(Field_&&                           f,
                                    vec<Real, num_dimensions()> const& eps)
       : m_internal_field{std::forward<Field_>(f)}, m_eps{eps} {}
@@ -108,6 +105,35 @@ struct numerically_differentiated_field
     m_internal_field = f;
   }
 };
+//==============================================================================
+// deduction guides
+//==============================================================================
+template <typename Field, arithmetic Eps>
+numerically_differentiated_field(Field&&, Eps const)
+    ->numerically_differentiated_field<Field>;
+//----------------------------------------------------------------------------
+template <typename Field, arithmetic Eps>
+numerically_differentiated_field(Field const &, Eps const)
+    -> numerically_differentiated_field<Field const &>;
+//----------------------------------------------------------------------------
+template <typename Field, arithmetic Eps>
+numerically_differentiated_field(Field &, Eps const)
+    -> numerically_differentiated_field<Field &>;
+//----------------------------------------------------------------------------
+template <typename Field, arithmetic Eps>
+numerically_differentiated_field(Field &&f,
+                                 vec<Eps, field_num_dimensions<Field>> const &)
+    -> numerically_differentiated_field<Field>;
+//----------------------------------------------------------------------------
+template <typename Field, arithmetic Eps>
+numerically_differentiated_field(Field const &f,
+                                 vec<Eps, field_num_dimensions<Field>> const &)
+    -> numerically_differentiated_field<Field const &>;
+//----------------------------------------------------------------------------
+template <typename Field, arithmetic Eps>
+numerically_differentiated_field(Field &f,
+                                 vec<Eps, field_num_dimensions<Field>> const &)
+    -> numerically_differentiated_field<Field &>;
 //==============================================================================
 auto diff(field_concept auto&& field, tag::numerical_t /*tag*/) {
   return numerically_differentiated_field{std::forward<decltype(field)>(field)};

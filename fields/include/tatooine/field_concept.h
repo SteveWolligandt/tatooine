@@ -3,6 +3,7 @@
 //==============================================================================
 #include <tatooine/concepts.h>
 #include <tatooine/vec.h>
+#include <tatooine/field_type_traits.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -17,9 +18,9 @@ concept field_concept =
     has_num_dimensions<T> &&
     has_pos_type<T> &&
     has_tensor_type<T> &&
-    requires(std::decay_t<T> f, typename std::decay_t<T>::pos_type x,
-             typename std::decay_t<T>::real_type t) {
-  { f(x, t) } -> std::same_as<typename T::tensor_type>;
+    requires(std::decay_t<T> const f, field_pos_type<std::decay_t<T>> x,
+             field_real_type< std::decay_t<T>> t) {
+  { f(x, t) } -> std::same_as<field_tensor_type<std::decay_t<T>>>;
 };
 //==============================================================================
 }  // namespace tatooine
