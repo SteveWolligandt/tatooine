@@ -1,7 +1,5 @@
-
 add_definitions(-DFULLPATH=\"${CMAKE_CURRENT_BINARY_DIR}\")
-
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# ------------------------------------------------------------------------------
 create_executable(counterexample_sadlo_pv_to_streamline)
 
 create_executable(doublegyre_pv_to_streamline)

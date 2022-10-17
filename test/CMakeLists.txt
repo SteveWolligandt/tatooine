@@ -63,8 +63,7 @@ if(${TATOOINE_BUILD_TESTS})
       /usr/lib/gcc/*/*/*
       /usr/lib/gcc/*/*/*
       /usr/lib/gcc/*/*/*/*)
-  # * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  #   - -
+  # ----------------------------------------------------------------------------
   set(TATOOINE_TEST_CPPS main.cpp)
   macro(create_test NAME)
     set(TARGET ${NAME}.unittests)
@@ -211,10 +210,9 @@ if(${TATOOINE_BUILD_TESTS})
     get_filename_component(FILENAME ${TESTFILE} NAME_WE)
     create_test(${FILENAME})
   endforeach()
-  # * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  #   - - create one executable with all tests
-  # * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  #   - -
+  # ----------------------------------------------------------------------------
+  # create one executable with all tests
+  # ----------------------------------------------------------------------------
   add_executable(unittests main.cpp ${TATOOINE_TEST_CPPS})
   target_include_directories(unittests
                              PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
