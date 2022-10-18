@@ -86,7 +86,7 @@ constexpr auto eigenvalues(Mat&& A) {
   using Real       = tensor_value_type<Mat>;
   auto constexpr N = tensor_dimensions<Mat>[0];
   auto A2  = tensor<Real, N, N>{std::forward<Mat>(A)};
-  auto eig = complex_tensor<Real, N>{};
+  auto eig = complex_vec<Real, N>{};
   [[maybe_unused]] auto const info = lapack::geev(A2, eig);
   return eig;
 }
