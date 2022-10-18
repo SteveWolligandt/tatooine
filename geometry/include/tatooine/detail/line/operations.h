@@ -150,8 +150,8 @@ auto write_vtp(Lines const& lines, filesystem::path const& path) -> void {
         offsets[i] += offsets[i - 1];
       }
       arr_size = static_cast<header_type>(sizeof(offset_int_t)) *
-                 (l.vertices().size() -
-                  static_cast<header_type>((l.is_closed() ? 0 : 1)));
+                 static_cast<header_type>(l.vertices().size() -
+                 static_cast<header_type>((l.is_closed() ? 0 : 1)));
       file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
       file.write(reinterpret_cast<char const*>(offsets.data()), arr_size);
     }

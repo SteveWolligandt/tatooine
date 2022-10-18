@@ -27,16 +27,20 @@ static constexpr bool parallel_for_loop_support = false;
 #endif
 
 #if TATOOINE_PARALLEL_FOR_LOOPS_AVAILABLE
-template <typename T>
-auto create_aligned_data_for_parallel() {
-  auto num_threads = std::size_t{};
+inline auto for_loop_num_parallel_threads() {
+  auto n = std::size_t{};
 #pragma omp parallel
   {
     if (omp_get_thread_num()) {
-      num_threads = static_cast<std::size_t>(omp_get_num_threads());
+      n = static_cast<std::size_t>(omp_get_num_threads());
     }
   }
-  return std::vector<aligned<T>>(num_threads);
+  return n;
+}
+
+template <typename T>
+auto create_aligned_data_for_parallel() {
+  return std::vector<aligned<T>>(for_loop_num_parallel_threads());
 }
 #endif
 
