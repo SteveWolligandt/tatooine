@@ -67,17 +67,20 @@ struct numerically_differentiated_field
       auto x0   = x - offset;
       auto x1   = x + offset;
       auto dx   = 2 * m_eps(i);
-      if (!internal_field().in_domain(x0, t)) {
+      auto y0 = internal_field()(x0, t);
+      auto y1 = internal_field()(x1, t);
+      if (y0.isnan()) {
         x0 = x;
         dx = m_eps(i);
+        y0 = internal_field()(x0, t);
       }
-      if (!internal_field().in_domain(x1, t)) {
+      if (y1.isnan()) {
         x1 = x;
         dx = m_eps(i);
+        y1 = internal_field()(x1, t);
       }
       constexpr std::size_t slice_dim = tensor_type::rank() - 1;
-      derivative.template slice<slice_dim>(i) =
-          (internal_field()(x1, t) - internal_field()(x0, t)) / dx;
+      derivative.template slice<slice_dim>(i) = (y1 - y0) / dx;
       offset(i) = 0;
     }
 
@@ -172,8 +175,33 @@ struct differentiated_field : numerically_differentiated_field<InternalField> {
   using parent_type::parent_type;
 };
 //==============================================================================
+// deduction guides
+//==============================================================================
+template <typename Field, arithmetic Eps>
+differentiated_field(Field &&, Eps const) -> differentiated_field<Field>;
+//----------------------------------------------------------------------------
+template <typename Field, arithmetic Eps>
+differentiated_field(Field const &, Eps const)
+    -> differentiated_field<Field const &>;
+//----------------------------------------------------------------------------
+template <typename Field, arithmetic Eps>
+differentiated_field(Field &, Eps const) -> differentiated_field<Field &>;
+//----------------------------------------------------------------------------
+template <typename Field, arithmetic Eps>
+differentiated_field(Field &&f, vec<Eps, field_num_dimensions<Field>> const &)
+    -> differentiated_field<Field>;
+//----------------------------------------------------------------------------
+template <typename Field, arithmetic Eps>
+differentiated_field(Field const &f,
+                     vec<Eps, field_num_dimensions<Field>> const &)
+    -> differentiated_field<Field const &>;
+//----------------------------------------------------------------------------
+template <typename Field, arithmetic Eps>
+differentiated_field(Field &f, vec<Eps, field_num_dimensions<Field>> const &)
+    -> differentiated_field<Field &>;
+//==============================================================================
 auto diff(field_concept auto&& field) {
-  return differentiated_field{std::forward<decltype(field)>(field)};
+  return differentiated_field{std::forward<decltype(field)>(field), 1e-10};
 }
 //==============================================================================
 template <typename InternalField>
@@ -206,23 +234,23 @@ struct time_differentiated_field
         m_eps{static_cast<real_type>(eps)} {}
   //----------------------------------------------------------------------------
   constexpr auto evaluate(pos_type const& x, real_type const t) const
-      -> tensor_type final {
-    real_type t0 = t - m_eps;
-    real_type t1 = t + m_eps;
-    auto      dt = 2 * m_eps;
-    if (!internal_field().in_domain(x, t0)) {
+      -> tensor_type {
+    auto t0 = t - m_eps;
+    auto t1 = t + m_eps;
+    auto dt = 2 * m_eps;
+    auto x0 = internal_field()(x, t0);
+    auto x1 = internal_field()(x, t1);
+    if (x0.is_nan) {
       t0 = t;
       dt = m_eps;
+      x0 = internal_field()(x, t0);
     }
-    if (!internal_field().in_domain(x, t1)) {
+    if (x1) {
       t1 = t;
       dt = m_eps;
+      x1 = internal_field()(x, t1);
     }
-    return (internal_field()(x, t1) - internal_field()(x, t0)) / dt;
-  }
-  //----------------------------------------------------------------------------
-  constexpr auto in_domain(pos_type const& x, real_type t) const -> bool final {
-    return internal_field().in_domain(x, t);
+    return (x1 - x0) / dt;
   }
   //----------------------------------------------------------------------------
   auto set_eps(real_type eps) { m_eps = eps; }

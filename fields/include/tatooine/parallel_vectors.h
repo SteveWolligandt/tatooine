@@ -646,37 +646,21 @@ auto calc_parallel_vectors(
     };
 
     decltype(auto) v0 = getv(ix, iy, iz, p[0]);
-    if (isnan(v0)) {
-      return;
-    }
+    if (isnan(v0)) { return; }
     decltype(auto) v4 = getv(ix, iy, iz + 1, p[1]);
-    if (isnan(v4)) {
-      return;
-    }
+    if (isnan(v4)) { return; }
     decltype(auto) v2 = getv(ix, iy + 1, iz, p[2]);
-    if (isnan(v2)) {
-      return;
-    }
+    if (isnan(v2)) { return; }
     decltype(auto) v6 = getv(ix, iy + 1, iz + 1, p[3]);
-    if (isnan(v6)) {
-      return;
-    }
+    if (isnan(v6)) { return; }
     decltype(auto) w0 = getw(ix, iy, iz, p[0]);
-    if (isnan(w0)) {
-      return;
-    }
+    if (isnan(w0)) { return; }
     decltype(auto) w4 = getw(ix, iy, iz + 1, p[1]);
-    if (isnan(w4)) {
-      return;
-    }
+    if (isnan(w4)) { return; }
     decltype(auto) w2 = getw(ix, iy + 1, iz, p[2]);
-    if (isnan(w2)) {
-      return;
-    }
+    if (isnan(w2)) { return; }
     decltype(auto) w6 = getw(ix, iy + 1, iz + 1, p[3]);
-    if (isnan(w6)) {
-      return;
-    }
+    if (isnan(w6)) { return; }
     if (turned(ix, iy, iz)) {
       x_faces(ix, iy)[0] =  // 046
           detail::pv_on_tri(p[0], v0, w0, p[1], v4, w4, p[3], v6, w6,
@@ -707,37 +691,21 @@ auto calc_parallel_vectors(
     auto const p5 = gv(ix + 1, iy, iz + 1);
 
     decltype(auto) v0 = getv(ix, iy, iz, p0);
-    if (isnan(v0)) {
-      return;
-    }
+    if (isnan(v0)) { return; }
     decltype(auto) v1 = getv(ix + 1, iy, iz, p1);
-    if (isnan(v1)) {
-      return;
-    }
+    if (isnan(v1)) { return; }
     decltype(auto) v4 = getv(ix, iy, iz + 1, p4);
-    if (isnan(v4)) {
-      return;
-    }
+    if (isnan(v4)) { return; }
     decltype(auto) v5 = getv(ix + 1, iy, iz + 1, p5);
-    if (isnan(v5)) {
-      return;
-    }
+    if (isnan(v5)) { return; }
     decltype(auto) w0 = getw(ix, iy, iz, p0);
-    if (isnan(w0)) {
-      return;
-    }
+    if (isnan(w0)) { return; }
     decltype(auto) w1 = getw(ix + 1, iy, iz, p1);
-    if (isnan(w1)) {
-      return;
-    }
+    if (isnan(w1)) { return; }
     decltype(auto) w4 = getw(ix, iy, iz + 1, p4);
-    if (isnan(w4)) {
-      return;
-    }
+    if (isnan(w4)) { return; }
     decltype(auto) w5 = getw(ix + 1, iy, iz + 1, p5);
-    if (isnan(w5)) {
-      return;
-    }
+    if (isnan(w5)) { return; }
     if (turned(ix, iy, iz)) {
       y_faces(ix, iy)[0] =  // 015
           detail::pv_on_tri(p0, v0, w0, p1, v1, w1, p5, v5, w5,
@@ -770,37 +738,21 @@ auto calc_parallel_vectors(
     auto const p3 = gv(ix + 1, iy + 1, iz);
 
     decltype(auto) v0 = getv(ix, iy, iz, p0);
-    if (isnan(v0)) {
-      return;
-    }
+    if (isnan(v0)) { return; }
     decltype(auto) v1 = getv(ix + 1, iy, iz, p1);
-    if (isnan(v1)) {
-      return;
-    }
+    if (isnan(v1)) { return; }
     decltype(auto) v2 = getv(ix, iy + 1, iz, p2);
-    if (isnan(v2)) {
-      return;
-    }
+    if (isnan(v2)) { return; }
     decltype(auto) v3 = getv(ix + 1, iy + 1, iz, p3);
-    if (isnan(v3)) {
-      return;
-    }
+    if (isnan(v3)) { return; }
     decltype(auto) w0 = getw(ix, iy, iz, p0);
-    if (isnan(w0)) {
-      return;
-    }
+    if (isnan(w0)) { return; }
     decltype(auto) w1 = getw(ix + 1, iy, iz, p1);
-    if (isnan(w1)) {
-      return;
-    }
+    if (isnan(w1)) { return; }
     decltype(auto) w2 = getw(ix, iy + 1, iz, p2);
-    if (isnan(w2)) {
-      return;
-    }
+    if (isnan(w2)) { return; }
     decltype(auto) w3 = getw(ix + 1, iy + 1, iz, p3);
-    if (isnan(w3)) {
-      return;
-    }
+    if (isnan(w3)) { return; }
     if (turned(ix, iy, iz)) {
       z_faces(write_iz, ix, iy)[0] =  // 013
           detail::pv_on_tri(p0, v0, w0, p1, v1, w1, p3, v3, w3,
