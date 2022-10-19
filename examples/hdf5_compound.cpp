@@ -59,7 +59,7 @@ auto IO_S() {
 //==============================================================================
 auto IO_static_multidim_array() {
   auto path   = filesystem::path{"static_multidim_array.h5"};
-  using arr_t = static_multidim_array<double, x_fastest, tag::stack, 3, 3, 3>;
+  using arr_t = static_multidim_array<double, x_fastest, stack, 3, 3, 3>;
   auto s0     = arr_t::randu();
   {
     auto file    = hdf5::file{path};

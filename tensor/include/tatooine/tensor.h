@@ -13,14 +13,14 @@ namespace tatooine {
 //==============================================================================
 template <arithmetic_or_complex ValueType, std::size_t... Dims>
 struct tensor
-    : static_multidim_array<ValueType, x_fastest, tag::stack, Dims...>,
+    : static_multidim_array<ValueType, x_fastest, stack, Dims...>,
       base_tensor<tensor<ValueType, Dims...>, ValueType, Dims...> {
   //============================================================================
   using this_type          = tensor<ValueType, Dims...>;
   using tensor_parent_type = base_tensor<this_type, ValueType, Dims...>;
   using value_type         = typename tensor_parent_type::value_type;
   using array_parent_type =
-      static_multidim_array<ValueType, x_fastest, tag::stack, Dims...>;
+      static_multidim_array<ValueType, x_fastest, stack, Dims...>;
 
   using tensor_parent_type::dimension;
   using tensor_parent_type::num_components;

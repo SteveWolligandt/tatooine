@@ -14,16 +14,9 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename ValueType, typename IndexOrder, typename MemLoc,
+template <typename ValueType, index_order IndexOrder, memory_location MemLoc,
           std::size_t... Resolution>
 class static_multidim_array {
-  //============================================================================
-  // assertions
-  //============================================================================
-  static_assert(
-      std::is_same<MemLoc, tag::heap>::value ||
-          std::is_same<MemLoc, tag::stack>::value,
-      "MemLoc must either be tatooine::tag::heap or tatooine::tag::stack");
   //============================================================================
   // typedefs
   //============================================================================
@@ -47,7 +40,7 @@ class static_multidim_array {
     return size_type::in_range(indices...);
   }
   using container_type =
-      std::conditional_t<std::is_same<MemLoc, tag::stack>::value,
+      std::conditional_t<std::is_same<MemLoc, stack>::value,
                          std::array<ValueType, num_components()>,
                          std::vector<ValueType>>;
 
@@ -56,7 +49,7 @@ class static_multidim_array {
   //============================================================================
  private:
   static constexpr auto init_data(ValueType const init = ValueType{}) {
-    if constexpr (std::is_same<MemLoc, tag::stack>::value) {
+    if constexpr (std::is_same<MemLoc, stack>::value) {
       return make_array<num_components()>(init);
     } else {
       return std::vector(num_components(), init);
@@ -159,10 +152,10 @@ class static_multidim_array {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   explicit constexpr static_multidim_array(
       std::array<ValueType, num_components()>&& data) requires
-      is_same<MemLoc, tag::stack> : m_data_container(std::move(data)) {}
+      is_same<MemLoc, stack> : m_data_container(std::move(data)) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   explicit constexpr static_multidim_array(
-      std::vector<ValueType>&& data) requires is_same<MemLoc, tag::heap>
+      std::vector<ValueType>&& data) requires is_same<MemLoc, heap>
       : m_data_container(std::move(data)) {
     assert(num_components() == data.size());
   }
@@ -297,7 +290,7 @@ class static_multidim_array {
 //    TATOOINE_REFLECTION_INSERT_METHOD(data, data()))
 //}  // namespace reflection
 //==============================================================================
-template <typename MemLocOut = tag::stack, typename IndexingOut = x_fastest,
+template <typename MemLocOut = stack, typename IndexingOut = x_fastest,
           typename T0, typename T1, typename Indexing0, typename Indexing1,
           typename MemLoc0, typename MemLoc1, typename FReal,
           std::size_t... Resolution>
@@ -339,7 +332,7 @@ auto interpolate(
   return interpolated;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename MemLocOut = tag::stack, typename IndexingOut = x_fastest,
+template <typename MemLocOut = stack, typename IndexingOut = x_fastest,
           typename T0, typename T1, typename Indexing0, typename Indexing1,
           typename MemLoc0, typename MemLoc1, typename LinReal, typename TReal,
           std::size_t... Resolution>

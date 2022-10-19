@@ -51,7 +51,7 @@ struct base_vertex_property_sampler_at<DerivedSampler, Real, ValueType,
 //==============================================================================
 template <typename DerivedSampler, typename Real, typename ValueType,
           template <typename> typename... InterpolationKernels>
-using base_sampler_at_t = typename base_vertex_property_sampler_at<
+using base_vertex_property_sampler_at_t = typename base_vertex_property_sampler_at<
     DerivedSampler, Real, ValueType, InterpolationKernels...>::value_type;
 //==============================================================================
 /// CRTP inheritance class for grid_vertex_property_sampler and
@@ -70,9 +70,9 @@ struct base_vertex_property_sampler {
       base_vertex_property_sampler<DerivedSampler, Real, ValueType,
                                    HeadInterpolationKernel,
                                    TailInterpolationKernels...>;
-  using indexing_type =
-      base_sampler_at_t<this_type, Real, ValueType, HeadInterpolationKernel,
-                        TailInterpolationKernels...>;
+  using indexing_type = base_vertex_property_sampler_at_t<
+    this_type, Real, ValueType, HeadInterpolationKernel,
+    TailInterpolationKernels...>;
   using real_type  = Real;
   using value_type = ValueType;
   static auto constexpr current_dimension_index() {
@@ -104,7 +104,7 @@ struct base_vertex_property_sampler {
   //----------------------------------------------------------------------------
   /// data at specified indices is...
   /// CRTP-virtual method
-  auto data_at(integral auto const... is) const -> decltype(auto) {
+  auto data_at(integral auto const... is) const -> value_type const& {
     static_assert(sizeof...(is) == num_dimensions(),
                   "Number of indices does not match number of dimensions.");
     return as_derived_sampler().data_at(is...);
@@ -158,13 +158,14 @@ struct base_vertex_property_sampler {
   }
   //----------------------------------------------------------------------------
   auto interpolate_cell_without_derivative(auto const& cit_head,
-                                           auto const&... cit_tail) const {
+                                           auto const&... cit_tail) const
+      -> value_type {
     auto const [cell_index, interpolation_factor] = cit_head;
     if constexpr (num_dimensions() == 1) {
-      return HeadInterpolationKernel<value_type>{
+      return HeadInterpolationKernel{
           at(cell_index), at(cell_index + 1)}(interpolation_factor);
     } else {
-      return HeadInterpolationKernel<value_type>{
+      return HeadInterpolationKernel{
           at(cell_index).interpolate_cell(cit_tail...),
           at(cell_index + 1).interpolate_cell(cit_tail...)}(
           interpolation_factor);
@@ -172,7 +173,8 @@ struct base_vertex_property_sampler {
   }
   //----------------------------------------------------------------------------
   auto interpolate_cell_with_one_derivative(auto const& cit_head,
-                                            auto const&... cit_tail) const {
+                                            auto const&... cit_tail) const
+    -> value_type {
     auto const [left_global_index, interpolation_factor] = cit_head;
     auto const  right_global_index                = left_global_index + 1;
     auto const& dim = grid().template dimension<current_dimension_index()>();
@@ -235,7 +237,7 @@ struct base_vertex_property_sampler {
   //----------------------------------------------------------------------------
   /// Decides if first derivative is needed or not.
   auto constexpr interpolate_cell(
-      auto const&... cell_indices_interpolation_factors) const {
+      auto const&... cell_indices_interpolation_factors) const -> value_type {
     auto constexpr num_derivatives_needed =
         HeadInterpolationKernel<value_type>::num_derivatives;
     if constexpr (num_derivatives_needed == 0) {
@@ -249,7 +251,7 @@ struct base_vertex_property_sampler {
   //------------------------------------------------------------------------------
   template <std::size_t... Is>
   auto constexpr sample(std::index_sequence<Is...> /*seq*/,
-                        arithmetic auto const... xs) const
+                        arithmetic auto const... xs) const -> value_type
       requires(sizeof...(Is) == sizeof...(xs)) {
     return interpolate_cell(cell_index<Is>(xs)...);
   }
@@ -302,8 +304,8 @@ struct vertex_property_sampler
   //----------------------------------------------------------------------------
   auto grid() const -> auto const& { return m_property.grid(); }
   //----------------------------------------------------------------------------
-  auto data_at(integral auto const... is) const -> decltype(auto) requires(
-      sizeof...(is) == GridVertexProperty::grid_type::num_dimensions()) {
+  auto data_at(integral auto const... is) const -> value_type const&
+  requires(sizeof...(is) == GridVertexProperty::grid_type::num_dimensions()) {
     return m_property(is...);
   }
   //----------------------------------------------------------------------------
@@ -320,7 +322,7 @@ struct vertex_property_sampler
   //----------------------------------------------------------------------------
   auto evaluate(typename field_parent_type::pos_type const& x,
                 typename field_parent_type::real_type const /*t*/) const ->
-      typename field_parent_type::tensor_type {
+      value_type {
     if (!grid().is_inside(x)) {
       return field_parent_type::ood_tensor();
     }
@@ -375,10 +377,10 @@ struct vertex_property_sampler_view
   }
   //----------------------------------------------------------------------------
   auto grid() const -> auto const& { return m_top_sampler.grid(); }
-  //------------------------------------------------------------------------------
+  //----------------------------------------------------------------------------
   /// returns data of top vertex_property_sampler at
   /// m_fixed_index and index list is...
-  auto constexpr data_at(integral auto const... is) const -> decltype(auto) {
+  auto constexpr data_at(integral auto const... is) const -> value_type const& {
     static_assert(sizeof...(is) == num_dimensions(),
                   "Number of indices is not equal to number of dimensions.");
     return m_top_sampler.data_at(m_fixed_index, is...);
@@ -467,10 +469,10 @@ struct differentiated_sampler<GridVertexProperty, interpolation::linear,
   auto constexpr sample(arithmetic auto x, arithmetic auto y) const {
     auto const [ix, u] = m_sampler.template cell_index<0>(x);
     auto const [iy, v] = m_sampler.template cell_index<1>(y);
-    decltype(auto) a   = m_sampler.data_at(ix, iy);
-    decltype(auto) b   = m_sampler.data_at(ix + 1, iy);
-    decltype(auto) c   = m_sampler.data_at(ix, iy + 1);
-    decltype(auto) d   = m_sampler.data_at(ix + 1, iy + 1);
+    auto const& a   = m_sampler.data_at(ix, iy);
+    auto const& b   = m_sampler.data_at(ix + 1, iy);
+    auto const& c   = m_sampler.data_at(ix, iy + 1);
+    auto const& d   = m_sampler.data_at(ix + 1, iy + 1);
 
     auto const k     = d - c - b + a;
     auto const dx    = k * v + b - a;
@@ -514,14 +516,14 @@ struct differentiated_sampler<GridVertexProperty, interpolation::linear,
     auto const [ix, u] = m_sampler.template cell_index<0>(x);
     auto const [iy, v] = m_sampler.template cell_index<1>(y);
     auto const [iz, w] = m_sampler.template cell_index<2>(z);
-    decltype(auto) a   = m_sampler.data_at(ix, iy, iz);
-    decltype(auto) b   = m_sampler.data_at(ix + 1, iy, iz);
-    decltype(auto) c   = m_sampler.data_at(ix, iy + 1, iz);
-    decltype(auto) d   = m_sampler.data_at(ix + 1, iy + 1, iz);
-    decltype(auto) e   = m_sampler.data_at(ix, iy, iz + 1);
-    decltype(auto) f   = m_sampler.data_at(ix + 1, iy, iz + 1);
-    decltype(auto) g   = m_sampler.data_at(ix, iy + 1, iz + 1);
-    decltype(auto) h   = m_sampler.data_at(ix + 1, iy + 1, iz + 1);
+    auto const& a   = m_sampler.data_at(ix, iy, iz);
+    auto const& b   = m_sampler.data_at(ix + 1, iy, iz);
+    auto const& c   = m_sampler.data_at(ix, iy + 1, iz);
+    auto const& d   = m_sampler.data_at(ix + 1, iy + 1, iz);
+    auto const& e   = m_sampler.data_at(ix, iy, iz + 1);
+    auto const& f   = m_sampler.data_at(ix + 1, iy, iz + 1);
+    auto const& g   = m_sampler.data_at(ix, iy + 1, iz + 1);
+    auto const& h   = m_sampler.data_at(ix + 1, iy + 1, iz + 1);
 
     auto const k  = h - g - f + e - d + c + b - a;
     auto const dx = (k * v + f - e - b + a) * w + (d - c - b + a) * v + b - a;

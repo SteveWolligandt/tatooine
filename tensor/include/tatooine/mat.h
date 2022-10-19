@@ -37,6 +37,8 @@ struct mat : tensor<ValueType, M, N> {
   //----------------------------------------------------------------------------
   static auto constexpr ones() { return this_type{tag::fill<ValueType>{1}}; }
   //----------------------------------------------------------------------------
+  static auto constexpr fill(ValueType const& v) { return this_type{tag::fill<ValueType>{v}}; }
+  //----------------------------------------------------------------------------
   static auto constexpr nans() requires floating_point<ValueType> {
     return this_type{tag::fill<ValueType>{ValueType{} / ValueType{}}};
   }
@@ -124,9 +126,8 @@ struct mat : tensor<ValueType, M, N> {
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename FillReal>
-  requires arithmetic<ValueType>
-  explicit constexpr mat(tag::fill<FillReal> const f) : parent_type{f} {}
+  template <convertible_to<ValueType> Fill>
+  explicit constexpr mat(tag::fill<Fill> const f) : parent_type{f} {}
   explicit constexpr mat(tag::ones_t const ones) : parent_type{ones} {}
   explicit constexpr mat(tag::zeros_t const zeros) : parent_type{zeros} {}
   template <typename RandomReal, typename Engine>

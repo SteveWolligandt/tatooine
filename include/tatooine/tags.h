@@ -34,23 +34,23 @@ auto operator!=(forward_or_backward_tag auto const lhs,
                 forward_or_backward_tag auto const rhs) {
   return !(lhs == rhs);
 }
-//template <typename T>
-//struct is_forward_impl : std::false_type {};
-//template <>
-//struct is_forward_impl<forward_tag> : std::false_type {};
-//template <typename T>
-//static constexpr auto is_forward = is_forward_impl<T>::value;
+// template <typename T>
+// struct is_forward_impl : std::false_type {};
+// template <>
+// struct is_forward_impl<forward_tag> : std::false_type {};
+// template <typename T>
+// static constexpr auto is_forward = is_forward_impl<T>::value;
 template <typename T>
 concept is_forward = std::same_as<forward_tag, std::decay_t<T>>;
 template <typename T>
 concept is_backward = std::same_as<backward_tag, std::decay_t<T>>;
 
-//template <typename T>
-//struct is_backward_impl : std::false_type {};
-//template <>
-//struct is_backward_impl<backward_tag> : std::false_type {};
-//template <typename T>
-//static constexpr auto is_backward = is_backward_impl<T>::value;
+// template <typename T>
+// struct is_backward_impl : std::false_type {};
+// template <>
+// struct is_backward_impl<backward_tag> : std::false_type {};
+// template <typename T>
+// static constexpr auto is_backward = is_backward_impl<T>::value;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
@@ -91,8 +91,6 @@ struct analytical_t {};
 static constexpr analytical_t analytical;
 struct numerical_t {};
 static constexpr numerical_t numerical;
-struct heap {};
-struct stack {};
 
 template <typename Real>
 struct fill {
@@ -109,4 +107,10 @@ static constexpr ones_t ones;
 //==============================================================================
 }  // namespace tatooine::tag
 //==============================================================================
+namespace tatooine {
+struct heap {};
+struct stack {};
+template <typename T>
+concept memory_location = std::same_as<T, heap> || std::same_as<T, stack>;
+}  // namespace tatooine
 #endif

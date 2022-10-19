@@ -13,28 +13,29 @@
 namespace tatooine::detail::rectilinear_grid {
 //==============================================================================
 template <typename GridVertexProperty,
-          template <typename> typename DefaultInterpolationKernel,
-          std::size_t N, template <typename> typename... InterpolationKernels>
+          template <typename> typename InterpolationKernel, std::size_t N,
+          template <typename> typename... CollectedInterpolationKernels>
 struct repeated_interpolation_kernel_for_vertex_property_impl {
   using type = typename repeated_interpolation_kernel_for_vertex_property_impl<
-      GridVertexProperty, DefaultInterpolationKernel, N - 1,
-      InterpolationKernels..., DefaultInterpolationKernel>::type;
+      GridVertexProperty, InterpolationKernel, N - 1,
+      CollectedInterpolationKernels..., InterpolationKernel>::type;
 };
 //----------------------------------------------------------------------------
 template <typename GridVertexProperty,
-          template <typename> typename DefaultInterpolationKernel,
-          template <typename> typename... InterpolationKernels>
+          template <typename> typename InterpolationKernel,
+          template <typename> typename... CollectedInterpolationKernels>
 struct repeated_interpolation_kernel_for_vertex_property_impl<
-    GridVertexProperty, DefaultInterpolationKernel, 0,
-    InterpolationKernels...> {
-  using type =
-      vertex_property_sampler<GridVertexProperty, InterpolationKernels...>;
+    GridVertexProperty, InterpolationKernel, 0,
+    CollectedInterpolationKernels...> {
+  using type = vertex_property_sampler<GridVertexProperty,
+                                       CollectedInterpolationKernels...>;
 };
+//----------------------------------------------------------------------------
 template <typename GridVertexProperty,
-          template <typename> typename DefaultInterpolationKernel>
+          template <typename> typename InterpolationKernel>
 using repeated_interpolation_kernel_for_vertex_property =
     typename repeated_interpolation_kernel_for_vertex_property_impl<
-        GridVertexProperty, DefaultInterpolationKernel,
+        GridVertexProperty, InterpolationKernel,
         GridVertexProperty::num_dimensions()>::type;
 //==============================================================================
 template <typename Grid, typename ValueType, bool HasNonConstReference>
@@ -122,28 +123,19 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
   //----------------------------------------------------------------------------
  private:
   template <template <typename> typename InterpolationKernel>
-  auto sampler_() const {
-    using sampler_t =
-        repeated_interpolation_kernel_for_vertex_property<this_type,
-                                                          InterpolationKernel>;
-    return sampler_t{*this};
+  auto repeated_interpolation_kernel_sampler() const {
+    return repeated_interpolation_kernel_for_vertex_property<
+             this_type,
+             InterpolationKernel>{*this};
   }
   //----------------------------------------------------------------------------
  public:
   template <template <typename> typename... InterpolationKernels>
+  requires (sizeof...(InterpolationKernels) == num_dimensions()) ||
+           (sizeof...(InterpolationKernels) == 1)
   auto sampler() const {
-    static_assert(
-        sizeof...(InterpolationKernels) == 0 ||
-            sizeof...(InterpolationKernels) == 1 ||
-            sizeof...(InterpolationKernels) == num_dimensions(),
-        "Number of interpolation kernels does not match number of dimensions.");
-
-    if constexpr (sizeof...(InterpolationKernels) == 0) {
-      using sampler_t = repeated_interpolation_kernel_for_vertex_property<
-          this_type, interpolation::cubic>;
-      return sampler_t{*this};
-    } else if constexpr (sizeof...(InterpolationKernels) == 1) {
-      return sampler_<InterpolationKernels...>();
+    if constexpr (sizeof...(InterpolationKernels) == 1) {
+      return repeated_interpolation_kernel_sampler<InterpolationKernels...>();
     } else {
       using sampler_t =
           vertex_property_sampler<this_type, InterpolationKernels...>;
@@ -248,7 +240,7 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
   //----------------------------------------------------------------------------
 #if TATOOINE_PNG_AVAILABLE
   template <invocable<ValueType> T>
-      auto write_png(filesystem::path const& path, T&& f, auto&& color_scale,
+  auto write_png(filesystem::path const& path, T&& f, auto&& color_scale,
                      tensor_value_type<ValueType> const min = 0,
                      tensor_value_type<ValueType> const max = 1) const
       -> void requires(num_dimensions() == 2) &&
@@ -499,7 +491,17 @@ struct vertex_property_differentiated_type_impl<1, Grid, vec<T, N>> {
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename Grid, floating_point T, std::size_t N>
+struct vertex_property_differentiated_type_impl<1, Grid, tensor<T, N>> {
+  using type = mat<T, N, Grid::num_dimensions()>;
+};
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+template <typename Grid, floating_point T, std::size_t N>
 struct vertex_property_differentiated_type_impl<2, Grid, vec<T, N>> {
+  using type = tensor<T, N, Grid::num_dimensions(), Grid::num_dimensions()>;
+};
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+template <typename Grid, floating_point T, std::size_t N>
+struct vertex_property_differentiated_type_impl<2, Grid, tensor<T, N>> {
   using type = tensor<T, N, Grid::num_dimensions(), Grid::num_dimensions()>;
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

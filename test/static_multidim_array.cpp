@@ -7,7 +7,7 @@ using namespace Catch;
 namespace tatooine::test {
 //==============================================================================
 TEST_CASE("static_multidim_array", "[static_multidim_array]") {
-  auto arr = static_multidim_array<int, x_fastest, tag::stack, 2, 2>{};
+  auto arr = static_multidim_array<int, x_fastest, stack, 2, 2>{};
   arr(0,0);
 }
 //==============================================================================
