@@ -135,8 +135,9 @@ struct x_slowest {
     return is;
   }
 };
+template <typename T>
+concept index_order = std::same_as<T, x_fastest> || std::same_as<T, x_slowest>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-
 #endif

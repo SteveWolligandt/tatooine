@@ -821,7 +821,7 @@ class rectilinear_grid {
       if (typeid(T) != it->second->type()) {
         throw std::runtime_error{
             "type of property \"" + name + "\"(" +
-            boost::core::demangle(it->second->type().name()) +
+            type_name(it->second->type()) +
             ") does not match specified type " + type_name<T>() + "."};
       }
       return *dynamic_cast<
@@ -840,7 +840,7 @@ class rectilinear_grid {
       if (typeid(T) != it->second->type()) {
         throw std::runtime_error{
             "type of property \"" + name + "\"(" +
-            boost::core::demangle(it->second->type().name()) +
+            type_name(it->second->type()) +
             ") does not match specified type " + type_name<T>() + "."};
       }
       return *dynamic_cast<
@@ -1095,7 +1095,7 @@ class rectilinear_grid {
             if constexpr (tensor_num_components<T> == 1) {
               prop(is...) = nan<T>();
             } else {
-              prop(is...) = T::fill(nan<T>());
+              prop(is...) = T::fill(nan<tensor_value_type<T>>());
             }
           }
         },
