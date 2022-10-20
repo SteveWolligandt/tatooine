@@ -1,5 +1,5 @@
-#ifndef TATOOINE_FIELDS_EXTRACT_VORTEX_CORE_LINES_H
-#define TATOOINE_FIELDS_EXTRACT_VORTEX_CORE_LINES_H
+#ifndef TATOOINE_FIELDS_VORTEX_CORE_LINES_EXTRACTION_H
+#define TATOOINE_FIELDS_VORTEX_CORE_LINES_EXTRACTION_H
 //==============================================================================
 #include <tatooine/detail/vortex_core_line_extraction/sujudi_haimes.h>
 //==============================================================================
