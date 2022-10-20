@@ -956,8 +956,8 @@ class rectilinear_grid {
     auto num_dims_dataset = dataset.num_dimensions();
     if (num_dimensions() != num_dims_dataset) {
       throw std::runtime_error{
-          "Number of dimensions do not match for HDF5 dataset and "
-          "rectilinear_grid."};
+          "Number of dimensions("+std::to_string(num_dims_dataset)+") do not match for HDF5 dataset and "
+          "rectilinear_grid("+std::to_string(num_dimensions())+")."};
     }
     auto size_dataset = dataset.size();
     for (std::size_t i = 0; i < num_dimensions(); ++i) {
