@@ -11,9 +11,11 @@ namespace tatooine {
 using gcem::abs;
 using gcem::sin;
 using gcem::cos;
+using gcem::sqrt;
 using gcem::pow;
 using gcem::min;
 using gcem::max;
+//==============================================================================
 /// max for comparable objects.
 /// If all types are the same a const reference is returned.
 template <template <typename> typename Comparator, typename T0, typename T1,
