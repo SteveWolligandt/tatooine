@@ -35,12 +35,12 @@ struct vertex_property_sampler;
 template <floating_point Real, std::size_t NumDimensions>
 struct line {
   //============================================================================
-  using this_type       = line<Real, NumDimensions>;
-  using real_type       = Real;
-  using vec_type        = vec<Real, NumDimensions>;
-  using pos_type        = vec_type;
-  using pos_container_t = std::deque<pos_type>;
-  using value_type      = pos_type;
+  using this_type          = line<Real, NumDimensions>;
+  using real_type          = Real;
+  using vec_type           = vec<Real, NumDimensions>;
+  using pos_type           = vec_type;
+  using pos_container_type = std::deque<pos_type>;
+  using value_type         = pos_type;
   //============================================================================
   // Handles
   //============================================================================
@@ -78,8 +78,8 @@ struct line {
   // members
   //============================================================================
  private:
-  pos_container_t m_vertices;
-  bool            m_is_closed = false;
+  pos_container_type m_vertices;
+  bool               m_is_closed = false;
 
  protected:
   vertex_property_container_type  m_vertex_properties;
@@ -125,10 +125,10 @@ struct line {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   line& operator=(line&& other) noexcept = default;
   //----------------------------------------------------------------------------
-  line(pos_container_t const& data, bool is_closed = false)
+  line(pos_container_type const& data, bool is_closed = false)
       : m_vertices{data}, m_is_closed{is_closed} {}
   //----------------------------------------------------------------------------
-  line(pos_container_t&& data, bool is_closed = false)
+  line(pos_container_type&& data, bool is_closed = false)
       : m_vertices{std::move(data)}, m_is_closed{is_closed} {}
   //----------------------------------------------------------------------------
   line(fixed_size_real_vec<NumDimensions> auto&&... vs)
@@ -935,4 +935,5 @@ auto line<Real, NumDimensions>::filter(Pred&& pred) const
 //==============================================================================
 #include <tatooine/detail/line/operations.h>
 #include <tatooine/detail/line/vertex_property_sampler.h>
+//==============================================================================
 #endif
