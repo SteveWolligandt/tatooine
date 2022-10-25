@@ -4,10 +4,10 @@
 #if TATOOINE_PARALLEL_FOR_LOOPS_AVAILABLE
 #include <tatooine/cache_alignment.h>
 
+#endif
+#include <mutex>
 #include <boost/range/adaptor/transformed.hpp>
 #include <boost/range/numeric.hpp>
-#include <mutex>
-#endif
 #include <tatooine/dynamic_multidim_array.h>
 #include <tatooine/field.h>
 #include <tatooine/for_loop.h>
@@ -169,13 +169,12 @@ constexpr auto pv_on_tri(Vec3<Real> const& p0, Vec3<Real> const& v0,
     return pos;
   }
 }
-
 //----------------------------------------------------------------------------
 template <typename Real>
-static auto check_tet(std::optional<Vec3<Real>> tri0,
-                      std::optional<Vec3<Real>> tri1,
-                      std::optional<Vec3<Real>> tri2,
-                      std::optional<Vec3<Real>> tri3,
+static auto check_tet(std::optional<Vec3<Real>> const& tri0,
+                      std::optional<Vec3<Real>> const& tri1,
+                      std::optional<Vec3<Real>> const& tri2,
+                      std::optional<Vec3<Real>> const& tri3,
                       std::vector<Line3<Real>>& lines, std::mutex& mutex) {
   std::vector<std::optional<Vec3<Real>> const*> tris;
   if (tri0) {
@@ -226,29 +225,189 @@ static auto check_tet(std::optional<Vec3<Real>> const& tri0,
   }
 
   if (tris.size() == 1) {
-    // std::cerr << "only 1 point\n";
+    // only 1 point
   } else if (tris.size() == 2) {
     auto& l = lines.emplace_back();
     l.push_back(*(*tris[0]));
     l.push_back(*(*tris[1]));
   } else if (tris.size() == 3) {
-    // std::cerr << "3 points\n";
+    // 3 points
   } else if (tris.size() == 4) {
-    // std::cerr << "several solutions\n";
+    // several solutions;
   }
 }
 //------------------------------------------------------------------------------
-auto constexpr is_even(integral auto const i) {
-  return i % 2 == 0;
-}
+auto constexpr is_even(integral auto const i) { return i % 2 == 0; }
 //------------------------------------------------------------------------------
-template<signed_integral Int = int>
-auto constexpr sign(bool pred) -> Int{
+template <signed_integral Int = int>
+auto constexpr sign(bool pred) -> Int {
   return pred ? 1 : -1;
 }
 //------------------------------------------------------------------------------
 auto constexpr turned(integral auto const... is) -> bool {
   return (sign(is_even(is)) * ...) < 0;
+}
+//------------------------------------------------------------------------------
+auto check_turned_cube(auto const& x_faces, auto const& y_faces,
+                       auto const& z_faces, auto const& inner_faces, auto& ls,
+                       auto const ix, auto const iy) {
+  // 0236
+  check_tet(x_faces(ix, iy)[1],      // 026
+            y_faces(ix, iy + 1)[0],  // 236
+            z_faces(0, ix, iy)[1],   // 023
+            inner_faces(ix, iy)[1],  // 036
+            ls);
+  // 0135
+  check_tet(x_faces(ix + 1, iy)[0],  // 135
+            y_faces(ix, iy)[0],      // 015
+            z_faces(0, ix, iy)[0],   // 013
+            inner_faces(ix, iy)[0],  // 035
+            ls);
+  // 3567
+  check_tet(x_faces(ix + 1, iy)[1],  // 357
+            y_faces(ix, iy + 1)[1],  // 367
+            z_faces(1, ix, iy)[1],   // 567
+            inner_faces(ix, iy)[2],  // 356
+            ls);
+  // 0456
+  check_tet(x_faces(ix, iy)[0],      // 046
+            y_faces(ix, iy)[1],      // 045
+            z_faces(1, ix, iy)[0],   // 456
+            inner_faces(ix, iy)[3],  // 056
+            ls);
+  // 0356
+  check_tet(inner_faces(ix, iy)[0],  // 035
+            inner_faces(ix, iy)[1],  // 036
+            inner_faces(ix, iy)[2],  // 356
+            inner_faces(ix, iy)[3],  // 056
+            ls);
+}
+//------------------------------------------------------------------------------
+auto check_turned_cube(auto const& x_faces, auto const& y_faces,
+                       auto const& z_faces, auto const& inner_faces, auto& ls,
+                       auto const ix, auto const iy, std::mutex& mutex) {
+  // 0236
+  check_tet(x_faces(ix, iy)[1],      // 026
+            y_faces(ix, iy + 1)[0],  // 236
+            z_faces(0, ix, iy)[1],   // 023
+            inner_faces(ix, iy)[1],  // 036
+            ls, mutex);
+  // 0135
+  check_tet(x_faces(ix + 1, iy)[0],  // 135
+            y_faces(ix, iy)[0],      // 015
+            z_faces(0, ix, iy)[0],   // 013
+            inner_faces(ix, iy)[0],  // 035
+            ls, mutex);
+  // 3567
+  check_tet(x_faces(ix + 1, iy)[1],  // 357
+            y_faces(ix, iy + 1)[1],  // 367
+            z_faces(1, ix, iy)[1],   // 567
+            inner_faces(ix, iy)[2],  // 356
+            ls, mutex);
+  // 0456
+  check_tet(x_faces(ix, iy)[0],      // 046
+            y_faces(ix, iy)[1],      // 045
+            z_faces(1, ix, iy)[0],   // 456
+            inner_faces(ix, iy)[3],  // 056
+            ls, mutex);
+  // 0356
+  check_tet(inner_faces(ix, iy)[0],  // 035
+            inner_faces(ix, iy)[1],  // 036
+            inner_faces(ix, iy)[2],  // 356
+            inner_faces(ix, iy)[3],  // 056
+            ls, mutex);
+}
+//------------------------------------------------------------------------------
+auto check_unturned_cube(auto const& x_faces, auto const& y_faces,
+                         auto const& z_faces, auto const& inner_faces, auto& ls,
+                         auto const ix, auto const iy, std::mutex& mutex) {
+  // 0124
+  check_tet(x_faces(ix, iy)[0],      // 024
+            y_faces(ix, iy)[0],      // 014
+            z_faces(0, ix, iy)[0],   // 012
+            inner_faces(ix, iy)[0],  // 124
+            ls, mutex);
+  // 1457
+  check_tet(x_faces(ix + 1, iy)[0],  // 157
+            y_faces(ix, iy)[1],      // 145
+            z_faces(1, ix, iy)[0],   // 457
+            inner_faces(ix, iy)[2],  // 147
+            ls, mutex);
+  // 2467
+  check_tet(x_faces(ix, iy)[1],      // 246
+            y_faces(ix, iy + 1)[1],  // 267
+            z_faces(1, ix, iy)[1],   // 467
+            inner_faces(ix, iy)[3],  // 247
+            ls, mutex);
+  // 1237
+  check_tet(x_faces(ix + 1, iy)[1],  // 137
+            y_faces(ix, iy + 1)[0],  // 237
+            z_faces(0, ix, iy)[1],   // 123
+            inner_faces(ix, iy)[1],  // 127
+            ls, mutex);
+  // 1247
+  check_tet(inner_faces(ix, iy)[0],  // 124
+            inner_faces(ix, iy)[1],  // 127
+            inner_faces(ix, iy)[2],  // 147
+            inner_faces(ix, iy)[3],  // 247
+            ls, mutex);
+}
+//------------------------------------------------------------------------------
+auto check_unturned_cube(auto const& x_faces, auto const& y_faces,
+                         auto const& z_faces, auto const& inner_faces, auto& ls,
+                         auto const ix, auto const iy) {
+  // 0124
+  check_tet(x_faces(ix, iy)[0],      // 024
+            y_faces(ix, iy)[0],      // 014
+            z_faces(0, ix, iy)[0],   // 012
+            inner_faces(ix, iy)[0],  // 124
+            ls);
+  // 1457
+  check_tet(x_faces(ix + 1, iy)[0],  // 157
+            y_faces(ix, iy)[1],      // 145
+            z_faces(1, ix, iy)[0],   // 457
+            inner_faces(ix, iy)[2],  // 147
+            ls);
+  // 2467
+  check_tet(x_faces(ix, iy)[1],      // 246
+            y_faces(ix, iy + 1)[1],  // 267
+            z_faces(1, ix, iy)[1],   // 467
+            inner_faces(ix, iy)[3],  // 247
+            ls);
+  // 1237
+  check_tet(x_faces(ix + 1, iy)[1],  // 137
+            y_faces(ix, iy + 1)[0],  // 237
+            z_faces(0, ix, iy)[1],   // 123
+            inner_faces(ix, iy)[1],  // 127
+            ls);
+  // 1247
+  check_tet(inner_faces(ix, iy)[0],  // 124
+            inner_faces(ix, iy)[1],  // 127
+            inner_faces(ix, iy)[2],  // 147
+            inner_faces(ix, iy)[3],  // 247
+            ls);
+}
+//------------------------------------------------------------------------------
+auto check_cube(auto const& x_faces, auto const& y_faces, auto const& z_faces,
+                auto const& inner_faces, auto& ls, auto const ix, auto const iy,
+                auto const iz, std::mutex& mutex) {
+  if (turned(ix, iy, iz)) {
+    check_turned_cube(x_faces, y_faces, z_faces, inner_faces, ls, ix, iy,
+                      mutex);
+  } else {
+    check_unturned_cube(x_faces, y_faces, z_faces, inner_faces, ls, ix, iy,
+                        mutex);
+  }
+}
+//------------------------------------------------------------------------------
+auto check_cube(auto const& x_faces, auto const& y_faces, auto const& z_faces,
+                auto const& inner_faces, auto& ls, auto const ix, auto const iy,
+                auto const iz) {
+  if (turned(ix, iy, iz)) {
+    check_turned_cube(x_faces, y_faces, z_faces, inner_faces, ls, ix, iy);
+  } else {
+    check_unturned_cube(x_faces, y_faces, z_faces, inner_faces, ls, ix, iy);
+  }
 }
 //------------------------------------------------------------------------------
 #if TATOOINE_PARALLEL_FOR_LOOPS_AVAILABLE
@@ -309,21 +468,37 @@ auto calc_parallel_vectors(
     };
 
     decltype(auto) v0 = getv(ix, iy, iz, p[0]);
-    if (isnan(v0)) { return; }
+    if (isnan(v0)) {
+      return;
+    }
     decltype(auto) v4 = getv(ix, iy, iz + 1, p[1]);
-    if (isnan(v4)) { return; }
+    if (isnan(v4)) {
+      return;
+    }
     decltype(auto) v2 = getv(ix, iy + 1, iz, p[2]);
-    if (isnan(v2)) { return; }
+    if (isnan(v2)) {
+      return;
+    }
     decltype(auto) v6 = getv(ix, iy + 1, iz + 1, p[3]);
-    if (isnan(v6)) { return; }
+    if (isnan(v6)) {
+      return;
+    }
     decltype(auto) w0 = getw(ix, iy, iz, p[0]);
-    if (isnan(w0)) { return; }
+    if (isnan(w0)) {
+      return;
+    }
     decltype(auto) w4 = getw(ix, iy, iz + 1, p[1]);
-    if (isnan(w4)) { return; }
+    if (isnan(w4)) {
+      return;
+    }
     decltype(auto) w2 = getw(ix, iy + 1, iz, p[2]);
-    if (isnan(w2)) { return; }
+    if (isnan(w2)) {
+      return;
+    }
     decltype(auto) w6 = getw(ix, iy + 1, iz + 1, p[3]);
-    if (isnan(w6)) { return; }
+    if (isnan(w6)) {
+      return;
+    }
     if (turned(ix, iy, iz)) {
       x_faces(ix, iy)[0] =  // 046
           detail::pv_on_tri(p[0], v0, w0, p[1], v4, w4, p[3], v6, w6,
@@ -349,21 +524,37 @@ auto calc_parallel_vectors(
     };
 
     decltype(auto) v0 = getv(ix, iy, iz, p[0]);
-    if (isnan(v0)) { return; }
+    if (isnan(v0)) {
+      return;
+    }
     decltype(auto) v1 = getv(ix + 1, iy, iz, p[1]);
-    if (isnan(v1)) { return; }
+    if (isnan(v1)) {
+      return;
+    }
     decltype(auto) v4 = getv(ix, iy, iz + 1, p[2]);
-    if (isnan(v4)) { return; }
+    if (isnan(v4)) {
+      return;
+    }
     decltype(auto) v5 = getv(ix + 1, iy, iz + 1, p[3]);
-    if (isnan(v5)) { return; }
+    if (isnan(v5)) {
+      return;
+    }
     decltype(auto) w0 = getw(ix, iy, iz, p[0]);
-    if (isnan(w0)) { return; }
+    if (isnan(w0)) {
+      return;
+    }
     decltype(auto) w1 = getw(ix + 1, iy, iz, p[1]);
-    if (isnan(w1)) { return; }
+    if (isnan(w1)) {
+      return;
+    }
     decltype(auto) w4 = getw(ix, iy, iz + 1, p[2]);
-    if (isnan(w4)) { return; }
+    if (isnan(w4)) {
+      return;
+    }
     decltype(auto) w5 = getw(ix + 1, iy, iz + 1, p[3]);
-    if (isnan(w5)) { return; }
+    if (isnan(w5)) {
+      return;
+    }
     if (turned(ix, iy, iz)) {
       y_faces(ix, iy)[0] =  // 015
           detail::pv_on_tri(p[0], v0, w0, p[1], v1, w1, p[3], v5, w5,
@@ -391,21 +582,37 @@ auto calc_parallel_vectors(
     };
 
     decltype(auto) v0 = getv(ix, iy, iz, p[0]);
-    if (isnan(v0)) { return; }
+    if (isnan(v0)) {
+      return;
+    }
     decltype(auto) v1 = getv(ix + 1, iy, iz, p[1]);
-    if (isnan(v1)) { return; }
+    if (isnan(v1)) {
+      return;
+    }
     decltype(auto) v2 = getv(ix, iy + 1, iz, p[2]);
-    if (isnan(v2)) { return; }
+    if (isnan(v2)) {
+      return;
+    }
     decltype(auto) v3 = getv(ix + 1, iy + 1, iz, p[3]);
-    if (isnan(v3)) { return; }
+    if (isnan(v3)) {
+      return;
+    }
     decltype(auto) w0 = getw(ix, iy, iz, p[0]);
-    if (isnan(w0)) { return; }
+    if (isnan(w0)) {
+      return;
+    }
     decltype(auto) w1 = getw(ix + 1, iy, iz, p[1]);
-    if (isnan(w1)) { return; }
+    if (isnan(w1)) {
+      return;
+    }
     decltype(auto) w2 = getw(ix, iy + 1, iz, p[2]);
-    if (isnan(w2)) { return; }
+    if (isnan(w2)) {
+      return;
+    }
     decltype(auto) w3 = getw(ix + 1, iy + 1, iz, p[3]);
-    if (isnan(w3)) { return; }
+    if (isnan(w3)) {
+      return;
+    }
     if (turned(ix, iy, iz)) {
       z_faces(write_iz, ix, iy)[0] =  // 013
           detail::pv_on_tri(p[0], v0, w0, p[1], v1, w1, p[3], v3, w3,
@@ -437,29 +644,41 @@ auto calc_parallel_vectors(
   auto update_inner_faces = [&](std::size_t const ix, std::size_t const iy) {
     auto const gv = g.vertices();
     if (turned(ix, iy, iz)) {
-      auto const p = std::array{
-        gv(ix, iy, iz),
-        gv(ix + 1, iy + 1, iz),
-        gv(ix + 1, iy, iz + 1),
-        gv(ix, iy + 1, iz + 1)
-      };
+      auto const p = std::array{gv(ix, iy, iz), gv(ix + 1, iy + 1, iz),
+                                gv(ix + 1, iy, iz + 1), gv(ix, iy + 1, iz + 1)};
 
       decltype(auto) v0 = getv(ix, iy, iz, p[0]);
-      if (isnan(v0)) { return; }
+      if (isnan(v0)) {
+        return;
+      }
       decltype(auto) v3 = getv(ix + 1, iy + 1, iz, p[1]);
-      if (isnan(v3)) { return; }
+      if (isnan(v3)) {
+        return;
+      }
       decltype(auto) v5 = getv(ix + 1, iy, iz + 1, p[2]);
-      if (isnan(v5)) { return; }
+      if (isnan(v5)) {
+        return;
+      }
       decltype(auto) v6 = getv(ix, iy + 1, iz + 1, p[3]);
-      if (isnan(v6)) { return; }
+      if (isnan(v6)) {
+        return;
+      }
       decltype(auto) w0 = getw(ix, iy, iz, p[0]);
-      if (isnan(w0)) { return; }
+      if (isnan(w0)) {
+        return;
+      }
       decltype(auto) w3 = getw(ix + 1, iy + 1, iz, p[1]);
-      if (isnan(w3)) { return; }
+      if (isnan(w3)) {
+        return;
+      }
       decltype(auto) w5 = getw(ix + 1, iy, iz + 1, p[2]);
-      if (isnan(w5)) { return; }
+      if (isnan(w5)) {
+        return;
+      }
       decltype(auto) w6 = getw(ix, iy + 1, iz + 1, p[3]);
-      if (isnan(w6)) { return; }
+      if (isnan(w6)) {
+        return;
+      }
       inner_faces(ix, iy)[0] =  // 035
           detail::pv_on_tri(p[0], v0, w0, p[2], v5, w5, p[1], v3, w3,
                             std::forward<Preds>(preds)...);
@@ -479,21 +698,37 @@ auto calc_parallel_vectors(
       auto const p7 = gv(ix + 1, iy + 1, iz + 1);
 
       decltype(auto) v1 = getv(ix + 1, iy, iz, p1);
-      if (isnan(v1)) { return; }
+      if (isnan(v1)) {
+        return;
+      }
       decltype(auto) v2 = getv(ix, iy + 1, iz, p2);
-      if (isnan(v2)) { return; }
+      if (isnan(v2)) {
+        return;
+      }
       decltype(auto) v4 = getv(ix, iy, iz + 1, p4);
-      if (isnan(v4)) { return; }
+      if (isnan(v4)) {
+        return;
+      }
       decltype(auto) v7 = getv(ix + 1, iy + 1, iz + 1, p7);
-      if (isnan(v7)) { return; }
+      if (isnan(v7)) {
+        return;
+      }
       decltype(auto) w1 = getw(ix + 1, iy, iz, p1);
-      if (isnan(w1)) { return; }
+      if (isnan(w1)) {
+        return;
+      }
       decltype(auto) w2 = getw(ix, iy + 1, iz, p2);
-      if (isnan(w2)) { return; }
+      if (isnan(w2)) {
+        return;
+      }
       decltype(auto) w4 = getw(ix, iy, iz + 1, p4);
-      if (isnan(w4)) { return; }
+      if (isnan(w4)) {
+        return;
+      }
       decltype(auto) w7 = getw(ix + 1, iy + 1, iz + 1, p7);
-      if (isnan(w7)) { return; }
+      if (isnan(w7)) {
+        return;
+      }
       inner_faces(ix, iy)[0] =  // 124
           detail::pv_on_tri(p1, v1, w1, p4, v4, w4, p2, v2, w2,
                             std::forward<Preds>(preds)...);
@@ -512,71 +747,9 @@ auto calc_parallel_vectors(
   auto lines = std::vector<aligned<std::vector<Line3<Real>>>>(num_threads);
   auto mutex = std::mutex{};
 
-  auto compute_line_segments = [&](auto const ix, auto const iy) {
-    auto const thread_id = omp_get_thread_num();
-    if (turned(ix, iy, iz)) {
-      // 0236
-      check_tet(x_faces(ix, iy)[1],      // 026
-                y_faces(ix, iy + 1)[0],  // 236
-                z_faces(0, ix, iy)[1],   // 023
-                inner_faces(ix, iy)[1],  // 036
-                *lines[thread_id], mutex);
-      // 0135
-      check_tet(x_faces(ix + 1, iy)[0],  // 135
-                y_faces(ix, iy)[0],      // 015
-                z_faces(0, ix, iy)[0],   // 013
-                inner_faces(ix, iy)[0],  // 035
-                *lines[thread_id], mutex);
-      // 3567
-      check_tet(x_faces(ix + 1, iy)[1],  // 357
-                y_faces(ix, iy + 1)[1],  // 367
-                z_faces(1, ix, iy)[1],   // 567
-                inner_faces(ix, iy)[2],  // 356
-                *lines[thread_id], mutex);
-      // 0456
-      check_tet(x_faces(ix, iy)[0],      // 046
-                y_faces(ix, iy)[1],      // 045
-                z_faces(1, ix, iy)[0],   // 456
-                inner_faces(ix, iy)[3],  // 056
-                *lines[thread_id], mutex);
-      // 0356
-      check_tet(inner_faces(ix, iy)[0],  // 035
-                inner_faces(ix, iy)[1],  // 036
-                inner_faces(ix, iy)[2],  // 356
-                inner_faces(ix, iy)[3],  // 056
-                *lines[thread_id], mutex);
-    } else {
-      // 0124
-      check_tet(x_faces(ix, iy)[0],      // 024
-                y_faces(ix, iy)[0],      // 014
-                z_faces(0, ix, iy)[0],   // 012
-                inner_faces(ix, iy)[0],  // 124
-                *lines[thread_id], mutex);
-      // 1457
-      check_tet(x_faces(ix + 1, iy)[0],  // 157
-                y_faces(ix, iy)[1],      // 145
-                z_faces(1, ix, iy)[0],   // 457
-                inner_faces(ix, iy)[2],  // 147
-                *lines[thread_id], mutex);
-      // 2467
-      check_tet(x_faces(ix, iy)[1],      // 246
-                y_faces(ix, iy + 1)[1],  // 267
-                z_faces(1, ix, iy)[1],   // 467
-                inner_faces(ix, iy)[3],  // 247
-                *lines[thread_id], mutex);
-      // 1237
-      check_tet(x_faces(ix + 1, iy)[1],  // 137
-                y_faces(ix, iy + 1)[0],  // 237
-                z_faces(0, ix, iy)[1],   // 123
-                inner_faces(ix, iy)[1],  // 127
-                *lines[thread_id], mutex);
-      // 1247
-      check_tet(inner_faces(ix, iy)[0],  // 124
-                inner_faces(ix, iy)[1],  // 127
-                inner_faces(ix, iy)[2],  // 147
-                inner_faces(ix, iy)[3],  // 247
-                *lines[thread_id], mutex);
-    }
+  auto compute_line_segments = [&](auto const ... ixy) {
+    check_cube(x_faces, y_faces, z_faces, inner_faces,
+               *lines[omp_get_thread_num()], ixy..., iz, mutex);
   };
   for (; iz < resolution[2] - 1; ++iz) {
     tatooine::for_loop(update_x_faces, policy, resolution[0],
@@ -631,13 +804,13 @@ auto calc_parallel_vectors(
   using inner_faces_arr = dynamic_multidim_array<maybe_vec3_arr4>;
   auto       iz         = std::size_t(0);
   auto const resolution = g.size();
+  auto const gv = g.vertices();
   // turned inner tet order:
   //   [0]: 046 / 157 | [1]: 026 / 137
   // non-turned inner tet order:
   //   [0]: 024 / 135 | [1]: 246 / 357
   auto x_faces        = faces_arr{resolution[0], resolution[1] - 1};
   auto update_x_faces = [&](std::size_t const ix, std::size_t const iy) {
-    auto const gv = g.vertices();
     auto const p  = std::array{
         gv(ix, iy, iz),         // 0
         gv(ix, iy, iz + 1),     // 4
@@ -646,21 +819,37 @@ auto calc_parallel_vectors(
     };
 
     decltype(auto) v0 = getv(ix, iy, iz, p[0]);
-    if (isnan(v0)) { return; }
+    if (isnan(v0)) {
+      return;
+    }
     decltype(auto) v4 = getv(ix, iy, iz + 1, p[1]);
-    if (isnan(v4)) { return; }
+    if (isnan(v4)) {
+      return;
+    }
     decltype(auto) v2 = getv(ix, iy + 1, iz, p[2]);
-    if (isnan(v2)) { return; }
+    if (isnan(v2)) {
+      return;
+    }
     decltype(auto) v6 = getv(ix, iy + 1, iz + 1, p[3]);
-    if (isnan(v6)) { return; }
+    if (isnan(v6)) {
+      return;
+    }
     decltype(auto) w0 = getw(ix, iy, iz, p[0]);
-    if (isnan(w0)) { return; }
+    if (isnan(w0)) {
+      return;
+    }
     decltype(auto) w4 = getw(ix, iy, iz + 1, p[1]);
-    if (isnan(w4)) { return; }
+    if (isnan(w4)) {
+      return;
+    }
     decltype(auto) w2 = getw(ix, iy + 1, iz, p[2]);
-    if (isnan(w2)) { return; }
+    if (isnan(w2)) {
+      return;
+    }
     decltype(auto) w6 = getw(ix, iy + 1, iz + 1, p[3]);
-    if (isnan(w6)) { return; }
+    if (isnan(w6)) {
+      return;
+    }
     if (turned(ix, iy, iz)) {
       x_faces(ix, iy)[0] =  // 046
           detail::pv_on_tri(p[0], v0, w0, p[1], v4, w4, p[3], v6, w6,
@@ -684,28 +873,43 @@ auto calc_parallel_vectors(
   auto y_faces        = faces_arr{resolution[0] - 1, resolution[1]};
   auto update_y_faces = [&g, &getv, &getw, &y_faces, &iz, &preds...](
                             std::size_t const ix, std::size_t const iy) {
-    auto const gv = g.vertices();
     auto const p0 = gv(ix, iy, iz);
     auto const p1 = gv(ix + 1, iy, iz);
     auto const p4 = gv(ix, iy, iz + 1);
     auto const p5 = gv(ix + 1, iy, iz + 1);
 
     decltype(auto) v0 = getv(ix, iy, iz, p0);
-    if (isnan(v0)) { return; }
+    if (isnan(v0)) {
+      return;
+    }
     decltype(auto) v1 = getv(ix + 1, iy, iz, p1);
-    if (isnan(v1)) { return; }
+    if (isnan(v1)) {
+      return;
+    }
     decltype(auto) v4 = getv(ix, iy, iz + 1, p4);
-    if (isnan(v4)) { return; }
+    if (isnan(v4)) {
+      return;
+    }
     decltype(auto) v5 = getv(ix + 1, iy, iz + 1, p5);
-    if (isnan(v5)) { return; }
+    if (isnan(v5)) {
+      return;
+    }
     decltype(auto) w0 = getw(ix, iy, iz, p0);
-    if (isnan(w0)) { return; }
+    if (isnan(w0)) {
+      return;
+    }
     decltype(auto) w1 = getw(ix + 1, iy, iz, p1);
-    if (isnan(w1)) { return; }
+    if (isnan(w1)) {
+      return;
+    }
     decltype(auto) w4 = getw(ix, iy, iz + 1, p4);
-    if (isnan(w4)) { return; }
+    if (isnan(w4)) {
+      return;
+    }
     decltype(auto) w5 = getw(ix + 1, iy, iz + 1, p5);
-    if (isnan(w5)) { return; }
+    if (isnan(w5)) {
+      return;
+    }
     if (turned(ix, iy, iz)) {
       y_faces(ix, iy)[0] =  // 015
           detail::pv_on_tri(p0, v0, w0, p1, v1, w1, p5, v5, w5,
@@ -731,28 +935,43 @@ auto calc_parallel_vectors(
                       std::size_t const ix, std::size_t const iy,
                       std::size_t const iz, std::size_t const write_iz) {
     assert(write_iz == 0 || write_iz == 1);
-    auto const gv = g.vertices();
     auto const p0 = gv(ix, iy, iz);
     auto const p1 = gv(ix + 1, iy, iz);
     auto const p2 = gv(ix, iy + 1, iz);
     auto const p3 = gv(ix + 1, iy + 1, iz);
 
     decltype(auto) v0 = getv(ix, iy, iz, p0);
-    if (isnan(v0)) { return; }
+    if (isnan(v0)) {
+      return;
+    }
     decltype(auto) v1 = getv(ix + 1, iy, iz, p1);
-    if (isnan(v1)) { return; }
+    if (isnan(v1)) {
+      return;
+    }
     decltype(auto) v2 = getv(ix, iy + 1, iz, p2);
-    if (isnan(v2)) { return; }
+    if (isnan(v2)) {
+      return;
+    }
     decltype(auto) v3 = getv(ix + 1, iy + 1, iz, p3);
-    if (isnan(v3)) { return; }
+    if (isnan(v3)) {
+      return;
+    }
     decltype(auto) w0 = getw(ix, iy, iz, p0);
-    if (isnan(w0)) { return; }
+    if (isnan(w0)) {
+      return;
+    }
     decltype(auto) w1 = getw(ix + 1, iy, iz, p1);
-    if (isnan(w1)) { return; }
+    if (isnan(w1)) {
+      return;
+    }
     decltype(auto) w2 = getw(ix, iy + 1, iz, p2);
-    if (isnan(w2)) { return; }
+    if (isnan(w2)) {
+      return;
+    }
     decltype(auto) w3 = getw(ix + 1, iy + 1, iz, p3);
-    if (isnan(w3)) { return; }
+    if (isnan(w3)) {
+      return;
+    }
     if (turned(ix, iy, iz)) {
       z_faces(write_iz, ix, iy)[0] =  // 013
           detail::pv_on_tri(p0, v0, w0, p1, v1, w1, p3, v3, w3,
@@ -785,7 +1004,7 @@ auto calc_parallel_vectors(
   //   [0]: 035 | [1]: 036 | [2]: 356 | [3]: 056
   // non-turned inner tet order:
   //   [0]: 124 | [1]: 127 | [2]: 147 | [3]: 247
-  auto inner_faces        = inner_faces_arr{resolution[0] - 1, resolution[1] - 1};
+  auto inner_faces = inner_faces_arr{resolution[0] - 1, resolution[1] - 1};
   auto update_inner_faces = [&](std::size_t ix, std::size_t iy) {
     auto const gv = g.vertices();
     if (turned(ix, iy, iz)) {
@@ -892,70 +1111,8 @@ auto calc_parallel_vectors(
   };
   auto lines = std::vector<Line3<Real>>{};
 
-  auto compute_line_segments = [&](auto const ix, auto const iy) {
-    if (turned(ix, iy, iz)) {
-      // 0236
-      check_tet(x_faces(ix, iy)[1],      // 026
-                y_faces(ix, iy + 1)[0],  // 236
-                z_faces(0, ix, iy)[1],   // 023
-                inner_faces(ix, iy)[1],  // 036
-                lines);
-      // 0135
-      check_tet(x_faces(ix + 1, iy)[0],  // 135
-                y_faces(ix, iy)[0],      // 015
-                z_faces(0, ix, iy)[0],   // 013
-                inner_faces(ix, iy)[0],  // 035
-                lines);
-      // 3567
-      check_tet(x_faces(ix + 1, iy)[1],  // 357
-                y_faces(ix, iy + 1)[1],  // 367
-                z_faces(1, ix, iy)[1],   // 567
-                inner_faces(ix, iy)[2],  // 356
-                lines);
-      // 0456
-      check_tet(x_faces(ix, iy)[0],      // 046
-                y_faces(ix, iy)[1],      // 045
-                z_faces(1, ix, iy)[0],   // 456
-                inner_faces(ix, iy)[3],  // 056
-                lines);
-      // 0356
-      check_tet(inner_faces(ix, iy)[0],  // 035
-                inner_faces(ix, iy)[1],  // 036
-                inner_faces(ix, iy)[2],  // 356
-                inner_faces(ix, iy)[3],  // 056
-                lines);
-    } else {
-      // 0124
-      check_tet(x_faces(ix, iy)[0],      // 024
-                y_faces(ix, iy)[0],      // 014
-                z_faces(0, ix, iy)[0],   // 012
-                inner_faces(ix, iy)[0],  // 124
-                lines);
-      // 1457
-      check_tet(x_faces(ix + 1, iy)[0],  // 157
-                y_faces(ix, iy)[1],      // 145
-                z_faces(1, ix, iy)[0],   // 457
-                inner_faces(ix, iy)[2],  // 147
-                lines);
-      // 2467
-      check_tet(x_faces(ix, iy)[1],      // 246
-                y_faces(ix, iy + 1)[1],  // 267
-                z_faces(1, ix, iy)[1],   // 467
-                inner_faces(ix, iy)[3],  // 247
-                lines);
-      // 1237
-      check_tet(x_faces(ix + 1, iy)[1],  // 137
-                y_faces(ix, iy + 1)[0],  // 237
-                z_faces(0, ix, iy)[1],   // 123
-                inner_faces(ix, iy)[1],  // 127
-                lines);
-      // 1247
-      check_tet(inner_faces(ix, iy)[0],  // 124
-                inner_faces(ix, iy)[1],  // 127
-                inner_faces(ix, iy)[2],  // 147
-                inner_faces(ix, iy)[3],  // 247
-                lines);
-    }
+  auto compute_line_segments = [&](auto const... ixy) {
+    check_cube(x_faces, y_faces, z_faces, inner_faces, lines, ixy..., iz);
   };
   for (; iz < resolution[2] - 1; ++iz) {
     tatooine::for_loop(update_x_faces, policy, resolution[0],
@@ -1187,10 +1344,10 @@ auto parallel_vectors(
   assert(vf.size(2) == wf.size(2));
 
   return detail::calc_parallel_vectors<common_type<VReal, WReal>>(
-      [&vf](auto ix, auto iy, auto iz, auto const& /*p*/) -> auto const& {
+      [&vf](auto ix, auto iy, auto iz, auto const & /*p*/) -> auto const& {
         return vf(ix, iy, iz);
       },
-      [&wf](auto ix, auto iy, auto iz, auto const& /*p*/) -> auto const& {
+      [&wf](auto ix, auto iy, auto iz, auto const & /*p*/) -> auto const& {
         return wf(ix, iy, iz);
       },
       rectilinear_grid{linspace{bb.min(0), bb.max(0), vf.size(0)},
