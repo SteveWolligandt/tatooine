@@ -769,8 +769,8 @@ struct line {
     writer.write_scalars(name, std::vector<T>(begin(deque), end(deque)));
   }
   //----------------------------------------------------------------------------
-  static auto read_vtk(std::string const& filepath) requires(num_dimensions() ==
-                                                             3) {
+  static auto read_vtk(std::string const& filepath)
+    requires(num_dimensions() == 3) {
     struct reader : vtk::legacy_file_listener {
       std::vector<std::array<Real, 3>> points;
       std::vector<int>                 lines;
@@ -796,6 +796,71 @@ struct line {
       }
     }
     return lines;
+  }
+  //----------------------------------------------------------------------------
+  static auto read_vtp(std::string const& filepath)
+    requires(num_dimensions() == 3) {
+  // TODO write binary data arrays with number of bytes at the beginning of each
+  // array
+  struct listener_t : vtk::xml::listener {
+    this_type& line;
+    listener_t(this_type& l) : line{l} {}
+    auto whole_extent = std::array<std::pair<std::size_t, std::size_t>, 3>{};
+    auto resolution   = std::array<std::size_t, 3>{};
+    auto cur_piece_origin     = std::array<size_t, 3>{};
+    auto cur_piece_resolution = std::array<size_t, 3>{};
+
+    auto on_structured_grid(
+        std::array<std::pair<std::size_t, std::size_t>, 3> const& d)
+        -> void override {
+      whole_extent = d;
+
+      resolution =
+          std::array{whole_extent[0].second - whole_extent[0].first + 1,
+                     whole_extent[1].second - whole_extent[1].first + 1,
+                     whole_extent[2].second - whole_extent[2].first + 1};
+
+      line.resize(resolution[0], resolution[1], resolution[2]);
+    }
+    auto on_structured_grid_piece(
+        std::array<std::pair<std::size_t, std::size_t>, 3> const& extents)
+        -> void override {
+      cur_piece_origin = std::array{extents[0].first - whole_extent[0].first,
+                                    extents[1].first - whole_extent[1].first,
+                                    extents[2].first - whole_extent[2].first};
+      cur_piece_resolution = std::array{extents[0].second - extents[0].first,
+                                        extents[1].second - extents[1].first,
+                                        extents[2].second - extents[2].first};
+    }
+    auto on_points(std::array<double, 3> const* v) -> void override {
+      auto extract_points = [&](auto const... is) mutable {
+        auto& x = line.vertex_at(is...);
+        for (size_t i = 0; i < num_dimensions(); ++i) {
+          x(i) = v->at(i);
+        }
+        ++v;
+      };
+      for_loop(extract_points,
+               std::pair{cur_piece_origin[0], cur_piece_resolution[0]},
+               std::pair{cur_piece_origin[1], cur_piece_resolution[1]},
+               std::pair{cur_piece_origin[2], cur_piece_resolution[2]});
+    }
+    auto on_point_data(std::string const& name, float const* v)
+        -> void override {
+      auto& prop = line.template vertex_property<float>(name);
+      for_loop(
+          [&](auto const... is) mutable {
+            auto& p = prop[vertex_handle{line.plain_index(is...)}];
+            p       = *v++;
+          },
+          std::pair{cur_piece_origin[0], cur_piece_resolution[0]},
+          std::pair{cur_piece_origin[1], cur_piece_resolution[1]},
+          std::pair{cur_piece_origin[2], cur_piece_resolution[2]});
+    }
+  } listener{*this};
+  auto reader = vtk::xml::reader{path};
+  reader.listen(listener);
+  reader.read();
   }
   //----------------------------------------------------------------------------
   template <typename Pred>

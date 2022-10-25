@@ -3,9 +3,9 @@
 //==============================================================================
 #include <tatooine/filesystem.h>
 #include <tatooine/vtk/xml/byte_order.h>
-#include <tatooine/vtk/xml/listener.h>
-#include <tatooine/vtk/xml/data_attribute.h>
 #include <tatooine/vtk/xml/data_array.h>
+#include <tatooine/vtk/xml/data_attribute.h>
+#include <tatooine/vtk/xml/listener.h>
 
 #include <array>
 #include <cstring>
@@ -17,11 +17,20 @@
 //==============================================================================
 namespace tatooine::vtk::xml {
 //==============================================================================
+struct piece {
+  std::size_t num_points;
+  std::size_t num_vertices;
+  std::size_t num_lines;
+  std::size_t num_cells;
+  std::size_t num_strips;
+  std::size_t num_polygons;
+};
+//==============================================================================
 struct reader {
   //==============================================================================
   // MEMBERS
   //==============================================================================
-  std::vector<listener*> m_listeners;
+  std::vector<listener*>    m_listeners;
   std::vector<std::uint8_t> m_appended_data;
   filesystem::path          m_path;
   //==============================================================================
@@ -43,9 +52,9 @@ struct reader {
   //------------------------------------------------------------------------------
   auto read() -> void;
   //------------------------------------------------------------------------------
-  auto read_points(rapidxml::xml_node<>* node)->void;
-  auto read_point_data(rapidxml::xml_node<>* node)->void;
-  auto read_cell_data(rapidxml::xml_node<>* node)->void;
+  auto read_points(rapidxml::xml_node<>* node) -> void;
+  auto read_point_data(rapidxml::xml_node<>* node) -> void;
+  auto read_cell_data(rapidxml::xml_node<>* node) -> void;
   //------------------------------------------------------------------------------
   template <typename T, std::size_t N, typename F>
   auto read_appended_data(std::uint8_t const* data_begin, F&& f) {
@@ -124,6 +133,8 @@ struct reader {
         break;
     }
   }
+  //------------------------------------------------------------------------------
+  auto read_structured_grid(rapidxml::xml_node<> const* node) -> void;
   //------------------------------------------------------------------------------
   auto read_structured_grid(rapidxml::xml_node<> const* node) -> void;
   //------------------------------------------------------------------------------
