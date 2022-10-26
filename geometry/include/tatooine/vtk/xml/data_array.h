@@ -1,158 +1,233 @@
-#ifndef TATOOINE_VTK_XML_DATA_ARRAY_H
-#define TATOOINE_VTK_XML_DATA_ARRAY_H
+#ifndef TATOOINE_GEOMETRY_VTK_XML_DATA_ARRAY_H
+#define TATOOINE_GEOMETRY_VTK_XML_DATA_ARRAY_H
 //==============================================================================
-#include <cstring>
-#include <cstdint>
 #include <tatooine/type_traits.h>
+#include <tatooine/vtk/xml/data_type.h>
+#include <tatooine/vtk/xml/format.h>
+
+#include <cstdint>
+#include <cstring>
 #include <limits>
 #include <rapidxml.hpp>
 #include <string>
+#include <vector>
 //==============================================================================
 namespace tatooine::vtk::xml {
+//==============================================================================
+struct reader;
 struct data_array {
   //==============================================================================
-  enum class type_t {
-    int8,
-    uint8,
-    int16,
-    uint16,
-    int32,
-    uint32,
-    int64,
-    uint64,
-    float32,
-    float64,
-    unknown
-  };
-  //------------------------------------------------------------------------------
-  static auto to_type(char const* str) {
-    if (std::strcmp(str, "Int8") == 0) {
-      return type_t::int8;
-    }
-    if (std::strcmp(str, "UInt8") == 0) {
-      return type_t::uint8;
-    }
-    if (std::strcmp(str, "Int16") == 0) {
-      return type_t::int16;
-    }
-    if (std::strcmp(str, "UInt16") == 0) {
-      return type_t::uint16;
-    }
-    if (std::strcmp(str, "Int32") == 0) {
-      return type_t::int32;
-    }
-    if (std::strcmp(str, "UInt32") == 0) {
-      return type_t::uint32;
-    }
-    if (std::strcmp(str, "Int64") == 0) {
-      return type_t::int64;
-    }
-    if (std::strcmp(str, "UInt64") == 0) {
-      return type_t::uint64;
-    }
-    if (std::strcmp(str, "Float32") == 0) {
-      return type_t::float32;
-    }
-    if (std::strcmp(str, "Float64") == 0) {
-      return type_t::float64;
-    }
-    return type_t::unknown;
-  }
-  //------------------------------------------------------------------------------
-  template <typename T>
-  static auto constexpr to_type() {
-    if constexpr (is_same<std::int8_t, T>) {
-      return type_t::int8;
-    } else if constexpr (is_same<T, std::uint8_t>) {
-      return type_t::uint8;
-    } else if constexpr (is_same<T, std::int16_t>) {
-      return type_t::int16;
-    } else if constexpr (is_same<T, std::uint16_t>) {
-      return type_t::uint16;
-    } else if constexpr (is_same<T, std::int32_t>) {
-      return type_t::int32;
-    } else if constexpr (is_same<T, std::uint32_t>) {
-      return type_t::uint32;
-    } else if constexpr (is_same<T, std::int64_t>) {
-      return type_t::int64;
-    } else if constexpr (is_same<T, std::uint64_t>) {
-      return type_t::uint64;
-    } else if constexpr (is_same<T, float>) {
-      return type_t::float32;
-    } else if constexpr (is_same<T, double>) {
-      return type_t::float64;
-    } else {
-      return type_t::unknown;
-    }
-  }
-  //------------------------------------------------------------------------------
-  static auto constexpr to_string(type_t const t) -> std::string_view {
-    switch (t) {
-      case type_t::int8:
-        return "Int8";
-      case type_t::uint8:
-        return "UInt8";
-      case type_t::int16:
-        return "Int16";
-      case type_t::uint16:
-        return "UInt16";
-      case type_t::int32:
-        return "Int32";
-      case type_t::uint32:
-        return "UInt32";
-      case type_t::int64:
-        return "Int64";
-      case type_t::uint64:
-        return "UInt64";
-      case type_t::float32:
-        return "Float32";
-      case type_t::float64:
-        return "Float64";
-      default:
-        return "UnknownType";
-    }
-  }
-  //==============================================================================
-  enum class format_t { ascii, binary, appended, unknown };
-  //------------------------------------------------------------------------------
-  static auto to_format(char const* str) {
-    if (std::strcmp(str, "ascii") == 0) {
-      return format_t::ascii;
-    }
-    if (std::strcmp(str, "binary") == 0) {
-      return format_t::binary;
-    }
-    if (std::strcmp(str, "appended") == 0) {
-      return format_t::appended;
-    }
-    return format_t::unknown;
-  }
-  //==============================================================================
  private:
-  type_t      m_type = type_t::unknown;
-  std::string m_name;
-  std::size_t m_num_components = 1;
-  format_t    m_format;
-  std::size_t m_offset = std::numeric_limits<std::size_t>::max();
+  data_type                  m_type           = data_type::unknown;
+  std::optional<std::string> m_name           = {};
+  std::size_t                m_num_components = 1;
+  xml::format                m_format         = format::unknown;
+  std::size_t                m_offset = std::numeric_limits<std::size_t>::max();
+  reader*                    m_reader = nullptr;
+  rapidxml::xml_node<>*      m_node   = nullptr;
   //==============================================================================
  public:
-  data_array(rapidxml::xml_node<>* node)
-      : m_type{to_type(node->first_attribute("type")->value())},
-        m_name{node->first_attribute("Name")->value()},
-        m_format{to_format(node->first_attribute("format")->value())} {
-    if (m_format == format_t::appended) {
-      m_offset = std::stoul(node->first_attribute("offset")->value());
-    }
-    if (auto* n = node->first_attribute("NumberOfComponents"); n != nullptr) {
-      m_num_components = std::stoul(n->value());
+  data_array() = default;
+  data_array(reader& r, rapidxml::xml_node<>* node);
+  data_array(data_array const&)                    = default;
+  auto operator=(data_array const&) -> data_array& = default;
+  //----------------------------------------------------------------------------
+  [[nodiscard]] auto type() const { return m_type; }
+  [[nodiscard]] auto name() const { return m_name; }
+  [[nodiscard]] auto num_components() const { return m_num_components; }
+  [[nodiscard]] auto format() const { return m_format; }
+  [[nodiscard]] auto offset() const { return m_offset; }
+  //----------------------------------------------------------------------------
+  auto visit_data(auto&& f) const {
+    switch (m_type) {
+      case data_type::int8:
+        if constexpr (std::invocable<decltype(f), std::vector<std::int8_t>>) {
+          f(read<std::int8_t>());
+        }
+        break;
+      case data_type::uint8:
+        if constexpr (std::invocable<decltype(f), std::vector<std::uint8_t>>) {
+          f(read<std::uint8_t>());
+        }
+        break;
+      case data_type::int16:
+        if constexpr (std::invocable<decltype(f), std::vector<std::int16_t>>) {
+          f(read<std::int16_t>());
+        }
+        break;
+      case data_type::uint16:
+        if constexpr (std::invocable<decltype(f), std::vector<std::uint16_t>>) {
+          f(read<std::uint16_t>());
+        }
+        break;
+      case data_type::int32:
+        if constexpr (std::invocable<decltype(f), std::vector<std::int32_t>>) {
+          f(read<std::int32_t>());
+        }
+        break;
+      case data_type::uint32:
+        if constexpr (std::invocable<decltype(f), std::vector<std::uint32_t>>) {
+          f(read<std::uint32_t>());
+        }
+        break;
+      case data_type::int64:
+        if constexpr (std::invocable<decltype(f), std::vector<std::int64_t>>) {
+          f(read<std::int64_t>());
+        }
+        break;
+      case data_type::uint64:
+        if constexpr (std::invocable<decltype(f), std::vector<std::uint64_t>>) {
+          f(read<std::uint64_t>());
+        }
+        break;
+      case data_type::float32:
+        if constexpr (std::invocable<decltype(f), std::vector<float>>) {
+          f(read<float>());
+        }
+        break;
+      case data_type::float64:
+        if constexpr (std::invocable<decltype(f), std::vector<double>>) {
+          f(read<double>());
+        }
+        break;
+      case data_type::unknown:
+        throw std::runtime_error {
+          "[vtk::xml::data_array] could not visit data because data_type is "
+          "unknown."
+        };
+      default:
+        throw std::runtime_error {
+          "[vtk::xml::data_array] could not visit data because no function "
+          "matches."
+        };
     }
   }
   //----------------------------------------------------------------------------
-  auto type() const { return m_type; }
-  auto name() const { return m_name; }
-  auto num_components() const { return m_num_components; }
-  auto format() const { return m_format; }
-  auto offset() const {return m_offset;}
+  template <typename T>
+  auto read() const -> std::vector<T> {
+    switch (format()) {
+      case xml::format::ascii:
+        return read_data_ascii<T>();
+      case xml::format::binary:
+        return read_data_binary<T>();
+      case xml::format::appended:
+        return read_data_appended<T>();
+      case xml::format::unknown:
+      default:
+        return {};
+    }
+  }
+  //----------------------------------------------------------------------------
+ private:
+  template <typename T>
+  auto read_data_ascii() const {
+    throw std::runtime_error{"[vtk::xml::data_array] cannot read ascii"};
+    auto data = std::vector<T>{};
+    return data;
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto read_data_binary() const {
+    throw std::runtime_error{"[vtk::xml::data_array] cannot read binary"};
+    auto data = std::vector<T>{};
+    return data;
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto read_data_appended() const {
+    auto const num_bytes = read_appended_data_size();
+    auto       data      = std::vector<T>(num_bytes / sizeof(T));
+    read_appended_data(reinterpret_cast<char*>(data.data()), num_bytes);
+    return data;
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto read_appended_data() const {
+    auto const num_bytes = read_appended_data_size();
+    auto       data      = std::vector<T>(num_bytes / sizeof(T));
+    read_appended_data(reinterpret_cast<char*>(data.data()), num_bytes);
+    return data;
+  }
+  auto read_appended_data(char* data, std::size_t num_bytes) const -> void;
+  auto read_appended_data_size() const -> std::size_t;
+  ////------------------------------------------------------------------------------
+  // template <typename T, std::size_t N, typename F>
+  // auto read_appended_data(std::uint8_t const* data_begin, F&& f) {
+  //   if constexpr (N > 1) {
+  //     f(reinterpret_cast<std::array<T, N> const*>(data_begin));
+  //   } else {
+  //     f(reinterpret_cast<T const*>(data_begin));
+  //   }
+  // }
+  ////------------------------------------------------------------------------------
+  // template <typename T, typename F>
+  // auto read_appended_data(std::uint8_t const* data_begin,
+  //                         std::size_t const num_components, F&& f) {
+  //   switch (num_components) {
+  //     case 1:
+  //       read_appended_data<T, 1>(data_begin, std::forward<F>(f));
+  //       break;
+  //     case 2:
+  //       read_appended_data<T, 2>(data_begin, std::forward<F>(f));
+  //       break;
+  //     case 3:
+  //       read_appended_data<T, 3>(data_begin, std::forward<F>(f));
+  //       break;
+  //     case 4:
+  //       read_appended_data<T, 4>(data_begin, std::forward<F>(f));
+  //       break;
+  //   }
+  // }
+  ////------------------------------------------------------------------------------
+  // template <typename F>
+  // auto read_appended_data(std::uint8_t const* data_begin,
+  //                         data_array const& meta, F&& f) {
+  //   switch (meta.type()) {
+  //     case data_array::type_t::int8:
+  //       read_appended_data<std::int8_t>(data_begin, meta.num_components(),
+  //                                       std::forward<F>(f));
+  //       break;
+  //     case data_array::type_t::uint8:
+  //       read_appended_data<std::uint8_t>(data_begin, meta.num_components(),
+  //                                        std::forward<F>(f));
+  //       break;
+  //     case data_array::type_t::int16:
+  //       read_appended_data<std::int16_t>(data_begin, meta.num_components(),
+  //                                        std::forward<F>(f));
+  //       break;
+  //     case data_array::type_t::uint16:
+  //       read_appended_data<std::uint16_t>(data_begin, meta.num_components(),
+  //                                         std::forward<F>(f));
+  //       break;
+  //     case data_array::type_t::int32:
+  //       read_appended_data<std::int32_t>(data_begin, meta.num_components(),
+  //                                        std::forward<F>(f));
+  //       break;
+  //     case data_array::type_t::uint32:
+  //       read_appended_data<std::uint32_t>(data_begin, meta.num_components(),
+  //                                         std::forward<F>(f));
+  //       break;
+  //     case data_array::type_t::int64:
+  //       read_appended_data<std::int64_t>(data_begin, meta.num_components(),
+  //                                        std::forward<F>(f));
+  //       break;
+  //     case data_array::type_t::uint64:
+  //       read_appended_data<std::uint64_t>(data_begin, meta.num_components(),
+  //                                         std::forward<F>(f));
+  //       break;
+  //     case data_array::type_t::float32:
+  //       read_appended_data<float>(data_begin, meta.num_components(),
+  //                                 std::forward<F>(f));
+  //       break;
+  //     case data_array::type_t::float64:
+  //       read_appended_data<double>(data_begin, meta.num_components(),
+  //                                  std::forward<F>(f));
+  //       break;
+  //     case data_array::type_t::unknown:
+  //     default:
+  //       break;
+  //   }
+  // }
 };
 //==============================================================================
 }  // namespace tatooine::vtk::xml

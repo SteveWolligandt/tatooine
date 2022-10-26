@@ -62,10 +62,10 @@ struct base_tensor : crtp<Tensor> {
   constexpr base_tensor() = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <static_tensor Other>
-  requires(same_dimensions<this_type, Other>()) &&
-      (convertible_to<tensor_value_type<Other>,
-                      value_type>)explicit constexpr base_tensor(Other&&
-                                                                     other) {
+  requires (same_dimensions<this_type, Other>()) &&
+           (convertible_to<tensor_value_type<Other>,
+                      value_type>)
+  explicit constexpr base_tensor(Other&& other) {
     assign(std::forward<Other>(other));
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -78,9 +78,10 @@ struct base_tensor : crtp<Tensor> {
   }
   //============================================================================
   template <static_tensor Other>
-  requires(same_dimensions<this_type, Other>()) &&
-      (convertible_to<tensor_value_type<Other>,
-                      value_type>)auto constexpr assign(Other&& other) -> void {
+  requires (same_dimensions<this_type, Other>()) &&
+           (convertible_to<tensor_value_type<Other>,
+                      value_type>)
+  auto constexpr assign(Other&& other) -> void {
     for_indices([this, &other](auto const... is) {
       this->at(is...) = static_cast<value_type>(other(is...));
     });

@@ -1,15 +1,13 @@
-#include <tatooine/vtk/xml/byte_order.h>
+#include <tatooine/vtk/xml/piece_set.h>
+#include <tatooine/vtk/xml/reader.h>
 //==============================================================================
 namespace tatooine::vtk::xml {
 //==============================================================================
-auto parse_byte_order(char const* str) -> byte_order {
-  if (std::strcmp(str, "LittleEndian") == 0) {
-    return byte_order::little_endian;
+piece_set::piece_set(reader& r, rapidxml::xml_node<>* node) {
+  for (auto* piece_node = node->first_node(); piece_node != nullptr;
+       piece_node       = piece_node->next_sibling()) {
+    pieces.emplace_back(r, piece_node);
   }
-  if (std::strcmp(str, "BigEndian") == 0) {
-    return byte_order::big_endian;
-  }
-  return byte_order::unknown;
 }
 //==============================================================================
 }  // namespace tatooine::vtk::xml

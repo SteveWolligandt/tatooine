@@ -1,8 +1,17 @@
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
 set(CURRENT_EXTERNAL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external)
 set(SRC_FILES
-    src/vtk_legacy.cpp src/vtk/xml/reader.cpp src/vtk/xml/data_attribute.cpp
-    src/vtk/xml/byte_order.cpp src/parse.cpp)
+    src/vtk_legacy.cpp
+    src/vtk/xml/reader.cpp
+    src/vtk/xml/data_array.cpp
+    src/vtk/xml/piece.cpp
+    src/vtk/xml/format.cpp
+    src/vtk/xml/piece_set.cpp
+    src/vtk/xml/data_attribute.cpp
+    src/vtk/xml/vtk_type.cpp
+    src/vtk/xml/data_type.cpp
+    src/vtk/xml/byte_order.cpp
+    src/parse.cpp)
 add_library(geometry STATIC ${SRC_FILES})
 set_property(TARGET geometry PROPERTY CXX_STANDARD 20)
 target_include_directories(geometry PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

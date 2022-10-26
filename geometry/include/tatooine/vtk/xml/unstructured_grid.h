@@ -1,12 +1,17 @@
-#ifndef TATOOINE_VTK_XML_BYTE_ORDER_H
-#define TATOOINE_VTK_XML_BYTE_ORDER_H
+#ifndef TATOOINE_GEOMETRY_VTK_XML_UNSTRUCTURED_GRID_H
+#define TATOOINE_GEOMETRY_VTK_XML_UNSTRUCTURED_GRID_H
 //==============================================================================
-#include <cstring>
+#include <tatooine/vtk/xml/piece_set.h>
+
+#include <rapidxml.hpp>
 //==============================================================================
-namespace tatooine::vtk::xml{
+namespace tatooine::vtk::xml {
 //==============================================================================
-enum class byte_order { little_endian, big_endian, unknown };
-auto parse_byte_order(char const* str) -> byte_order;
+struct reader;
+struct unstructured_grid : piece_set {
+  explicit unstructured_grid(reader& r, rapidxml::xml_node<>* node)
+      : piece_set{r, node} {}
+};
 //==============================================================================
 }  // namespace tatooine::vtk::xml
 //==============================================================================

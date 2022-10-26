@@ -39,8 +39,8 @@ requires(Grid::num_dimensions() == 2 ||
          << " version=\"1.0\""
          << " byte_order=\"LittleEndian\""
          << " header_type=\""
-         << tatooine::vtk::xml::data_array::to_string(
-                tatooine::vtk::xml::data_array::to_type<HeaderType>())
+         << tatooine::vtk::xml::to_string(
+                tatooine::vtk::xml::to_type<HeaderType>())
          << "\">\n";
     write_rectilinear_grid(file, offset);
     write_appended_data(file);
@@ -116,8 +116,8 @@ requires(Grid::num_dimensions() == 2 ||
                                   std::size_t& offset) const {
     file << "        <DataArray"
          << " type=\""
-         << tatooine::vtk::xml::data_array::to_string(
-                tatooine::vtk::xml::data_array::to_type<T>())
+         << tatooine::vtk::xml::to_string(
+                tatooine::vtk::xml::to_type<T>())
          << "\""
          << " Name=\"" << name << "\""
          << " format=\"appended\""
@@ -132,8 +132,8 @@ requires(Grid::num_dimensions() == 2 ||
                                   std::size_t& offset) const {
     file << "        <DataArray"
          << " type=\""
-         << tatooine::vtk::xml::data_array::to_string(
-                tatooine::vtk::xml::data_array::to_type<T>())
+         << tatooine::vtk::xml::to_string(
+                tatooine::vtk::xml::to_type<T>())
          << "\""
          << " Name=\"" << name << "\""
          << " format=\"appended\""
@@ -148,8 +148,8 @@ requires(Grid::num_dimensions() == 2 ||
                                   std::size_t& offset) const {
     file << "        <DataArray"
          << " type=\""
-         << tatooine::vtk::xml::data_array::to_string(
-                tatooine::vtk::xml::data_array::to_type<T>())
+         << tatooine::vtk::xml::to_string(
+                tatooine::vtk::xml::to_type<T>())
          << "\""
          << " Name=\"" << name << "\""
          << " format=\"appended\""
@@ -219,14 +219,12 @@ requires(Grid::num_dimensions() == 2 ||
   template <typename... Ts>
   auto write_vertex_property_appended_data(vertex_property_type const& prop,
                                            std::ofstream& file) const {
-    (
-        [&] {
-          if (prop.type() == typeid(Ts)) {
-            write_vertex_property_appended_data(
-                prop.template cast_to_typed<Ts>(), file);
-          }
-        }(),
-        ...);
+    invoke([&] {
+      if (prop.type() == typeid(Ts)) {
+        write_vertex_property_appended_data(prop.template cast_to_typed<Ts>(),
+                                            file);
+      }
+    }...);
   }
   //----------------------------------------------------------------------------
   template <typename T, bool H>
@@ -263,42 +261,37 @@ requires(Grid::num_dimensions() == 2 ||
                                         vertex_property_type const& prop,
                                         std::ofstream&              file,
                                         std::size_t& offset) const {
-    (
-        [&] {
-          if (prop.type() == typeid(Ts)) {
-            if constexpr (tensor_rank<Ts> <= 1) {
-              file << "<DataArray"
-                   << " Name=\"" << name << "\""
-                   << " format=\"appended\""
-                   << " offset=\"" << offset << "\""
-                   << " type=\""
-                   << tatooine::vtk::xml::data_array::to_string(
-                          tatooine::vtk::xml::data_array::to_type<
-                              tensor_value_type<Ts>>())
-                   << "\" NumberOfComponents=\""
-                   << tensor_num_components<Ts> << "\"/>\n";
-              offset +=
-                  m_grid.vertices().size() * sizeof(Ts) + sizeof(HeaderType);
-            } else if constexpr (tensor_rank<Ts> == 2) {
-              for (std::size_t i = 0; i < Ts::dimension(1); ++i) {
-                file << "<DataArray"
-                     << " Name=\"" << name << "_col_" << i << "\""
-                     << " format=\"appended\""
-                     << " offset=\"" << offset << "\""
-                     << " type=\""
-                     << vtk::xml::data_array::to_string(
-                            vtk::xml::data_array::to_type<
-                                tensor_value_type<Ts>>())
-                     << "\" NumberOfComponents=\"" << Ts::dimension(0)
-                     << "\"/>\n";
-                offset += m_grid.vertices().size() * sizeof(tensor_value_type<Ts>) *
-                              tensor_dimension<Ts, 0> +
-                          sizeof(HeaderType);
-              }
-            }
+    invoke([&] {
+      if (prop.type() == typeid(Ts)) {
+        if constexpr (tensor_rank<Ts> <= 1) {
+          file << "<DataArray"
+               << " Name=\"" << name << "\""
+               << " format=\"appended\""
+               << " offset=\"" << offset << "\""
+               << " type=\""
+               << tatooine::vtk::xml::to_string(
+                      tatooine::vtk::xml::to_type<
+                          tensor_value_type<Ts>>())
+               << "\" NumberOfComponents=\""
+               << tensor_num_components<Ts> << "\"/>\n";
+          offset += m_grid.vertices().size() * sizeof(Ts) + sizeof(HeaderType);
+        } else if constexpr (tensor_rank<Ts> == 2) {
+          for (std::size_t i = 0; i < Ts::dimension(1); ++i) {
+            file << "<DataArray"
+                 << " Name=\"" << name << "_col_" << i << "\""
+                 << " format=\"appended\""
+                 << " offset=\"" << offset << "\""
+                 << " type=\""
+                 << vtk::xml::to_string(
+                        vtk::xml::to_type<tensor_value_type<Ts>>())
+                 << "\" NumberOfComponents=\"" << Ts::dimension(0) << "\"/>\n";
+            offset += m_grid.vertices().size() * sizeof(tensor_value_type<Ts>) *
+                          tensor_dimension<Ts, 0> +
+                      sizeof(HeaderType);
           }
-        }(),
-        ...);
+        }
+      }
+    }...);
   }
 };
 //==============================================================================

@@ -3,6 +3,8 @@
 //==============================================================================
 #include <tatooine/demangling.h>
 #include <tatooine/detail/line/vertex_container.h>
+#include <tatooine/detail/line/vtk_writer.h>
+#include <tatooine/detail/line/vtp_writer.h>
 #include <tatooine/finite_differences_coefficients.h>
 #include <tatooine/functional.h>
 #include <tatooine/handle.h>
@@ -11,10 +13,7 @@
 #include <tatooine/property.h>
 #include <tatooine/tags.h>
 #include <tatooine/tensor.h>
-#include <tatooine/vtk/xml.h>
-#include <tatooine/vtk_legacy.h>
 
-#include <boost/range/algorithm_ext/iota.hpp>
 #include <cassert>
 #include <deque>
 #include <list>
@@ -73,7 +72,6 @@ struct line {
   static constexpr auto num_dimensions() -> std::size_t {
     return NumDimensions;
   }
-
   //============================================================================
   // members
   //============================================================================
@@ -106,7 +104,7 @@ struct line {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   line(line&& other) noexcept = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  line& operator=(line const& other) {
+  auto operator=(line const& other) -> line& {
     m_vertices  = other.m_vertices;
     m_is_closed = other.m_is_closed;
     m_vertex_properties.clear();
@@ -123,7 +121,7 @@ struct line {
     return *this;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  line& operator=(line&& other) noexcept = default;
+  auto operator=(line&& other) noexcept -> line& = default;
   //----------------------------------------------------------------------------
   line(pos_container_type const& data, bool is_closed = false)
       : m_vertices{data}, m_is_closed{is_closed} {}
@@ -246,6 +244,10 @@ struct line {
   auto pop_front() { m_vertices.pop_front(); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto vertices() const { return vertex_container_type{*this}; }
+  auto num_vertices() const { return m_vertices.size(); }
+  auto num_line_segments() const {
+    return (num_vertices() - (is_closed() ? 0 : 1));
+  }
   //----------------------------------------------------------------------------
   template <template <typename> typename InterpolationKernel>
   auto sampler() const {
@@ -289,7 +291,7 @@ struct line {
   }
   //============================================================================
   auto arc_length() const {
-    Real len = 0;
+    auto len = Real{};
     for (std::size_t i = 0; i < vertices().size() - 1; ++i) {
       len += euclidean_distance(vertex_at(i), vertex_at(i + 1));
     }
@@ -586,191 +588,20 @@ struct line {
   //----------------------------------------------------------------------------
   auto write_vtk(filesystem::path const& path,
                  std::string const& title = "tatooine line") const -> void {
-    auto writer = vtk::legacy_file_writer{path, vtk::dataset_type::polydata};
-    if (writer.is_open()) {
-      writer.set_title(title);
-      writer.write_header();
-
-      // write points
-      auto ps = std::vector<std::array<Real, 3>>{};
-      ps.reserve(vertices().size());
-      for (auto const& v : vertices()) {
-        auto const& p = at(v);
-        if constexpr (NumDimensions == 3) {
-          ps.push_back({p(0), p(1), p(2)});
-        } else {
-          ps.push_back({p(0), p(1), 0});
-        }
-      }
-      writer.write_points(ps);
-
-      // write lines
-      auto line_seq = std::vector<std::vector<std::size_t>>(
-          1, std::vector<std::size_t>(vertices().size()));
-      boost::iota(line_seq.front(), 0);
-      if (this->is_closed()) {
-        line_seq.front().push_back(0);
-      }
-      writer.write_lines(line_seq);
-
-      writer.write_point_data(vertices().size());
-
-      // write properties
-      for (auto& [name, prop] : m_vertex_properties) {
-        auto const& type = prop->type();
-        if (type == typeid(float)) {
-          write_prop_to_vtk<float>(writer, name, prop);
-        } else if (type == typeid(vec<float, 2>)) {
-          write_prop_to_vtk<vec<float, 2>>(writer, name, prop);
-        } else if (type == typeid(vec<float, 3>)) {
-          write_prop_to_vtk<vec<float, 3>>(writer, name, prop);
-        } else if (type == typeid(vec<float, 4>)) {
-          write_prop_to_vtk<vec<float, 4>>(writer, name, prop);
-
-        } else if (type == typeid(double)) {
-          write_prop_to_vtk<double>(writer, name, prop);
-        } else if (type == typeid(vec<double, 2>)) {
-          write_prop_to_vtk<vec<double, 2>>(writer, name, prop);
-        } else if (type == typeid(vec<double, 3>)) {
-          write_prop_to_vtk<vec<double, 3>>(writer, name, prop);
-        } else if (type == typeid(vec<double, 4>)) {
-          write_prop_to_vtk<vec<double, 4>>(writer, name, prop);
-        }
-      }
-      writer.close();
-    }
+    detail::line::vtk_writer{*this}.write(path, title);
   }
   //----------------------------------------------------------------------------
+  template <unsigned_integral HeaderType      = std::uint64_t,
+            integral          ConnectivityInt = std::int64_t,
+            integral          OffsetInt       = std::int64_t>
   auto write_vtp(filesystem::path const& path) const -> void {
-    auto file = std::ofstream{path, std::ios::binary};
-    if (!file.is_open()) {
-      throw std::runtime_error{"Could not write " + path.string()};
-    }
-    auto offset              = std::size_t{};
-    using header_type        = std::uint32_t;
-    using connectivity_int_t = std::int32_t;
-    using offset_int_t       = connectivity_int_t;
-    file << "<VTKFile"
-         << " type=\"PolyData\""
-         << " version=\"1.0\" "
-            "byte_order=\"LittleEndian\""
-         << " header_type=\""
-         << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<header_type>())
-         << "\">\n";
-    file << "  <PolyData>\n";
-    file << "    <Piece"
-         << " NumberOfPoints=\"" << vertices().size() << "\""
-         << " NumberOfPolys=\"0\""
-         << " NumberOfVerts=\"0\""
-         << " NumberOfLines=\"" << (vertices().size() - (is_closed() ? 0 : 1))
-         << "\""
-         << " NumberOfStrips=\"0\""
-         << ">\n";
-
-    // Points
-    file << "      <Points>\n";
-    file << "        <DataArray"
-         << " format=\"appended\""
-         << " offset=\"" << offset << "\""
-         << " type=\""
-         << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<real_type>())
-         << "\" NumberOfComponents=\"3\"/>\n";
-    auto const num_bytes_points =
-        header_type(sizeof(real_type) * 3 * vertices().size());
-    offset += num_bytes_points + sizeof(header_type);
-    file << "      </Points>\n";
-
-    // Lines
-    file << "      <Lines>\n";
-    // Lines - connectivity
-    file << "        <DataArray format=\"appended\" offset=\"" << offset
-         << "\" type=\""
-         << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<connectivity_int_t>())
-         << "\" Name=\"connectivity\"/>\n";
-    auto const num_bytes_connectivity =
-        (vertices().size() - (is_closed() ? 0 : 1)) * 2 *
-        sizeof(connectivity_int_t);
-    offset += num_bytes_connectivity + sizeof(header_type);
-    // Lines - offsets
-    file << "        <DataArray format=\"appended\" offset=\"" << offset
-         << "\" type=\""
-         << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<offset_int_t>())
-         << "\" Name=\"offsets\"/>\n";
-    auto const num_bytes_offsets =
-        sizeof(offset_int_t) * (vertices().size() - (is_closed() ? 0 : 1));
-    offset += num_bytes_offsets + sizeof(header_type);
-    file << "      </Lines>\n";
-    file << "    </Piece>\n";
-    file << "  </PolyData>\n";
-    file << "  <AppendedData encoding=\"raw\">\n    _";
-    // Writing vertex data to appended data section
-    auto arr_size = header_type{};
-    arr_size      = header_type(sizeof(real_type) * 3 * vertices().size());
-    file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
-    auto zero = real_type(0);
-    for (auto const v : vertices()) {
-      if constexpr (num_dimensions() == 2) {
-        file.write(reinterpret_cast<char const*>(at(v).data()),
-                   sizeof(real_type) * 2);
-        file.write(reinterpret_cast<char const*>(&zero), sizeof(real_type));
-      } else if constexpr (num_dimensions() == 3) {
-        file.write(reinterpret_cast<char const*>(at(v).data()),
-                   sizeof(real_type) * 3);
-      }
-    }
-
-    // Writing lines connectivity data to appended data section
-    {
-      auto connectivity_data = std::vector<connectivity_int_t>{};
-      connectivity_data.reserve((vertices().size() - (is_closed() ? 0 : 1)) *
-                                2);
-      for (std::size_t i = 0; i < vertices().size() - 1; ++i) {
-        connectivity_data.push_back(static_cast<connectivity_int_t>(i));
-        connectivity_data.push_back(static_cast<connectivity_int_t>(i + 1));
-      }
-      if (is_closed()) {
-        connectivity_data.push_back(vertices().size() - 1);
-        connectivity_data.push_back(0);
-      }
-      arr_size = static_cast<header_type>(connectivity_data.size() *
-                                          sizeof(connectivity_int_t));
-      file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
-      file.write(reinterpret_cast<char const*>(connectivity_data.data()),
-                 arr_size);
-    }
-
-    // Writing lines offsets to appended data section
-    {
-      auto offsets = std::vector<offset_int_t>(
-          vertices().size() - (is_closed() ? 0 : 1), 2);
-      for (std::size_t i = 1; i < size(offsets); ++i) {
-        offsets[i] += offsets[i - 1];
-      }
-      arr_size =
-          sizeof(offset_int_t) * (vertices().size() - (is_closed() ? 0 : 1));
-      file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
-      file.write(reinterpret_cast<char const*>(offsets.data()), arr_size);
-    }
-    file << "\n  </AppendedData>\n";
-    file << "</VTKFile>";
+    detail::line::vtp_writer<this_type, HeaderType, ConnectivityInt, OffsetInt>{
+        *this}
+        .write(path);
   }
   //----------------------------------------------------------------------------
-  template <typename T>
-  static auto write_prop_to_vtk(
-      vtk::legacy_file_writer& writer, std::string const& name,
-      std::unique_ptr<vertex_property_type> const& prop) -> void {
-    auto const& deque = dynamic_cast<typed_vertex_property_type<T>*>(prop.get())
-                            ->internal_container();
-
-    writer.write_scalars(name, std::vector<T>(begin(deque), end(deque)));
-  }
-  //----------------------------------------------------------------------------
-  static auto read_vtk(std::string const& filepath)
-    requires(num_dimensions() == 3) {
+  static auto read_vtk(std::string const& filepath) requires(num_dimensions() ==
+                                                             3) {
     struct reader : vtk::legacy_file_listener {
       std::vector<std::array<Real, 3>> points;
       std::vector<int>                 lines;
@@ -799,68 +630,95 @@ struct line {
   }
   //----------------------------------------------------------------------------
   static auto read_vtp(std::string const& filepath)
-    requires(num_dimensions() == 3) {
-  // TODO write binary data arrays with number of bytes at the beginning of each
-  // array
-  struct listener_t : vtk::xml::listener {
-    this_type& line;
-    listener_t(this_type& l) : line{l} {}
-    auto whole_extent = std::array<std::pair<std::size_t, std::size_t>, 3>{};
-    auto resolution   = std::array<std::size_t, 3>{};
-    auto cur_piece_origin     = std::array<size_t, 3>{};
-    auto cur_piece_resolution = std::array<size_t, 3>{};
+  requires(num_dimensions() == 3) {
+    auto reader = vtk::xml::reader{filepath};
+    if (reader.type() != vtk::xml::vtk_type::poly_data) {
+      throw std::runtime_error{"[line::read_vtp] can only read from poly_data"};
+    }
+    return read(reader.poly_data()->pieces.front());
+  }
+  //----------------------------------------------------------------------------
+  static auto read(vtk::xml::piece const& p)
+  requires(num_dimensions() == 3) {
+    auto l = this_type{};
+    auto positions = std::vector<real_type>{};
+    p.points.visit_data([&](auto&& point_data) {
+      if constexpr (same_as<std::vector<real_type>,
+                            std::decay_t<decltype(point_data)>>) {
+        positions = std::forward<decltype(point_data)>(point_data);
+      } else {
+        positions.reserve(point_data.size());
+        std::ranges::copy(point_data, std::back_inserter(positions));
+      }
+    });
 
-    auto on_structured_grid(
-        std::array<std::pair<std::size_t, std::size_t>, 3> const& d)
-        -> void override {
-      whole_extent = d;
+    for (std::size_t i = 0; i < positions.size(); i += 3) {
+      l.push_back(positions[i], positions[i + 1], positions[i + 2]);
+    }
 
-      resolution =
-          std::array{whole_extent[0].second - whole_extent[0].first + 1,
-                     whole_extent[1].second - whole_extent[1].first + 1,
-                     whole_extent[2].second - whole_extent[2].first + 1};
-
-      line.resize(resolution[0], resolution[1], resolution[2]);
+    for (auto const [name, data_array] : p.point_data) {
+      if (data_array.num_components() == 1) {
+        vtk::xml::visit(data_array.type(), [&](auto t) {
+          auto& prop = l.template insert_vertex_property<decltype(t)>(name);
+          data_array.visit_data([&prop, i = std::size_t{}](auto&& d) mutable {
+            for (auto const x : d) {
+              prop[vertex_handle{i}] = x;
+              ++i;
+            }
+          });
+        });
+      }
+      if (data_array.num_components() == 2) {
+        vtk::xml::visit(data_array.type(), [&](auto t) {
+          auto& prop =
+              l.template insert_vertex_property<vec<decltype(t), 2>>(name);
+          data_array.visit_data([&prop, i = std::size_t{}](auto&& d) mutable {
+            for (std::size_t i = 0; i < d.size(); i += 2) {
+              prop[vertex_handle{i / 2}] = vec{d[i], d[i + 1]};
+            }
+          });
+        });
+      }
+      if (data_array.num_components() == 3) {
+        vtk::xml::visit(data_array.type(), [&](auto t) {
+          auto& prop =
+              l.template insert_vertex_property<vec<decltype(t), 3>>(name);
+          data_array.visit_data([&prop, i = std::size_t{}](auto&& d) mutable {
+            for (std::size_t i = 0; i < d.size(); i += 3) {
+              prop[vertex_handle{i / 3}] = vec{d[i], d[i + 1], d[i+2]};
+            }
+          });
+        });
+      }
+      if (data_array.num_components() == 4) {
+        vtk::xml::visit(data_array.type(), [&](auto t) {
+          auto& prop =
+              l.template insert_vertex_property<vec<decltype(t), 4>>(name);
+          data_array.visit_data([&prop, i = std::size_t{}](auto&& d) mutable {
+            for (std::size_t i = 0; i < d.size(); i += 4) {
+              prop[vertex_handle{i / 4}] = vec{d[i], d[i + 1], d[i + 2], d[i + 3]};
+            }
+          });
+        });
+      }
     }
-    auto on_structured_grid_piece(
-        std::array<std::pair<std::size_t, std::size_t>, 3> const& extents)
-        -> void override {
-      cur_piece_origin = std::array{extents[0].first - whole_extent[0].first,
-                                    extents[1].first - whole_extent[1].first,
-                                    extents[2].first - whole_extent[2].first};
-      cur_piece_resolution = std::array{extents[0].second - extents[0].first,
-                                        extents[1].second - extents[1].first,
-                                        extents[2].second - extents[2].first};
-    }
-    auto on_points(std::array<double, 3> const* v) -> void override {
-      auto extract_points = [&](auto const... is) mutable {
-        auto& x = line.vertex_at(is...);
-        for (size_t i = 0; i < num_dimensions(); ++i) {
-          x(i) = v->at(i);
-        }
-        ++v;
-      };
-      for_loop(extract_points,
-               std::pair{cur_piece_origin[0], cur_piece_resolution[0]},
-               std::pair{cur_piece_origin[1], cur_piece_resolution[1]},
-               std::pair{cur_piece_origin[2], cur_piece_resolution[2]});
-    }
-    auto on_point_data(std::string const& name, float const* v)
-        -> void override {
-      auto& prop = line.template vertex_property<float>(name);
-      for_loop(
-          [&](auto const... is) mutable {
-            auto& p = prop[vertex_handle{line.plain_index(is...)}];
-            p       = *v++;
-          },
-          std::pair{cur_piece_origin[0], cur_piece_resolution[0]},
-          std::pair{cur_piece_origin[1], cur_piece_resolution[1]},
-          std::pair{cur_piece_origin[2], cur_piece_resolution[2]});
-    }
-  } listener{*this};
-  auto reader = vtk::xml::reader{path};
-  reader.listen(listener);
-  reader.read();
+    // p.lines.at("connectivity").visit_data([](auto&& connectivity) {
+    //   auto i     = std::size_t{};
+    //   auto left  = connectivity[i++];
+    //   auto right = connectivity[i++];
+    //   l.push_back(positions[left * 3], positions[left * 3 + 1],
+    //               positions[left * 3 + 2]);
+    //   l.push_back(positions[right * 3], positions[right * 3 + 1],
+    //               positions[right * 3 + 2]);
+    //   auto num_processed = std::size_t(1);
+    //
+    //   while (num_processed *2 != connectivity.size()) {
+    //     for (std::size_t i = 1; i < connectivity.size(); ++i) {
+    //
+    //     }
+    //   }
+    // });
+    return l;
   }
   //----------------------------------------------------------------------------
   template <typename Pred>
@@ -994,6 +852,19 @@ auto line<Real, NumDimensions>::filter(Pred&& pred) const
     filtered_lines.front().set_closed(closed);
   }
   return filtered_lines;
+}
+//==============================================================================
+template <floating_point Real = real_number>
+auto read_lines(filesystem::path const& filepath) {
+  auto ls     = std::vector<Line3<Real>>{};
+  auto reader = vtk::xml::reader{filepath};
+  if (reader.type() != vtk::xml::vtk_type::poly_data) {
+    throw std::runtime_error{"[read_lines] can only read from poly_data"};
+  }
+  for (auto& piece : reader.poly_data()->pieces) {
+    ls.push_back(Line3<Real>::read(piece));
+  }
+  return ls;
 }
 //==============================================================================
 }  // namespace tatooine
