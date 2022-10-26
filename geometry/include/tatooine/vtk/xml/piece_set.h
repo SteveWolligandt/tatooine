@@ -1,16 +1,19 @@
-#include <tatooine/vtk/xml/byte_order.h>
+#ifndef TATOOINE_GEOMETRY_VTK_XML_PIECE_SET_H
+#define TATOOINE_GEOMETRY_VTK_XML_PIECE_SET_H
+//==============================================================================
+#include <tatooine/vtk/xml/piece.h>
+
+#include <rapidxml.hpp>
+#include <vector>
 //==============================================================================
 namespace tatooine::vtk::xml {
 //==============================================================================
-auto parse_byte_order(char const* str) -> byte_order {
-  if (std::strcmp(str, "LittleEndian") == 0) {
-    return byte_order::little_endian;
-  }
-  if (std::strcmp(str, "BigEndian") == 0) {
-    return byte_order::big_endian;
-  }
-  return byte_order::unknown;
-}
+struct reader;
+struct piece_set {
+  std::vector<piece> pieces;
+  explicit piece_set(reader& r, rapidxml::xml_node<>* node);
+};
 //==============================================================================
 }  // namespace tatooine::vtk::xml
 //==============================================================================
+#endif
