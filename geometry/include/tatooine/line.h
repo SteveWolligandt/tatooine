@@ -642,7 +642,8 @@ struct line {
   /// to the template parameter N.
   template <std::size_t N>
   auto read_vtp_prop(std::string const          &name,
-                     vtk::xml::data_array const &data_array) {
+                     vtk::xml::data_array const &data_array)
+  requires (num_dimensions() == 2) || (num_dimensions() == 3) {
     if (data_array.num_components() != N) {
       return;
     }
@@ -669,31 +670,34 @@ struct line {
   //----------------------------------------------------------------------------
   /// Calls read_vtp_prop<N> with N = 1..10
   auto read_vtp_prop(std::string const&          name,
-                     vtk::xml::data_array const& data_array) {
+                     vtk::xml::data_array const& data_array)
+  requires (num_dimensions() == 2) || (num_dimensions() == 3) {
     [&]<std::size_t... Is>(std::index_sequence<Is...>) {
       (std::invoke(&this_type::read_vtp_prop<Is + 1>, this, name, data_array),
        ...);
     } (std::make_index_sequence<10>{});
   }
   //----------------------------------------------------------------------------
-  static auto read(vtk::xml::piece const& p)
-  requires(num_dimensions() == 3) {
-    auto l = this_type{};
-    auto positions = std::vector<real_type>{};
-    p.points.visit_data([&](auto&& point_data) {
-      if constexpr (same_as<std::vector<real_type>,
-                            std::decay_t<decltype(point_data)>>) {
-        positions = std::forward<decltype(point_data)>(point_data);
-      } else {
-        positions.reserve(point_data.size());
-        std::ranges::copy(point_data, std::back_inserter(positions));
+  auto read_vtp_positions(vtk::xml::data_array const& points) 
+  requires (num_dimensions() == 2) || (num_dimensions() == 3) {
+    points.visit_data([&](auto&& point_data) {
+      // always 3 components in vtk data array 
+      for (std::size_t i = 0; i < point_data.size(); i += 3) { 
+        if constexpr (num_dimensions() == 2) {
+          // just omit third component when reading to a 3d line
+          push_back(point_data[i], point_data[i + 1]);
+        } else if constexpr (num_dimensions() == 3) {
+          push_back(point_data[i], point_data[i + 1], point_data[i + 2]);
+        }
       }
     });
-
-    for (std::size_t i = 0; i < positions.size(); i += 3) {
-      l.push_back(positions[i], positions[i + 1], positions[i + 2]);
-    }
-
+  }
+  //----------------------------------------------------------------------------
+  /// TODO actually read connectivy data array from the lines tag
+  static auto read(vtk::xml::piece const& p)
+  requires (num_dimensions() == 2) || (num_dimensions() == 3) {
+    auto l = this_type{};
+    l.read_vtp_positions(p.points);
     for (auto const &[name, data_array] : p.point_data) {
       l.read_vtp_prop(name, data_array);
     }
