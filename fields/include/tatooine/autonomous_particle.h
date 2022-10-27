@@ -8,6 +8,7 @@
 #include <tatooine/detail/autonomous_particle/sampler.h>
 #include <tatooine/detail/autonomous_particle/split_behavior.h>
 #include <tatooine/geometry/hyper_ellipse.h>
+#include <tatooine/tensor_operations.h>
 #include <tatooine/numerical_flowmap.h>
 #include <tatooine/particle.h>
 #include <tatooine/random.h>
@@ -1189,8 +1190,8 @@ auto write_vtp(std::vector<autonomous_particle<Real, 2>> const& particles,
        << " version=\"1.0\" "
           "byte_order=\"LittleEndian\""
        << " header_type=\""
-       << vtk::xml::data_array::to_string(
-              vtk::xml::data_array::to_type<header_type>())
+       << vtk::xml::to_string(
+              vtk::xml::to_type<header_type>())
        << "\">";
   file << "<PolyData>\n";
   for (std::size_t i = 0; i < size(particles); ++i) {
@@ -1208,8 +1209,8 @@ auto write_vtp(std::vector<autonomous_particle<Real, 2>> const& particles,
          << " format=\"appended\""
          << " offset=\"" << offset << "\""
          << " type=\""
-         << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<Real>())
+         << vtk::xml::to_string(
+                vtk::xml::to_type<Real>())
          << "\" NumberOfComponents=\"" << 3 << "\"/>";
     auto const num_bytes_points = header_type(sizeof(Real) * 3 * n);
     offset += num_bytes_points + sizeof(header_type);
@@ -1219,16 +1220,16 @@ auto write_vtp(std::vector<autonomous_particle<Real, 2>> const& particles,
     file << "<Lines>\n";
     // Lines - connectivity
     file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
-         << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<lines_connectivity_int_t>())
+         << vtk::xml::to_string(
+                vtk::xml::to_type<lines_connectivity_int_t>())
          << "\" Name=\"connectivity\"/>\n";
     auto const num_bytes_lines_connectivity =
         (n - 1) * 2 * sizeof(lines_connectivity_int_t);
     offset += num_bytes_lines_connectivity + sizeof(header_type);
     // Lines - offsets
     file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
-         << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<lines_offset_int_t>())
+         << vtk::xml::to_string(
+                vtk::xml::to_type<lines_offset_int_t>())
          << "\" Name=\"offsets\"/>\n";
     auto const num_bytes_lines_offsets =
         sizeof(lines_offset_int_t) * (n - 1) * 2;

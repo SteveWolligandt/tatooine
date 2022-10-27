@@ -532,6 +532,8 @@ struct axis_aligned_bounding_box
     f.write_lines(indices);
   }
 };
+template <std::size_t NumDimensions>
+using AABB = axis_aligned_bounding_box<real_number, NumDimensions>;
 template <typename Real>
 using AABB2 = axis_aligned_bounding_box<Real, 2>;
 template <typename Real>

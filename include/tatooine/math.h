@@ -8,13 +8,13 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-using gcem::abs;
-using gcem::sin;
-using gcem::cos;
-using gcem::sqrt;
-using gcem::pow;
-using gcem::min;
-using gcem::max;
+constexpr auto abs(arithmetic auto const x) { return gcem::abs(x); }
+constexpr auto sin(arithmetic auto const x) { return gcem::sin(x); }
+constexpr auto cos(arithmetic auto const x) { return gcem::cos(x); }
+constexpr auto sqrt(arithmetic auto const x) { return gcem::sqrt(x); }
+constexpr auto pow(arithmetic auto const x) { return gcem::pow(x); }
+constexpr auto min(arithmetic auto const x) { return gcem::min(x); }
+constexpr auto max(arithmetic auto const x) { return gcem::max(x); }
 //==============================================================================
 /// max for comparable objects.
 /// If all types are the same a const reference is returned.

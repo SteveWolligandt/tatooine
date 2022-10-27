@@ -719,8 +719,8 @@ struct pointset {
          << " version=\"1.0\""
          << " byte_order=\"LittleEndian\""
          << " header_type=\""
-         << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<header_type>())
+         << vtk::xml::to_string(
+                vtk::xml::to_type<header_type>())
          << "\">\n"
          << "<PolyData>\n"
          << "<Piece"
@@ -736,8 +736,8 @@ struct pointset {
          << " format=\"appended\""
          << " offset=\"" << offset << "\""
          << " type=\""
-         << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<Real>())
+         << vtk::xml::to_string(
+                vtk::xml::to_type<Real>())
          << "\" NumberOfComponents=\"3\"/>"
          << "</Points>\n";
     offset += num_bytes_points + sizeof(header_type);
@@ -745,14 +745,14 @@ struct pointset {
     file << "<Verts>\n"
          // Verts - connectivity
          << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
-         << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<verts_connectivity_int_type>())
+         << vtk::xml::to_string(
+                vtk::xml::to_type<verts_connectivity_int_type>())
          << "\" Name=\"connectivity\"/>\n";
     offset += num_bytes_verts_connectivity + sizeof(header_type);
     // Verts - offsets
     file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
-         << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<verts_offset_int_type>())
+         << vtk::xml::to_string(
+                vtk::xml::to_type<verts_offset_int_type>())
          << "\" Name=\"offsets\"/>\n";
     offset += num_bytes_verts_offsets + sizeof(header_type);
     file << "</Verts>\n";
@@ -873,8 +873,8 @@ struct pointset {
              << " format=\"appended\""
              << " offset=\"" << offset << "\""
              << " type=\""
-             << vtk::xml::data_array::to_string(
-                    vtk::xml::data_array::to_type<tensor_value_type<T>>())
+             << vtk::xml::to_string(
+                    vtk::xml::to_type<tensor_value_type<T>>())
              << "\" NumberOfComponents=\""
              << tensor_num_components<T> << "\"/>\n";
         return vertices().size() * sizeof(T) + sizeof(header_type);
@@ -885,8 +885,8 @@ struct pointset {
                << " format=\"appended\""
                << " offset=\"" << offset << "\""
                << " type=\""
-               << vtk::xml::data_array::to_string(
-                      vtk::xml::data_array::to_type<tensor_value_type<T>>())
+               << vtk::xml::to_string(
+                      vtk::xml::to_type<tensor_value_type<T>>())
                << "\" NumberOfComponents=\"" << T::dimension(0) << "\"/>\n";
           offset += vertices().size() * sizeof(tensor_value_type<T>) * tensor_dimension<T, 0> +
                     sizeof(header_type);
