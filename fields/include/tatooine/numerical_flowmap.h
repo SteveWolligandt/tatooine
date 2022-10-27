@@ -415,8 +415,8 @@ auto flowmap(vectorfield<V, Real, NumDimensions> const& v,
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <
-    template <typename, std::size_t> typename ODESolver,
     template <typename> typename InterpolationKernel = interpolation::cubic,
+    template <typename, std::size_t> typename ODESolver,
     typename V, typename Real, std::size_t NumDimensions>
 auto flowmap(vectorfield<V, Real, NumDimensions> const& v,
              ODESolver<Real, NumDimensions> const& ode_solver,
