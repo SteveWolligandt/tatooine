@@ -59,7 +59,7 @@ TEST_CASE("vtk_xml_read_structured_grid", "[vtk][xml][read]") {
       REQUIRE(piece.point_data.size() == 2);
       REQUIRE(piece.cell_data.size() == 0);
       REQUIRE(piece.points.type() == vtk::xml::data_type::float64);
-      piece.points.visit_data([](auto const& points_data) {
+      piece.points.visit_data([](std::vector<double> const& points_data) {
         REQUIRE(points_data.size() == 9);
         CHECK(points_data[0] == 1);
         CHECK(points_data[1] == 1);
@@ -72,13 +72,13 @@ TEST_CASE("vtk_xml_read_structured_grid", "[vtk][xml][read]") {
         CHECK(points_data[8] == 3);
       });
 
-      piece.point_data.at("prop").visit_data([](auto const& data) {
+      piece.point_data.at("prop").visit_data([](std::vector<double> const& data) {
         REQUIRE(data.size() == 3);
         REQUIRE(data[0] == 5);
         REQUIRE(data[1] == 4);
         REQUIRE(data[2] == 3);
       });
-      piece.point_data.at("prop2").visit_data([](auto const& data) {
+      piece.point_data.at("prop2").visit_data([](std::vector<double> const& data) {
         REQUIRE(data.size() == 6);
         REQUIRE(data[0] == 0);
         REQUIRE(data[1] == 0);

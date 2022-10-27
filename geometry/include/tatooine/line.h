@@ -638,6 +638,44 @@ struct line {
     return read(reader.poly_data()->pieces.front());
   }
   //----------------------------------------------------------------------------
+  /// Reads data_array as vertex property if the number of components is equal
+  /// to the template parameter N.
+  template <std::size_t N>
+  auto read_vtp_prop(std::string const          &name,
+                     vtk::xml::data_array const &data_array) {
+    if (data_array.num_components() != N) {
+      return;
+    }
+    auto data_type_getter = [&]<typename value_t>(value_t /*val*/) {
+      using prop_t = std::conditional_t<N == 1, value_t, vec<value_t, N>>;
+      auto &prop   = insert_vertex_property<prop_t>(name);
+      auto  prop_data_setter = [&prop, i = std::size_t{},
+                               this](std::vector<value_t> const &data) mutable {
+        for (auto const v : vertices()) {
+          auto &p = prop[v];
+          if constexpr (N == 1) {
+            p = data[i++];
+          } else {
+            for (std::size_t j = 0; j < N; ++j) {
+              p(j) = data[i++];
+            }
+          }
+        };
+      };
+      data_array.visit_data(prop_data_setter);
+    };
+    vtk::xml::visit(data_array.type(), data_type_getter);
+  }
+  //----------------------------------------------------------------------------
+  /// Calls read_vtp_prop<N> with N = 1..10
+  auto read_vtp_prop(std::string const&          name,
+                     vtk::xml::data_array const& data_array) {
+    [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+      (std::invoke(&this_type::read_vtp_prop<Is + 1>, this, name, data_array),
+       ...);
+    } (std::make_index_sequence<10>{});
+  }
+  //----------------------------------------------------------------------------
   static auto read(vtk::xml::piece const& p)
   requires(num_dimensions() == 3) {
     auto l = this_type{};
@@ -656,51 +694,8 @@ struct line {
       l.push_back(positions[i], positions[i + 1], positions[i + 2]);
     }
 
-    for (auto const [name, data_array] : p.point_data) {
-      if (data_array.num_components() == 1) {
-        vtk::xml::visit(data_array.type(), [&](auto t) {
-          auto& prop = l.template insert_vertex_property<decltype(t)>(name);
-          data_array.visit_data([&prop, i = std::size_t{}](auto&& d) mutable {
-            for (auto const x : d) {
-              prop[vertex_handle{i}] = x;
-              ++i;
-            }
-          });
-        });
-      }
-      if (data_array.num_components() == 2) {
-        vtk::xml::visit(data_array.type(), [&](auto t) {
-          auto& prop =
-              l.template insert_vertex_property<vec<decltype(t), 2>>(name);
-          data_array.visit_data([&prop, i = std::size_t{}](auto&& d) mutable {
-            for (std::size_t i = 0; i < d.size(); i += 2) {
-              prop[vertex_handle{i / 2}] = vec{d[i], d[i + 1]};
-            }
-          });
-        });
-      }
-      if (data_array.num_components() == 3) {
-        vtk::xml::visit(data_array.type(), [&](auto t) {
-          auto& prop =
-              l.template insert_vertex_property<vec<decltype(t), 3>>(name);
-          data_array.visit_data([&prop, i = std::size_t{}](auto&& d) mutable {
-            for (std::size_t i = 0; i < d.size(); i += 3) {
-              prop[vertex_handle{i / 3}] = vec{d[i], d[i + 1], d[i+2]};
-            }
-          });
-        });
-      }
-      if (data_array.num_components() == 4) {
-        vtk::xml::visit(data_array.type(), [&](auto t) {
-          auto& prop =
-              l.template insert_vertex_property<vec<decltype(t), 4>>(name);
-          data_array.visit_data([&prop, i = std::size_t{}](auto&& d) mutable {
-            for (std::size_t i = 0; i < d.size(); i += 4) {
-              prop[vertex_handle{i / 4}] = vec{d[i], d[i + 1], d[i + 2], d[i + 3]};
-            }
-          });
-        });
-      }
+    for (auto const &[name, data_array] : p.point_data) {
+      l.read_vtp_prop(name, data_array);
     }
     // p.lines.at("connectivity").visit_data([](auto&& connectivity) {
     //   auto i     = std::size_t{};
