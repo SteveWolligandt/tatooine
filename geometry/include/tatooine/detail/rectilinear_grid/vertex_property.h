@@ -66,6 +66,14 @@ struct vertex_property {
   //----------------------------------------------------------------------------
   virtual auto clone() const -> std::unique_ptr<this_type> = 0;
   //----------------------------------------------------------------------------
+  virtual auto resize(std::array<std::size_t, num_dimensions()> const& size)
+      -> void = 0;
+  //----------------------------------------------------------------------------
+  auto resize(integral auto const... size)
+      -> decltype(auto) requires(sizeof...(size) == num_dimensions()) {
+    return resize(std::array{static_cast<std::size_t>(size)...});
+  }
+  //----------------------------------------------------------------------------
   auto grid() -> auto& { return *m_grid; }
   auto grid() const -> auto const& { return *m_grid; }
   auto set_grid(Grid const& g) { m_grid = &g; }
@@ -229,14 +237,6 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
   virtual auto plain_at(std::size_t) const -> const_reference = 0;
   //----------------------------------------------------------------------------
   virtual auto plain_at(std::size_t) -> reference = 0;
-  //----------------------------------------------------------------------------
-  auto resize(integral auto const... size)
-      -> decltype(auto) requires(sizeof...(size) == num_dimensions()) {
-    return resize(std::array{static_cast<std::size_t>(size)...});
-  }
-  //----------------------------------------------------------------------------
-  virtual auto resize(std::array<std::size_t, num_dimensions()> const& size)
-      -> void = 0;
   //----------------------------------------------------------------------------
 #if TATOOINE_PNG_AVAILABLE
   template <invocable<ValueType> T>
