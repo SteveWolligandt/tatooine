@@ -5,10 +5,10 @@
 #include <tatooine/for_loop.h>
 #include <tatooine/functional.h>
 #include <tatooine/index_order.h>
+#include <tatooine/static_multidim_size.h>
 #include <tatooine/template_helper.h>
 #include <tatooine/type_traits.h>
 #include <tatooine/utility.h>
-#include <tatooine/static_multidim_size.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -33,9 +33,9 @@ class dynamic_multidim_size {
   dynamic_multidim_size(dynamic_multidim_size const& other)     = default;
   dynamic_multidim_size(dynamic_multidim_size&& other) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator=(dynamic_multidim_size const& other)
+  auto operator                 =(dynamic_multidim_size const& other)
       -> dynamic_multidim_size& = default;
-  auto operator=(dynamic_multidim_size&& other) noexcept
+  auto operator                 =(dynamic_multidim_size&& other) noexcept
       -> dynamic_multidim_size& = default;
   //----------------------------------------------------------------------------
   ~dynamic_multidim_size() = default;
@@ -128,12 +128,16 @@ class dynamic_multidim_size {
   auto resize(std::vector<std::size_t> const& size) -> void { m_size = size; }
   //----------------------------------------------------------------------------
   auto constexpr in_range(integral auto const... indices) const {
-    assert(sizeof...(indices) == num_dimensions());
+    if (sizeof...(indices) != num_dimensions()) {
+      return false;
+    }
     return in_range(std::array{static_cast<std::size_t>(indices)...});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto constexpr in_range(integral_range auto const& indices) const {
-    assert(indices.size() == num_dimensions());
+    if (indices.size() != num_dimensions()) {
+      return false;
+    }
     for (std::size_t i = 0; i < indices.size(); ++i) {
       if (indices[i] >= size(i)) {
         return false;
@@ -169,16 +173,16 @@ class dynamic_multidim_size {
     indices_iterator(indices_iterator const& other)     = default;
     indices_iterator(indices_iterator&& other) noexcept = default;
     //--------------------------------------------------------------------------
-    auto operator=(indices_iterator const& other)
+    auto operator            =(indices_iterator const& other)
         -> indices_iterator& = default;
-    auto operator=(indices_iterator&& other) noexcept
+    auto operator            =(indices_iterator&& other) noexcept
         -> indices_iterator& = default;
     //--------------------------------------------------------------------------
     ~indices_iterator() = default;
     //--------------------------------------------------------------------------
     auto operator++() {
       ++m_status.front();
-      auto size_it  = m_multidim_size->size().begin();
+      auto size_it   = m_multidim_size->size().begin();
       auto status_it = m_status.begin();
       for (; size_it != prev(m_multidim_size->size().end());
            ++status_it, ++size_it) {
@@ -201,7 +205,9 @@ class dynamic_multidim_size {
       return true;
     }
     //--------------------------------------------------------------------------
-    auto operator!=(indices_iterator const& other) const { return !operator==(other); }
+    auto operator!=(indices_iterator const& other) const {
+      return !operator==(other);
+    }
     //--------------------------------------------------------------------------
     auto operator*() const -> auto const& { return m_status; }
   };
@@ -237,7 +243,7 @@ template <typename IndexOrder>
 dynamic_multidim_size(dynamic_multidim_size<IndexOrder> const&)
     -> dynamic_multidim_size<IndexOrder>;
 template <typename IndexOrder>
-dynamic_multidim_size(dynamic_multidim_size<IndexOrder>&&)
+dynamic_multidim_size(dynamic_multidim_size<IndexOrder> &&)
     -> dynamic_multidim_size<IndexOrder>;
 template <typename... Resolution>
 dynamic_multidim_size(Resolution...) -> dynamic_multidim_size<x_fastest>;

@@ -5,8 +5,7 @@
 namespace tatooine {
 //==============================================================================
 template <floating_point_range... Dimensions>
-requires(sizeof...(Dimensions) > 1)
-class rectilinear_grid;
+requires(sizeof...(Dimensions) > 1) class rectilinear_grid;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
@@ -24,9 +23,9 @@ struct infinite_vertex_property_sampler
       : m_sampler{sampler} {}
 
   using parent_type = tatooine::field<infinite_vertex_property_sampler,
-                                   typename VertexPropSampler::real_type,
-                                   VertexPropSampler::num_dimensions(),
-                                   typename VertexPropSampler::tensor_type>;
+                                      typename VertexPropSampler::real_type,
+                                      VertexPropSampler::num_dimensions(),
+                                      typename VertexPropSampler::tensor_type>;
   using typename parent_type::pos_type;
   using typename parent_type::real_type;
   using typename parent_type::tensor_type;
@@ -64,9 +63,9 @@ struct infinite_vertex_property_sampler
     (
         [&] {
           auto constexpr dim = repeated_dimensions[i];
-          auto const front   = m_sampler.grid().template front<dim>();
-          auto const back    = m_sampler.grid().template back<dim>();
-          auto const extent  = back - front;
+          auto const front = m_sampler.grid().template dimension<dim>().front();
+          auto const back  = m_sampler.grid().template dimension<dim>().back();
+          auto const extent = back - front;
           if (x(dim) < front) {
             x(dim) += gcem::ceil((front - x(dim)) / extent) * extent;
           }
@@ -94,8 +93,8 @@ struct infinite_vertex_property_sampler
       -> bool {
     return ([&] {
       auto constexpr dim = non_repeated_dimensions[i];
-      auto const front   = m_sampler.grid().template front<dim>();
-      auto const back    = m_sampler.grid().template back<dim>();
+      auto const front   = m_sampler.grid().template dimension<dim>().front();
+      auto const back    = m_sampler.grid().template dimension<dim>().back();
       return front <= x(dim) && x(dim) <= back;
     }() && ...);
   }
