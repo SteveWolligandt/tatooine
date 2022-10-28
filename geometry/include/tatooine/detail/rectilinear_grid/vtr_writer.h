@@ -12,8 +12,8 @@
 namespace tatooine::detail::rectilinear_grid {
 //==============================================================================
 template <typename Grid, unsigned_integral HeaderType>
-requires(Grid::num_dimensions() == 2 ||
-         Grid::num_dimensions() == 3) struct vtr_writer {
+requires(Grid::num_dimensions() == 2 || Grid::num_dimensions() == 3)
+struct vtr_writer {
   static auto constexpr num_dimensions() { return Grid::num_dimensions(); }
   using vertex_property_type = typename Grid::vertex_property_type;
   template <typename T, bool H>
@@ -40,7 +40,7 @@ requires(Grid::num_dimensions() == 2 ||
          << " byte_order=\"LittleEndian\""
          << " header_type=\""
          << tatooine::vtk::xml::to_string(
-                tatooine::vtk::xml::to_type<HeaderType>())
+                tatooine::vtk::xml::to_data_type<HeaderType>())
          << "\">\n";
     write_rectilinear_grid(file, offset);
     write_appended_data(file);
@@ -116,8 +116,7 @@ requires(Grid::num_dimensions() == 2 ||
                                   std::size_t& offset) const {
     file << "        <DataArray"
          << " type=\""
-         << tatooine::vtk::xml::to_string(
-                tatooine::vtk::xml::to_type<T>())
+         << tatooine::vtk::xml::to_string(tatooine::vtk::xml::to_data_type<T>())
          << "\""
          << " Name=\"" << name << "\""
          << " format=\"appended\""
@@ -132,8 +131,7 @@ requires(Grid::num_dimensions() == 2 ||
                                   std::size_t& offset) const {
     file << "        <DataArray"
          << " type=\""
-         << tatooine::vtk::xml::to_string(
-                tatooine::vtk::xml::to_type<T>())
+         << tatooine::vtk::xml::to_string(tatooine::vtk::xml::to_data_type<T>())
          << "\""
          << " Name=\"" << name << "\""
          << " format=\"appended\""
@@ -148,8 +146,7 @@ requires(Grid::num_dimensions() == 2 ||
                                   std::size_t& offset) const {
     file << "        <DataArray"
          << " type=\""
-         << tatooine::vtk::xml::to_string(
-                tatooine::vtk::xml::to_type<T>())
+         << tatooine::vtk::xml::to_string(tatooine::vtk::xml::to_data_type<T>())
          << "\""
          << " Name=\"" << name << "\""
          << " format=\"appended\""
@@ -270,8 +267,7 @@ requires(Grid::num_dimensions() == 2 ||
                << " offset=\"" << offset << "\""
                << " type=\""
                << tatooine::vtk::xml::to_string(
-                      tatooine::vtk::xml::to_type<
-                          tensor_value_type<Ts>>())
+                      tatooine::vtk::xml::to_data_type<tensor_value_type<Ts>>())
                << "\" NumberOfComponents=\""
                << tensor_num_components<Ts> << "\"/>\n";
           offset += m_grid.vertices().size() * sizeof(Ts) + sizeof(HeaderType);
@@ -283,7 +279,7 @@ requires(Grid::num_dimensions() == 2 ||
                  << " offset=\"" << offset << "\""
                  << " type=\""
                  << vtk::xml::to_string(
-                        vtk::xml::to_type<tensor_value_type<Ts>>())
+                        vtk::xml::to_data_type<tensor_value_type<Ts>>())
                  << "\" NumberOfComponents=\"" << Ts::dimension(0) << "\"/>\n";
             offset += m_grid.vertices().size() * sizeof(tensor_value_type<Ts>) *
                           tensor_dimension<Ts, 0> +

@@ -5,9 +5,6 @@
 #include <tatooine/cache_alignment.h>
 
 #endif
-#include <mutex>
-#include <boost/range/adaptor/transformed.hpp>
-#include <boost/range/numeric.hpp>
 #include <tatooine/dynamic_multidim_array.h>
 #include <tatooine/field.h>
 #include <tatooine/for_loop.h>
@@ -16,6 +13,9 @@
 #include <tatooine/type_traits.h>
 
 #include <array>
+#include <boost/range/adaptor/transformed.hpp>
+#include <boost/range/numeric.hpp>
+#include <mutex>
 #include <optional>
 #include <ranges>
 #include <tuple>
@@ -747,7 +747,7 @@ auto calc_parallel_vectors(
   auto lines = std::vector<aligned<std::vector<Line3<Real>>>>(num_threads);
   auto mutex = std::mutex{};
 
-  auto compute_line_segments = [&](auto const ... ixy) {
+  auto compute_line_segments = [&](auto const... ixy) {
     check_cube(x_faces, y_faces, z_faces, inner_faces,
                *lines[omp_get_thread_num()], ixy..., iz, mutex);
   };
@@ -804,14 +804,14 @@ auto calc_parallel_vectors(
   using inner_faces_arr = dynamic_multidim_array<maybe_vec3_arr4>;
   auto       iz         = std::size_t(0);
   auto const resolution = g.size();
-  auto const gv = g.vertices();
+  auto const gv         = g.vertices();
   // turned inner tet order:
   //   [0]: 046 / 157 | [1]: 026 / 137
   // non-turned inner tet order:
   //   [0]: 024 / 135 | [1]: 246 / 357
   auto x_faces        = faces_arr{resolution[0], resolution[1] - 1};
   auto update_x_faces = [&](std::size_t const ix, std::size_t const iy) {
-    auto const p  = std::array{
+    auto const p = std::array{
         gv(ix, iy, iz),         // 0
         gv(ix, iy, iz + 1),     // 4
         gv(ix, iy + 1, iz),     // 2
@@ -871,8 +871,7 @@ auto calc_parallel_vectors(
   // non-turned inner tet order:
   //   [0]: 014 / 236 | [1]: 145 / 367
   auto y_faces        = faces_arr{resolution[0] - 1, resolution[1]};
-  auto update_y_faces = [&g, &getv, &getw, &y_faces, &iz, &preds...](
-                            std::size_t const ix, std::size_t const iy) {
+  auto update_y_faces = [&](std::size_t const ix, std::size_t const iy) {
     auto const p0 = gv(ix, iy, iz);
     auto const p1 = gv(ix + 1, iy, iz);
     auto const p4 = gv(ix, iy, iz + 1);
@@ -931,8 +930,7 @@ auto calc_parallel_vectors(
   // non-turned inner tet order:
   //   [0]: 012 / 456 | [1]: 123 / 567
   auto z_faces  = faces_arr{2, resolution[0] - 1, resolution[1] - 1};
-  auto update_z = [&z_faces, &g, &getv, &getw, &preds...](
-                      std::size_t const ix, std::size_t const iy,
+  auto update_z = [&](std::size_t const ix, std::size_t const iy,
                       std::size_t const iz, std::size_t const write_iz) {
     assert(write_iz == 0 || write_iz == 1);
     auto const p0 = gv(ix, iy, iz);
@@ -1344,10 +1342,10 @@ auto parallel_vectors(
   assert(vf.size(2) == wf.size(2));
 
   return detail::calc_parallel_vectors<common_type<VReal, WReal>>(
-      [&vf](auto ix, auto iy, auto iz, auto const & /*p*/) -> auto const& {
+      [&vf](auto ix, auto iy, auto iz, auto const& /*p*/) -> auto const& {
         return vf(ix, iy, iz);
       },
-      [&wf](auto ix, auto iy, auto iz, auto const & /*p*/) -> auto const& {
+      [&wf](auto ix, auto iy, auto iz, auto const& /*p*/) -> auto const& {
         return wf(ix, iy, iz);
       },
       rectilinear_grid{linspace{bb.min(0), bb.max(0), vf.size(0)},

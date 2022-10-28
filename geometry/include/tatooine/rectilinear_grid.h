@@ -34,7 +34,8 @@
 namespace tatooine {
 //==============================================================================
 template <floating_point_range... Dimensions>
-requires(sizeof...(Dimensions) > 1) class rectilinear_grid {
+requires(sizeof...(Dimensions) > 1)
+class rectilinear_grid {
  public:
   static constexpr bool is_uniform =
       (is_linspace<std::decay_t<Dimensions>> && ...);
@@ -78,7 +79,7 @@ requires(sizeof...(Dimensions) > 1) class rectilinear_grid {
   using property_container_type = std::map<std::string, property_ptr_type>;
   //============================================================================
  private:
-  mutable std::mutex      m_finite_difference_coefficients_mutex;
+  mutable std::mutex      m_finite_difference_coefficients_mutex = {};
   dimensions_type         m_dimensions;
   property_container_type m_vertex_properties;
 
@@ -86,7 +87,7 @@ requires(sizeof...(Dimensions) > 1) class rectilinear_grid {
   // finite difference finite_difference_coefficentss per size per dimension
   mutable std::vector<
       std::array<finite_difference_coefficents_list_type, num_dimensions()>>
-              m_finite_difference_coefficients;
+              m_finite_difference_coefficients = {};
   std::size_t m_chunk_size_for_lazy_properties = 2;
   //============================================================================
  public:
@@ -117,10 +118,9 @@ requires(sizeof...(Dimensions) > 1) class rectilinear_grid {
   }
   //----------------------------------------------------------------------------
   /// \param dimensions List of dimensions / axes of the rectilinear grid
-  template <typename... Dimensions_>
-  requires(sizeof...(Dimensions_) == sizeof...(Dimensions)) &&
-      (floating_point_range<std::decay_t<Dimensions_>> &&
-       ...) constexpr rectilinear_grid(Dimensions_&&... dimensions)
+  template <floating_point_range... Dimensions_>
+  constexpr rectilinear_grid(Dimensions_&&... dimensions)
+  requires(sizeof...(dimensions) == sizeof...(Dimensions))
       : m_dimensions{std::forward<Dimensions_>(dimensions)...} {}
   //----------------------------------------------------------------------------
  private:
@@ -137,7 +137,8 @@ requires(sizeof...(Dimensions) > 1) class rectilinear_grid {
   /// Constructs a uniform grid from a tatooine::axis_aligned_bounding_box and a
   /// resolution.
   template <typename Real, integral... Res>
-  requires(sizeof...(Res) == num_dimensions()) constexpr rectilinear_grid(
+  requires(sizeof...(Res) == num_dimensions())
+  constexpr rectilinear_grid(
       axis_aligned_bounding_box<Real, num_dimensions()> const& bb,
       Res const... res)
       : rectilinear_grid{bb, sequence_type{}, res...} {}
@@ -189,8 +190,8 @@ requires(sizeof...(Dimensions) > 1) class rectilinear_grid {
   /// Returns a constant reference to the dimension of index I.
   /// \tparam I Index of dimension
   template <std::size_t I>
-  requires(I < num_dimensions()) constexpr auto dimension() const
-      -> auto const& {
+  requires(I < num_dimensions())
+  constexpr auto dimension() const -> auto const& {
     return m_dimensions.template at<I>();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -198,9 +199,9 @@ requires(sizeof...(Dimensions) > 1) class rectilinear_grid {
   /// This runtime version is only available if all dimensions are of the same
   /// type.
   /// \param i Index of dimension
-  constexpr auto dimension(std::size_t const i) const
-      -> auto const& requires(is_same<Dimensions...>) &&
-      (num_dimensions() <= 11) {
+  constexpr auto dimension(std::size_t const i) const -> auto const&
+  requires(is_same<Dimensions...>) && (num_dimensions() <= 11)
+  {
     if (i == 0) {
       return dimension<0>();
     }
@@ -328,8 +329,8 @@ requires(sizeof...(Dimensions) > 1) class rectilinear_grid {
  private:
   /// \return Axis aligned bounding box of grid
   template <std::size_t... Seq>
-  requires(sizeof...(Seq) == num_dimensions()) constexpr auto bounding_box(
-      std::index_sequence<Seq...> /*seq*/) const {
+  requires(sizeof...(Seq) == num_dimensions())
+  constexpr auto bounding_box(std::index_sequence<Seq...> /*seq*/) const {
     return axis_aligned_bounding_box<real_type, num_dimensions()>{
         vec<real_type, num_dimensions()>{
             static_cast<real_type>(dimension<Seq>().front())...},
@@ -344,8 +345,8 @@ requires(sizeof...(Dimensions) > 1) class rectilinear_grid {
  private:
   /// \return Resolution of grid
   template <std::size_t... Seq>
-  requires(sizeof...(Seq) == num_dimensions()) constexpr auto size(
-      std::index_sequence<Seq...> /*seq*/) const {
+  requires(sizeof...(Seq) == num_dimensions())
+  constexpr auto size(std::index_sequence<Seq...> /*seq*/) const {
     return std::array{size<Seq>()...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -423,7 +424,7 @@ requires(sizeof...(Dimensions) > 1) class rectilinear_grid {
   ///
   template <std::size_t I>
   constexpr auto set_dimension(convertible_to<dimension_type<I>> auto&& dim) {
-m_finite_difference_coefficients.clear();
+    m_finite_difference_coefficients.clear();
     m_dimensions.template at<I>() = std::forward<decltype(dim)>(dim);
     for (auto& [name, prop] : vertex_properties()) {
       prop->resize(size());
@@ -461,8 +462,9 @@ m_finite_difference_coefficients.clear();
  private:
   /// Checks if point [comps...] is inside of grid.
   template <arithmetic... Comps, std::size_t... Seq>
-  requires(num_dimensions() == sizeof...(Comps)) constexpr auto is_inside(
-      std::index_sequence<Seq...> /*seq*/, Comps const... comps) const {
+  requires(num_dimensions() == sizeof...(Comps))
+  constexpr auto is_inside(std::index_sequence<Seq...> /*seq*/,
+                           Comps const... comps) const {
     return ((dimension<Seq>().front() <= comps &&
              comps <= dimension<Seq>().back()) &&
             ...);
@@ -471,8 +473,8 @@ m_finite_difference_coefficients.clear();
  public:
   /// Checks if point [comps...] is inside of grid.
   template <arithmetic... Comps>
-  requires(num_dimensions() == sizeof...(Comps)) constexpr auto is_inside(
-      Comps const... comps) const {
+  requires(num_dimensions() == sizeof...(Comps))
+  constexpr auto is_inside(Comps const... comps) const {
     return is_inside(std::make_index_sequence<num_dimensions()>{}, comps...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -561,7 +563,8 @@ m_finite_difference_coefficients.clear();
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
   auto cell_index(arithmetic auto const... xs) const
-      requires(sizeof...(xs) == num_dimensions()) {
+  requires(sizeof...(xs) == num_dimensions())
+  {
     return cell_index(sequence_type{}, xs...);
   }
   //------------------------------------------------------------------------------
@@ -660,8 +663,9 @@ m_finite_difference_coefficients.clear();
     return vertex_at(sequence_type{}, h.indices());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto plain_index(integral auto const... is) requires(
-      sizeof...(is) == num_dimensions()) {
+  constexpr auto plain_index(integral auto const... is)
+  requires(sizeof...(is) == num_dimensions())
+  {
     auto const arr_is     = std::array{is...};
     auto const size       = this->size();
     auto       pi         = std::size_t{};
@@ -801,7 +805,9 @@ m_finite_difference_coefficients.clear();
 
   auto insert_chunked_vertex_property(std::string const& name,
                                       integral auto const... chunk_size)
-      -> auto& requires(sizeof...(chunk_size) == num_dimensions()) {
+      -> auto&
+  requires(sizeof...(chunk_size) == num_dimensions())
+  {
     return create_vertex_property<chunked_multidim_array<T, IndexOrder>>(
         name, size(),
         std::vector<std::size_t>{static_cast<std::size_t>(chunk_size)...});
@@ -1064,17 +1070,19 @@ m_finite_difference_coefficients.clear();
   //============================================================================
   template <typename F>
   requires invocable_with_n_integrals<F, num_dimensions()> ||
-      invocable<F, pos_type>
-  auto sample_to_vertex_property(F&& f, std::string const& name) -> auto& {
+           invocable<F, pos_type>
+           auto sample_to_vertex_property(F&& f, std::string const& name)
+               -> auto& {
     return sample_to_vertex_property(std::forward<F>(f), name,
                                      execution_policy::sequential);
   }
   //----------------------------------------------------------------------------
   template <typename F>
   requires invocable_with_n_integrals<F, num_dimensions()> ||
-      invocable<F, pos_type>
-  auto sample_to_vertex_property(F&& f, std::string const& name,
-                                 execution_policy_tag auto tag) -> auto& {
+           invocable<F, pos_type>
+           auto sample_to_vertex_property(F&& f, std::string const& name,
+                                          execution_policy_tag auto tag)
+               -> auto& {
     if constexpr (invocable<F, pos_type>) {
       return sample_to_vertex_property_pos(std::forward<F>(f), name, tag);
     } else {
@@ -1315,8 +1323,9 @@ m_finite_difference_coefficients.clear();
     }
   };
   //============================================================================
-  auto read_vtk(filesystem::path const& path) requires(num_dimensions() == 2) ||
-      (num_dimensions() == 3) {
+  auto read_vtk(filesystem::path const& path)
+  requires(num_dimensions() == 2) || (num_dimensions() == 3)
+  {
     bool             is_structured_points = false;
     vec3             spacing;
     vtk_listener     listener{*this, is_structured_points, spacing};
@@ -1360,8 +1369,9 @@ m_finite_difference_coefficients.clear();
     }
   }
   //----------------------------------------------------------------------------
-  auto read_amira(filesystem::path const& path) requires is_uniform &&
-      ((num_dimensions() == 2) || (num_dimensions() == 3)) {
+  auto read_amira(filesystem::path const& path)
+  requires is_uniform && ((num_dimensions() == 2) || (num_dimensions() == 3))
+  {
     auto const reader_data = amira::read<real_type>(path);
     auto const& [data, dims, aabb, num_components] = reader_data;
     if (dims[2] == 1 && num_dimensions() == 3) {
@@ -1434,14 +1444,17 @@ m_finite_difference_coefficients.clear();
   }
   //----------------------------------------------------------------------------
 #ifdef TATOOINE_NETCDF_AVAILABLE
-  auto read_netcdf(filesystem::path const& path) requires(!is_uniform) {
+  auto read_netcdf(filesystem::path const& path)
+  requires(!is_uniform)
+  {
     read_netcdf(path, std::make_index_sequence<num_dimensions()>{});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename T, std::size_t... Seq>
-  auto insert_variables_of_type(
-      netcdf::file& f, bool& first,
-      std::index_sequence<Seq...> /*seq*/) requires(!is_uniform) {
+  auto insert_variables_of_type(netcdf::file& f, bool& first,
+                                std::index_sequence<Seq...> /*seq*/)
+  requires(!is_uniform)
+  {
     for (auto v : f.variables<T>()) {
       if (v.name() == "x" || v.name() == "y" || v.name() == "z" ||
           v.name() == "t" || v.name() == "X" || v.name() == "Y" ||
@@ -1494,7 +1507,9 @@ m_finite_difference_coefficients.clear();
   /// this only reads scalar types
   template <std::size_t... Seq>
   auto read_netcdf(filesystem::path const&     path,
-                   std::index_sequence<Seq...> seq) requires(!is_uniform) {
+                   std::index_sequence<Seq...> seq)
+  requires(!is_uniform)
+  {
     netcdf::file f{path, netCDF::NcFile::read};
     bool         first = true;
     insert_variables_of_type<double>(f, first, seq);
@@ -1506,7 +1521,8 @@ m_finite_difference_coefficients.clear();
   template <typename T>
   void write_amira(std::string const& path,
                    std::string const& vertex_property_name) const
-      requires(num_dimensions() == 3) {
+  requires(num_dimensions() == 3)
+  {
     write_amira(path, vertex_property<T>(vertex_property_name));
   }
   //----------------------------------------------------------------------------
@@ -1514,7 +1530,9 @@ m_finite_difference_coefficients.clear();
   void write_amira(
       std::string const&                                                   path,
       typed_vertex_property_interface_type<T, HasNonConstReference> const& prop)
-      const requires is_uniform &&(num_dimensions() == 3) {
+      const
+  requires is_uniform && (num_dimensions() == 3)
+  {
     std::ofstream     outfile{path, std::ofstream::binary};
     std::stringstream header;
 
@@ -1577,9 +1595,10 @@ m_finite_difference_coefficients.clear();
   }
   //----------------------------------------------------------------------------
   auto write_vtk(filesystem::path const& path,
-                 std::string const& description = "tatooine rectilinear_grid")
-          const -> void requires(num_dimensions() == 2) ||
-      (num_dimensions() == 3) {
+                 std::string const&      description =
+                     "tatooine rectilinear_grid") const -> void
+  requires(num_dimensions() == 2) || (num_dimensions() == 3)
+  {
     auto writer = [this, &path, &description] {
       if constexpr (is_uniform) {
         auto writer =
@@ -1667,9 +1686,9 @@ m_finite_difference_coefficients.clear();
 
  public:
   template <typename HeaderType = std::uint64_t>
-      auto write_vtr(filesystem::path const& path) const
-      requires(num_dimensions() == 2) ||
-      (num_dimensions() == 3) {
+  auto write_vtr(filesystem::path const& path) const
+  requires(num_dimensions() == 2) || (num_dimensions() == 3)
+  {
     detail::rectilinear_grid::vtr_writer<this_type, HeaderType>{*this}.write(
         path);
   }

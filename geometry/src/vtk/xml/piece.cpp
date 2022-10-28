@@ -31,11 +31,11 @@ piece::piece(reader& r, rapidxml::xml_node<>* node) {
     num_polygons = parse<std::size_t>(num_polys_attr->value());
   }
   if (extent_attr != nullptr) {
-    extent1 = std::array<double, 3>{};
-    extent2 = std::array<double, 3>{};
+    extent1 = std::array<std::size_t, 3>{};
+    extent2 = std::array<std::size_t, 3>{};
     auto ss = std::stringstream{extent_attr->value()};
     ss >> extent1->at(0) >> extent2->at(0) >> extent1->at(1) >>
-        extent2->at(1) >> extent1->at(2) >> extent2->at(2);
+          extent2->at(1) >> extent1->at(2) >> extent2->at(2);
   }
 
   read_points(r, node);

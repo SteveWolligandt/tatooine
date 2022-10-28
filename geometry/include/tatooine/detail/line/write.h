@@ -50,8 +50,7 @@ auto write_vtp(Lines const& lines, filesystem::path const& path) -> void {
        << " version=\"1.0\" "
           "byte_order=\"LittleEndian\""
        << " header_type=\""
-       << vtk::xml::to_string(
-              vtk::xml::to_type<header_type>())
+       << vtk::xml::to_data_type<header_type>()
        << "\">\n";
   file << "  <PolyData>\n";
   for (auto const& l : lines) {
@@ -71,7 +70,7 @@ auto write_vtp(Lines const& lines, filesystem::path const& path) -> void {
          << " offset=\"" << offset << "\""
          << " type=\""
          << vtk::xml::to_string(
-                vtk::xml::to_type<real_type>())
+                vtk::xml::to_data_type<real_type>())
          << "\" NumberOfComponents=\"3\"/>\n";
     auto const num_bytes_points =
         header_type(sizeof(real_type) * 3 * l.vertices().size());
@@ -84,7 +83,7 @@ auto write_vtp(Lines const& lines, filesystem::path const& path) -> void {
     file << "        <DataArray format=\"appended\" offset=\"" << offset
          << "\" type=\""
          << vtk::xml::to_string(
-                vtk::xml::to_type<connectivity_int_t>())
+                vtk::xml::to_data_type<connectivity_int_t>())
          << "\" Name=\"connectivity\"/>\n";
     auto const num_bytes_connectivity =
         (l.vertices().size() - (l.is_closed() ? 0 : 1)) * 2 *
@@ -94,7 +93,7 @@ auto write_vtp(Lines const& lines, filesystem::path const& path) -> void {
     file << "        <DataArray format=\"appended\" offset=\"" << offset
          << "\" type=\""
          << vtk::xml::to_string(
-                vtk::xml::to_type<offset_int_t>())
+                vtk::xml::to_data_type<offset_int_t>())
          << "\" Name=\"offsets\"/>\n";
     auto const num_bytes_offsets =
         sizeof(offset_int_t) * (l.vertices().size() - (l.is_closed() ? 0 : 1));
