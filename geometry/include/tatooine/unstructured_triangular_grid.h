@@ -114,7 +114,7 @@ auto write_unstructured_triangular_grid_container_to_vtp(
           "byte_order=\"LittleEndian\""
        << " header_type=\""
        << vtk::xml::to_string(
-              vtk::xml::to_type<header_type>())
+              vtk::xml::to_data_type<header_type>())
        << "\">";
   file << "<PolyData>\n";
   for (auto const& g : grids) {
@@ -134,7 +134,7 @@ auto write_unstructured_triangular_grid_container_to_vtp(
          << " offset=\"" << offset << "\""
          << " type=\""
          << vtk::xml::to_string(
-                vtk::xml::to_type<real_type>())
+                vtk::xml::to_data_type<real_type>())
          << "\" NumberOfComponents=\"" << g.num_dimensions() << "\"/>";
     auto const num_bytes_points =
         header_type(sizeof(real_type) * g.num_dimensions() *
@@ -147,7 +147,7 @@ auto write_unstructured_triangular_grid_container_to_vtp(
     // Polys - connectivity
     file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
          << vtk::xml::to_string(
-                vtk::xml::to_type<polys_connectivity_int_t>())
+                vtk::xml::to_data_type<polys_connectivity_int_t>())
          << "\" Name=\"connectivity\"/>\n";
     auto const num_bytes_polys_connectivity = g.simplices().size() *
                                               g.num_vertices_per_simplex() *
@@ -156,8 +156,7 @@ auto write_unstructured_triangular_grid_container_to_vtp(
 
     // Polys - offsets
     file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
-         << vtk::xml::to_string(
-                vtk::xml::to_type<polys_offset_int_t>())
+         << vtk::xml::to_data_type<polys_offset_int_t>()
          << "\" Name=\"offsets\"/>\n";
     auto const num_bytes_polys_offsets =
         sizeof(polys_offset_int_t) * g.simplices().size();

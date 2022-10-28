@@ -2,9 +2,11 @@
 #define TATOOINE_MATH_H
 //==============================================================================
 #include <tatooine/concepts.h>
+#include <tatooine/pow.h>
+#include <tatooine/type_traits.h>
+
 #include <cmath>
 #include <gcem.hpp>
-#include <tatooine/pow.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -13,8 +15,6 @@ constexpr auto sin(arithmetic auto const x) { return gcem::sin(x); }
 constexpr auto cos(arithmetic auto const x) { return gcem::cos(x); }
 constexpr auto sqrt(arithmetic auto const x) { return gcem::sqrt(x); }
 constexpr auto pow(arithmetic auto const x) { return gcem::pow(x); }
-constexpr auto min(arithmetic auto const x) { return gcem::min(x); }
-constexpr auto max(arithmetic auto const x) { return gcem::max(x); }
 //==============================================================================
 /// max for comparable objects.
 /// If all types are the same a const reference is returned.
@@ -22,23 +22,22 @@ template <template <typename> typename Comparator, typename T0, typename T1,
           typename... TRest>
 requires requires(
     T0&& a, T1&& b,
-    Comparator<std::common_type_t<std::decay_t<T0>, std::decay_t<T1>>>&& comp) {
-  { comp(a, b) }
-  ->std::convertible_to<bool>;
+    Comparator<common_type<std::decay_t<T0>, std::decay_t<T1>>>&& comp) {
+  { comp(a, b) } -> std::convertible_to<bool>;
 }
 constexpr auto compare_variadic(T0&& a, T1&& b, TRest&&... rest)
     -> std::conditional_t<
-        std::is_same_v<std::decay_t<T0>, std::decay_t<T1>> &&
-            (std::is_same_v<std::decay_t<T0>, std::decay_t<TRest>> && ...) &&
+        same_as<std::decay_t<T0>, std::decay_t<T1>> &&
+            (same_as<std::decay_t<T0>, std::decay_t<TRest>> && ...) &&
             std::is_lvalue_reference_v<T0> && std::is_lvalue_reference_v<T1> &&
             std::is_lvalue_reference_v<T1> &&
             (std::is_lvalue_reference_v<TRest> && ...),
         // if all raw types are equal and l-value references
         std::conditional_t<
             // if at least one of the types is const
-            std::is_const_v<std::remove_reference_t<T0>> ||
-                std::is_const_v<std::remove_reference_t<T1>> ||
-                (std::is_const_v<std::remove_reference_t<TRest>> || ...),
+            is_const<std::remove_reference_t<T0>> ||
+                is_const<std::remove_reference_t<T1>> ||
+                (is_const<std::remove_reference_t<TRest>> || ...),
             // return const-ref
             std::decay_t<T0> const&,
             // else return non-const-ref
@@ -64,7 +63,7 @@ constexpr auto max(T0&& a) -> decltype(auto) {
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T0, typename T1, typename... TRest>
-requires requires (T0&& a, T1&& b) {
+requires requires(T0&& a, T1&& b) {
   { a > b } -> std::convertible_to<bool>;
 }
 constexpr auto max(T0&& a, T1&& b, TRest&&... rest) -> decltype(auto) {
@@ -78,12 +77,12 @@ constexpr auto min(T0&& a) -> decltype(auto) {
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T0, typename T1, typename... TRest>
-requires requires (T0&& a, T1&& b) {
+requires requires(T0&& a, T1&& b) {
   { a < b } -> std::convertible_to<bool>;
 }
 constexpr auto min(T0&& a, T1&& b, TRest&&... rest) -> decltype(auto) {
-  return compare_variadic<std::less>(
-      std::forward<T0>(a), std::forward<T1>(b), std::forward<TRest>(rest)...);
+  return compare_variadic<std::less>(std::forward<T0>(a), std::forward<T1>(b),
+                                     std::forward<TRest>(rest)...);
 }
 //------------------------------------------------------------------------------
 template <typename T, std::size_t N, std::size_t... Is>
@@ -92,9 +91,9 @@ constexpr auto min(std::array<T, N> const& arr,
   return min(arr[Is]...);
 }
 //------------------------------------------------------------------------------
-template<typename T, std::size_t N>
-constexpr auto min(std::array<T, N>const& arr) {
-return min(arr, std::make_index_sequence<N>{});
+template <typename T, std::size_t N>
+constexpr auto min(std::array<T, N> const& arr) {
+  return min(arr, std::make_index_sequence<N>{});
 }
 //------------------------------------------------------------------------------
 template <typename T, std::size_t N, std::size_t... Is>
@@ -103,9 +102,9 @@ constexpr auto max(std::array<T, N> const& arr,
   return max(arr[Is]...);
 }
 //------------------------------------------------------------------------------
-template<typename T, std::size_t N>
-constexpr auto max(std::array<T, N>const& arr) {
-return max(arr, std::make_index_sequence<N>{});
+template <typename T, std::size_t N>
+constexpr auto max(std::array<T, N> const& arr) {
+  return max(arr, std::make_index_sequence<N>{});
 }
 //------------------------------------------------------------------------------
 constexpr auto ipow(integral auto const base, integral auto const exp) {
@@ -116,7 +115,7 @@ constexpr auto ipow(integral auto const base, integral auto const exp) {
   return p;
 }
 //------------------------------------------------------------------------------
-template <integral Int> // Windows needs this
+template <integral Int>  // Windows needs this
 constexpr auto factorial(Int const i) -> std::decay_t<Int> {
   if (i == 0) {
     return 1;
