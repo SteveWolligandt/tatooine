@@ -121,18 +121,21 @@ TEST_CASE_METHOD(structured_grid2, "structured_grid_2_linear_sampler",
 //==============================================================================
 TEST_CASE_METHOD(structured_grid2, "structured_grid_2_io",
                  "[structured_grid][2d][IO][io][vts]") {
-  std::size_t resx = 10;
+  std::size_t resx = 40;
   std::size_t resy = 10;
 
   auto const angle  = linspace{0.0, M_PI, resx};
   auto const radius = linspace{1.0, 2.0, resy};
   resize(resx, resy);
+  auto & prop = scalar_vertex_property("prop");
 
   auto builder = [&](auto const ix, auto const iy) {
     vertex_at(ix, iy) =
         vec{cos(angle[ix]) * radius[iy], sin(angle[ix]) * radius[iy]};
+    prop[plain_index(ix, iy)] = radius[iy]; 
   };
   for_loop(builder, resx, resy);
+
   write_vts("structured_grid.unittests.2d.vts");
 }
 //==============================================================================

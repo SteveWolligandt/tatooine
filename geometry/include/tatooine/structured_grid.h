@@ -26,12 +26,13 @@ struct structured_grid : pointset<Real, NumDimensions>,
   using this_type              = structured_grid;
   using pointset_parent_type   = pointset<Real, NumDimensions>;
   using multidim_size_parent_t = dynamic_multidim_size<IndexOrder>;
+  using typename pointset_parent_type::vertex_property_type;
+  template <typename T>
+  using typed_vertex_property_type =
+      pointset_parent_type::template typed_vertex_property_type<T>;
   using typename pointset_parent_type::pos_type;
   using typename pointset_parent_type::vec_type;
   using typename pointset_parent_type::vertex_handle;
-  template <typename T>
-  using vertex_property_type =
-      typename pointset_parent_type::template typed_vertex_property_type<T>;
   //============================================================================
   // STATIC METHODS
   //============================================================================
@@ -126,7 +127,7 @@ struct structured_grid : pointset<Real, NumDimensions>,
   //----------------------------------------------------------------------------
   template <typename T>
   auto linear_vertex_property_sampler(
-      vertex_property_type<T> const& prop) const {
+      typed_vertex_property_type<T> const& prop) const {
     if (m_hierarchy == nullptr) {
       update_hierarchy();
     }
@@ -375,7 +376,7 @@ struct structured_grid<Real, NumDimensions,
   using real_type     = Real;
   using parent_type   = field<this_type, Real, NumDimensions, T>;
   using grid_type     = structured_grid<Real, NumDimensions, IndexOrder>;
-  using property_type = typename grid_type::template vertex_property_type<T>;
+  using property_type = typename grid_type::template typed_vertex_property_type<T>;
   using vec_type      = typename grid_type::vec_type;
   using pos_type      = typename grid_type::pos_type;
   using typename parent_type::tensor_type;
