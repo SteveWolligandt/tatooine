@@ -103,8 +103,7 @@ struct const_vertex_container {
   static constexpr auto cend() { return end(); }
   //--------------------------------------------------------------------------
   auto size() const {
-    return m_pointset->vertex_position_data().size() -
-           m_pointset->invalid_vertices().size();
+    return m_pointset->num_vertices();
   }
   auto data_container() const -> auto const& {
     return m_pointset->vertex_position_data();

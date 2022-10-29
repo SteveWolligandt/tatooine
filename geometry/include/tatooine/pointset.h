@@ -44,7 +44,7 @@ struct moving_least_squares_sampler;
 #endif
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions, typename ValueType>
-requires (flann_available())
+requires(flann_available())
 struct inverse_distance_weighting_sampler;
 //==============================================================================
 #if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
@@ -68,7 +68,9 @@ template <floating_point Real, std::size_t NumDimensions>
 struct pointset {
   // static constexpr std::size_t triangle_dims = 2;
   // static constexpr std::size_t tetgen_dims = 3;
-  static constexpr auto num_dimensions() -> std::size_t { return NumDimensions; }
+  static constexpr auto num_dimensions() -> std::size_t {
+    return NumDimensions;
+  }
   using real_type = Real;
   using this_type = pointset<Real, NumDimensions>;
   using vec_type  = vec<Real, NumDimensions>;
@@ -217,6 +219,10 @@ struct pointset {
   auto vertices() const { return const_vertex_container{this}; }
   auto vertices() { return vertex_container{this}; }
   //----------------------------------------------------------------------------
+  auto num_vertices() const {
+    return vertex_position_data().size() - invalid_vertices().size();
+  }
+  //----------------------------------------------------------------------------
   auto vertex_position_data() const -> auto const& {
     return m_vertex_position_data;
   }
@@ -225,8 +231,9 @@ struct pointset {
   //----------------------------------------------------------------------------
  public:
   ///\{
-  auto insert_vertex(arithmetic auto const... ts) requires(sizeof...(ts) ==
-                                                           NumDimensions) {
+  auto insert_vertex(arithmetic auto const... ts)
+  requires(sizeof...(ts) == NumDimensions)
+  {
     m_vertex_position_data.push_back(pos_type{static_cast<Real>(ts)...});
     for (auto& [key, prop] : vertex_properties()) {
       prop->push_back();
@@ -283,14 +290,14 @@ struct pointset {
   //----------------------------------------------------------------------------
   /// tidies up invalid vertices
   auto tidy_up() {
-    //auto decrement_counter = std::size_t{};
-    //for (auto const v : invalid_vertices()) {
-    //  m_vertex_position_data.erase(begin(m_vertex_position_data) +
-    //                               (v.index() - decrement_counter++));
-    //  for (auto const& [key, prop] : vertex_properties()) {
-    //    prop->erase(v.index());
-    //  }
-    //}
+    // auto decrement_counter = std::size_t{};
+    // for (auto const v : invalid_vertices()) {
+    //   m_vertex_position_data.erase(begin(m_vertex_position_data) +
+    //                                (v.index() - decrement_counter++));
+    //   for (auto const& [key, prop] : vertex_properties()) {
+    //     prop->erase(v.index());
+    //   }
+    // }
     auto cleaned_positions = std::vector<pos_type>{};
     cleaned_positions.reserve(vertices().size());
     auto invalid_it = begin(m_invalid_vertices);
@@ -306,7 +313,7 @@ struct pointset {
     }
     m_vertex_position_data = std::move(cleaned_positions);
 
-    for (auto & [name, prop] : m_vertex_properties) {
+    for (auto& [name, prop] : m_vertex_properties) {
       prop->clean(m_invalid_vertices);
     }
 
@@ -345,7 +352,8 @@ struct pointset {
   //============================================================================
   template <invocable<pos_type> F>
   auto sample_to_vertex_property(F&& f, std::string const& name) -> auto& {
-    return sample_to_vertex_property(std::forward<F>(f), name, execution_policy::sequential);
+    return sample_to_vertex_property(std::forward<F>(f), name,
+                                     execution_policy::sequential);
   }
   //============================================================================
   template <invocable<pos_type> F>
@@ -403,40 +411,40 @@ struct pointset {
 
     return duplicates;
   }
-  //#ifdef USE_TRIANGLE
+  // #ifdef USE_TRIANGLE
   //----------------------------------------------------------------------------
-  //  template <typename = void>
-  //  requires (NumDimensions == triangle_dims>>
-  //  auto to_triangle_io() const {
-  //    triangle::io in;
-  //    std::size_t       i    = 0;
-  //    in.pointlist      = new triangle::Real[in.numberofpoints *
-  //    triangle_dims]; for (auto v : vertices()) {
-  //      for (std::size_t j = 0; j < triangle_dims; ++j) {
-  //        in.pointlist[i++] = at(v)(j);
-  //      }
-  //    }
+  //   template <typename = void>
+  //   requires (NumDimensions == triangle_dims>>
+  //   auto to_triangle_io() const {
+  //     triangle::io in;
+  //     std::size_t       i    = 0;
+  //     in.pointlist      = new triangle::Real[in.numberofpoints *
+  //     triangle_dims]; for (auto v : vertices()) {
+  //       for (std::size_t j = 0; j < triangle_dims; ++j) {
+  //         in.pointlist[i++] = at(v)(j);
+  //       }
+  //     }
   //
-  //    return in;
-  //  }
+  //     return in;
+  //   }
   //
   //--------------------------------------------------------------------------
-  //  template <typename vertex_cont_t>
-  //  requires (NumDimensions == triangle_dims)
-  //  auto to_triangle_io(vertex_cont_t const& vertices) const {
-  //    triangle::io in;
-  //    std::size_t       i    = 0;
-  //    in.numberofpoints = vertices().size();
-  //    in.pointlist      = new triangle::Real[in.numberofpoints *
-  //    triangle_dims]; for (auto v : vertices()) {
-  //      for (std::size_t j = 0; j < triangle_dims; ++j) {
-  //        in.pointlist[i++] = at(v)(j);
-  //      }
-  //    }
+  //   template <typename vertex_cont_t>
+  //   requires (NumDimensions == triangle_dims)
+  //   auto to_triangle_io(vertex_cont_t const& vertices) const {
+  //     triangle::io in;
+  //     std::size_t       i    = 0;
+  //     in.numberofpoints = vertices().size();
+  //     in.pointlist      = new triangle::Real[in.numberofpoints *
+  //     triangle_dims]; for (auto v : vertices()) {
+  //       for (std::size_t j = 0; j < triangle_dims; ++j) {
+  //         in.pointlist[i++] = at(v)(j);
+  //       }
+  //     }
   //
-  //    return in;
-  //  }
-  //#endif
+  //     return in;
+  //   }
+  // #endif
 
   //----------------------------------------------------------------------------
   // template <typename = void>
@@ -640,8 +648,9 @@ struct pointset {
   }
   //----------------------------------------------------------------------------
   auto write_vtk(filesystem::path const& path,
-                 std::string const&      title = "Tatooine pointset") const
-      -> void requires(NumDimensions == 3 || NumDimensions == 2) {
+                 std::string const& title = "Tatooine pointset") const -> void
+  requires(NumDimensions == 3 || NumDimensions == 2)
+  {
     auto writer = vtk::legacy_file_writer{path, vtk::dataset_type::polydata};
     if (writer.is_open()) {
       writer.set_title(title);
@@ -719,8 +728,7 @@ struct pointset {
          << " version=\"1.0\""
          << " byte_order=\"LittleEndian\""
          << " header_type=\""
-         << vtk::xml::to_string(
-                vtk::xml::to_data_type<header_type>())
+         << vtk::xml::to_string(vtk::xml::to_data_type<header_type>())
          << "\">\n"
          << "<PolyData>\n"
          << "<Piece"
@@ -735,9 +743,7 @@ struct pointset {
          << "<DataArray"
          << " format=\"appended\""
          << " offset=\"" << offset << "\""
-         << " type=\""
-         << vtk::xml::to_string(
-                vtk::xml::to_data_type<Real>())
+         << " type=\"" << vtk::xml::to_string(vtk::xml::to_data_type<Real>())
          << "\" NumberOfComponents=\"3\"/>"
          << "</Points>\n";
     offset += num_bytes_points + sizeof(header_type);
@@ -751,8 +757,7 @@ struct pointset {
     offset += num_bytes_verts_connectivity + sizeof(header_type);
     // Verts - offsets
     file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
-         << vtk::xml::to_string(
-                vtk::xml::to_data_type<verts_offset_int_type>())
+         << vtk::xml::to_string(vtk::xml::to_data_type<verts_offset_int_type>())
          << "\" Name=\"offsets\"/>\n";
     offset += num_bytes_verts_offsets + sizeof(header_type);
     file << "</Verts>\n";
@@ -888,7 +893,8 @@ struct pointset {
                << vtk::xml::to_string(
                       vtk::xml::to_data_type<tensor_value_type<T>>())
                << "\" NumberOfComponents=\"" << T::dimension(0) << "\"/>\n";
-          offset += vertices().size() * sizeof(tensor_value_type<T>) * tensor_dimension<T, 0> +
+          offset += vertices().size() * sizeof(tensor_value_type<T>) *
+                        tensor_dimension<T, 0> +
                     sizeof(header_type);
         }
         return vertices().size() * sizeof(tensor_value_type<T>) *
@@ -906,13 +912,11 @@ struct pointset {
       auto const& typed_prop = prop->template cast_to_typed<T>();
       if constexpr (tensor_rank<T> <= 1) {
         auto const num_bytes =
-            header_type(sizeof(tensor_value_type<T>) * tensor_num_components<T> *
-                        vertices().size());
+            header_type(sizeof(tensor_value_type<T>) *
+                        tensor_num_components<T> * vertices().size());
         file.write(reinterpret_cast<char const*>(&num_bytes),
                    sizeof(header_type));
-        file.write(reinterpret_cast<char const*>(
-                       typed_prop.data()),
-                   num_bytes);
+        file.write(reinterpret_cast<char const*>(typed_prop.data()), num_bytes);
       } else if constexpr (tensor_rank<T> == 2) {
         auto const num_bytes = header_type(
             sizeof(tensor_value_type<T>) * tensor_num_components<T> *
@@ -1027,7 +1031,8 @@ struct pointset {
     std::vector<std::vector<Real>> distances;
     {
       // auto lock = std::scoped_lock{m_flann_mutex};
-      h->radiusSearch(qm, indices, distances, static_cast<float>(radius), params);
+      h->radiusSearch(qm, indices, distances, static_cast<float>(radius),
+                      params);
     }
     return {std::move(indices.front()), std::move(distances.front())};
   }
@@ -1069,7 +1074,8 @@ struct pointset {
   auto moving_least_squares_sampler(typed_vertex_property_type<T> const& prop,
                                     Real const                           radius,
                                     invocable<real_type> auto&& weighting) const
-      requires(NumDimensions == 3 || NumDimensions == 2) {
+  requires(NumDimensions == 3 || NumDimensions == 2)
+  {
     return detail::pointset::moving_least_squares_sampler<
         real_type, num_dimensions(), T, std::decay_t<decltype(weighting)>>{
         *this, prop, radius, std::forward<decltype(weighting)>(weighting)};
@@ -1089,7 +1095,8 @@ struct pointset {
   template <typename T>
   auto moving_least_squares_sampler(typed_vertex_property_type<T> const& prop,
                                     Real const radius) const
-      requires(NumDimensions == 3 || NumDimensions == 2) {
+  requires(NumDimensions == 3 || NumDimensions == 2)
+  {
     return moving_least_squares_sampler(
         prop, radius,
 
@@ -1102,8 +1109,8 @@ struct pointset {
         //}
     );
   }
-  ///\}
-  #endif
+///\}
+#endif
   //============================================================================
 #if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
   /// \brief Constructs a radial basis functions interpolator.
