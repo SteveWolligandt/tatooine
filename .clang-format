@@ -21,3 +21,6 @@ SortIncludes: 'true'
 Standard: Auto
 TabWidth: '2'
 UseTab: Never
+#RequiresExpressionIndentation: REI_OuterScope
+RequiresClausePosition: OwnLine
+IndentRequiresClause: false

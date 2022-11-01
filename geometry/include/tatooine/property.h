@@ -237,6 +237,9 @@ struct typed_vector_property : vector_property<Handle> {
   }
 };
 //==============================================================================
+template <typename Handle, typename ValueType>
+struct typed_deque_property;
+//==============================================================================
 template <typename Handle>
 struct deque_property {
   using this_type = deque_property<Handle>;
@@ -271,6 +274,16 @@ struct deque_property {
   template <typename ValueType>
   auto holds_type() const {
     return type() == typeid(ValueType);
+  }
+  //----------------------------------------------------------------------------
+  template <typename ValueType>
+  auto cast_to_typed() -> decltype(auto) {
+    return *static_cast<typed_deque_property<Handle, ValueType>*>(this);
+  }
+  //----------------------------------------------------------------------------
+  template <typename ValueType>
+  auto cast_to_typed() const -> decltype(auto) {
+    return *static_cast<typed_deque_property<Handle, ValueType> const*>(this);
   }
   //----------------------------------------------------------------------------
   virtual auto clone() const -> std::unique_ptr<this_type> = 0;

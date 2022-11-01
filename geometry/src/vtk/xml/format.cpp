@@ -1,15 +1,18 @@
-#include <tatooine/vtk/xml/byte_order.h>
+#include <tatooine/vtk/xml/format.h>
 //==============================================================================
 namespace tatooine::vtk::xml {
 //==============================================================================
-auto parse_byte_order(char const* str) -> byte_order {
-  if (std::strcmp(str, "LittleEndian") == 0) {
-    return byte_order::little_endian;
+auto parse_format(char const* str) -> format {
+  if (std::strcmp(str, "ascii") == 0) {
+    return format::ascii;
   }
-  if (std::strcmp(str, "BigEndian") == 0) {
-    return byte_order::big_endian;
+  if (std::strcmp(str, "binary") == 0) {
+    return format::binary;
   }
-  return byte_order::unknown;
+  if (std::strcmp(str, "appended") == 0) {
+    return format::appended;
+  }
+  return format::unknown;
 }
 //==============================================================================
 }  // namespace tatooine::vtk::xml

@@ -37,7 +37,7 @@ struct solver : ode::solver<solver<Real, N, Stepper>, Real, N> {
 
  public:
   //============================================================================
-  solver(const Stepper &stepper, const Real stepsize)
+  solver(const Stepper& stepper, const Real stepsize)
       : m_stepper{stepper}, m_stepsize{stepsize} {}
   solver(Stepper&& stepper, const Real stepsize)
       : m_stepper{std::move(stepper)}, m_stepsize{stepsize} {}
@@ -47,6 +47,7 @@ struct solver : ode::solver<solver<Real, N, Stepper>, Real, N> {
   constexpr void solve(Evaluator&& evaluator, vec<Y0Real, N> const& y0,
                        arithmetic auto const t0, arithmetic auto tau,
                        StepperCallback&& callback) const {
+    using ::boost::numeric::odeint::step_adjustment_error;
     constexpr auto callback_takes_derivative =
         std::is_invocable_v<StepperCallback, pos_type, Real, vec_t>;
 
@@ -55,20 +56,32 @@ struct solver : ode::solver<solver<Real, N, Stepper>, Real, N> {
     }
     auto x_copy = pos_type{y0};
     try {
-    ::boost::numeric::odeint::integrate_adaptive(
-        m_stepper,
-        [&evaluator, tau, t0](pos_type const& y, pos_type& sample, Real t) {
-          sample = evaluator(y, t);
-        },
-        x_copy, Real(t0), Real(t0 + tau), Real(tau > 0 ? m_stepsize : -m_stepsize),
-        [tau, t0, &callback, &evaluator](const pos_type& y, Real t) {
-          if constexpr (!callback_takes_derivative) {
-            callback(y, t);
-          } else {
-            callback(y, t, evaluator(y, t));
-          }
-        });
-    } catch (::boost::numeric::odeint::step_adjustment_error const&) {
+      ::boost::numeric::odeint::integrate_adaptive(
+          m_stepper,
+          [&evaluator, tau, t0, num_same_in_a_row = std::size_t{},
+           prev_t = nan<Real>()](pos_type const& y, pos_type& sample,
+                                 Real t) mutable {
+            if (abs(prev_t - t) < 1e-12) {
+              ++num_same_in_a_row;
+            } else {
+              num_same_in_a_row = 0;
+            }
+            if (num_same_in_a_row == 10) {
+              throw step_adjustment_error{""};
+            }
+            prev_t = t;
+            sample = evaluator(y, t);
+          },
+          x_copy, Real(t0), Real(t0 + tau),
+          Real(tau > 0 ? m_stepsize : -m_stepsize),
+          [tau, t0, &callback, &evaluator](const pos_type& y, Real t) {
+            if constexpr (!callback_takes_derivative) {
+              callback(y, t);
+            } else {
+              callback(y, t, evaluator(y, t));
+            }
+          });
+    } catch (step_adjustment_error const&) {
       if constexpr (!callback_takes_derivative) {
         callback(pos_type::fill(nan()), nan());
       } else {

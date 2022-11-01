@@ -12,6 +12,7 @@ template <arithmetic_or_complex ValueType, std::size_t N>
 struct vec : tensor<ValueType, N> {
   using this_type   = vec<ValueType, N>;
   using parent_type = tensor<ValueType, N>;
+  using typename parent_type::value_type;
   using parent_type::at;
   using parent_type::operator();
   using parent_type::dimension;
@@ -81,7 +82,11 @@ struct vec : tensor<ValueType, N> {
   auto constexpr operator=(vec const&) -> vec& = default;
   auto constexpr operator=(vec&& other) noexcept -> vec& = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto constexpr operator=(static_tensor auto&& other) -> vec& {
+  template <static_tensor Other>
+  requires (same_dimensions<this_type, Other>()) &&
+           (convertible_to<tensor_value_type<Other>,
+                      value_type>)
+  auto constexpr operator=(Other&& other) -> vec& {
     this->assign(std::forward<decltype(other)>(other));
     return *this;
   }

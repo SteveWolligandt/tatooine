@@ -3,44 +3,46 @@
 namespace detail::edgeset {
 //==============================================================================
 template <typename MeshCont>
-auto write_container_to_vtk(
-    MeshCont const& edgesets, std::filesystem::path const& path,
-    std::string const& title = "tatooine edgeset") {
+auto write_container_to_vtk(MeshCont const&              edgesets,
+                            std::filesystem::path const& path,
+                            std::string const& title = "tatooine edgeset") {
   vtk::legacy_file_writer writer(path, vtk::dataset_type::polydata);
-  if (writer.is_open()) {
-    std::size_t num_pts   = 0;
-    std::size_t cur_first = 0;
-    for (auto const& m : edgesets) {
-      num_pts += m.vertices().size();
-    }
-    std::vector<std::array<typename MeshCont::value_type::real_type, 3>> points;
-    std::vector<std::vector<std::size_t>>                             edges;
-    points.reserve(num_pts);
-    edges.reserve(edgesets.size());
-
-    for (auto const& m : edgesets) {
-      // add points
-      for (auto const& v : m.vertices()) {
-        points.push_back(std::array{m[v](0), m[v](1), m[v](2)});
-      }
-
-      // add edges
-      for (auto s : m.simplices()) {
-        edges.emplace_back();
-        auto [v0, v1] = m[s];
-        edges.back().push_back(cur_first + v0.index());
-        edges.back().push_back(cur_first + v1.index());
-      }
-      cur_first += m.vertices().size();
-    }
-
-    // write
-    writer.set_title(title);
-    writer.write_header();
-    writer.write_points(points);
-    writer.write_polygons(edges);
-    writer.close();
+  if (!writer.is_open()) {
+    return;
   }
+  auto num_pts   = std::size_t{};
+  auto cur_first = std::size_t{};
+  for (auto const& m : edgesets) {
+    num_pts += m.vertices().size();
+  }
+  auto points =
+      std::vector<std::array<typename MeshCont::value_type::real_type, 3>>{};
+  auto edges = std::vector<std::vector<std::size_t>>{};
+  points.reserve(num_pts);
+  edges.reserve(edgesets.size());
+
+  for (auto const& m : edgesets) {
+    // add points
+    for (auto const& v : m.vertices()) {
+      points.push_back(std::array{m[v](0), m[v](1), m[v](2)});
+    }
+
+    // add edges
+    for (auto s : m.simplices()) {
+      edges.emplace_back();
+      auto [v0, v1] = m[s];
+      edges.back().push_back(cur_first + v0.index());
+      edges.back().push_back(cur_first + v1.index());
+    }
+    cur_first += m.vertices().size();
+  }
+
+  // write
+  writer.set_title(title);
+  writer.write_header();
+  writer.write_points(points);
+  writer.write_polygons(edges);
+  writer.close();
 }
 //==============================================================================
 template <typename Real, std::size_t NumDimensions>
@@ -239,8 +241,8 @@ auto write_container_to_vtp(range auto const&            edgesets,
 
   for (auto const& g : edgesets) {
     using real_type = typename std::decay_t<decltype(g)>::real_type;
-    arr_size     = header_type(sizeof(real_type) * g.num_dimensions() *
-                               g.vertices().data_container().size());
+    arr_size        = header_type(sizeof(real_type) * g.num_dimensions() *
+                                  g.vertices().data_container().size());
     file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
     file.write(reinterpret_cast<char const*>(g.vertices().data()), arr_size);
 

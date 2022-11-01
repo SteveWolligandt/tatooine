@@ -43,8 +43,8 @@ struct triangular_vtu_writer {
          << " version=\"1.0\""
          << " byte_order=\"LittleEndian\""
          << " header_type=\""
-         << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<HeaderType>())
+         << vtk::xml::to_string(
+                vtk::xml::to_data_type<HeaderType>())
          << "\">\n";
     write_unstructured_grid(file, offset);
     write_appended_data(file);
@@ -91,8 +91,8 @@ struct triangular_vtu_writer {
          << " format=\"appended\""
          << " offset=\"" << offset << "\""
          << " type=\""
-         << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<typename Grid::real_type>())
+         << vtk::xml::to_string(
+                vtk::xml::to_data_type<typename Grid::real_type>())
          << "\" NumberOfComponents=\"3\"/>\n"
          << "      </Points>\n";
     auto const num_bytes = HeaderType(sizeof(typename Grid::real_type) * 3 *
@@ -111,8 +111,8 @@ struct triangular_vtu_writer {
     file << "      <Cells>\n"
          << "        <DataArray format=\"appended\" offset=\"" << offset
          << "\" type=\""
-         << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<ConnectivityInt>())
+         << vtk::xml::to_string(
+                vtk::xml::to_data_type<ConnectivityInt>())
          << "\" Name=\"connectivity\"/>\n";
     HeaderType num_bytes = m_grid.simplices().size() *
                            m_grid.num_vertices_per_simplex() *
@@ -124,8 +124,8 @@ struct triangular_vtu_writer {
     // offsets
     file << "        <DataArray format=\"appended\" offset=\"" << offset
          << "\" type=\""
-         << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<OffsetInt>())
+         << vtk::xml::to_string(
+                vtk::xml::to_data_type<OffsetInt>())
          << "\" Name=\"offsets\"/>\n";
     auto const num_bytes = sizeof(OffsetInt) * (m_grid.simplices().size());
     offset += num_bytes + sizeof(HeaderType);
@@ -135,8 +135,8 @@ struct triangular_vtu_writer {
     // types
     file << "        <DataArray format=\"appended\" offset=\"" << offset
          << "\" type=\""
-         << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<CellTypesInt>())
+         << vtk::xml::to_string(
+                vtk::xml::to_data_type<CellTypesInt>())
          << "\" Name=\"types\"/>\n";
     file << "      </Cells>\n";
     auto const num_bytes=
@@ -281,8 +281,8 @@ struct triangular_vtu_writer {
                    << " format=\"appended\""
                    << " offset=\"" << offset << "\""
                    << " type=\""
-                   << tatooine::vtk::xml::data_array::to_string(
-                          tatooine::vtk::xml::data_array::to_type<
+                   << tatooine::vtk::xml::to_string(
+                          tatooine::vtk::xml::to_data_type<
                               tensor_value_type<Ts>>())
                    << "\" NumberOfComponents=\""
                    << tensor_num_components<Ts> << "\"/>\n";
@@ -295,8 +295,8 @@ struct triangular_vtu_writer {
                      << " format=\"appended\""
                      << " offset=\"" << offset << "\""
                      << " type=\""
-                     << vtk::xml::data_array::to_string(
-                            vtk::xml::data_array::to_type<
+                     << vtk::xml::to_string(
+                            vtk::xml::to_data_type<
                                 tensor_value_type<Ts>>())
                      << "\" NumberOfComponents=\"" << Ts::dimension(0)
                      << "\"/>\n";

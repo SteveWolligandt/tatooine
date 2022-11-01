@@ -1,16 +1,14 @@
-#include <tatooine/vtk/xml/byte_order.h>
+#ifndef TATOOINE_GEOMETRY_VTK_XML_FORMAT_H
+#define TATOOINE_GEOMETRY_VTK_XML_FORMAT_H
+//==============================================================================
+#include <cstring>
 //==============================================================================
 namespace tatooine::vtk::xml {
 //==============================================================================
-auto parse_byte_order(char const* str) -> byte_order {
-  if (std::strcmp(str, "LittleEndian") == 0) {
-    return byte_order::little_endian;
-  }
-  if (std::strcmp(str, "BigEndian") == 0) {
-    return byte_order::big_endian;
-  }
-  return byte_order::unknown;
-}
+enum class format { ascii, binary, appended, unknown };
+//------------------------------------------------------------------------------
+auto parse_format(char const* str) -> format;
 //==============================================================================
 }  // namespace tatooine::vtk::xml
 //==============================================================================
+#endif
