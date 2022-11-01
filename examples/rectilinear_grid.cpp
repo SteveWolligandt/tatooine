@@ -9,5 +9,5 @@ auto main() -> int {
   int_prop(1, 1) = 3;
   float_prop(1, 1) = 3;
   double_prop(1, 1) = 3;
-  g.write("rectilinear_grid.h5");
+  g.write("rectilinear_grid.vtr");
 }

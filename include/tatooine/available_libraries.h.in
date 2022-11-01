@@ -3,23 +3,23 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-static constexpr auto flann_available() {
+static constexpr auto flann_available() -> bool {
   return @TATOOINE_FLANN_AVAILABLE@ == 1;
 }
 //------------------------------------------------------------------------------
-static constexpr auto openmp_available() {
+static constexpr auto openmp_available() -> bool {
   return @TATOOINE_OPENMP_AVAILABLE@ == 1;
 }
 //------------------------------------------------------------------------------
-static constexpr auto png_available() {
+static constexpr auto png_available() -> bool {
   return @TATOOINE_PNG_AVAILABLE@ == 1;
 }
 //------------------------------------------------------------------------------
-static constexpr auto cdt_available() {
+static constexpr auto cdt_available() -> bool {
   return @TATOOINE_CDT_AVAILABLE@ == 1;
 }
 //------------------------------------------------------------------------------
-static constexpr auto cgal_available() {
+static constexpr auto cgal_available() -> bool {
   return @TATOOINE_CGAL_AVAILABLE@ == 1;
 }
 //==============================================================================

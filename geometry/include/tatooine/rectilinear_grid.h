@@ -1553,77 +1553,81 @@ class rectilinear_grid {
         return;
       }
     }
+#if TATOOINE_HDF5_AVAILABLE
     if constexpr (num_dimensions() == 2 || num_dimensions() == 3) {
       if (ext == ".h5") {
         write_visitvs(path);
         return;
       }
     }
+#endif
     throw std::runtime_error{"Unsupported file extension: \"" + ext.string() +
                              "\"."};
   }
   //----------------------------------------------------------------------------
-  auto write_vtk(filesystem::path const& path,
-                 std::string const& description = "tatooine rectilinear_grid")
-          const -> void requires(num_dimensions() == 2) ||
-      (num_dimensions() == 3) {
-    auto writer = [this, &path, &description] {
-      if constexpr (is_uniform) {
-        auto writer =
-            vtk::legacy_file_writer{path, vtk::dataset_type::structured_points};
-        writer.set_title(description);
-        writer.write_header();
-        if constexpr (num_dimensions() == 1) {
-          writer.write_dimensions(size<0>(), 1, 1);
-          writer.write_origin(dimension<0>().front(), 0, 0);
-          writer.write_spacing(dimension<0>().spacing(), 0, 0);
-        } else if constexpr (num_dimensions() == 2) {
-          writer.write_dimensions(size<0>(), size<1>(), 1);
-          writer.write_origin(dimension<0>().front(), dimension<1>().front(), 0);
-          writer.write_spacing(dimension<0>().spacing(),
-                               dimension<1>().spacing(), 0);
-        } else if constexpr (num_dimensions() == 3) {
-          writer.write_dimensions(size<0>(), size<1>(), size<2>());
-          writer.write_origin(dimension<0>().front(), dimension<1>().front(), dimension<2>().front());
-          writer.write_spacing(dimension<0>().spacing(),
-                               dimension<1>().spacing(),
-                               dimension<2>().spacing());
-        }
-        return writer;
-      } else {
-        auto writer =
-            vtk::legacy_file_writer{path, vtk::dataset_type::rectilinear_grid};
-        writer.set_title(description);
-        writer.write_header();
-        if constexpr (num_dimensions() == 1) {
-          writer.write_dimensions(size<0>(), 1, 1);
-          writer.write_x_coordinates(
-              std::vector<double>(begin(dimension<0>()), end(dimension<0>())));
-          writer.write_y_coordinates(std::vector<double>{0});
-          writer.write_z_coordinates(std::vector<double>{0});
-        } else if constexpr (num_dimensions() == 2) {
-          writer.write_dimensions(size<0>(), size<1>(), 1);
-          writer.write_x_coordinates(
-              std::vector<double>(begin(dimension<0>()), end(dimension<0>())));
-          writer.write_y_coordinates(
-              std::vector<double>(begin(dimension<1>()), end(dimension<1>())));
-          writer.write_z_coordinates(std::vector<double>{0});
-        } else if constexpr (num_dimensions() == 3) {
-          writer.write_dimensions(size<0>(), size<1>(), size<2>());
-          writer.write_x_coordinates(
-              std::vector<double>(begin(dimension<0>()), end(dimension<0>())));
-          writer.write_y_coordinates(
-              std::vector<double>(begin(dimension<1>()), end(dimension<1>())));
-          writer.write_z_coordinates(
-              std::vector<double>(begin(dimension<2>()), end(dimension<2>())));
-        }
-        return writer;
-      }
-    }();
+  auto write_vtk(
+      filesystem::path const& path,
+      std::string const&      description = "tatooine rectilinear_grid") const
+  requires is_uniform &&(num_dimensions() == 2) || (num_dimensions() == 3) {
+    auto writer =
+        vtk::legacy_file_writer{path, vtk::dataset_type::structured_points};
+    writer.set_title(description);
+    writer.write_header();
+    if constexpr (num_dimensions() == 1) {
+      writer.write_dimensions(size<0>(), 1, 1);
+      writer.write_origin(dimension<0>().front(), 0, 0);
+      writer.write_spacing(dimension<0>().spacing(), 0, 0);
+    } else if constexpr (num_dimensions() == 2) {
+      writer.write_dimensions(size<0>(), size<1>(), 1);
+      writer.write_origin(dimension<0>().front(), dimension<1>().front(), 0);
+      writer.write_spacing(dimension<0>().spacing(), dimension<1>().spacing(), 0);
+    } else if constexpr (num_dimensions() == 3) {
+      writer.write_dimensions(size<0>(), size<1>(), size<2>());
+      writer.write_origin(dimension<0>().front(), dimension<1>().front(),
+                          dimension<2>().front());
+      writer.write_spacing(dimension<0>().spacing(), dimension<1>().spacing(),
+                           dimension<2>().spacing());
+    }
     // write vertex data
     writer.write_point_data(vertices().size());
-    write_vtk_prop<int, float, double, vec2f, vec3f, vec4f, vec2d, vec3d,
-                   vec4d>(writer);
+    write_vtk_prop<int, float, double, vec2f, vec3f, vec4f, vec2d, vec3d, vec4d>(
+        writer);
+  }
+  //----------------------------------------------------------------------------
+  auto write_vtk(
+      filesystem::path const& path,
+      std::string const&      description = "tatooine rectilinear_grid") const
+  requires(!is_uniform) && (num_dimensions() == 2) || (num_dimensions() == 3) {
+    auto writer =
+        vtk::legacy_file_writer{path, vtk::dataset_type::rectilinear_grid};
+    writer.set_title(description);
+    writer.write_header();
+    if constexpr (num_dimensions() == 1) {
+      writer.write_dimensions(size<0>(), 1, 1);
+      writer.write_x_coordinates(
+          std::vector<double>(begin(dimension<0>()), end(dimension<0>())));
+      writer.write_y_coordinates(std::vector<double>{0});
+      writer.write_z_coordinates(std::vector<double>{0});
+    } else if constexpr (num_dimensions() == 2) {
+      writer.write_dimensions(size<0>(), size<1>(), 1);
+      writer.write_x_coordinates(
+          std::vector<double>(begin(dimension<0>()), end(dimension<0>())));
+      writer.write_y_coordinates(
+          std::vector<double>(begin(dimension<1>()), end(dimension<1>())));
+      writer.write_z_coordinates(std::vector<double>{0});
+    } else if constexpr (num_dimensions() == 3) {
+      writer.write_dimensions(size<0>(), size<1>(), size<2>());
+      writer.write_x_coordinates(
+          std::vector<double>(begin(dimension<0>()), end(dimension<0>())));
+      writer.write_y_coordinates(
+          std::vector<double>(begin(dimension<1>()), end(dimension<1>())));
+      writer.write_z_coordinates(
+          std::vector<double>(begin(dimension<2>()), end(dimension<2>())));
+    }
+    // write vertex data
+    writer.write_point_data(vertices().size());
+    write_vtk_prop<int, float, double, vec2f, vec3f, vec4f, vec2d, vec3d, vec4d>(
+        writer);
   }
   //----------------------------------------------------------------------------
  private:
@@ -1657,14 +1661,10 @@ class rectilinear_grid {
     detail::rectilinear_grid::vtr_writer<this_type, HeaderType>{*this}.write(
         path);
   }
- public:
-  auto write_visitvs(filesystem::path const& path) const -> void {
-    write_visitvs(path, std::make_index_sequence<num_dimensions()>{});
-  }
 
- private:
   //----------------------------------------------------------------------------
 #if TATOOINE_HDF5_AVAILABLE
+ private:
   template <typename T, bool HasNonConstReference, std::size_t... Is>
   void write_prop_hdf5(
       hdf5::file& f, std::string const& name,
@@ -1712,61 +1712,52 @@ class rectilinear_grid {
   }
   //----------------------------------------------------------------------------
   template <typename... Ts, std::size_t... Is>
-  auto write_prop_hdf5_wrapper(hdf5::file& f, std::string const& name,
+  auto write_prop_hdf5_wrapper(hdf5::file & f, std::string const& name,
                                vertex_property_type const& prop,
-                               std::index_sequence<Is...>  seq) const -> void {
-    (
-        [&] {
-          if (prop.type() == typeid(Ts)) {
-            write_prop_hdf5(
-                f, name,
-                *dynamic_cast<
-                    const typed_vertex_property_interface_type<Ts, true>*>(
-                    &prop),
-                seq);
-            return;
-          }
-        }(),
-        ...);
+                               std::index_sequence<Is...>  seq) const->void {
+    invoke([&] {
+      if (prop.type() == typeid(Ts)) {
+        write_prop_hdf5(
+            f, name,
+            *dynamic_cast<
+                typed_vertex_property_interface_type<Ts, true> const*>(&prop),
+            seq);
+        return;
+      }
+    }...);
   }
   //----------------------------------------------------------------------------
+ public:
   template <std::size_t... Is>
-  auto write_visitvs(filesystem::path const&    path,
-                     std::index_sequence<Is...> seq) const -> void {
+  auto write_visitvs(filesystem::path const& path) const -> void {
     if (filesystem::exists(path)) {
       filesystem::remove(path);
     }
     auto f     = hdf5::file{path};
     auto group = f.group("rectilinear_grid");
 
-    std::stringstream axis_labels_stream;
-    (
-        [&] {
-          if constexpr (Is == 0) {
-            axis_labels_stream << cartesian_axis_label<Is>;
-          } else {
-            axis_labels_stream << ", " << cartesian_axis_label<Is>;
-          }
-        }(),
-        ...);
+    auto axis_labels_stream = std::stringstream {};
+    axis_labels_stream << cartesian_axis_label(0);
+    for (std::size_t i = 1; i < num_dimensions(); ++i) {
+      axis_labels_stream << ", " << cartesian_axis_label(i);
+    }
+
     group.attribute("vsAxisLabels") = axis_labels_stream.str();
     group.attribute("vsKind")       = "rectilinear";
     group.attribute("vsType")       = "mesh";
     group.attribute("vsIndexOrder") = "compMinorF";
-    (
-        [&] {
-          using dim_type =
-              typename std::decay_t<decltype(dimension<Is>())>::value_type;
-          group.attribute("vsAxis" + std::to_string(Is)) =
-              "axis" + std::to_string(Is);
-          auto dim = f.create_dataset<dim_type>(
-              "rectilinear_grid/axis" + std::to_string(Is), size<Is>());
-          auto dim_as_vec = std::vector<dim_type>{};
-          dim_as_vec.reserve(dimension<Is>().size());
-          std::ranges::copy(dimension<Is>(), std::back_inserter(dim_as_vec));
-          dim.write(dim_as_vec);
-        }(),
-        ...);
+
+    m_dimensions.iterate([i = std::size_t{}](auto const& dim) -> mutable {
+      using dim_type = typename std::decay_t<decltype(dim)>::value_type;
+      group.attribute("vsAxis" + std::to_string(i)) = "axis" + std::to_string(i);
+      auto dim                                       = f.create_dataset<dim_type>(
+          "rectilinear_grid/axis" + std::to_string(i), dim.size());
+      auto dim_as_vec = std::vector<dim_type>{};
+      dim_as_vec.reserve(dim.size());
+      std::ranges::copy(dim, std::back_inserter(dim_as_vec));
+      dim.write(dim_as_vec);
+      ++i;
+    });
 
     for (const auto& [name, prop] : this->m_vertex_properties) {
       write_prop_hdf5_wrapper<std::uint16_t, std::uint32_t, std::int16_t,

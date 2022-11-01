@@ -21,7 +21,7 @@ auto write_properties_to_vtk(Writer& writer, Names const& names,
                     std::back_inserter(prop_collector));
         } catch (...) {
           for (std::size_t i = 0; i < l.vertices().size(); ++i) {
-            prop_collector.push_back(0.0 / 0.0);
+            prop_collector.push_back(nan<T>());
           }
         }
       }

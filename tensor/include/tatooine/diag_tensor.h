@@ -285,9 +285,9 @@ auto diag(dynamic_tensor auto&& A) {
   return diag_dynamic_tensor{std::forward<decltype(A)>(A)};
 }
 //------------------------------------------------------------------------------
-template <typename Lhs, dynamic_tensor Rhs>
-requires(dynamic_tensor<Lhs>&& diag_tensor<Lhs>) auto operator*(Lhs const& lhs,
-                                                                Rhs const& rhs)
+template <dynamic_tensor Lhs, dynamic_tensor Rhs>
+requires diag_tensor<Lhs>
+auto operator*(Lhs const& lhs, Rhs const& rhs)
     -> tensor<common_type<tensor_value_type<Lhs>, tensor_value_type<Rhs>>> {
   using out_t =
       tensor<common_type<tensor_value_type<Lhs>, tensor_value_type<Rhs>>>;

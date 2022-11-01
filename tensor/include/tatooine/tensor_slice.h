@@ -6,26 +6,36 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Tensor, arithmetic_or_complex ValueType, size_t FixedDim,
-          size_t... Dims>
+template <typename Tensor, arithmetic_or_complex ValueType, std::size_t FixedDim,
+          std::size_t... Dims>
 struct tensor_slice
     : base_tensor<tensor_slice<Tensor, ValueType, FixedDim, Dims...>, ValueType,
                   Dims...> {
   using tensor_type       = Tensor;
   using this_type         = tensor_slice<Tensor, ValueType, FixedDim, Dims...>;
-  using parent_t          = base_tensor<this_type, ValueType, Dims...>;
-  using parent_t::operator=;
-  using parent_t::num_components;
-  using parent_t::rank;
+  using parent_type       = base_tensor<this_type, ValueType, Dims...>;
+  using typename parent_type::value_type;
+
+  using parent_type::operator=;
+  //template <static_tensor Other>
+  //requires (same_dimensions<this_type, Other>()) &&
+  //         (convertible_to<value_type<std::decay_t<Other>>, value_type>)
+  //auto operator=(Other&& other) -> tensor_slice& {
+  //  parent_type::operator=(std::forward<Other>(other));
+  //  return *this;
+  //}
+
+  using parent_type::num_components;
+  using parent_type::rank;
 
   //============================================================================
  private:
   Tensor* m_tensor;
-  size_t  m_fixed_index;
+  std::size_t  m_fixed_index;
 
   //============================================================================
  public:
-  constexpr tensor_slice(Tensor* tensor, size_t fixed_index)
+  constexpr tensor_slice(Tensor* tensor, std::size_t fixed_index)
       : m_tensor{tensor}, m_fixed_index{fixed_index} {}
 
   //----------------------------------------------------------------------------

@@ -26,7 +26,7 @@ struct numerically_differentiated_field
       raw_internal_field_t::num_dimensions(),
       tensor_add_dimension_right<raw_internal_field_t::num_dimensions(),
                                  typename raw_internal_field_t::tensor_type>>;
-  static constexpr auto num_dimensions() {
+  static constexpr auto num_dimensions() -> std::size_t {
     return parent_type::num_dimensions();
   }
   using typename parent_type::pos_type;
