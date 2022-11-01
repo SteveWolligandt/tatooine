@@ -26,8 +26,8 @@ imgui_render_backend::imgui_render_backend() {
   const char* glsl_version = "#version 410";
   IM_ASSERT((int)strlen(glsl_version) + 2 <
             IM_ARRAYSIZE(m_glsl_version_string));
-  strcpy(m_glsl_version_string, glsl_version);
-  strcat(m_glsl_version_string, "\n");
+  strcpy_s(m_glsl_version_string, glsl_version);
+  strcat_s(m_glsl_version_string, "\n");
   create_device_objects();
 }
 //------------------------------------------------------------------------------

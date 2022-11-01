@@ -140,7 +140,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMPILER_ID}"
                                                 STREQUAL "Clang")
   target_compile_options(base INTERFACE -Wall -Wextra -Wpedantic -Wconversion)
 elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-  target_compile_options(base INTERFACE /Wall)
+  target_compile_options(base INTERFACE /W4)
 endif()
 
 if(NOT TATOOINE_DOC_ONLY)

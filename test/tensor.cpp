@@ -93,9 +93,10 @@ TEST_CASE("tensor_slice", "[tensor][slice]") {
   REQUIRE(c0(0) == 1);
   REQUIRE(c0(1) == 3);
   REQUIRE(c0(2) == 5);
-  REQUIRE(c0(0) == 1.0);
-  REQUIRE(c0(1) == 3.0);
-  REQUIRE(c0(2) == 5.0);
+  c0 = vec{1,2,3};
+  REQUIRE(c0(0) == 1);
+  REQUIRE(c0(1) == 2);
+  REQUIRE(c0(2) == 3);
 
   auto c1 = m.col(1);
   REQUIRE(c1.rank() == 1);

@@ -6,13 +6,14 @@
 namespace tatooine {
 //==============================================================================
 template <typename T>
+requires requires { T::value_type; }
 struct tensor_value_type_impl {
   using type = typename std::decay_t<T>::value_type;
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <arithmetic_or_complex T, std::size_t N>
 struct tensor_value_type_impl<std::array<T, N>> {
-  using type = T;
+  using type = typename tensor_value_type_impl<T>::type;
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <arithmetic T>
