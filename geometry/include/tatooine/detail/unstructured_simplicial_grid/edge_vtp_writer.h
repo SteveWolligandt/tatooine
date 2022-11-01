@@ -48,8 +48,8 @@ struct edge_vtp_writer {
          << " version=\"1.0\""
          << " byte_order=\"LittleEndian\""
          << " header_type=\""
-         << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<HeaderType>())
+         << vtk::xml::to_string(
+                vtk::xml::to_data_type<HeaderType>())
          << "\">\n"
          << "<PolyData>\n"
          << "<Piece"
@@ -65,8 +65,8 @@ struct edge_vtp_writer {
          << " format=\"appended\""
          << " offset=\"" << offset << "\""
          << " type=\""
-         << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<typename Grid::real_type>())
+         << vtk::xml::to_string(
+                vtk::xml::to_data_type<typename Grid::real_type>())
          << "\" NumberOfComponents=\"3\"/>"
          << "</Points>\n";
     offset += num_bytes_points + sizeof(HeaderType);
@@ -74,14 +74,14 @@ struct edge_vtp_writer {
     file << "<Lines>\n"
          // Lines - connectivity
          << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
-         << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<ConnectivityInt>())
+         << vtk::xml::to_string(
+                vtk::xml::to_data_type<ConnectivityInt>())
          << "\" Name=\"connectivity\"/>\n";
     offset += num_bytes_connectivity + sizeof(HeaderType);
     // Lines - offsets
     file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
-         << vtk::xml::data_array::to_string(
-                vtk::xml::data_array::to_type<OffsetInt>())
+         << vtk::xml::to_string(
+                vtk::xml::to_data_type<OffsetInt>())
          << "\" Name=\"offsets\"/>\n";
     offset += num_bytes_offsets + sizeof(HeaderType);
     file << "</Lines>\n"

@@ -1,5 +1,5 @@
-#include <tatooine/structured_grid.h>
 #include <tatooine/rectilinear_grid.h>
+#include <tatooine/structured_grid.h>
 
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -118,7 +118,26 @@ TEST_CASE_METHOD(structured_grid2, "structured_grid_2_linear_sampler",
   discretized.sample_to_vertex_property(
       linear_vertex_property_sampler<real_type>("prop"), "prop");
 }
+//==============================================================================
+TEST_CASE_METHOD(structured_grid2, "structured_grid_2_io",
+                 "[structured_grid][2d][IO][io][vts]") {
+  std::size_t resx = 40;
+  std::size_t resy = 10;
 
+  auto const angle  = linspace{0.0, M_PI, resx};
+  auto const radius = linspace{1.0, 2.0, resy};
+  resize(resx, resy);
+  auto & prop = scalar_vertex_property("prop");
+
+  auto builder = [&](auto const ix, auto const iy) {
+    vertex_at(ix, iy) =
+        vec{cos(angle[ix]) * radius[iy], sin(angle[ix]) * radius[iy]};
+    prop[plain_index(ix, iy)] = radius[iy]; 
+  };
+  for_loop(builder, resx, resy);
+
+  write_vts("structured_grid.unittests.2d.vts");
+}
 //==============================================================================
 TEST_CASE_METHOD(structured_grid3, "structured_grid_3_cell_coordinates",
                  "[structured_grid][3d][cell_coordinates]") {
@@ -192,8 +211,8 @@ TEST_CASE_METHOD(structured_grid3, "structured_grid_3_linear_sampler",
   prop[vertex_handle{plain_index(1, 0, 1)}] = 6;
   prop[vertex_handle{plain_index(0, 1, 1)}] = 2;
   prop[vertex_handle{plain_index(1, 1, 1)}] = 5;
-  auto const aabb                        = axis_aligned_bounding_box();
-  auto prop_sampler = linear_vertex_property_sampler(prop);
+  auto const aabb                           = axis_aligned_bounding_box();
+  auto       prop_sampler = linear_vertex_property_sampler(prop);
 
   auto const p000 = prop_sampler(vertex_at(0, 0, 0));
   REQUIRE(p000 == Approx(prop[vertex_handle{plain_index(0, 0, 0)}]));

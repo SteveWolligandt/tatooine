@@ -1,6 +1,8 @@
 option(TATOOINE_BUILD_TESTS "Tests shall be built?")
 if(${TATOOINE_BUILD_TESTS})
   update_git_submodule(external/catch2)
+  configure_file(poly_data.vtp poly_data.vtp COPYONLY)
+  configure_file(line.vtp line.vtp COPYONLY)
 
   set(CATCH_BUILD_TESTING
       OFF
