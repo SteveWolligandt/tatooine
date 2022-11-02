@@ -183,7 +183,7 @@ using scalarfield = field<V, Real, NumDimensions, Real>;
 template <std::size_t NumDimensions, typename F>
 struct lambda_field
     : field<lambda_field<NumDimensions, F>,
-            tensor_value_type<std::invoke_result_t<
+            tatooine::value_type<std::invoke_result_t<
                 F, vec<tatooine::real_number, NumDimensions>,
                 tatooine::real_number>>,
             NumDimensions,
@@ -194,7 +194,7 @@ struct lambda_field
   ~lambda_field()   = default;
   using parent_type = field<
       lambda_field<NumDimensions, F>,
-      tensor_value_type<std::invoke_result_t<
+      tatooine::value_type<std::invoke_result_t<
           F, vec<tatooine::real_number, NumDimensions>, tatooine::real_number>>,
       NumDimensions,
       std::invoke_result_t<F, vec<tatooine::real_number, NumDimensions>,

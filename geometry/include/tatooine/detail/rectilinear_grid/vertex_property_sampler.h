@@ -289,7 +289,7 @@ struct vertex_property_sampler
     return sizeof...(InterpolationKernels);
   }
   //----------------------------------------------------------------------------
-  static_assert(is_floating_point<tensor_value_type<value_type>>);
+  static_assert(is_floating_point<tatooine::value_type<value_type>>);
   //============================================================================
  private:
   property_type const& m_property;

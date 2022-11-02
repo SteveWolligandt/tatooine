@@ -10,7 +10,7 @@
 namespace tatooine {
 //==============================================================================
 auto copy_or_keep_if_rvalue_tensor_solve(dynamic_tensor auto&& x) -> decltype(auto) {
-  return tensor<tensor_value_type<decltype(x)>>{std::forward<decltype(x)>(x)};
+  return tensor<tatooine::value_type<decltype(x)>>{std::forward<decltype(x)>(x)};
 }
 template <typename T>
 auto copy_or_keep_if_rvalue_tensor_solve(tensor<T>&& x) -> decltype(auto) {
@@ -32,7 +32,7 @@ template <fixed_size_quadratic_mat<2> MatA, static_mat MatB>
 requires(tensor_dimension<MatB, 0> == 2)
 auto constexpr solve_direct(MatA&& A, MatB&& B) {
   using out_value_type =
-      common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>;
+      common_type<tatooine::value_type<MatA>, tatooine::value_type<MatB>>;
   auto constexpr K = tensor_dimension<MatB, 1>;
 
   using out_mat_type = mat<out_value_type, 2, K>;
@@ -53,9 +53,9 @@ auto constexpr solve_direct(MatA&& A, MatB&& B) {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <fixed_size_mat<2, 2> MatA, fixed_size_vec<2> VecB>
 auto solve_direct(MatA&& A, VecB&& b) -> std::optional<
-    vec<common_type<tensor_value_type<MatA>, tensor_value_type<VecB>>, 2>> {
+    vec<common_type<tatooine::value_type<MatA>, tatooine::value_type<VecB>>, 2>> {
   using out_value_type =
-      common_type<tensor_value_type<MatA>, tensor_value_type<VecB>>;
+      common_type<tatooine::value_type<MatA>, tatooine::value_type<VecB>>;
   auto const div = (A(0, 0) * A(1, 1) - A(1, 0) * A(0, 1));
   if (div == 0) {
     return std::nullopt;
@@ -69,11 +69,11 @@ template <static_quadratic_mat MatA, static_vec VecB>
 requires(tensor_dimension<MatA, 0> ==
          tensor_dimension<VecB, 0>)
 auto solve_cramer(MatA const& A, VecB const& b) -> std::optional<
-    vec<common_type<tensor_value_type<MatA>, tensor_value_type<VecB>>,
+    vec<common_type<tatooine::value_type<MatA>, tatooine::value_type<VecB>>,
         tensor_dimension<MatA, 1>>> {
   static constexpr auto N = tensor_dimension<MatA, 1>;
   using out_value_type =
-      common_type<tensor_value_type<MatA>, tensor_value_type<VecB>>;
+      common_type<tatooine::value_type<MatA>, tatooine::value_type<VecB>>;
   auto const det_inv = 1 / det(A);
   auto       Y       = mat<out_value_type, N, N>{A};
   auto       tmp     = vec<out_value_type, N>{};
@@ -93,9 +93,9 @@ requires(tensor_dimension<MatA, 1> ==
          tensor_dimension<VecB, 0>)
 auto solve_lu_lapack(MatA& A_, VecB&& b_)
     -> std::optional<
-        tensor<common_type<tensor_value_type<MatA>, tensor_value_type<VecB>>>> {
+        tensor<common_type<tatooine::value_type<MatA>, tatooine::value_type<VecB>>>> {
   using common_type =
-      common_type<tensor_value_type<MatA>, tensor_value_type<VecB>>;
+      common_type<tatooine::value_type<MatA>, tatooine::value_type<VecB>>;
   static constexpr auto M    = tensor_dimension<MatA, 0>;
   static constexpr auto N    = tensor_dimension<MatA, 1>;
   auto                  A    = tensor<common_type, M, N>{A_};
@@ -114,7 +114,7 @@ template <static_quadratic_mat MatA, static_mat MatB>
 requires(tensor_dimension<MatA, 0> == tensor_dimension<MatB, 0>)
 auto solve_lu_lapack(MatA& A_, MatB& B_)  {
   using out_value_type =
-      common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>;
+      common_type<tatooine::value_type<MatA>, tatooine::value_type<MatB>>;
   static constexpr auto N = tensor_dimension<MatA, 1>; 
   static constexpr auto K = tensor_dimension<MatB, 1>;
   using out_mat_type         = mat<out_value_type, N, K>;
@@ -135,7 +135,7 @@ template <static_mat MatA, static_mat MatB>
 requires(tensor_dimension<MatA, 0> == tensor_dimension<MatB, 0>)
 auto solve_qr_lapack(MatA&& A_, MatB&& B_) {
   using out_value_type =
-      common_type<tensor_value_type<MatA>, tensor_value_type<MatB>>;
+      common_type<tatooine::value_type<MatA>, tatooine::value_type<MatB>>;
   static auto constexpr M = tensor_dimension<MatA, 0>;
   static auto constexpr N = tensor_dimension<MatA, 1>;
   static auto constexpr K = tensor_dimension<MatB, 1>;
@@ -173,7 +173,7 @@ template <static_mat MatA, static_vec VecB>
 requires (tensor_dimension<MatA, 0> == tensor_dimension<VecB, 0>)
 auto solve_qr_lapack(MatA&& A_, VecB&& b_) {
   using out_value_type =
-      common_type<tensor_value_type<MatA>, tensor_value_type<VecB>>;
+      common_type<tatooine::value_type<MatA>, tatooine::value_type<VecB>>;
   static auto constexpr M = tensor_dimension<MatA, 0>;
   static auto constexpr N = tensor_dimension<MatA, 1>;
   auto A                  = mat<out_value_type, M, N>{A_};
@@ -234,14 +234,14 @@ auto solve(MatA&& A, MatB&& B) {
 #if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
 template <dynamic_tensor TensorA, dynamic_tensor TensorB>
 auto solve_lu_lapack(TensorA&& A_, TensorB&& B_) -> std::optional<tensor<
-    common_type<tensor_value_type<TensorA>, tensor_value_type<TensorB>>>> {
+    common_type<tatooine::value_type<TensorA>, tatooine::value_type<TensorB>>>> {
   assert(A_.rank() == 2);
   assert(A_.dimension(0) == A_.dimension(1));
   assert(A_.dimension(0) == B_.dimension(0));
   assert(B_.rank() == 1 || B_.rank() == 2);
   auto ipiv   = tensor<int>::zeros(A_.dimension(0));
-  if constexpr (same_as<tensor_value_type<TensorA>,
-                        tensor_value_type<TensorB>>) {
+  if constexpr (same_as<tatooine::value_type<TensorA>,
+                        tatooine::value_type<TensorB>>) {
     decltype(auto) A =
         copy_or_keep_if_rvalue_tensor_solve(std::forward<TensorA>(A_));
     decltype(auto) B =
@@ -252,7 +252,7 @@ auto solve_lu_lapack(TensorA&& A_, TensorB&& B_) -> std::optional<tensor<
     return std::forward<decltype(B)>(B);
   } else {
     using out_value_type =
-        common_type<tensor_value_type<TensorA>, tensor_value_type<TensorB>>;
+        common_type<tatooine::value_type<TensorA>, tatooine::value_type<TensorB>>;
     auto A = tensor<out_value_type>{A_};
     auto B = tensor<out_value_type>{B_};
     if (lapack::gesv(A, B, ipiv) != 0) {
@@ -267,9 +267,9 @@ auto solve_lu_lapack(TensorA&& A_, TensorB&& B_) -> std::optional<tensor<
 template <dynamic_tensor TensorA, dynamic_tensor TensorB>
 auto solve_qr_lapack(TensorA&& A_, TensorB&& B_)
     -> std::optional<tensor<
-        common_type<tensor_value_type<TensorA>, tensor_value_type<TensorB>>>> {
+        common_type<tatooine::value_type<TensorA>, tatooine::value_type<TensorB>>>> {
   using out_value_type =
-      common_type<tensor_value_type<TensorA>, tensor_value_type<TensorB>>;
+      common_type<tatooine::value_type<TensorA>, tatooine::value_type<TensorB>>;
   assert(A_.rank() == 2);
   assert(B_.rank() == 1 || B_.rank() == 2);
   assert(A_.dimension(0) == B_.dimension(0));
@@ -348,8 +348,8 @@ auto solve(MatA&& A, VecB&& b) {
 template <dynamic_tensor TensorA, dynamic_tensor TensorB>
 auto solve_symmetric_lapack(TensorA&& A_, TensorB&& B_,
                             lapack::uplo uplo = lapack::uplo::lower)
-    -> std::optional<tensor<common_type<tensor_value_type<decltype(A_)>,
-                                        tensor_value_type<decltype(B_)>>>> {
+    -> std::optional<tensor<common_type<tatooine::value_type<decltype(A_)>,
+                                        tatooine::value_type<decltype(B_)>>>> {
   // assert A is quadratic matrix
   assert(A_.rank() == 2);
   assert(A_.dimension(0) == A_.dimension(1));
@@ -358,8 +358,8 @@ auto solve_symmetric_lapack(TensorA&& A_, TensorB&& B_,
   assert(B_.rank() == 1 || B_.rank() == 2);
   // assert B dimensions are correct
   assert(B_.dimension(0) == A_.dimension(0));
-  if constexpr (same_as<tensor_value_type<decltype(A_)>,
-                        tensor_value_type<decltype(B_)>>) {
+  if constexpr (same_as<tatooine::value_type<decltype(A_)>,
+                        tatooine::value_type<decltype(B_)>>) {
     decltype(auto) A = copy_or_keep_if_rvalue_tensor_solve(A_);
     decltype(auto) B = copy_or_keep_if_rvalue_tensor_solve(B_);
 
@@ -379,8 +379,8 @@ auto solve_symmetric_lapack(TensorA&& A_, TensorB&& B_,
     }
     return std::forward<decltype(B)>(B);
   } else {
-    using T = common_type<tensor_value_type<decltype(A_)>,
-                          tensor_value_type<decltype(B_)>>;
+    using T = common_type<tatooine::value_type<decltype(A_)>,
+                          tatooine::value_type<decltype(B_)>>;
     auto A = tensor<T>{A_};
     auto B = tensor<T>{B_};
 
@@ -414,8 +414,8 @@ auto solve_symmetric_lapack(TensorA&& A_, TensorB&& B_,
 /// B\).
 //auto solve_symmetric_lapack_aa(dynamic_tensor auto&& A_, dynamic_tensor auto&& B_,
 //                            lapack::uplo uplo = lapack::uplo::lower)
-//    -> std::optional<tensor<common_type<tensor_value_type<decltype(A_)>,
-//                                        tensor_value_type<decltype(B_)>>>> {
+//    -> std::optional<tensor<common_type<tatooine::value_type<decltype(A_)>,
+//                                        tatooine::value_type<decltype(B_)>>>> {
 //  // assert A is quadratic matrix
 //  assert(A_.rank() == 2);
 //  assert(A_.dimension(0) == A_.dimension(1));
@@ -424,8 +424,8 @@ auto solve_symmetric_lapack(TensorA&& A_, TensorB&& B_,
 //  assert(B_.rank() == 1 || B_.rank() == 2);
 //  // assert B dimensions are correct
 //  assert(B_.dimension(0) == A_.dimension(0));
-//  if constexpr (same_as<tensor_value_type<decltype(A_)>,
-//                        tensor_value_type<decltype(B_)>>) {
+//  if constexpr (same_as<tatooine::value_type<decltype(A_)>,
+//                        tatooine::value_type<decltype(B_)>>) {
 //    decltype(auto) A = copy_or_keep_if_rvalue_tensor_solve(A_);
 //    decltype(auto) B = copy_or_keep_if_rvalue_tensor_solve(B_);
 //
@@ -445,8 +445,8 @@ auto solve_symmetric_lapack(TensorA&& A_, TensorB&& B_,
 //    }
 //    return std::forward<decltype(B)>(B);
 //  } else {
-//    using T = common_type<tensor_value_type<decltype(A_)>,
-//                          tensor_value_type<decltype(B_)>>;
+//    using T = common_type<tatooine::value_type<decltype(A_)>,
+//                          tatooine::value_type<decltype(B_)>>;
 //    auto A = tensor<T>{A_};
 //    auto B = tensor<T>{B_};
 //
@@ -490,8 +490,8 @@ auto solve_symmetric_lapack(TensorA&& A_, TensorB&& B_,
 //auto solve_symmetric_lapack_rk(dynamic_tensor auto&& A_,
 //                               dynamic_tensor auto&& B_,
 //                               lapack::uplo          uplo = lapack::uplo::lower)
-//    -> std::optional<tensor<common_type<tensor_value_type<decltype(A_)>,
-//                                        tensor_value_type<decltype(B_)>>>> {
+//    -> std::optional<tensor<common_type<tatooine::value_type<decltype(A_)>,
+//                                        tatooine::value_type<decltype(B_)>>>> {
 //  // assert A is quadratic matrix
 //  assert(A_.rank() == 2);
 //  assert(A_.dimension(0) == A_.dimension(1));
@@ -500,8 +500,8 @@ auto solve_symmetric_lapack(TensorA&& A_, TensorB&& B_,
 //  assert(B_.rank() == 1 || B_.rank() == 2);
 //  // assert B dimensions are correct
 //  assert(B_.dimension(0) == A_.dimension(0));
-//  if constexpr (same_as<tensor_value_type<decltype(A_)>,
-//                        tensor_value_type<decltype(B_)>>) {
+//  if constexpr (same_as<tatooine::value_type<decltype(A_)>,
+//                        tatooine::value_type<decltype(B_)>>) {
 //    decltype(auto) A = copy_or_keep_if_rvalue_tensor_solve(A_);
 //    decltype(auto) B = copy_or_keep_if_rvalue_tensor_solve(B_);
 //
@@ -521,8 +521,8 @@ auto solve_symmetric_lapack(TensorA&& A_, TensorB&& B_,
 //    }
 //    return std::forward<decltype(B)>(B);
 //  } else {
-//    using T = common_type<tensor_value_type<decltype(A_)>,
-//                          tensor_value_type<decltype(B_)>>;
+//    using T = common_type<tatooine::value_type<decltype(A_)>,
+//                          tatooine::value_type<decltype(B_)>>;
 //    auto A = tensor<T>{A_};
 //    auto B = tensor<T>{B_};
 //
@@ -554,7 +554,7 @@ auto solve_symmetric(dynamic_tensor auto&& A, dynamic_tensor auto&& B) {
 //------------------------------------------------------------------------------
 template <dynamic_tensor TensorA, dynamic_tensor TensorB>
 auto solve(TensorA&& A, TensorB&& B) -> std::optional<tensor<
-    common_type<tensor_value_type<TensorB>, tensor_value_type<TensorB>>>> {
+    common_type<tatooine::value_type<TensorB>, tatooine::value_type<TensorB>>>> {
   assert(A.rank() == 2);
   assert(B.rank() == 1 || B.rank() == 2);
   assert(B.dimension(0) == A.dimension(0));

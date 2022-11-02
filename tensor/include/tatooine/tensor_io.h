@@ -45,7 +45,7 @@ auto operator<<(std::ostream& out, dynamic_tensor auto const& t) -> auto& {
     out << "[ ";
     out << std::scientific;
     for (size_t i = 0; i < t.dimension(0); ++i) {
-      if constexpr (!is_complex<tensor_value_type<decltype(t)>>) {
+      if constexpr (!is_complex<tatooine::value_type<decltype(t)>>) {
         out << t(i) << ' ';
       }
     }
@@ -56,7 +56,7 @@ auto operator<<(std::ostream& out, dynamic_tensor auto const& t) -> auto& {
     for (size_t r = 0; r < t.dimension(0); ++r) {
       out << "[ ";
       for (size_t c = 0; c < t.dimension(1); ++c) {
-        if constexpr (!is_complex<tensor_value_type<decltype(t)>>) {
+        if constexpr (!is_complex<tatooine::value_type<decltype(t)>>) {
           if (t(r, c) >= 0) {
             out << ' ';
           }

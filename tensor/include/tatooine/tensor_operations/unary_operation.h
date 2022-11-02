@@ -6,9 +6,9 @@
 namespace tatooine {
 //==============================================================================
 template <dynamic_tensor Tensor>
-constexpr auto unary_operation(invocable<tensor_value_type<Tensor>> auto&& op,
+constexpr auto unary_operation(invocable<tatooine::value_type<Tensor>> auto&& op,
                                Tensor const& t) {
-  using TOut = std::invoke_result_t<decltype(op), tensor_value_type<Tensor>>;
+  using TOut = std::invoke_result_t<decltype(op), tatooine::value_type<Tensor>>;
   auto t_out = tensor<TOut>::zeros(t.dimensions());
   for (std::size_t i = 0; i < t.data().size(); ++i) {
     t_out.data()[i] = op(t.data()[i]);
