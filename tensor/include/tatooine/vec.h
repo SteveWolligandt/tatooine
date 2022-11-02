@@ -84,7 +84,7 @@ struct vec : tensor<ValueType, N> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <static_tensor Other>
   requires (same_dimensions<this_type, Other>()) &&
-           (convertible_to<tensor_value_type<Other>,
+           (convertible_to<tatooine::value_type<Other>,
                       value_type>)
   auto constexpr operator=(Other&& other) -> vec& {
     this->assign(std::forward<decltype(other)>(other));

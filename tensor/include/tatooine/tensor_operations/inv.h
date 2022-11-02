@@ -13,7 +13,7 @@ namespace tatooine {
 ///     [b,c]
 template <fixed_size_quadratic_mat<2> Mat>
 constexpr auto inv_sym(Mat&& A)
-    -> std::optional<mat<tensor_value_type<Mat>, 2, 2>> {
+    -> std::optional<mat<tatooine::value_type<Mat>, 2, 2>> {
   decltype(auto) a   = A(0, 0);
   decltype(auto) b   = A(1, 0);
   decltype(auto) c   = A(1, 1);
@@ -23,7 +23,7 @@ constexpr auto inv_sym(Mat&& A)
   }
   auto const div = 1 / det;
   auto const e = -b * div;
-  return mat<tensor_value_type<Mat>, 2, 2>{
+  return mat<tatooine::value_type<Mat>, 2, 2>{
     {c * div, e},
     {e, a * div}};
 }
@@ -33,7 +33,7 @@ constexpr auto inv_sym(Mat&& A)
 ///     [c,d]
 template <fixed_size_quadratic_mat<2> Mat>
 constexpr auto inv(Mat&& A)
-    -> std::optional<mat<tensor_value_type<Mat>, 2, 2>> {
+    -> std::optional<mat<tatooine::value_type<Mat>, 2, 2>> {
   decltype(auto) b = A(0, 1);
   decltype(auto) c = A(1, 0);
   if (std::abs(b - c) < 1e-10) {
@@ -46,7 +46,7 @@ constexpr auto inv(Mat&& A)
     return std::nullopt;
   }
   auto const div = 1 / det;
-  return mat<tensor_value_type<Mat>, 2, 2>{
+  return mat<tatooine::value_type<Mat>, 2, 2>{
              { d* div, -b* div},
              {-c* div,  a* div}} ;
 }
@@ -57,7 +57,7 @@ constexpr auto inv(Mat&& A)
 ///     [c,e,f]
 template <fixed_size_tensor<3, 3> Mat>
 constexpr auto inv_sym(Mat&& A)
-    -> std::optional<mat<tensor_value_type<Mat>, 3, 3>> {
+    -> std::optional<mat<tatooine::value_type<Mat>, 3, 3>> {
   decltype(auto) a = A(0, 0);
   decltype(auto) b = A(1, 0);
   decltype(auto) c = A(2, 0);
@@ -69,7 +69,7 @@ constexpr auto inv_sym(Mat&& A)
   if (std::abs(det) < 1e-10) {
     return {};
   }
-  return mat<tensor_value_type<Mat>, 3, 3>{
+  return mat<tatooine::value_type<Mat>, 3, 3>{
              {d * f - e * e, c * e - b * f, b * e - c * d},
              {c * e - b * f, a * f - c * c, b * c - a * e},
              {b * e - c * d, b * c - a * e, a * d - b * b}} /
@@ -82,7 +82,7 @@ constexpr auto inv_sym(Mat&& A)
 ///     [g,h,i]
 template <fixed_size_quadratic_mat<3> Mat>
 constexpr auto inv(Mat&& A)
-    -> std::optional<mat<tensor_value_type<Mat>, 3, 3>> {
+    -> std::optional<mat<tatooine::value_type<Mat>, 3, 3>> {
   decltype(auto) b = A(0, 1);
   decltype(auto) c = A(0, 2);
   decltype(auto) d = A(1, 0);
@@ -102,7 +102,7 @@ constexpr auto inv(Mat&& A)
     return std::nullopt;
   }
 
-  return mat<tensor_value_type<Mat>, 3, 3>{
+  return mat<tatooine::value_type<Mat>, 3, 3>{
              {e * i - f * h, c * h - b * i, b * f - c * e},
              {f * g - d * i, a * i - c * g, c * d - a * f},
              {d * h - e * g, b * g - a * h, a * e - b * d}} /
@@ -116,7 +116,7 @@ constexpr auto inv(Mat&& A)
 ///     [d,g,i,j]
 template <fixed_size_quadratic_mat<4> Mat>
 constexpr auto inv_sym(Mat&& A)
-    -> std::optional<mat<tensor_value_type<Mat>, 4, 4>> {
+    -> std::optional<mat<tatooine::value_type<Mat>, 4, 4>> {
   decltype(auto) a = A(0, 0);
   decltype(auto) b = A(1, 0);
   decltype(auto) c = A(2, 0);
@@ -171,7 +171,7 @@ constexpr auto inv_sym(Mat&& A)
 ///     [m,n,o,p]
 template <fixed_size_quadratic_mat<4> Mat>
 constexpr auto inv(Mat && A)
-    -> std::optional<mat<tensor_value_type<Mat>, 4, 4>> {
+    -> std::optional<mat<tatooine::value_type<Mat>, 4, 4>> {
   decltype(auto) b = A(0, 1);
   decltype(auto) c = A(0, 2);
   decltype(auto) d = A(0, 3);

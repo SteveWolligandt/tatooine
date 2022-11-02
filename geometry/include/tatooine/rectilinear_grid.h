@@ -1108,7 +1108,7 @@ class rectilinear_grid {
             if constexpr (tensor_num_components<T> == 1) {
               prop(is...) = nan<T>();
             } else {
-              prop(is...) = T::fill(nan<tensor_value_type<T>>());
+              prop(is...) = T::fill(nan<tatooine::value_type<T>>());
             }
           }
         },
@@ -1130,7 +1130,7 @@ class rectilinear_grid {
               prop(is...) = invoke_result{nan<invoke_result>()};
             } else {
               prop(is...) =
-                  invoke_result::fill(nan<tensor_value_type<invoke_result>>());
+                  invoke_result::fill(nan<tatooine::value_type<invoke_result>>());
             }
           }
         },

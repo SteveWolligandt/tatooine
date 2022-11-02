@@ -214,11 +214,8 @@ if(NOT TATOOINE_DOC_ONLY)
       set(TATOOINE_MPI_AVAILABLE 0)
     endif()
   else()
-    message(
-      STATUS
-        "MPI can only be used if CXX_COMPILER_EXECUTABLE is mpicxx.\
-        Current: ${CXX_COMPILER_EXECUTABLE}"
-    )
+    message(STATUS "MPI can only be used if CXX_COMPILER_EXECUTABLE is mpicxx.\
+        Current: ${CXX_COMPILER_EXECUTABLE}")
     set(TATOOINE_MPI_AVAILABLE 0)
   endif()
   # ----------------------------------------------------------------------------

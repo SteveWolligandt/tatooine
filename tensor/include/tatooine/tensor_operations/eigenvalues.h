@@ -44,8 +44,8 @@ template <static_quadratic_mat Mat>
 auto eigenvectors_sym(Mat&& A) {
   static constexpr auto N = tensor_dimension<Mat, 0>;
 
-  auto W = std::pair{mat<tensor_value_type<Mat>, N, N>{std::forward<Mat>(A)},
-                     vec<tensor_value_type<Mat>, N>{}};
+  auto W = std::pair{mat<tatooine::value_type<Mat>, N, N>{std::forward<Mat>(A)},
+                     vec<tatooine::value_type<Mat>, N>{}};
   lapack::syev(lapack::job::vec, lapack::uplo::upper, W.first, W.second);
   return W;
 }
@@ -55,14 +55,14 @@ template <fixed_size_quadratic_mat<2> Mat>
 constexpr auto eigenvalues_sym(Mat&& A) {
   decltype(auto) b = A(1, 0);
   if (std::abs(b) <= 1e-11) {
-    return vec<tensor_value_type<Mat>, 2>{A(0, 0), A(1, 1)};
+    return vec<tatooine::value_type<Mat>, 2>{A(0, 0), A(1, 1)};
   }
   decltype(auto) a     = A(0, 0);
   decltype(auto) d     = A(1, 1);
   auto const     e_sqr = d * d - 2 * a * d + 4 * b * b + a * a;
   auto const     e     = std::sqrt(e_sqr);
-  constexpr auto half  = 1 / tensor_value_type<Mat>(2);
-  auto lambda = vec<tensor_value_type<Mat>, 2>{-e + d + a, e + d + a} * half;
+  constexpr auto half  = 1 / tatooine::value_type<Mat>(2);
+  auto lambda = vec<tatooine::value_type<Mat>, 2>{-e + d + a, e + d + a} * half;
   if (lambda(0) > lambda(1)) {
     std::swap(lambda(0), lambda(1));
   }
@@ -73,8 +73,8 @@ constexpr auto eigenvalues_sym(Mat&& A) {
 template <static_quadratic_mat Mat>
 constexpr auto eigenvalues_sym(Mat&& A) {
   auto constexpr N = tensor_dimensions<Mat>[0];
-  auto W           = vec<tensor_value_type<Mat>, N>{};
-  auto A2          = mat<tensor_value_type<Mat>, N, N>{std::forward<Mat>(A)};
+  auto W           = vec<tatooine::value_type<Mat>, N>{};
+  auto A2          = mat<tatooine::value_type<Mat>, N, N>{std::forward<Mat>(A)};
   lapack::syev(lapack::job::no_vec, lapack::uplo::upper, A2, W);
   return W;
 }
@@ -83,7 +83,7 @@ constexpr auto eigenvalues_sym(Mat&& A) {
 #if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
 template <static_quadratic_mat Mat>
 constexpr auto eigenvalues(Mat&& A) {
-  using Real       = tensor_value_type<Mat>;
+  using Real       = tatooine::value_type<Mat>;
   auto constexpr N = tensor_dimensions<Mat>[0];
   auto A2  = tensor<Real, N, N>{std::forward<Mat>(A)};
   auto eig = complex_vec<Real, N>{};
@@ -94,8 +94,8 @@ constexpr auto eigenvalues(Mat&& A) {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <fixed_size_quadratic_mat<2> Mat>
 constexpr auto eigenvalues(Mat&& A)
-    -> complex_vec<tensor_value_type<Mat>, 2> {
-  using value_t    = tensor_value_type<Mat>;
+    -> complex_vec<tatooine::value_type<Mat>, 2> {
+  using value_t    = tatooine::value_type<Mat>;
   decltype(auto) b = A(1, 0);
   decltype(auto) c = A(0, 1);
   // if (std::abs(b - c) < 1e-10) {
@@ -122,7 +122,7 @@ constexpr auto eigenvalues(Mat&& A)
 template <static_quadratic_mat Mat>
 auto eigenvectors(Mat&& B) {
   auto constexpr N = tensor_dimensions<Mat>[0];
-  using Real       = tensor_value_type<Mat>;
+  using Real       = tatooine::value_type<Mat>;
   auto  A          = tensor<Real, N, N>{B};
   auto  eig = std::pair{complex_mat<Real, N, N>{}, complex_vec<Real, N>{}};
   auto& V   = eig.first;

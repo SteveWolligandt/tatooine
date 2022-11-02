@@ -26,7 +26,7 @@ struct diag_static_tensor {
   //============================================================================
   using tensor_type = Tensor;
   using this_type   = diag_static_tensor<Tensor, M, N>;
-  using value_type  = tensor_value_type<Tensor>;
+  using value_type  = tatooine::value_type<Tensor>;
   //============================================================================
  private:
   tensor_type m_internal_tensor;
@@ -107,8 +107,8 @@ constexpr auto diag_rect(static_vec auto&& t) {
 //==============================================================================
 template <typename Tensor, std::size_t N>
 constexpr auto inv(diag_static_tensor<Tensor, N, N> const& A) -> std::optional<
-    diag_static_tensor<vec<tensor_value_type<Tensor>, N>, N, N>> {
-  using value_type = tensor_value_type<Tensor>;
+    diag_static_tensor<vec<tatooine::value_type<Tensor>, N>, N, N>> {
+  using value_type = tatooine::value_type<Tensor>;
   for (std::size_t i = 0; i < N; ++i) {
     if (std::abs(A.internal_tensor()(i)) < 1e-10) {
       return {};
@@ -123,7 +123,7 @@ template <typename TensorA, static_vec TensorB, std::size_t N>
 requires(tensor_dimensions<TensorB>[0] == N)
 constexpr auto solve(diag_static_tensor<TensorA, N, N> const& A, TensorB&& b)
     -> std::optional<
-        vec<common_type<tensor_value_type<TensorA>, tensor_value_type<TensorB>>,
+        vec<common_type<tatooine::value_type<TensorA>, tatooine::value_type<TensorB>>,
             N>> {
   return A.internal_tensor() / b;
 }
@@ -132,7 +132,7 @@ template <typename TensorA, static_vec TensorB, std::size_t N>
 requires(tensor_dimensions<TensorB>[0] == N)
 constexpr auto solve(diag_static_tensor<TensorA, N, N>&& A, TensorB&& b)
     -> std::optional<
-        vec<common_type<tensor_value_type<TensorA>, tensor_value_type<TensorB>>,
+        vec<common_type<tatooine::value_type<TensorA>, tatooine::value_type<TensorB>>,
             N>> {
   return A.internal_tensor() / b;
 }
@@ -141,10 +141,10 @@ template <typename TensorA, std::size_t M, std::size_t N>
 constexpr auto operator*(diag_static_tensor<TensorA, M, N> const& A,
                          static_vec auto const&                   b)
     -> vec<
-        common_type<tensor_value_type<TensorA>, tensor_value_type<decltype(b)>>,
+        common_type<tatooine::value_type<TensorA>, tatooine::value_type<decltype(b)>>,
         M>
 requires(N == decltype(b)::dimension(0)) {
-  vec<common_type<tensor_value_type<TensorA>, tensor_value_type<decltype(b)>>,
+  vec<common_type<tatooine::value_type<TensorA>, tatooine::value_type<decltype(b)>>,
       M>
       ret = b;
   for (std::size_t i = 0; i < N; ++i) {
@@ -168,7 +168,7 @@ constexpr auto operator*(
                                        std::decay_t<decltype(B)>::dimension(
                                            0)) {
   using mat_t = mat<
-      common_type<tensor_value_type<TensorA>, tensor_value_type<decltype(B)>>,
+      common_type<tatooine::value_type<TensorA>, tatooine::value_type<decltype(B)>>,
       M, decltype(B)::dimension(1)>;
   auto ret = mat_t{B};
   for (std::size_t i = 0; i < M; ++i) {
@@ -183,7 +183,7 @@ constexpr auto operator*(
     diag_static_tensor<TensorA, M, N> const&
         A) requires(std::decay_t<decltype(B)>::dimension(1) == M) {
   auto ret = mat<
-      common_type<tensor_value_type<TensorA>, tensor_value_type<decltype(B)>>,
+      common_type<tatooine::value_type<TensorA>, tatooine::value_type<decltype(B)>>,
       std::decay_t<decltype(B)>::dimension(0), N>{B};
   for (std::size_t i = 0; i < N; ++i) {
     ret.col(i) *= A.internal_tensor()(i);
@@ -195,10 +195,10 @@ template <typename TensorA, static_mat TensorB, std::size_t N>
 requires(tensor_dimensions<TensorB>[0] == N)
 constexpr auto solve(diag_static_tensor<TensorA, N, N>&& A, TensorB&& B)
     -> std::optional<
-        mat<common_type<tensor_value_type<TensorA>, tensor_value_type<TensorB>>,
+        mat<common_type<tatooine::value_type<TensorA>, tatooine::value_type<TensorB>>,
             N, N>> {
   auto ret =
-      mat<common_type<tensor_value_type<TensorA>, tensor_value_type<TensorB>>,
+      mat<common_type<tatooine::value_type<TensorA>, tatooine::value_type<TensorB>>,
           N, N>{B};
   for (std::size_t i = 0; i < N; ++i) {
     ret.row(i) /= A.internal_tensor()(i);
@@ -210,10 +210,10 @@ template <typename TensorA, static_mat TensorB, std::size_t N>
 requires(tensor_dimensions<TensorB>[0] == N)
 constexpr auto solve(diag_static_tensor<TensorA, N, N> const& A, TensorB&& B)
     -> std::optional<
-        mat<common_type<tensor_value_type<TensorA>, tensor_value_type<TensorB>>,
+        mat<common_type<tatooine::value_type<TensorA>, tatooine::value_type<TensorB>>,
             N, N>> {
   auto ret =
-      mat<common_type<tensor_value_type<TensorA>, tensor_value_type<TensorB>>,
+      mat<common_type<tatooine::value_type<TensorA>, tatooine::value_type<TensorB>>,
           N, N>{B};
   for (std::size_t i = 0; i < N; ++i) {
     ret.row(i) /= A.internal_tensor()(i);
@@ -225,7 +225,7 @@ constexpr auto solve(diag_static_tensor<TensorA, N, N> const& A, TensorB&& B)
 //==============================================================================
 template <dynamic_tensor Tensor>
 struct diag_dynamic_tensor {
-  using value_type = tensor_value_type<Tensor>;
+  using value_type = tatooine::value_type<Tensor>;
   static auto constexpr is_tensor() { return true; }
   static auto constexpr is_diag() { return true; }
   static auto constexpr is_dynamic() { return true; }
@@ -288,9 +288,9 @@ auto diag(dynamic_tensor auto&& A) {
 template <dynamic_tensor Lhs, dynamic_tensor Rhs>
 requires diag_tensor<Lhs>
 auto operator*(Lhs const& lhs, Rhs const& rhs)
-    -> tensor<common_type<tensor_value_type<Lhs>, tensor_value_type<Rhs>>> {
+    -> tensor<common_type<tatooine::value_type<Lhs>, tatooine::value_type<Rhs>>> {
   using out_t =
-      tensor<common_type<tensor_value_type<Lhs>, tensor_value_type<Rhs>>>;
+      tensor<common_type<tatooine::value_type<Lhs>, tatooine::value_type<Rhs>>>;
   auto out = out_t{};
   // matrix-matrix-multiplication
   if (lhs.rank() == 2 && rhs.rank() == 2 &&

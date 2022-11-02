@@ -369,7 +369,7 @@ struct pointset {
         if constexpr (tensor_num_components<T> == 1) {
           prop[v] = T{nan<T>()};
         } else {
-          prop[v] = T::fill(nan<tensor_value_type<T>>());
+          prop[v] = T::fill(nan<tatooine::value_type<T>>());
         }
       }
     }
@@ -390,7 +390,7 @@ struct pointset {
         if constexpr (tensor_num_components<T> == 1) {
           prop[v] = T{nan<T>()};
         } else {
-          prop[v] = T::fill(nan<tensor_value_type<T>>());
+          prop[v] = T::fill(nan<tatooine::value_type<T>>());
         }
       }
     }
@@ -879,7 +879,7 @@ struct pointset {
              << " offset=\"" << offset << "\""
              << " type=\""
              << vtk::xml::to_string(
-                    vtk::xml::to_data_type<tensor_value_type<T>>())
+                    vtk::xml::to_data_type<tatooine::value_type<T>>())
              << "\" NumberOfComponents=\""
              << tensor_num_components<T> << "\"/>\n";
         return vertices().size() * sizeof(T) + sizeof(header_type);
@@ -891,13 +891,13 @@ struct pointset {
                << " offset=\"" << offset << "\""
                << " type=\""
                << vtk::xml::to_string(
-                      vtk::xml::to_data_type<tensor_value_type<T>>())
+                      vtk::xml::to_data_type<tatooine::value_type<T>>())
                << "\" NumberOfComponents=\"" << T::dimension(0) << "\"/>\n";
-          offset += vertices().size() * sizeof(tensor_value_type<T>) *
+          offset += vertices().size() * sizeof(tatooine::value_type<T>) *
                         tensor_dimension<T, 0> +
                     sizeof(header_type);
         }
-        return vertices().size() * sizeof(tensor_value_type<T>) *
+        return vertices().size() * sizeof(tatooine::value_type<T>) *
                    tensor_num_components<T> +
                sizeof(header_type) * tensor_dimension<T, 1>;
       }
@@ -912,14 +912,14 @@ struct pointset {
       auto const& typed_prop = prop->template cast_to_typed<T>();
       if constexpr (tensor_rank<T> <= 1) {
         auto const num_bytes =
-            header_type(sizeof(tensor_value_type<T>) *
+            header_type(sizeof(tatooine::value_type<T>) *
                         tensor_num_components<T> * vertices().size());
         file.write(reinterpret_cast<char const*>(&num_bytes),
                    sizeof(header_type));
         file.write(reinterpret_cast<char const*>(typed_prop.data()), num_bytes);
       } else if constexpr (tensor_rank<T> == 2) {
         auto const num_bytes = header_type(
-            sizeof(tensor_value_type<T>) * tensor_num_components<T> *
+            sizeof(tatooine::value_type<T>) * tensor_num_components<T> *
             vertices().size() / tensor_dimension<T, 0>);
         for (std::size_t i = 0; i < tensor_dimension<T, 1>; ++i) {
           file.write(reinterpret_cast<char const*>(&num_bytes),
@@ -927,7 +927,7 @@ struct pointset {
           for (auto const v : vertices()) {
             auto data_begin = &typed_prop[v](0, i);
             file.write(reinterpret_cast<char const*>(data_begin),
-                       sizeof(tensor_value_type<T>) * tensor_dimension<T, 0>);
+                       sizeof(tatooine::value_type<T>) * tensor_dimension<T, 0>);
           }
         }
       }

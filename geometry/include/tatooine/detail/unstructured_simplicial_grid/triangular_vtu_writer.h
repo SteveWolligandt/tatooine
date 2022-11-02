@@ -247,13 +247,13 @@ struct triangular_vtu_writer {
         data.push_back(prop[v]);
       };
       auto const num_bytes =
-          HeaderType(sizeof(tensor_value_type<T>) * tensor_num_components<T> *
+          HeaderType(sizeof(tatooine::value_type<T>) * tensor_num_components<T> *
                      m_grid.vertices().size());
       file.write(reinterpret_cast<char const*>(&num_bytes), sizeof(HeaderType));
       file.write(reinterpret_cast<char const*>(data.data()), num_bytes);
     } else if constexpr (tensor_rank<T> == 2) {
       auto const num_bytes =
-          HeaderType(sizeof(tensor_value_type<T>) * tensor_num_components<T> *
+          HeaderType(sizeof(tatooine::value_type<T>) * tensor_num_components<T> *
                      m_grid.vertices().size() / tensor_dimension<T, 0>);
       for (std::size_t i = 0; i < tensor_dimension<T, 1>; ++i) {
         file.write(reinterpret_cast<char const*>(&num_bytes),
@@ -261,7 +261,7 @@ struct triangular_vtu_writer {
         for (auto const v : m_grid.vertices()) {
           auto data_begin = &prop[v](0, i);
           file.write(reinterpret_cast<char const*>(data_begin),
-                     sizeof(tensor_value_type<T>) * tensor_dimension<T, 0>);
+                     sizeof(tatooine::value_type<T>) * tensor_dimension<T, 0>);
         }
       }
     }
@@ -283,7 +283,7 @@ struct triangular_vtu_writer {
                    << " type=\""
                    << tatooine::vtk::xml::to_string(
                           tatooine::vtk::xml::to_data_type<
-                              tensor_value_type<Ts>>())
+                              tatooine::value_type<Ts>>())
                    << "\" NumberOfComponents=\""
                    << tensor_num_components<Ts> << "\"/>\n";
               offset +=
@@ -297,11 +297,11 @@ struct triangular_vtu_writer {
                      << " type=\""
                      << vtk::xml::to_string(
                             vtk::xml::to_data_type<
-                                tensor_value_type<Ts>>())
+                                tatooine::value_type<Ts>>())
                      << "\" NumberOfComponents=\"" << Ts::dimension(0)
                      << "\"/>\n";
                 offset += m_grid.vertices().size() *
-                              sizeof(tensor_value_type<Ts>) *
+                              sizeof(tatooine::value_type<Ts>) *
                               tensor_dimension<Ts, 0> +
                           sizeof(HeaderType);
               }

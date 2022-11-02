@@ -106,7 +106,7 @@ struct vts_writer {
                << " format=\"appended\""
                << " offset=\"" << offset << "\""
                << " type=\""
-               << tatooine::vtk::xml::to_data_type<tensor_value_type<Ts>>()
+               << tatooine::vtk::xml::to_data_type<tatooine::value_type<Ts>>()
                << "\" NumberOfComponents=\""
                << tensor_num_components<Ts> << "\"/>\n";
           offset += m_grid.num_vertices() * sizeof(Ts) + sizeof(HeaderType);
@@ -117,9 +117,9 @@ struct vts_writer {
                  << " format=\"appended\""
                  << " offset=\"" << offset << "\""
                  << " type=\""
-                 << vtk::xml::to_data_type<tensor_value_type<Ts>>()
+                 << vtk::xml::to_data_type<tatooine::value_type<Ts>>()
                  << "\" NumberOfComponents=\"" << Ts::dimension(0) << "\"/>\n";
-            offset += m_grid.num_vertices() * sizeof(tensor_value_type<Ts>) *
+            offset += m_grid.num_vertices() * sizeof(tatooine::value_type<Ts>) *
                           tensor_dimension<Ts, 0> +
                       sizeof(HeaderType);
           }
@@ -187,13 +187,13 @@ struct vts_writer {
         data.push_back(prop[v]);
       }
       auto const num_bytes =
-          HeaderType(sizeof(tensor_value_type<T>) * tensor_num_components<T> *
+          HeaderType(sizeof(tatooine::value_type<T>) * tensor_num_components<T> *
                      m_grid.num_vertices());
       file.write(reinterpret_cast<char const*>(&num_bytes), sizeof(HeaderType));
       file.write(reinterpret_cast<char const*>(data.data()), num_bytes);
     } else if constexpr (tensor_rank<T> == 2) {
       auto const num_bytes =
-          HeaderType(sizeof(tensor_value_type<T>) * tensor_num_components<T> *
+          HeaderType(sizeof(tatooine::value_type<T>) * tensor_num_components<T> *
                      m_grid.num_vertices() / tensor_dimension<T, 0>);
       for (std::size_t i = 0; i < tensor_dimension<T, 1>; ++i) {
         file.write(reinterpret_cast<char const*>(&num_bytes),
@@ -201,7 +201,7 @@ struct vts_writer {
         for (auto const v : m_grid.vertices()) {
           auto data_begin = &prop[v](0, i);
           file.write(reinterpret_cast<char const*>(data_begin),
-                     sizeof(tensor_value_type<T>) * tensor_dimension<T, 0>);
+                     sizeof(tatooine::value_type<T>) * tensor_dimension<T, 0>);
         }
       }
     }

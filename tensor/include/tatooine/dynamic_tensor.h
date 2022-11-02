@@ -306,7 +306,7 @@ template <typename... Ts>
 tensor(Ts...) -> tensor<common_type<Ts...>>;
 
 template <dynamic_tensor Tensor>
-tensor(Tensor &&) -> tensor<tensor_value_type<Tensor>>;
+tensor(Tensor &&) -> tensor<value_type<Tensor>>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
