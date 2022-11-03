@@ -259,9 +259,9 @@ template <typename T>
 struct value_type_impl;
 //------------------------------------------------------------------------------
 template <typename T>
-requires requires { typename T::value_type; }
+requires requires { typename std::decay_t<T>::value_type; }
 struct value_type_impl<T> {
-  using type = typename T::value_type;
+  using type = typename std::decay_t<T>::value_type;
 };
 //------------------------------------------------------------------------------
 template <typename T>
