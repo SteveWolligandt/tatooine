@@ -2,25 +2,11 @@
 
 #include <catch2/catch_test_macros.hpp>
 //==============================================================================
-TEST_CASE("math_max", "[math][max]") {
-  SECTION("same types") {
-    SECTION("all non-const") {
-      int i0 = 2, i1 = 3, i2 = 1;
-      REQUIRE(tatooine::max(i0, i1, i2) == i1);
-      REQUIRE(std::is_same_v<decltype(tatooine::max(i0, i1, i2)), int &>);
-    }
-    SECTION("mixed const") {
-      int       i0 = 2, i1 = 3;
-      int const i2 = 1;
-      REQUIRE(tatooine::max(i0, i1, i2) == i1);
-      REQUIRE(std::is_same_v<decltype(tatooine::max(i0, i1, i2)), int const &>);
-    }
-  }
-  SECTION("different types") {
-    int    i = 2;
-    float  f = 3;
-    double d = 1;
-    REQUIRE(tatooine::max(i, f, d) == f);
-    REQUIRE(std::is_same_v<decltype(tatooine::max(i, f, d)), double>);
-  }
+namespace tatooine::test{
+TEST_CASE("math_minmax", "[math][max]") {
+  REQUIRE(max(2,3) == 3);
+  REQUIRE(min(2,3) == 2);
+  REQUIRE(max(1,2,3) == 3);
+  REQUIRE(min(1,2,3) == 1);
+}
 }

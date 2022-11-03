@@ -6,6 +6,7 @@
 #include <tatooine/vtk/xml/format.h>
 
 #include <cstdint>
+#include <optional>
 #include <cstring>
 #include <limits>
 #include <rapidxml.hpp>
