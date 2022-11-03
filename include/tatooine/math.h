@@ -10,45 +10,27 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
+template <typename A, typename B> requires same_as<std::decay_t<A>, std::decay_t<B>>
+constexpr auto min(A&& a, B&& b) { return gcem::min(std::forward<A>(a), std::forward<B>(b)); }
+template <typename A, typename B> requires same_as<std::decay_t<A>, std::decay_t<B>>
+constexpr auto max(A&& a, B&& b) { return gcem::max(std::forward<A>(a), std::forward<B>(b)); }
 constexpr auto abs(arithmetic auto const x) { return gcem::abs(x); }
 constexpr auto sin(arithmetic auto const x) { return gcem::sin(x); }
 constexpr auto cos(arithmetic auto const x) { return gcem::cos(x); }
 constexpr auto sqrt(arithmetic auto const x) { return gcem::sqrt(x); }
 constexpr auto pow(arithmetic auto const x) { return gcem::pow(x); }
 //==============================================================================
-/// max for comparable objects.
-/// If all types are the same a const reference is returned.
 template <template <typename> typename Comparator, typename T0, typename T1,
           typename... TRest>
-requires requires(
-    T0&& a, T1&& b,
-    Comparator<common_type<std::decay_t<T0>, std::decay_t<T1>>>&& comp) {
+requires requires(T0 a, T1 b, Comparator<std::decay_t<T0>> comp) {
   { comp(a, b) } -> std::convertible_to<bool>;
 }
-constexpr auto compare_variadic(T0&& a, T1&& b, TRest&&... rest)
-    -> std::conditional_t<
-        same_as<std::decay_t<T0>, std::decay_t<T1>> &&
-            (same_as<std::decay_t<T0>, std::decay_t<TRest>> && ...) &&
-            std::is_lvalue_reference_v<T0> && std::is_lvalue_reference_v<T1> &&
-            std::is_lvalue_reference_v<T1> &&
-            (std::is_lvalue_reference_v<TRest> && ...),
-        // if all raw types are equal and l-value references
-        std::conditional_t<
-            // if at least one of the types is const
-            is_const<std::remove_reference_t<T0>> ||
-                is_const<std::remove_reference_t<T1>> ||
-                (is_const<std::remove_reference_t<TRest>> || ...),
-            // return const-ref
-            std::decay_t<T0> const&,
-            // else return non-const-ref
-            std::decay_t<T0>&>,
-        // else return copy of common type
-        std::common_type_t<std::decay_t<T0>, std::decay_t<T1>,
-                           std::decay_t<TRest>...>> {
-  using common_t = std::common_type_t<std::decay_t<T0>, std::decay_t<T1>>;
+&&  same_as<std::decay_t<T0>, std::decay_t<T1>>
+&& (same_as<std::decay_t<T0>, std::decay_t<TRest>> && ...)
+constexpr auto compare_variadic(T0&& a, T1&& b, TRest&&... rest) {
   if constexpr (sizeof...(TRest) == 0) {
-    return Comparator<common_t>{}(a, b) ? std::forward<T0>(a)
-                                        : std::forward<T1>(b);
+    return Comparator<std::decay_t<T0>>{}(a, b) ? std::forward<T0>(a)
+                                                : std::forward<T1>(b);
   } else {
     return tatooine::compare_variadic<Comparator>(
         std::forward<T0>(a),
@@ -62,27 +44,22 @@ constexpr auto max(T0&& a) -> decltype(auto) {
   return std::forward<T0>(a);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T0, typename T1, typename... TRest>
+template <typename T0, typename T1, typename T2, typename... TRest>
 requires requires(T0&& a, T1&& b) {
   { a > b } -> std::convertible_to<bool>;
 }
-constexpr auto max(T0&& a, T1&& b, TRest&&... rest) -> decltype(auto) {
+constexpr auto max(T0&& a, T1&& b, T2&& c, TRest&&... rest) -> decltype(auto) {
   return compare_variadic<std::greater>(
-      std::forward<T0>(a), std::forward<T1>(b), std::forward<TRest>(rest)...);
+      std::forward<T0>(a), std::forward<T1>(b), std::forward<T2>(c), std::forward<TRest>(rest)...);
 }
 //------------------------------------------------------------------------------
-template <typename T0>
-constexpr auto min(T0&& a) -> decltype(auto) {
-  return std::forward<T0>(a);
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T0, typename T1, typename... TRest>
+template <typename T0, typename T1, typename T2, typename... TRest>
 requires requires(T0&& a, T1&& b) {
-  { a < b } -> std::convertible_to<bool>;
+  { a > b } -> std::convertible_to<bool>;
 }
-constexpr auto min(T0&& a, T1&& b, TRest&&... rest) -> decltype(auto) {
-  return compare_variadic<std::less>(std::forward<T0>(a), std::forward<T1>(b),
-                                     std::forward<TRest>(rest)...);
+constexpr auto min(T0&& a, T1&& b, T2&& c, TRest&&... rest) -> decltype(auto) {
+  return compare_variadic<std::less>(
+      std::forward<T0>(a), std::forward<T1>(b), std::forward<T2>(c), std::forward<TRest>(rest)...);
 }
 //------------------------------------------------------------------------------
 template <typename T, std::size_t N, std::size_t... Is>

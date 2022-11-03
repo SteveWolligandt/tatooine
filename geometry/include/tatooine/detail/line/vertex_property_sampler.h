@@ -2,6 +2,7 @@
 #define TATOOINE_DETAIL_LINE_VERTEX_PROPERTY_SAMPLER_H
 //==============================================================================
 #include <tatooine/line.h>
+#include <tatooine/nan.h>
 //==============================================================================
 namespace tatooine::detail::line {
 //==============================================================================
@@ -72,7 +73,7 @@ struct vertex_property_sampler<Real, NumDimensions, Property,
       return;
     }
     auto const stencil_size =
-        min<std::size_t>(3, m_line.vertices().size());
+        min(std::size_t(3), m_line.vertices().size());
     auto const half         = stencil_size / 2;
     auto       derivatives  = std::vector<value_type>{};
 
@@ -113,9 +114,9 @@ struct vertex_property_sampler<Real, NumDimensions, Property,
   auto operator()(Real t) const -> value_type{
     if (m_line.vertices().size() < 2) {
       if constexpr (tensor_rank<value_type> == 0) {
-        return real_type{} / real_type{};
+        return nan<real_type>();
       } else {
-        return value_type::fill(real_type{} / real_type{});
+        return value_type::fill(nan<real_type>());
       }
     }
     auto range = std::pair{m_line.vertices().front(), m_line.vertices().back()};
