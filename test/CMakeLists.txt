@@ -112,18 +112,6 @@ if(${TATOOINE_BUILD_TESTS})
       target_compile_options(${TARGET} PRIVATE "/W4")
     endif()
     target_compile_definitions(${TARGET} PRIVATE CATCH_CONFIG_FAST_COMPILE)
-    if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
-      add_custom_target(
-        ${TARGET}.run
-        COMMAND ./${TARGET} --colour-mode=ansi
-        DEPENDS ${TARGET})
-    elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
-      add_custom_target(
-        ${TARGET}.run
-        COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${TARGET}.exe
-                --colour-mode=ansi
-        DEPENDS ${TARGET})
-    endif()
     if(TATOOINE_TEST_USE_FAST_MATH)
       target_compile_options(${TARGET} PRIVATE -ffast-math)
     endif()
@@ -241,10 +229,6 @@ if(${TATOOINE_BUILD_TESTS})
               -Wno-unused-lambda-capture -Wno-gnu-zero-variadic-macro-arguments)
   endif()
   catch_discover_tests(unittests)
-  add_custom_target(
-    unittests.run
-    COMMAND ./unittests --colour-mode=default
-    DEPENDS unittests)
   add_custom_target(
     unittests.xml
     COMMAND ./unittests --reporter=xml

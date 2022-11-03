@@ -15,10 +15,6 @@ foreach(EXAMPLE_FILE ${EXAMPLE_FILES})
   set_property(TARGET ${TARGET} PROPERTY CXX_STANDARD 20)
   target_link_libraries(${TARGET} PUBLIC fields
                                          Boost::program_options)
-  add_custom_target(
-    ${TARGET}.run
-    COMMAND ./${TARGET}
-    DEPENDS ${TARGET})
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     # add valgrind targets for unittest
     add_custom_target(
