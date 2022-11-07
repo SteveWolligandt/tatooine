@@ -34,22 +34,22 @@
 namespace tatooine {
 //==============================================================================
 template <floating_point_range... Dimensions>
-requires(sizeof...(Dimensions) > 1)
+  requires(sizeof...(Dimensions) > 1)
 class rectilinear_grid {
- public:
+public:
   static constexpr bool is_uniform =
       (is_linspace<std::decay_t<Dimensions>> && ...);
   static constexpr auto num_dimensions() -> std::size_t {
     return sizeof...(Dimensions);
   }
-  using this_type     = rectilinear_grid<Dimensions...>;
-  using real_type     = common_type<typename Dimensions::value_type...>;
-  using vec_type      = vec<real_type, num_dimensions()>;
-  using pos_type      = vec_type;
+  using this_type = rectilinear_grid<Dimensions...>;
+  using real_type = common_type<typename Dimensions::value_type...>;
+  using vec_type = vec<real_type, num_dimensions()>;
+  using pos_type = vec_type;
   using sequence_type = std::make_index_sequence<num_dimensions()>;
 
   template <std::size_t I>
-  using dimension_type  = variadic::ith_type<I, Dimensions...>;
+  using dimension_type = variadic::ith_type<I, Dimensions...>;
   using dimensions_type = tuple<std::decay_t<Dimensions>...>;
 
   using vertex_container =
@@ -75,71 +75,71 @@ class rectilinear_grid {
       std::invoke_result_t<F, decltype(((void)std::declval<Dimensions>(),
                                         std::declval<std::size_t>()))...>;
 
-  using property_ptr_type       = std::unique_ptr<vertex_property_type>;
+  using property_ptr_type = std::unique_ptr<vertex_property_type>;
   using property_container_type = std::map<std::string, property_ptr_type>;
   //============================================================================
- private:
-  mutable std::mutex      m_finite_difference_coefficients_mutex = {};
-  dimensions_type         m_dimensions;
+private:
+  mutable std::mutex m_finite_difference_coefficients_mutex = {};
+  dimensions_type m_dimensions;
   property_container_type m_vertex_properties;
 
   using finite_difference_coefficents_list_type = std::vector<real_type>;
   // finite difference finite_difference_coefficentss per size per dimension
   mutable std::vector<
       std::array<finite_difference_coefficents_list_type, num_dimensions()>>
-              m_finite_difference_coefficients = {};
+      m_finite_difference_coefficients = {};
   std::size_t m_chunk_size_for_lazy_properties = 2;
   //============================================================================
- public:
+public:
   /// Default CTOR
   constexpr rectilinear_grid() = default;
   //============================================================================
   /// Copy CTOR
-  constexpr rectilinear_grid(rectilinear_grid const& other)
+  constexpr rectilinear_grid(rectilinear_grid const &other)
       : m_dimensions{other.m_dimensions},
         m_finite_difference_coefficients{
             other.m_finite_difference_coefficients} {
-    for (auto const& [name, prop] : other.m_vertex_properties) {
-      auto& emplaced_prop =
+    for (auto const &[name, prop] : other.m_vertex_properties) {
+      auto &emplaced_prop =
           m_vertex_properties.emplace(name, prop->clone()).first->second;
       emplaced_prop->set_grid(*this);
     }
   }
   //============================================================================
   /// Move CTOR
-  constexpr rectilinear_grid(rectilinear_grid&& other) noexcept
+  constexpr rectilinear_grid(rectilinear_grid &&other) noexcept
       : m_dimensions{std::move(other.m_dimensions)},
         m_vertex_properties{std::move(other.m_vertex_properties)},
         m_finite_difference_coefficients{
             std::move(other.m_finite_difference_coefficients)} {
-    for (auto const& [name, prop] : m_vertex_properties) {
+    for (auto const &[name, prop] : m_vertex_properties) {
       prop->set_grid(*this);
     }
   }
   //----------------------------------------------------------------------------
   /// \param dimensions List of dimensions / axes of the rectilinear grid
   template <floating_point_range... Dimensions_>
-  constexpr rectilinear_grid(Dimensions_&&... dimensions)
-  requires(sizeof...(dimensions) == sizeof...(Dimensions))
+  constexpr rectilinear_grid(Dimensions_ &&...dimensions)
+    requires(sizeof...(dimensions) == sizeof...(Dimensions))
       : m_dimensions{std::forward<Dimensions_>(dimensions)...} {}
   //----------------------------------------------------------------------------
- private:
+private:
   template <typename Real, integral... Res, std::size_t... Seq>
   constexpr rectilinear_grid(
-      axis_aligned_bounding_box<Real, num_dimensions()> const& bb,
+      axis_aligned_bounding_box<Real, num_dimensions()> const &bb,
       std::index_sequence<Seq...> /*seq*/, Res const... res)
       : m_dimensions{linspace<real_type>{real_type(bb.min(Seq)),
                                          real_type(bb.max(Seq)),
                                          static_cast<std::size_t>(res)}...} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- public:
+public:
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// Constructs a uniform grid from a tatooine::axis_aligned_bounding_box and a
   /// resolution.
   template <typename Real, integral... Res>
-  requires(sizeof...(Res) == num_dimensions())
+    requires(sizeof...(Res) == num_dimensions())
   constexpr rectilinear_grid(
-      axis_aligned_bounding_box<Real, num_dimensions()> const& bb,
+      axis_aligned_bounding_box<Real, num_dimensions()> const &bb,
       Res const... res)
       : rectilinear_grid{bb, sequence_type{}, res...} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -153,36 +153,36 @@ class rectilinear_grid {
   }
   //----------------------------------------------------------------------------
   /// Constructs a rectilinear grid by reading a file.
-  rectilinear_grid(filesystem::path const& path) { read(path); }
+  rectilinear_grid(filesystem::path const &path) { read(path); }
   //----------------------------------------------------------------------------
   ~rectilinear_grid() = default;
   //============================================================================
- private:
+private:
   template <std::size_t... Ds>
-  constexpr auto copy_without_properties(
-      std::index_sequence<Ds...> /*seq*/) const {
+  constexpr auto
+  copy_without_properties(std::index_sequence<Ds...> /*seq*/) const {
     return this_type{dimension<Ds>()...};
   }
 
- public:
+public:
   /// Creates a copy of with any of the give properties
   constexpr auto copy_without_properties() const {
     return copy_without_properties(
         std::make_index_sequence<num_dimensions()>{});
   }
   //============================================================================
-  constexpr auto operator=(rectilinear_grid const& other)
-      -> rectilinear_grid& = default;
-  constexpr auto operator=(rectilinear_grid&& other) noexcept
-      -> rectilinear_grid& {
-    m_dimensions        = std::move(other.m_dimensions);
+  constexpr auto operator=(rectilinear_grid const &other)
+      -> rectilinear_grid & = default;
+  constexpr auto operator=(rectilinear_grid &&other) noexcept
+      -> rectilinear_grid & {
+    m_dimensions = std::move(other.m_dimensions);
     m_vertex_properties = std::move(other.m_vertex_properties);
     m_finite_difference_coefficients =
         std::move(other.m_finite_difference_coefficients);
-    for (auto const& [name, prop] : m_vertex_properties) {
+    for (auto const &[name, prop] : m_vertex_properties) {
       prop->set_grid(*this);
     }
-    for (auto const& [name, prop] : other.m_vertex_properties) {
+    for (auto const &[name, prop] : other.m_vertex_properties) {
       prop->set_grid(other);
     }
   }
@@ -190,8 +190,8 @@ class rectilinear_grid {
   /// Returns a constant reference to the dimension of index I.
   /// \tparam I Index of dimension
   template <std::size_t I>
-  requires(I < num_dimensions())
-  constexpr auto dimension() const -> auto const& {
+    requires(I < num_dimensions())
+  constexpr auto dimension() const -> auto const & {
     return m_dimensions.template at<I>();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -199,8 +199,8 @@ class rectilinear_grid {
   /// This runtime version is only available if all dimensions are of the same
   /// type.
   /// \param i Index of dimension
-  constexpr auto dimension(std::size_t const i) const -> auto const&
-  requires(is_same<Dimensions...>) && (num_dimensions() <= 11)
+  constexpr auto dimension(std::size_t const i) const -> auto const &
+    requires(is_same<Dimensions...>) && (num_dimensions() <= 11)
   {
     if (i == 0) {
       return dimension<0>();
@@ -259,44 +259,43 @@ class rectilinear_grid {
   }
   //----------------------------------------------------------------------------
   /// \return Constant reference to all dimensions stored in a tuple.
-  constexpr auto dimensions() const -> auto const& { return m_dimensions; }
+  constexpr auto dimensions() const -> auto const & { return m_dimensions; }
   //----------------------------------------------------------------------------
- private:
+private:
   template <std::size_t... Seq>
   constexpr auto min(std::index_sequence<Seq...> /*seq*/) const {
     return vec<real_type, num_dimensions()>{
         static_cast<real_type>(dimension<Seq>().front())...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- public:
+public:
   /// \return Minimal point in all dimensions.
   constexpr auto min() const { return min(sequence_type{}); }
   //----------------------------------------------------------------------------
- private:
+private:
   template <std::size_t... Seq>
   constexpr auto max(std::index_sequence<Seq...> /*seq*/) const {
     return vec<real_type, num_dimensions()>{
         static_cast<real_type>(dimension<Seq>().back())...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- public:
+public:
   /// \return Maximal point in all dimensions.
   constexpr auto max() const { return max(sequence_type{}); }
   //----------------------------------------------------------------------------
   /// \return Extent of dimension of index I
-  template <std::size_t I>
-  constexpr auto extent() const {
+  template <std::size_t I> constexpr auto extent() const {
     return dimension<I>().back() - dimension<I>().front();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- private:
+private:
   /// \return Extent in all dimesions
   template <std::size_t... Is>
   constexpr auto extent(std::index_sequence<Is...> /*seq*/) const {
     return vec{extent<Is>()...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- public:
+public:
   /// \return Extent in all dimesions
   constexpr auto extent() const {
     return extent(std::make_index_sequence<num_dimensions()>{});
@@ -306,30 +305,29 @@ class rectilinear_grid {
   ///         DimensionIndex.
   template <std::size_t DimensionIndex>
   constexpr auto extent(std::size_t const cell_index) const {
-    auto const& dim = dimension<DimensionIndex>();
+    auto const &dim = dimension<DimensionIndex>();
     return dim[cell_index + 1] - dim[cell_index];
   }
   //----------------------------------------------------------------------------
-  template <std::size_t I>
-  constexpr auto center() const {
+  template <std::size_t I> constexpr auto center() const {
     return (dimension<I>().back() + dimension<I>().front()) / 2;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- private:
+private:
   template <std::size_t... Is>
   constexpr auto center(std::index_sequence<Is...> /*seq*/) const {
     return vec{center<Is>()...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- public:
+public:
   constexpr auto center() const {
     return center(std::make_index_sequence<num_dimensions()>{});
   }
   //----------------------------------------------------------------------------
- private:
+private:
   /// \return Axis aligned bounding box of grid
   template <std::size_t... Seq>
-  requires(sizeof...(Seq) == num_dimensions())
+    requires(sizeof...(Seq) == num_dimensions())
   constexpr auto bounding_box(std::index_sequence<Seq...> /*seq*/) const {
     return axis_aligned_bounding_box<real_type, num_dimensions()>{
         vec<real_type, num_dimensions()>{
@@ -338,26 +336,25 @@ class rectilinear_grid {
             static_cast<real_type>(dimension<Seq>().back())...}};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- public:
+public:
   /// \return Axis aligned bounding box of grid
   constexpr auto bounding_box() const { return bounding_box(sequence_type{}); }
   //----------------------------------------------------------------------------
- private:
+private:
   /// \return Resolution of grid
   template <std::size_t... Seq>
-  requires(sizeof...(Seq) == num_dimensions())
+    requires(sizeof...(Seq) == num_dimensions())
   constexpr auto size(std::index_sequence<Seq...> /*seq*/) const {
     return std::array{size<Seq>()...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- public:
+public:
   /// \return Resolution of grid
   constexpr auto size() const { return size(sequence_type{}); }
   //----------------------------------------------------------------------------
   /// \return Resolution of of dimension I
   /// \tparam I Index of dimensions
-  template <std::size_t I>
-  constexpr auto size() const {
+  template <std::size_t I> constexpr auto size() const {
     return dimension<I>().size();
   }
   //----------------------------------------------------------------------------
@@ -421,27 +418,27 @@ class rectilinear_grid {
     return std::numeric_limits<std::size_t>::max();
   }
   //----------------------------------------------------------------------------
- private:
+private:
   auto resize_vertex_properties() {
-    for (auto& [name, prop] : vertex_properties()) {
+    for (auto &[name, prop] : vertex_properties()) {
       prop->resize(size());
     }
   }
- public:
+
+public:
   //----------------------------------------------------------------------------
   ///
   template <std::size_t I>
-  constexpr auto set_dimension(convertible_to<dimension_type<I>> auto&& dim) {
+  constexpr auto set_dimension(convertible_to<dimension_type<I>> auto &&dim) {
     m_finite_difference_coefficients.clear();
     m_dimensions.template at<I>() = std::forward<decltype(dim)>(dim);
     resize_vertex_properties();
   }
   //----------------------------------------------------------------------------
   /// Inserts new discrete point in dimension I with extent of last cell.
-  template <std::size_t I>
-  constexpr auto push_back() {
+  template <std::size_t I> constexpr auto push_back() {
     m_finite_difference_coefficients.clear();
-    auto& dim = m_dimensions.template at<I>();
+    auto &dim = m_dimensions.template at<I>();
     if constexpr (is_linspace<std::decay_t<decltype(dim)>>) {
       dim.push_back();
     } else {
@@ -452,7 +449,7 @@ class rectilinear_grid {
   //----------------------------------------------------------------------------
   /// Removes last discrete point in dimension I.
   template <std::size_t I>
-  requires requires(dimension_type<I> dim) { dim.pop_back(); }
+    requires requires(dimension_type<I> dim) { dim.pop_back(); }
   constexpr auto pop_back() {
     m_finite_difference_coefficients.clear();
     m_dimensions.template at<I>().pop_back();
@@ -461,17 +458,17 @@ class rectilinear_grid {
   //----------------------------------------------------------------------------
   /// Removes first discrete point in dimension I.
   template <std::size_t I>
-  requires requires(dimension_type<I> dim) { dim.pop_back(); }
+    requires requires(dimension_type<I> dim) { dim.pop_back(); }
   constexpr auto pop_front() {
     m_finite_difference_coefficients.clear();
     m_dimensions.template at<I>().pop_front();
     resize_vertex_properties();
   }
   //----------------------------------------------------------------------------
- private:
+private:
   /// Checks if point [comps...] is inside of grid.
   template <arithmetic... Comps, std::size_t... Seq>
-  requires(num_dimensions() == sizeof...(Comps))
+    requires(num_dimensions() == sizeof...(Comps))
   constexpr auto is_inside(std::index_sequence<Seq...> /*seq*/,
                            Comps const... comps) const {
     return ((dimension<Seq>().front() <= comps &&
@@ -479,42 +476,42 @@ class rectilinear_grid {
             ...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- public:
+public:
   /// Checks if point [comps...] is inside of grid.
   template <arithmetic... Comps>
-  requires(num_dimensions() == sizeof...(Comps))
+    requires(num_dimensions() == sizeof...(Comps))
   constexpr auto is_inside(Comps const... comps) const {
     return is_inside(std::make_index_sequence<num_dimensions()>{}, comps...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- private:
+private:
   /// Checks if point p is inside of grid.
   template <std::size_t... Seq>
-  constexpr auto is_inside(pos_type const& p,
+  constexpr auto is_inside(pos_type const &p,
                            std::index_sequence<Seq...> /*seq*/) const {
     return ((dimension<Seq>().front() <= p(Seq) &&
              p(Seq) <= dimension<Seq>().back()) &&
             ...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- public:
+public:
   /// Checks if point p is inside of grid.
-  constexpr auto is_inside(pos_type const& p) const {
+  constexpr auto is_inside(pos_type const &p) const {
     return is_inside(p, std::make_index_sequence<num_dimensions()>{});
   }
   //----------------------------------------------------------------------------
- private:
+private:
   /// Checks if point p is inside of grid.
   template <std::size_t... Seq>
-  constexpr auto is_inside(std::array<real_type, num_dimensions()> const& p,
+  constexpr auto is_inside(std::array<real_type, num_dimensions()> const &p,
                            std::index_sequence<Seq...> /*seq*/) const {
     return is_inside(p[Seq]...);
   }
   //----------------------------------------------------------------------------
- public:
+public:
   /// Checks if point p is inside of grid.
-  constexpr auto is_inside(
-      std::array<real_type, num_dimensions()> const& p) const {
+  constexpr auto
+  is_inside(std::array<real_type, num_dimensions()> const &p) const {
     return is_inside(p, sequence_type{});
   }
   //----------------------------------------------------------------------------
@@ -523,7 +520,7 @@ class rectilinear_grid {
   template <std::size_t DimensionIndex>
   auto cell_index(arithmetic auto x) const
       -> std::pair<std::size_t, real_type> {
-    auto const& dim      = dimension<DimensionIndex>();
+    auto const &dim = dimension<DimensionIndex>();
     using dim_value_type = value_type<std::decay_t<decltype(dim)>>;
     if (std::abs(x - dim.front()) < 1e-10) {
       x = dim.front();
@@ -547,7 +544,7 @@ class rectilinear_grid {
       return {quantized_pos, cell_position};
     } else {
       // binary search
-      std::size_t left  = 0;
+      std::size_t left = 0;
       std::size_t right = dim.size() - 1;
       while (right - left > 1) {
         auto const center = (right + left) / 2;
@@ -562,7 +559,7 @@ class rectilinear_grid {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// returns cell indices and factors for each dimension for interpolaton
- private:
+private:
   template <std::size_t... DimensionIndex>
   auto cell_index(std::index_sequence<DimensionIndex...>,
                   arithmetic auto const... xs) const
@@ -570,14 +567,14 @@ class rectilinear_grid {
     return std::array{cell_index<DimensionIndex>(static_cast<double>(xs))...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- public:
+public:
   auto cell_index(arithmetic auto const... xs) const
-  requires(sizeof...(xs) == num_dimensions())
+    requires(sizeof...(xs) == num_dimensions())
   {
     return cell_index(sequence_type{}, xs...);
   }
   //------------------------------------------------------------------------------
-  auto cell_index(fixed_size_vec<num_dimensions()> auto&& xs) const {
+  auto cell_index(fixed_size_vec<num_dimensions()> auto &&xs) const {
     return invoke_unpacked(
         [this](auto const... xs) { return cell_index(xs...); },
         unpack(std::forward<decltype(xs)>(xs)));
@@ -603,24 +600,24 @@ class rectilinear_grid {
   /// On the borders of the grid the position for which the coefficients are
   /// being computed may not be in the center of the stencil. The stencil is
   /// adjusted so that the stencil size keeps constant.
-  auto create_finite_differences_coefficients(
-      std::size_t const stencil_size) const {
+  auto
+  create_finite_differences_coefficients(std::size_t const stencil_size) const {
     using namespace std::ranges;
     if (m_finite_difference_coefficients.size() < stencil_size) {
       m_finite_difference_coefficients.resize(stencil_size);
     }
-    auto& stencil_per_size = m_finite_difference_coefficients[stencil_size - 1];
+    auto &stencil_per_size = m_finite_difference_coefficients[stencil_size - 1];
 
     auto const half_stencil_size = stencil_size / 2;
-    auto       local_positions   = std::vector<real_type>(stencil_size);
+    auto local_positions = std::vector<real_type>(stencil_size);
 
-    auto foreach_dim = [&, dim_idx = std::size_t{}](auto const& dim) mutable {
+    auto foreach_dim = [&, dim_idx = std::size_t{}](auto const &dim) mutable {
       auto stencil_begin = begin(dim);
-      auto stencil_end   = next(begin(dim), stencil_size);
+      auto stencil_end = next(begin(dim), stencil_size);
       assert(stencil_size <= dim.size());
       for (auto it = begin(dim); it != end(dim); ++it) {
-        auto& stencil_per_dim    = stencil_per_size[dim_idx];
-        auto  distance_to_center = [&it](auto const& x) { return x - *it; };
+        auto &stencil_per_dim = stencil_per_size[dim_idx];
+        auto distance_to_center = [&it](auto const &x) { return x - *it; };
         copy(tatooine::finite_differences_coefficients(
                  1, subrange{stencil_begin, stencil_end} |
                         views::transform(distance_to_center)),
@@ -641,7 +638,7 @@ class rectilinear_grid {
   //----------------------------------------------------------------------------
   template <std::size_t... DIs, integral Int>
   auto vertex_at(std::index_sequence<DIs...> /*seq*/,
-                 std::array<Int, num_dimensions()> const& is) const
+                 std::array<Int, num_dimensions()> const &is) const
       -> vec<real_type, num_dimensions()> {
     return pos_type{static_cast<real_type>(dimension<DIs>()[is[DIs]])...};
   }
@@ -660,25 +657,25 @@ class rectilinear_grid {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <integral Int>
-  auto vertex_at(std::array<Int, num_dimensions()> const& is) const {
+  auto vertex_at(std::array<Int, num_dimensions()> const &is) const {
     return vertex_at(sequence_type{}, is);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto vertex_at(vertex_handle const& h) const {
+  auto vertex_at(vertex_handle const &h) const {
     return vertex_at(sequence_type{}, h.indices());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator[](vertex_handle const& h) const {
+  auto operator[](vertex_handle const &h) const {
     return vertex_at(sequence_type{}, h.indices());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr auto plain_index(integral auto const... is)
-  requires(sizeof...(is) == num_dimensions())
+    requires(sizeof...(is) == num_dimensions())
   {
-    auto const arr_is     = std::array{is...};
-    auto const size       = this->size();
-    auto       pi         = std::size_t{};
-    auto       multiplier = 1;
+    auto const arr_is = std::array{is...};
+    auto const size = this->size();
+    auto pi = std::size_t{};
+    auto multiplier = 1;
     for (std::size_t i = 0; i < sizeof...(is); ++i) {
       pi += arr_is[i] * multiplier;
       multiplier *= size[i];
@@ -688,9 +685,9 @@ class rectilinear_grid {
   //----------------------------------------------------------------------------
   auto cells() const { return cell_container{*this}; }
   //----------------------------------------------------------------------------
- private:
+private:
   template <std::size_t... Is>
-  auto add_dimension(floating_point_range auto&& additional_dimension,
+  auto add_dimension(floating_point_range auto &&additional_dimension,
                      std::index_sequence<Is...> /*seq*/) const {
     return rectilinear_grid<Dimensions...,
                             std::decay_t<decltype(additional_dimension)>>{
@@ -698,37 +695,37 @@ class rectilinear_grid {
         std::forward<decltype(additional_dimension)>(additional_dimension)};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- public:
-  auto add_dimension(floating_point_range auto&& additional_dimension) const {
+public:
+  auto add_dimension(floating_point_range auto &&additional_dimension) const {
     return add_dimension(
         std::forward<decltype(additional_dimension)>(additional_dimension),
         sequence_type{});
   }
   //----------------------------------------------------------------------------
-  auto has_vertex_property(std::string const& name) {
+  auto has_vertex_property(std::string const &name) {
     return m_vertex_properties.find(name) != end(m_vertex_properties);
   }
   //----------------------------------------------------------------------------
-  auto remove_vertex_property(std::string const& name) -> void {
+  auto remove_vertex_property(std::string const &name) -> void {
     if (auto it = m_vertex_properties.find(name);
         it != end(m_vertex_properties)) {
       m_vertex_properties.erase(it);
     }
   }
   //----------------------------------------------------------------------------
-  auto rename_vertex_property(std::string const& current_name,
-                              std::string const& new_name) -> void {
+  auto rename_vertex_property(std::string const &current_name,
+                              std::string const &new_name) -> void {
     if (auto it = m_vertex_properties.find(current_name);
         it != end(m_vertex_properties)) {
-      auto handler  = m_vertex_properties.extract(it);
+      auto handler = m_vertex_properties.extract(it);
       handler.key() = new_name;
       m_vertex_properties.insert(std::move(handler));
     }
   }
   //----------------------------------------------------------------------------
   template <typename Container, typename... Args>
-  auto create_vertex_property(std::string const& name, Args&&... args)
-      -> auto& {
+  auto create_vertex_property(std::string const &name, Args &&...args)
+      -> auto & {
     if (!has_vertex_property(name)) {
       auto new_prop = new typed_vertex_property_type<Container>{
           *this, std::forward<Args>(args)...};
@@ -743,79 +740,80 @@ class rectilinear_grid {
                              name + "\"."};
   }
   //----------------------------------------------------------------------------
-  auto vertex_properties() const -> auto const& { return m_vertex_properties; }
-  auto vertex_properties() -> auto& { return m_vertex_properties; }
+  auto vertex_properties() const -> auto const & { return m_vertex_properties; }
+  auto vertex_properties() -> auto & { return m_vertex_properties; }
   //----------------------------------------------------------------------------
   template <typename T, typename IndexOrder = x_fastest>
-  auto insert_vertex_property(std::string const& name) -> auto& {
+  auto insert_vertex_property(std::string const &name) -> auto & {
     return insert_contiguous_vertex_property<T, IndexOrder>(name);
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest>
-  auto insert_scalar_vertex_property(std::string const& name) -> auto& {
+  auto insert_scalar_vertex_property(std::string const &name) -> auto & {
     return insert_vertex_property<tatooine::real_number, IndexOrder>(name);
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest>
-  auto insert_vec2_vertex_property(std::string const& name) -> auto& {
+  auto insert_vec2_vertex_property(std::string const &name) -> auto & {
     return insert_vertex_property<vec2, IndexOrder>(name);
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest>
-  auto insert_vec3_vertex_property(std::string const& name) -> auto& {
+  auto insert_vec3_vertex_property(std::string const &name) -> auto & {
     return insert_vertex_property<vec3, IndexOrder>(name);
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest>
-  auto insert_vec4_vertex_property(std::string const& name) -> auto& {
+  auto insert_vec4_vertex_property(std::string const &name) -> auto & {
     return insert_vertex_property<vec4, IndexOrder>(name);
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest>
-  auto insert_mat2_vertex_property(std::string const& name) -> auto& {
+  auto insert_mat2_vertex_property(std::string const &name) -> auto & {
     return insert_vertex_property<mat2, IndexOrder>(name);
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest>
-  auto insert_mat3_vertex_property(std::string const& name) -> auto& {
+  auto insert_mat3_vertex_property(std::string const &name) -> auto & {
     return insert_vertex_property<mat3, IndexOrder>(name);
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest>
-  auto insert_mat4_vertex_property(std::string const& name) -> auto& {
+  auto insert_mat4_vertex_property(std::string const &name) -> auto & {
     return insert_vertex_property<mat4, IndexOrder>(name);
   }
   //----------------------------------------------------------------------------
   /// @}
   //----------------------------------------------------------------------------
   template <typename T, typename IndexOrder = x_fastest>
-  auto insert_contiguous_vertex_property(std::string const& name) -> auto& {
+  auto insert_contiguous_vertex_property(std::string const &name) -> auto & {
     return create_vertex_property<dynamic_multidim_array<T, IndexOrder>>(
         name, size());
   }
   //----------------------------------------------------------------------------
   template <typename T, typename IndexOrder = x_fastest>
-  auto insert_chunked_vertex_property(
-      std::string const& name, std::vector<std::size_t> const& chunk_size)
-      -> auto& {
+  auto
+  insert_chunked_vertex_property(std::string const &name,
+                                 std::vector<std::size_t> const &chunk_size)
+      -> auto & {
     return create_vertex_property<chunked_multidim_array<T, IndexOrder>>(
         name, size(), chunk_size);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename T, typename IndexOrder = x_fastest>
   auto insert_chunked_vertex_property(
-      std::string const&                               name,
-      std::array<std::size_t, num_dimensions()> const& chunk_size) -> auto& {
+      std::string const &name,
+      std::array<std::size_t, num_dimensions()> const &chunk_size) -> auto & {
     return create_vertex_property<chunked_multidim_array<T, IndexOrder>>(
         name, size(), chunk_size);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename T, typename IndexOrder = x_fastest>
 
-  auto insert_chunked_vertex_property(std::string const& name,
+  auto insert_chunked_vertex_property(std::string const &name,
                                       integral auto const... chunk_size)
-      -> auto&
-  requires(sizeof...(chunk_size) == num_dimensions())
+      -> auto &
+    requires(sizeof...(chunk_size) == num_dimensions())
   {
     return create_vertex_property<chunked_multidim_array<T, IndexOrder>>(
         name, size(),
@@ -823,15 +821,15 @@ class rectilinear_grid {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename T, typename IndexOrder = x_fastest>
-  auto insert_chunked_vertex_property(std::string const& name) -> auto& {
+  auto insert_chunked_vertex_property(std::string const &name) -> auto & {
     return create_vertex_property<chunked_multidim_array<T, IndexOrder>>(
         name, size(), make_array<num_dimensions()>(std::size_t(10)));
   }
   //----------------------------------------------------------------------------
   /// \return Reference to a polymorphic vertex property.
   template <typename T, bool HasNonConstReference = true>
-  auto vertex_property(std::string const& name)
-      -> typed_vertex_property_interface_type<T, HasNonConstReference>& {
+  auto vertex_property(std::string const &name)
+      -> typed_vertex_property_interface_type<T, HasNonConstReference> & {
     if (auto it = m_vertex_properties.find(name);
         it == end(m_vertex_properties)) {
       return insert_vertex_property<T>(name);
@@ -843,14 +841,14 @@ class rectilinear_grid {
                                  type_name<T>() + "."};
       }
       return *dynamic_cast<
-          typed_vertex_property_interface_type<T, HasNonConstReference>*>(
+          typed_vertex_property_interface_type<T, HasNonConstReference> *>(
           it->second.get());
     }
   }
   //----------------------------------------------------------------------------
   template <typename T, bool HasNonConstReference = true>
-  auto vertex_property(std::string const& name) const
-      -> typed_vertex_property_interface_type<T, HasNonConstReference> const& {
+  auto vertex_property(std::string const &name) const
+      -> typed_vertex_property_interface_type<T, HasNonConstReference> const & {
     if (auto it = m_vertex_properties.find(name);
         it == end(m_vertex_properties)) {
       throw std::runtime_error{"property \"" + name + "\" not found"};
@@ -861,87 +859,86 @@ class rectilinear_grid {
                                  ") does not match specified type " +
                                  type_name<T>() + "."};
       }
-      return *dynamic_cast<
-          typed_vertex_property_interface_type<T, HasNonConstReference> const*>(
-          it->second.get());
+      return *dynamic_cast<typed_vertex_property_interface_type<
+          T, HasNonConstReference> const *>(it->second.get());
     }
   }
   //----------------------------------------------------------------------------
   template <bool HasNonConstReference = true>
-  auto scalar_vertex_property(std::string const& name) const -> auto const& {
+  auto scalar_vertex_property(std::string const &name) const -> auto const & {
     return vertex_property<tatooine::real_number, HasNonConstReference>(name);
   }
   //----------------------------------------------------------------------------
   template <bool HasNonConstReference = true>
-  auto scalar_vertex_property(std::string const& name) -> auto& {
+  auto scalar_vertex_property(std::string const &name) -> auto & {
     return vertex_property<tatooine::real_number, HasNonConstReference>(name);
   }
   //----------------------------------------------------------------------------
   template <bool HasNonConstReference = true>
-  auto vec2_vertex_property(std::string const& name) const -> auto const& {
+  auto vec2_vertex_property(std::string const &name) const -> auto const & {
     return vertex_property<vec2, HasNonConstReference>(name);
   }
   //----------------------------------------------------------------------------
   template <bool HasNonConstReference = true>
-  auto vec2_vertex_property(std::string const& name) -> auto& {
+  auto vec2_vertex_property(std::string const &name) -> auto & {
     return vertex_property<vec2, HasNonConstReference>(name);
   }
   //----------------------------------------------------------------------------
   template <bool HasNonConstReference = true>
-  auto vec3_vertex_property(std::string const& name) const -> auto const& {
+  auto vec3_vertex_property(std::string const &name) const -> auto const & {
     return vertex_property<vec3, HasNonConstReference>(name);
   }
   //----------------------------------------------------------------------------
   template <bool HasNonConstReference = true>
-  auto vec3_vertex_property(std::string const& name) -> auto& {
+  auto vec3_vertex_property(std::string const &name) -> auto & {
     return vertex_property<vec3, HasNonConstReference>(name);
   }
   //----------------------------------------------------------------------------
   template <bool HasNonConstReference = true>
-  auto vec4_vertex_property(std::string const& name) const -> auto const& {
+  auto vec4_vertex_property(std::string const &name) const -> auto const & {
     return vertex_property<vec4, HasNonConstReference>(name);
   }
   //----------------------------------------------------------------------------
   template <bool HasNonConstReference = true>
-  auto vec4_vertex_property(std::string const& name) -> auto& {
+  auto vec4_vertex_property(std::string const &name) -> auto & {
     return vertex_property<vec4, HasNonConstReference>(name);
   }
   //----------------------------------------------------------------------------
   template <bool HasNonConstReference = true>
-  auto mat2_vertex_property(std::string const& name) const -> auto const& {
+  auto mat2_vertex_property(std::string const &name) const -> auto const & {
     return vertex_property<mat2, HasNonConstReference>(name);
   }
   //----------------------------------------------------------------------------
   template <bool HasNonConstReference = true>
-  auto mat2_vertex_property(std::string const& name) -> auto& {
+  auto mat2_vertex_property(std::string const &name) -> auto & {
     return vertex_property<mat2, HasNonConstReference>(name);
   }
   //----------------------------------------------------------------------------
   template <bool HasNonConstReference = true>
-  auto mat3_vertex_property(std::string const& name) const -> auto const& {
+  auto mat3_vertex_property(std::string const &name) const -> auto const & {
     return vertex_property<mat3, HasNonConstReference>(name);
   }
   //----------------------------------------------------------------------------
   template <bool HasNonConstReference = true>
-  auto mat3_vertex_property(std::string const& name) -> auto& {
+  auto mat3_vertex_property(std::string const &name) -> auto & {
     return vertex_property<mat3, HasNonConstReference>(name);
   }
   //----------------------------------------------------------------------------
   template <bool HasNonConstReference = true>
-  auto mat4_vertex_property(std::string const& name) const -> auto const& {
+  auto mat4_vertex_property(std::string const &name) const -> auto const & {
     return vertex_property<mat4, HasNonConstReference>(name);
   }
   //----------------------------------------------------------------------------
   template <bool HasNonConstReference = true>
-  auto mat4_vertex_property(std::string const& name) -> auto& {
+  auto mat4_vertex_property(std::string const &name) -> auto & {
     return vertex_property<mat4, HasNonConstReference>(name);
   }
   //----------------------------------------------------------------------------
   template <typename T, typename GlobalIndexOrder = x_fastest,
             typename LocalIndexOrder = GlobalIndexOrder>
-  auto insert_lazy_vertex_property(filesystem::path const& path,
-                                   std::string const&      dataset_name)
-      -> typed_vertex_property_interface_type<T, false>& {
+  auto insert_lazy_vertex_property(filesystem::path const &path,
+                                   std::string const &dataset_name)
+      -> typed_vertex_property_interface_type<T, false> & {
     auto const ext = path.extension();
 #if TATOOINE_HDF5_AVAILABLE
     if (ext == ".h5") {
@@ -964,13 +961,13 @@ class rectilinear_grid {
   //----------------------------------------------------------------------------
 #if TATOOINE_HDF5_AVAILABLE
   template <typename IndexOrder = x_fastest, typename T>
-  auto insert_vertex_property(hdf5::dataset<T> const& dataset) -> auto& {
+  auto insert_vertex_property(hdf5::dataset<T> const &dataset) -> auto & {
     return insert_vertex_property<IndexOrder>(dataset, dataset.name());
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest, typename T>
-  auto insert_vertex_property(hdf5::dataset<T> const& dataset,
-                              std::string const&      name) -> auto& {
+  auto insert_vertex_property(hdf5::dataset<T> const &dataset,
+                              std::string const &name) -> auto & {
     auto num_dims_dataset = dataset.num_dimensions();
     if (num_dimensions() != num_dims_dataset) {
       throw std::runtime_error{"Number of dimensions(" +
@@ -997,32 +994,32 @@ class rectilinear_grid {
         throw std::runtime_error{ss.str()};
       }
     }
-    auto& prop = insert_vertex_property<T, IndexOrder>(name);
+    auto &prop = insert_vertex_property<T, IndexOrder>(name);
     dataset.read(prop);
     return prop;
   }
   //----------------------------------------------------------------------------
   template <typename T, typename GlobalIndexOrder = x_fastest,
             typename LocalIndexOrder = GlobalIndexOrder>
-  auto insert_hdf5_lazy_vertex_property(filesystem::path const& path,
-                                        std::string const&      dataset_name)
-      -> auto& {
+  auto insert_hdf5_lazy_vertex_property(filesystem::path const &path,
+                                        std::string const &dataset_name)
+      -> auto & {
     hdf5::file f{path};
     return insert_lazy_vertex_property<GlobalIndexOrder, LocalIndexOrder>(
         f.dataset<T>(dataset_name));
   }
   //----------------------------------------------------------------------------
   template <typename GlobalIndexOrder = x_fastest,
-            typename LocalIndexOrder  = GlobalIndexOrder, typename T>
-  auto insert_lazy_vertex_property(hdf5::dataset<T> const& dataset) -> auto& {
+            typename LocalIndexOrder = GlobalIndexOrder, typename T>
+  auto insert_lazy_vertex_property(hdf5::dataset<T> const &dataset) -> auto & {
     return insert_lazy_vertex_property<GlobalIndexOrder, LocalIndexOrder>(
         dataset, dataset.name());
   }
   //----------------------------------------------------------------------------
   template <typename GlobalIndexOrder = x_fastest,
-            typename LocalIndexOrder  = GlobalIndexOrder, typename T>
-  auto insert_lazy_vertex_property(hdf5::dataset<T> const& dataset,
-                                   std::string const&      name) -> auto& {
+            typename LocalIndexOrder = GlobalIndexOrder, typename T>
+  auto insert_lazy_vertex_property(hdf5::dataset<T> const &dataset,
+                                   std::string const &name) -> auto & {
     auto num_dims_dataset = dataset.num_dimensions();
     if (num_dimensions() != num_dims_dataset) {
       throw std::runtime_error{
@@ -1057,18 +1054,18 @@ class rectilinear_grid {
   //----------------------------------------------------------------------------
   template <typename T, typename GlobalIndexOrder = x_fastest,
             typename LocalIndexOrder = GlobalIndexOrder>
-  auto insert_netcdf_lazy_vertex_property(filesystem::path const& path,
-                                          std::string const&      dataset_name)
-      -> auto& {
+  auto insert_netcdf_lazy_vertex_property(filesystem::path const &path,
+                                          std::string const &dataset_name)
+      -> auto & {
     netcdf::file f{path, netCDF::NcFile::read};
     return insert_lazy_vertex_property<GlobalIndexOrder, LocalIndexOrder, T>(
         f.variable<T>(dataset_name));
   }
   //----------------------------------------------------------------------------
   template <typename GlobalIndexOrder = x_fastest,
-            typename LocalIndexOrder  = GlobalIndexOrder, typename T>
-  auto insert_lazy_vertex_property(netcdf::variable<T> const& dataset)
-      -> auto& {
+            typename LocalIndexOrder = GlobalIndexOrder, typename T>
+  auto insert_lazy_vertex_property(netcdf::variable<T> const &dataset)
+      -> auto & {
     return create_vertex_property<
         lazy_reader<netcdf::variable<T>, GlobalIndexOrder, LocalIndexOrder>>(
         dataset.name(), dataset,
@@ -1078,20 +1075,20 @@ class rectilinear_grid {
 #endif
   //============================================================================
   template <typename F>
-  requires invocable_with_n_integrals<F, num_dimensions()> ||
-           invocable<F, pos_type>
-           auto sample_to_vertex_property(F&& f, std::string const& name)
-               -> auto& {
+    requires invocable_with_n_integrals<F, num_dimensions()> ||
+             invocable<F, pos_type>
+             auto sample_to_vertex_property(F &&f, std::string const &name)
+                 -> auto & {
     return sample_to_vertex_property(std::forward<F>(f), name,
                                      execution_policy::sequential);
   }
   //----------------------------------------------------------------------------
   template <typename F>
-  requires invocable_with_n_integrals<F, num_dimensions()> ||
-           invocable<F, pos_type>
-           auto sample_to_vertex_property(F&& f, std::string const& name,
-                                          execution_policy_tag auto tag)
-               -> auto& {
+    requires invocable_with_n_integrals<F, num_dimensions()> ||
+             invocable<F, pos_type>
+             auto sample_to_vertex_property(F &&f, std::string const &name,
+                                            execution_policy_tag auto tag)
+                 -> auto & {
     if constexpr (invocable<F, pos_type>) {
       return sample_to_vertex_property_pos(std::forward<F>(f), name, tag);
     } else {
@@ -1101,19 +1098,19 @@ class rectilinear_grid {
     }
   }
   //----------------------------------------------------------------------------
- private:
+private:
   template <invocable_with_n_integrals<num_dimensions()> F, std::size_t... Is>
-  auto sample_to_vertex_property_indices(F&& f, std::string const& name,
+  auto sample_to_vertex_property_indices(F &&f, std::string const &name,
                                          execution_policy_tag auto tag,
                                          std::index_sequence<Is...> /*seq*/)
-      -> auto& {
-    using T    = std::invoke_result_t<F, decltype(Is)...>;
-    auto& prop = vertex_property<T>(name);
+      -> auto & {
+    using T = std::invoke_result_t<F, decltype(Is)...>;
+    auto &prop = vertex_property<T>(name);
     vertices().iterate_indices(
         [&](auto const... is) {
           try {
             prop(is...) = f(is...);
-          } catch (std::exception&) {
+          } catch (std::exception &) {
             if constexpr (tensor_num_components<T> == 1) {
               prop(is...) = nan<T>();
             } else {
@@ -1126,15 +1123,15 @@ class rectilinear_grid {
   }
   //----------------------------------------------------------------------------
   template <invocable<pos_type> F>
-  auto sample_to_vertex_property_pos(F&& f, std::string const& name,
-                                     execution_policy_tag auto tag) -> auto& {
+  auto sample_to_vertex_property_pos(F &&f, std::string const &name,
+                                     execution_policy_tag auto tag) -> auto & {
     using invoke_result = std::decay_t<std::invoke_result_t<F, pos_type>>;
-    auto& prop          = vertex_property<invoke_result>(name);
+    auto &prop = vertex_property<invoke_result>(name);
     vertices().iterate_indices(
         [&](auto const... is) {
           try {
             prop(is...) = f(vertices()(is...));
-          } catch (std::exception&) {
+          } catch (std::exception &) {
             if constexpr (tensor_num_components<invoke_result> == 1) {
               prop(is...) = invoke_result{nan<invoke_result>()};
             } else {
@@ -1147,8 +1144,8 @@ class rectilinear_grid {
     return prop;
   }
   //============================================================================
- public:
-  auto read(filesystem::path const& path) {
+public:
+  auto read(filesystem::path const &path) {
 #ifdef TATOOINE_NETCDF_AVAILABLE
     if constexpr (!is_uniform) {
       if (path.extension() == ".nc") {
@@ -1174,13 +1171,12 @@ class rectilinear_grid {
   }
   //----------------------------------------------------------------------------
   struct vtk_listener : vtk::legacy_file_listener {
-    this_type& gr;
-    bool&      is_structured_points;
-    vec3&      spacing;
-    vtk_listener(this_type& gr_, bool& is_structured_points_, vec3& spacing_)
-        : gr{gr_},
-          is_structured_points{is_structured_points_},
-          spacing{spacing_} {}
+    this_type &gr;
+    bool &is_structured_points;
+    vec3 &spacing;
+    vtk_listener(this_type &gr_, bool &is_structured_points_, vec3 &spacing_)
+        : gr{gr_}, is_structured_points{is_structured_points_}, spacing{
+                                                                    spacing_} {}
     // header data
     auto on_dataset_type(vtk::dataset_type t) -> void override {
       if (t == vtk::dataset_type::structured_points && !is_uniform) {
@@ -1219,125 +1215,128 @@ class rectilinear_grid {
         gr.dimension<2>().resize(z);
       }
     }
-    auto on_x_coordinates(std::vector<float> const& /*xs*/) -> void override {}
-    auto on_x_coordinates(std::vector<double> const& /*xs*/) -> void override {}
-    auto on_y_coordinates(std::vector<float> const& /*ys*/) -> void override {}
-    auto on_y_coordinates(std::vector<double> const& /*ys*/) -> void override {}
-    auto on_z_coordinates(std::vector<float> const& /*zs*/) -> void override {}
-    auto on_z_coordinates(std::vector<double> const& /*zs*/) -> void override {}
+    auto on_x_coordinates(std::vector<float> const & /*xs*/) -> void override {}
+    auto on_x_coordinates(std::vector<double> const & /*xs*/) -> void override {
+    }
+    auto on_y_coordinates(std::vector<float> const & /*ys*/) -> void override {}
+    auto on_y_coordinates(std::vector<double> const & /*ys*/) -> void override {
+    }
+    auto on_z_coordinates(std::vector<float> const & /*zs*/) -> void override {}
+    auto on_z_coordinates(std::vector<double> const & /*zs*/) -> void override {
+    }
 
     // index data
-    auto on_cells(std::vector<int> const&) -> void override {}
-    auto on_cell_types(std::vector<vtk::cell_type> const&) -> void override {}
-    auto on_vertices(std::vector<int> const&) -> void override {}
-    auto on_lines(std::vector<int> const&) -> void override {}
-    auto on_polygons(std::vector<int> const&) -> void override {}
-    auto on_triangle_strips(std::vector<int> const&) -> void override {}
+    auto on_cells(std::vector<int> const &) -> void override {}
+    auto on_cell_types(std::vector<vtk::cell_type> const &) -> void override {}
+    auto on_vertices(std::vector<int> const &) -> void override {}
+    auto on_lines(std::vector<int> const &) -> void override {}
+    auto on_polygons(std::vector<int> const &) -> void override {}
+    auto on_triangle_strips(std::vector<int> const &) -> void override {}
 
     // cell- / pointdata
-    auto on_vectors(std::string const& /*name*/,
-                    std::vector<std::array<float, 3>> const& /*vectors*/,
+    auto on_vectors(std::string const & /*name*/,
+                    std::vector<std::array<float, 3>> const & /*vectors*/,
                     vtk::reader_data) -> void override {}
-    auto on_vectors(std::string const& /*name*/,
-                    std::vector<std::array<double, 3>> const& /*vectors*/,
+    auto on_vectors(std::string const & /*name*/,
+                    std::vector<std::array<double, 3>> const & /*vectors*/,
                     vtk::reader_data) -> void override {}
-    auto on_normals(std::string const& /*name*/,
-                    std::vector<std::array<float, 3>> const& /*normals*/,
+    auto on_normals(std::string const & /*name*/,
+                    std::vector<std::array<float, 3>> const & /*normals*/,
                     vtk::reader_data) -> void override {}
-    auto on_normals(std::string const& /*name*/,
-                    std::vector<std::array<double, 3>> const& /*normals*/,
+    auto on_normals(std::string const & /*name*/,
+                    std::vector<std::array<double, 3>> const & /*normals*/,
                     vtk::reader_data) -> void override {}
     auto on_texture_coordinates(
-        std::string const& /*name*/,
-        std::vector<std::array<float, 2>> const& /*texture_coordinates*/,
+        std::string const & /*name*/,
+        std::vector<std::array<float, 2>> const & /*texture_coordinates*/,
         vtk::reader_data) -> void override {}
     auto on_texture_coordinates(
-        std::string const& /*name*/,
-        std::vector<std::array<double, 2>> const& /*texture_coordinates*/,
+        std::string const & /*name*/,
+        std::vector<std::array<double, 2>> const & /*texture_coordinates*/,
         vtk::reader_data) -> void override {}
-    auto on_tensors(std::string const& /*name*/,
-                    std::vector<std::array<float, 9>> const& /*tensors*/,
+    auto on_tensors(std::string const & /*name*/,
+                    std::vector<std::array<float, 9>> const & /*tensors*/,
                     vtk::reader_data) -> void override {}
-    auto on_tensors(std::string const& /*name*/,
-                    std::vector<std::array<double, 9>> const& /*tensors*/,
+    auto on_tensors(std::string const & /*name*/,
+                    std::vector<std::array<double, 9>> const & /*tensors*/,
                     vtk::reader_data) -> void override {}
 
     template <typename T>
-    auto insert_prop(std::string const& prop_name, std::vector<T> const& data,
+    auto insert_prop(std::string const &prop_name, std::vector<T> const &data,
                      std::size_t const num_components) {
       std::size_t i = 0;
       if (num_components == 1) {
-        auto& prop = gr.insert_vertex_property<T>(prop_name);
+        auto &prop = gr.insert_vertex_property<T>(prop_name);
         gr.vertices().iterate_indices(
             [&](auto const... is) { prop(is...) = data[i++]; });
       }
       if (num_components == 2) {
-        auto& prop = gr.insert_vertex_property<vec<T, 2>>(prop_name);
+        auto &prop = gr.insert_vertex_property<vec<T, 2>>(prop_name);
         gr.vertices().iterate_indices([&](auto const... is) {
           prop(is...) = {data[i], data[i + 1]};
           i += num_components;
         });
       }
       if (num_components == 3) {
-        auto& prop = gr.insert_vertex_property<vec<T, 3>>(prop_name);
+        auto &prop = gr.insert_vertex_property<vec<T, 3>>(prop_name);
         gr.vertices().iterate_indices([&](auto const... is) {
           prop(is...) = {data[i], data[i + 1], data[i + 2]};
           i += num_components;
         });
       }
       if (num_components == 4) {
-        auto& prop = gr.insert_vertex_property<vec<T, 4>>(prop_name);
+        auto &prop = gr.insert_vertex_property<vec<T, 4>>(prop_name);
         gr.vertices().iterate_indices([&](auto const... is) {
           prop(is...) = {data[i], data[i + 1], data[i + 2], data[i + 3]};
           i += num_components;
         });
       }
     }
-    auto on_scalars(std::string const& data_name,
-                    std::string const& /*lookup_table_name*/,
-                    std::size_t const         num_components,
-                    std::vector<float> const& data, vtk::reader_data)
+    auto on_scalars(std::string const &data_name,
+                    std::string const & /*lookup_table_name*/,
+                    std::size_t const num_components,
+                    std::vector<float> const &data, vtk::reader_data)
         -> void override {
       insert_prop<float>(data_name, data, num_components);
     }
-    auto on_scalars(std::string const& data_name,
-                    std::string const& /*lookup_table_name*/,
-                    std::size_t const          num_components,
-                    std::vector<double> const& data, vtk::reader_data)
+    auto on_scalars(std::string const &data_name,
+                    std::string const & /*lookup_table_name*/,
+                    std::size_t const num_components,
+                    std::vector<double> const &data, vtk::reader_data)
         -> void override {
       insert_prop<double>(data_name, data, num_components);
     }
     auto on_point_data(std::size_t) -> void override {}
     auto on_cell_data(std::size_t) -> void override {}
     auto on_field_array(std::string const /*field_name*/,
-                        std::string const       field_array_name,
-                        std::vector<int> const& data,
+                        std::string const field_array_name,
+                        std::vector<int> const &data,
                         std::size_t num_components, std::size_t /*num_tuples*/)
         -> void override {
       insert_prop<int>(field_array_name, data, num_components);
     }
     auto on_field_array(std::string const /*field_name*/,
-                        std::string const         field_array_name,
-                        std::vector<float> const& data,
+                        std::string const field_array_name,
+                        std::vector<float> const &data,
                         std::size_t num_components, std::size_t /*num_tuples*/)
         -> void override {
       insert_prop<float>(field_array_name, data, num_components);
     }
     auto on_field_array(std::string const /*field_name*/,
-                        std::string const          field_array_name,
-                        std::vector<double> const& data,
+                        std::string const field_array_name,
+                        std::vector<double> const &data,
                         std::size_t num_components, std::size_t /*num_tuples*/)
         -> void override {
       insert_prop<double>(field_array_name, data, num_components);
     }
   };
   //============================================================================
-  auto read_vtk(filesystem::path const& path)
-  requires(num_dimensions() == 2) || (num_dimensions() == 3)
+  auto read_vtk(filesystem::path const &path)
+    requires(num_dimensions() == 2) || (num_dimensions() == 3)
   {
-    bool             is_structured_points = false;
-    vec3             spacing;
-    vtk_listener     listener{*this, is_structured_points, spacing};
+    bool is_structured_points = false;
+    vec3 spacing;
+    vtk_listener listener{*this, is_structured_points, spacing};
     vtk::legacy_file f{path};
     f.add_listener(listener);
     f.read();
@@ -1349,7 +1348,7 @@ class rectilinear_grid {
             dimension<0>().front() + (size<0>() - 1) * spacing(0);
       } else {
         std::size_t i = 0;
-        for (auto& d : dimension<0>()) {
+        for (auto &d : dimension<0>()) {
           d = dimension<0>().front() + (i++) * spacing(0);
         }
       }
@@ -1359,7 +1358,7 @@ class rectilinear_grid {
             dimension<1>().front() + (size<1>() - 1) * spacing(1);
       } else {
         std::size_t i = 0;
-        for (auto& d : dimension<1>()) {
+        for (auto &d : dimension<1>()) {
           d = dimension<1>().front() + (i++) * spacing(1);
         }
       }
@@ -1370,7 +1369,7 @@ class rectilinear_grid {
               dimension<2>().front() + (size<2>() - 1) * spacing(2);
         } else {
           std::size_t i = 0;
-          for (auto& d : dimension<2>()) {
+          for (auto &d : dimension<2>()) {
             d = dimension<2>().front() + (i++) * spacing(2);
           }
         }
@@ -1378,11 +1377,11 @@ class rectilinear_grid {
     }
   }
   //----------------------------------------------------------------------------
-  auto read_amira(filesystem::path const& path)
-  requires is_uniform && ((num_dimensions() == 2) || (num_dimensions() == 3))
+  auto read_amira(filesystem::path const &path)
+    requires is_uniform && ((num_dimensions() == 2) || (num_dimensions() == 3))
   {
     auto const reader_data = amira::read<real_type>(path);
-    auto const& [data, dims, aabb, num_components] = reader_data;
+    auto const &[data, dims, aabb, num_components] = reader_data;
     if (dims[2] == 1 && num_dimensions() == 3) {
       throw std::runtime_error{
           "[rectilinear_grid::read_amira] file contains 2-dimensional data. "
@@ -1397,7 +1396,7 @@ class rectilinear_grid {
     // set dimensions
     if constexpr (is_linspace<std::decay_t<decltype(dimension<0>())>>) {
       dimension<0>().front() = aabb.min(0);
-      dimension<0>().back()  = aabb.max(0);
+      dimension<0>().back() = aabb.max(0);
       dimension<0>().resize(dims[0]);
     } else {
       auto const uniform_dim =
@@ -1407,7 +1406,7 @@ class rectilinear_grid {
     }
     if constexpr (is_linspace<std::decay_t<decltype(dimension<1>())>>) {
       dimension<1>().front() = aabb.min(1);
-      dimension<1>().back()  = aabb.max(1);
+      dimension<1>().back() = aabb.max(1);
       dimension<1>().resize(dims[1]);
     } else {
       auto const uniform_dim =
@@ -1418,7 +1417,7 @@ class rectilinear_grid {
     if constexpr (num_dimensions() == 3) {
       if constexpr (is_linspace<std::decay_t<decltype(dimension<2>())>>) {
         dimension<2>().front() = aabb.min(2);
-        dimension<2>().back()  = aabb.max(2);
+        dimension<2>().back() = aabb.max(2);
         dimension<2>().resize(dims[2]);
       } else {
         auto const uniform_dim =
@@ -1430,22 +1429,22 @@ class rectilinear_grid {
     // copy data
     auto i = std::size_t{};
     if (num_components == 1) {
-      auto& prop = scalar_vertex_property(path.filename().string());
+      auto &prop = scalar_vertex_property(path.filename().string());
       vertices().iterate_indices([&](auto const... is) {
-        auto const& data = std::get<0>(reader_data);
-        prop(is...)      = data[i++];
+        auto const &data = std::get<0>(reader_data);
+        prop(is...) = data[i++];
       });
     } else if (num_components == 2) {
-      auto& prop = vertex_property<vec<real_type, 2>>(path.filename().string());
+      auto &prop = vertex_property<vec<real_type, 2>>(path.filename().string());
       vertices().iterate_indices([&](auto const... is) {
-        auto const& [data, dims, aabb, num_components] = reader_data;
-        prop(is...)                                    = {data[i], data[i + 1]};
+        auto const &[data, dims, aabb, num_components] = reader_data;
+        prop(is...) = {data[i], data[i + 1]};
         i += num_components;
       });
     } else if (num_components == 3) {
-      auto& prop = vertex_property<vec<real_type, 3>>(path.filename().string());
+      auto &prop = vertex_property<vec<real_type, 3>>(path.filename().string());
       vertices().iterate_indices([&](auto const... is) {
-        auto const& [data, dims, aabb, num_components] = reader_data;
+        auto const &[data, dims, aabb, num_components] = reader_data;
         prop(is...) = {data[i], data[i + 1], data[i + 2]};
         i += num_components;
       });
@@ -1453,16 +1452,16 @@ class rectilinear_grid {
   }
   //----------------------------------------------------------------------------
 #ifdef TATOOINE_NETCDF_AVAILABLE
-  auto read_netcdf(filesystem::path const& path)
-  requires(!is_uniform)
+  auto read_netcdf(filesystem::path const &path)
+    requires(!is_uniform)
   {
     read_netcdf(path, std::make_index_sequence<num_dimensions()>{});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename T, std::size_t... Seq>
-  auto insert_variables_of_type(netcdf::file& f, bool& first,
+  auto insert_variables_of_type(netcdf::file &f, bool &first,
                                 std::index_sequence<Seq...> /*seq*/)
-  requires(!is_uniform)
+    requires(!is_uniform)
   {
     for (auto v : f.variables<T>()) {
       if (v.name() == "x" || v.name() == "y" || v.name() == "z" ||
@@ -1515,12 +1514,12 @@ class rectilinear_grid {
   }
   /// this only reads scalar types
   template <std::size_t... Seq>
-  auto read_netcdf(filesystem::path const&     path,
+  auto read_netcdf(filesystem::path const &path,
                    std::index_sequence<Seq...> seq)
-  requires(!is_uniform)
+    requires(!is_uniform)
   {
     netcdf::file f{path, netCDF::NcFile::read};
-    bool         first = true;
+    bool first = true;
     insert_variables_of_type<double>(f, first, seq);
     insert_variables_of_type<float>(f, first, seq);
     insert_variables_of_type<int>(f, first, seq);
@@ -1528,21 +1527,21 @@ class rectilinear_grid {
 #endif
   //----------------------------------------------------------------------------
   template <typename T>
-  void write_amira(std::string const& path,
-                   std::string const& vertex_property_name) const
-  requires(num_dimensions() == 3)
+  void write_amira(std::string const &path,
+                   std::string const &vertex_property_name) const
+    requires(num_dimensions() == 3)
   {
     write_amira(path, vertex_property<T>(vertex_property_name));
   }
   //----------------------------------------------------------------------------
   template <typename T, bool HasNonConstReference>
   void write_amira(
-      std::string const&                                                   path,
-      typed_vertex_property_interface_type<T, HasNonConstReference> const& prop)
+      std::string const &path,
+      typed_vertex_property_interface_type<T, HasNonConstReference> const &prop)
       const
-  requires is_uniform && (num_dimensions() == 3)
+    requires is_uniform && (num_dimensions() == 3)
   {
-    std::ofstream     outfile{path, std::ofstream::binary};
+    std::ofstream outfile{path, std::ofstream::binary};
     std::stringstream header;
 
     header << "# AmiraMesh BINARY-LITTLE-ENDIAN 2.1\n\n";
@@ -1570,15 +1569,15 @@ class rectilinear_grid {
     auto back_inserter = [&](auto const... is) { data.push_back(prop(is...)); };
     for_loop(back_inserter, size<0>(), size<1>(), size<2>());
     outfile.write(
-        (char*)header_string.c_str(),
+        (char *)header_string.c_str(),
         static_cast<std::streamsize>(header_string.size() * sizeof(char)));
-    outfile.write((char*)data.data(),
+    outfile.write((char *)data.data(),
                   static_cast<std::streamsize>(data.size() * sizeof(T)));
   }
   //----------------------------------------------------------------------------
 
- public:
-  auto write(filesystem::path const& path) const {
+public:
+  auto write(filesystem::path const &path) const {
     auto const ext = path.extension();
 
     if constexpr (num_dimensions() == 2 || num_dimensions() == 3) {
@@ -1605,10 +1604,10 @@ class rectilinear_grid {
                              "\"."};
   }
   //----------------------------------------------------------------------------
-  auto write_vtk(
-      filesystem::path const& path,
-      std::string const&      description = "tatooine rectilinear_grid") const
-  requires is_uniform && (num_dimensions() == 2) || (num_dimensions() == 3)
+  auto
+  write_vtk(filesystem::path const &path,
+            std::string const &description = "tatooine rectilinear_grid") const
+    requires is_uniform && ((num_dimensions() == 2) || (num_dimensions() == 3))
   {
     auto writer =
         vtk::legacy_file_writer{path, vtk::dataset_type::structured_points};
@@ -1636,10 +1635,10 @@ class rectilinear_grid {
                    vec4d>(writer);
   }
   //----------------------------------------------------------------------------
-  auto write_vtk(
-      filesystem::path const& path,
-      std::string const&      description = "tatooine rectilinear_grid") const
-  requires(!is_uniform) && (num_dimensions() == 2) || (num_dimensions() == 3)
+  auto
+  write_vtk(filesystem::path const &path,
+            std::string const &description = "tatooine rectilinear_grid") const
+    requires(!is_uniform) && ((num_dimensions() == 2) || (num_dimensions() == 3))
   {
     auto writer =
         vtk::legacy_file_writer{path, vtk::dataset_type::rectilinear_grid};
@@ -1673,11 +1672,11 @@ class rectilinear_grid {
                    vec4d>(writer);
   }
   //----------------------------------------------------------------------------
- private:
+private:
   template <typename T, bool HasNonConstReference>
   auto write_vtk_prop(
-      vtk::legacy_file_writer& writer, std::string const& name,
-      typed_vertex_property_interface_type<T, HasNonConstReference> const& prop)
+      vtk::legacy_file_writer &writer, std::string const &name,
+      typed_vertex_property_interface_type<T, HasNonConstReference> const &prop)
       const -> void {
     auto data = std::vector<T>{};
     vertices().iterate_indices(
@@ -1686,10 +1685,10 @@ class rectilinear_grid {
   }
   //----------------------------------------------------------------------------
   template <typename... Ts>
-  auto write_vtk_prop(vtk::legacy_file_writer& writer) const -> void {
-    for (auto const& key_value : this->m_vertex_properties) {
+  auto write_vtk_prop(vtk::legacy_file_writer &writer) const -> void {
+    for (auto const &key_value : this->m_vertex_properties) {
       invoke([&] {
-        auto const& [name, prop] = key_value;
+        auto const &[name, prop] = key_value;
         if (prop->type() == typeid(Ts)) {
           write_vtk_prop(writer, name, prop->template cast_to_typed<Ts>());
         }
@@ -1697,44 +1696,44 @@ class rectilinear_grid {
     }
   }
 
- public:
+public:
   template <typename HeaderType = std::uint64_t>
-  auto write_vtr(filesystem::path const& path) const
-  requires(num_dimensions() == 2) || (num_dimensions() == 3)
+  auto write_vtr(filesystem::path const &path) const
+    requires(num_dimensions() == 2) || (num_dimensions() == 3)
   {
     detail::rectilinear_grid::vtr_writer<this_type, HeaderType>{*this}.write(
         path);
   }
 
- public:
-  auto write_visitvs(filesystem::path const& path) const -> void {
+public:
+  auto write_visitvs(filesystem::path const &path) const -> void {
     write_visitvs(path, std::make_index_sequence<num_dimensions()>{});
   }
 
- private:
+private:
   //----------------------------------------------------------------------------
 #if TATOOINE_HDF5_AVAILABLE
- private:
+private:
   template <typename T, bool HasNonConstReference, std::size_t... Is>
   void write_prop_hdf5(
-      hdf5::file& f, std::string const& name,
-      typed_vertex_property_interface_type<T, HasNonConstReference> const& prop,
+      hdf5::file &f, std::string const &name,
+      typed_vertex_property_interface_type<T, HasNonConstReference> const &prop,
       std::index_sequence<Is...> /*seq*/) const {
     if constexpr (is_arithmetic<T>) {
-      auto dataset                = f.create_dataset<T>(name, size<Is>()...);
+      auto dataset = f.create_dataset<T>(name, size<Is>()...);
       dataset.attribute("vsMesh") = "/rectilinear_grid";
-      dataset.attribute("vsCentering")  = "nodal";
-      dataset.attribute("vsType")       = "variable";
+      dataset.attribute("vsCentering") = "nodal";
+      dataset.attribute("vsType") = "variable";
       dataset.attribute("vsIndexOrder") = "compMinorF";
-      auto data                         = std::vector<T>{};
+      auto data = std::vector<T>{};
       data.reserve(vertices().size());
       vertices().iterate_indices(
           [&](auto const... is) { data.push_back(prop(is...)); });
       dataset.write(H5S_ALL, H5S_ALL, H5P_DEFAULT, data.data());
     } else if constexpr (static_vec<T>) {
-      using vec_type       = T;
-      auto              g  = f.group(name);
-      auto              gg = g.sub_group(name);
+      using vec_type = T;
+      auto g = f.group(name);
+      auto gg = g.sub_group(name);
       std::stringstream ss;
       ss << "{";
       ss << "<" + name + "/" << name << "_0>";
@@ -1742,15 +1741,15 @@ class rectilinear_grid {
         ss << ",<" + name + "/" << name << "_" << i << ">";
       }
       ss << "}";
-      gg.attribute(name)     = ss.str();
+      gg.attribute(name) = ss.str();
       gg.attribute("vsType") = "vsVars";
 
       for (std::size_t i = 0; i < vec_type::dimension(0); ++i) {
         auto dataset = g.create_dataset<typename vec_type::value_type>(
             name + "_" + std::to_string(i), size<Is>()...);
-        dataset.attribute("vsMesh")       = "/rectilinear_grid";
-        dataset.attribute("vsCentering")  = "nodal";
-        dataset.attribute("vsType")       = "variable";
+        dataset.attribute("vsMesh") = "/rectilinear_grid";
+        dataset.attribute("vsCentering") = "nodal";
+        dataset.attribute("vsType") = "variable";
         dataset.attribute("vsIndexOrder") = "compMinorF";
         auto data = std::vector<typename vec_type::value_type>{};
         data.reserve(vertices().size());
@@ -1762,29 +1761,29 @@ class rectilinear_grid {
   }
   //----------------------------------------------------------------------------
   template <typename... Ts, std::size_t... Is>
-  auto write_prop_hdf5_wrapper(hdf5::file& f, std::string const& name,
-                               vertex_property_type const& prop,
-                               std::index_sequence<Is...>  seq) const -> void {
+  auto write_prop_hdf5_wrapper(hdf5::file &f, std::string const &name,
+                               vertex_property_type const &prop,
+                               std::index_sequence<Is...> seq) const -> void {
     invoke([&] {
       if (prop.type() == typeid(Ts)) {
         write_prop_hdf5(
             f, name,
             *dynamic_cast<
-                typed_vertex_property_interface_type<Ts, true> const*>(&prop),
+                typed_vertex_property_interface_type<Ts, true> const *>(&prop),
             seq);
         return;
       }
     }...);
   }
   //----------------------------------------------------------------------------
- public:
+public:
   template <std::size_t... Is>
-  auto write_visitvs(filesystem::path const&    path,
+  auto write_visitvs(filesystem::path const &path,
                      std::index_sequence<Is...> seq) const -> void {
     if (filesystem::exists(path)) {
       filesystem::remove(path);
     }
-    auto f     = hdf5::file{path};
+    auto f = hdf5::file{path};
     auto group = f.group("rectilinear_grid");
 
     auto axis_labels_stream = std::stringstream{};
@@ -1794,11 +1793,11 @@ class rectilinear_grid {
     }
 
     group.attribute("vsAxisLabels") = axis_labels_stream.str();
-    group.attribute("vsKind")       = "rectilinear";
-    group.attribute("vsType")       = "mesh";
+    group.attribute("vsKind") = "rectilinear";
+    group.attribute("vsType") = "mesh";
     group.attribute("vsIndexOrder") = "compMinorF";
 
-    m_dimensions.iterate([&, i = std::size_t{}](auto const& dim) mutable {
+    m_dimensions.iterate([&, i = std::size_t{}](auto const &dim) mutable {
       using dim_type = typename std::decay_t<decltype(dim)>::value_type;
       group.attribute("vsAxis" + std::to_string(i)) =
           "axis" + std::to_string(i);
@@ -1812,7 +1811,7 @@ class rectilinear_grid {
       ++i;
     });
 
-    for (const auto& [name, prop] : this->m_vertex_properties) {
+    for (const auto &[name, prop] : this->m_vertex_properties) {
       write_prop_hdf5_wrapper<std::uint16_t, std::uint32_t, std::int16_t,
                               std::int32_t, float, double, vec2f, vec2d, vec2f,
                               vec2d, vec4f, vec4d, vec5f, vec5d>(f, name, *prop,
@@ -1821,10 +1820,9 @@ class rectilinear_grid {
   }
 #endif
 
- private:
-  template <std::size_t I>
-  auto print_dim(std::ostream& out) const {
-    auto const& dim = dimension<I>();
+private:
+  template <std::size_t I> auto print_dim(std::ostream &out) const {
+    auto const &dim = dimension<I>();
     if constexpr (is_linspace<std::decay_t<decltype(dim)>>) {
       out << dim;
     } else {
@@ -1833,14 +1831,14 @@ class rectilinear_grid {
     out << " [" << dim.size() << "]\n";
   }
   template <std::size_t... Seq>
-  auto print(std::ostream& out, std::index_sequence<Seq...> /*seq*/) const
-      -> auto& {
+  auto print(std::ostream &out, std::index_sequence<Seq...> /*seq*/) const
+      -> auto & {
     (print_dim<Seq>(out), ...);
     return out;
   }
 
- public:
-  auto print(std::ostream& out = std::cout) const -> auto& {
+public:
+  auto print(std::ostream &out = std::cout) const -> auto & {
     return print(out, std::make_index_sequence<num_dimensions()>{});
   }
   //----------------------------------------------------------------------------
@@ -1856,23 +1854,23 @@ class rectilinear_grid {
 // free functions
 //==============================================================================
 template <typename... Dimensions>
-auto operator<<(std::ostream& out, rectilinear_grid<Dimensions...> const& g)
-    -> auto& {
+auto operator<<(std::ostream &out, rectilinear_grid<Dimensions...> const &g)
+    -> auto & {
   return g.print(out);
 }
 template <floating_point_range... Dimensions>
-auto vertices(rectilinear_grid<Dimensions...> const& g) {
+auto vertices(rectilinear_grid<Dimensions...> const &g) {
   return g.vertices();
 }
 //==============================================================================
 // deduction guides
 //==============================================================================
 template <floating_point_range... Dimensions>
-rectilinear_grid(Dimensions&&...)
+rectilinear_grid(Dimensions &&...)
     -> rectilinear_grid<std::decay_t<Dimensions>...>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Real, std::size_t N>
-rectilinear_grid(axis_aligned_bounding_box<Real, N> const& bb,
+rectilinear_grid(axis_aligned_bounding_box<Real, N> const &bb,
                  integral auto const... res)
     -> rectilinear_grid<
         linspace<std::conditional_t<true, Real, decltype(res)>>...>;
@@ -1885,16 +1883,16 @@ rectilinear_grid(Ints const... res) -> rectilinear_grid<
 //==============================================================================
 template <floating_point_range... Dimensions,
           floating_point_range AdditionalDimension>
-auto operator+(rectilinear_grid<Dimensions...> const& rectilinear_grid,
-               AdditionalDimension&&                  additional_dimension) {
+auto operator+(rectilinear_grid<Dimensions...> const &rectilinear_grid,
+               AdditionalDimension &&additional_dimension) {
   return rectilinear_grid.add_dimension(
       std::forward<AdditionalDimension>(additional_dimension));
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <floating_point_range... Dimensions,
           floating_point_range AdditionalDimension>
-auto operator+(AdditionalDimension&&                  additional_dimension,
-               rectilinear_grid<Dimensions...> const& rectilinear_grid) {
+auto operator+(AdditionalDimension &&additional_dimension,
+               rectilinear_grid<Dimensions...> const &rectilinear_grid) {
   return rectilinear_grid.add_dimension(
       std::forward<AdditionalDimension>(additional_dimension));
 }
@@ -1905,7 +1903,7 @@ template <floating_point Real, std::size_t N>
 using uniform_rectilinear_grid =
     detail::rectilinear_grid::creator_t<linspace<Real>, N>;
 template <std::size_t N>
-using UniformRectilinearGrid    = uniform_rectilinear_grid<real_number, N>;
+using UniformRectilinearGrid = uniform_rectilinear_grid<real_number, N>;
 using uniform_rectilinear_grid2 = UniformRectilinearGrid<2>;
 using uniform_rectilinear_grid3 = UniformRectilinearGrid<3>;
 using uniform_rectilinear_grid4 = UniformRectilinearGrid<4>;
@@ -1939,7 +1937,7 @@ using static_nonuniform_rectilinear_grid3 = NonuniformRectilinearGrid<3>;
 using static_nonuniform_rectilinear_grid4 = NonuniformRectilinearGrid<4>;
 using static_nonuniform_rectilinear_grid5 = NonuniformRectilinearGrid<5>;
 //==============================================================================
-}  // namespace tatooine
+} // namespace tatooine
 //==============================================================================
 #include <tatooine/detail/rectilinear_grid/infinite_vertex_property_sampler.h>
 #endif
