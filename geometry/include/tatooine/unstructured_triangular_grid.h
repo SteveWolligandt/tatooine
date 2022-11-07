@@ -8,35 +8,32 @@ namespace tatooine {
 template <typename Real, std::size_t NumDimensions>
 struct unstructured_triangular_grid
     : unstructured_simplicial_grid<Real, NumDimensions, 2> {
-  using this_type = unstructured_triangular_grid<Real, NumDimensions>;
-  using parent_t  = unstructured_simplicial_grid<Real, NumDimensions, 2>;
-  using parent_t::parent_t;
-  using typename parent_t::vertex_handle;
-  using triangle_handle = typename parent_t::simplex_handle;
+  using this_type   = unstructured_triangular_grid<Real, NumDimensions>;
+  using parent_type = unstructured_simplicial_grid<Real, NumDimensions, 2>;
+  using parent_type::parent_type;
+  using typename parent_type::vertex_handle;
+  using triangle_handle = typename parent_type::simplex_handle;
   constexpr unstructured_triangular_grid() = default;
   template <typename... Handles>
   auto insert_triangle(Handles const... handles) requires(
       is_same<Handles, vertex_handle>&&...) {
     return this->insert_simplex(handles...);
   }
-  auto triangle_at(triangle_handle const h) {
-    return this->simplex_at(h);
-  }
+  auto triangle_at(triangle_handle const h) { return this->simplex_at(h); }
   auto triangle_at(triangle_handle const h) const {
     return this->simplex_at(h);
   }
-  auto triangles() {
-    return this->simplices();
-  }
+  auto triangles() { return this->simplices(); }
 };
 template <std::size_t NumDimensions>
-using UnstructuredTriangularGrid = unstructured_triangular_grid<real_number, NumDimensions>;
+using UnstructuredTriangularGrid =
+    unstructured_triangular_grid<real_number, NumDimensions>;
 template <typename Real>
-using UnstructuredTriangularGrid2   = unstructured_triangular_grid<Real, 2>;
+using UnstructuredTriangularGrid2 = unstructured_triangular_grid<Real, 2>;
 template <typename Real>
-using UnstructuredTriangularGrid3   = unstructured_triangular_grid<Real, 3>;
+using UnstructuredTriangularGrid3 = unstructured_triangular_grid<Real, 3>;
 template <typename Real>
-using UnstructuredTriangularGrid4   = unstructured_triangular_grid<Real, 4>;
+using UnstructuredTriangularGrid4 = unstructured_triangular_grid<Real, 4>;
 template <typename Real>
 using UnstructuredTriangularGrid5   = unstructured_triangular_grid<Real, 5>;
 using unstructured_triangular_grid2 = UnstructuredTriangularGrid<2>;
@@ -45,10 +42,10 @@ using unstructured_triangular_grid4 = UnstructuredTriangularGrid<4>;
 using unstructured_triangular_grid5 = UnstructuredTriangularGrid<5>;
 //==============================================================================
 template <typename T>
-struct is_unstructured_triangular_grid_impl : std::false_type{};
+struct is_unstructured_triangular_grid_impl : std::false_type {};
 template <typename Real, std::size_t NumDimensions>
 struct is_unstructured_triangular_grid_impl<
-    unstructured_triangular_grid<Real, NumDimensions>> : std::true_type{};
+    unstructured_triangular_grid<Real, NumDimensions>> : std::true_type {};
 template <typename T>
 static constexpr auto is_unstructured_triangular_grid =
     is_unstructured_triangular_grid_impl<T>::value;
@@ -67,7 +64,7 @@ auto write_unstructured_triangular_grid_container_to_vtk(
       num_pts += m.vertices().size();
     }
     std::vector<std::array<typename MeshCont::value_type::real_type, 3>> points;
-    std::vector<std::vector<std::size_t>>                                  faces;
+    std::vector<std::vector<std::size_t>>                                faces;
     points.reserve(num_pts);
     faces.reserve(grids.size());
 
@@ -113,9 +110,7 @@ auto write_unstructured_triangular_grid_container_to_vtp(
        << " version=\"1.0\" "
           "byte_order=\"LittleEndian\""
        << " header_type=\""
-       << vtk::xml::to_string(
-              vtk::xml::to_type<header_type>())
-       << "\">";
+       << vtk::xml::to_string(vtk::xml::to_type<header_type>()) << "\">";
   file << "<PolyData>\n";
   for (auto const& g : grids) {
     using real_type = typename std::decay_t<decltype(g)>::real_type;
@@ -132,9 +127,7 @@ auto write_unstructured_triangular_grid_container_to_vtp(
     file << "<DataArray"
          << " format=\"appended\""
          << " offset=\"" << offset << "\""
-         << " type=\""
-         << vtk::xml::to_string(
-                vtk::xml::to_type<real_type>())
+         << " type=\"" << vtk::xml::to_string(vtk::xml::to_type<real_type>())
          << "\" NumberOfComponents=\"" << g.num_dimensions() << "\"/>";
     auto const num_bytes_points =
         header_type(sizeof(real_type) * g.num_dimensions() *
@@ -146,8 +139,7 @@ auto write_unstructured_triangular_grid_container_to_vtp(
     file << "<Polys>\n";
     // Polys - connectivity
     file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
-         << vtk::xml::to_string(
-                vtk::xml::to_type<polys_connectivity_int_t>())
+         << vtk::xml::to_string(vtk::xml::to_type<polys_connectivity_int_t>())
          << "\" Name=\"connectivity\"/>\n";
     auto const num_bytes_polys_connectivity = g.simplices().size() *
                                               g.num_vertices_per_simplex() *
@@ -156,8 +148,7 @@ auto write_unstructured_triangular_grid_container_to_vtp(
 
     // Polys - offsets
     file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
-         << vtk::xml::to_string(
-                vtk::xml::to_type<polys_offset_int_t>())
+         << vtk::xml::to_string(vtk::xml::to_type<polys_offset_int_t>())
          << "\" Name=\"offsets\"/>\n";
     auto const num_bytes_polys_offsets =
         sizeof(polys_offset_int_t) * g.simplices().size();
@@ -173,11 +164,10 @@ auto write_unstructured_triangular_grid_container_to_vtp(
 
   for (auto const& g : grids) {
     using real_type = typename std::decay_t<decltype(g)>::real_type;
-    arr_size = header_type(
-        sizeof(real_type) * g.num_dimensions() * g.vertices().data_container().size());
+    arr_size        = header_type(sizeof(real_type) * g.num_dimensions() *
+                           g.vertices().data_container().size());
     file.write(reinterpret_cast<char const*>(&arr_size), sizeof(header_type));
-    file.write(reinterpret_cast<char const*>(g.vertices().data()),
-               arr_size);
+    file.write(reinterpret_cast<char const*>(g.vertices().data()), arr_size);
 
     // Writing polys connectivity data to appended data section
     {
@@ -198,8 +188,8 @@ auto write_unstructured_triangular_grid_container_to_vtp(
 
     // Writing polys offsets to appended data section
     {
-      auto offsets = std::vector<polys_offset_int_t>(g.simplices().size(),
-                                                     g.num_vertices_per_simplex());
+      auto offsets = std::vector<polys_offset_int_t>(
+          g.simplices().size(), g.num_vertices_per_simplex());
       for (std::size_t i = 1; i < size(offsets); ++i) {
         offsets[i] += offsets[i - 1];
       }
@@ -214,23 +204,34 @@ auto write_unstructured_triangular_grid_container_to_vtp(
 }
 }  // namespace detail
 //==============================================================================
-auto write_vtk(range auto const& grids, std::filesystem::path const& path,
-               std::string const& title = "tatooine grids") 
-  requires is_unstructured_triangular_grid<
-             typename std::decay_t<decltype(grids)>::value_type> {
+auto write_vtk(
+    range auto const& grids, std::filesystem::path const& path,
+    std::string const& title =
+        "tatooine grids") requires is_unstructured_triangular_grid<typename std::
+                                                                       decay_t<decltype(
+                                                                           grids)>::
+                                                                           value_type> {
   detail::write_unstructured_triangular_grid_container_to_vtk(grids, path,
                                                               title);
 }
 //------------------------------------------------------------------------------
-auto write_vtp(range auto const& grids, std::filesystem::path const& path)
-  requires is_unstructured_triangular_grid<
-             typename std::decay_t<decltype(grids)>::value_type> {
+auto write_vtp(
+    range auto const& grids,
+    std::filesystem::path const&
+        path) requires is_unstructured_triangular_grid<typename std::
+                                                           decay_t<decltype(
+                                                               grids)>::
+                                                               value_type> {
   detail::write_unstructured_triangular_grid_container_to_vtp(grids, path);
 }
 //------------------------------------------------------------------------------
-auto write(range auto const& grids, std::filesystem::path const& path)
-  requires is_unstructured_triangular_grid<
-             typename std::decay_t<decltype(grids)>::value_type> {
+auto write(
+    range auto const& grids,
+    std::filesystem::path const&
+        path) requires is_unstructured_triangular_grid<typename std::
+                                                           decay_t<decltype(
+                                                               grids)>::
+                                                               value_type> {
   auto const ext = path.extension();
   if (ext == ".vtp") {
     detail::write_unstructured_triangular_grid_container_to_vtp(grids, path);
@@ -242,4 +243,3 @@ auto write(range auto const& grids, std::filesystem::path const& path)
 }  // namespace tatooine
 //==============================================================================
 #endif
-

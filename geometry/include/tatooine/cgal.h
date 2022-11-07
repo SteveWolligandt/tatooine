@@ -5,9 +5,14 @@
 //==============================================================================
 #include <CGAL/Delaunay_triangulation_2.h>
 #include <CGAL/Delaunay_triangulation_3.h>
+#include <CGAL/natural_neighbor_coordinates_2.h>
+#include <CGAL/natural_neighbor_coordinates_3.h>
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Triangulation_vertex_base_with_info_2.h>
 #include <CGAL/Triangulation_vertex_base_with_info_3.h>
+
+#include <cstddef>
+#include <vector>
 //==============================================================================
 namespace tatooine::cgal {
 /// \defgroup cgal CGAL Wrappers
@@ -117,10 +122,11 @@ using triangulation_vertex_base =
     typename triangulation_vertex_base_impl<NumDimensions, Traits, Vb>::type;
 /// \}
 //==============================================================================
-/// \defgroup cgal_triangulation_vertex_base_with_info Triangulation vertex base with info
-/// \ingroup cgal
+/// \defgroup cgal_triangulation_vertex_base_with_info Triangulation vertex base
+/// with info \ingroup cgal
 /// \{
-template <std::size_t NumDimensions, typename Info, typename Traits, typename Vb>
+template <std::size_t NumDimensions, typename Info, typename Traits,
+          typename Vb>
 struct triangulation_vertex_base_with_info_impl;
 //------------------------------------------------------------------------------
 template <typename Info, typename Traits, typename Vb>
@@ -167,6 +173,24 @@ using delaunay_triangulation_with_info = typename delaunay_triangulation_impl<
         NumDimensions, triangulation_vertex_base_with_info<NumDimensions, Info,
                                                            Traits>>>::type;
 /// \}
+//==============================================================================
+template <typename Kernel, std::size_t NumDimensions, typename Info,
+          typename Traits,
+          typename Vb = triangulation_vertex_base<NumDimensions, Traits>>
+auto natural_neighbor_coordinates(
+    triangulation_vertex_base_with_info<NumDimensions, Info, Traits, Vb> const&
+                                                                   triangulation,
+    typename triangulation_vertex_base_with_info<NumDimensions, Info, Traits,
+                                                 Vb>::Point const& query,
+    std::vector<std::pair<typename triangulation_vertex_base_with_info<
+                              NumDimensions, Info, Traits, Vb>::Vertex_handle,
+                          typename Kernel::FT>>&                   nnc) {
+  if constexpr (NumDimensions == 2) {
+    return CGAL::natural_neighbor_coordinates_2(triangulation, query, nnc);
+  } else if constexpr (NumDimensions == 3) {
+    return CGAL::natural_neighbor_coordinates_3(triangulation, query, nnc);
+  }
+}
 //==============================================================================
 }  // namespace tatooine::cgal
 //==============================================================================

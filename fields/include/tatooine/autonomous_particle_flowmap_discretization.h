@@ -24,7 +24,8 @@ struct autonomous_particle_flowmap_discretization {
   using particle_type      = autonomous_particle<real_type, NumDimensions>;
   using particle_list_type = std::vector<particle_type>;
 
-  using pointset_type = tatooine::unstructured_triangular_grid<Real, NumDimensions>;
+  using pointset_type =
+      tatooine::unstructured_triangular_grid<Real, NumDimensions>;
   using vertex_handle = typename pointset_type::vertex_handle;
   using flowmap_vertex_property_type =
       typename pointset_type::template typed_vertex_property_type<pos_type>;
@@ -364,12 +365,11 @@ struct autonomous_particle_flowmap_discretization {
 
     // coordinates computation
     auto       nnc_per_vertex = std::vector<nnc_type>{};
-    auto const result         = CGAL::natural_neighbor_coordinates_2(
-                triangulation(direction), cgal_point{q(Is)...},
-                std::back_inserter(nnc_per_vertex), CGAL::Identity<nnc_type>{});
+    auto const result         = cgal::natural_neighbor_coordinates<cgal_kernel>(
+        triangulation(direction), cgal_point{q(Is)...}, nnc_per_vertex);
     auto const success = result.third;
     if (!success) {
-      return pos_type::fill(0.0 / 0.0);
+      return pos_type::fill(nan<real_type>());
     }
     auto const norm = 1 / result.second;
 
@@ -488,6 +488,6 @@ template <typename SplitBehavior = typename autonomous_particle<
 using staggered_autonomous_particle_flowmap_discretization3 =
     StaggeredAutonomousParticleFlowmapDiscretization<3, SplitBehavior>;
 //==============================================================================
-}  // namespace foo
+}  // namespace tatooine
 //==============================================================================
 #endif

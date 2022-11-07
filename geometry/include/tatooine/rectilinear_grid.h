@@ -420,14 +420,20 @@ requires(sizeof...(Dimensions) > 1) class rectilinear_grid {
     return std::numeric_limits<std::size_t>::max();
   }
   //----------------------------------------------------------------------------
-  ///
-  template <std::size_t I>
-  constexpr auto set_dimension(convertible_to<dimension_type<I>> auto&& dim) {
-m_finite_difference_coefficients.clear();
-    m_dimensions.template at<I>() = std::forward<decltype(dim)>(dim);
+ private:
+  auto resize_vertex_properties() {
     for (auto& [name, prop] : vertex_properties()) {
       prop->resize(size());
     }
+  }
+ public:
+  //----------------------------------------------------------------------------
+  ///
+  template <std::size_t I>
+  constexpr auto set_dimension(convertible_to<dimension_type<I>> auto&& dim) {
+    m_finite_difference_coefficients.clear();
+    m_dimensions.template at<I>() = std::forward<decltype(dim)>(dim);
+    resize_vertex_properties();
   }
   //----------------------------------------------------------------------------
   /// Inserts new discrete point in dimension I with extent of last cell.
@@ -440,6 +446,7 @@ m_finite_difference_coefficients.clear();
     } else {
       dim.push_back(dimension<I>().back() + extent<I>(size<I>() - 2));
     }
+    resize_vertex_properties();
   }
   //----------------------------------------------------------------------------
   /// Removes last discrete point in dimension I.
@@ -448,6 +455,7 @@ m_finite_difference_coefficients.clear();
   constexpr auto pop_back() {
     m_finite_difference_coefficients.clear();
     m_dimensions.template at<I>().pop_back();
+    resize_vertex_properties();
   }
   //----------------------------------------------------------------------------
   /// Removes first discrete point in dimension I.
@@ -456,13 +464,15 @@ m_finite_difference_coefficients.clear();
   constexpr auto pop_front() {
     m_finite_difference_coefficients.clear();
     m_dimensions.template at<I>().pop_front();
+    resize_vertex_properties();
   }
   //----------------------------------------------------------------------------
  private:
   /// Checks if point [comps...] is inside of grid.
-  template <arithmetic... Comps, std::size_t... Seq>
-  requires(num_dimensions() == sizeof...(Comps)) constexpr auto is_inside(
-      std::index_sequence<Seq...> /*seq*/, Comps const... comps) const {
+  template <std::size_t... Seq>
+  constexpr auto is_inside(std::index_sequence<Seq...> /*seq*/,
+                           arithmetic auto const... comps) const
+  requires(num_dimensions() == sizeof...(comps)) {
     return ((dimension<Seq>().front() <= comps &&
              comps <= dimension<Seq>().back()) &&
             ...);
@@ -470,9 +480,8 @@ m_finite_difference_coefficients.clear();
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
   /// Checks if point [comps...] is inside of grid.
-  template <arithmetic... Comps>
-  requires(num_dimensions() == sizeof...(Comps)) constexpr auto is_inside(
-      Comps const... comps) const {
+  constexpr auto is_inside(arithmetic auto const... comps) const 
+  requires(num_dimensions() == sizeof...(comps)) {
     return is_inside(std::make_index_sequence<num_dimensions()>{}, comps...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
