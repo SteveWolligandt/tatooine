@@ -488,7 +488,7 @@ class texture : public id_holder<GLuint> {
            (sizeof...(Sizes) == NumDimensions)
   auto upload_data(std::vector<vec<value_type, num_components()>> const& data,
                    Sizes const... sizes) {
-    assert((sizes * ...) = size(data));
+    assert((sizes * ...) = data.size());
     m_size = std::array{static_cast<GLsizei>(sizes)...};
     upload_data(data.data());
   }

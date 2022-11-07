@@ -13,16 +13,22 @@ if(BLAS_FOUND AND LAPACK_FOUND)
       ${TATOOINE_USE_BLAS_AND_LAPACK}
       PARENT_SCOPE)
   if(TATOOINE_USE_BLAS_AND_LAPACK)
+    message(STATUS "Compiling with BLAS and LAPACK")
     target_link_libraries(tensor INTERFACE BLAS::BLAS LAPACK::LAPACK)
     # target_compile_options(lapackpp INTERFACE -Wno-unused-parameter)
     target_compile_definitions(tensor INTERFACE LAPACK_COMPLEX_CPP)
     set(TATOOINE_BLAS_AND_LAPACK_AVAILABLE 1)
   else()
+    message(STATUS "Not Compiling with BLAS and LAPACK")
     set(TATOOINE_BLAS_AND_LAPACK_AVAILABLE 0)
   endif()
 else()
+  message(STATUS "Not Compiling with BLAS and LAPACK")
   set(TATOOINE_BLAS_AND_LAPACK_AVAILABLE 0)
 endif()
+set(TATOOINE_BLAS_AND_LAPACK_AVAILABLE
+    ${TATOOINE_BLAS_AND_LAPACK_AVAILABLE}
+    PARENT_SCOPE)
 target_compile_definitions(
   tensor
   INTERFACE

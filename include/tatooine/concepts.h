@@ -40,57 +40,37 @@ concept convertible_to = std::convertible_to<From, To>;
 //------------------------------------------------------------------------------
 template <typename From>
 concept convertible_to_floating_point =
-  convertible_to<From, float> ||
-  convertible_to<From, double> ||
-  convertible_to<From, long double>;
+    convertible_to<From, float> || convertible_to<From, double> ||
+    convertible_to<From, long double>;
 //------------------------------------------------------------------------------
 template <typename From>
 concept convertible_to_integral =
-  convertible_to<From, bool> ||
-  convertible_to<From, char> ||
-  convertible_to<From, unsigned char> ||
-  convertible_to<From, char8_t> ||
-  convertible_to<From, char16_t> ||
-  convertible_to<From, char32_t> ||
-  convertible_to<From, wchar_t> ||
-  convertible_to<From, short> ||
-  convertible_to<From, unsigned short> ||
-  convertible_to<From, int> ||
-  convertible_to<From, unsigned int> ||
-  convertible_to<From, long> ||
-  convertible_to<From, unsigned long> ||
-  convertible_to<From, long long> ||
-  convertible_to<From, unsigned long long>;
+    convertible_to<From, bool> || convertible_to<From, char> ||
+    convertible_to<From, unsigned char> || convertible_to<From, char8_t> ||
+    convertible_to<From, char16_t> || convertible_to<From, char32_t> ||
+    convertible_to<From, wchar_t> || convertible_to<From, short> ||
+    convertible_to<From, unsigned short> || convertible_to<From, int> ||
+    convertible_to<From, unsigned int> || convertible_to<From, long> ||
+    convertible_to<From, unsigned long> || convertible_to<From, long long> ||
+    convertible_to<From, unsigned long long>;
 //------------------------------------------------------------------------------
 template <typename T>
-concept has_defined_real_type = requires {
-  typename T::real_type;
-};
+concept has_defined_real_type = requires { typename T::real_type; };
 //------------------------------------------------------------------------------
 template <typename T>
-concept has_defined_iterator = requires {
-  typename T::iterator;
-};
+concept has_defined_iterator = requires { typename T::iterator; };
 //------------------------------------------------------------------------------
 template <typename T>
-concept has_defined_this_type = requires {
-  typename T::this_type;
-};
+concept has_defined_this_type = requires { typename T::this_type; };
 //------------------------------------------------------------------------------
 template <typename T>
-concept has_defined_parent_type = requires {
-  typename T::parent_type;
-};
+concept has_defined_parent_type = requires { typename T::parent_type; };
 //------------------------------------------------------------------------------
 template <typename T>
-concept has_defined_tensor_type = requires {
-  typename T::tensor_type;
-};
+concept has_defined_tensor_type = requires { typename T::tensor_type; };
 //------------------------------------------------------------------------------
 template <typename T>
-concept has_defined_pos_type = requires {
-  typename T::pos_type;
-};
+concept has_defined_pos_type = requires { typename T::pos_type; };
 //==============================================================================
 // ranges etc.
 //==============================================================================
@@ -108,20 +88,18 @@ concept arithmetic_range =
     range<T> && arithmetic<std::ranges::range_value_t<T>>;
 //------------------------------------------------------------------------------
 template <typename T>
-concept integral_range =
-    range<T> && integral<std::ranges::range_value_t<T>>;
+concept integral_range = range<T> && integral<std::ranges::range_value_t<T>>;
 //------------------------------------------------------------------------------
 template <typename T>
 concept floating_point_range =
     range<T> && floating_point<std::ranges::range_value_t<T>>;
 //------------------------------------------------------------------------------
 template <typename T, typename S>
-concept range_of =
-    range<T> && same_as<std::ranges::range_value_t<T>, S>;
+concept range_of = range<T> && same_as<std::ranges::range_value_t<T>, S>;
 //------------------------------------------------------------------------------
 template <typename T>
 concept integral_pair = is_pair<T> && integral<typename T::first_type> &&
-    integral<typename T::second_type>;
+                        integral<typename T::second_type>;
 //------------------------------------------------------------------------------
 template <typename T>
 concept integral_pair_range =
@@ -135,9 +113,9 @@ concept range_of_either =
 //==============================================================================
 template <typename T>
 concept indexable = requires(T const t, std::size_t i) {
-  { t[i] };
-  { t.at(i) };
-};
+                      { t[i] };
+                      { t.at(i) };
+                    };
 //==============================================================================
 template <typename F, typename... Args>
 concept invocable = std::invocable<F, Args...>;
@@ -149,14 +127,17 @@ template <typename F, typename... Args>
 using invoke_result = std::invoke_result_t<F, Args...>;
 //-----------------------------------------------------------------------------
 template <typename T>
-concept has_static_num_dimensions_method = requires {
-  { T::num_dimensions() } -> std::convertible_to<std::size_t>;
-};
+concept has_static_num_dimensions_method =
+    requires {
+      { T::num_dimensions() } -> std::convertible_to<std::size_t>;
+    };
 //-----------------------------------------------------------------------------
 template <typename T>
 concept has_static_rank_method = requires {
-  { T::rank() } -> std::convertible_to<std::size_t>;
-};
+                                   {
+                                     T::rank()
+                                     } -> std::convertible_to<std::size_t>;
+                                 };
 //-----------------------------------------------------------------------------
 template <typename F, typename... Is>
 concept invocable_with_integrals = std::invocable<F, Is...> &&
@@ -165,23 +146,24 @@ concept invocable_with_integrals = std::invocable<F, Is...> &&
 // misc
 //==============================================================================
 template <typename Reader, typename Readable>
-concept can_read = requires(Reader reader, Readable readable) {
-  reader.read(readable);
-};
+concept can_read =
+    requires(Reader reader, Readable readable) { reader.read(readable); };
 //------------------------------------------------------------------------------
 template <typename T>
-concept has_real_type = requires {typename std::decay_t<T>::real_type;};
+concept has_real_type = requires { typename std::decay_t<T>::real_type; };
 //------------------------------------------------------------------------------
 template <typename T>
-concept has_pos_type = requires {typename std::decay_t<T>::pos_type;};
+concept has_pos_type = requires { typename std::decay_t<T>::pos_type; };
 //------------------------------------------------------------------------------
 template <typename T>
-concept has_tensor_type = requires {typename std::decay_t<T>::tensor_type;};
+concept has_tensor_type = requires { typename std::decay_t<T>::tensor_type; };
 //------------------------------------------------------------------------------
 template <typename T>
 concept has_num_dimensions = requires {
-  { std::decay_t<T>::num_dimensions() } -> integral;
-};
+                               {
+                                 std::decay_t<T>::num_dimensions()
+                                 } -> integral;
+                             };
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

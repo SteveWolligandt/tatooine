@@ -19,8 +19,8 @@ struct piece {
   std::size_t num_strips   = {};
   std::size_t num_polygons = {};
 
-  std::optional<std::array<double, 3>> extent1 = {};
-  std::optional<std::array<double, 3>> extent2 = {};
+  std::optional<std::array<std::size_t, 3>> extent1 = {};
+  std::optional<std::array<std::size_t, 3>> extent2 = {};
 
   data_array                        points     = {};
   std::map<std::string, data_array> vertices   = {};

@@ -5,29 +5,6 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename T>
-struct tensor_value_type_impl {
-  using type = typename std::decay_t<T>::value_type;
-};
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <arithmetic_or_complex T, std::size_t N>
-struct tensor_value_type_impl<std::array<T, N>> {
-  using type = T;
-};
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <arithmetic T>
-struct tensor_value_type_impl<T> {
-  using type = T;
-};
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <floating_point T>
-struct tensor_value_type_impl<std::complex<T>> {
-  using type = T;
-};
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T>
-using tensor_value_type = typename tensor_value_type_impl<T>::type;
-//==============================================================================
 template <typename Tensor>
 struct tensor_rank_impl;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -39,8 +16,8 @@ template <arithmetic_or_complex Tensor>
 struct tensor_rank_impl<Tensor> : std::integral_constant<std::size_t, 0> {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <arithmetic_or_complex T, std::size_t N>
-struct tensor_rank_impl<std::array<T, N>> : std::integral_constant<std::size_t, 1> {
-};
+struct tensor_rank_impl<std::array<T, N>>
+    : std::integral_constant<std::size_t, 1> {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
 static constexpr auto tensor_rank = tensor_rank_impl<T>::value;
@@ -85,7 +62,7 @@ template <typename T, std::size_t I>
 struct tensor_dimension_impl;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <static_tensor Tensor, std::size_t I>
-requires (I < tensor_rank<Tensor>)
+requires(I < tensor_rank<Tensor>)
 struct tensor_dimension_impl<Tensor, I> {
   static auto constexpr value = std::decay_t<Tensor>::dimension(I);
 };

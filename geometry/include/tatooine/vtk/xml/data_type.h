@@ -4,6 +4,7 @@
 #include <tatooine/concepts.h>
 
 #include <cstring>
+#include <ostream>
 //==============================================================================
 namespace tatooine::vtk::xml {
 //==============================================================================
@@ -81,9 +82,10 @@ auto visit(data_type dt, auto&& f) {
 auto parse_data_type(char const* str) -> data_type;
 auto to_string(data_type const t) -> std::string_view;
 auto size(data_type const dt) -> std::size_t;
+auto operator<<(std::ostream&, data_type const) -> std::ostream&;
 //------------------------------------------------------------------------------
 template <typename T>
-static auto constexpr to_type() {
+static auto constexpr to_data_type() {
   if constexpr (is_same<std::int8_t, T>) {
     return data_type::int8;
   } else if constexpr (is_same<T, std::uint8_t>) {

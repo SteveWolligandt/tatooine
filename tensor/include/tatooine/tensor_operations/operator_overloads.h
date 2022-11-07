@@ -39,8 +39,8 @@ auto constexpr operator+(static_tensor auto const&        lhs,
 //------------------------------------------------------------------------------
 /// matrix-matrix multiplication
 template <static_mat Lhs, static_mat Rhs>
-requires(Lhs::dimension(1) == Rhs::dimension(0)) auto constexpr operator*(
-    Lhs const& lhs, Rhs const& rhs) {
+requires(Lhs::dimension(1) == Rhs::dimension(0))
+auto constexpr operator*(Lhs const& lhs, Rhs const& rhs) {
   auto product =
       mat<common_type<typename Lhs::value_type, typename Rhs::value_type>,
           Lhs::dimension(0), Rhs::dimension(1)>{};
@@ -56,8 +56,8 @@ requires(Lhs::dimension(1) == Rhs::dimension(0)) auto constexpr operator*(
 //------------------------------------------------------------------------------
 /// matrix-vector-multiplication
 template <static_mat Lhs, static_vec Rhs>
-requires(Lhs::dimension(1) == Rhs::dimension(0)) auto constexpr operator*(
-    Lhs const& lhs, Rhs const& rhs) {
+requires(Lhs::dimension(1) == Rhs::dimension(0))
+auto constexpr operator*(Lhs const& lhs, Rhs const& rhs) {
   auto product =
       vec<common_type<typename Lhs::value_type, typename Rhs::value_type>,
           Lhs::dimension(0)>{};
@@ -71,8 +71,8 @@ requires(Lhs::dimension(1) == Rhs::dimension(0)) auto constexpr operator*(
 //------------------------------------------------------------------------------
 /// vector-matrix-multiplication
 template <static_vec Lhs, static_mat Rhs>
-requires(Lhs::dimension(0) == Rhs::dimension(0)) auto constexpr operator*(
-    Lhs const& lhs, Rhs const& rhs) {
+requires(Lhs::dimension(0) == Rhs::dimension(0))
+auto constexpr operator*(Lhs const& lhs, Rhs const& rhs) {
   auto product =
       vec<common_type<
               common_type<typename Lhs::value_type, typename Rhs::value_type>>,
@@ -87,9 +87,8 @@ requires(Lhs::dimension(0) == Rhs::dimension(0)) auto constexpr operator*(
 //------------------------------------------------------------------------------
 /// component-wise multiplication
 template <static_tensor Lhs, static_tensor Rhs>
-requires(same_dimensions<Lhs, Rhs>() && Lhs::rank() != 2 &&
-         Rhs::rank() != 2) auto constexpr
-operator*(Lhs const& lhs, Rhs const& rhs) {
+requires(same_dimensions<Lhs, Rhs>() && Lhs::rank() != 2 && Rhs::rank() != 2)
+auto constexpr operator*(Lhs const& lhs, Rhs const& rhs) {
   return binary_operation(
       [](auto&& l, auto&& r) {
         using out_type =

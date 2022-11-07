@@ -140,7 +140,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMPILER_ID}"
                                                 STREQUAL "Clang")
   target_compile_options(base INTERFACE -Wall -Wextra -Wpedantic -Wconversion)
 elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-  target_compile_options(base INTERFACE /Wall)
+  target_compile_options(base INTERFACE /W4)
 endif()
 
 if(NOT TATOOINE_DOC_ONLY)
@@ -214,11 +214,8 @@ if(NOT TATOOINE_DOC_ONLY)
       set(TATOOINE_MPI_AVAILABLE 0)
     endif()
   else()
-    message(
-      STATUS
-        "MPI can only be used if CXX_COMPILER_EXECUTABLE is mpicxx.\
-        Current: ${CXX_COMPILER_EXECUTABLE}"
-    )
+    message(STATUS "MPI can only be used if CXX_COMPILER_EXECUTABLE is mpicxx.\
+        Current: ${CXX_COMPILER_EXECUTABLE}")
     set(TATOOINE_MPI_AVAILABLE 0)
   endif()
   # ----------------------------------------------------------------------------
