@@ -114,6 +114,7 @@ if(TATOOINE_BUILD_GL)
   add_library(gl STATIC ${TATOOINE_GL_SOURCES})
   set_property(TARGET gl PROPERTY CXX_STANDARD 20)
   target_compile_definitions(gl PRIVATE DLL_EXPORT)
+  target_compile_definitions(gl PUBLIC TATOOINE_GL_AVAILABLE=1)
   if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMPILER_ID}"
                                                   STREQUAL "Clang")
     target_compile_options(gl PRIVATE -Wall -Wextra -Wpedantic)
