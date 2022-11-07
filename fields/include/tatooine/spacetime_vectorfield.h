@@ -7,18 +7,19 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename V, typename Real, size_t N>
+template <typename V>
 struct spacetime_vectorfield
-    : vectorfield<spacetime_vectorfield<V, Real, N>, Real, N> {
-  using this_type   = spacetime_vectorfield<V, Real, N>;
-  using parent_type = vectorfield<this_type, Real, N>;
+    : vectorfield<spacetime_vectorfield<V>, field_real_type<V>,
+                  field_num_dimensions<V> + 1> {
+  using this_type = spacetime_vectorfield<V>;
+  using parent_type =
+      vectorfield<this_type, tensor_real_type<V>, tensor_num_dimensions<V> + 1>;
   using typename parent_type::pos_type;
+  using typename parent_type::real_type;
   using typename parent_type::tensor_type;
   static constexpr auto holds_field_pointer = is_pointer<V>;
 
-  static_assert(std::remove_pointer_t<std::decay_t<V>>::tensor_type::rank() == 1);
-  static_assert(std::remove_pointer_t<std::decay_t<V>>::num_dimensions() ==
-                N - 1);
+  static_assert(field_tensor_type<V>::rank() == 1);
 
  private:
   //============================================================================
@@ -46,30 +47,33 @@ struct spacetime_vectorfield
   //============================================================================
   // ctors
   //============================================================================
-  constexpr spacetime_vectorfield() requires is_pointer<V> : m_v{nullptr} {}
+  constexpr spacetime_vectorfield()
+  requires is_pointer<V>
+      : m_v{nullptr} {}
   //----------------------------------------------------------------------------
-  constexpr spacetime_vectorfield(
-      polymorphic::vectorfield<Real, N - 1> const* v) requires is_pointer<V>
+  explicit constexpr spacetime_vectorfield(
+      polymorphic::vectorfield<Real, N - 1> const* v)
+  requires is_pointer<V>
       : m_v{v} {}
   //----------------------------------------------------------------------------
   template <std::convertible_to<V> W>
-  constexpr spacetime_vectorfield(
-      vectorfield<W, Real, N - 1> const& w) requires(!is_pointer<V>)
+  constexpr spacetime_vectorfield(vectorfield<W, Real, N - 1> const& w)
+  requires(!is_pointer<V>)
       : m_v{w.as_derived()} {}
   //============================================================================
   // methods
   //============================================================================
   [[nodiscard]] constexpr auto evaluate(pos_type const& x, Real /*t*/) const
-      -> tensor_type final {
-    auto spatial_position  = vec<Real, N - 1>{};
-    for (size_t i = 0; i < N - 1; ++i) {
+      -> tensor_type {
+    auto spatial_position = vec<Real, N - 1>{};
+    for (std::size_t i = 0; i < N - 1; ++i) {
       spatial_position(i) = x(i);
     }
     auto temporal_position = x(N - 1);
 
-    auto const sample = v()(spatial_position, temporal_position);
-    tensor_type   t_out;
-    for (size_t i = 0; i < N - 1; ++i) {
+    auto const  sample = v()(spatial_position, temporal_position);
+    tensor_type t_out;
+    for (std::size_t i = 0; i < N - 1; ++i) {
       t_out(i) = sample(i);
     }
     t_out(N - 1) = 1;
@@ -77,17 +81,21 @@ struct spacetime_vectorfield
   }
   //----------------------------------------------------------------------------
   template <typename W>
-  auto set_field(vectorfield<W, Real, N - 1> const& v) requires is_pointer<V> {
+  auto set_field(vectorfield<W, Real, N - 1> const& v)
+  requires is_pointer<V>
+  {
     m_v = &v;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto set_field(polymorphic::vectorfield<Real, N - 1> const& v) requires
-      is_pointer<V> {
+  auto set_field(polymorphic::vectorfield<Real, N - 1> const& v)
+  requires is_pointer<V>
+  {
     m_v = &v;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto set_field(polymorphic::vectorfield<Real, N - 1> const* v) requires
-      is_pointer<V> {
+  auto set_field(polymorphic::vectorfield<Real, N - 1> const* v)
+  requires is_pointer<V>
+  {
     m_v = v;
   }
 
@@ -110,11 +118,11 @@ struct spacetime_vectorfield
 };
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-template <typename V, typename Real, size_t N>
+template <typename V, typename Real, std::size_t N>
 spacetime_vectorfield(vectorfield<V, Real, N> const&)
     -> spacetime_vectorfield<V, Real, N + 1>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Real, size_t N>
+template <typename Real, std::size_t N>
 spacetime_vectorfield(polymorphic::vectorfield<Real, N> const*)
     -> spacetime_vectorfield<polymorphic::vectorfield<Real, N> const*, Real,
                              N + 1>;
@@ -125,11 +133,11 @@ spacetime_vectorfield(polymorphic::vectorfield<Real, N> const*)
 #if TATOOINE_GINAC_AVAILABLE
 #include "symbolic_field.h"
 //==============================================================================
-template <typename Real, size_t N>
+template <typename Real, std::size_t N>
 struct spacetime_vectorfield<symbolic::field<Real, N - 1>, Real, N>
     : symbolic::field<Real, N> {
   //============================================================================
-  using V        = symbolic::field<Real, N - 1>;
+  using V           = symbolic::field<Real, N - 1>;
   using this_type   = spacetime_vectorfield<V, Real, N>;
   using parent_type = symbolic::field<Real, N>;
   using typename parent_type::pos_type;
@@ -140,7 +148,7 @@ struct spacetime_vectorfield<symbolic::field<Real, N - 1>, Real, N>
   spacetime_vectorfield(
       field<symbolic::field<Real, N - 1> const, Real, N - 1>& v) {
     symtensor_type ex;
-    for (size_t i = 0; i < N - 1; ++i) {
+    for (std::size_t i = 0; i < N - 1; ++i) {
       ex(i) = symbolic::ev(v.as_derived().expr()(i),
                            symbolic::symbol::t() == symbolic::symbol::x(N - 1));
     }
@@ -150,23 +158,23 @@ struct spacetime_vectorfield<symbolic::field<Real, N - 1>, Real, N>
 };
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-template <typename Real, size_t N>
+template <typename Real, std::size_t N>
 spacetime_vectorfield(symbolic::field<Real, N> const&)
     -> spacetime_vectorfield<symbolic::field<Real, N>, Real, N + 1>;
 #endif
 //==============================================================================
-template <typename V, typename Real, size_t N>
+template <typename V, typename Real, std::size_t N>
 auto spacetime(vectorfield<V, Real, N> const& vf) {
   return spacetime_vectorfield<V, Real, N + 1>{vf.as_derived()};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename V, typename Real, size_t N>
+template <typename V, typename Real, std::size_t N>
 auto spacetime(polymorphic::vectorfield<Real, N> const* vf) {
   return spacetime_vectorfield<polymorphic::vectorfield<Real, N> const*, Real,
                                N + 1>{vf};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename V, typename Real, size_t N>
+template <typename V, typename Real, std::size_t N>
 auto spacetime(polymorphic::vectorfield<Real, N> const& vf) {
   return spacetime_vectorfield<polymorphic::vectorfield<Real, N> const*, Real,
                                N + 1>{&vf};
