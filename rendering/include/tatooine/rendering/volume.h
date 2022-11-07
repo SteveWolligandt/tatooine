@@ -1,10 +1,10 @@
 #include <tatooine/analytical/numerical/doublegyre.h>
+#include <tatooine/color_scales/magma.h>
+#include <tatooine/color_scales/viridis.h>
 #include <tatooine/field_operations.h>
 #include <tatooine/gl/framebuffer.h>
-#include <tatooine/gl/texture.h>
-#include <tatooine/color_scales/viridis.h>
-#include <tatooine/color_scales/magma.h>
 #include <tatooine/gl/indexeddata.h>
+#include <tatooine/gl/texture.h>
 #include <tatooine/gpu/upload.h>
 #include <tatooine/rectilinear_grid.h>
 #include <tatooine/rendering/first_person_window.h>
@@ -14,20 +14,40 @@ namespace tatooine::rendering {
 template <typename DimX, typename DimY, typename DimZ, floating_point ValueType,
           bool HasNonConstReference>
 auto interactive(
-    typed_grid_vertex_property_interface<rectilinear_grid<DimX, DimY, DimZ>, ValueType,
-                                         HasNonConstReference> const& prop)
-    -> void {
-  auto       win = rendering::first_person_window{};
-  bool       menu_open  = true;
-  auto const gpu_tex   = gpu::upload(prop);
+    tatooine::detail::rectilinear_grid::typed_vertex_property_interface<
+        rectilinear_grid<DimX, DimY, DimZ>, ValueType,
+        HasNonConstReference> const& prop) -> void {
+  auto       win       = rendering::first_person_window{};
+  bool       menu_open = true;
+  auto const gpu_tex   = tatooine::gpu::upload_tex(prop);
+
+  auto v = color_scales::viridis<float>{};
+
+  auto viridis_tex_1d = gl::tex1rgba32f{};
+  auto viridis_data   = std::vector<vec4f>{};
+  for (std::size_t i = 0; i < v.num_samples(); ++i) {
+    viridis_data.push_back(
+        vec4f{v.data()[i](0), v.data()[i](1), v.data()[i](2), 1});
+  }
+  viridis_tex_1d.upload_data(viridis_data, v.num_samples());
+
+  auto viridis_tex_2d = gl::tex2rgba32f{};
+  viridis_tex_2d.resize(v.num_samples(), 2);
+  for (std::size_t i = 0; i < v.num_samples(); ++i) {
+    viridis_data.push_back(
+        vec4f{v.data()[i](0), v.data()[i](1), v.data()[i](2), 1});
+  }
+  viridis_tex_2d.upload_data(viridis_data, v.num_samples(), 2);
+
   auto const color_scales = std::array{
-      std::tuple{"Viridis", color_scales::viridis<float>{}.to_gpu_tex(),
-                 color_scales::viridis<float>{}.to_gpu_tex2d()},
-      std::tuple{"Magma", color_scales::magma<float>{}.to_gpu_tex(),
-                 color_scales::magma<float>{}.to_gpu_tex2d()}};
+      std::tuple{"Viridis", std::move(viridis_tex_1d),
+                 std::move(viridis_tex_2d)}
+      //,std::tuple{"Magma", color_scales::magma<float>{}.to_gpu_tex(),
+      //           color_scales::magma<float>{}.to_gpu_tex2d()}
+  };
   typename decltype(color_scales)::value_type const* current_color_scale =
       &color_scales.front();
-  auto       cube_data = gl::indexeddata<vec3f>{};
+  auto cube_data = gl::indexeddata<vec3f>{};
   cube_data.vertexbuffer().resize(8);
   cube_data.indexbuffer().resize(36);
   {
@@ -93,7 +113,7 @@ auto interactive(
     data[i++] = 4;
     data[i++] = 5;
   }
-  auto       screenspace_quad_data = gl::indexeddata<vec2f>{};
+  auto screenspace_quad_data = gl::indexeddata<vec2f>{};
   screenspace_quad_data.vertexbuffer().resize(4);
   screenspace_quad_data.indexbuffer().resize(6);
   {
@@ -107,12 +127,12 @@ auto interactive(
   {
     size_t i    = 0;
     auto   data = screenspace_quad_data.indexbuffer().wmap();
-    data[i++] = 0;
-    data[i++] = 1;
-    data[i++] = 2;
-    data[i++] = 1;
-    data[i++] = 3;
-    data[i++] = 2;
+    data[i++]   = 0;
+    data[i++]   = 1;
+    data[i++]   = 2;
+    data[i++]   = 1;
+    data[i++]   = 3;
+    data[i++]   = 2;
   }
 
   struct position_shader_t : gl::shader {
@@ -215,27 +235,33 @@ auto interactive(
           "        (texture(volume_data, cur_pos + vec3(0, eps.y, 0)).x -\n"
           "         texture(volume_data, cur_pos - vec3(0, eps.y, 0)).x),\n"
           "        (texture(volume_data, cur_pos + vec3(0, 0, eps.z)).x -\n"
-          "         texture(volume_data, cur_pos - vec3(0, 0, eps.z)).x)) / physical_eps;\n"
-          "      float normalized_sample = (s-range_min) / (range_max-range_min);\n"
+          "         texture(volume_data, cur_pos - vec3(0, 0, eps.z)).x)) / "
+          "physical_eps;\n"
+          "      float normalized_sample = (s-range_min) / "
+          "(range_max-range_min);\n"
           "      vec3 normal = normalize(gradient);\n"
           "      vec3 albedo = texture(color_scale, normalized_sample).rgb;\n"
           "      vec3 luminance = albedo * 0.1;\n"
           "      float illuminance = abs(dot(modelview_direction, normal));\n"
-          "      luminance += phong_brdf(modelview_direction, modelview_direction,\n"
+          "      luminance += phong_brdf(modelview_direction, "
+          "modelview_direction,\n"
           "                              normal, albedo) * illuminance;\n"
           "      float cur_alpha = texture(alpha, normalized_sample).r;\n"
-          "      accumulator.rgb += (1 - accumulator.a) * cur_alpha * luminance;\n"
+          "      accumulator.rgb += (1 - accumulator.a) * cur_alpha * "
+          "luminance;\n"
           "      accumulator.a += (1 - accumulator.a) * cur_alpha;\n"
           "      if (accumulator.a >= 0.95) { break; }\n"
           "    }\n"
-          "    frag_out.xyz = vec3(1 - accumulator.a) + accumulator.xyz * accumulator.a  ;\n"
+          "    frag_out.xyz = vec3(1 - accumulator.a) + accumulator.xyz * "
+          "accumulator.a  ;\n"
           "  } else if (mode == 1) {\n"
           "    frag_out = front;\n"
           "  } else if (mode == 2) {\n"
           "    frag_out = back;\n"
           "  } else if (mode == 3) {\n"
           "    float s = texture(volume_data, front.xyz).x;\n"
-          "    float normalized_sample = (s-range_min) / (range_max-range_min);\n"
+          "    float normalized_sample = (s-range_min) / "
+          "(range_max-range_min);\n"
           "    //vec3 color = vec3(normalized_sample);\n"
           "    vec3 color = texture(color_scale, normalized_sample).xyz;\n"
           "    frag_out = vec4(color, 1);\n"
@@ -263,33 +289,35 @@ auto interactive(
       set_uniform_mat4("modelview_matrix", MV.data());
     }
     auto set_mode(int mode) -> void { set_uniform("mode", mode); }
-    auto set_range_min(float range_min) -> void { set_uniform("range_min", range_min); }
+    auto set_range_min(float range_min) -> void {
+      set_uniform("range_min", range_min);
+    }
     auto set_specular_color(vec3f const& specular_color) -> void {
       set_uniform_vec3("specular_color", specular_color.data());
     }
     auto set_eps(vec3f const& eps) -> void {
       set_uniform_vec3("eps", eps.data());
     }
-    auto set_range_max(float range_max) -> void { set_uniform("range_max", range_max); }
+    auto set_range_max(float range_max) -> void {
+      set_uniform("range_max", range_max);
+    }
     auto set_ray_offset(float ray_offset) -> void {
       set_uniform("ray_offset", ray_offset);
     }
   } dvr_shader;
 
-  auto  front_cube_tex  = gl::tex2rgba32f{32, 32};
-  auto  back_cube_tex   = gl::tex2rgba32f{32, 32};
-  auto  specular_color = vec3f{0.1f, 0.1f, 0.1f};
-  float range_min       = 0.0f;
-  float range_max       = 1.0f;
-  float ray_offset      = 0.01f;
-  float shininess       = 100.0f;
+  auto               front_cube_tex    = gl::tex2rgba32f{32, 32};
+  auto               back_cube_tex     = gl::tex2rgba32f{32, 32};
+  auto               specular_color    = vec3f{0.1f, 0.1f, 0.1f};
+  float              range_min         = 0.0f;
+  float              range_max         = 1.0f;
+  float              ray_offset        = 0.01f;
+  float              shininess         = 100.0f;
   size_t const       num_alpha_samples = 100;
   auto               alpha_tex         = gl::tex1r32f{num_alpha_samples};
-  std::vector<float> handles{0.0f, 0.0f, 0.1f, 0.0f,
-                             0.45f, 0.0f, 0.45f, 0.0f,
-                             0.5f, 1.0f, 0.5f, 1.0f,
-                             0.55f, 0.0f, 0.55f, 0.0f,
-                             1.0f, 0.0f, 0.9f, 0.0f};
+  std::vector<float> handles{0.0f,  0.0f, 0.1f, 0.0f, 0.45f, 0.0f,  0.45f,
+                             0.0f,  0.5f, 1.0f, 0.5f, 1.0f,  0.55f, 0.0f,
+                             0.55f, 0.0f, 1.0f, 0.0f, 0.9f,  0.0f};
   alpha_tex.set_wrap_mode(gl::CLAMP_TO_EDGE);
   std::vector<float> alpha_data(num_alpha_samples);
   dvr_shader.set_volume_data_sampler_unit(0);
@@ -371,7 +399,7 @@ auto interactive(
     if (menu_open) {
       float width = std::min<float>(400, win.width() / 2);
       ImGui::SetNextWindowSize(ImVec2{width, float(win.height())});
-      ImGui::SetNextWindowPos(ImVec2{win.width() - width , 0});
+      ImGui::SetNextWindowPos(ImVec2{win.width() - width, 0});
       ImGui::Begin("", &menu_open,
                    ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
                        ImGuiWindowFlags_NoMove);
@@ -455,8 +483,7 @@ auto interactive(
           ImGui::GetScrollX() - 2 * ImGui::GetStyle().ItemSpacing.x);
       ImGui::TextUnformatted(std::get<0>(*current_color_scale));
       ImGui::End();
-    }
-    else {
+    } else {
       ImGui::SetNextWindowSize(ImVec2{50, 50});
       ImGui::SetNextWindowPos(ImVec2{float(win.width() - 50), 0.0f});
       ImGui::Begin("", nullptr,
