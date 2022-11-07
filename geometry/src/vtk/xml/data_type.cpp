@@ -90,6 +90,10 @@ auto to_string(data_type const t) -> std::string_view {
       return "UnknownType";
   }
 }
+//------------------------------------------------------------------------------
+auto operator<<(std::ostream& out, data_type const t) -> std::ostream& {
+  return out << to_string(t);
+}
 //==============================================================================
 }  // namespace tatooine::vtk::xml
 //==============================================================================

@@ -12,7 +12,7 @@ constexpr auto binary_operation(
     F&& f, Lhs const& lhs, Rhs const& rhs,
     std::index_sequence<Seq...> /*seq*/) {
   using TOut =
-      std::invoke_result_t<F, tensor_value_type<Lhs>, tensor_value_type<Rhs>>;
+      std::invoke_result_t<F, tatooine::value_type<Lhs>, tatooine::value_type<Rhs>>;
   auto constexpr rank = tensor_rank<Lhs>;
   auto t_out          = [&] {
     if constexpr (rank == 1) {

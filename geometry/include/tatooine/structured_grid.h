@@ -5,6 +5,8 @@
 #include <tatooine/pointset.h>
 #include <tatooine/uniform_tree_hierarchy.h>
 #include <tatooine/vtk/xml.h>
+// #include <tatooine/detail/structured_grid/vertex_container.h>
+#include <tatooine/detail/structured_grid/vts_writer.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -16,20 +18,21 @@ struct structured_grid : pointset<Real, NumDimensions>,
   // INTERNAL TYPES
   //============================================================================
   template <typename T>
-  struct linear_cell_sampler_t;
-  struct hierarchy_t;
+  struct linear_cell_sampler_type;
+  struct hierarchy_type;
   //============================================================================
   // TYPEDEFS
   //============================================================================
   using this_type              = structured_grid;
   using pointset_parent_type   = pointset<Real, NumDimensions>;
   using multidim_size_parent_t = dynamic_multidim_size<IndexOrder>;
+  using typename pointset_parent_type::vertex_property_type;
+  template <typename T>
+  using typed_vertex_property_type =
+      pointset_parent_type::template typed_vertex_property_type<T>;
   using typename pointset_parent_type::pos_type;
   using typename pointset_parent_type::vec_type;
   using typename pointset_parent_type::vertex_handle;
-  template <typename T>
-  using vertex_property_type =
-      typename pointset_parent_type::template typed_vertex_property_type<T>;
   //============================================================================
   // STATIC METHODS
   //============================================================================
@@ -37,14 +40,14 @@ struct structured_grid : pointset<Real, NumDimensions>,
   //============================================================================
   // MEMBERS
   //============================================================================
-  mutable std::unique_ptr<hierarchy_t> m_hierarchy;
+  mutable std::unique_ptr<hierarchy_type> m_hierarchy;
   //============================================================================
   // CTORS
   //============================================================================
-  structured_grid()                           = default;
-  structured_grid(structured_grid const&)     = default;
-  structured_grid(structured_grid&&) noexcept = default;
-  auto operator=(structured_grid const&) -> structured_grid& = default;
+  structured_grid()                                              = default;
+  structured_grid(structured_grid const&)                        = default;
+  structured_grid(structured_grid&&) noexcept                    = default;
+  auto operator=(structured_grid const&) -> structured_grid&     = default;
   auto operator=(structured_grid&&) noexcept -> structured_grid& = default;
   //----------------------------------------------------------------------------
   structured_grid(filesystem::path const& path) { read(path); }
@@ -66,7 +69,7 @@ struct structured_grid : pointset<Real, NumDimensions>,
     }
     auto const aabb = this->axis_aligned_bounding_box();
     m_hierarchy =
-        std::make_unique<hierarchy_t>(aabb.min(), aabb.max(), *this, 4);
+        std::make_unique<hierarchy_type>(aabb.min(), aabb.max(), *this, 4);
     auto       it = [&](auto const... is) { m_hierarchy->insert_cell(is...); };
     auto const s  = this->size();
     if constexpr (NumDimensions == 2) {
@@ -102,6 +105,10 @@ struct structured_grid : pointset<Real, NumDimensions>,
     multidim_size_parent_t::resize(sizes...);
   }
   //----------------------------------------------------------------------------
+  auto write(filesystem::path const& path) -> void;
+  template <typename HeaderType = std::uint64_t>
+  auto write_vts(filesystem::path const& path) -> void;
+  //----------------------------------------------------------------------------
   auto read(filesystem::path const& path) -> void;
   auto read_vts(filesystem::path const& path) -> void;
   //----------------------------------------------------------------------------
@@ -120,12 +127,11 @@ struct structured_grid : pointset<Real, NumDimensions>,
   //----------------------------------------------------------------------------
   template <typename T>
   auto linear_vertex_property_sampler(
-      vertex_property_type<T> const& prop) const {
+      typed_vertex_property_type<T> const& prop) const {
     if (m_hierarchy == nullptr) {
       update_hierarchy();
-      std::cout << "updating done!\n";
     }
-    return linear_cell_sampler_t<T>{*this, prop};
+    return linear_cell_sampler_type<T>{*this, prop};
   }
   //----------------------------------------------------------------------------
   template <typename T>
@@ -134,6 +140,24 @@ struct structured_grid : pointset<Real, NumDimensions>,
         this->template vertex_property<T>(name));
   }
 };
+//==============================================================================
+template <typename Real, std::size_t NumDimensions, typename IndexOrder>
+auto structured_grid<Real, NumDimensions, IndexOrder>::write(
+    filesystem::path const& path) -> void {
+  if (path.extension() == ".vts") {
+    write_vts(path);
+  } else {
+    throw std::runtime_error{"File extension \"" + path.extension().string() +
+                             "\" not recognized by structured grid."};
+  }
+}
+//------------------------------------------------------------------------------
+template <typename Real, std::size_t NumDimensions, typename IndexOrder>
+template <typename HeaderType>
+auto structured_grid<Real, NumDimensions, IndexOrder>::write_vts(
+    filesystem::path const& path) -> void {
+  detail::structured_grid::vts_writer<this_type, HeaderType>{*this}.write(path);
+}
 //==============================================================================
 template <typename Real, std::size_t NumDimensions, typename IndexOrder>
 auto structured_grid<Real, NumDimensions, IndexOrder>::read(
@@ -145,72 +169,52 @@ auto structured_grid<Real, NumDimensions, IndexOrder>::read(
                              "\" not recognized by structured grid."};
   }
 }
-//==============================================================================
+//------------------------------------------------------------------------------
 template <typename Real, std::size_t NumDimensions, typename IndexOrder>
 auto structured_grid<Real, NumDimensions, IndexOrder>::read_vts(
     filesystem::path const& path) -> void {
   // TODO write binary data arrays with number of bytes at the beginning of each
   // array
-  struct listener_t : vtk::xml::listener {
-    this_type& grid;
-    listener_t(this_type& g) : grid{g} {}
+  auto        reader = vtk::xml::reader{path};
+  auto const& g      = *reader.structured_grid();
 
-    std::array<std::pair<std::size_t, std::size_t>, 3> whole_extent;
-    std::array<std::size_t, 3>                         resolution;
-    std::array<size_t, 3>                              cur_piece_origin;
-    std::array<size_t, 3>                              cur_piece_resolution;
+  resize(g.whole_extent2[0] - g.whole_extent1[0] + 1,
+         g.whole_extent2[1] - g.whole_extent1[1] + 1,
+         g.whole_extent2[2] - g.whole_extent1[2] + 1);
+  for (auto const& p : g.pieces()) {
+    auto const cur_piece_origin =
+        std::array{p.extent1->at(0) - g.whole_extent1.at(0),
+                   p.extent1->at(1) - g.whole_extent1.at(1),
+                   p.extent1->at(2) - g.whole_extent1.at(2)};
+    auto const cur_piece_resolution = std::array{
+        p.extent2[0] - p.extent1[0] + 1, p.extent2[1] - p.extent1[1] + 1,
+        p.extent2[2] - p.extent1[2] + 1};
 
-    auto on_structured_grid(
-        std::array<std::pair<std::size_t, std::size_t>, 3> const& d)
-        -> void override {
-      whole_extent = d;
-
-      resolution =
-          std::array{whole_extent[0].second - whole_extent[0].first + 1,
-                     whole_extent[1].second - whole_extent[1].first + 1,
-                     whole_extent[2].second - whole_extent[2].first + 1};
-
-      grid.resize(resolution[0], resolution[1], resolution[2]);
-    }
-    auto on_structured_grid_piece(
-        std::array<std::pair<std::size_t, std::size_t>, 3> const& extents)
-        -> void override {
-      cur_piece_origin = std::array{extents[0].first - whole_extent[0].first,
-                                    extents[1].first - whole_extent[1].first,
-                                    extents[2].first - whole_extent[2].first};
-      cur_piece_resolution = std::array{extents[0].second - extents[0].first,
-                                        extents[1].second - extents[1].first,
-                                        extents[2].second - extents[2].first};
-    }
-    auto on_points(std::array<double, 3> const* v) -> void override {
-      auto extract_points = [&](auto const... is) mutable {
-        auto& x = grid.vertex_at(is...);
-        for (size_t i = 0; i < num_dimensions(); ++i) {
-          x(i) = v->at(i);
+    p.points.visit_data([&](auto const& point_data) {
+      // always 3 components in vtk data array
+      for (std::size_t i = 0; i < point_data.size(); i += 3) {
+        if constexpr (num_dimensions() == 2) {
+          // just omit third component when reading to a 3d line
+          vertex_at(i / 3) = {point_data[i], point_data[i + 1]};
+        } else if constexpr (num_dimensions() == 3) {
+          vertex_at(i / 3) = {point_data[i], point_data[i + 1],
+                              point_data[i + 2]};
         }
-        ++v;
-      };
-      for_loop(extract_points,
-               std::pair{cur_piece_origin[0], cur_piece_resolution[0]},
-               std::pair{cur_piece_origin[1], cur_piece_resolution[1]},
-               std::pair{cur_piece_origin[2], cur_piece_resolution[2]});
-    }
-    auto on_point_data(std::string const& name, float const* v)
-        -> void override {
-      auto& prop = grid.template vertex_property<float>(name);
-      for_loop(
-          [&](auto const... is) mutable {
-            auto& p = prop[vertex_handle{grid.plain_index(is...)}];
-            p       = *v++;
-          },
-          std::pair{cur_piece_origin[0], cur_piece_resolution[0]},
-          std::pair{cur_piece_origin[1], cur_piece_resolution[1]},
-          std::pair{cur_piece_origin[2], cur_piece_resolution[2]});
-    }
-  } listener{*this};
-  auto reader = vtk::xml::reader{path};
-  reader.listen(listener);
-  reader.read();
+      }
+    });
+  }
+  // auto on_point_data(std::string const& name, float const* v)->void override
+  // {
+  // auto& prop = template vertex_property<float>(name);
+  // for_loop(
+  //    [&](auto const... is) mutable {
+  //      auto& p = prop[vertex_handle{grid.plain_index(is...)}];
+  //      p       = *v++;
+  //    },
+  //    std::pair{cur_piece_origin[0], cur_piece_resolution[0]},
+  //    std::pair{cur_piece_origin[1], cur_piece_resolution[1]},
+  //    std::pair{cur_piece_origin[2], cur_piece_resolution[2]});
+  //}
 }
 //------------------------------------------------------------------------------
 
@@ -363,15 +367,16 @@ using structured_grid3 = StructuredGrid<3>;
 //==============================================================================
 template <typename Real, std::size_t NumDimensions, typename IndexOrder>
 template <typename T>
-struct structured_grid<Real, NumDimensions, IndexOrder>::linear_cell_sampler_t
+struct structured_grid<Real, NumDimensions,
+                       IndexOrder>::linear_cell_sampler_type
     : field<structured_grid<Real, NumDimensions,
-                            IndexOrder>::linear_cell_sampler_t<T>,
+                            IndexOrder>::linear_cell_sampler_type<T>,
             Real, NumDimensions, T> {
-  using this_type     = linear_cell_sampler_t;
+  using this_type     = linear_cell_sampler_type;
   using real_type     = Real;
   using parent_type   = field<this_type, Real, NumDimensions, T>;
   using grid_type     = structured_grid<Real, NumDimensions, IndexOrder>;
-  using property_type = typename grid_type::template vertex_property_type<T>;
+  using property_type = typename grid_type::template typed_vertex_property_type<T>;
   using vec_type      = typename grid_type::vec_type;
   using pos_type      = typename grid_type::pos_type;
   using typename parent_type::tensor_type;
@@ -381,7 +386,7 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::linear_cell_sampler_t
   property_type const* m_property;
 
  public:
-  linear_cell_sampler_t(grid_type const& grid, property_type const& prop)
+  linear_cell_sampler_type(grid_type const& grid, property_type const& prop)
       : m_grid{&grid}, m_property{&prop} {}
 
   //----------------------------------------------------------------------------
@@ -451,12 +456,12 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::linear_cell_sampler_t
 };
 //==============================================================================
 template <typename Real, std::size_t NumDimensions, typename IndexOrder>
-struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_t
-    : base_uniform_tree_hierarchy<Real, NumDimensions, hierarchy_t> {
+struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_type
+    : base_uniform_tree_hierarchy<Real, NumDimensions, hierarchy_type> {
   //============================================================================
   // TYPEDEFS
   //============================================================================
-  using this_type     = hierarchy_t;
+  using this_type     = hierarchy_type;
   using real_type     = Real;
   using index_order_t = IndexOrder;
   using grid_type     = structured_grid<Real, NumDimensions, IndexOrder>;
@@ -484,7 +489,9 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_t
   //============================================================================
   // STATIC METHODS
   //============================================================================
-  static constexpr auto num_dimensions() -> std::size_t { return NumDimensions; }
+  static constexpr auto num_dimensions() -> std::size_t {
+    return NumDimensions;
+  }
   //============================================================================
   // MEMBERS
   //============================================================================
@@ -493,28 +500,30 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_t
   //============================================================================
   // CTORS
   //============================================================================
-  hierarchy_t()                       = default;
-  hierarchy_t(hierarchy_t const&)     = default;
-  hierarchy_t(hierarchy_t&&) noexcept = default;
-  auto operator=(hierarchy_t const&) -> hierarchy_t& = default;
-  auto operator=(hierarchy_t&&) noexcept -> hierarchy_t& = default;
-  virtual ~hierarchy_t()                                 = default;
+  hierarchy_type()                                             = default;
+  hierarchy_type(hierarchy_type const&)                        = default;
+  hierarchy_type(hierarchy_type&&) noexcept                    = default;
+  auto operator=(hierarchy_type const&) -> hierarchy_type&     = default;
+  auto operator=(hierarchy_type&&) noexcept -> hierarchy_type& = default;
+  virtual ~hierarchy_type()                                    = default;
 
-  explicit hierarchy_t(grid_type const& grid) : m_grid{&grid} {}
-  explicit hierarchy_t(grid_type const& grid,
-                       size_t const max_depth = parent_type::default_max_depth)
+  explicit hierarchy_type(grid_type const& grid) : m_grid{&grid} {}
+  explicit hierarchy_type(
+      grid_type const& grid,
+      size_t const     max_depth = parent_type::default_max_depth)
       : parent_type{pos_type::zeros(), pos_type::zeros(), 1, max_depth},
         m_grid{&grid} {
     parent_type::operator=(grid.bounding_box());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  hierarchy_t(vec_type const& min, vec_type const& max, grid_type const& grid,
-              size_t const max_depth = parent_type::default_max_depth)
+  hierarchy_type(vec_type const& min, vec_type const& max,
+                 grid_type const& grid,
+                 size_t const     max_depth = parent_type::default_max_depth)
       : parent_type{min, max, 1, max_depth}, m_grid{&grid} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  private:
-  hierarchy_t(vec_type const& min, vec_type const& max, size_t const level,
-              size_t const max_depth, grid_type const& grid)
+  hierarchy_type(vec_type const& min, vec_type const& max, size_t const level,
+                 size_t const max_depth, grid_type const& grid)
       : parent_type{min, max, level, max_depth}, m_grid{&grid} {}
   //============================================================================
   // METHODS
@@ -536,7 +545,8 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_t
  private:
   constexpr auto is_cell_inside_2(std::size_t const ix,
                                   std::size_t const iy) const
-      requires(NumDimensions == 2) {
+  requires(NumDimensions == 2)
+  {
     auto const c  = center();
     auto const e  = extents() / 2;
     auto const us = std::array{vec_type{1, 0}, vec_type{0, 1}};
@@ -567,7 +577,8 @@ struct structured_grid<Real, NumDimensions, IndexOrder>::hierarchy_t
   //----------------------------------------------------------------------------
   constexpr auto is_cell_inside_3(std::size_t const ix, std::size_t const iy,
                                   std::size_t const iz) const
-      requires(NumDimensions == 3) {
+  requires(NumDimensions == 3)
+  {
     auto const c = center();
     auto const e = extents() / 2;
 

@@ -13,6 +13,9 @@ struct ray_intersectable {
   using intersection_type          = intersection<real_type, NumDimensions>;
   using optional_intersection_type = std::optional<intersection_type>;
   using ray_type                   = ray<real_type, NumDimensions>;
+
+  //============================================================================
+  virtual ~ray_intersectable() = default;
   //============================================================================
   virtual auto check_intersection(ray_type const& r,
                                   real_type const min_t) const

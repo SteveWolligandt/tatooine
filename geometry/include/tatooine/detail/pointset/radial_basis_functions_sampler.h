@@ -62,7 +62,7 @@ struct radial_basis_functions_sampler
       if constexpr (arithmetic<T>) {
         return tensor<T>::zeros(N + NumDimensions + 1);
       } else if constexpr (static_tensor<T>) {
-        return tensor<tensor_value_type<T>>::zeros(N + NumDimensions + 1,
+        return tensor<tatooine::value_type<T>>::zeros(N + NumDimensions + 1,
                                                    T::num_components());
       }
     }();

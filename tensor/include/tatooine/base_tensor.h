@@ -1,12 +1,12 @@
 #ifndef TATOOINE_BASE_TENSOR_H
 #define TATOOINE_BASE_TENSOR_H
 //==============================================================================
-#include <tatooine/concepts.h>
 #include <tatooine/crtp.h>
 #include <tatooine/dynamic_multidim_size.h>
 #include <tatooine/einstein_notation.h>
 #include <tatooine/index_order.h>
 #include <tatooine/template_helper.h>
+#include <tatooine/tensor_concepts.h>
 #include <tatooine/tensor_operations/same_dimensions.h>
 #include <tatooine/type_traits.h>
 
@@ -62,60 +62,62 @@ struct base_tensor : crtp<Tensor> {
   constexpr base_tensor() = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <static_tensor Other>
-  requires (same_dimensions<this_type, Other>()) &&
-           (convertible_to<tensor_value_type<Other>,
-                      value_type>)
+  requires(same_dimensions<this_type, Other>()) &&
+          (convertible_to<tatooine::value_type<Other>, value_type>)
   explicit constexpr base_tensor(Other&& other) {
     assign(std::forward<Other>(other));
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <static_tensor Other>
   requires(same_dimensions<this_type, Other>()) &&
-      (convertible_to<tensor_value_type<Other>, value_type>)auto constexpr
-      operator=(Other&& other) -> base_tensor& {
+          (convertible_to<tatooine::value_type<Other>, value_type>)
+          auto constexpr operator=(Other&& other) -> base_tensor& {
     assign(std::forward<Other>(other));
     return *this;
   }
   //============================================================================
   template <static_tensor Other>
-  requires (same_dimensions<this_type, Other>()) &&
-           (convertible_to<tensor_value_type<Other>,
-                      value_type>)
-  auto constexpr assign(Other&& other) -> void {
+  requires(same_dimensions<this_type, Other>()) &&
+          (convertible_to<tatooine::value_type<Other>, value_type>)
+          auto constexpr assign(Other&& other) -> void {
     for_indices([this, &other](auto const... is) {
       this->at(is...) = static_cast<value_type>(other(is...));
     });
   }
   //----------------------------------------------------------------------------
   template <einstein_notation::index... Is>
-  requires(sizeof...(Is) == rank()) auto constexpr at(Is const... /*is*/) {
+  requires(sizeof...(Is) == rank())
+  auto constexpr at(Is const... /*is*/) {
     return indexed_type<Is...>{as_derived()};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <einstein_notation::index... Is>
-  requires(sizeof...(Is) ==
-           rank()) auto constexpr at(Is const... /*is*/) const {
+  requires(sizeof...(Is) == rank())
+  auto constexpr at(Is const... /*is*/) const {
     return const_indexed_type<Is...>{as_derived()};
   }
   //----------------------------------------------------------------------------
   template <einstein_notation::index... Is>
-  requires(sizeof...(Is) == rank()) auto constexpr operator()(
-      Is const... is) const {
+  requires(sizeof...(Is) == rank())
+  auto constexpr operator()(Is const... is) const {
     return at(is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <einstein_notation::index... Is>
-  requires(sizeof...(Is) == rank()) auto constexpr operator()(Is const... is) {
+  requires(sizeof...(Is) == rank())
+  auto constexpr operator()(Is const... is) {
     return at(is...);
   }
   //----------------------------------------------------------------------------
-  auto constexpr at(integral auto const... is) const
-      -> decltype(auto) requires(sizeof...(is) == rank()) {
+  auto constexpr at(integral auto const... is) const -> decltype(auto)
+  requires(sizeof...(is) == rank())
+  {
     return as_derived().at(is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto constexpr at(integral auto const... is)
-      -> decltype(auto) requires(sizeof...(is) == rank()) {
+  auto constexpr at(integral auto const... is) -> decltype(auto)
+  requires(sizeof...(is) == rank())
+  {
     return as_derived().at(is...);
   }  //----------------------------------------------------------------------------
  private:
@@ -143,13 +145,15 @@ struct base_tensor : crtp<Tensor> {
     return at(is, std::make_index_sequence<rank()>{});
   }
   //----------------------------------------------------------------------------
-  auto constexpr operator()(integral auto const... is) const
-      -> decltype(auto) requires(sizeof...(is) == rank()) {
+  auto constexpr operator()(integral auto const... is) const -> decltype(auto)
+  requires(sizeof...(is) == rank())
+  {
     return at(is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto constexpr operator()(integral auto const... is)
-      -> decltype(auto) requires(sizeof...(is) == rank()) {
+  auto constexpr operator()(integral auto const... is) -> decltype(auto)
+  requires(sizeof...(is) == rank())
+  {
     return at(is...);
   }
   //----------------------------------------------------------------------------

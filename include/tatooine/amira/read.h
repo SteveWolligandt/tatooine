@@ -37,15 +37,18 @@ inline auto read_header(std::ifstream& file) {
   auto const lattice_pos =
       static_cast<std::streamoff>(buffer.str().find(lattice));
   buffer.seekg(lattice_pos, std::ios_base::beg);
-  buffer.seekg(lattice.size(), std::ios_base::cur);
+  buffer.seekg(static_cast<std::istringstream::off_type>(lattice.size()),
+               std::ios_base::cur);
   buffer >> dims[0] >> dims[1] >> dims[2];
 
   // Find the boundingbox
   auto       aabb = axis_aligned_bounding_box<float, 3>{};
   auto const boundingbox_pos =
-      static_cast<std::streamoff>(buffer.str().find(boundingbox));
-  buffer.seekg(boundingbox_pos, std::ios_base::beg);
-  buffer.seekg(boundingbox.size(), std::ios_base::cur);
+      static_cast<std::istringstream::off_type>(buffer.str().find(boundingbox));
+  buffer.seekg(boundingbox_pos,
+               std::ios_base::beg);
+  buffer.seekg(static_cast<std::istringstream::off_type>(boundingbox.size()),
+               std::ios_base::cur);
   buffer >> aabb.min(0) >> aabb.max(0) >> aabb.min(1) >> aabb.max(1) >>
       aabb.min(2) >> aabb.max(2);
 
@@ -61,8 +64,8 @@ inline auto read_header(std::ifstream& file) {
   } else {
     // A field with more than one component, i.e., a vector field
     auto const pos = buffer.str().find(lattice_size);
-    buffer.seekg(static_cast<std::streamoff>(pos), std::ios_base::beg);
-    buffer.seekg(lattice_size.size(), std::ios_base::cur);
+    buffer.seekg(static_cast<std::istringstream::off_type>(pos), std::ios_base::beg);
+    buffer.seekg(static_cast<std::istringstream::off_type>(lattice_size.size()), std::ios_base::cur);
     buffer >> num_components;
   }
 

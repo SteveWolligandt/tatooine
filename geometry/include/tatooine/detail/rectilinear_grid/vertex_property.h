@@ -241,8 +241,8 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
 #if TATOOINE_PNG_AVAILABLE
   template <invocable<ValueType> T>
   auto write_png(filesystem::path const& path, T&& f, auto&& color_scale,
-                     tensor_value_type<ValueType> const min = 0,
-                     tensor_value_type<ValueType> const max = 1) const
+                     tatooine::value_type<ValueType> const min = 0,
+                     tatooine::value_type<ValueType> const max = 1) const
       -> void requires(num_dimensions() == 2) &&
       (static_vec<ValueType>)&&(arithmetic<invoke_result<T, ValueType>>) {
     png::image<png::rgb_pixel> image{
@@ -254,8 +254,8 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
         if (std::isnan(d)) {
           d = 0;
         } else {
-          d = std::max<tensor_value_type<ValueType>>(
-              min, std::min<tensor_value_type<ValueType>>(max, d));
+          d = std::max<tatooine::value_type<ValueType>>(
+              min, std::min<tatooine::value_type<ValueType>>(max, d));
           d -= min;
           d /= max - min;
         }
@@ -269,8 +269,8 @@ struct typed_vertex_property_interface : vertex_property<Grid> {
   }
   //----------------------------------------------------------------------------
   auto write_png(filesystem::path const&            path,
-                 tensor_value_type<ValueType>       min = 0,
-                 tensor_value_type<ValueType> const max = 1) const
+                 tatooine::value_type<ValueType>       min = 0,
+                 tatooine::value_type<ValueType> const max = 1) const
       -> void requires(num_dimensions() == 2) &&
       ((static_vec<ValueType>) || (arithmetic<ValueType>)) {
     png::image<png::rgb_pixel> image{

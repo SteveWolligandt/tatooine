@@ -27,7 +27,7 @@ template <dynamic_tensor Tensor, index... Indices>
 requires(sizeof...(Indices) > 0)
 struct indexed_dynamic_tensor {
   using tensor_type = std::decay_t<Tensor>;
-  using value_type = tensor_value_type<tensor_type>;
+  using value_type = tatooine::value_type<tensor_type>;
 
  private:
   Tensor m_tensor;
@@ -277,8 +277,8 @@ struct indexed_dynamic_tensor {
                       other)
       -> indexed_dynamic_tensor& requires(
           !is_const<std::remove_reference_t<Tensor>> &&
-          is_same<value_type, tensor_value_type<LHS>> &&
-          is_same<value_type, tensor_value_type<RHS>>) {
+          is_same<value_type, tatooine::value_type<LHS>> &&
+          is_same<value_type, tatooine::value_type<RHS>>) {
     m_tensor.resize(other.template at<0>().tensor().dimension(0),
                     other.template at<1>().tensor().dimension(1));
     blas::gemm(value_type(1), other.template at<0>().tensor(),
@@ -298,8 +298,8 @@ struct indexed_dynamic_tensor {
                      other)
       ->indexed_dynamic_tensor& requires(
           !is_const<std::remove_reference_t<Tensor>> &&
-          is_same<value_type, tensor_value_type<LHS>> &&
-          is_same<value_type, tensor_value_type<RHS>>) {
+          is_same<value_type, tatooine::value_type<LHS>> &&
+          is_same<value_type, tatooine::value_type<RHS>>) {
       m_tensor.resize(other.template at<0>().tensor().dimension(0),
                       other.template at<1>().tensor().dimension(1));
       blas::gemm(value_type(1), other.template at<0>().tensor(),
@@ -314,8 +314,8 @@ struct indexed_dynamic_tensor {
                       other)
       -> indexed_dynamic_tensor&
   requires(!is_const<std::remove_reference_t<Tensor>> &&
-           is_same<value_type, tensor_value_type<LHS>> &&
-           is_same<value_type, tensor_value_type<RHS>> &&
+           is_same<value_type, tatooine::value_type<LHS>> &&
+           is_same<value_type, tatooine::value_type<RHS>> &&
            is_same<I, index_at<0>>) {
     assert(m_tensor.dimension(0) ==
            other.template at<0>().tensor().dimension(0));
@@ -331,8 +331,8 @@ struct indexed_dynamic_tensor {
                      other)
       -> indexed_dynamic_tensor& requires(
           !is_const<std::remove_reference_t<Tensor>> &&
-          is_same<value_type, tensor_value_type<LHS>> &&
-          is_same<value_type, tensor_value_type<RHS>> &&
+          is_same<value_type, tatooine::value_type<LHS>> &&
+          is_same<value_type, tatooine::value_type<RHS>> &&
           is_same<I, index_at<0>>) {
     m_tensor.resize(other.template at<0>().tensor().dimension(0));
     blas::gemv(value_type(1), other.template at<0>().tensor(),

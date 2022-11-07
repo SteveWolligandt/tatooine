@@ -80,7 +80,7 @@ auto to_gpu(std::vector<line<Real, 3>> const& lines) {
     for (auto const& l : lines) {
       for (auto const v : l.vertices()) {
         auto const& x    = l[v];
-        gpu_mapping[i++] = x;
+        gpu_mapping[i++] = vec3f{x};
       }
     }
   }
@@ -112,8 +112,8 @@ auto interactive(std::vector<line<Real, N>> const& lines) {
     }
   }
   auto       gpu_data   = to_gpu(lines);
-  auto const center_pos = aabb.center();
-  win.camera_controller().look_at(center_pos + vec{2, 2, 2}, center_pos);
+  auto const center_pos = vec3f{aabb.center()};
+  win.camera_controller().look_at(center_pos + vec3f{2, 2, 2}, center_pos);
   shader.bind();
   shader.set_projection_matrix(win.camera_controller().projection_matrix());
   gl::clear_color(255, 255, 255, 255);
