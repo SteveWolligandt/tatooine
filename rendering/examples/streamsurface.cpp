@@ -8,7 +8,13 @@ using namespace tatooine;
 auto main() -> int {
   auto v2 = analytical::numerical::doublegyre{};
   auto v3 = spacetime(v2);
-  auto ssf = streamsurface(v3, line3{vec3{0.9, 0.5, 0.0}, vec3{1.1, 0.5, 0.0}});
-  auto mesh = ssf.discretize(3, 0.1, 0, 10);
-  rendering::interactive::show(mesh);
+  auto phi3 = flowmap(v3);
+  auto seed = line3{};
+  auto v0 = seed.push_back(0.5, 0.1, 0.0);
+  auto v1 = seed.push_back(1.5, 0.1, 0.0);
+  seed.parameterization()[v0] = 0;
+  seed.parameterization()[v1] = 1;
+  auto ssf = streamsurface(phi3, seed);
+  unstructured_triangular_grid3 mesh = ssf.discretize(10, 0.01, 0, 10);
+  rendering::interactive::show(seed, mesh);
 }
