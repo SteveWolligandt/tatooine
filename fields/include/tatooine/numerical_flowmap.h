@@ -136,7 +136,7 @@ struct numerical_flowmap {
     if (tau == 0) {
       return pos_type{x0};
     }
-    auto       x1       = pos_type::fill(0.0 / 0.0);
+    auto       x1       = pos_type::fill(nan<real_type>());
     auto const t_end    = t0 + tau;
     auto       callback = [t_end, &x1](const auto& y, auto const t) {
       if (t_end == t) {
@@ -170,7 +170,7 @@ struct numerical_flowmap {
     if (tau == 0) {
       return pos_type{x0};
     }
-    auto x1 = pos_type::fill(0.0 / 0.0);
+    auto x1 = pos_type::fill(nan<real_type>());
     auto const t_end = t0 + tau;
     if (!m_use_caching) {
       auto callback = [t_end, &x1](const auto& y, auto const t) {
