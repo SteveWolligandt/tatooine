@@ -11,22 +11,22 @@ namespace tatooine::cgal {
 /// \defgroup cgal_triangulation_ds_vertex_base Triangulation DS Vertex Base
 /// \ingroup cgal
 /// \{
-template <std::size_t NumDimensions>
+template <std::size_t NumDimensions, typename TDS>
 struct triangulation_ds_vertex_base_impl;
 //------------------------------------------------------------------------------
-template <>
-struct triangulation_ds_vertex_base_impl<2> {
-  using type = CGAL::Triangulation_ds_vertex_base_2<>;
+template <typename TDS>
+struct triangulation_ds_vertex_base_impl<2, TDS> {
+  using type = CGAL::Triangulation_ds_vertex_base_2<TDS>;
 };
 //------------------------------------------------------------------------------
-template <>
-struct triangulation_ds_vertex_base_impl<3> {
-  using type = CGAL::Triangulation_ds_vertex_base_3<>;
+template <typename TDS>
+struct triangulation_ds_vertex_base_impl<3, TDS> {
+  using type = CGAL::Triangulation_ds_vertex_base_3<TDS>;
 };
 //------------------------------------------------------------------------------
-template <std::size_t NumDimensions>
+template <std::size_t NumDimensions, typename TDS = void>
 using triangulation_ds_vertex_base =
-    typename triangulation_ds_vertex_base_impl<NumDimensions>::type;
+    typename triangulation_ds_vertex_base_impl<NumDimensions, TDS>::type;
 /// \}
 //==============================================================================
 }  // namespace tatooine::cgal

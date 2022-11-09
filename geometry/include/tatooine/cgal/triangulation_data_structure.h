@@ -5,8 +5,8 @@
 //==============================================================================
 #include <CGAL/Triangulation_data_structure_2.h>
 #include <CGAL/Triangulation_data_structure_3.h>
-#include <tatooine/cgal/triangulation_ds_simplex_base.h>
-#include <tatooine/cgal/triangulation_ds_vertex_base.h>
+#include <tatooine/cgal/triangulation_simplex_base.h>
+#include <tatooine/cgal/triangulation_vertex_base.h>
 //==============================================================================
 namespace tatooine::cgal {
 //==============================================================================
@@ -26,9 +26,10 @@ struct triangulation_data_structure_impl<3, VertexBase, SimplexBase> {
   using type = CGAL::Triangulation_data_structure_3<VertexBase, SimplexBase>;
 };
 //------------------------------------------------------------------------------
-template <std::size_t NumDimensions,
-          typename VertexBase  = triangulation_ds_vertex_base<NumDimensions>,
-          typename SimplexBase = triangulation_ds_simplex_base<NumDimensions>>
+template <
+    std::size_t NumDimensions, typename Traits,
+    typename VertexBase  = triangulation_vertex_base<NumDimensions, Traits>,
+    typename SimplexBase = triangulation_simplex_base<NumDimensions, Traits>>
 using triangulation_data_structure =
     typename triangulation_data_structure_impl<NumDimensions, VertexBase,
                                                SimplexBase>::type;

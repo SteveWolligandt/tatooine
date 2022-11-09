@@ -12,6 +12,7 @@
 #include <tatooine/axis_aligned_bounding_box.h>
 #include <tatooine/detail/unstructured_simplicial_grid/edge_vtp_writer.h>
 #include <tatooine/detail/unstructured_simplicial_grid/hierarchy.h>
+#include <tatooine/detail/unstructured_simplicial_grid/tetrahedral_vtu_writer.h>
 #include <tatooine/detail/unstructured_simplicial_grid/triangular_vtp_writer.h>
 #include <tatooine/detail/unstructured_simplicial_grid/triangular_vtu_writer.h>
 #include <tatooine/pointset.h>
@@ -163,21 +164,21 @@ struct unstructured_simplicial_grid
   auto copy_prop(auto const& other_grid, std::string const& name,
                  auto const& other_prop) {
     (([&]() {
-      if (other_prop->type() == typeid(TypesToCheck)) {
-        auto& this_prop = this->template vertex_property<TypesToCheck>(name);
-        auto const& other_typed_prop =
-            other_grid.template vertex_property<TypesToCheck>(name);
-        auto vi = vertex_handle{0};
-        other_grid.vertices().iterate_indices([&](auto const... is) {
-          this_prop[vi++] = other_typed_prop.at(is...);
-        });
-      }
-    }()), ...);
+       if (other_prop->type() == typeid(TypesToCheck)) {
+         auto& this_prop = this->template vertex_property<TypesToCheck>(name);
+         auto const& other_typed_prop =
+             other_grid.template vertex_property<TypesToCheck>(name);
+         auto vi = vertex_handle{0};
+         other_grid.vertices().iterate_indices([&](auto const... is) {
+           this_prop[vi++] = other_typed_prop.at(is...);
+         });
+       }
+     }()),
+     ...);
   }
 
  public:
-  template <floating_point_range DimX,
-            floating_point_range DimY>
+  template <floating_point_range DimX, floating_point_range DimY>
   requires(NumDimensions == 2) && (SimplexDim == 2)
   explicit unstructured_simplicial_grid(rectilinear_grid<DimX, DimY> const& g) {
     auto const s0 = g.size(0);
@@ -203,29 +204,29 @@ struct unstructured_simplicial_grid
       }
       return turned;
     };
-    for_loop([&](auto const ix, auto const iy){
-      auto const le_bo = vertex_handle{ix + iy * s0};
-      auto const ri_bo = vertex_handle{(ix + 1) + iy * s0};
-      auto const le_to = vertex_handle{ix + (iy + 1) * s0};
-      auto const ri_to = vertex_handle{(ix + 1) + (iy + 1) * s0};
-      if (turned(ix, iy)) {
-        insert_simplex(le_bo, ri_bo, ri_to);
-        insert_simplex(le_bo, ri_to, le_to);
-      } else {
-        insert_simplex(le_bo, ri_bo, le_to);
-        insert_simplex(ri_bo, ri_to, le_to);
-      }
-    }, s0-1, s1-1);
+    for_loop(
+        [&](auto const ix, auto const iy) {
+          auto const le_bo = vertex_handle{ix + iy * s0};
+          auto const ri_bo = vertex_handle{(ix + 1) + iy * s0};
+          auto const le_to = vertex_handle{ix + (iy + 1) * s0};
+          auto const ri_to = vertex_handle{(ix + 1) + (iy + 1) * s0};
+          if (turned(ix, iy)) {
+            insert_simplex(le_bo, ri_bo, ri_to);
+            insert_simplex(le_bo, ri_to, le_to);
+          } else {
+            insert_simplex(le_bo, ri_bo, le_to);
+            insert_simplex(ri_bo, ri_to, le_to);
+          }
+        },
+        s0 - 1, s1 - 1);
   }
   //----------------------------------------------------------------------------
-  template <floating_point_range DimX,
-            floating_point_range DimY,
+  template <floating_point_range DimX, floating_point_range DimY,
             floating_point_range DimZ>
   requires(NumDimensions == 3) && (SimplexDim == 3)
   explicit unstructured_simplicial_grid(
       rectilinear_grid<DimX, DimY, DimZ> const& g) {
-    constexpr auto turned = [](std::size_t const ix,
-                               std::size_t const iy,
+    constexpr auto turned = [](std::size_t const ix, std::size_t const iy,
                                std::size_t const iz) -> bool {
       bool const xodd = ix % 2 == 0;
       bool const yodd = iy % 2 == 0;
@@ -248,7 +249,7 @@ struct unstructured_simplicial_grid
     auto const s0   = g.size(0);
     auto const s1   = g.size(1);
     auto const s0s1 = s0 * s1;
-    auto it = [&](auto const ix, auto const iy, auto const iz) {
+    auto       it   = [&](auto const ix, auto const iy, auto const iz) {
       auto const le_bo_fr = vertex_handle{ix + iy * s0 + iz * s0s1};
       auto const ri_bo_fr = vertex_handle{(ix + 1) + iy * s0 + iz * s0s1};
       auto const le_to_fr = vertex_handle{ix + (iy + 1) * s0 + iz * s0s1};
@@ -260,26 +261,26 @@ struct unstructured_simplicial_grid
           vertex_handle{(ix + 1) + (iy + 1) * s0 + (iz + 1) * s0s1};
       if (turned(ix, iy, iz)) {
         insert_simplex(le_bo_fr, ri_bo_ba, ri_to_fr,
-                       le_to_ba);  // inner
+                               le_to_ba);  // inner
         insert_simplex(le_bo_fr, ri_bo_fr, ri_to_fr,
-                       ri_bo_ba);  // right front
+                               ri_bo_ba);  // right front
         insert_simplex(le_bo_fr, ri_to_fr, le_to_fr,
-                       le_to_ba);  // left front
+                               le_to_ba);  // left front
         insert_simplex(ri_to_fr, ri_bo_ba, ri_to_ba,
-                       le_to_ba);  // right back
+                               le_to_ba);  // right back
         insert_simplex(le_bo_fr, le_bo_ba, ri_bo_ba,
-                       le_to_ba);  // left back
+                               le_to_ba);  // left back
       } else {
         insert_simplex(le_to_fr, ri_bo_fr, le_bo_ba,
-                       ri_to_ba);  // inner
+                               ri_to_ba);  // inner
         insert_simplex(le_bo_fr, ri_bo_fr, le_to_fr,
-                       le_bo_ba);  // left front
+                               le_bo_ba);  // left front
         insert_simplex(ri_bo_fr, ri_to_fr, le_to_fr,
-                       ri_to_ba);  // right front
+                               ri_to_ba);  // right front
         insert_simplex(le_to_fr, le_to_ba, ri_to_ba,
-                       le_bo_ba);  // left back
+                               le_bo_ba);  // left back
         insert_simplex(ri_bo_fr, ri_bo_ba, ri_to_ba,
-                       le_bo_ba);  // right back
+                               le_bo_ba);  // right back
       }
     };
     for_loop_unpacked(it, g.size());
@@ -291,18 +292,18 @@ struct unstructured_simplicial_grid
     }
   }
   //============================================================================
-  auto operator[](simplex_handle t) const -> auto {
+  auto operator[](simplex_handle t) const -> auto{
     return simplex_at(t.index());
   }
-  auto operator[](simplex_handle t) -> auto { return simplex_at(t.index()); }
+  auto operator[](simplex_handle t) -> auto{ return simplex_at(t.index()); }
   //----------------------------------------------------------------------------
-  auto at(simplex_handle t) const -> auto { return simplex_at(t.index()); }
-  auto at(simplex_handle t) -> auto { return simplex_at(t.index()); }
+  auto at(simplex_handle t) const -> auto{ return simplex_at(t.index()); }
+  auto at(simplex_handle t) -> auto{ return simplex_at(t.index()); }
   //----------------------------------------------------------------------------
-  auto simplex_at(simplex_handle t) const -> auto {
+  auto simplex_at(simplex_handle t) const -> auto{
     return simplex_at(t.index());
   }
-  auto simplex_at(simplex_handle t) -> auto { return simplex_at(t.index()); }
+  auto simplex_at(simplex_handle t) -> auto{ return simplex_at(t.index()); }
   //----------------------------------------------------------------------------
   template <std::size_t... Seq>
   auto simplex_at(std::size_t const i) const {
@@ -329,8 +330,9 @@ struct unstructured_simplicial_grid
   }
   //----------------------------------------------------------------------------
  public:
-  auto insert_vertex(arithmetic auto const... comps) requires(
-      sizeof...(comps) == NumDimensions) {
+  auto insert_vertex(arithmetic auto const... comps)
+  requires(sizeof...(comps) == NumDimensions)
+  {
     auto const vi = parent_type::insert_vertex(comps...);
     // if (m_hierarchy != nullptr) {
     //  if (!m_hierarchy->insert_vertex(vi.index())) {
@@ -400,7 +402,7 @@ struct unstructured_simplicial_grid
   //----------------------------------------------------------------------------
   auto remove_duplicate_vertices(execution_policy::sequential_t /*policy*/,
                                  Real const eps = Real{}) {
-    //auto const& data = this->m_vertex_position_data;
+    // auto const& data = this->m_vertex_position_data;
     for (auto v0 = vertices().cbegin(); v0 != vertices().cend(); ++v0) {
       for (auto v1 = next(v0); v1 != vertices().cend(); ++v1) {
         auto const d = squared_euclidean_distance(at(*v0), at(*v1));
@@ -422,8 +424,9 @@ struct unstructured_simplicial_grid
   auto remove(simplex_handle const ch) { m_invalid_simplices.insert(ch); }
   //----------------------------------------------------------------------------
   template <typename... Handles>
-  auto insert_simplex(Handles const... handles) requires(
-      is_same<Handles, vertex_handle>&&...) {
+  auto insert_simplex(Handles const... handles)
+  requires(is_same<Handles, vertex_handle> && ...)
+  {
     static_assert(sizeof...(Handles) == num_vertices_per_simplex(),
                   "wrong number of vertices for simplex");
     (m_simplex_index_data.push_back(handles), ...);
@@ -454,7 +457,8 @@ struct unstructured_simplicial_grid
   //----------------------------------------------------------------------------
  public:
   auto barycentric_coordinate(simplex_handle const& s, pos_type const& q) const
-      requires(NumDimensions == SimplexDim) {
+  requires(NumDimensions == SimplexDim)
+  {
     if constexpr (NumDimensions == 2) {
       auto const [v0, v1, v2] = at(s);
       auto const p0           = at(v0) - q;
@@ -528,7 +532,7 @@ struct unstructured_simplicial_grid
       }
     }
 
-    auto constexpr inc     = [](auto i) { return ++i; };
+    auto constexpr inc = [](auto i) { return ++i; };
     auto offsets = std::vector<std::size_t>(size(vertex_position_data()), 0);
     for (auto const v : invalid_vertices()) {
       auto i = begin(offsets) + v.index();
@@ -556,21 +560,22 @@ struct unstructured_simplicial_grid
   }
   //----------------------------------------------------------------------------
 #if TATOOINE_CGAL_AVAILABLE
-  auto build_delaunay_mesh() requires(NumDimensions == 2) ||
-      (NumDimensions == 3) {
+  auto build_delaunay_mesh()
+  requires(NumDimensions == 2) || (NumDimensions == 3)
+  {
     build_delaunay_mesh(std::make_index_sequence<NumDimensions>{});
   }
 
  private:
   template <std::size_t... Seq>
-      auto build_delaunay_mesh(std::index_sequence<Seq...> /*seq*/)
-          -> void requires(NumDimensions == 2) ||
-      (NumDimensions == 3) {
+  auto build_delaunay_mesh(std::index_sequence<Seq...> /*seq*/) -> void
+  requires(NumDimensions == 2) || (NumDimensions == 3)
+  {
     m_simplex_index_data.clear();
     using kernel_type = CGAL::Exact_predicates_inexact_constructions_kernel;
     using triangulation_type =
-        cgal::delaunay_triangulation_with_info<NumDimensions, kernel_type,
-                                               vertex_handle>;
+        cgal::delaunay_triangulation_with_info<NumDimensions, vertex_handle,
+                                               kernel_type>;
     using point_type = typename triangulation_type::Point;
     auto points      = std::vector<std::pair<point_type, vertex_handle>>{};
     points.reserve(vertices().size());
@@ -595,25 +600,24 @@ struct unstructured_simplicial_grid
   }
 
  public:
-  auto build_sub_delaunay_mesh(
-      std::vector<vertex_handle> const& vertices) requires(NumDimensions ==
-                                                           2) ||
-      (NumDimensions == 3) {
+  auto build_sub_delaunay_mesh(std::vector<vertex_handle> const& vertices)
+  requires(NumDimensions == 2) || (NumDimensions == 3)
+  {
     build_sub_delaunay_mesh(vertices,
                             std::make_index_sequence<NumDimensions>{});
   }
 
  private:
   template <std::size_t... Seq>
-      auto build_sub_delaunay_mesh(std::vector<vertex_handle> const& vertices,
-                                   std::index_sequence<Seq...> /*seq*/)
-          -> void requires(NumDimensions == 2) ||
-      (NumDimensions == 3) {
+  auto build_sub_delaunay_mesh(std::vector<vertex_handle> const& vertices,
+                               std::index_sequence<Seq...> /*seq*/) -> void
+  requires(NumDimensions == 2) || (NumDimensions == 3)
+  {
     m_simplex_index_data.clear();
     using kernel_type = CGAL::Exact_predicates_inexact_constructions_kernel;
     using triangulation_type =
-        cgal::delaunay_triangulation_with_info<NumDimensions, kernel_type,
-                                               vertex_handle>;
+        cgal::delaunay_triangulation_with_info<NumDimensions, vertex_handle,
+                                               kernel_type>;
     using point_type = typename triangulation_type::Point;
     auto points      = std::vector<std::pair<point_type, vertex_handle>>{};
     points.reserve(vertices.size());
@@ -642,18 +646,18 @@ struct unstructured_simplicial_grid
  public:
   auto build_delaunay_mesh(
       std::vector<std::pair<vertex_handle, vertex_handle>> const& constraints)
-          -> void requires(NumDimensions == 2) ||
-      (NumDimensions == 3) {
+      -> void
+  requires(NumDimensions == 2) || (NumDimensions == 3)
+  {
     build_delaunay_mesh(constraints, std::make_index_sequence<NumDimensions>{});
   }
 
  private:
   template <std::size_t... Seq>
   requires(NumDimensions == 2) /*|| (NumDimensions == 3)*/
-      auto build_delaunay_mesh(
-          std::vector<std::pair<vertex_handle, vertex_handle>> const&
-              constraints,
-          std::index_sequence<Seq...> /*seq*/) -> void {
+  auto build_delaunay_mesh(
+      std::vector<std::pair<vertex_handle, vertex_handle>> const& constraints,
+      std::index_sequence<Seq...> /*seq*/) -> void {
     m_simplex_index_data.clear();
     std::vector<CDT::Edge> edges;
     edges.reserve(size(constraints));
@@ -796,7 +800,7 @@ struct unstructured_simplicial_grid
       }
     } else if (ext == ".vtp") {
       if constexpr ((NumDimensions == 2 || NumDimensions == 3) &&
-                    (SimplexDim == 1 || SimplexDim ==2)) {
+                    (SimplexDim == 1 || SimplexDim == 2)) {
         write_vtp(path);
         return;
       } else {
@@ -805,7 +809,7 @@ struct unstructured_simplicial_grid
       }
     } else if (ext == ".vtu") {
       if constexpr ((NumDimensions == 2 || NumDimensions == 3) &&
-                    SimplexDim == 2) {
+                    (SimplexDim == 2 || SimplexDim == 3)) {
         write_vtu(path);
         return;
       } else {
@@ -828,8 +832,9 @@ struct unstructured_simplicial_grid
   }
   //----------------------------------------------------------------------------
   auto write_vtp(filesystem::path const& path) const
-      requires((NumDimensions == 2 || NumDimensions == 3) &&
-               (SimplexDim == 1 || SimplexDim == 2)) {
+  requires((NumDimensions == 2 || NumDimensions == 3) &&
+           (SimplexDim == 1 || SimplexDim == 2))
+  {
     if constexpr (SimplexDim == 1) {
       write_vtp_edges(path);
     } else if constexpr (SimplexDim == 2) {
@@ -838,16 +843,22 @@ struct unstructured_simplicial_grid
   }
   //----------------------------------------------------------------------------
   auto write_vtu(filesystem::path const& path) const
-      requires((NumDimensions == 2 || NumDimensions == 3) && SimplexDim == 2) {
+  requires((NumDimensions == 2 || NumDimensions == 3) &&
+           (SimplexDim == 2 || SimplexDim == 3))
+  {
     if constexpr (SimplexDim == 2) {
-      write_vtu_triangular(path); }
+      write_vtu_triangular(path);
+    } else if constexpr (SimplexDim == 3) {
+      write_vtu_tetrahedral(path);
+    }
   }
   //----------------------------------------------------------------------------
   template <unsigned_integral HeaderType      = std::uint64_t,
             integral          ConnectivityInt = std::int64_t,
             integral          OffsetInt       = std::int64_t>
   auto write_vtp_edges(filesystem::path const& path) const
-      requires((NumDimensions == 2 || NumDimensions == 3) && SimplexDim == 1) {
+  requires((NumDimensions == 2 || NumDimensions == 3) && SimplexDim == 1)
+  {
     detail::unstructured_simplicial_grid::edge_vtp_writer<
         this_type, HeaderType, ConnectivityInt, OffsetInt>{*this}
         .write(path);
@@ -857,7 +868,8 @@ struct unstructured_simplicial_grid
             integral          ConnectivityInt = std::int64_t,
             integral          OffsetInt       = std::int64_t>
   auto write_vtp_triangles(filesystem::path const& path) const
-      requires((NumDimensions == 2 || NumDimensions == 3) && SimplexDim == 2) {
+  requires((NumDimensions == 2 || NumDimensions == 3) && SimplexDim == 2)
+  {
     detail::unstructured_simplicial_grid::triangular_vtp_writer<
         this_type, HeaderType, ConnectivityInt, OffsetInt>{*this}
         .write(path);
@@ -868,15 +880,30 @@ struct unstructured_simplicial_grid
             integral          OffsetInt       = std::int64_t,
             unsigned_integral CellTypesInt    = std::uint8_t>
   auto write_vtu_triangular(filesystem::path const& path) const
-      requires((NumDimensions == 2 || NumDimensions == 3) && SimplexDim == 2) {
+  requires((NumDimensions == 2 || NumDimensions == 3) && SimplexDim == 2)
+  {
     detail::unstructured_simplicial_grid::triangular_vtu_writer<
+        this_type, HeaderType, ConnectivityInt, OffsetInt, CellTypesInt>{*this}
+        .write(path);
+  }
+  //----------------------------------------------------------------------------
+  template <unsigned_integral HeaderType      = std::uint64_t,
+            integral          ConnectivityInt = std::int64_t,
+            integral          OffsetInt       = std::int64_t,
+            unsigned_integral CellTypesInt    = std::uint8_t>
+  auto write_vtu_tetrahedral(filesystem::path const& path) const
+  requires((NumDimensions == 2 || NumDimensions == 3) && SimplexDim == 3)
+  {
+    detail::unstructured_simplicial_grid::tetrahedral_vtu_writer<
         this_type, HeaderType, ConnectivityInt, OffsetInt, CellTypesInt>{*this}
         .write(path);
   }
   //----------------------------------------------------------------------------
   auto write_unstructured_triangular_grid_vtk(std::filesystem::path const& path,
                                               std::string const& title) const
-      -> bool requires(SimplexDim == 2) {
+      -> bool
+  requires(SimplexDim == 2)
+  {
     using namespace std::ranges;
     auto writer =
         vtk::legacy_file_writer{path, vtk::dataset_type::unstructured_grid};
@@ -941,8 +968,9 @@ struct unstructured_simplicial_grid
   }
   //----------------------------------------------------------------------------
   auto write_unstructured_tetrahedral_grid_vtk(
-      std::filesystem::path const& path, std::string const& title) const
-      -> bool requires(SimplexDim == 2) {
+      std::filesystem::path const& path, std::string const& title) const -> bool
+  requires(SimplexDim == 2)
+  {
     using boost::copy;
     using boost::adaptors::transformed;
     vtk::legacy_file_writer writer(path, vtk::dataset_type::unstructured_grid);
@@ -987,7 +1015,8 @@ struct unstructured_simplicial_grid
     return false;
   }
   //----------------------------------------------------------------------------
- public : auto read(std::filesystem::path const& path) {
+ public:
+  auto read(std::filesystem::path const& path) {
     auto ext = path.extension();
     if constexpr (NumDimensions == 2 || NumDimensions == 3) {
       if (ext == ".vtk") {
@@ -996,8 +1025,9 @@ struct unstructured_simplicial_grid
     }
   }
   //----------------------------------------------------------------------------
-  auto read_vtk(std::filesystem::path const& path) requires(
-      NumDimensions == 2 || NumDimensions == 3) {
+  auto read_vtk(std::filesystem::path const& path)
+  requires(NumDimensions == 2 || NumDimensions == 3)
+  {
     struct listener_type : vtk::legacy_file_listener {
       unstructured_simplicial_grid& grid;
       std::vector<int>              simplices;
@@ -1035,8 +1065,7 @@ struct unstructured_simplicial_grid
         }
       }
 
-      void on_points(std::vector<std::array<float, 3>> const& ps)
-          override {
+      void on_points(std::vector<std::array<float, 3>> const& ps) override {
         for (const auto& p : ps) {
           if constexpr (NumDimensions == 2) {
             grid.insert_vertex(static_cast<Real>(p[0]),
@@ -1193,7 +1222,8 @@ struct unstructured_simplicial_grid
   template <typename F>
   requires invocable_with_n_integrals<F, num_dimensions()> ||
            invocable<F, pos_type>
-  auto sample_to_vertex_property(F&& f, std::string const& name) -> auto& {
+           auto sample_to_vertex_property(F&& f, std::string const& name)
+               -> auto& {
     return sample_to_vertex_property(std::forward<F>(f), name,
                                      execution_policy::sequential);
   }
@@ -1201,20 +1231,21 @@ struct unstructured_simplicial_grid
   template <typename F>
   requires invocable_with_n_integrals<F, num_dimensions()> ||
            invocable<F, pos_type>
-  auto sample_to_vertex_property(F&& f, std::string const& name,
-                                 execution_policy_tag auto tag) -> auto& {
+           auto sample_to_vertex_property(F&& f, std::string const& name,
+                                          execution_policy_tag auto tag)
+               -> auto& {
     if constexpr (invocable<F, pos_type>) {
       return sample_to_vertex_property_pos(std::forward<F>(f), name, tag);
     } else {
-      return sample_to_vertex_property_vertex_handle(
-          std::forward<F>(f), name, tag);
+      return sample_to_vertex_property_vertex_handle(std::forward<F>(f), name,
+                                                     tag);
     }
   }
   //----------------------------------------------------------------------------
  private:
   template <invocable<vertex_handle> F>
-  auto sample_to_vertex_property_vertex_handle(F&& f, std::string const& name,
-                                               execution_policy_tag auto /*tag*/)
+  auto sample_to_vertex_property_vertex_handle(
+      F&& f, std::string const& name, execution_policy_tag auto /*tag*/)
       -> auto& {
     using T    = std::invoke_result_t<F, vertex_handle>;
     auto& prop = this->template vertex_property<T>(name);
@@ -1234,7 +1265,8 @@ struct unstructured_simplicial_grid
   //----------------------------------------------------------------------------
   template <invocable<pos_type> F>
   auto sample_to_vertex_property_pos(F&& f, std::string const& name,
-                                     execution_policy_tag auto /*tag*/) -> auto& {
+                                     execution_policy_tag auto /*tag*/)
+      -> auto& {
     using T    = std::invoke_result_t<F, pos_type>;
     auto& prop = this->template vertex_property<T>(name);
     for (auto const v : vertices()) {
