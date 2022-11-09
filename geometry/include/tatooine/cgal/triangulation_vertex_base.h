@@ -24,7 +24,7 @@ struct triangulation_vertex_base_impl<3, Traits, VertexBase> {
 };
 //------------------------------------------------------------------------------
 template <std::size_t NumDimensions, typename Traits,
-          typename VertexBase = triangulation_ds_vertex_base<2>>
+          typename VertexBase = triangulation_ds_vertex_base<NumDimensions>>
 using triangulation_vertex_base =
     typename triangulation_vertex_base_impl<NumDimensions, Traits,
                                             VertexBase>::type;

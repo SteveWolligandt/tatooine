@@ -34,17 +34,18 @@ struct delaunay_triangulation_impl<3, Traits, TriangulationDataStructure> {
 //------------------------------------------------------------------------------
 template <std::size_t NumDimensions, typename Traits,
           typename TriangulationDataStructure =
-              triangulation_data_structure<NumDimensions>>
+              triangulation_data_structure<NumDimensions, Traits>>
 using delaunay_triangulation =
     typename delaunay_triangulation_impl<NumDimensions, Traits,
                                          TriangulationDataStructure>::type;
 //------------------------------------------------------------------------------
-template <std::size_t NumDimensions, typename Traits, typename Info,
-          typename SimplexBase = triangulation_ds_simplex_base<NumDimensions>>
+template <std::size_t NumDimensions, typename Info, typename Traits,
+          typename SimplexBase =
+              triangulation_simplex_base<NumDimensions, Traits>>
 using delaunay_triangulation_with_info = delaunay_triangulation<
     NumDimensions, Traits,
     triangulation_data_structure<
-        NumDimensions,
+        NumDimensions, Traits,
         triangulation_vertex_base_with_info<NumDimensions, Info, Traits>,
         SimplexBase>>;
 //==============================================================================

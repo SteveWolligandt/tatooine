@@ -3,7 +3,8 @@
 #ifndef TATOOINE_CGAL_SIMPLEX_BASE_H
 #define TATOOINE_CGAL_SIMPLEX_BASE_H
 //==============================================================================
-#include <tatooine/cgal/triangulation_ds_vertex_base.h>
+#include <CGAL/Delaunay_triangulation_cell_base_with_circumcenter_3.h>
+#include <tatooine/cgal/triangulation_ds_simplex_base.h>
 //==============================================================================
 namespace tatooine::cgal {
 //==============================================================================
@@ -28,6 +29,19 @@ template <std::size_t NumDimensions, typename Traits,
 using triangulation_simplex_base =
     typename triangulation_simplex_base_impl<NumDimensions, Traits,
                                              SimplexBase>::type;
+//------------------------------------------------------------------------------
+template <std::size_t NumDimensions, typename Traits,
+          typename SimplexBase =
+              triangulation_simplex_base<NumDimensions, Traits>>
+using delaunay_triangulation_simplex_base =
+    CGAL::Delaunay_triangulation_cell_base_3<Traits, SimplexBase>;
+//------------------------------------------------------------------------------
+template <std::size_t NumDimensions, typename Traits,
+          typename SimplexBase =
+              delaunay_triangulation_simplex_base<NumDimensions, Traits>>
+using delaunay_triangulation_simplex_base_with_circumcenter =
+    CGAL::Delaunay_triangulation_cell_base_with_circumcenter_3<Traits,
+                                                               SimplexBase>;
 /// \}
 //==============================================================================
 }  // namespace tatooine::cgal
