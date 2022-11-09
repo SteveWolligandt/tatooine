@@ -18,11 +18,11 @@ struct staggered_flowmap_discretization {
   std::vector<internal_flowmap_discretization_type> m_steps = {};
   //============================================================================
   template <typename Flowmap, typename... InternalFlowmapArgs>
-  staggered_flowmap_discretization(Flowmap&& flowmap, arithmetic auto const t0,
+  staggered_flowmap_discretization(Flowmap &&flowmap, arithmetic auto const t0,
                                    arithmetic auto const tau,
                                    arithmetic auto const delta_t,
-                                   InternalFlowmapArgs&&... args) {
-    auto       cur_t0 = real_type(t0);
+                                   InternalFlowmapArgs &&...args) {
+    auto cur_t0 = real_type(t0);
     auto const t_end = static_cast<real_type>(t0) + static_cast<real_type>(tau);
     m_steps.reserve(static_cast<std::size_t>((t_end - t0) / delta_t) + 2);
     static auto const eps = real_type(1e-10);
@@ -40,22 +40,20 @@ struct staggered_flowmap_discretization {
   //============================================================================
   auto num_steps() const { return m_steps.size(); }
   //----------------------------------------------------------------------------
-  auto steps() const -> auto const& {
-    return m_steps;
-  }
+  auto steps() const -> auto const & { return m_steps; }
   //----------------------------------------------------------------------------
-  auto steps() -> auto& { return m_steps; }
+  auto steps() -> auto & { return m_steps; }
   //============================================================================
-  auto step(std::size_t const i) const -> auto const& { return m_steps[i]; }
+  auto step(std::size_t const i) const -> auto const & { return m_steps[i]; }
   //----------------------------------------------------------------------------
-  auto step(std::size_t const i) -> auto& { return m_steps[i]; }
+  auto step(std::size_t const i) -> auto & { return m_steps[i]; }
   //============================================================================
   /// Evaluates flow map in forward direction at time t0 with maximal available
   /// advection time.
   /// \param x position
   /// \returns phi(x, t0, t_end - t0)
   auto sample(pos_type x, forward_tag const tag) const {
-    for (auto const& step : steps()) {
+    for (auto const &step : steps()) {
       x = step.sample(x, tag);
     }
     return x;
@@ -73,6 +71,6 @@ struct staggered_flowmap_discretization {
   }
 };
 //==============================================================================
-}  // namespace tatooine
+} // namespace tatooine
 //==============================================================================
 #endif
