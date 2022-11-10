@@ -96,13 +96,18 @@ struct triangular_vtp_writer {
       if constexpr (Grid::num_dimensions() == 2) {
         auto point_data = std::vector<vec<typename Grid::real_type, 3>>(
             m_grid.vertices().size());
-        auto position = [this](auto const v) -> auto& { return m_grid.at(v); };
+        auto position = [this](auto const v) -> auto& { return m_grid[v]; };
         constexpr auto to_3d = [](auto const& p) {
           return Vec3<typename Grid::real_type>{p.x(), p.y(), 0};
         };
-        copy(m_grid.vertices() | views::transform(position) |
-                 views::transform(to_3d),
-             begin(point_data));
+        auto it = begin(point_data);
+        for (auto const v : m_grid.vertices()) {
+          *it = to_3d(m_grid[v]);
+          ++it;
+        }
+        //copy(m_grid.vertices() | views::transform(position) |
+        //         views::transform(to_3d),
+        //     begin(point_data));
         file.write(reinterpret_cast<char const*>(point_data.data()),
                    num_bytes_points);
       } else if constexpr (Grid::num_dimensions() == 3) {
