@@ -120,7 +120,7 @@ public:
   /// \param dimensions List of dimensions / axes of the rectilinear grid
   template <floating_point_range... Dimensions_>
   constexpr rectilinear_grid(Dimensions_ &&...dimensions)
-    requires(sizeof...(dimensions) == sizeof...(Dimensions))
+    requires(sizeof...(Dimensions_) == sizeof...(Dimensions))
       : m_dimensions{std::forward<Dimensions_>(dimensions)...} {}
   //----------------------------------------------------------------------------
 private:
