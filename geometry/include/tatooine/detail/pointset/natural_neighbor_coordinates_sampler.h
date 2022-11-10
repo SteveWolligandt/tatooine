@@ -75,7 +75,7 @@ private:
       -> tensor_type {
     // coordinates computation
     auto const [result, coords] = cgal::natural_neighbor_coordinates<
-        3, typename cgal_triangulation_type::Geom_traits,
+        NumDimensions, typename cgal_triangulation_type::Geom_traits,
         typename cgal_triangulation_type::Triangulation_data_structure>(
         m_triangulation, cgal_point{x(Is)...});
     if (!result.third) {

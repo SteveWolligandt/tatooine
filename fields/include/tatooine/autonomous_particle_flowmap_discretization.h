@@ -409,7 +409,7 @@ public:
                             std::index_sequence<Is...> /*seq*/) const {
     // coordinates computation
     auto const [result, nnc_per_vertex] = cgal::natural_neighbor_coordinates<
-        3, typename cgal_triangulation_type::Geom_traits,
+        NumDimensions, typename cgal_triangulation_type::Geom_traits,
         typename cgal_triangulation_type::Triangulation_data_structure>(
         triangulation(direction), cgal_point{q(Is)...});
     auto const success = result.third;
