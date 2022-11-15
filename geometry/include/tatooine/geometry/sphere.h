@@ -25,8 +25,7 @@ struct sphere : ray_intersectable<Real, N> {
   Real  m_radius = 1;
   //============================================================================
  public:
-  sphere() = default;
-  explicit sphere(Real const radius) : m_radius{radius} {}
+  explicit sphere(Real const radius = 1) : m_radius{radius} {}
   sphere(Real const radius, vec_t const& center)
       : m_center{center}, m_radius{radius} {}
   sphere(vec_t const& center, Real const radius)
@@ -230,10 +229,22 @@ auto discretize(sphere<Real, 3> const& s, size_t num_subdivisions = 0) {
   return m;
 }
 //==============================================================================
-using sphere2 = sphere<real_number, 2>;
-using circle = sphere<real_number, 2>;
-using sphere3 = sphere<real_number, 3>;
-using sphere4 = sphere<real_number, 4>;
+template <std::size_t N>
+using Sphere = sphere<real_number, N>;
+
+using sphere2 = Sphere<2>;
+using circle = Sphere<2>;
+using sphere3 = Sphere<3>;
+using sphere4 = Sphere<4>;
+
+template <typename Real>
+using Sphere2 = sphere<Real, 2>;
+template <typename Real>
+using Circle = sphere<Real, 2>;
+template <typename Real>
+using Sphere3 = sphere<Real, 3>;
+template <typename Real>
+using Sphere4 = sphere<Real, 4>;
 //==============================================================================
 }  // namespace tatooine::geometry
 //==============================================================================

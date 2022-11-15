@@ -197,18 +197,18 @@ struct hyper_ellipse {
   //----------------------------------------------------------------------------
   auto discretize(std::size_t const num_subdivisions = 2) const
       requires(NumDimensions == 3) {
-    using grid_t            = tatooine::unstructured_triangular_grid<Real, 3>;
-    using vh                = typename grid_t::vertex_handle;
-    using edge_t            = std::pair<vh, vh>;
-    using cell_t            = std::array<vh, 3>;
-    using cell_list_t       = std::vector<cell_t>;
+    using grid            = tatooine::unstructured_triangular_grid<Real, 3>;
+    using vh              = typename grid::vertex_handle;
+    using edge            = std::pair<vh, vh>;
+    using cell            = std::array<vh, 3>;
+    using cell_list       = std::vector<cell>;
     static constexpr auto X = Real(0.525731112119133606);
     static constexpr auto Z = Real(0.850650808352039932);
     auto                  g =
-        grid_t{vec{-X, 0, Z}, vec{X, 0, Z},  vec{-X, 0, -Z}, vec{X, 0, -Z},
+        grid{vec{-X, 0, Z}, vec{X, 0, Z},  vec{-X, 0, -Z}, vec{X, 0, -Z},
                vec{0, Z, X},  vec{0, Z, -X}, vec{0, -Z, X},  vec{0, -Z, -X},
                vec{Z, X, 0},  vec{-Z, X, 0}, vec{Z, -X, 0},  vec{-Z, -X, 0}};
-    auto triangles = cell_list_t{
+    auto triangles = cell_list{
         {vh{0}, vh{4}, vh{1}},  {vh{0}, vh{9}, vh{4}},  {vh{9}, vh{5}, vh{4}},
         {vh{4}, vh{5}, vh{8}},  {vh{4}, vh{8}, vh{1}},  {vh{8}, vh{10}, vh{1}},
         {vh{8}, vh{3}, vh{10}}, {vh{5}, vh{3}, vh{8}},  {vh{5}, vh{2}, vh{3}},
@@ -218,11 +218,11 @@ struct hyper_ellipse {
         {vh{9}, vh{2}, vh{5}},  {vh{7}, vh{2}, vh{11}}};
 
     for (std::size_t i = 0; i < num_subdivisions; ++i) {
-      auto subdivided_cells = cell_list_t{};
-      auto subdivided = std::map<edge_t, std::size_t>{};  // vh index on edge
+      auto subdivided_cells = cell_list{};
+      auto subdivided = std::map<edge, std::size_t>{};  // vh index on edge
       for (auto& [v0, v1, v2] : triangles) {
-        auto edges = std::array{edge_t{v0, v1}, edge_t{v0, v2}, edge_t{v1, v2}};
-        auto nvs   = cell_t{vh{0}, vh{0}, vh{0}};
+        auto edges = std::array{edge{v0, v1}, edge{v0, v2}, edge{v1, v2}};
+        auto nvs   = cell{vh{0}, vh{0}, vh{0}};
         auto i     = std::size_t{};
         for (auto& edge : edges) {
           auto& [v0, v1] = edge;
@@ -236,10 +236,10 @@ struct hyper_ellipse {
             nvs[i++] = vh{subdivided[edge]};
           }
         }
-        subdivided_cells.emplace_back(cell_t{v0, nvs[1], nvs[0]});
-        subdivided_cells.emplace_back(cell_t{nvs[0], nvs[2], v1});
-        subdivided_cells.emplace_back(cell_t{nvs[1], v2, nvs[2]});
-        subdivided_cells.emplace_back(cell_t{nvs[0], nvs[1], nvs[2]});
+        subdivided_cells.emplace_back(cell{v0, nvs[1], nvs[0]});
+        subdivided_cells.emplace_back(cell{nvs[0], nvs[2], v1});
+        subdivided_cells.emplace_back(cell{nvs[1], v2, nvs[2]});
+        subdivided_cells.emplace_back(cell{nvs[0], nvs[1], nvs[2]});
       }
       triangles = subdivided_cells;
     }
