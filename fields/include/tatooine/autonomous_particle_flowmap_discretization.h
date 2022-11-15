@@ -144,7 +144,6 @@ private:
         m_flowmap_gradients_backward{
             m_pointset_backward.template vertex_property<gradient_type>(
                 "flowmap_gradients")} {}
-
   //============================================================================
 public:
   static auto
@@ -270,11 +269,11 @@ public:
         m_flowmap_gradients_backward{
             m_pointset_backward.template vertex_property<gradient_type>(
                 "flowmap_gradients")} {
-    auto uuid_generator = std::atomic_uint64_t{};
     static_assert(
         std::decay_t<Flowmap>::num_dimensions() == NumDimensions,
         "Number of dimensions of flowmap does not match number of dimensions.");
 
+    auto uuid_generator = std::atomic_uint64_t{};
     fill(std::forward<Flowmap>(flowmap),
          particle_type::particles_from_grid_filling_gaps(t0, g, max_split_depth,
                                                          uuid_generator),

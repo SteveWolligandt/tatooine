@@ -24,6 +24,7 @@ struct unstructured_triangular_grid
     return this->simplex_at(h);
   }
   auto triangles() { return this->simplices(); }
+  auto triangles() const { return this->simplices(); }
 };
 template <std::size_t NumDimensions>
 using UnstructuredTriangularGrid =

@@ -2,23 +2,23 @@
 #define TATOOINE_FIELDS_AUTONOMOUS_PARTICLE_H
 //==============================================================================
 #include <tatooine/cache_alignment.h>
-#include <tatooine/functional.h>
 #include <tatooine/concepts.h>
 #include <tatooine/detail/autonomous_particle/post_triangulation.h>
 #include <tatooine/detail/autonomous_particle/sampler.h>
 #include <tatooine/detail/autonomous_particle/split_behavior.h>
+#include <tatooine/functional.h>
 #include <tatooine/geometry/hyper_ellipse.h>
-#include <tatooine/tensor_operations.h>
 #include <tatooine/numerical_flowmap.h>
 #include <tatooine/particle.h>
 #include <tatooine/random.h>
 #include <tatooine/tags.h>
 #include <tatooine/tensor.h>
+#include <tatooine/geometry/sphere.h>
+#include <tatooine/tensor_operations.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename B>
-concept split_behavior = requires {
+template <typename B> concept split_behavior = requires {
   requires floating_point<decltype(B::split_cond)>;
   requires range<decltype(B::radii)>;
   requires range<decltype(B::offsets)>;
@@ -30,24 +30,26 @@ template <floating_point Real, std::size_t NumDimensions>
 struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   using split_behaviors =
       detail::autonomous_particle::split_behaviors<Real, NumDimensions>;
-  static constexpr auto num_dimensions() -> std::size_t { return NumDimensions; }
+  static constexpr auto num_dimensions() -> std::size_t {
+    return NumDimensions;
+  }
   //============================================================================
   // TYPEDEFS
   //============================================================================
- public:
+public:
   //----------------------------------------------------------------------------
   constexpr static auto half = 1 / Real(2);
 
-  using this_type            = autonomous_particle<Real, NumDimensions>;
+  using this_type = autonomous_particle<Real, NumDimensions>;
   using simple_particle_type = particle<Real, NumDimensions>;
-  using real_type            = Real;
-  using vec_type             = vec<real_type, NumDimensions>;
-  using mat_type             = mat<real_type, NumDimensions, NumDimensions>;
-  using pos_type             = vec_type;
-  using container_type       = std::vector<this_type>;
+  using real_type = Real;
+  using vec_type = vec<real_type, NumDimensions>;
+  using mat_type = mat<real_type, NumDimensions, NumDimensions>;
+  using pos_type = vec_type;
+  using container_type = std::vector<this_type>;
   using simple_particle_container_type = std::vector<simple_particle_type>;
   using ellipse_type = geometry::hyper_ellipse<Real, NumDimensions>;
-  using parent_type  = ellipse_type;
+  using parent_type = ellipse_type;
   using sampler_type =
       detail::autonomous_particle::sampler<Real, NumDimensions>;
   using hierarchy_pair = detail::autonomous_particle::hierarchy_pair;
@@ -61,104 +63,87 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //============================================================================
   // members
   //============================================================================
- private:
-  pos_type      m_x0              = {};
-  real_type     m_t               = {};
-  mat_type      m_nabla_phi       = {};
-  std::uint8_t  m_split_depth     = 0;
-  std::uint8_t  m_max_split_depth = default_max_split_depth;
-  std::uint64_t m_id              = std::numeric_limits<std::uint64_t>::max();
+private:
+  pos_type m_x0 = {};
+  real_type m_t = {};
+  mat_type m_nabla_phi = {};
+  std::uint8_t m_split_depth = 0;
+  std::uint8_t m_max_split_depth = default_max_split_depth;
+  std::uint64_t m_id = std::numeric_limits<std::uint64_t>::max();
 
-  static auto mutex() -> auto& {
+  static auto mutex() -> auto & {
     static auto m = std::mutex{};
     return m;
   }
   //============================================================================
   // CTORS
   //============================================================================
- public:
+public:
   //----------------------------------------------------------------------------
   /// {
-  autonomous_particle(autonomous_particle const& other)     = default;
-  autonomous_particle(autonomous_particle&& other) noexcept = default;
+  autonomous_particle(autonomous_particle const &other) = default;
+  autonomous_particle(autonomous_particle &&other) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator =(autonomous_particle const& other)
-      -> autonomous_particle& = default;
-  auto operator=(autonomous_particle&& other) noexcept
-      -> autonomous_particle& = default;
+  auto operator=(autonomous_particle const &other)
+      -> autonomous_particle & = default;
+  auto operator=(autonomous_particle &&other) noexcept
+      -> autonomous_particle & = default;
   //----------------------------------------------------------------------------
   ~autonomous_particle() = default;
   //----------------------------------------------------------------------------
-  autonomous_particle(ellipse_type const& ell, real_type const t,
+  autonomous_particle(ellipse_type const &ell, real_type const t,
                       std::uint64_t const id)
-      : parent_type{ell},
-        m_x0{ell.center()},
-        m_t{t},
-        m_nabla_phi{mat_type::eye()},
-        m_id{id} {}
+      : parent_type{ell}, m_x0{ell.center()}, m_t{t},
+        m_nabla_phi{mat_type::eye()}, m_id{id} {}
   //----------------------------------------------------------------------------
-  autonomous_particle(ellipse_type const& ell, real_type const t,
-                      std::atomic_uint64_t& uuid_generator)
+  autonomous_particle(ellipse_type const &ell, real_type const t,
+                      std::atomic_uint64_t &uuid_generator)
       : autonomous_particle{ell, t, uuid_generator++} {}
   //----------------------------------------------------------------------------
-  autonomous_particle(ellipse_type const& ell, real_type const t,
+  autonomous_particle(ellipse_type const &ell, real_type const t,
                       std::uint8_t max_split_depth, std::uint64_t const id)
-      : parent_type{ell},
-        m_x0{ell.center()},
-        m_t{t},
+      : parent_type{ell}, m_x0{ell.center()}, m_t{t},
         m_nabla_phi{mat_type::eye()},
-        m_max_split_depth{max_split_depth},
-        m_id{id} {}
+        m_max_split_depth{max_split_depth}, m_id{id} {}
   //----------------------------------------------------------------------------
-  autonomous_particle(ellipse_type const& ell, real_type const t,
-                      std::uint8_t          max_split_depth,
-                      std::atomic_uint64_t& uuid_generator)
+  autonomous_particle(ellipse_type const &ell, real_type const t,
+                      std::uint8_t max_split_depth,
+                      std::atomic_uint64_t &uuid_generator)
       : autonomous_particle{ell, t, max_split_depth, uuid_generator++} {}
   //----------------------------------------------------------------------------
-  autonomous_particle(pos_type const& x, real_type const t, real_type const r,
+  autonomous_particle(pos_type const &x, real_type const t, real_type const r,
                       std::uint64_t const id)
-      : parent_type{x, r},
-        m_x0{x},
-        m_t{t},
-        m_nabla_phi{mat_type::eye()},
-        m_id{id} {}
+      : parent_type{x, r}, m_x0{x}, m_t{t},
+        m_nabla_phi{mat_type::eye()}, m_id{id} {}
   //----------------------------------------------------------------------------
-  autonomous_particle(pos_type const& x, real_type const t, real_type const r,
-                      std::atomic_uint64_t& uuid_generator)
+  autonomous_particle(pos_type const &x, real_type const t, real_type const r,
+                      std::atomic_uint64_t &uuid_generator)
       : autonomous_particle{x, t, r, uuid_generator++} {}
   //----------------------------------------------------------------------------
-  autonomous_particle(pos_type const& x, real_type const t, real_type const r,
+  autonomous_particle(pos_type const &x, real_type const t, real_type const r,
                       std::uint8_t max_split_depth, std::uint64_t const id)
-      : parent_type{x, r},
-        m_x0{x},
-        m_t{t},
-        m_nabla_phi{mat_type::eye()},
-        m_max_split_depth{max_split_depth},
-        m_id{id} {}
+      : parent_type{x, r}, m_x0{x}, m_t{t}, m_nabla_phi{mat_type::eye()},
+        m_max_split_depth{max_split_depth}, m_id{id} {}
   //----------------------------------------------------------------------------
-  autonomous_particle(pos_type const& x, real_type const t, real_type const r,
-                      std::uint8_t          max_split_depth,
-                      std::atomic_uint64_t& uuid_generator)
+  autonomous_particle(pos_type const &x, real_type const t, real_type const r,
+                      std::uint8_t max_split_depth,
+                      std::atomic_uint64_t &uuid_generator)
       : autonomous_particle{x, t, r, max_split_depth, uuid_generator++} {}
   //----------------------------------------------------------------------------
-  autonomous_particle(ellipse_type const& ell, real_type const t,
-                      pos_type const& x0, mat_type const& nabla_phi,
-                      std::uint8_t const  split_depth,
-                      std::uint8_t const  max_split_depth,
+  autonomous_particle(ellipse_type const &ell, real_type const t,
+                      pos_type const &x0, mat_type const &nabla_phi,
+                      std::uint8_t const split_depth,
+                      std::uint8_t const max_split_depth,
                       std::uint64_t const id)
-      : parent_type{ell},
-        m_x0{x0},
-        m_t{t},
-        m_nabla_phi{nabla_phi},
+      : parent_type{ell}, m_x0{x0}, m_t{t}, m_nabla_phi{nabla_phi},
         m_split_depth{split_depth},
-        m_max_split_depth{max_split_depth},
-        m_id{id} {}
+        m_max_split_depth{max_split_depth}, m_id{id} {}
   //----------------------------------------------------------------------------
-  autonomous_particle(ellipse_type const& ell, real_type const t,
-                      pos_type const& x0, mat_type const& nabla_phi,
-                      std::uint8_t const    split_depth,
-                      std::uint8_t const    max_split_depth,
-                      std::atomic_uint64_t& uuid_generator)
+  autonomous_particle(ellipse_type const &ell, real_type const t,
+                      pos_type const &x0, mat_type const &nabla_phi,
+                      std::uint8_t const split_depth,
+                      std::uint8_t const max_split_depth,
+                      std::atomic_uint64_t &uuid_generator)
       : autonomous_particle{ell,
                             t,
                             x0,
@@ -170,18 +155,18 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //============================================================================
   // GETTERS / SETTERS
   //============================================================================
-  auto x0() -> auto& { return m_x0; }
-  auto x0() const -> auto const& { return m_x0; }
+  auto x0() -> auto & { return m_x0; }
+  auto x0() const -> auto const & { return m_x0; }
   auto x0(std::size_t i) const { return x0()(i); }
   //----------------------------------------------------------------------------
-  auto x() -> auto& { return parent_type::center(); }
-  auto x() const -> auto const& { return parent_type::center(); }
+  auto x() -> auto & { return parent_type::center(); }
+  auto x() const -> auto const & { return parent_type::center(); }
   auto x(std::size_t const i) const { return parent_type::center()(i); }
   //----------------------------------------------------------------------------
-  auto t() -> auto& { return m_t; }
+  auto t() -> auto & { return m_t; }
   auto t() const { return m_t; }
   //----------------------------------------------------------------------------
-  auto nabla_phi() const -> auto const& { return m_nabla_phi; }
+  auto nabla_phi() const -> auto const & { return m_nabla_phi; }
   //----------------------------------------------------------------------------
   auto S0() const {
     auto sqrS = *inv(nabla_phi()) * S() * S() * *inv(transposed(nabla_phi()));
@@ -341,8 +326,9 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   // }
   //----------------------------------------------------------------------------
   template <split_behavior SplitBehavior, typename Flowmap>
-  auto advect(Flowmap&& phi, real_type const stepwidth, real_type const t_end,
-              std::atomic_uint64_t& uuid_generator) const {
+  [[nodiscard]] auto advect(Flowmap &&phi, real_type const stepwidth,
+                            real_type const t_end,
+                            std::atomic_uint64_t &uuid_generator) const {
     using namespace detail::autonomous_particle;
     auto hierarchy_mutex = std::mutex{};
     auto hierarchy_pairs = std::vector{hierarchy_pair{m_id, m_id}};
@@ -363,18 +349,18 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //----------------------------------------------------------------------------
   /// Advects single particle.
   template <typename Flowmap>
-  auto advect_with_two_splits(Flowmap&& phi, real_type const stepwidth,
-                              real_type const       t_end,
-                              std::atomic_uint64_t& uuid_generator) const {
+  auto advect_with_two_splits(Flowmap &&phi, real_type const stepwidth,
+                              real_type const t_end,
+                              std::atomic_uint64_t &uuid_generator) const {
     return advect<typename split_behaviors::two_splits>(
         std::forward<Flowmap>(phi), stepwidth, t_end, uuid_generator);
   }
   //----------------------------------------------------------------------------
   /// Advects single particle.
   template <typename Flowmap>
-  auto advect_with_three_splits(Flowmap&& phi, real_type const stepwidth,
-                                real_type const       t_end,
-                                std::atomic_uint64_t& uuid_generator) const {
+  auto advect_with_three_splits(Flowmap &&phi, real_type const stepwidth,
+                                real_type const t_end,
+                                std::atomic_uint64_t &uuid_generator) const {
     return advect<typename split_behaviors::three_splits>(
         std::forward<Flowmap>(phi), stepwidth, t_end, uuid_generator);
   }
@@ -382,26 +368,26 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   /// Advects single particle.
   template <typename Flowmap>
   auto advect_with_three_and_four_splits(
-      Flowmap&& phi, real_type const stepwidth, real_type const t_end,
-      std::atomic_uint64_t& uuid_generator) const {
+      Flowmap &&phi, real_type const stepwidth, real_type const t_end,
+      std::atomic_uint64_t &uuid_generator) const {
     return advect<typename split_behaviors::three_and_four_splits>(
         std::forward<Flowmap>(phi), stepwidth, t_end, uuid_generator);
   }
   //----------------------------------------------------------------------------
   /// Advects single particle.
   template <typename Flowmap>
-  auto advect_with_five_splits(Flowmap&& phi, real_type const stepwidth,
-                               real_type const       t_end,
-                               std::atomic_uint64_t& uuid_generator) const {
+  auto advect_with_five_splits(Flowmap &&phi, real_type const stepwidth,
+                               real_type const t_end,
+                               std::atomic_uint64_t &uuid_generator) const {
     return advect<typename split_behaviors::five_splits>(
         std::forward<Flowmap>(phi), stepwidth, t_end, uuid_generator);
   }
   //----------------------------------------------------------------------------
   /// Advects single particle.
   template <typename Flowmap>
-  auto advect_with_seven_splits(Flowmap&& phi, real_type const stepwidth,
-                                real_type const       t_end,
-                                std::atomic_uint64_t& uuid_generator) const {
+  auto advect_with_seven_splits(Flowmap &&phi, real_type const stepwidth,
+                                real_type const t_end,
+                                std::atomic_uint64_t &uuid_generator) const {
     return advect<typename split_behaviors::seven_splits>(
         std::forward<Flowmap>(phi), stepwidth, t_end, uuid_generator);
   }
@@ -416,12 +402,12 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   /// \param t_end End of time of advetion.
   /// \param particles Particles to be advected.
   template <split_behavior SplitBehavior, typename Flowmap>
-  static auto advect(Flowmap&& phi, real_type const stepwidth,
-                     real_type const       t_end,
-                     container_type const& initial_particles,
-                     std::atomic_uint64_t& uuid_generator) {
+  [[nodiscard]] static auto advect(Flowmap &&phi, real_type const stepwidth,
+                                   real_type const t_end,
+                                   container_type const &initial_particles,
+                                   std::atomic_uint64_t &uuid_generator) {
     using namespace detail::autonomous_particle;
-    auto particles       = container_type{};
+    auto particles = container_type{};
     auto hierarchy_mutex = std::mutex{};
     auto hierarchy_pairs = std::vector<hierarchy_pair>{};
     // hierarchy_pairs.reserve(particles.size());
@@ -434,9 +420,9 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
                               hierarchy_mutex, uuid_generator);
 
     auto edges = edgeset<Real, NumDimensions>{};
-    auto map   = std::unordered_map<
+    auto map = std::unordered_map<
         std::size_t, typename edgeset<Real, NumDimensions>::vertex_handle>{};
-    for (auto const& p : advected_particles) {
+    for (auto const &p : advected_particles) {
       map[p.id()] = edges.insert_vertex(p.center());
     }
     // auto const h = hierarchy{hierarchy_pairs, map, edges};
@@ -463,68 +449,69 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   }
   //----------------------------------------------------------------------------
   template <typename Flowmap>
-  static auto advect_with_two_splits(Flowmap&& phi, real_type const stepwidth,
-                                     real_type const       t_end,
-                                     container_type const& initial_particles,
-                                     std::atomic_uint64_t& uuid_generator) {
+  static auto advect_with_two_splits(Flowmap &&phi, real_type const stepwidth,
+                                     real_type const t_end,
+                                     container_type const &initial_particles,
+                                     std::atomic_uint64_t &uuid_generator) {
     return advect<typename split_behaviors::two_splits>(
         std::forward<Flowmap>(phi), stepwidth, t_end, initial_particles,
         uuid_generator);
   }
   //----------------------------------------------------------------------------
   template <typename Flowmap>
-  static auto advect_with_three_splits(Flowmap&& phi, real_type const stepwidth,
-                                       real_type const       t_end,
-                                       container_type const& initial_particles,
-                                       std::atomic_uint64_t& uuid_generator) {
+  static auto advect_with_three_splits(Flowmap &&phi, real_type const stepwidth,
+                                       real_type const t_end,
+                                       container_type const &initial_particles,
+                                       std::atomic_uint64_t &uuid_generator) {
     return advect<typename split_behaviors::three_splits>(
         std::forward<Flowmap>(phi), stepwidth, t_end, initial_particles,
         uuid_generator);
   }
   //----------------------------------------------------------------------------
   template <typename Flowmap>
-  static auto advect_with_three_and_four_splits(
-      Flowmap&& phi, real_type const stepwidth, real_type const t_end,
-      container_type const& initial_particles,
-      std::atomic_uint64_t& uuid_generator) {
+  static auto
+  advect_with_three_and_four_splits(Flowmap &&phi, real_type const stepwidth,
+                                    real_type const t_end,
+                                    container_type const &initial_particles,
+                                    std::atomic_uint64_t &uuid_generator) {
     return advect<typename split_behaviors::three_and_four_splits>(
         std::forward<Flowmap>(phi), stepwidth, t_end, initial_particles,
         uuid_generator);
   }
   //----------------------------------------------------------------------------
   template <typename Flowmap>
-  static auto advect_with_five_splits(Flowmap&& phi, real_type const stepwidth,
-                                      real_type const       t_end,
-                                      container_type const& initial_particles,
-                                      std::atomic_uint64_t& uuid_generator) {
+  static auto advect_with_five_splits(Flowmap &&phi, real_type const stepwidth,
+                                      real_type const t_end,
+                                      container_type const &initial_particles,
+                                      std::atomic_uint64_t &uuid_generator) {
     return advect<typename split_behaviors::five_splits>(
         std::forward<Flowmap>(phi), stepwidth, t_end, initial_particles,
         uuid_generator);
   }
   //----------------------------------------------------------------------------
   template <typename Flowmap>
-  static auto advect_with_seven_splits(Flowmap&& phi, real_type const stepwidth,
-                                       real_type const       t_end,
-                                       container_type const& initial_particles,
-                                       std::atomic_uint64_t& uuid_generator) {
+  static auto advect_with_seven_splits(Flowmap &&phi, real_type const stepwidth,
+                                       real_type const t_end,
+                                       container_type const &initial_particles,
+                                       std::atomic_uint64_t &uuid_generator) {
     return advect<typename split_behaviors::seven_splits>(
         std::forward<Flowmap>(phi), stepwidth, t_end, initial_particles,
         uuid_generator);
   }
   //----------------------------------------------------------------------------
-  static auto particles_from_grid(
-      real_type const                                      t0,
-      uniform_rectilinear_grid<Real, NumDimensions> const& g,
-      std::atomic_uint64_t&                                uuid_generator) {
+  static auto
+  particles_from_grid(real_type const t0,
+                      uniform_rectilinear_grid<Real, NumDimensions> const &g,
+                      std::atomic_uint64_t &uuid_generator) {
     return particles_from_grid(t0, g, default_max_split_depth, uuid_generator);
   }
   //----------------------------------------------------------------------------
-  static auto particles_from_grid(
-      real_type const                                      t0,
-      uniform_rectilinear_grid<Real, NumDimensions> const& g,
-      std::uint8_t const                                   max_split_depth,
-      std::atomic_uint64_t&                                uuid_generator) {
-    auto particles                     = container_type{};
+  static auto
+  particles_from_grid(real_type const t0,
+                      uniform_rectilinear_grid<Real, NumDimensions> const &g,
+                      std::uint8_t const max_split_depth,
+                      std::atomic_uint64_t &uuid_generator) {
+    auto particles = container_type{};
     auto initial_particle_distribution = g.copy_without_properties();
     for (std::size_t i = 0; i < NumDimensions; ++i) {
       auto const spacing = initial_particle_distribution.dimension(i).spacing();
@@ -543,20 +530,20 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   }
   //------------------------------------------------------------------------------
   static auto particles_from_grid_small_filling_gaps(
-      real_type const                                      t0,
-      uniform_rectilinear_grid<Real, NumDimensions> const& g,
-      std::atomic_uint64_t&                                uuid_generator) {
+      real_type const t0,
+      uniform_rectilinear_grid<Real, NumDimensions> const &g,
+      std::atomic_uint64_t &uuid_generator) {
     return particles_from_grid_small_filling_gaps(
         t0, g, default_max_split_depth, uuid_generator);
   }
   //----------------------------------------------------------------------------
   static auto particles_from_grid_small_filling_gaps(
-      real_type const                                      t0,
-      uniform_rectilinear_grid<Real, NumDimensions> const& g,
-      std::uint8_t const                                   max_split_depth,
-      std::atomic_uint64_t&                                uuid_generator) {
-    auto       particles                     = container_type{};
-    auto       initial_particle_distribution = g.copy_without_properties();
+      real_type const t0,
+      uniform_rectilinear_grid<Real, NumDimensions> const &g,
+      std::uint8_t const max_split_depth,
+      std::atomic_uint64_t &uuid_generator) {
+    auto particles = container_type{};
+    auto initial_particle_distribution = g.copy_without_properties();
     auto const radius =
         initial_particle_distribution.dimension(0).spacing() / 2;
     for (std::size_t i = 0; i < NumDimensions; ++i) {
@@ -592,18 +579,18 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   }
   //------------------------------------------------------------------------------
   static auto particles_from_grid_filling_gaps(
-      real_type const                                      t0,
-      uniform_rectilinear_grid<Real, NumDimensions> const& g,
-      std::atomic_uint64_t&                                uuid_generator) {
+      real_type const t0,
+      uniform_rectilinear_grid<Real, NumDimensions> const &g,
+      std::atomic_uint64_t &uuid_generator) {
     return particles_from_grid_filling_gaps(t0, g, default_max_split_depth,
                                             uuid_generator);
   }
   //------------------------------------------------------------------------------
   static auto particles_from_grid_filling_gaps(
-      real_type const                                      t0,
-      uniform_rectilinear_grid<Real, NumDimensions> const& g,
-      std::uint8_t const                                   max_split_depth,
-      std::atomic_uint64_t&                                uuid_generator) {
+      real_type const t0,
+      uniform_rectilinear_grid<Real, NumDimensions> const &g,
+      std::uint8_t const max_split_depth,
+      std::atomic_uint64_t &uuid_generator) {
     return particles_from_grid_filling_gaps(
         t0, g, max_split_depth, uuid_generator,
         std::make_index_sequence<num_dimensions()>{});
@@ -611,16 +598,16 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //----------------------------------------------------------------------------
   template <std::size_t... Is>
   static auto particles_from_grid_filling_gaps(
-      real_type const                                      t0,
-      uniform_rectilinear_grid<Real, NumDimensions> const& g,
-      std::uint8_t const max_split_depth, std::atomic_uint64_t& uuid_generator,
+      real_type const t0,
+      uniform_rectilinear_grid<Real, NumDimensions> const &g,
+      std::uint8_t const max_split_depth, std::atomic_uint64_t &uuid_generator,
       std::index_sequence<Is...> /*idx_seq*/) {
-    auto       particles                     = container_type{};
-    auto       initial_particle_distribution = g.copy_without_properties();
+    auto particles = container_type{};
+    auto initial_particle_distribution = g.copy_without_properties();
     auto const radius =
         initial_particle_distribution.dimension(0).spacing() / 2;
     invoke([&] {
-      auto       dim = initial_particle_distribution.template dimension<Is>();
+      auto dim = initial_particle_distribution.template dimension<Is>();
       auto const half_spacing = dim.spacing() / 2;
       dim.pop_front();
       dim.front() -= half_spacing;
@@ -628,13 +615,13 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
       initial_particle_distribution.template set_dimension<Is>(dim);
     }...);
     initial_particle_distribution.vertices().iterate_positions(
-        [&](auto const& x) {
+        [&](auto const &x) {
           particles.emplace_back(x, t0, radius, max_split_depth,
                                  uuid_generator);
         });
 
     invoke([&] {
-      auto       dim = initial_particle_distribution.template dimension<Is>();
+      auto dim = initial_particle_distribution.template dimension<Is>();
       auto const half_spacing = dim.spacing() / 2;
       dim.pop_front();
       dim.front() -= half_spacing;
@@ -642,7 +629,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
       initial_particle_distribution.template set_dimension<Is>(dim);
     }...);
     initial_particle_distribution.vertices().iterate_positions(
-        [&](auto const& x) {
+        [&](auto const &x) {
           particles.emplace_back(x, t0, radius, max_split_depth,
                                  uuid_generator);
         });
@@ -658,16 +645,17 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   ///                  numerical integrators's step width.)
   /// \param t_end End of time of advetion.
   template <split_behavior SplitBehavior, typename Flowmap>
-  static auto advect(Flowmap&& phi, real_type const stepwidth,
-                     real_type const t0, real_type const t_end,
-                     uniform_rectilinear_grid<Real, NumDimensions> const& g) {
+  [[nodiscard]] static auto
+  advect(Flowmap &&phi, real_type const stepwidth, real_type const t0,
+         real_type const t_end,
+         uniform_rectilinear_grid<Real, NumDimensions> const &g) {
     using namespace detail::autonomous_particle;
-    auto uuid_generator  = std::atomic_uint64_t{};
-    auto particles       = particles_from_grid(t0, g, uuid_generator);
+    auto uuid_generator = std::atomic_uint64_t{};
+    auto particles = particles_from_grid(t0, g, uuid_generator);
     auto hierarchy_mutex = std::mutex{};
     auto hierarchy_pairs = std::vector<hierarchy_pair>{};
-    //hierarchy_pairs.reserve(particles.size());
-    //for (auto const& p : particles) {
+    // hierarchy_pairs.reserve(particles.size());
+    // for (auto const& p : particles) {
     //  hierarchy_pairs.emplace_back(p.id(), p.id());
     //}
     auto [advected_particles, advected_simple_particles] =
@@ -676,9 +664,9 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
                               uuid_generator);
 
     auto edges = edgeset<Real, NumDimensions>{};
-    auto map   = std::unordered_map<
+    auto map = std::unordered_map<
         std::size_t, typename edgeset<Real, NumDimensions>::vertex_handle>{};
-    for (auto const& p : advected_particles) {
+    for (auto const &p : advected_particles) {
       map[p.id()] = edges.insert_vertex(p.center());
     }
     auto const h = hierarchy{hierarchy_pairs, map, edges};
@@ -708,50 +696,50 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //----------------------------------------------------------------------------
   template <typename Flowmap>
   static auto advect_with_two_splits(
-      Flowmap&& phi, real_type const stepwidth, real_type const t0,
-      real_type const                                      t_end,
-      uniform_rectilinear_grid<Real, NumDimensions> const& g) {
+      Flowmap &&phi, real_type const stepwidth, real_type const t0,
+      real_type const t_end,
+      uniform_rectilinear_grid<Real, NumDimensions> const &g) {
     return advect<typename split_behaviors::two_splits>(
         std::forward<Flowmap>(phi), stepwidth, t0, t_end, g);
   }
   //----------------------------------------------------------------------------
   template <typename Flowmap>
   static auto advect_with_three_splits(
-      Flowmap&& phi, real_type const stepwidth, real_type const t0,
-      real_type const                                      t_end,
-      uniform_rectilinear_grid<Real, NumDimensions> const& g) {
+      Flowmap &&phi, real_type const stepwidth, real_type const t0,
+      real_type const t_end,
+      uniform_rectilinear_grid<Real, NumDimensions> const &g) {
     return advect<typename split_behaviors::three_splits>(
         std::forward<Flowmap>(phi), stepwidth, t0, t_end, g);
   }
   //----------------------------------------------------------------------------
   template <typename Flowmap>
   static auto advect_with_three_and_four_splits(
-      Flowmap&& phi, real_type const stepwidth, real_type const t0,
-      real_type const                                      t_end,
-      uniform_rectilinear_grid<Real, NumDimensions> const& g) {
+      Flowmap &&phi, real_type const stepwidth, real_type const t0,
+      real_type const t_end,
+      uniform_rectilinear_grid<Real, NumDimensions> const &g) {
     return advect<typename split_behaviors::three_and_four_splits>(
         std::forward<Flowmap>(phi), stepwidth, t0, t_end, g);
   }
   //----------------------------------------------------------------------------
   template <typename Flowmap>
   static auto advect_with_five_splits(
-      Flowmap&& phi, real_type const stepwidth, real_type const t0,
-      real_type const                                      t_end,
-      uniform_rectilinear_grid<Real, NumDimensions> const& g) {
+      Flowmap &&phi, real_type const stepwidth, real_type const t0,
+      real_type const t_end,
+      uniform_rectilinear_grid<Real, NumDimensions> const &g) {
     return advect<typename split_behaviors::five_splits>(
         std::forward<Flowmap>(phi), stepwidth, t0, t_end, g);
   }
   //----------------------------------------------------------------------------
   template <typename Flowmap>
   static auto advect_with_seven_splits(
-      Flowmap&& phi, real_type const stepwidth, real_type const t0,
-      real_type const                                      t_end,
-      uniform_rectilinear_grid<Real, NumDimensions> const& g) {
+      Flowmap &&phi, real_type const stepwidth, real_type const t0,
+      real_type const t_end,
+      uniform_rectilinear_grid<Real, NumDimensions> const &g) {
     return advect<typename split_behaviors::seven_splits>(
         std::forward<Flowmap>(phi), stepwidth, t0, t_end, g);
   }
   //----------------------------------------------------------------------------
- private:
+private:
   //----------------------------------------------------------------------------
   /// Advects all particles in particles container in the flowmap phi until
   /// time `t_end` is reached.
@@ -763,14 +751,15 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   /// \param t_end End of time of advetion.
   /// \param initial_particles Particles to be advected.
   template <split_behavior SplitBehavior, typename Flowmap>
-  static auto advect(Flowmap&& phi, real_type const stepwidth,
-                     real_type const t_end, container_type particles,
-                     std::vector<hierarchy_pair>& hierarchy_pairs,
-                     std::mutex&                  hierarchy_mutex,
-                     std::atomic_uint64_t&        uuid_generator) {
+  static auto [[nodiscard]] advect(Flowmap &&phi, real_type const stepwidth,
+                                   real_type const t_end,
+                                   container_type particles,
+                                   std::vector<hierarchy_pair> &hierarchy_pairs,
+                                   std::mutex &hierarchy_mutex,
+                                   std::atomic_uint64_t &uuid_generator) {
     auto const num_threads = this_type::num_threads();
 
-    auto finished_particles        = container_type{};
+    auto finished_particles = container_type{};
     auto finished_simple_particles = simple_particle_container_type{};
 
     // {particles_to_be_advected, advected_particles, finished_particles}
@@ -802,17 +791,18 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     return num_threads;
   }
   //----------------------------------------------------------------------------
-  static auto distribute_particles_to_thread_containers(
-      std::size_t const num_threads, container_type& particles,
-      auto& particles_per_thread) {
+  static auto
+  distribute_particles_to_thread_containers(std::size_t const num_threads,
+                                            container_type &particles,
+                                            auto &particles_per_thread) {
     using namespace std::ranges;
 #pragma omp parallel
     {
       auto const thr_id = omp_get_thread_num();
-      auto const begin  = std::size_t(thr_id * size(particles) / num_threads);
+      auto const begin = std::size_t(thr_id * size(particles) / num_threads);
       auto const end =
           std::size_t((thr_id + 1) * size(particles) / num_threads);
-      auto& cont = std::get<0>(*particles_per_thread[thr_id]);
+      auto &cont = std::get<0>(*particles_per_thread[thr_id]);
       cont.reserve(end - begin);
       copy(particles.begin() + begin, particles.begin() + end,
            std::back_inserter(cont));
@@ -822,16 +812,16 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
   //----------------------------------------------------------------------------
   template <split_behavior SplitBehavior, typename Flowmap>
   static auto advect_particle_pools(
-      std::size_t const /*num_threads*/, Flowmap&& phi, real_type const stepwidth,
-      real_type const t_end, auto& particles_per_thread,
-      std::vector<hierarchy_pair>& hierarchy_pairs, std::mutex& hierarchy_mutex,
-      std::atomic_uint64_t& uuid_generator) {
+      std::size_t const /*num_threads*/, Flowmap &&phi,
+      real_type const stepwidth, real_type const t_end,
+      auto &particles_per_thread, std::vector<hierarchy_pair> &hierarchy_pairs,
+      std::mutex &hierarchy_mutex, std::atomic_uint64_t &uuid_generator) {
 #pragma omp parallel
     {
       auto const thr_id = omp_get_thread_num();
-      auto& [particles_at_t0, particles_at_t1, finished, simple_particles] =
+      auto &[particles_at_t0, particles_at_t1, finished, simple_particles] =
           *particles_per_thread[thr_id];
-      for (auto const& particle : particles_at_t0) {
+      for (auto const &particle : particles_at_t0) {
         particle.template advect_until_split<SplitBehavior>(
             std::forward<Flowmap>(phi), stepwidth, t_end, particles_at_t1,
             finished, simple_particles, hierarchy_pairs, hierarchy_mutex,
@@ -840,13 +830,13 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     }
   }
   //----------------------------------------------------------------------------
-  static auto gather_particles(container_type& particles,
-                               container_type& finished_particles,
-                               simple_particle_container_type& simple_particles,
-                               auto& particles_per_thread) {
+  static auto gather_particles(container_type &particles,
+                               container_type &finished_particles,
+                               simple_particle_container_type &simple_particles,
+                               auto &particles_per_thread) {
     using namespace std::ranges;
-    for (auto& ps : particles_per_thread) {
-      auto& [base, advected, finished, simple] = *ps;
+    for (auto &ps : particles_per_thread) {
+      auto &[base, advected, finished, simple] = *ps;
       base.clear();
       copy(advected, std::back_inserter(particles));
       advected.clear();
@@ -857,7 +847,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     }
   }
   //----------------------------------------------------------------------------
- public:
+public:
   //----------------------------------------------------------------------------
   /// Old split criterion!
   ///
@@ -1039,13 +1029,13 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
       split_behavior SplitBehavior = typename split_behaviors::three_splits,
       typename Flowmap>
   auto advect_until_split(Flowmap phi, real_type stepwidth,
-                          real_type const                 t_end,
-                          container_type&                 splitted_particles,
-                          container_type&                 finished_particles,
-                          simple_particle_container_type& simple_particles,
-                          std::vector<hierarchy_pair>&    /*hierarchy_pairs*/,
-                          std::mutex&                     /*hierarchy_mutex*/,
-                          std::atomic_uint64_t& uuid_generator) const {
+                          real_type const t_end,
+                          container_type &splitted_particles,
+                          container_type &finished_particles,
+                          simple_particle_container_type &simple_particles,
+                          std::vector<hierarchy_pair> & /*hierarchy_pairs*/,
+                          std::mutex & /*hierarchy_mutex*/,
+                          std::atomic_uint64_t &uuid_generator) const {
     if constexpr (is_cacheable<std::decay_t<decltype(phi)>>()) {
       phi.use_caching(false);
     }
@@ -1053,22 +1043,22 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
     // static constexpr real_type max_cond_overshoot = 1e-8;
     // static constexpr auto      split_cond         =
     // SplitBehavior::split_cond;
-    static constexpr auto split_radii   = SplitBehavior::radii;
+    static constexpr auto split_radii = SplitBehavior::radii;
     static constexpr auto split_offsets = SplitBehavior::offsets;
-    auto const [eigvecs_S, eigvals_S]   = this->main_axes();
-    auto const B = eigvecs_S * diag(eigvals_S);  // current main axes
+    auto const [eigvecs_S, eigvals_S] = this->main_axes();
+    auto const B = eigvecs_S * diag(eigvals_S); // current main axes
     auto const K = *solve(diag(eigvals_S), transposed(eigvecs_S));
 
     mat_type H, HHt, D, advected_nabla_phi, assembled_nabla_phi, advected_B,
         ghosts_positive_offset, ghosts_negative_offset, prev_ghosts_forward,
         prev_ghosts_backward;
-    auto        advected_ellipse = ellipse_type{*this};
-    auto        current_radii    = vec_type{};
-    auto        eig_HHt          = std::pair<mat_type, vec_type>{};
-    auto        sqr_cond_H       = real_type(1);
-    auto        linearity        = real_type(0);
-    auto const& eigvecs_HHt      = eig_HHt.first;
-    auto const& eigvals_HHt      = eig_HHt.second;
+    auto advected_ellipse = ellipse_type{*this};
+    auto current_radii = vec_type{};
+    auto eig_HHt = std::pair<mat_type, vec_type>{};
+    auto sqr_cond_H = real_type(1);
+    auto linearity = real_type(0);
+    auto const &eigvecs_HHt = eig_HHt.first;
+    auto const &eigvals_HHt = eig_HHt.second;
 
     // initialize ghosts
     for (std::size_t i = 0; i < num_dimensions(); ++i) {
@@ -1112,7 +1102,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
       for (std::size_t i = 0; i < num_dimensions(); ++i) {
         linearity += dot(D.col(i), D.col(i)) / dot(H.col(i), H.col(i));
       }
-      HHt     = H * transposed(H);
+      HHt = H * transposed(H);
       eig_HHt = eigenvectors_sym(HHt);
 
       if (std::isnan(linearity)) {
@@ -1122,11 +1112,11 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
       }
       sqr_cond_H = eigvals_HHt(num_dimensions() - 1) / eigvals_HHt(0);
 
-      advected_nabla_phi  = H * K;
+      advected_nabla_phi = H * K;
       assembled_nabla_phi = advected_nabla_phi * m_nabla_phi;
 
-      current_radii        = sqrt(eigvals_HHt);
-      advected_B           = eigvecs_HHt * diag(current_radii);
+      current_radii = sqrt(eigvals_HHt);
+      advected_B = eigvecs_HHt * diag(current_radii);
       advected_ellipse.S() = advected_B * transposed(eigvecs_HHt);
 
       // check if particle has reached t_end
@@ -1138,22 +1128,22 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
       }
 
       // check if particle's ellipse has reached its splitting width
-      static auto constexpr linearity_threshold = 1e-3;
+      static auto constexpr linearity_threshold = 1e-6;
       if (split_depth() != max_split_depth() &&
-          (linearity >= linearity_threshold || sqr_cond_H > 10)) {
+          (linearity >= linearity_threshold || sqr_cond_H > 6)) {
         for (std::size_t i = 0; i < size(split_radii); ++i) {
-          auto const new_eigvals    = current_radii * split_radii[i];
-          auto const offset2        = advected_B * split_offsets[i];
-          auto const offset0        = *solve(assembled_nabla_phi, offset2);
-          auto       offset_ellipse = ellipse_type{
+          auto const new_eigvals = current_radii * split_radii[i];
+          auto const offset2 = advected_B * split_offsets[i];
+          auto const offset0 = *solve(assembled_nabla_phi, offset2);
+          auto offset_ellipse = ellipse_type{
               advected_ellipse.center() + offset2,
               eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt)};
 
           splitted_particles.emplace_back(
               offset_ellipse, t_advected, x0() + offset0, assembled_nabla_phi,
               split_depth() + 1, max_split_depth(), uuid_generator);
-          //auto lock = std::lock_guard{hierarchy_mutex};
-          //hierarchy_pairs.emplace_back(splitted_particles.back().m_id, m_id);
+          // auto lock = std::lock_guard{hierarchy_mutex};
+          // hierarchy_pairs.emplace_back(splitted_particles.back().m_id, m_id);
         }
         return;
       }
@@ -1174,31 +1164,29 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, NumDimensions> {
 };
 //------------------------------------------------------------------------------
 template <floating_point Real>
-auto write_vtp(std::vector<autonomous_particle<Real, 2>> const& particles,
-               std::size_t const n, filesystem::path const& path,
+auto write_vtp(std::vector<autonomous_particle<Real, 2>> const &particles,
+               std::size_t const num_points, filesystem::path const &path,
                backward_tag const /*tag*/) {
   auto file = std::ofstream{path, std::ios::binary};
   if (!file.is_open()) {
     throw std::runtime_error{"Could not write " + path.string()};
   }
-  auto offset                    = std::size_t{};
-  using header_type              = std::uint64_t;
-  using lines_connectivity_int_t = std::int32_t;
-  using lines_offset_int_t       = lines_connectivity_int_t;
+  auto offset = std::size_t{};
+  using header_type = std::uint64_t;
+  using connectivity_int = std::int32_t;
+  using offset_int = connectivity_int;
   file << "<VTKFile"
        << " type=\"PolyData\""
        << " version=\"1.0\" "
           "byte_order=\"LittleEndian\""
-       << " header_type=\""
-       << vtk::xml::to_data_type<header_type>()
-       << "\">";
+       << " header_type=\"" << vtk::xml::to_data_type<header_type>() << "\">";
   file << "<PolyData>\n";
   for (std::size_t i = 0; i < size(particles); ++i) {
     file << "<Piece"
-         << " NumberOfPoints=\"" << n << "\""
+         << " NumberOfPoints=\"" << num_points << "\""
          << " NumberOfPolys=\"0\""
          << " NumberOfVerts=\"0\""
-         << " NumberOfLines=\"" << n - 1 << "\""
+         << " NumberOfLines=\"" << num_points - 1 << "\""
          << " NumberOfStrips=\"0\""
          << ">\n";
 
@@ -1207,10 +1195,9 @@ auto write_vtp(std::vector<autonomous_particle<Real, 2>> const& particles,
     file << "<DataArray"
          << " format=\"appended\""
          << " offset=\"" << offset << "\""
-         << " type=\""
-         << vtk::xml::to_data_type<Real>()
+         << " type=\"" << vtk::xml::to_data_type<Real>()
          << "\" NumberOfComponents=\"" << 3 << "\"/>";
-    auto const num_bytes_points = header_type(sizeof(Real) * 3 * n);
+    auto const num_bytes_points = header_type(sizeof(Real) * 3 * num_points);
     offset += num_bytes_points + sizeof(header_type);
     file << "</Points>\n";
 
@@ -1218,31 +1205,31 @@ auto write_vtp(std::vector<autonomous_particle<Real, 2>> const& particles,
     file << "<Lines>\n";
     // Lines - connectivity
     file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
-         << vtk::xml::to_data_type<lines_connectivity_int_t>()
+         << vtk::xml::to_data_type<connectivity_int>()
          << "\" Name=\"connectivity\"/>\n";
-    auto const num_bytes_lines_connectivity =
-        (n - 1) * 2 * sizeof(lines_connectivity_int_t);
-    offset += num_bytes_lines_connectivity + sizeof(header_type);
+    auto const num_bytes_connectivity =
+        (num_points - 1) * 2 * sizeof(connectivity_int);
+    offset += num_bytes_connectivity + sizeof(header_type);
     // Lines - offsets
     file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
-         << vtk::xml::to_data_type<lines_offset_int_t>()
+         << vtk::xml::to_data_type<offset_int>()
          << "\" Name=\"offsets\"/>\n";
-    auto const num_bytes_lines_offsets =
-        sizeof(lines_offset_int_t) * (n - 1) * 2;
-    offset += num_bytes_lines_offsets + sizeof(header_type);
+    auto const num_bytes_offsets =
+        sizeof(offset_int) * (num_points - 1) * 2;
+    offset += num_bytes_offsets + sizeof(header_type);
     file << "</Lines>\n";
     file << "</Piece>\n";
   }
   file << "</PolyData>\n";
   file << "<AppendedData encoding=\"raw\">_";
   // Writing vertex data to appended data section
-  for (auto const& particle : particles) {
-    auto const num_bytes_points = header_type(sizeof(Real) * 3 * n);
+  for (auto const &particle : particles) {
+    auto const num_bytes_points = header_type(sizeof(Real) * 3 * num_points);
     using namespace std::ranges;
-    auto radial = tatooine::linspace<Real>{0, M_PI * 2, n + 1};
+    auto radial = tatooine::linspace<Real>{0, M_PI * 2, num_points + 1};
     radial.pop_back();
 
-    auto discretization      = tatooine::line<Real, 3>{};
+    auto discretization = tatooine::line<Real, 3>{};
     auto radian_to_cartesian = [](auto const t) {
       return tatooine::vec{gcem::cos(t), gcem::sin(t), 0};
     };
@@ -1256,42 +1243,153 @@ auto write_vtp(std::vector<autonomous_particle<Real, 2>> const& particles,
     }
 
     // Writing points
-    file.write(reinterpret_cast<char const*>(&num_bytes_points),
+    file.write(reinterpret_cast<char const *>(&num_bytes_points),
                sizeof(header_type));
     for (auto const v : discretization.vertices()) {
-      file.write(reinterpret_cast<char const*>(discretization.at(v).data()),
+      file.write(reinterpret_cast<char const *>(discretization.at(v).data()),
                  sizeof(Real) * 3);
     }
 
     // Writing lines connectivity data to appended data section
     {
-      auto connectivity_data = std::vector<lines_connectivity_int_t>{};
-      connectivity_data.reserve((n - 1) * 2);
-      for (std::size_t i = 0; i < n - 1; ++i) {
-        connectivity_data.push_back(static_cast<lines_connectivity_int_t>(i));
-        connectivity_data.push_back(static_cast<lines_connectivity_int_t>(i + 1));
+      auto connectivity_data = std::vector<connectivity_int>{};
+      connectivity_data.reserve((num_points - 1) * 2);
+      for (std::size_t i = 0; i < num_points - 1; ++i) {
+        connectivity_data.push_back(static_cast<connectivity_int>(i));
+        connectivity_data.push_back(
+            static_cast<connectivity_int>(i + 1));
       }
 
-      auto const num_bytes_lines_connectivity =
-          header_type((n - 1) * 2 * sizeof(lines_connectivity_int_t));
-      file.write(reinterpret_cast<char const*>(&num_bytes_lines_connectivity),
+      auto const num_bytes_connectivity =
+          header_type((num_points - 1) * 2 * sizeof(connectivity_int));
+      file.write(reinterpret_cast<char const *>(&num_bytes_connectivity),
                  sizeof(header_type));
-      file.write(reinterpret_cast<char const*>(connectivity_data.data()),
-                 static_cast<std::streamsize>(num_bytes_lines_connectivity));
+      file.write(reinterpret_cast<char const *>(connectivity_data.data()),
+                 static_cast<std::streamsize>(num_bytes_connectivity));
     }
 
     // Writing lines offsets to appended data section
     {
-      auto offsets = std::vector<lines_offset_int_t>(n, 2);
+      auto offsets = std::vector<offset_int>(num_points, 2);
       for (std::size_t i = 1; i < size(offsets); ++i) {
         offsets[i] += offsets[i - 1];
       }
-      auto const num_bytes_lines_offsets =
-          header_type(sizeof(lines_offset_int_t) * (n - 1) * 2);
-      file.write(reinterpret_cast<char const*>(&num_bytes_lines_offsets),
+      auto const num_bytes_offsets =
+          header_type(sizeof(offset_int) * (num_points - 1) * 2);
+      file.write(reinterpret_cast<char const *>(&num_bytes_offsets),
+                 sizeof(header_type));
+      file.write(reinterpret_cast<char const *>(offsets.data()),
+                 static_cast<std::streamsize>(num_bytes_offsets));
+    }
+  }
+
+  file << "</AppendedData>";
+  file << "</VTKFile>";
+}
+//------------------------------------------------------------------------------
+template <floating_point Real>
+auto write_vtp(std::vector<autonomous_particle<Real, 3>> const &particles,
+               filesystem::path const &path,
+               backward_tag const /*tag*/) {
+  auto file = std::ofstream{path, std::ios::binary};
+  if (!file.is_open()) {
+    throw std::runtime_error{"Could not write " + path.string()};
+  }
+  auto offset = std::size_t{};
+  using header_type = std::uint64_t;
+  using connectivity_int = std::int32_t;
+  using offset_int = connectivity_int;
+  file << "<VTKFile"
+       << " type=\"PolyData\""
+       << " version=\"1.0\" "
+          "byte_order=\"LittleEndian\""
+       << " header_type=\"" << vtk::xml::to_data_type<header_type>() << "\">";
+  file << "<PolyData>\n";
+  auto const discretized_unit_sphere = discretize(geometry::Sphere<3>{}, 2);
+  auto transformed_ellipse = discretized_unit_sphere;
+  auto const num_points = discretized_unit_sphere.vertices().size();
+  auto const num_polys = discretized_unit_sphere.triangles().size();
+
+  auto const num_bytes_connectivity =
+      num_polys * 3 * sizeof(connectivity_int);
+  auto const num_bytes_offsets =
+      sizeof(offset_int) * num_polys * 3;
+  for (std::size_t i = 0; i < size(particles); ++i) {
+    file << "<Piece"
+         << " NumberOfPoints=\""<<num_points<<"\""
+         << " NumberOfPolys=\""<<num_polys<<"\""
+         << " NumberOfVerts=\"0\""
+         << " NumberOfLines=\"0\""
+         << " NumberOfStrips=\"0\""
+         << ">\n";
+
+    // Points
+    file << "<Points>";
+    file << "<DataArray"
+         << " format=\"appended\""
+         << " offset=\"" << offset << "\""
+         << " type=\"" << vtk::xml::to_data_type<Real>()
+         << "\" NumberOfComponents=\"" << 3 << "\"/>";
+    auto const num_bytes_points = header_type(sizeof(Real) * 3 * num_points);
+    offset += num_bytes_points + sizeof(header_type);
+    file << "</Points>\n";
+
+    // Polys
+    file << "<Polys>\n";
+    // Polys - connectivity
+    file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
+         << vtk::xml::to_data_type<connectivity_int>()
+         << "\" Name=\"connectivity\"/>\n";
+    offset += num_bytes_connectivity + sizeof(header_type);
+    // Polys - offsets
+    file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
+         << vtk::xml::to_data_type<offset_int>()
+         << "\" Name=\"offsets\"/>\n";
+    offset += num_bytes_offsets + sizeof(header_type);
+    file << "</Polys>\n";
+    file << "</Piece>\n";
+  }
+  file << "</PolyData>\n";
+  file << "<AppendedData encoding=\"raw\">_";
+  // Writing vertex data to appended data section
+  for (auto const &particle : particles) {
+    for (auto v : discretized_unit_sphere.vertices()) {
+      transformed_ellipse[v] = particle.center() + particle.S() * discretized_unit_sphere[v];
+    }
+    auto const num_bytes_points = header_type(sizeof(Real) * 3 * num_points);
+
+    // Writing points
+    file.write(reinterpret_cast<char const *>(&num_bytes_points),
+               sizeof(header_type));
+    for (auto const v : transformed_ellipse.vertices()) {
+      file.write(reinterpret_cast<char const *>(transformed_ellipse.at(v).data()),
+                 sizeof(Real) * 3);
+    }
+
+    // Writing polys connectivity data to appended data section
+    {
+      using namespace std::ranges;
+      auto connectivity_data = std::vector<connectivity_int>(
+          num_polys * 3);
+      auto index = [](auto const handle) -> connectivity_int { return handle.index(); };
+      copy(transformed_ellipse.simplices().data_container() | views::transform(index),
+           begin(connectivity_data));
+      file.write(reinterpret_cast<char const*>(&num_bytes_connectivity),
+                 sizeof(header_type));
+      file.write(reinterpret_cast<char const*>(connectivity_data.data()),
+                 num_bytes_connectivity);
+    }
+
+    // Writing polys offsets to appended data section
+    {
+      auto offsets = std::vector<offset_int>(num_polys, 3);
+      for (std::size_t i = 1; i < size(offsets); ++i) {
+        offsets[i] += offsets[i - 1];
+      };
+      file.write(reinterpret_cast<char const*>(&num_bytes_offsets),
                  sizeof(header_type));
       file.write(reinterpret_cast<char const*>(offsets.data()),
-                 static_cast<std::streamsize>(num_bytes_lines_offsets));
+                 num_bytes_offsets);
     }
   }
 
@@ -1306,17 +1404,17 @@ using AutonomousParticle = autonomous_particle<real_number, NumDimensions>;
 template <floating_point Real>
 using AutonomousParticle2 = autonomous_particle<Real, 2>;
 template <floating_point Real>
-using AutonomousParticle3  = autonomous_particle<Real, 3>;
+using AutonomousParticle3 = autonomous_particle<Real, 3>;
 using autonomous_particle2 = AutonomousParticle<2>;
 using autonomous_particle3 = AutonomousParticle<3>;
 //==============================================================================
-}  // namespace tatooine
+} // namespace tatooine
 //==============================================================================
 //#include <tatooine/reflection.h>
-//namespace tatooine::reflection {
+// namespace tatooine::reflection {
 //==============================================================================
-//template <floating_point Real, std::size_t NumDimensions>
-//TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
+// template <floating_point Real, std::size_t NumDimensions>
+// TATOOINE_MAKE_TEMPLATED_ADT_REFLECTABLE(
 //    (autonomous_particle<Real, NumDimensions>),
 //    TATOOINE_REFLECTION_INSERT_METHOD(center, center()),
 //    TATOOINE_REFLECTION_INSERT_METHOD(S, S()),
