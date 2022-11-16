@@ -163,6 +163,17 @@ struct axis_aligned_bounding_box
   //----------------------------------------------------------------------------
  private:
   template <std::size_t... Is>
+  auto constexpr area(std::index_sequence<Is...> /*seq*/) const {
+    auto const ext = extents(); 
+    return (ext(Is) * ...);
+  }
+ public:
+  auto constexpr area() const {
+    return area(std::make_index_sequence<NumDimensions>{}); 
+  }
+  //----------------------------------------------------------------------------
+ private:
+  template <std::size_t... Is>
   auto constexpr volume(std::index_sequence<Is...> /*seq*/) const {
     return (extent(Is) * ...);
   }
