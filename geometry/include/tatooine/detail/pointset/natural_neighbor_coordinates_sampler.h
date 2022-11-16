@@ -49,7 +49,9 @@ public:
     auto points = std::vector<std::pair<cgal_point, vertex_handle>>{};
     points.reserve(ps.vertices().size());
     for (auto v : ps.vertices()) {
-      points.emplace_back(cgal_point{ps[v](0), ps[v](1)}, v);
+      [&]<std::size_t... Is>(std::index_sequence<Is...> /*seq*/){
+        points.emplace_back(cgal_point{ps[v](Is)...}, v);
+      }(std::make_index_sequence<NumDimensions>{});
     }
     m_triangulation = cgal_triangulation_type{begin(points), end(points)};
   }

@@ -10,11 +10,11 @@
 namespace tatooine {
 //==============================================================================
 /// Samples a flow map by advecting particles from a uniform rectilinear grid.
-template <typename Real, std::size_t N>
+template <typename Real, std::size_t NumDimensions>
 struct regular_flowmap_discretization {
   using real_type = Real;
-  static auto constexpr num_dimensions() { return N; }
-  using vec_type = vec<Real, N>;
+  static auto constexpr num_dimensions() { return NumDimensions; }
+  using vec_type = vec<Real, NumDimensions>;
   using pos_type = vec_type;
   template <std::size_t M, typename... Ts>
   struct grid_type_creator {
@@ -26,7 +26,7 @@ struct regular_flowmap_discretization {
     using type = rectilinear_grid<Ts...>;
   };
   //----------------------------------------------------------------------------
-  // using forward_grid_type = typename grid_type_creator<N>::type;
+  // using forward_grid_type = typename grid_type_creator<NumDimensions>::type;
   // using forward_grid_vertex_property_type =
   //    detail::rectilinear_grid::typed_vertex_property_interface<
   //        forward_grid_type, pos_type, true>;
@@ -46,15 +46,15 @@ struct regular_flowmap_discretization {
   //       forward_grid_vertex_property_type, InterpolationKernels...>;
   // };
   // using forward_grid_vertex_property_sampler_type =
-  //     typename forward_grid_sampler_type_creator<N>::type;
+  //     typename forward_grid_sampler_type_creator<NumDimensions>::type;
 
-  using forward_grid_type = pointset<Real, N>;
+  using forward_grid_type = pointset<Real, NumDimensions>;
   using forward_grid_vertex_property_type =
       typename forward_grid_type::template typed_vertex_property_type<pos_type>;
   using forward_grid_vertex_property_sampler_type = typename forward_grid_type::
       template natural_neighbor_coordinates_sampler_type<pos_type>;
 
-  using backward_grid_type = pointset<Real, N>;
+  using backward_grid_type = pointset<Real, NumDimensions>;
   using backward_grid_vertex_property_type =
       typename backward_grid_type::template typed_vertex_property_type<
           pos_type>;
@@ -76,6 +76,13 @@ struct regular_flowmap_discretization {
   std::unique_ptr<backward_grid_vertex_property_sampler_type> m_backward_sampler;
   static constexpr auto default_execution_policy = execution_policy::parallel;
   //============================================================================
+  template <typename Flowmap, typename ExecutionPolicy, integral Int, std::size_t... Is>
+  regular_flowmap_discretization(std::index_sequence<Is...> seq,
+                                 Flowmap&& flowmap, arithmetic auto const t0,
+                                 arithmetic auto const tau, pos_type const& min,
+                                 pos_type const& max,
+                                 ExecutionPolicy execution_policy,
+                                 vec<Int, NumDimensions> const& resolution) : regular_flowmap_discretization{seq, std::forward<Flowmap>(flowmap), t0, tau, min, max, execution_policy, resolution(Is)...} {}
   template <typename Flowmap, typename ExecutionPolicy, std::size_t... Is>
   regular_flowmap_discretization(std::index_sequence<Is...> /*seq*/,
                                  Flowmap&& flowmap, arithmetic auto const t0,
@@ -141,7 +148,7 @@ struct regular_flowmap_discretization {
                                  arithmetic auto const tau, pos_type const& min,
                                  pos_type const& max,
                                  integral auto const... resolution)
-      : regular_flowmap_discretization{std::make_index_sequence<N>{},
+      : regular_flowmap_discretization{std::make_index_sequence<NumDimensions>{},
                                        std::forward<Flowmap>(flowmap),
                                        t0,
                                        tau,
@@ -150,10 +157,30 @@ struct regular_flowmap_discretization {
                                        execution_policy,
                                        resolution...} {
     static_assert(
-        sizeof...(resolution) == N,
+        sizeof...(resolution) == NumDimensions,
         "Number of resolution components does not match number of dimensions.");
     static_assert(
-        std::decay_t<Flowmap>::num_dimensions() == N,
+        std::decay_t<Flowmap>::num_dimensions() == NumDimensions,
+        "Number of dimensions of flowmap does not match number of dimensions.");
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename Flowmap, typename ExecutionPolicy, integral Int>
+  regular_flowmap_discretization(Flowmap&&             flowmap,
+                                 ExecutionPolicy       execution_policy,
+                                 arithmetic auto const t0,
+                                 arithmetic auto const tau, pos_type const& min,
+                                 pos_type const& max,
+                                 vec<Int, NumDimensions> const& resolution)
+      : regular_flowmap_discretization{std::make_index_sequence<NumDimensions>{},
+                                       std::forward<Flowmap>(flowmap),
+                                       t0,
+                                       tau,
+                                       min,
+                                       max,
+                                       execution_policy,
+                                       resolution} {
+    static_assert(
+        std::decay_t<Flowmap>::num_dimensions() == NumDimensions,
         "Number of dimensions of flowmap does not match number of dimensions.");
   }
   //----------------------------------------------------------------------------
@@ -162,7 +189,7 @@ struct regular_flowmap_discretization {
                                  arithmetic auto const tau, pos_type const& min,
                                  pos_type const& max,
                                  integral auto const... resolution)
-      : regular_flowmap_discretization{std::make_index_sequence<N>{},
+      : regular_flowmap_discretization{std::make_index_sequence<NumDimensions>{},
                                        std::forward<Flowmap>(flowmap),
                                        t0,
                                        tau,
@@ -171,10 +198,28 @@ struct regular_flowmap_discretization {
                                        default_execution_policy,
                                        resolution...} {
     static_assert(
-        sizeof...(resolution) == N,
+        sizeof...(resolution) == NumDimensions,
         "Number of resolution components does not match number of dimensions.");
     static_assert(
-        std::decay_t<Flowmap>::num_dimensions() == N,
+        std::decay_t<Flowmap>::num_dimensions() == NumDimensions,
+        "Number of dimensions of flowmap does not match number of dimensions.");
+  }
+  //----------------------------------------------------------------------------
+  template <typename Flowmap, integral Int>
+  regular_flowmap_discretization(Flowmap&& flowmap, arithmetic auto const t0,
+                                 arithmetic auto const tau, pos_type const& min,
+                                 pos_type const& max,
+                                 vec<Int, NumDimensions> const& resolution)
+      : regular_flowmap_discretization{std::make_index_sequence<NumDimensions>{},
+                                       std::forward<Flowmap>(flowmap),
+                                       t0,
+                                       tau,
+                                       min,
+                                       max,
+                                       default_execution_policy,
+                                       resolution} {
+    static_assert(
+        std::decay_t<Flowmap>::num_dimensions() == NumDimensions,
         "Number of dimensions of flowmap does not match number of dimensions.");
   }
   //----------------------------------------------------------------------------
