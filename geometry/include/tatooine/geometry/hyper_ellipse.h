@@ -27,7 +27,7 @@ struct hyper_ellipse {
  public:
   //----------------------------------------------------------------------------
   /// defaults to unit hypersphere
-  constexpr hyper_ellipse() = default;
+  constexpr hyper_ellipse() : m_center{vec_type::zeros()}, m_S{mat_type::eye()} {}
   //----------------------------------------------------------------------------
   constexpr hyper_ellipse(hyper_ellipse const&)     = default;
   constexpr hyper_ellipse(hyper_ellipse&&) noexcept = default;
@@ -269,7 +269,8 @@ struct hyper_ellipse {
 };
 //------------------------------------------------------------------------------
 template <typename Real, std::size_t NumDimensions>
-requires(NumDimensions == 2 || NumDimensions == 3) auto discretize(
+requires(NumDimensions == 2 || NumDimensions == 3)
+auto discretize(
     hyper_ellipse<Real, NumDimensions> const& s, std::size_t const n = 32) {
   return s.discretize(n);
 }
@@ -324,5 +325,121 @@ namespace tatooine::reflection {
 //==============================================================================
 #include <tatooine/geometry/ellipse.h>
 #include <tatooine/geometry/ellipsoid.h>
+//==============================================================================
+namespace tatooine {
+//==============================================================================
+template <range Ellipsoids>
+requires (is_derived_from_hyper_ellipse<std::ranges::range_value_t<Ellipsoids>>) &&
+         (std::ranges::range_value_t<Ellipsoids>::num_dimensions() == 3)
+auto write_vtp(Ellipsoids const &ellipsoids,
+               filesystem::path const &path) {
+  using ellipsoid_t = std::ranges::range_value_t<Ellipsoids>;
+  using real_t = typename ellipsoid_t::real_type;
+  auto file = std::ofstream{path, std::ios::binary};
+  if (!file.is_open()) {
+    throw std::runtime_error{"Could not write " + path.string()};
+  }
+  auto offset = std::size_t{};
+  using header_type = std::uint64_t;
+  using connectivity_int = std::int32_t;
+  using offset_int = connectivity_int;
+  file << "<VTKFile"
+       << " type=\"PolyData\""
+       << " version=\"1.0\" "
+          "byte_order=\"LittleEndian\""
+       << " header_type=\"" << vtk::xml::to_data_type<header_type>() << "\">";
+  file << "<PolyData>\n";
+  auto const discretized_unit_sphere = discretize(geometry::hyper_ellipse<real_t, 3>{}, 2);
+  auto transformed_ellipse = discretized_unit_sphere;
+  auto const num_points = discretized_unit_sphere.vertices().size();
+  auto const num_polys = discretized_unit_sphere.triangles().size();
+
+  auto const num_bytes_connectivity =
+      num_polys * 3 * sizeof(connectivity_int);
+  auto const num_bytes_offsets =
+      sizeof(offset_int) * num_polys * 3;
+  for (std::size_t i = 0; i < size(ellipsoids); ++i) {
+    file << "<Piece"
+         << " NumberOfPoints=\""<<num_points<<"\""
+         << " NumberOfPolys=\""<<num_polys<<"\""
+         << " NumberOfVerts=\"0\""
+         << " NumberOfLines=\"0\""
+         << " NumberOfStrips=\"0\""
+         << ">\n";
+
+    // Points
+    file << "<Points>";
+    file << "<DataArray"
+         << " format=\"appended\""
+         << " offset=\"" << offset << "\""
+         << " type=\"" << vtk::xml::to_data_type<real_t>()
+         << "\" NumberOfComponents=\"" << 3 << "\"/>";
+    auto const num_bytes_points = header_type(sizeof(real_t) * 3 * num_points);
+    offset += num_bytes_points + sizeof(header_type);
+    file << "</Points>\n";
+
+    // Polys
+    file << "<Polys>\n";
+    // Polys - connectivity
+    file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
+         << vtk::xml::to_data_type<connectivity_int>()
+         << "\" Name=\"connectivity\"/>\n";
+    offset += num_bytes_connectivity + sizeof(header_type);
+    // Polys - offsets
+    file << "<DataArray format=\"appended\" offset=\"" << offset << "\" type=\""
+         << vtk::xml::to_data_type<offset_int>()
+         << "\" Name=\"offsets\"/>\n";
+    offset += num_bytes_offsets + sizeof(header_type);
+    file << "</Polys>\n";
+    file << "</Piece>\n";
+  }
+  file << "</PolyData>\n";
+  file << "<AppendedData encoding=\"raw\">_";
+  // Writing vertex data to appended data section
+  for (auto const &ellipsoid : ellipsoids) {
+    for (auto v : discretized_unit_sphere.vertices()) {
+      transformed_ellipse[v] = ellipsoid.center() + ellipsoid.S() * discretized_unit_sphere[v];
+    }
+    auto const num_bytes_points = header_type(sizeof(real_t) * 3 * num_points);
+
+    // Writing points
+    file.write(reinterpret_cast<char const *>(&num_bytes_points),
+               sizeof(header_type));
+    for (auto const v : transformed_ellipse.vertices()) {
+      file.write(reinterpret_cast<char const *>(transformed_ellipse.at(v).data()),
+                 sizeof(real_t) * 3);
+    }
+
+    // Writing polys connectivity data to appended data section
+    {
+      using namespace std::ranges;
+      auto connectivity_data = std::vector<connectivity_int>(
+          num_polys * 3);
+      auto index = [](auto const handle) -> connectivity_int { return handle.index(); };
+      copy(transformed_ellipse.simplices().data_container() | views::transform(index),
+           begin(connectivity_data));
+      file.write(reinterpret_cast<char const*>(&num_bytes_connectivity),
+                 sizeof(header_type));
+      file.write(reinterpret_cast<char const*>(connectivity_data.data()),
+                 num_bytes_connectivity);
+    }
+
+    // Writing polys offsets to appended data section
+    {
+      auto offsets = std::vector<offset_int>(num_polys, 3);
+      for (std::size_t i = 1; i < size(offsets); ++i) {
+        offsets[i] += offsets[i - 1];
+      };
+      file.write(reinterpret_cast<char const*>(&num_bytes_offsets),
+                 sizeof(header_type));
+      file.write(reinterpret_cast<char const*>(offsets.data()),
+                 num_bytes_offsets);
+    }
+  }
+  file << "</AppendedData>";
+  file << "</VTKFile>";
+}
+//==============================================================================
+}  // namespace tatooine
 //==============================================================================
 #endif

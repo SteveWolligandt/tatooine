@@ -326,46 +326,15 @@ private:
         particle_type::template advect<SplitBehavior>(
             std::forward<Flowmap>(flowmap), tau_step, t_end, initial_particles,
             uuid_generator);
-    auto initial_discretizations = [&] {
-      if constexpr (NumDimensions == 2) {
-        return std::vector<line<real_type, 2>>{};
-      } else if constexpr (NumDimensions == 3) {
-        return std::vector<unstructured_triangular_grid<real_type, 3>>{};
-      }
-    }();
-    std::ranges::copy(initial_particles |
-                          std::views::transform([](auto const &p) {
-                            return tatooine::geometry::discretize(p);
-                          }),
-                      std::back_inserter(initial_discretizations));
-    write(initial_discretizations, "initial_particles.vtp");
-    auto advected_discretizations = [&] {
-      if constexpr (NumDimensions == 2) {
-        return std::vector<line<real_type, 2>>{};
-      } else if constexpr (NumDimensions == 3) {
-        return std::vector<unstructured_triangular_grid<real_type, 3>>{};
-      }
-    }();
-    std::ranges::copy(advected_particles |
-                          std::views::transform([](auto const &p) {
-                            return tatooine::geometry::discretize(p);
-                          }),
-                      std::back_inserter(advected_discretizations));
-    write(advected_discretizations, "advected_particles.vtp");
-    auto advected_t0_discretizations = [&] {
-      if constexpr (NumDimensions == 2) {
-        return std::vector<line<real_type, 2>>{};
-      } else if constexpr (NumDimensions == 3) {
-        return std::vector<unstructured_triangular_grid<real_type, 3>>{};
-      }
-    }();
+    write_vtp(initial_particles, "initial_particles.vtp");
+    write_vtp(advected_particles, "advected_particles.vtp");
+    auto advected_t0 = std::vector<geometry::hyper_ellipse<real_type, NumDimensions>>{};
     std::ranges::copy(
         advected_particles | std::views::transform([](auto const &p) {
-          return tatooine::geometry::discretize(p.initial_ellipse());
+          return p.initial_ellipse();
         }),
-        std::back_inserter(advected_t0_discretizations));
-    write(advected_t0_discretizations, "advected_t0_particles.vtp");
-    using namespace std::ranges;
+        std::back_inserter(advected_t0));
+    write_vtp(advected_t0, "advected_t0_particles.vtp");
     auto points_forward = std::vector<std::pair<cgal_point, vertex_handle>>{};
     points_forward.reserve(size(advected_particles));
     auto points_backward = std::vector<std::pair<cgal_point, vertex_handle>>{};
