@@ -15,7 +15,10 @@ struct staggered_flowmap_discretization {
   using vec_type = vec<real_type, num_dimensions()>;
   using pos_type = vec_type;
   //============================================================================
-  std::vector<internal_flowmap_discretization_type> m_steps = {};
+  mutable std::vector<std::optional<internal_flowmap_discretization_type>>
+      m_steps = {};
+  std::vector<std::optional<filesystem::path>> m_filepaths_to_steps = {};
+  bool m_write_to_disk = true;
   //============================================================================
   template <typename Flowmap, typename... InternalFlowmapArgs>
   staggered_flowmap_discretization(Flowmap &&flowmap, arithmetic auto const t0,
@@ -26,35 +29,66 @@ struct staggered_flowmap_discretization {
     auto const t_end = static_cast<real_type>(t0) + static_cast<real_type>(tau);
     m_steps.reserve(static_cast<std::size_t>((t_end - t0) / delta_t) + 2);
     static auto const eps = real_type(1e-10);
+    auto cnt = std::size_t{};
+    auto const prefix = random::alpha_numeric_string(5) + "_";
     while (cur_t0 + eps < t0 + tau) {
+      std::cout << "begin of while\n";
       auto cur_tau = static_cast<real_type>(delta_t);
       if (cur_t0 + cur_tau > t_end) {
         cur_tau = static_cast<real_type>(t0) + static_cast<real_type>(tau) -
                   static_cast<real_type>(cur_t0);
       }
-      m_steps.emplace_back(std::forward<Flowmap>(flowmap), cur_t0, cur_tau,
-                           std::forward<InternalFlowmapArgs>(args)...);
+      std::cout << "cur_tau: " << cur_tau << '\n';
+      std::cout << "generating path\n";
+      auto const &path =
+          *m_filepaths_to_steps.emplace_back(prefix + std::to_string(cnt++));
+      std::cout << "advecting " << path << '\n';
+      m_steps.emplace_back(internal_flowmap_discretization_type{
+          std::forward<Flowmap>(flowmap), cur_t0, cur_tau,
+          std::forward<InternalFlowmapArgs>(args)...});
       cur_t0 += cur_tau;
+
+      if (m_write_to_disk) {
+        std::cout << "writing " << path << '\n';
+        m_steps.back()->write(path);
+        std::cout << "resetting " << path << '\n';
+        m_steps.back().reset();
+      }
+      std::cout << "done with " << path << '\n';
     }
   }
   //============================================================================
+  auto write_to_disk(bool const w = true) { m_write_to_disk = w; }
+  //----------------------------------------------------------------------------
   auto num_steps() const { return m_steps.size(); }
-  //----------------------------------------------------------------------------
-  auto steps() const -> auto const & { return m_steps; }
-  //----------------------------------------------------------------------------
-  auto steps() -> auto & { return m_steps; }
   //============================================================================
-  auto step(std::size_t const i) const -> auto const & { return m_steps[i]; }
+  auto step(std::size_t const i) const -> auto const & {
+    if (m_write_to_disk && !m_steps[i].has_value()) {
+      for (auto &step : m_steps) {
+        step.reset();
+      }
+      m_steps[i]->read(*m_filepaths_to_steps[i]);
+    }
+    return *m_steps[i];
+  }
   //----------------------------------------------------------------------------
-  auto step(std::size_t const i) -> auto & { return m_steps[i]; }
+  auto step(std::size_t const i) -> auto & {
+    if (m_write_to_disk && !m_steps[i].has_value()) {
+      for (auto &step : m_steps) {
+        step.reset();
+      }
+      m_steps[i]->read(*m_filepaths_to_steps[i]);
+    }
+    return *m_steps[i];
+  }
   //============================================================================
   /// Evaluates flow map in forward direction at time t0 with maximal available
   /// advection time.
   /// \param x position
   /// \returns phi(x, t0, t_end - t0)
   auto sample(pos_type x, forward_tag const tag) const {
-    for (auto const &step : steps()) {
-      x = step.sample(x, tag);
+    for (std::size_t i = 0; i < num_steps(); ++i) {
+      x = step(i).sample(x, tag);
     }
     return x;
   }
@@ -64,8 +98,9 @@ struct staggered_flowmap_discretization {
   /// \param x position
   /// \returns phi(x, t_end, t0 - t_end)
   auto sample(pos_type x, backward_tag const tag) const {
-    for (auto step = steps().rbegin(); step != steps().rend(); ++step) {
-      x = step->sample(x, tag);
+    for (std::int64_t i = static_cast<std::int64_t>(num_steps() - 1); i >= 0;
+         --i) {
+      x = step(i).sample(x, tag);
     }
     return x;
   }

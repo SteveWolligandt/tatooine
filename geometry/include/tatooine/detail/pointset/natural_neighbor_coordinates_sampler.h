@@ -37,22 +37,24 @@ struct natural_neighbor_coordinates_sampler
           void>>;
   using cgal_point = typename cgal_triangulation_type::Point;
   //==========================================================================
-private:
-  pointset_type const &m_pointset;
+ private:
+  pointset_type const        &m_pointset;
   vertex_property_type const &m_property;
-  cgal_triangulation_type m_triangulation;
+  cgal_triangulation_type     m_triangulation;
   //==========================================================================
-public:
-  natural_neighbor_coordinates_sampler(pointset_type const &ps,
+ public:
+  natural_neighbor_coordinates_sampler(pointset_type const        &ps,
                                        vertex_property_type const &property)
       : m_pointset{ps}, m_property{property} {
     auto points = std::vector<std::pair<cgal_point, vertex_handle>>{};
     points.reserve(ps.vertices().size());
-    for (auto v : ps.vertices()) {
-      [&]<std::size_t... Is>(std::index_sequence<Is...> /*seq*/){
-        points.emplace_back(cgal_point{ps[v](Is)...}, v);
-      }(std::make_index_sequence<NumDimensions>{});
+    [&]<std::size_t... Is>(std::index_sequence<Is...> /*seq*/) {
+      for (auto v : ps.vertices()) {
+        auto const &p = ps[v];
+        points.emplace_back(cgal_point{p(Is)...}, v);
+      }
     }
+    (std::make_index_sequence<NumDimensions>{});
     m_triangulation = cgal_triangulation_type{begin(points), end(points)};
   }
   //--------------------------------------------------------------------------
@@ -70,7 +72,7 @@ public:
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   ~natural_neighbor_coordinates_sampler() = default;
   //==========================================================================
-private:
+ private:
   template <std::size_t... Is>
   [[nodiscard]] auto evaluate(pos_type const &x,
                               std::index_sequence<Is...> /*seq*/) const
@@ -84,21 +86,21 @@ private:
       return parent_type::ood_tensor();
     }
     auto const norm = 1 / result.second;
-    auto t = tensor_type{};
+    auto       t    = tensor_type{};
     for (auto const &[handle, coeff] : coords) {
       t += m_property[handle->info()] * coeff * norm;
     }
     return t;
   }
   //----------------------------------------------------------------------------
-public:
+ public:
   [[nodiscard]] auto evaluate(pos_type const &x, real_type const /*t*/) const
       -> tensor_type {
     return evaluate(x, std::make_index_sequence<NumDimensions>{});
   }
 };
 //==============================================================================
-} // namespace tatooine::detail::pointset
+}  // namespace tatooine::detail::pointset
 //==============================================================================
 #endif
 #endif
