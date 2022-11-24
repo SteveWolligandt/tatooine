@@ -223,6 +223,9 @@ struct regular_flowmap_discretization {
         "Number of dimensions of flowmap does not match number of dimensions.");
   }
   //----------------------------------------------------------------------------
+  auto read(filesystem::path const&) {}
+  auto write(filesystem::path const&) {}
+  //----------------------------------------------------------------------------
   /// \{
   auto grid(forward_tag const /*direction*/) const -> auto const& {
     return m_forward_grid;
