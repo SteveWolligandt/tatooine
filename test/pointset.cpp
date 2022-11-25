@@ -247,6 +247,13 @@ TEST_CASE("pointset_io", "[pointset][io]") {
     REQUIRE(ps_read.vertex_properties()[prop_scalar_name]->type() == typeid(real_number));
 
     // check if each single vertex property is equal
+    auto const& prop_read_vec3 = ps_read.vec3_vertex_property(prop_vec3_name);
+    REQUIRE_THAT(prop_read_vec3[v1], EqualRange(prop_read_vec3[v1]));
+    REQUIRE_THAT(prop_read_vec3[v2], EqualRange(prop_read_vec3[v2]));
+
+    auto const& prop_read_scalar = ps_read.scalar_vertex_property(prop_scalar_name);
+    REQUIRE(prop_read_scalar[v1] == prop_read_scalar[v1]);
+    REQUIRE(prop_read_scalar[v2] == prop_read_scalar[v2]);
   }}
 }
 //==============================================================================

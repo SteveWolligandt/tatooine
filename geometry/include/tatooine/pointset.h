@@ -45,7 +45,7 @@ struct moving_least_squares_sampler;
 #endif
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions, typename ValueType>
-  requires(flann_available())
+requires(flann_available())
 struct inverse_distance_weighting_sampler;
 //==============================================================================
 #if TATOOINE_BLAS_AND_LAPACK_AVAILABLE
@@ -63,9 +63,10 @@ struct vertex_container;
 //==============================================================================
 template <floating_point Real, std::size_t NumDimensions>
 struct const_vertex_container;
-} // namespace detail::pointset
+}  // namespace detail::pointset
 //==============================================================================
-template <floating_point Real, std::size_t NumDimensions> struct pointset {
+template <floating_point Real, std::size_t NumDimensions>
+struct pointset {
   // static constexpr std::size_t triangle_dims = 2;
   // static constexpr std::size_t tetgen_dims = 3;
   static constexpr auto num_dimensions() -> std::size_t {
@@ -73,8 +74,8 @@ template <floating_point Real, std::size_t NumDimensions> struct pointset {
   }
   using real_type = Real;
   using this_type = pointset<Real, NumDimensions>;
-  using vec_type = vec<Real, NumDimensions>;
-  using pos_type = vec_type;
+  using vec_type  = vec<Real, NumDimensions>;
+  using pos_type  = vec_type;
 #if TATOOINE_FLANN_AVAILABLE || defined(TATOOINE_DOC_ONLY)
   using flann_index_type = flann::Index<flann::L2<Real>>;
 #endif
@@ -110,19 +111,19 @@ template <floating_point Real, std::size_t NumDimensions> struct pointset {
           Real, NumDimensions, T, Gradient>;
 #endif
   //============================================================================
-protected:
+ protected:
   std::vector<pos_type> m_vertex_position_data;
 
-private:
-  std::set<vertex_handle> m_invalid_vertices;
+ private:
+  std::set<vertex_handle>        m_invalid_vertices;
   vertex_property_container_type m_vertex_properties;
 #if TATOOINE_FLANN_AVAILABLE || defined(TATOOINE_DOC_ONLY)
   mutable std::unique_ptr<flann_index_type> m_kd_tree;
-  mutable std::mutex m_flann_mutex;
+  mutable std::mutex                        m_flann_mutex;
 #endif
   //============================================================================
-public:
-  pointset() = default;
+ public:
+  pointset()  = default;
   ~pointset() = default;
   //----------------------------------------------------------------------------
   pointset(std::initializer_list<pos_type> &&vertices)
@@ -162,7 +163,7 @@ public:
   explicit pointset(std::vector<pos_type> &&vertices)
       : m_vertex_position_data(std::move(vertices)) {}
   //----------------------------------------------------------------------------
-  explicit pointset(filesystem::path const& path) { read(path); }
+  explicit pointset(filesystem::path const &path) { read(path); }
   //----------------------------------------------------------------------------
   auto operator=(pointset const &other) -> pointset & {
     if (&other == this) {
@@ -170,7 +171,7 @@ public:
     }
     vertex_properties().clear();
     m_vertex_position_data = other.m_vertex_position_data;
-    m_invalid_vertices = other.m_invalid_vertices;
+    m_invalid_vertices     = other.m_invalid_vertices;
     for (auto const &[name, prop] : other.vertex_properties()) {
       vertex_properties().emplace(name, prop->clone());
     }
@@ -190,7 +191,7 @@ public:
   auto vertex_properties() const -> auto const & { return m_vertex_properties; }
   auto vertex_properties() -> auto & { return m_vertex_properties; }
   //----------------------------------------------------------------------------
-  auto has_vertex_property(std::string const& name) const {
+  auto has_vertex_property(std::string const &name) const {
     return vertex_properties().find(name) != vertex_properties().end();
   }
   //----------------------------------------------------------------------------
@@ -229,9 +230,7 @@ public:
     return vertex_position_data().size() - invalid_vertices().size();
   }
   //----------------------------------------------------------------------------
-  auto num_vertex_properties() const {
-    return vertex_properties().size();
-  }
+  auto num_vertex_properties() const { return vertex_properties().size(); }
   //----------------------------------------------------------------------------
   auto vertex_position_data() const -> auto const & {
     return m_vertex_position_data;
@@ -239,10 +238,10 @@ public:
   //----------------------------------------------------------------------------
   auto invalid_vertices() const -> auto const & { return m_invalid_vertices; }
   //----------------------------------------------------------------------------
-public:
+ public:
   ///\{
   auto insert_vertex(arithmetic auto const... ts)
-    requires(sizeof...(ts) == NumDimensions)
+  requires(sizeof...(ts) == NumDimensions)
   {
     m_vertex_position_data.push_back(pos_type{static_cast<Real>(ts)...});
     for (auto &[key, prop] : vertex_properties()) {
@@ -311,7 +310,7 @@ public:
     auto cleaned_positions = std::vector<pos_type>{};
     cleaned_positions.reserve(vertices().size());
     auto invalid_it = begin(m_invalid_vertices);
-    auto i = std::size_t{};
+    auto i          = std::size_t{};
     for (auto const &pos : m_vertex_position_data) {
       if (invalid_it != end(m_invalid_vertices) &&
           *invalid_it == vertex_handle{i}) {
@@ -370,7 +369,7 @@ public:
   auto sample_to_vertex_property(F &&f, std::string const &name,
                                  execution_policy::sequential_t /*policy*/)
       -> auto & {
-    using T = std::invoke_result_t<F, pos_type>;
+    using T    = std::invoke_result_t<F, pos_type>;
     auto &prop = vertex_property<T>(name);
     for (auto const v : vertices()) {
       try {
@@ -390,7 +389,7 @@ public:
   auto sample_to_vertex_property(F &&f, std::string const &name,
                                  execution_policy::parallel_t /*policy*/)
       -> auto & {
-    using T = std::invoke_result_t<F, pos_type>;
+    using T    = std::invoke_result_t<F, pos_type>;
     auto &prop = vertex_property<T>(name);
 #pragma omp parallel for
     for (auto const v : vertices()) {
@@ -417,8 +416,7 @@ public:
     std::vector<std::pair<vertex_handle, vertex_handle>> duplicates;
     for (auto v0 = vertices().begin(); v0 != vertices().end(); ++v0)
       for (auto v1 = next(v0); v1 != vertices().end(); ++v1)
-        if (approx_equal(at(v0), at(v1), eps))
-          duplicates.emplace_back(v0, v1);
+        if (approx_equal(at(v0), at(v1), eps)) duplicates.emplace_back(v0, v1);
 
     return duplicates;
   }
@@ -599,49 +597,43 @@ public:
   }
   //----------------------------------------------------------------------------
   auto insert_scalar_vertex_property(
-      std::string const &name,
+      std::string const          &name,
       tatooine::real_number const value = tatooine::real_number{}) -> auto & {
     return insert_vertex_property<tatooine::real_number>(name, value);
   }
   //----------------------------------------------------------------------------
-  auto
-  insert_vec2_vertex_property(std::string const &name,
-                              tatooine::vec2 const value = tatooine::vec2{})
+  auto insert_vec2_vertex_property(
+      std::string const &name, tatooine::vec2 const value = tatooine::vec2{})
       -> auto & {
     return insert_vertex_property<vec2>(name, value);
   }
   //----------------------------------------------------------------------------
-  auto
-  insert_vec3_vertex_property(std::string const &name,
-                              tatooine::vec3 const value = tatooine::vec3{})
+  auto insert_vec3_vertex_property(
+      std::string const &name, tatooine::vec3 const value = tatooine::vec3{})
       -> auto & {
     return insert_vertex_property<vec3>(name, value);
   }
   //----------------------------------------------------------------------------
-  auto
-  insert_vec4_vertex_property(std::string const &name,
-                              tatooine::vec4 const value = tatooine::vec4{})
+  auto insert_vec4_vertex_property(
+      std::string const &name, tatooine::vec4 const value = tatooine::vec4{})
       -> auto & {
     return insert_vertex_property<vec4>(name, value);
   }
   //----------------------------------------------------------------------------
-  auto
-  insert_mat2_vertex_property(std::string const &name,
-                              tatooine::mat2 const value = tatooine::mat2{})
+  auto insert_mat2_vertex_property(
+      std::string const &name, tatooine::mat2 const value = tatooine::mat2{})
       -> auto & {
     return insert_vertex_property<mat2>(name, value);
   }
   //----------------------------------------------------------------------------
-  auto
-  insert_mat3_vertex_property(std::string const &name,
-                              tatooine::mat3 const value = tatooine::mat3{})
+  auto insert_mat3_vertex_property(
+      std::string const &name, tatooine::mat3 const value = tatooine::mat3{})
       -> auto & {
     return insert_vertex_property<mat3>(name, value);
   }
   //----------------------------------------------------------------------------
-  auto
-  insert_mat4_vertex_property(std::string const &name,
-                              tatooine::mat4 const value = tatooine::mat4{})
+  auto insert_mat4_vertex_property(
+      std::string const &name, tatooine::mat4 const value = tatooine::mat4{})
       -> auto & {
     return insert_vertex_property<mat4>(name, value);
   }
@@ -666,7 +658,7 @@ public:
   //----------------------------------------------------------------------------
   auto write_vtk(filesystem::path const &path,
                  std::string const &title = "Tatooine pointset") const -> void
-    requires(NumDimensions == 3 || NumDimensions == 2)
+  requires(NumDimensions == 3 || NumDimensions == 2)
   {
     auto writer = vtk::legacy_file_writer{path, vtk::dataset_type::polydata};
     if (writer.is_open()) {
@@ -679,14 +671,14 @@ public:
     }
   }
   //----------------------------------------------------------------------------
-private:
+ private:
   auto write_vertices_vtk(vtk::legacy_file_writer &writer) const {
     using namespace std::ranges;
     if constexpr (NumDimensions == 2) {
       auto three_dims = [](vec<Real, 2> const &v2) {
         return vec<Real, 3>{v2(0), v2(1), 0};
       };
-      auto v3s = std::vector<vec<Real, 3>>(vertices().size());
+      auto v3s               = std::vector<vec<Real, 3>>(vertices().size());
       auto three_dimensional = views::transform(three_dims);
       copy(m_vertex_position_data | three_dimensional, begin(v3s));
       writer.write_points(v3s);
@@ -724,16 +716,16 @@ private:
     }
   }
   //----------------------------------------------------------------------------
-public:
+ public:
   auto write_vtp(filesystem::path const &path) const {
     auto file = std::ofstream{path, std::ios::binary};
     if (!file.is_open()) {
       throw std::runtime_error{"Could not write " + path.string()};
     }
-    auto offset = std::size_t{};
-    using header_type = std::uint64_t;
+    auto offset                       = std::size_t{};
+    using header_type                 = std::uint64_t;
     using verts_connectivity_int_type = std::int64_t;
-    using verts_offset_int_type = verts_connectivity_int_type;
+    using verts_offset_int_type       = verts_connectivity_int_type;
     auto const num_bytes_points =
         header_type(sizeof(Real) * 3 * vertices().size());
     auto const num_bytes_verts_connectivity =
@@ -823,8 +815,8 @@ public:
       file.write(reinterpret_cast<char const *>(&num_bytes_points),
                  sizeof(header_type));
       if constexpr (NumDimensions == 2) {
-        auto point_data = std::vector<vec<Real, 3>>(vertices().size());
-        auto position = [this](auto const v) -> auto & { return at(v); };
+        auto point_data      = std::vector<vec<Real, 3>>(vertices().size());
+        auto position        = [this](auto const v) -> auto        &{ return at(v); };
         constexpr auto to_3d = [](auto const &p) {
           return vec{p.x(), p.y(), Real(0)};
         };
@@ -882,7 +874,7 @@ public:
          << "</VTKFile>";
   }
   //----------------------------------------------------------------------------
-private:
+ private:
   //----------------------------------------------------------------------------
   template <typename T, typename header_type>
   auto write_vertex_property_data_array_vtp(auto const &name, auto const &prop,
@@ -924,7 +916,7 @@ private:
   //----------------------------------------------------------------------------
   template <typename T, typename header_type>
   auto write_vertex_property_appended_data_vtp(auto const &prop,
-                                               auto &file) const {
+                                               auto       &file) const {
     if (prop->type() == typeid(T)) {
       auto const &typed_prop = prop->template cast_to_typed<T>();
       if constexpr (tensor_rank<T> <= 1) {
@@ -944,9 +936,9 @@ private:
                      sizeof(header_type));
           for (auto const v : vertices()) {
             auto data_begin = &typed_prop[v](0, i);
-            file.write(reinterpret_cast<char const *>(data_begin),
-                       sizeof(tatooine::value_type<T>) *
-                           tensor_dimension<T, 0>);
+            file.write(
+                reinterpret_cast<char const *>(data_begin),
+                sizeof(tatooine::value_type<T>) * tensor_dimension<T, 0>);
           }
         }
       }
@@ -955,7 +947,7 @@ private:
   /// \}
   //----------------------------------------------------------------------------
   /// \{
-public:
+ public:
   auto read(filesystem::path const &p) {
     if (p.extension() == ".vtp") {
       read_vtp(p);
@@ -963,9 +955,9 @@ public:
   }
   //----------------------------------------------------------------------------
   auto read_vtp(filesystem::path const &path) -> void
-    requires(NumDimensions == 2) || (NumDimensions == 3)
+  requires(NumDimensions == 2) || (NumDimensions == 3)
   {
-    auto reader = vtk::xml::reader{path};
+    auto  reader    = vtk::xml::reader{path};
     auto &poly_data = *reader.poly_data();
 
     for (auto const &piece : poly_data.pieces) {
@@ -974,27 +966,26 @@ public:
         for (std::size_t i = 0; i < point_data.size(); i += 3) {
           if constexpr (num_dimensions() == 2) {
             // just omit third component when reading to a 3d line
-            vertex_at(i / 3) = {point_data[i], point_data[i + 1]};
+            insert_vertex(point_data[i], point_data[i + 1]);
           } else if constexpr (num_dimensions() == 3) {
-            vertex_at(i / 3) = {point_data[i], point_data[i + 1],
-                                point_data[i + 2]};
+            insert_vertex(point_data[i], point_data[i + 1], point_data[i + 2]);
           }
         }
       });
       for (auto const &[name, prop] : piece.point_data) {
         prop.visit_data([&]<typename T>(std::vector<T> const &data) {
           if (prop.num_components() == 1) {
-            auto &prop = vertex_property<T>(name);
+            [[maybe_unused]] auto &prop = vertex_property<T>(name);
           } else if (prop.num_components() == 2) {
-            auto &prop = vertex_property<vec<T, 2>>(name);
+            [[maybe_unused]] auto &prop = vertex_property<vec<T, 2>>(name);
           } else if (prop.num_components() == 3) {
             auto &prop = vertex_property<vec<T, 3>>(name);
-            auto v = vertex_handle{0};
+            auto  v    = vertex_handle{0};
             for (std::size_t i = 0; i < data.size(); i += 3, ++v) {
               prop[v] = vec{data[i], data[i + 1], data[i + 2]};
             }
           } else if (prop.num_components() == 4) {
-            auto &prop = vertex_property<vec<T, 4>>(name);
+            [[maybe_unused]] auto &prop = vertex_property<vec<T, 4>>(name);
           }
         });
       }
@@ -1002,7 +993,7 @@ public:
   }
   /// \}
   //----------------------------------------------------------------------------
-public:
+ public:
 //----------------------------------------------------------------------------
 #if TATOOINE_FLANN_AVAILABLE || defined(TATOOINE_DOC_ONLY)
   /// \{
@@ -1017,7 +1008,7 @@ public:
     }
   }
   //----------------------------------------------------------------------------
-private:
+ private:
   auto build_kd_tree() const -> auto & {
     auto lock = std::scoped_lock{m_flann_mutex};
     if (m_kd_tree == nullptr && vertices().size() > 0) {
@@ -1031,7 +1022,7 @@ private:
     return m_kd_tree;
   }
   //----------------------------------------------------------------------------
-public:
+ public:
   //----------------------------------------------------------------------------
   auto invalidate_kd_tree() const {
     auto lock = std::scoped_lock{m_flann_mutex};
@@ -1045,9 +1036,9 @@ public:
     }
     auto qm =
         flann::Matrix<Real>{const_cast<Real *>(x.data()), 1, num_dimensions()};
-    auto indices = std::vector<std::vector<int>>{};
+    auto indices   = std::vector<std::vector<int>>{};
     auto distances = std::vector<std::vector<Real>>{};
-    auto params = flann::SearchParams{};
+    auto params    = flann::SearchParams{};
     h->knnSearch(qm, indices, distances, 1, params);
     return std::pair{
         vertex_handle{static_cast<std::size_t>(indices.front().front())},
@@ -1056,8 +1047,8 @@ public:
   //----------------------------------------------------------------------------
   /// Takes the raw output indices of flann without converting them into vertex
   /// handles.
-  auto nearest_neighbors_raw(pos_type const &x,
-                             std::size_t const num_nearest_neighbors,
+  auto nearest_neighbors_raw(pos_type const           &x,
+                             std::size_t const         num_nearest_neighbors,
                              flann::SearchParams const params = {}) const {
     auto &h = build_kd_tree();
     if (h == nullptr) {
@@ -1065,13 +1056,13 @@ public:
     }
     auto qm =
         flann::Matrix<Real>{const_cast<Real *>(x.data()), 1, num_dimensions()};
-    auto indices = std::vector<std::vector<int>>{};
+    auto indices   = std::vector<std::vector<int>>{};
     auto distances = std::vector<std::vector<Real>>{};
     h->knnSearch(qm, indices, distances, num_nearest_neighbors, params);
     return std::pair{std::move(indices.front()), std::move(distances.front())};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto nearest_neighbors(pos_type const &x,
+  auto nearest_neighbors(pos_type const   &x,
                          std::size_t const num_nearest_neighbors) const {
     auto [indices, distances] = nearest_neighbors_raw(x, num_nearest_neighbors);
     auto handles = std::pair{std::vector<vertex_handle>(size(indices)),
@@ -1092,9 +1083,9 @@ public:
     if (h == nullptr) {
       return std::pair{std::vector<int>{}, std::vector<Real>{}};
     }
-    flann::Matrix<Real> qm{const_cast<Real *>(x.data()), // NOLINT
+    flann::Matrix<Real>            qm{const_cast<Real *>(x.data()),  // NOLINT
                            1, num_dimensions()};
-    std::vector<std::vector<int>> indices;
+    std::vector<std::vector<int>>  indices;
     std::vector<std::vector<Real>> distances;
     {
       // auto lock = std::scoped_lock{m_flann_mutex};
@@ -1119,9 +1110,8 @@ public:
   //============================================================================
   /// \{
   template <typename T>
-  auto
-  inverse_distance_weighting_sampler(typed_vertex_property_type<T> const &prop,
-                                     Real const radius = 1) const {
+  auto inverse_distance_weighting_sampler(
+      typed_vertex_property_type<T> const &prop, Real const radius = 1) const {
     return inverse_distance_weighting_sampler_type<T>{*this, prop, radius};
   }
 /// \}
@@ -1140,9 +1130,9 @@ public:
   ///                  at currently queried point.
   template <typename T>
   auto moving_least_squares_sampler(typed_vertex_property_type<T> const &prop,
-                                    Real const radius,
+                                    Real const                           radius,
                                     invocable<real_type> auto &&weighting) const
-    requires(NumDimensions == 3 || NumDimensions == 2)
+  requires(NumDimensions == 3 || NumDimensions == 2)
   {
     return detail::pointset::moving_least_squares_sampler<
         real_type, num_dimensions(), T, std::decay_t<decltype(weighting)>>{
@@ -1163,18 +1153,18 @@ public:
   template <typename T>
   auto moving_least_squares_sampler(typed_vertex_property_type<T> const &prop,
                                     Real const radius) const
-    requires(NumDimensions == 3 || NumDimensions == 2)
+  requires(NumDimensions == 3 || NumDimensions == 2)
   {
-    return moving_least_squares_sampler(prop, radius,
+    return moving_least_squares_sampler(
+        prop, radius,
 
-                                        [](auto const d) {
-                                          return 1 - 6 * d * d + 8 * d * d * d -
-                                                 3 * d * d * d * d;
-                                        }
+        [](auto const d) {
+          return 1 - 6 * d * d + 8 * d * d * d - 3 * d * d * d * d;
+        }
 
-                                        //[](auto const d) {
-                                        //  return std::exp(-d * d);
-                                        //}
+        //[](auto const d) {
+        //  return std::exp(-d * d);
+        //}
     );
   }
 ///\}
@@ -1263,7 +1253,7 @@ public:
   /// The kernel functions is \f[\phi(r) = r^4\cdot\log(r)\f].
   template <typename ValueType, typename GradientType>
   auto radial_basis_functions_sampler(
-      typed_vertex_property_type<ValueType> const &values,
+      typed_vertex_property_type<ValueType> const    &values,
       typed_vertex_property_type<GradientType> const &gradients) const {
     return detail::pointset::radial_basis_functions_sampler_with_gradients{
         *this, values, gradients};
@@ -1281,7 +1271,7 @@ public:
   //----------------------------------------------------------------------------
   template <typename T, typename Gradient>
   auto natural_neighbor_coordinates_sampler_with_gradients(
-      typed_vertex_property_type<T> const &prop,
+      typed_vertex_property_type<T> const        &prop,
       typed_vertex_property_type<Gradient> const &gradients) const {
     return natural_neighbor_coordinates_sampler_with_gradients_type<T,
                                                                     Gradient>{
@@ -1295,13 +1285,13 @@ public:
 };
 //==============================================================================
 template <std::size_t NumDimensions>
-using Pointset = pointset<real_number, NumDimensions>;
+using Pointset  = pointset<real_number, NumDimensions>;
 using pointset2 = Pointset<2>;
 using pointset3 = Pointset<3>;
 using pointset4 = Pointset<4>;
 using pointset5 = Pointset<5>;
 //==============================================================================
-} // namespace tatooine
+}  // namespace tatooine
 //==============================================================================
 #include <tatooine/detail/pointset/inverse_distance_weighting_sampler.h>
 #include <tatooine/detail/pointset/moving_least_squares_sampler.h>
