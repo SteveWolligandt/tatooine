@@ -229,6 +229,11 @@ struct autonomous_particle_flowmap_discretization {
   }
   //============================================================================
  public:
+  autonomous_particle_flowmap_discretization(filesystem::path const &p)
+    : autonomous_particle_flowmap_discretization{} {
+    read(p);
+  }
+  //----------------------------------------------------------------------------
   autonomous_particle_flowmap_discretization(
       autonomous_particle_flowmap_discretization const &other)
       : m_flowmaps_forward{&m_pointset_forward

@@ -77,7 +77,7 @@ struct staggered_flowmap_discretization {
       for (auto &step : m_steps) {
         step.reset();
       }
-      m_steps[i]->read(m_filepaths_to_steps[i]);
+      m_steps[i] = std::make_unique<internal_flowmap_discretization_type>(m_filepaths_to_steps[i]);
     }
     return *m_steps[i];
   }
