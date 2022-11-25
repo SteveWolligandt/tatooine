@@ -63,17 +63,17 @@ struct regular_flowmap_discretization {
           pos_type>;
   //============================================================================
  private:
-  Real m_t0;
-  Real m_t1;
-  Real m_tau;
+  Real m_t0 = Real{};
+  Real m_t1 = Real{};
+  Real m_tau = Real{};
 
-  forward_grid_type                          m_forward_grid;
-  forward_grid_vertex_property_type*         m_forward_flowmap_discretization;
-  std::unique_ptr<forward_grid_vertex_property_sampler_type>  m_forward_sampler;
+  forward_grid_type                          m_forward_grid = forward_grid_type{};
+  forward_grid_vertex_property_type*         m_forward_flowmap_discretization = nullptr;
+  std::unique_ptr<forward_grid_vertex_property_sampler_type>  m_forward_sampler = nullptr;
 
-  backward_grid_type                         m_backward_grid;
-  backward_grid_vertex_property_type*        m_backward_flowmap_discretization;
-  std::unique_ptr<backward_grid_vertex_property_sampler_type> m_backward_sampler;
+  backward_grid_type                         m_backward_grid = backward_grid_type{};
+  backward_grid_vertex_property_type*        m_backward_flowmap_discretization = nullptr;
+  std::unique_ptr<backward_grid_vertex_property_sampler_type> m_backward_sampler = nullptr;
   static constexpr auto default_execution_policy = execution_policy::parallel;
   //============================================================================
   template <typename Flowmap, typename ExecutionPolicy, integral Int, std::size_t... Is>
@@ -141,6 +141,19 @@ struct regular_flowmap_discretization {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
+  regular_flowmap_discretization() 
+    : m_forward_flowmap_discretization{
+        &m_forward_grid.template vertex_property<pos_type>(
+           "flowmap_discretization")},
+            m_backward_flowmap_discretization{
+        &m_backward_grid.template vertex_property<pos_type>(
+           "flowmap_discretization")} {}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  regular_flowmap_discretization(filesystem::path const &p)
+    : regular_flowmap_discretization{} {
+    read(p);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename Flowmap, typename ExecutionPolicy>
   regular_flowmap_discretization(Flowmap&&             flowmap,
                                  ExecutionPolicy       execution_policy,
