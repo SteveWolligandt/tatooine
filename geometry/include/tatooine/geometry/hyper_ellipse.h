@@ -333,6 +333,7 @@ requires (is_derived_from_hyper_ellipse<std::ranges::range_value_t<Ellipsoids>>)
          (std::ranges::range_value_t<Ellipsoids>::num_dimensions() == 3)
 auto write_vtp(Ellipsoids const &ellipsoids,
                filesystem::path const &path) {
+  using namespace std::ranges;
   using ellipsoid_t = std::ranges::range_value_t<Ellipsoids>;
   using real_t = typename ellipsoid_t::real_type;
   auto file = std::ofstream{path, std::ios::binary};
@@ -354,10 +355,20 @@ auto write_vtp(Ellipsoids const &ellipsoids,
   auto const num_points = discretized_unit_sphere.vertices().size();
   auto const num_polys = discretized_unit_sphere.triangles().size();
 
+  auto offsets = std::vector<offset_int>(num_polys, 3);
+  auto connectivity_data = std::vector<connectivity_int>(num_polys * 3);
+  for (std::size_t i = 1; i < size(offsets); ++i) {
+    offsets[i] += offsets[i - 1];
+  };
+
+  auto index = [](auto const handle) -> connectivity_int { return handle.index(); };
+  copy(discretized_unit_sphere.simplices().data_container() | views::transform(index),
+       begin(connectivity_data));
+
   auto const num_bytes_connectivity =
       num_polys * 3 * sizeof(connectivity_int);
   auto const num_bytes_offsets =
-      sizeof(offset_int) * num_polys * 3;
+      sizeof(offset_int) * offsets.size();
   for (std::size_t i = 0; i < size(ellipsoids); ++i) {
     file << "<Piece"
          << " NumberOfPoints=\""<<num_points<<"\""
@@ -411,30 +422,16 @@ auto write_vtp(Ellipsoids const &ellipsoids,
     }
 
     // Writing polys connectivity data to appended data section
-    {
-      using namespace std::ranges;
-      auto connectivity_data = std::vector<connectivity_int>(
-          num_polys * 3);
-      auto index = [](auto const handle) -> connectivity_int { return handle.index(); };
-      copy(transformed_ellipse.simplices().data_container() | views::transform(index),
-           begin(connectivity_data));
-      file.write(reinterpret_cast<char const*>(&num_bytes_connectivity),
-                 sizeof(header_type));
-      file.write(reinterpret_cast<char const*>(connectivity_data.data()),
-                 num_bytes_connectivity);
-    }
+    file.write(reinterpret_cast<char const*>(&num_bytes_connectivity),
+               sizeof(header_type));
+    file.write(reinterpret_cast<char const*>(connectivity_data.data()),
+               num_bytes_connectivity);
 
     // Writing polys offsets to appended data section
-    {
-      auto offsets = std::vector<offset_int>(num_polys, 3);
-      for (std::size_t i = 1; i < size(offsets); ++i) {
-        offsets[i] += offsets[i - 1];
-      };
-      file.write(reinterpret_cast<char const*>(&num_bytes_offsets),
-                 sizeof(header_type));
-      file.write(reinterpret_cast<char const*>(offsets.data()),
-                 num_bytes_offsets);
-    }
+    file.write(reinterpret_cast<char const*>(&num_bytes_offsets),
+               sizeof(header_type));
+    file.write(reinterpret_cast<char const*>(offsets.data()),
+               num_bytes_offsets);
   }
   file << "</AppendedData>";
   file << "</VTKFile>";

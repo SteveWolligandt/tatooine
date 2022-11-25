@@ -372,6 +372,9 @@ struct autonomous_particle_flowmap_discretization {
     fill(std::forward<Flowmap>(flowmap), std::vector{initial_particle}, t_end,
          tau_step, uuid_generator);
   }
+  ~autonomous_particle_flowmap_discretization() {
+    std::cout << "dtor\n";
+  }
 
  private:
   auto copy(autonomous_particle_flowmap_discretization const &other) {
@@ -391,6 +394,7 @@ struct autonomous_particle_flowmap_discretization {
   auto num_particles() const -> std::size_t {
     return m_pointset_forward.vertices().size();
   }
+  //----------------------------------------------------------------------------
   auto write(filesystem::path const &p) const {
     auto const filename      = p.filename().replace_extension("");
     auto       forward_path  = p;
@@ -401,6 +405,7 @@ struct autonomous_particle_flowmap_discretization {
     m_pointset_forward.write_vtp(forward_path);
     m_pointset_backward.write_vtp(backward_path);
   }
+  //----------------------------------------------------------------------------
   auto read(filesystem::path const &p) {
     auto const filename      = p.filename().replace_extension("");
     auto       forward_path  = p;
