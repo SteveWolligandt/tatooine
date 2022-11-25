@@ -18,6 +18,7 @@
 #include <tatooine/tensor.h>
 #include <tatooine/type_traits.h>
 #include <tatooine/vtk/xml/data_array.h>
+#include <tatooine/vtk/xml/reader.h>
 #include <tatooine/vtk_legacy.h>
 
 #include <fstream>
@@ -155,11 +156,13 @@ public:
         m_invalid_vertices(std::move(other.m_invalid_vertices)),
         m_vertex_properties(std::move(other.m_vertex_properties)) {}
   //----------------------------------------------------------------------------
-  pointset(std::vector<pos_type> const &vertices)
+  explicit pointset(std::vector<pos_type> const &vertices)
       : m_vertex_position_data(vertices) {}
   //----------------------------------------------------------------------------
-  pointset(std::vector<pos_type> &&vertices)
+  explicit pointset(std::vector<pos_type> &&vertices)
       : m_vertex_position_data(std::move(vertices)) {}
+  //----------------------------------------------------------------------------
+  explicit pointset(filesystem::path const& path) { read(path); }
   //----------------------------------------------------------------------------
   auto operator=(pointset const &other) -> pointset & {
     if (&other == this) {
@@ -186,6 +189,10 @@ public:
   //----------------------------------------------------------------------------
   auto vertex_properties() const -> auto const & { return m_vertex_properties; }
   auto vertex_properties() -> auto & { return m_vertex_properties; }
+  //----------------------------------------------------------------------------
+  auto has_vertex_property(std::string const& name) const {
+    return vertex_properties().find(name) != vertex_properties().end();
+  }
   //----------------------------------------------------------------------------
   auto at(vertex_handle const v) -> auto & {
     return m_vertex_position_data[v.index()];
@@ -220,6 +227,10 @@ public:
   //----------------------------------------------------------------------------
   auto num_vertices() const {
     return vertex_position_data().size() - invalid_vertices().size();
+  }
+  //----------------------------------------------------------------------------
+  auto num_vertex_properties() const {
+    return vertex_properties().size();
   }
   //----------------------------------------------------------------------------
   auto vertex_position_data() const -> auto const & {

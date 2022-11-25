@@ -15,9 +15,9 @@ struct staggered_flowmap_discretization {
   using vec_type = vec<real_type, num_dimensions()>;
   using pos_type = vec_type;
   //============================================================================
-  mutable std::vector<std::optional<internal_flowmap_discretization_type>>
+  mutable std::vector<std::unique_ptr<internal_flowmap_discretization_type>>
       m_steps = {};
-  std::vector<std::optional<filesystem::path>> m_filepaths_to_steps = {};
+  std::vector<filesystem::path> m_filepaths_to_steps = {};
   bool m_write_to_disk = true;
   //============================================================================
   template <typename Flowmap, typename... InternalFlowmapArgs>
@@ -41,9 +41,9 @@ struct staggered_flowmap_discretization {
       std::cout << "cur_tau: " << cur_tau << '\n';
       std::cout << "generating path\n";
       auto const &path =
-          *m_filepaths_to_steps.emplace_back(prefix + std::to_string(cnt++));
+          m_filepaths_to_steps.emplace_back(prefix + std::to_string(cnt++));
       std::cout << "advecting " << path << '\n';
-      m_steps.emplace_back(internal_flowmap_discretization_type{
+      m_steps.emplace_back(new internal_flowmap_discretization_type{
           std::forward<Flowmap>(flowmap), cur_t0, cur_tau,
           std::forward<InternalFlowmapArgs>(args)...});
       cur_t0 += cur_tau;
@@ -63,21 +63,21 @@ struct staggered_flowmap_discretization {
   auto num_steps() const { return m_steps.size(); }
   //============================================================================
   auto step(std::size_t const i) const -> auto const & {
-    if (m_write_to_disk && !m_steps[i].has_value()) {
+    if (m_write_to_disk && m_steps[i] == nullptr) {
       for (auto &step : m_steps) {
         step.reset();
       }
-      m_steps[i]->read(*m_filepaths_to_steps[i]);
+      m_steps[i]->read(m_filepaths_to_steps[i]);
     }
     return *m_steps[i];
   }
   //----------------------------------------------------------------------------
   auto step(std::size_t const i) -> auto & {
-    if (m_write_to_disk && !m_steps[i].has_value()) {
+    if (m_write_to_disk && m_steps[i] == nullptr) {
       for (auto &step : m_steps) {
         step.reset();
       }
-      m_steps[i]->read(*m_filepaths_to_steps[i]);
+      m_steps[i]->read(m_filepaths_to_steps[i]);
     }
     return *m_steps[i];
   }

@@ -216,5 +216,39 @@ TEST_CASE_METHOD(pointset2, "pointset_vertex_range",
   }
 }
 //==============================================================================
+TEST_CASE("pointset_io", "[pointset][io]") {
+  SECTION("vtp"){SECTION("3D") {
+    auto ps = pointset3{};
+    auto v1 = ps.insert_vertex(1, 2, 3);
+    auto v2 = ps.insert_vertex(2, 3, 4);
+    auto const prop_vec3_name = "vec3";
+    auto& prop_vec3 = ps.vec3_vertex_property(prop_vec3_name);
+    prop_vec3[v1] = vec3{0.5, 1.0, 1.5};
+    prop_vec3[v2] = vec3{0.6, 1.1, 1.6};
+    auto const prop_scalar_name = "scalar";
+    auto& prop_scalar = ps.scalar_vertex_property(prop_scalar_name);
+    prop_scalar[v1] = 1;
+    prop_scalar[v2] = 1.1;
+
+    auto filepath = filesystem::path{"pointset_io_test_3d.vtp"};
+    ps.write_vtp(filepath);
+
+    auto ps_read = pointset3{filepath};
+    // check if vertices are equal
+    REQUIRE(ps_read.num_vertices() == ps.num_vertices());
+    REQUIRE_THAT(ps[v1], EqualRange(ps_read[v1]));
+    REQUIRE_THAT(ps[v2], EqualRange(ps_read[v2]));
+
+    // check if vertex properties match
+    REQUIRE(ps_read.num_vertex_properties() == ps.num_vertex_properties());
+    REQUIRE(ps_read.has_vertex_property(prop_vec3_name));
+    REQUIRE(ps_read.has_vertex_property(prop_scalar_name));
+    REQUIRE(ps_read.vertex_properties()[prop_vec3_name]->type() == typeid(vec3));
+    REQUIRE(ps_read.vertex_properties()[prop_scalar_name]->type() == typeid(real_number));
+
+    // check if each single vertex property is equal
+  }}
+}
+//==============================================================================
 }  // namespace tatooine::test
 //==============================================================================
