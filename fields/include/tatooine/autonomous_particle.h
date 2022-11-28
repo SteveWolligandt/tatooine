@@ -1130,7 +1130,7 @@ public:
       // check if particle's ellipse has reached its splitting width
       static auto constexpr linearity_threshold = 1e-6;
       if (split_depth() != max_split_depth() &&
-          (linearity >= linearity_threshold || sqr_cond_H > 6)) {
+          (linearity >= linearity_threshold || log(sqr_cond_H) > log(6))) {
         for (std::size_t i = 0; i < size(split_radii); ++i) {
           auto const new_eigvals = current_radii * split_radii[i];
           auto const offset2 = advected_B * split_offsets[i];

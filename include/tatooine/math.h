@@ -10,10 +10,18 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename A, typename B> requires same_as<std::decay_t<A>, std::decay_t<B>>
-constexpr auto min(A&& a, B&& b) { return gcem::min(std::forward<A>(a), std::forward<B>(b)); }
-template <typename A, typename B> requires same_as<std::decay_t<A>, std::decay_t<B>>
-constexpr auto max(A&& a, B&& b) { return gcem::max(std::forward<A>(a), std::forward<B>(b)); }
+template <typename A, typename B>
+requires same_as<std::decay_t<A>, std::decay_t<B>>
+constexpr auto min(A&& a, B&& b) {
+  return gcem::min(std::forward<A>(a), std::forward<B>(b));
+}
+template <typename A, typename B>
+requires same_as<std::decay_t<A>, std::decay_t<B>>
+constexpr auto max(A&& a, B&& b) {
+  return gcem::max(std::forward<A>(a), std::forward<B>(b));
+}
+constexpr auto log(arithmetic auto const x) { return gcem::log(x); }
+constexpr auto log10(arithmetic auto const x) { return gcem::log10(x); }
 constexpr auto abs(arithmetic auto const x) { return gcem::abs(x); }
 constexpr auto sin(arithmetic auto const x) { return gcem::sin(x); }
 constexpr auto cos(arithmetic auto const x) { return gcem::cos(x); }
@@ -23,10 +31,9 @@ constexpr auto pow(arithmetic auto const x) { return gcem::pow(x); }
 template <template <typename> typename Comparator, typename T0, typename T1,
           typename... TRest>
 requires requires(T0 a, T1 b, Comparator<std::decay_t<T0>> comp) {
-  { comp(a, b) } -> std::convertible_to<bool>;
-}
-&&  same_as<std::decay_t<T0>, std::decay_t<T1>>
-&& (same_as<std::decay_t<T0>, std::decay_t<TRest>> && ...)
+           { comp(a, b) } -> std::convertible_to<bool>;
+         } && same_as<std::decay_t<T0>, std::decay_t<T1>> &&
+         (same_as<std::decay_t<T0>, std::decay_t<TRest>> && ...)
 constexpr auto compare_variadic(T0&& a, T1&& b, TRest&&... rest) {
   if constexpr (sizeof...(TRest) == 0) {
     return Comparator<std::decay_t<T0>>{}(a, b) ? std::forward<T0>(a)
@@ -46,20 +53,22 @@ constexpr auto max(T0&& a) -> decltype(auto) {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T0, typename T1, typename T2, typename... TRest>
 requires requires(T0&& a, T1&& b) {
-  { a > b } -> std::convertible_to<bool>;
-}
+           { a > b } -> std::convertible_to<bool>;
+         }
 constexpr auto max(T0&& a, T1&& b, T2&& c, TRest&&... rest) -> decltype(auto) {
   return compare_variadic<std::greater>(
-      std::forward<T0>(a), std::forward<T1>(b), std::forward<T2>(c), std::forward<TRest>(rest)...);
+      std::forward<T0>(a), std::forward<T1>(b), std::forward<T2>(c),
+      std::forward<TRest>(rest)...);
 }
 //------------------------------------------------------------------------------
 template <typename T0, typename T1, typename T2, typename... TRest>
 requires requires(T0&& a, T1&& b) {
-  { a > b } -> std::convertible_to<bool>;
-}
+           { a > b } -> std::convertible_to<bool>;
+         }
 constexpr auto min(T0&& a, T1&& b, T2&& c, TRest&&... rest) -> decltype(auto) {
-  return compare_variadic<std::less>(
-      std::forward<T0>(a), std::forward<T1>(b), std::forward<T2>(c), std::forward<TRest>(rest)...);
+  return compare_variadic<std::less>(std::forward<T0>(a), std::forward<T1>(b),
+                                     std::forward<T2>(c),
+                                     std::forward<TRest>(rest)...);
 }
 //------------------------------------------------------------------------------
 template <typename T, std::size_t N, std::size_t... Is>
