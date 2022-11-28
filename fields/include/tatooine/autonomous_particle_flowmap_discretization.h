@@ -496,8 +496,8 @@ private:
         particle_type::template advect<SplitBehavior>(
             std::forward<Flowmap>(flowmap), tau_step, t_end, initial_particles,
             uuid_generator);
-    write_vtp(initial_particles, "initial_particles.vtp");
-    write_vtp(advected_particles, "advected_particles.vtp");
+    //write_vtp(initial_particles, "initial_particles.vtp");
+    //write_vtp(advected_particles, "advected_particles.vtp");
     auto advected_t0 =
         std::vector<geometry::hyper_ellipse<real_type, NumDimensions>>{};
     std::ranges::copy(advected_particles |
@@ -505,7 +505,7 @@ private:
                             return p.initial_ellipse();
                           }),
                       std::back_inserter(advected_t0));
-    write_vtp(advected_t0, "advected_t0_particles.vtp");
+    //write_vtp(advected_t0, "advected_t0_particles.vtp");
     auto points_forward = std::vector<std::pair<cgal_point, vertex_handle>>{};
     points_forward.reserve(size(advected_particles));
     auto points_backward = std::vector<std::pair<cgal_point, vertex_handle>>{};
