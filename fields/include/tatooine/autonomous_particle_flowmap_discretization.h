@@ -396,21 +396,27 @@ private:
         &m_pointset_backward.template vertex_property<pos_type>("flowmaps");
 
     using cgal_point_list = std::vector<std::pair<cgal_point, vertex_handle>>;
-    auto points_forward = cgal_point_list{};
-    auto points_backward = cgal_point_list{};
-    points_forward.reserve(size(m_pointset_forward.num_vertices()));
-    points_backward.reserve(size(m_pointset_backward.num_vertices()));
-    for (auto const v : m_pointset_forward.vertices()) {
-      points_forward.emplace_back(cgal_point{m_pointset_forward[v](Seq)...}, v);
+    {
+      auto points_forward = cgal_point_list{};
+      points_forward.reserve(size(m_pointset_forward.num_vertices()));
+      for (auto const v : m_pointset_forward.vertices()) {
+        points_forward.emplace_back(cgal_point{m_pointset_forward[v](Seq)...},
+                                    v);
+      }
+      m_triangulation_forward = std::make_unique<cgal_triangulation_type>(
+          begin(points_forward), end(points_forward));
     }
-    for (auto const v : m_pointset_backward.vertices()) {
-      points_forward.emplace_back(cgal_point{m_pointset_backward[v](Seq)...},
-                                  v);
+
+    {
+      auto points_backward = cgal_point_list{};
+      points_backward.reserve(size(m_pointset_backward.num_vertices()));
+      for (auto const v : m_pointset_backward.vertices()) {
+        points_backward.emplace_back(cgal_point{m_pointset_backward[v](Seq)...},
+                                     v);
+      }
+      m_triangulation_backward = std::make_unique<cgal_triangulation_type>(
+          begin(points_backward), end(points_backward));
     }
-    m_triangulation_forward = std::make_unique<cgal_triangulation_type>(
-        begin(points_forward), end(points_forward));
-    m_triangulation_backward = std::make_unique<cgal_triangulation_type>(
-        begin(points_backward), end(points_backward));
   }
 
 public:
@@ -439,7 +445,6 @@ public:
     using cgal_point_list = std::vector<std::pair<cgal_point, vertex_handle>>;
     auto const filename = p.filename().replace_extension("");
     {
-      std::cout << "read forward\n";
       auto forward_path = filename;
       forward_path.replace_filename(filename.string() + "_forward.vtp");
       m_pointset_forward.read_vtp(forward_path);
@@ -453,11 +458,9 @@ public:
       }
       m_triangulation_forward = std::make_unique<cgal_triangulation_type>(
           begin(points_forward), end(points_forward));
-      std::cout << m_triangulation_forward.get() << '\n';
     }
 
     {
-      std::cout << "read forward\n";
       auto backward_path = filename;
       backward_path.replace_filename(filename.string() + "_backward.vtp");
       m_pointset_backward.read_vtp(backward_path);
@@ -471,7 +474,6 @@ public:
       }
       m_triangulation_backward = std::make_unique<cgal_triangulation_type>(
           begin(points_backward), end(points_backward));
-      std::cout << m_triangulation_backward.get() << '\n';
     }
   }
   //----------------------------------------------------------------------------
@@ -555,7 +557,7 @@ public:
     }
     auto const norm = 1 / result.second;
 
-    auto Z0 = [&] {
+    auto const Z0 = [&] {
       auto sum = pos_type{};
       for (auto const &[cgal_handle, coeff] : nnc_per_vertex) {
         auto const v = cgal_handle->info();
