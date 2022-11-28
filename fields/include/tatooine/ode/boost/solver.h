@@ -10,43 +10,43 @@ namespace boost::numeric::odeint {
 //==============================================================================
 template <typename Real, size_t N>
 struct is_resizeable<tatooine::vec<Real, N>> {
-  using type              = boost::false_type;
+  using type = boost::false_type;
   static const bool value = type::value;
 };
 //==============================================================================
-}  // namespace boost::numeric::odeint
+} // namespace boost::numeric::odeint
 //==============================================================================
 namespace tatooine::ode::boost {
 //==============================================================================
 template <typename Real, size_t N, typename Stepper>
 struct solver : ode::solver<solver<Real, N, Stepper>, Real, N> {
- public:
-  using this_type   = solver<Real, N, Stepper>;
+public:
+  using this_type = solver<Real, N, Stepper>;
   using parent_type = ode::solver<this_type, Real, N>;
   using typename parent_type::pos_type;
   using typename parent_type::vec_t;
 
- protected:
+protected:
   //============================================================================
   Stepper m_stepper;
-  Real    m_stepsize;
+  Real m_stepsize;
 
- private:
+private:
   //============================================================================
   friend parent_type;
 
- public:
+public:
   //============================================================================
-  solver(const Stepper& stepper, const Real stepsize)
+  solver(const Stepper &stepper, const Real stepsize)
       : m_stepper{stepper}, m_stepsize{stepsize} {}
-  solver(Stepper&& stepper, const Real stepsize)
+  solver(Stepper &&stepper, const Real stepsize)
       : m_stepper{std::move(stepper)}, m_stepsize{stepsize} {}
   //============================================================================
-  template <arithmetic                          Y0Real, typename Evaluator,
+  template <arithmetic Y0Real, typename Evaluator,
             stepper_callback_invocable<Real, N> StepperCallback>
-  constexpr void solve(Evaluator&& evaluator, vec<Y0Real, N> const& y0,
+  constexpr void solve(Evaluator &&evaluator, vec<Y0Real, N> const &y0,
                        arithmetic auto const t0, arithmetic auto tau,
-                       StepperCallback&& callback) const {
+                       StepperCallback &&callback) const {
     using ::boost::numeric::odeint::step_adjustment_error;
     constexpr auto callback_takes_derivative =
         std::is_invocable_v<StepperCallback, pos_type, Real, vec_t>;
@@ -59,29 +59,31 @@ struct solver : ode::solver<solver<Real, N, Stepper>, Real, N> {
       ::boost::numeric::odeint::integrate_adaptive(
           m_stepper,
           [&evaluator, tau, t0, num_same_in_a_row = std::size_t{},
-           prev_t = nan<Real>()](pos_type const& y, pos_type& sample,
+           prev_y = vec_t::fill(nan<Real>())](pos_type const &y, pos_type &sample,
                                  Real t) mutable {
-            if (abs(prev_t - t) < 1e-12) {
+            auto const delta_pos = euclidean_distance(prev_y, y);
+            auto const rel_error = delta_pos / euclidean_length(sample);
+            if (rel_error < 1e-12) {
               ++num_same_in_a_row;
             } else {
               num_same_in_a_row = 0;
             }
             if (num_same_in_a_row == 10) {
-              throw step_adjustment_error{""};
+               throw step_adjustment_error{""};
             }
-            prev_t = t;
+            prev_y = y;
             sample = evaluator(y, t);
           },
           x_copy, Real(t0), Real(t0 + tau),
           Real(tau > 0 ? m_stepsize : -m_stepsize),
-          [tau, t0, &callback, &evaluator](const pos_type& y, Real t) {
+          [tau, t0, &callback, &evaluator](const pos_type &y, Real t) {
             if constexpr (!callback_takes_derivative) {
               callback(y, t);
             } else {
               callback(y, t, evaluator(y, t));
             }
           });
-    } catch (step_adjustment_error const&) {
+    } catch (step_adjustment_error const &) {
       if constexpr (!callback_takes_derivative) {
         callback(pos_type::fill(nan()), nan());
       } else {
@@ -91,12 +93,12 @@ struct solver : ode::solver<solver<Real, N, Stepper>, Real, N> {
     }
   }
   //----------------------------------------------------------------------------
-  auto stepsize() -> auto& { return m_stepsize; }
+  auto stepsize() -> auto & { return m_stepsize; }
   auto stepsize() const { return m_stepsize; }
 };
 
 //==============================================================================
-}  // namespace tatooine::ode::boost
+} // namespace tatooine::ode::boost
 //==============================================================================
 
 #endif
