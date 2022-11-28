@@ -974,18 +974,27 @@ struct pointset {
       });
       for (auto const &[name, prop] : piece.point_data) {
         prop.visit_data([&]<typename T>(std::vector<T> const &data) {
+          auto v = vertex_handle{0};
           if (prop.num_components() == 1) {
             [[maybe_unused]] auto &prop = vertex_property<T>(name);
+            for (std::size_t i = 0; i < data.size(); ++i, ++v) {
+              prop[v] = data[i];
+            }
           } else if (prop.num_components() == 2) {
             [[maybe_unused]] auto &prop = vertex_property<vec<T, 2>>(name);
+            for (std::size_t i = 0; i < data.size(); i += 2, ++v) {
+              prop[v] = vec{data[i], data[i + 1]};
+            }
           } else if (prop.num_components() == 3) {
             auto &prop = vertex_property<vec<T, 3>>(name);
-            auto  v    = vertex_handle{0};
             for (std::size_t i = 0; i < data.size(); i += 3, ++v) {
               prop[v] = vec{data[i], data[i + 1], data[i + 2]};
             }
           } else if (prop.num_components() == 4) {
             [[maybe_unused]] auto &prop = vertex_property<vec<T, 4>>(name);
+            for (std::size_t i = 0; i < data.size(); i += 4, ++v) {
+              prop[v] = vec{data[i], data[i + 1], data[i + 2], data[i + 3]};
+            }
           }
         });
       }

@@ -477,7 +477,7 @@ auto write_vtp(Ellipsoids const &ellipsoids, filesystem::path const &path) {
 
   auto offsets = std::vector<offset_int>(num_polys, 3);
   offsets.front() = 0;
-  for (std::size_t i = 1; i < size(offsets); ++i) {
+  for (std::size_t i = 2; i < size(offsets); ++i) {
     offsets[i] += offsets[i - 1];
   };
 
