@@ -439,6 +439,7 @@ public:
     using cgal_point_list = std::vector<std::pair<cgal_point, vertex_handle>>;
     auto const filename = p.filename().replace_extension("");
     {
+      std::cout << "read forward\n";
       auto forward_path = filename;
       forward_path.replace_filename(filename.string() + "_forward.vtp");
       m_pointset_forward.read_vtp(forward_path);
@@ -452,9 +453,11 @@ public:
       }
       m_triangulation_forward = std::make_unique<cgal_triangulation_type>(
           begin(points_forward), end(points_forward));
+      std::cout << m_triangulation_forward.get() << '\n';
     }
 
     {
+      std::cout << "read forward\n";
       auto backward_path = filename;
       backward_path.replace_filename(filename.string() + "_backward.vtp");
       m_pointset_backward.read_vtp(backward_path);
@@ -468,6 +471,7 @@ public:
       }
       m_triangulation_backward = std::make_unique<cgal_triangulation_type>(
           begin(points_backward), end(points_backward));
+      std::cout << m_triangulation_backward.get() << '\n';
     }
   }
   //----------------------------------------------------------------------------
