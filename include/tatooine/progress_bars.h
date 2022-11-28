@@ -100,7 +100,7 @@ auto indeterminate_progress_bar(F&& f, Args&&... args) -> decltype(auto) {
             std::forward<Args>(args)...);
       indicator.mark_as_completed();
       job_completion_thread.join();
-      return ret;
+      return std::forward<decltype(ret)>(ret);
     }
   }
 }
