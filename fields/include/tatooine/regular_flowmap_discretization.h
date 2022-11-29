@@ -59,30 +59,42 @@ struct regular_flowmap_discretization {
       typename backward_grid_type::template typed_vertex_property_type<
           pos_type>;
   using backward_grid_vertex_property_sampler_type =
-      typename backward_grid_type::template natural_neighbor_coordinates_sampler_type<
-          pos_type>;
+      typename backward_grid_type::
+          template natural_neighbor_coordinates_sampler_type<pos_type>;
   //============================================================================
  private:
-  Real m_t0 = Real{};
-  Real m_t1 = Real{};
+  Real m_t0  = Real{};
+  Real m_t1  = Real{};
   Real m_tau = Real{};
 
-  forward_grid_type                          m_forward_grid = forward_grid_type{};
-  forward_grid_vertex_property_type*         m_forward_flowmap_discretization = nullptr;
-  std::unique_ptr<forward_grid_vertex_property_sampler_type>  m_forward_sampler = nullptr;
+  forward_grid_type                  m_forward_grid = forward_grid_type{};
+  forward_grid_vertex_property_type* m_forward_flowmap_discretization = nullptr;
+  std::unique_ptr<forward_grid_vertex_property_sampler_type> m_forward_sampler =
+      nullptr;
 
-  backward_grid_type                         m_backward_grid = backward_grid_type{};
-  backward_grid_vertex_property_type*        m_backward_flowmap_discretization = nullptr;
-  std::unique_ptr<backward_grid_vertex_property_sampler_type> m_backward_sampler = nullptr;
+  backward_grid_type                  m_backward_grid = backward_grid_type{};
+  backward_grid_vertex_property_type* m_backward_flowmap_discretization =
+      nullptr;
+  std::unique_ptr<backward_grid_vertex_property_sampler_type>
+                        m_backward_sampler       = nullptr;
   static constexpr auto default_execution_policy = execution_policy::parallel;
   //============================================================================
-  template <typename Flowmap, typename ExecutionPolicy, integral Int, std::size_t... Is>
+  template <typename Flowmap, typename ExecutionPolicy, integral Int,
+            std::size_t... Is>
   regular_flowmap_discretization(std::index_sequence<Is...> seq,
                                  Flowmap&& flowmap, arithmetic auto const t0,
                                  arithmetic auto const tau, pos_type const& min,
                                  pos_type const& max,
                                  ExecutionPolicy execution_policy,
-                                 vec<Int, NumDimensions> const& resolution) : regular_flowmap_discretization{seq, std::forward<Flowmap>(flowmap), t0, tau, min, max, execution_policy, resolution(Is)...} {}
+                                 vec<Int, NumDimensions> const& resolution)
+      : regular_flowmap_discretization{seq,
+                                       std::forward<Flowmap>(flowmap),
+                                       t0,
+                                       tau,
+                                       min,
+                                       max,
+                                       execution_policy,
+                                       resolution(Is)...} {}
   template <typename Flowmap, typename ExecutionPolicy, std::size_t... Is>
   regular_flowmap_discretization(std::index_sequence<Is...> /*seq*/,
                                  Flowmap&& flowmap, arithmetic auto const t0,
@@ -120,7 +132,7 @@ struct regular_flowmap_discretization {
           }
           return flowmap(x, m_t0, m_tau);
         },
-        "flowmap_discretization"/*, execution_policy*/);
+        "flowmap_discretization" /*, execution_policy*/);
 
     // create forward sampler
     m_forward_sampler =
@@ -141,16 +153,17 @@ struct regular_flowmap_discretization {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
-  regular_flowmap_discretization() 
-    : m_forward_flowmap_discretization{
-        &m_forward_grid.template vertex_property<pos_type>(
-           "flowmap_discretization")},
-            m_backward_flowmap_discretization{
-        &m_backward_grid.template vertex_property<pos_type>(
-           "flowmap_discretization")} {}
+  regular_flowmap_discretization()
+      : m_forward_flowmap_discretization{&m_forward_grid
+                                              .template vertex_property<
+                                                  pos_type>(
+                                                  "flowmap_discretization")},
+        m_backward_flowmap_discretization{
+            &m_backward_grid.template vertex_property<pos_type>(
+                "flowmap_discretization")} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  regular_flowmap_discretization(filesystem::path const &p)
-    : regular_flowmap_discretization{} {
+  regular_flowmap_discretization(filesystem::path const& p)
+      : regular_flowmap_discretization{} {
     read(p);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -161,14 +174,15 @@ struct regular_flowmap_discretization {
                                  arithmetic auto const tau, pos_type const& min,
                                  pos_type const& max,
                                  integral auto const... resolution)
-      : regular_flowmap_discretization{std::make_index_sequence<NumDimensions>{},
-                                       std::forward<Flowmap>(flowmap),
-                                       t0,
-                                       tau,
-                                       min,
-                                       max,
-                                       execution_policy,
-                                       resolution...} {
+      : regular_flowmap_discretization{
+            std::make_index_sequence<NumDimensions>{},
+            std::forward<Flowmap>(flowmap),
+            t0,
+            tau,
+            min,
+            max,
+            execution_policy,
+            resolution...} {
     static_assert(
         sizeof...(resolution) == NumDimensions,
         "Number of resolution components does not match number of dimensions.");
@@ -182,16 +196,17 @@ struct regular_flowmap_discretization {
                                  ExecutionPolicy       execution_policy,
                                  arithmetic auto const t0,
                                  arithmetic auto const tau, pos_type const& min,
-                                 pos_type const& max,
+                                 pos_type const&                max,
                                  vec<Int, NumDimensions> const& resolution)
-      : regular_flowmap_discretization{std::make_index_sequence<NumDimensions>{},
-                                       std::forward<Flowmap>(flowmap),
-                                       t0,
-                                       tau,
-                                       min,
-                                       max,
-                                       execution_policy,
-                                       resolution} {
+      : regular_flowmap_discretization{
+            std::make_index_sequence<NumDimensions>{},
+            std::forward<Flowmap>(flowmap),
+            t0,
+            tau,
+            min,
+            max,
+            execution_policy,
+            resolution} {
     static_assert(
         std::decay_t<Flowmap>::num_dimensions() == NumDimensions,
         "Number of dimensions of flowmap does not match number of dimensions.");
@@ -202,14 +217,15 @@ struct regular_flowmap_discretization {
                                  arithmetic auto const tau, pos_type const& min,
                                  pos_type const& max,
                                  integral auto const... resolution)
-      : regular_flowmap_discretization{std::make_index_sequence<NumDimensions>{},
-                                       std::forward<Flowmap>(flowmap),
-                                       t0,
-                                       tau,
-                                       min,
-                                       max,
-                                       default_execution_policy,
-                                       resolution...} {
+      : regular_flowmap_discretization{
+            std::make_index_sequence<NumDimensions>{},
+            std::forward<Flowmap>(flowmap),
+            t0,
+            tau,
+            min,
+            max,
+            default_execution_policy,
+            resolution...} {
     static_assert(
         sizeof...(resolution) == NumDimensions,
         "Number of resolution components does not match number of dimensions.");
@@ -221,20 +237,39 @@ struct regular_flowmap_discretization {
   template <typename Flowmap, integral Int>
   regular_flowmap_discretization(Flowmap&& flowmap, arithmetic auto const t0,
                                  arithmetic auto const tau, pos_type const& min,
-                                 pos_type const& max,
+                                 pos_type const&                max,
                                  vec<Int, NumDimensions> const& resolution)
-      : regular_flowmap_discretization{std::make_index_sequence<NumDimensions>{},
-                                       std::forward<Flowmap>(flowmap),
-                                       t0,
-                                       tau,
-                                       min,
-                                       max,
-                                       default_execution_policy,
-                                       resolution} {
+      : regular_flowmap_discretization{
+            std::make_index_sequence<NumDimensions>{},
+            std::forward<Flowmap>(flowmap),
+            t0,
+            tau,
+            min,
+            max,
+            default_execution_policy,
+            resolution} {
     static_assert(
         std::decay_t<Flowmap>::num_dimensions() == NumDimensions,
         "Number of dimensions of flowmap does not match number of dimensions.");
   }
+  //----------------------------------------------------------------------------
+  regular_flowmap_discretization(
+      regular_flowmap_discretization&& other) noexcept
+      : m_t0{other.m_t0},
+        m_t1{other.m_t0},
+        m_tau{other.m_t0},
+
+        m_forward_grid{std::move(other.m_forward_grid)},
+        m_forward_flowmap_discretization{
+            &m_forward_grid.template vertex_property<pos_type>(
+                "flowmap_discretization")},
+        m_forward_sampler{std::move(other.m_forward_sampler)},
+
+        m_backward_grid{std::move(other.m_backward_grid)},
+        m_backward_flowmap_discretization{
+            &m_backward_grid.template vertex_property<pos_type>(
+                "flowmap_discretization")},
+        m_backward_sampler{std::move(other.m_backward_sampler)} {}
   //----------------------------------------------------------------------------
   auto read(filesystem::path const&) {}
   auto write(filesystem::path const&) {}
