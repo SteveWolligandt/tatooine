@@ -249,7 +249,7 @@ struct base_tensor : crtp<Tensor> {
   }
   //----------------------------------------------------------------------------
   auto isnan() const {
-    bool b = false;
+    auto b = false;
     for_indices([&](auto const... is) {
       if (std::isnan(at(is...))) {
         b = true;
@@ -261,7 +261,7 @@ struct base_tensor : crtp<Tensor> {
   }
   //----------------------------------------------------------------------------
   auto isinf() const {
-    bool b = false;
+    auto b = false;
     for_indices([&](auto const... is) {
       if (std::isinf(at(is...))) {
         b = true;
