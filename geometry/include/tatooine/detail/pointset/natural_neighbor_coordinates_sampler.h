@@ -51,7 +51,9 @@ struct natural_neighbor_coordinates_sampler
     [&]<std::size_t... Is>(std::index_sequence<Is...> /*seq*/) {
       for (auto v : ps.vertices()) {
         auto const &p = ps[v];
-        points.emplace_back(cgal_point{p(Is)...}, v);
+        if (!p.isnan()) {
+          points.emplace_back(cgal_point{p(Is)...}, v);
+        }
       }
     }
     (std::make_index_sequence<NumDimensions>{});
