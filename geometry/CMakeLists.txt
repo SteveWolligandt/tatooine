@@ -91,7 +91,37 @@ else()
       target_link_libraries(geometry PUBLIC mpfr gmp)
       target_include_directories(
         geometry
-        PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Triangulation/include)
+        PUBLIC
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Triangulation/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Installation/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/STL_Extension/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Kernel_23/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Kernel_d/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Arithmetic_kernel/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/TDS_2/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/TDS_3/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Hash_map/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Spatial_sorting/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Property_map/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Triangulation_2/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Triangulation_3/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Mesh_3/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Profiling_tools/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Polygon/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Number_types/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Stream_support/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Cartesian_kernel/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Interval_support/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Modular_arithmetic/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Distance_2/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Distance_3/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Intersections_2/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Intersections_3/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Filtered_kernel/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Homogeneous_kernel/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Algebraic_foundations/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Circulator/include
+         ${CMAKE_CURRENT_SOURCE_DIR}/external/cgal/Interpolation/include)
       target_compile_definitions(geometry
                                  PUBLIC -DCGAL_DISABLE_ROUNDING_MATH_CHECK)
       set(TATOOINE_CGAL_AVAILABLE 1)
