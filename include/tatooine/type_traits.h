@@ -42,6 +42,9 @@ template <typename... Ts>
 static constexpr auto is_same = is_same_impl<Ts...>::value;
 //==============================================================================
 template <typename... Ts>
+static constexpr auto is_void = (is_same<Ts, void> && ...);
+//==============================================================================
+template <typename... Ts>
 static constexpr auto is_float = (is_same<Ts, float> && ...);
 //==============================================================================
 template <typename... Ts>
@@ -55,6 +58,9 @@ static constexpr auto is_size_t = (is_same<Ts, size_t> && ...);
 //==============================================================================
 template <typename Query, typename... Others>
 static constexpr auto is_either_of = (is_same<Query, Others> || ...);
+//==============================================================================
+template <typename F, typename... Args>
+using invoke_result = std::invoke_result_t<F, Args...>;
 //==============================================================================
 template <typename F, typename... Args>
 static constexpr auto is_invocable = std::is_invocable<F, Args...>::value;
