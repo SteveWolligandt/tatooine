@@ -18,7 +18,7 @@ struct staggered_flowmap_discretization {
   mutable std::vector<std::unique_ptr<internal_flowmap_discretization_type>>
       m_steps = {};
   std::vector<filesystem::path> m_filepaths_to_steps = {};
-  bool m_write_to_disk = false;
+  bool m_write_to_disk = true;
   mutable std::mutex m_deletion_mutex;
   //============================================================================
   staggered_flowmap_discretization(
