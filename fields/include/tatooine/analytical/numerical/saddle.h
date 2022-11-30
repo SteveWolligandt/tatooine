@@ -7,17 +7,19 @@
 //==============================================================================
 namespace tatooine::analytical::numerical {
 //==============================================================================
+template <floating_point Real, std::size_t NumDimensions>
+struct saddle;
 template <floating_point Real>
-struct saddle : vectorfield<saddle<Real>, Real, 2> {
-  using this_type   = saddle<Real>;
+struct saddle<Real, 2> : vectorfield<saddle<Real, 2>, Real, 2> {
+  using this_type   = saddle<Real, 2>;
   using parent_type = vectorfield<this_type, Real, 2>;
   using typename parent_type::pos_type;
   using typename parent_type::tensor_type;
   //============================================================================
   constexpr saddle() noexcept {}
-  constexpr saddle(saddle const&)     = default;
-  constexpr saddle(saddle&&) noexcept = default;
-  auto constexpr operator=(saddle const&) -> saddle& = default;
+  constexpr saddle(saddle const&)                        = default;
+  constexpr saddle(saddle&&) noexcept                    = default;
+  auto constexpr operator=(saddle const&) -> saddle&     = default;
   auto constexpr operator=(saddle&&) noexcept -> saddle& = default;
   //----------------------------------------------------------------------------
   virtual ~saddle() = default;
@@ -27,8 +29,31 @@ struct saddle : vectorfield<saddle<Real>, Real, 2> {
     return tensor_type{-x(0), x(1)};
   }
 };
+template <floating_point Real>
+struct saddle<Real, 3> : vectorfield<saddle<Real, 3>, Real, 3> {
+  using this_type   = saddle<Real, 3>;
+  using parent_type = vectorfield<this_type, Real, 3>;
+  using typename parent_type::pos_type;
+  using typename parent_type::tensor_type;
+  //============================================================================
+  constexpr saddle() noexcept {}
+  constexpr saddle(saddle const&)                        = default;
+  constexpr saddle(saddle&&) noexcept                    = default;
+  auto constexpr operator=(saddle const&) -> saddle&     = default;
+  auto constexpr operator=(saddle&&) noexcept -> saddle& = default;
+  //----------------------------------------------------------------------------
+  virtual ~saddle() = default;
+  //----------------------------------------------------------------------------
+  [[nodiscard]] auto constexpr evaluate(pos_type const& x,
+                                        Real const /*t*/) const -> tensor_type {
+    return tensor_type{-x(0), -x(1), x(2)/10};
+  }
+};
 //==============================================================================
-saddle()->saddle<real_number>;
+template <std::size_t NumDimensions>
+using Saddle  = saddle<real_number, NumDimensions>;
+using saddle2 = Saddle<2>;
+using saddle3 = Saddle<3>;
 //==============================================================================
 template <floating_point Real>
 struct rotated_saddle : vectorfield<rotated_saddle<Real>, Real, 2> {
@@ -45,8 +70,8 @@ struct rotated_saddle : vectorfield<rotated_saddle<Real>, Real, 2> {
   //----------------------------------------------------------------------------
   explicit constexpr rotated_saddle(Real angle_in_radians = M_PI / 4) noexcept
       : m_angle_in_radians{angle_in_radians} {}
-  constexpr rotated_saddle(rotated_saddle const&)     = default;
-  constexpr rotated_saddle(rotated_saddle&&) noexcept = default;
+  constexpr rotated_saddle(rotated_saddle const&)                    = default;
+  constexpr rotated_saddle(rotated_saddle&&) noexcept                = default;
   auto constexpr operator=(rotated_saddle const&) -> rotated_saddle& = default;
   auto constexpr operator=(rotated_saddle&&) noexcept
       -> rotated_saddle& = default;
@@ -70,7 +95,7 @@ struct saddle_flowmap {
   using vec_type   = vec<Real, 2>;
   using pos_type   = vec_type;
   saddle_flowmap() = default;
-  saddle_flowmap(saddle<Real> const&) {}
+  saddle_flowmap(saddle<Real, 2> const&) {}
   static auto constexpr num_dimensions() { return 2; }
   //----------------------------------------------------------------------------
   auto constexpr evaluate(pos_type const& x, Real const t, Real const tau) const
@@ -84,12 +109,12 @@ struct saddle_flowmap {
   }
 };
 template <floating_point Real>
-auto constexpr flowmap(saddle<Real> const& /*v*/, tag::analytical_t /*tag*/) {
+auto constexpr flowmap(saddle<Real, 2> const& /*v*/, tag::analytical_t /*tag*/) {
   return analytical::numerical::saddle_flowmap<Real>{};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <floating_point Real>
-auto constexpr flowmap(saddle<Real> const& v) {
+auto constexpr flowmap(saddle<Real, 2> const& v) {
   return flowmap(v, tag::analytical);
 }
 //==============================================================================
@@ -98,10 +123,9 @@ auto constexpr flowmap(saddle<Real> const& v) {
 namespace tatooine {
 //==============================================================================
 template <floating_point Real>
-struct differentiated_field<analytical::numerical::saddle<Real>>
-    : matrixfield<analytical::numerical::saddle<Real>, Real, 2> {
-  using this_type =
-      differentiated_field<analytical::numerical::saddle<Real>>;
+struct differentiated_field<analytical::numerical::saddle<Real, 2>>
+    : matrixfield<analytical::numerical::saddle<Real, 2>, Real, 2> {
+  using this_type   = differentiated_field<analytical::numerical::saddle<Real, 2>>;
   using parent_type = matrixfield<this_type, Real, 2>;
   using typename parent_type::pos_type;
   using typename parent_type::tensor_type;
@@ -115,8 +139,7 @@ struct differentiated_field<analytical::numerical::saddle<Real>>
 };
 //==============================================================================
 template <floating_point Real>
-struct differentiated_flowmap<
-    analytical::numerical::saddle_flowmap<Real>> {
+struct differentiated_flowmap<analytical::numerical::saddle_flowmap<Real>> {
   using real_type     = Real;
   using vec_type      = vec<Real, 2>;
   using pos_type      = vec_type;
