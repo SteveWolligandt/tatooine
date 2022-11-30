@@ -354,8 +354,8 @@ auto write_vtp(Ellipsoids const &ellipsoids, filesystem::path const &path) {
   auto const num_lines = discretized_unit_circle.num_line_segments();
 
   auto offsets = std::vector<offset_int>(num_lines, 2);
-  offsets.front() = 0;
-  for (std::size_t i = 2; i < size(offsets); ++i) {
+  //offsets.front() = 0;
+  for (std::size_t i = 1; i < size(offsets); ++i) {
     offsets[i] += offsets[i - 1];
   }
 
@@ -476,8 +476,8 @@ auto write_vtp(Ellipsoids const &ellipsoids, filesystem::path const &path) {
   auto const num_polys = discretized_unit_sphere.triangles().size();
 
   auto offsets = std::vector<offset_int>(num_polys, 3);
-  offsets.front() = 0;
-  for (std::size_t i = 2; i < size(offsets); ++i) {
+  //offsets.front() = 0;
+  for (std::size_t i = 1; i < size(offsets); ++i) {
     offsets[i] += offsets[i - 1];
   };
 
