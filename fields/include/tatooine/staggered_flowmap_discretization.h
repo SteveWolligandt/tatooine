@@ -16,10 +16,10 @@ struct staggered_flowmap_discretization {
   using pos_type = vec_type;
   //============================================================================
   mutable std::vector<std::unique_ptr<internal_flowmap_discretization_type>>
-      m_steps = {};
+                                m_steps              = {};
   std::vector<filesystem::path> m_filepaths_to_steps = {};
-  bool m_write_to_disk = false;
-  mutable std::mutex m_deletion_mutex;
+  bool                          m_write_to_disk      = false;
+  mutable std::mutex            m_deletion_mutex;
   //============================================================================
   staggered_flowmap_discretization(
       staggered_flowmap_discretization const &other)
@@ -32,8 +32,8 @@ struct staggered_flowmap_discretization {
   //----------------------------------------------------------------------------
   staggered_flowmap_discretization(
       staggered_flowmap_discretization &&other) noexcept
-      : m_steps{std::move(other.m_steps)}, m_filepaths_to_steps{std::move(
-                                               other.m_filepaths_to_steps)},
+      : m_steps{std::move(other.m_steps)},
+        m_filepaths_to_steps{std::move(other.m_filepaths_to_steps)},
         m_write_to_disk{other.m_write_to_disk} {}
   //----------------------------------------------------------------------------
   auto operator=(staggered_flowmap_discretization const &other)
@@ -42,15 +42,15 @@ struct staggered_flowmap_discretization {
       m_steps.emplace_back(new internal_flowmap_discretization_type{step});
     }
     m_filepaths_to_steps = other.m_filepaths_to_steps;
-    m_write_to_disk = other.m_write_to_disk;
+    m_write_to_disk      = other.m_write_to_disk;
     return *this;
   }
   //----------------------------------------------------------------------------
   auto operator=(staggered_flowmap_discretization &&other)
       -> staggered_flowmap_discretization & {
-    m_steps = std::move(other.m_steps);
+    m_steps              = std::move(other.m_steps);
     m_filepaths_to_steps = std::move(other.m_filepaths_to_steps);
-    m_write_to_disk = std::move(other.m_write_to_disk);
+    m_write_to_disk      = std::move(other.m_write_to_disk);
     return *this;
   }
   //============================================================================
@@ -59,12 +59,12 @@ struct staggered_flowmap_discretization {
                                    arithmetic auto const tau,
                                    arithmetic auto const delta_t,
                                    InternalFlowmapArgs &&...args) {
-    auto cur_t0 = real_type(t0);
+    auto       cur_t0 = real_type(t0);
     auto const t_end = static_cast<real_type>(t0) + static_cast<real_type>(tau);
     m_steps.reserve(static_cast<std::size_t>((t_end - t0) / delta_t) + 2);
-    static auto const eps = real_type(1e-10);
-    auto cnt = std::size_t{};
-    auto const prefix = random::alpha_numeric_string(5) + "_";
+    static auto const eps    = real_type(1e-10);
+    auto              cnt    = std::size_t{};
+    auto const        prefix = random::alpha_numeric_string(5) + "_";
     while (cur_t0 + eps < t0 + tau) {
       std::cout << "begin of while\n";
       auto cur_tau = static_cast<real_type>(delta_t);
@@ -149,6 +149,6 @@ struct staggered_flowmap_discretization {
   }
 };
 //==============================================================================
-} // namespace tatooine
+}  // namespace tatooine
 //==============================================================================
 #endif
