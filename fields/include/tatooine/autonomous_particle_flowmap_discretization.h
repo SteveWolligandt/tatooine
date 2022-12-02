@@ -496,8 +496,8 @@ private:
         particle_type::template advect<SplitBehavior>(
             std::forward<Flowmap>(flowmap), tau_step, t_end, initial_particles,
             uuid_generator);
-    //write_vtp(initial_particles, "initial_particles.vtp");
-    //write_vtp(advected_particles, "advected_particles.vtp");
+    // write_vtp(initial_particles, "initial_particles.vtp");
+    // write_vtp(advected_particles, "advected_particles.vtp");
     auto advected_t0 =
         std::vector<geometry::hyper_ellipse<real_type, NumDimensions>>{};
     std::ranges::copy(advected_particles |
@@ -505,7 +505,7 @@ private:
                             return p.initial_ellipse();
                           }),
                       std::back_inserter(advected_t0));
-    //write_vtp(advected_t0, "advected_t0_particles.vtp");
+    // write_vtp(advected_t0, "advected_t0_particles.vtp");
     auto points_forward = std::vector<std::pair<cgal_point, vertex_handle>>{};
     points_forward.reserve(size(advected_particles));
     auto points_backward = std::vector<std::pair<cgal_point, vertex_handle>>{};
@@ -546,27 +546,29 @@ public:
   [[nodiscard]] auto sample(pos_type const &q,
                             forward_or_backward_tag auto const direction,
                             std::index_sequence<Is...> /*seq*/) const {
+    return pointset(direction).inverse_distance_weighting_sampler(
+        flowmaps(direction))(q);
     // coordinates computation
-    auto const [result, nnc_per_vertex] = cgal::natural_neighbor_coordinates<
-        NumDimensions, typename cgal_triangulation_type::Geom_traits,
-        typename cgal_triangulation_type::Triangulation_data_structure>(
-        triangulation(direction), cgal_point{q(Is)...});
-    auto const success = result.third;
-    if (!success) {
-      return pos_type::fill(nan<real_type>());
-    }
-    auto const norm = 1 / result.second;
-
-    auto const Z0 = [&] {
-      auto sum = pos_type{};
-      for (auto const &[cgal_handle, coeff] : nnc_per_vertex) {
-        auto const v = cgal_handle->info();
-        auto const lambda_i = coeff * norm;
-        sum += lambda_i * flowmaps(direction)[v];
-      }
-      return sum;
-    }();
-    return Z0;
+    // auto const [result, nnc_per_vertex] = cgal::natural_neighbor_coordinates<
+    //    NumDimensions, typename cgal_triangulation_type::Geom_traits,
+    //    typename cgal_triangulation_type::Triangulation_data_structure>(
+    //    triangulation(direction), cgal_point{q(Is)...});
+    // auto const success = result.third;
+    // if (!success) {
+    //  return pos_type::fill(nan<real_type>());
+    //}
+    // auto const norm = 1 / result.second;
+    //
+    // auto const Z0 = [&] {
+    //  auto sum = pos_type{};
+    //  for (auto const &[cgal_handle, coeff] : nnc_per_vertex) {
+    //    auto const v = cgal_handle->info();
+    //    auto const lambda_i = coeff * norm;
+    //    sum += lambda_i * flowmaps(direction)[v];
+    //  }
+    //  return sum;
+    //}();
+    // return Z0;
 
     // auto xi = [&] {
     //   auto numerator   = pos_type{};
