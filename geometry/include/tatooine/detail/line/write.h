@@ -2,6 +2,7 @@
 #define TATOOINE_DETAIL_LINE_OPERATIONS_H
 //==============================================================================
 #include <tatooine/line.h>
+#include <tatooine/nan.h>
 #include <tatooine/pow.h>
 //==============================================================================
 namespace tatooine::detail::line {
@@ -16,9 +17,8 @@ auto write_properties_to_vtk(Writer& writer, Names const& names,
       if (l.has_vertex_property(name_to_search)) {
         try {
           auto const& prop      = l.template vertex_property<T>(name_to_search);
-          auto const& prop_data = prop.internal_container();
-          std::copy(begin(prop_data), end(prop_data),
-                    std::back_inserter(prop_collector));
+          std::ranges::copy(prop.internal_container(),
+                            std::back_inserter(prop_collector));
         } catch (...) {
           for (std::size_t i = 0; i < l.vertices().size(); ++i) {
             prop_collector.push_back(nan<T>());
