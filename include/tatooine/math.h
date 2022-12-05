@@ -21,6 +21,7 @@ constexpr auto max(A&& a, B&& b) {
   return gcem::max(std::forward<A>(a), std::forward<B>(b));
 }
 constexpr auto log(arithmetic auto const x) { return gcem::log(x); }
+constexpr auto log2(arithmetic auto const x) { return gcem::log2(x); }
 //constexpr auto log10(arithmetic auto const x) { return gcem::log10(x); }
 constexpr auto abs(arithmetic auto const x) { return gcem::abs(x); }
 constexpr auto sin(arithmetic auto const x) { return gcem::sin(x); }

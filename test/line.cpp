@@ -80,5 +80,19 @@ TEST_CASE_METHOD(line2, "line_resample", "[line][parameterization][resample]") {
   resample<interpolation::cubic>(linspace{0.0, 1.0, 101});
 }
 //==============================================================================
+TEST_CASE("line_io", "[line][io]") {
+  SECTION("vtp") {
+    SECTION("3d") {
+      auto l0 = line3{vec3{0,0,0}, vec3{1,2,3},vec3{4,5,6}};
+      l0.write_vtp("line.test.io.vtp");
+      auto l1 = line3{"line.test.io.vtp"};
+      REQUIRE(l1.num_vertices() == 3);
+      REQUIRE(approx_equal(l0.vertex_at(0), l1.vertex_at(0)));
+      REQUIRE(approx_equal(l0.vertex_at(1), l1.vertex_at(1)));
+      REQUIRE(approx_equal(l0.vertex_at(2), l1.vertex_at(2)));
+    }
+  }
+}
+//==============================================================================
 }  // namespace tatooine::test
 //==============================================================================

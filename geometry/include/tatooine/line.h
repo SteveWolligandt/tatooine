@@ -133,6 +133,10 @@ struct line {
       : m_vertices{pos_type{std::forward<decltype(vs)>(vs)}...},
         m_is_closed{false} {}
   //----------------------------------------------------------------------------
+  line(filesystem::path const& path) {
+    read(path);
+  }
+  //----------------------------------------------------------------------------
   auto copy_without_properties() {}
   //----------------------------------------------------------------------------
   auto empty() const { return m_vertices.empty(); }
@@ -600,8 +604,17 @@ struct line {
         .write(path);
   }
   //----------------------------------------------------------------------------
-  static auto read_vtk(std::string const& filepath) requires(num_dimensions() ==
-                                                             3) {
+  auto read(filesystem::path const& path) {
+    auto const file_ext = path.extension();
+    if constexpr (NumDimensions == 2 || NumDimensions == 3) { 
+      if (file_ext == ".vtp") {
+        read_vtp_single_piece(path);
+      }
+    }
+  }
+  //----------------------------------------------------------------------------
+  static auto read_vtk(std::string const& filepath)
+  requires(num_dimensions() == 3) {
     struct reader : vtk::legacy_file_listener {
       std::vector<std::array<Real, 3>> points;
       std::vector<int>                 lines;
@@ -629,13 +642,28 @@ struct line {
     return lines;
   }
   //----------------------------------------------------------------------------
-  static auto read_vtp(std::string const& filepath)
-  requires(num_dimensions() == 3) {
+  auto read_vtp_single_piece(std::string const& filepath)
+  requires(num_dimensions() == 2) || (num_dimensions() == 3) {
     auto reader = vtk::xml::reader{filepath};
     if (reader.type() != vtk::xml::vtk_type::poly_data) {
       throw std::runtime_error{"[line::read_vtp] can only read from poly_data"};
     }
-    return read(reader.poly_data()->pieces.front());
+    read(reader.poly_data()->pieces.back());
+  }
+  //----------------------------------------------------------------------------
+  static auto read_vtp(std::string const& filepath)
+  requires(num_dimensions() == 3) || (num_dimensions() == 3) {
+    auto reader = vtk::xml::reader{filepath};
+    if (reader.type() != vtk::xml::vtk_type::poly_data) {
+      throw std::runtime_error{"[line::read_vtp] can only read from poly_data"};
+    }
+    auto lines = std::vector<this_type>{};
+    lines.reserve(reader.poly_data()->pieces.size());
+
+    for (auto& piece: reader.poly_data()->pieces) {
+      lines.emplace_back().read(piece);
+    }
+    return lines;
   }
   //----------------------------------------------------------------------------
   /// Reads data_array as vertex property if the number of components is equal
